@@ -7,8 +7,10 @@ Mostly for measurements of Nuitka of itself, e.g. how long did it take to
 call an external tool.
 """
 
+from contextlib import contextmanager
 from timeit import default_timer as timer
 
+from nuitka.__past__ import StringIO
 from nuitka.Tracing import general
 
 
@@ -84,6 +86,36 @@ class TimerReport(object):
 
         if exception_type is None and above_threshold and self.decider():
             self.logger.info(self.message % self.timer.getDelta(), keep_format=True)
+
+
+@contextmanager
+def withProfiling(name, logger, enabled):
+    if enabled:
+        import cProfile
+        import pstats
+
+        from nuitka.Options import getOutputPath
+
+        pr = cProfile.Profile()
+        pr.enable()
+
+        yield
+
+        pr.disable()
+
+        s = StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+
+        ps.print_stats()
+        for line in s.getvalue().splitlines():
+            logger.info(line)
+
+        profile_filename = getOutputPath(name + ".prof")
+
+        pr.dump_stats(profile_filename)
+        logger.info("Profiling data for '%s' saved to '%s'." % (name, profile_filename))
+    else:
+        yield
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

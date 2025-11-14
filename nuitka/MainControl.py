@@ -81,6 +81,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Serialization import ConstantAccessor
 from nuitka.Tracing import (
+    code_generation_logger,
     doNotBreakSpaces,
     general,
     inclusion_logger,
@@ -109,6 +110,7 @@ from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
+from nuitka.utils.Timing import withProfiling
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -665,7 +667,7 @@ def runSconsBackend():
     if Options.getForcedStderrPath():
         scons_options["forced_stderr_path"] = Options.getForcedStderrPath()
 
-    if Options.isProfile():
+    if Options.isRuntimeProfile():
         scons_options["profile_mode"] = asBoolStr(True)
 
     if Options.shallTreatUninstalledPython():
@@ -895,7 +897,12 @@ def compileTree():
         )
 
         # Now build the target language code for the whole tree.
-        makeSourceDirectory()
+        with withProfiling(
+            name="code-generation",
+            logger=code_generation_logger,
+            enabled=Options.isCompileTimeProfile(),
+        ):
+            makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
