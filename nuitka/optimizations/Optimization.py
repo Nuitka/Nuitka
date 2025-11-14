@@ -21,7 +21,7 @@ from nuitka.Progress import (
 )
 from nuitka.Tracing import general, optimization_logger, progress_logger
 from nuitka.utils.MemoryUsage import MemoryWatch, reportMemoryUsage
-from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Timing import TimerReport, withProfiling
 
 from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
@@ -326,7 +326,7 @@ def makeOptimizationPass():
     return finished
 
 
-def optimizeModules(output_filename):
+def _optimizeModules(output_filename):
     Graphs.startGraph()
 
     finished = makeOptimizationPass()
@@ -345,6 +345,15 @@ def optimizeModules(output_filename):
         finished = makeOptimizationPass()
 
     Graphs.endGraph(output_filename)
+
+
+def optimizeModules(output_filename):
+    with withProfiling(
+        name="module-optimization",
+        logger=general,
+        enabled=Options.isCompileTimeProfile(),
+    ):
+        _optimizeModules(output_filename)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
