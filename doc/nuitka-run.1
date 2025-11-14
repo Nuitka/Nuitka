@@ -210,7 +210,7 @@ Disable check normally done with "\-\-debug". The C compilation may produce warn
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for better debugger interaction. Defaults to off.
 .TP
-\fB\-\-profile\fR
+\fB\-\-debug\-profile\-runtime\fR
 Enable vmprof based profiling of time spent. Not working currently. Defaults to off.
 .TP
 \fB\-\-trace\-execution\fR
@@ -244,6 +244,9 @@ This is not incremental compilation, but for Nuitka development only. Takes exis
 .TP
 \fB\-\-devel\-internal\-graph\fR
 Create graph of optimization process internals, do not use for whole programs, but only for small test cases. Defaults to off.
+.TP
+\fB\-\-devel\-profile\-compilation\fR
+Enable cProfile based profiling of time spent during compilation. Defaults to off.
 .IP
 Backend C compiler choice:
 .TP

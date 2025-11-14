@@ -945,9 +945,9 @@ Defaults to off.""",
 )
 
 debug_group.add_option(
-    "--profile",
+    "--debug-profile-runtime",
     action="store_true",
-    dest="profile",
+    dest="debug_profile_runtime",
     default=False,
     github_action=False,
     help="""\
@@ -1090,6 +1090,16 @@ development_group.add_option(
     require_compiling=False,
     github_action=False,
     help=SUPPRESS_HELP,
+)
+
+development_group.add_option(
+    "--devel-profile-compilation",
+    action="store_true",
+    dest="devel_profile_compilation",
+    default=False,
+    github_action=False,
+    help="""\
+Enable cProfile based profiling of time spent during compilation. Defaults to off.""",
 )
 
 del development_group
