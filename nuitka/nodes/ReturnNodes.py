@@ -61,7 +61,7 @@ class StatementReturn(StatementReturnMixin, StatementReturnBase):
 Return statement raises in returned expression, removed return.""",
             )
 
-        trace_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn(trace_collection)
 
         if expression.isExpressionConstantRef():
             result = makeStatementReturnConstant(
@@ -95,7 +95,7 @@ class StatementReturnConstantBase(StatementReturnMixin, StatementBase):
         return False
 
     def computeStatement(self, trace_collection):
-        trace_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn(trace_collection)
 
         return self, None, None
 
@@ -206,7 +206,7 @@ class StatementReturnReturnedValue(StatementBase):
         return False
 
     def computeStatement(self, trace_collection):
-        trace_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn(trace_collection)
 
         return self, None, None
 

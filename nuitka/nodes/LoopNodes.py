@@ -219,7 +219,7 @@ class StatementLoop(StatementLoopBase):
             if loop_body is not None:
                 # Emulate terminal continue if not aborting.
                 if not loop_body.isStatementAborting():
-                    trace_collection.onLoopContinue()
+                    trace_collection.onLoopContinue(trace_collection)
 
             continue_collections = trace_collection.getLoopContinueCollections()
 
@@ -388,7 +388,7 @@ class StatementLoopContinue(StatementBase):
 
     def computeStatement(self, trace_collection):
         # This statement being aborting, will already tell everything.
-        trace_collection.onLoopContinue()
+        trace_collection.onLoopContinue(trace_collection)
 
         return self, None, None
 
@@ -420,7 +420,7 @@ class StatementLoopBreak(StatementBase):
 
     def computeStatement(self, trace_collection):
         # This statement being aborting, will already tell everything.
-        trace_collection.onLoopBreak()
+        trace_collection.onLoopBreak(trace_collection)
 
         return self, None, None
 

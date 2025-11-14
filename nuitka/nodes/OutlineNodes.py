@@ -9,6 +9,8 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
+from nuitka.tree.Extractions import updateVariableUsage
+
 from .ChildrenHavingMixins import ChildHavingBodyOptionalMixin
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionRaiseException
@@ -189,7 +191,7 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
     Once this has no frame, it can be changed to a mere outline expression.
     """
 
-    __slots__ = ("temp_scope", "locals_scope")
+    __slots__ = ("temp_scope",)
 
     def __init__(self, provider, name, body, code_prefix, source_ref):
         ExpressionFunctionBodyBase.__init__(
@@ -204,7 +206,33 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
 
         self.temp_scope = None
 
-        self.locals_scope = None
+    def makeClone(self):
+        result = ExpressionFunctionBodyBase.makeClone(self)
+        result.name += "_clone"
+
+        # False alarm, pylint doesn't see the actual type, pylint: disable=assigning-non-slot
+        result.locals_scope, variable_translations = self.locals_scope.makeClone(
+            new_owner=result
+        )
+
+        entry_point = self.getEntryPoint()
+        for temp_variable in entry_point.getTempVariables(self):
+            new_temp_variable = entry_point.allocateTempVariable(
+                temp_scope=None,
+                name=temp_variable.getName() + "_clone",
+                temp_type=temp_variable.getVariableType(),
+            )
+
+            variable_translations[temp_variable] = new_temp_variable
+
+        updateVariableUsage(
+            provider=result,
+            old_locals_scope=self.locals_scope,
+            new_locals_scope=result.locals_scope,
+            variable_translations=variable_translations,
+        )
+
+        return result
 
     @staticmethod
     def isExpressionOutlineFunctionBase():
@@ -217,15 +245,45 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         return {"name": self.name, "provider": self.provider.getCodeName()}
 
     def computeExpressionRaw(self, trace_collection):
-        # Keep track of these, so they can provide what variables are to be
-        # setup.
+        # Need to insert and remove a whole new context for evaluation.
+        # pylint: disable=too-many-branches
+
+        need_removal = set()
+
+        for variable in self.locals_scope.variables.values():
+            assert variable not in trace_collection.variable_actives, variable
+
+            trace_collection.initVariableLate(variable)
+            need_removal.add(variable)
+
+        for variable in self.locals_scope.local_variables.values():
+            assert variable not in trace_collection.variable_actives, variable
+
+            trace_collection.initVariableLate(variable)
+            need_removal.add(variable)
+
+        for variable in self.taken:
+            if variable not in trace_collection.variable_actives:
+                trace_collection.initVariableLate(variable)
+                need_removal.add(variable)
+
+        for variable in self.getEntryPoint().getTempVariables(self):
+            if variable not in trace_collection.variable_actives:
+                trace_collection.initVariableLate(variable)
+                need_removal.add(variable)
+
         trace_collection.addOutlineFunction(self)
+
+        # Catch exceptions, so we can remove unwanted variables.
+        catch_exceptions = (
+            need_removal and trace_collection.getExceptionRaiseCollections() is not None
+        )
 
         abort_context = trace_collection.makeAbortStackContext(
             catch_breaks=False,
             catch_continues=False,
             catch_returns=True,
-            catch_exceptions=False,
+            catch_exceptions=catch_exceptions,
         )
 
         with abort_context:
@@ -238,6 +296,22 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
                 body = result
 
             return_collections = trace_collection.getFunctionReturnCollections()
+            exception_collections = trace_collection.getExceptionRaiseCollections()
+
+            for variable in need_removal:
+                for return_collection in return_collections:
+                    return_collection.removeCurrentVariableTrace(variable)
+
+                if catch_exceptions:
+                    for exception_collection in exception_collections:
+                        exception_collection.removeCurrentVariableTrace(variable)
+
+                trace_collection.removeCurrentVariableTrace(variable)
+
+        # Pass exception collections on if necessary.
+        if catch_exceptions:
+            for exception_collection in exception_collections:
+                trace_collection.onExceptionRaiseExit(None, exception_collection)
 
         if return_collections:
             trace_collection.mergeMultipleBranches(return_collections)
@@ -280,6 +354,21 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         # collections may tell us something.
         return self, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        local_variable_values = self.getLocalsScope().local_variables.values()
+        local_temp_variables = self.getEntryPoint().getTempVariables(self)
+
+        def local_emit(variable):
+            if (
+                variable not in local_variable_values
+                and variable not in local_temp_variables
+            ):
+                emit_read(variable)
+
+        self.subnode_body.collectVariableAccesses(local_emit, local_emit)
+
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)
 
@@ -301,8 +390,10 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(
-            temp_scope=temp_scope, name=name, temp_type=temp_type
+        entry_point = self.getEntryPoint()
+
+        return entry_point.allocateTempVariable(
+            temp_scope=temp_scope, name=name, temp_type=temp_type, outline=self
         )
 
     def allocateTempScope(self, name):
@@ -324,6 +415,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         return self.provider.getVariableForReference(variable_name=variable_name)
 
     def getLocalsScope(self):
+        # TODO: Make this abstract and static for ones that do not
+        # have a locals scope.
         return self.locals_scope
 
     def isEarlyClosure(self):

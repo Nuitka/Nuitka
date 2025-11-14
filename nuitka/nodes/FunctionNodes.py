@@ -104,7 +104,11 @@ class ExpressionFunctionBodyBase(
 
         ClosureTakerMixin.__init__(self, provider=provider)
 
-        ClosureGiverNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+        ClosureGiverNodeMixin.__init__(
+            self,
+            name=name,
+            code_prefix=code_prefix,
+        )
 
         ExpressionBase.__init__(self, source_ref)
 
@@ -242,7 +246,10 @@ class ExpressionFunctionBodyBase(
         self.locals_scope.registerProvidedVariable(new_variable)
 
         updateVariableUsage(
-            provider=self, old_variable=variable, new_variable=new_variable
+            provider=self,
+            old_locals_scope=None,
+            new_locals_scope=None,
+            variable_translations={variable: new_variable},
         )
 
     def hasClosureVariable(self, variable):
@@ -268,7 +275,10 @@ class ExpressionFunctionBodyBase(
 
             # Remember that we need that closure variable for something, so
             # we don't create it again all the time.
-            if not result.isModuleVariable():
+            # TODO: Why is this done inconsistently in function or locals scope.
+            if result.isModuleVariable():
+                self.addClosureVariable(result)
+            else:
                 self.locals_scope.registerClosureVariable(result)
 
             entry_point = self.getEntryPoint()
@@ -388,7 +398,7 @@ class ExpressionFunctionBodyBase(
             ):
                 continue
 
-            empty = self.trace_collection.hasEmptyTraces(closure_variable)
+            empty = closure_variable.hasEmptyTracesFor(self.trace_collection.owner)
 
             if empty:
                 changed = True
@@ -467,6 +477,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         return self.getFunctionQualname() + ".<locals>." + function_name
 
     def computeFunctionRaw(self, trace_collection):
+        # TODO: Lets not go through imports on performance critical paths
         from nuitka.optimizations.TraceCollections import (
             TraceCollectionFunction,
         )

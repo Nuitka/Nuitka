@@ -413,7 +413,7 @@ def generateFunctionBodyCode(function_body, context):
                 closure_variables=function_body.getClosureVariables(),
                 user_variables=function_body.getUserLocalVariables(),
                 outline_variables=function_body.getOutlineLocalVariables(),
-                temp_variables=function_body.getTempVariables(),
+                temp_variables=function_body.getAllTempVariables(),
                 needs_exception_exit=needs_exception_exit,
                 needs_generator_return=function_body.needsGeneratorReturnExit(),
             )
@@ -432,7 +432,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
@@ -449,7 +449,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
@@ -488,7 +488,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables()
             + function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(
