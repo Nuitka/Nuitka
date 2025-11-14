@@ -84,6 +84,7 @@ class StatementDelVariableBase(StatementBase):
     def fromXML(cls, provider, source_ref, **args):
         owner = getOwnerFromCodeName(args["owner"])
 
+        # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
                 args["variable_name"], temp_type=args["var_type"]

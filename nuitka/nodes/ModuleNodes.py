@@ -261,7 +261,9 @@ class CompiledPythonModule(
         )
 
         ClosureGiverNodeMixin.__init__(
-            self, name=module_name.getBasename(), code_prefix="module"
+            self,
+            name=module_name.getBasename(),
+            code_prefix="module",
         )
 
         ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
@@ -494,6 +496,11 @@ class CompiledPythonModule(
         return self.trace_collection.getModuleUsageAttempts()
 
     def getUsedDistributions(self):
+        if self.trace_collection is None:
+            # Optimization is not yet done at all, but report writing for error
+            # exit may happen.
+            return ()
+
         return self.trace_collection.getUsedDistributions()
 
     def addUsedFunction(self, function_body):

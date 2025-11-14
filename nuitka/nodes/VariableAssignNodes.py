@@ -86,9 +86,10 @@ class StatementAssignmentVariableMixin(object):
         # Virtual method overload, pylint: disable=unused-argument
         owner = getOwnerFromCodeName(args["owner"])
 
+        # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
-                args["variable_name"], temp_type=["var_type"]
+                args["variable_name"], temp_type=["var_type"], outline=None
             )
         else:
             variable = owner.getProvidedVariable(args["variable_name"])
@@ -1146,15 +1147,15 @@ def makeStatementAssignmentVariable(
             variable_version=variable_version,
             source_ref=source_ref,
         )
-    elif source.getTypeShape().isShapeIterator():
-        return StatementAssignmentVariableIterator(
+    elif source.hasVeryTrustedValue():
+        return StatementAssignmentVariableHardValue(
             source=source,
             variable=variable,
             variable_version=variable_version,
             source_ref=source_ref,
         )
-    elif source.hasVeryTrustedValue():
-        return StatementAssignmentVariableHardValue(
+    elif source.getTypeShape().isShapeIterator():
+        return StatementAssignmentVariableIterator(
             source=source,
             variable=variable,
             variable_version=variable_version,

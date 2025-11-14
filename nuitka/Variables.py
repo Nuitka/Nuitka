@@ -93,7 +93,7 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         return encodePythonIdentifierToC(self.variable_name)
 
     def allocateTargetNumber(self):
-        self.version_number += 1
+        self.version_number += 3
 
         return self.version_number
 
@@ -173,6 +173,13 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
     def getTraces(self):
         """For debugging only"""
         return self.traces
+
+    def hasEmptyTracesFor(self, owner):
+        for trace in self.traces:
+            if trace.owner is owner and trace.isUsingTrace():
+                return False
+
+        return True
 
     def updateUsageState(self):
         writers = set()

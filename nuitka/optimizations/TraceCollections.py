@@ -148,32 +148,23 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     def getLoopBreakCollections(self):
         return self.break_collections
 
-    def onLoopBreak(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onLoopBreak(self, collection):
         self.break_collections.append(
-            TraceCollectionBranch(parent=collection, name="loop break")
+            TraceCollectionSnapshot(parent=collection, name="loop break")
         )
 
     def getLoopContinueCollections(self):
         return self.continue_collections
 
-    def onLoopContinue(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onLoopContinue(self, collection):
         self.continue_collections.append(
-            TraceCollectionBranch(parent=collection, name="loop continue")
+            TraceCollectionSnapshot(parent=collection, name="loop continue")
         )
 
-    def onFunctionReturn(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onFunctionReturn(self, collection):
         if self.return_collections is not None:
             self.return_collections.append(
-                TraceCollectionBranch(parent=collection, name="return")
+                TraceCollectionSnapshot(parent=collection, name="return")
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection=None):
@@ -203,9 +194,13 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             if collection is None:
                 collection = self
 
-            self.exception_collections.append(
-                TraceCollectionBranch(parent=collection, name="exception")
-            )
+            if not self.exception_collections or (
+                self.exception_collections[-1].variable_actives
+                is not collection.variable_actives
+            ):
+                self.exception_collections.append(
+                    TraceCollectionSnapshot(parent=collection, name="exception")
+                )
 
     def getFunctionReturnCollections(self):
         return self.return_collections
@@ -213,57 +208,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     def getExceptionRaiseCollections(self):
         return self.exception_collections
 
-    def hasEmptyTraces(self, variable):
-        # TODO: Combine these steps into one for performance gains.
-        traces = self.getVariableTraces(variable)
-        return areEmptyTraces(traces)
-
     def hasReadOnlyTraces(self, variable):
         # TODO: Combine these steps into one for performance gains.
         traces = self.getVariableTraces(variable)
         return areReadOnlyTraces(traces)
-
-    def initVariableUnknown(self, variable):
-        trace = ValueTraceUnknown(owner=self.owner, previous=None)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
-
-    def initVariableModule(self, variable):
-        trace = ValueTraceUnknown(owner=self.owner, previous=None)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
-
-    def initVariableInit(self, variable):
-        trace = ValueTraceInit(self.owner)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
-
-    def initVariableInitStarArgs(self, variable):
-        trace = ValueTraceInitStarArgs(self.owner)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
-
-    def initVariableInitStarDict(self, variable):
-        trace = ValueTraceInitStarDict(self.owner)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
-
-    def initVariableUninitialized(self, variable):
-        trace = ValueTraceUninitialized(owner=self.owner, previous=None)
-
-        self.addVariableTrace(variable, 0, trace)
-
-        return trace
 
     def updateVariablesFromCollection(self, old_collection, source_ref):
         Variables.updateVariablesFromCollection(old_collection, self, source_ref)
@@ -295,9 +243,6 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             self.return_collections = old_return_collections
         if catch_exceptions:
             self.exception_collections = old_exception_collections
-
-    def initVariable(self, variable):
-        return variable.initVariable(self)
 
     def addOutlineFunction(self, outline):
         if self.outline_functions is None:
@@ -348,7 +293,14 @@ class TraceCollectionBase(object):
     They are kept for "variable" and versions.
     """
 
-    __slots__ = ("owner", "parent", "name", "variable_actives")
+    __slots__ = (
+        "owner",
+        "parent",
+        "name",
+        "variable_actives",
+        "variable_actives_needs_copy",
+        "has_unescaped_variables",
+    )
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -361,6 +313,10 @@ class TraceCollectionBase(object):
 
         # Currently active values in the tracing.
         self.variable_actives = {}
+        self.variable_actives_needs_copy = True
+
+        # Even though it's empty, we set it, because init of variables won't do it.
+        self.has_unescaped_variables = True
 
     def __repr__(self):
         return "<%s for %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
@@ -386,50 +342,67 @@ class TraceCollectionBase(object):
         lazy so to keep the tracing branches minimal where possible.
         """
 
-        return self.getVariableTrace(
-            variable=variable, version=self._getCurrentVariableVersion(variable)
-        )
+        return self.getVariableTrace(variable, self.variable_actives[variable])
+
+    def hasVariableCurrentTrace(self, variable):
+        return variable in self.variable_actives
 
     def markCurrentVariableTrace(self, variable, version):
+        if self.variable_actives_needs_copy:
+            self.variable_actives = self.variable_actives.copy()
+            self.variable_actives_needs_copy = False
+
         self.variable_actives[variable] = version
+        self.has_unescaped_variables = True
 
-    def _getCurrentVariableVersion(self, variable):
-        try:
-            return self.variable_actives[variable]
-        except KeyError:
-            # Initialize variables on the fly.
-            if not self.hasVariableTrace(variable, 0):
-                self.initVariable(variable)
+    def removeCurrentVariableTrace(self, variable):
+        if self.variable_actives_needs_copy:
+            self.variable_actives = self.variable_actives.copy()
+            self.variable_actives_needs_copy = False
 
-            self.markCurrentVariableTrace(variable, 0)
+        del self.variable_actives[variable]
 
-            return self.variable_actives[variable]
+    def initVariableLate(self, variable):
+        if self.variable_actives_needs_copy:
+            self.variable_actives = self.variable_actives.copy()
+            self.variable_actives_needs_copy = False
+
+        variable.initVariable(self)
+        self.variable_actives[variable] = 0
+
+        self.has_unescaped_variables = True
 
     def markActiveVariableAsEscaped(self, variable):
-        current = self.getVariableCurrentTrace(variable)
+        version = self.variable_actives[variable]
+        current = self.getVariableTrace(variable, version)
 
         if current.isTraceThatNeedsEscape():
-            version = variable.allocateTargetNumber()
+            # Escape traces are div 3 rem 1.
+            version = version // 3 * 3 + 1
 
-            self.addVariableTrace(
-                variable,
-                version,
-                ValueTraceEscaped(owner=self.owner, previous=current),
-            )
+            if not self.hasVariableTrace(variable, version):
+                self.addVariableTrace(
+                    variable,
+                    version,
+                    ValueTraceEscaped(owner=self.owner, previous=current),
+                )
 
             self.markCurrentVariableTrace(variable, version)
 
     def markClosureVariableAsUnknown(self, variable):
-        current = self.getVariableCurrentTrace(variable)
+        version = self.variable_actives[variable]
+        current = self.getVariableTrace(variable, version)
 
         if not current.isUnknownTrace():
-            version = variable.allocateTargetNumber()
+            # Unknown traces are div 3 rem 2.
+            version = version // 3 * 3 + 2
 
-            self.addVariableTrace(
-                variable,
-                version,
-                ValueTraceUnknown(owner=self.owner, previous=current),
-            )
+            if not self.hasVariableTrace(variable, version):
+                self.addVariableTrace(
+                    variable,
+                    version,
+                    ValueTraceUnknown(owner=self.owner, previous=current),
+                )
 
             self.markCurrentVariableTrace(variable, version)
 
@@ -493,8 +466,12 @@ class TraceCollectionBase(object):
     def onControlFlowEscape(self, node):
         # TODO: One day, we should trace which nodes exactly cause a variable
         # to be considered escaped, pylint: disable=unused-argument
-        for variable in self.variable_actives:
-            variable.onControlFlowEscape(self)
+
+        if self.has_unescaped_variables:
+            for variable in self.variable_actives:
+                variable.onControlFlowEscape(self)
+
+            self.has_unescaped_variables = False
 
     def removeKnowledge(self, node):
         if node.isExpressionVariableRef():
@@ -751,6 +728,10 @@ class TraceCollectionBase(object):
                 # they may make themselves obsolete.
                 collection1 = self
                 collection2 = collection_no
+
+                # Nothing to do here, self is unchanged.
+                if collection1.variable_actives is collection2.variable_actives:
+                    return
             else:
                 # Refuse to do stupid work
                 return
@@ -759,67 +740,84 @@ class TraceCollectionBase(object):
             # they may make themselves obsolete.
             collection1 = self
             collection2 = collection_yes
+
+            # Nothing to do here, self is unchanged.
+            if collection1.variable_actives is collection2.variable_actives:
+                return
+
         else:
             # Handle two branch case, they may or may not do the same things.
             collection1 = collection_yes
             collection2 = collection_no
 
+            # Both branches being unchanged, means no merge is needed
+            if collection1.variable_actives == collection2.variable_actives:
+                self.replaceBranch(collection1)
+
+                return
+
         _merge_counts[2] += 1
 
-        variable_versions = {}
+        # They must have the same content only or else some bug occurred.
+        if len(collection1.variable_actives) != len(collection2.variable_actives):
+            for variable, version in iterItems(collection1.variable_actives):
+                if variable not in collection2.variable_actives:
+                    print("Only in collection1", variable, version)
 
+            for variable, version in iterItems(collection2.variable_actives):
+                if variable not in collection1.variable_actives:
+                    print("Only in collection2", variable, version)
+
+            assert False
+
+        new_actives = {}
         for variable, version in iterItems(collection1.variable_actives):
-            variable_versions[variable] = version
+            other_version = collection2.variable_actives[variable]
 
-        for variable, version in iterItems(collection2.variable_actives):
-            if variable not in variable_versions:
-                if version != 0:
-                    variable_versions[variable] = 0, version
-                else:
-                    variable_versions[variable] = 0
-            else:
-                other = variable_versions[variable]
+            if version != other_version:
+                trace1 = self.getVariableTrace(variable, version)
+                trace2 = self.getVariableTrace(variable, other_version)
 
-                if other != version:
-                    variable_versions[variable] = other, version
-
-        # That would not be fast, pylint: disable=consider-using-dict-items
-        for variable in variable_versions:
-            if variable not in collection2.variable_actives:
-                if variable_versions[variable] != 0:
-                    variable_versions[variable] = variable_versions[variable], 0
-
-        self.variable_actives = {}
-
-        for variable, versions in iterItems(variable_versions):
-            if type(versions) is tuple:
-                trace1 = self.getVariableTrace(variable, versions[0])
-                trace2 = self.getVariableTrace(variable, versions[1])
-
-                if trace1.isEscapeTrace() and trace1.previous is trace2:
-                    version = versions[0]
-                elif trace2.isEscapeTrace() and trace2.previous is trace1:
-                    version = versions[1]
+                if version % 3 == 1 and trace1.previous is trace2:
+                    pass
+                elif other_version % 3 == 1 and trace2.previous is trace1:
+                    version = other_version
                 else:
                     version = self.addVariableMergeMultipleTrace(
-                        variable=variable,
-                        traces=(
+                        variable,
+                        (
                             trace1,
                             trace2,
                         ),
                     )
-            else:
-                version = versions
 
-            self.markCurrentVariableTrace(variable, version)
+            new_actives[variable] = version
+
+        self.variable_actives = new_actives
+        self.variable_actives_needs_copy = False
+
+        # TODO: This could be avoided, if we detect no actual changes being present, but it might
+        # be more costly.
+        self.has_unescaped_variables = True
 
     def mergeMultipleBranches(self, collections):
-        # This one is really complex, pylint: disable=too-many-branches
-
-        assert collections
-
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work, and length 2 has dedicated code as it's so frequent.
+
+        # collection_levels = set()
+        # new_collections = []
+
+        # for collection in collections:
+        #     if collection.variable_actives_level not in collection_levels:
+        #         collection_levels.add(collection.variable_actives_level)
+        #         new_collections.append(collection)
+
+        # collections = new_collections
+
+        # if len(collections) != len(new_collections):
+        #     print("Reduced multi %d to %d for %s" % (len(collections), len(new_collections), self))
+        #     assert False
+
         merge_size = len(collections)
 
         if merge_size == 1:
@@ -828,26 +826,21 @@ class TraceCollectionBase(object):
         elif merge_size == 2:
             return self.mergeBranches(*collections)
 
+        assert collections
+
         _merge_counts[len(collections)] += 1
 
         with TimerReport(
             message="Running merge for %s took %%.2f seconds" % collections,
             decider=False,
         ):
-            variable_versions = defaultdict(OrderedSet)
+            new_actives = {}
 
-            for collection in collections:
-                for variable, version in iterItems(collection.variable_actives):
-                    variable_versions[variable].add(version)
+            for variable in collections[0].variable_actives:
+                versions = set(
+                    collection.variable_actives[variable] for collection in collections
+                )
 
-            for collection in collections:
-                for variable, versions in iterItems(variable_versions):
-                    if variable not in collection.variable_actives:
-                        versions.add(0)
-
-            self.variable_actives = {}
-
-            for variable, versions in iterItems(variable_versions):
                 if len(versions) == 1:
                     (version,) = versions
                 else:
@@ -855,10 +848,10 @@ class TraceCollectionBase(object):
                     escaped = []
                     winner_version = None
 
-                    for version in versions:
+                    for version in sorted(versions):
                         trace = self.getVariableTrace(variable, version)
 
-                        if trace.isEscapeTrace():
+                        if version % 3 == 1:
                             winner_version = version
                             escaped_trace = trace.previous
 
@@ -876,35 +869,35 @@ class TraceCollectionBase(object):
                         assert winner_version is not None
                     else:
                         version = self.addVariableMergeMultipleTrace(
-                            variable=variable, traces=tuple(traces)
+                            variable,
+                            traces,
                         )
 
-                self.markCurrentVariableTrace(variable, version)
+                new_actives[variable] = version
 
-            # print("Leave mergeMultipleBranches", len(collections))
+            self.variable_actives = new_actives
+            self.variable_actives_needs_copy = False
+
+            # TODO: This could be avoided, if we detect no actual changes being present, but it might
+            # be more costly.
+            self.has_unescaped_variables = False
 
     def replaceBranch(self, collection_replace):
-        self.variable_actives.update(collection_replace.variable_actives)
+        self.variable_actives = collection_replace.variable_actives
+        self.has_unescaped_variables = collection_replace.has_unescaped_variables
+
+        # Make the old one unusable.
         collection_replace.variable_actives = None
 
         _merge_counts[1] += 1
 
-    def onLoopBreak(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onLoopBreak(self, collection):
         return self.parent.onLoopBreak(collection)
 
-    def onLoopContinue(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onLoopContinue(self, collection):
         return self.parent.onLoopContinue(collection)
 
-    def onFunctionReturn(self, collection=None):
-        if collection is None:
-            collection = self
-
+    def onFunctionReturn(self, collection):
         return self.parent.onFunctionReturn(collection)
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection=None):
@@ -973,15 +966,66 @@ class TraceCollectionBase(object):
             distribution_name=distribution_name, node=node, success=success
         )
 
+    def initVariableUnknown(self, variable):
+        trace = ValueTraceUnknown(owner=self.owner, previous=None)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def initVariableModule(self, variable):
+        trace = ValueTraceUnknown(owner=self.owner, previous=None)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def initVariableInit(self, variable):
+        trace = ValueTraceInit(self.owner)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def initVariableInitStarArgs(self, variable):
+        trace = ValueTraceInitStarArgs(self.owner)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def initVariableInitStarDict(self, variable):
+        trace = ValueTraceInitStarDict(self.owner)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
+    def initVariableUninitialized(self, variable):
+        trace = ValueTraceUninitialized(owner=self.owner, previous=None)
+
+        self.addVariableTrace(variable, 0, trace)
+
+        return trace
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = ("variable_traces",)
 
     def __init__(self, name, parent):
-        TraceCollectionBase.__init__(self, owner=parent.owner, name=name, parent=parent)
+        TraceCollectionBase.__init__(
+            self,
+            owner=parent.owner,
+            name=name,
+            parent=parent,
+        )
 
-        # Detach from others
-        self.variable_actives = dict(parent.variable_actives)
+        # If it gets modified, it will copy the snapshot state for us, so this
+        # stays in tact.
+        self.variable_actives = parent.variable_actives
+        parent.variable_actives_needs_copy = True
+
+        self.has_unescaped_variables = parent.has_unescaped_variables
 
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
@@ -996,12 +1040,27 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
 
         return result
 
-    def initVariable(self, variable):
-        variable_trace = self.parent.initVariable(variable)
 
-        self.variable_actives[variable] = 0
+class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
+    __slots__ = ("variable_traces",)
 
-        return variable_trace
+    def __init__(self, name, parent):
+        TraceCollectionBase.__init__(
+            self,
+            owner=parent.owner,
+            name=name,
+            parent=parent,
+        )
+
+        # If it gets modified, it will copy the snapshot state for us, so this
+        # stays in tact.
+        self.variable_actives = parent.variable_actives
+        parent.variable_actives_needs_copy = True
+
+        self.has_unescaped_variables = parent.has_unescaped_variables
+
+        # For quick access without going to parent.
+        self.variable_traces = parent.variable_traces
 
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
@@ -1017,6 +1076,8 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     )
 
     def __init__(self, parent, function_body):
+        # Many kinds of variables to setup, pylint: disable=too-many-branches
+
         assert (
             function_body.isExpressionFunctionBody()
             or function_body.isExpressionGeneratorObjectBody()
@@ -1029,7 +1090,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         TraceCollectionBase.__init__(
             self,
             owner=function_body,
-            name="collection_" + function_body.getCodeName(),
+            name=function_body.getCodeName(),
             parent=parent,
         )
 
@@ -1056,8 +1117,22 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
                 self.variable_actives[dict_star_variable] = 0
 
         for closure_variable in function_body.getClosureVariables():
-            self.initVariableUnknown(closure_variable)
-            self.variable_actives[closure_variable] = 0
+            if closure_variable not in self.variable_actives:
+                self.initVariableUnknown(closure_variable)
+                self.variable_actives[closure_variable] = 0
+
+        for local_variable in function_body.getLocalVariables():
+            if local_variable not in self.variable_actives:
+                self.initVariableUninitialized(local_variable)
+                self.variable_actives[local_variable] = 0
+
+        for module_variable in function_body.getModuleVariables():
+            self.initVariableModule(module_variable)
+            self.variable_actives[module_variable] = 0
+
+        for temp_variable in function_body.getTempVariables(outline=None):
+            self.initVariableUninitialized(temp_variable)
+            self.variable_actives[temp_variable] = 0
 
         # TODO: Have special function type for exec functions stuff.
         locals_scope = function_body.getLocalsScope()
@@ -1070,20 +1145,19 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
                 function_body.locals_scope = None
 
     def initVariableModule(self, variable):
+        # print("initVariableModule", variable, self)
         trusted_node = self.very_trusted_module_variables.get(variable)
 
         if trusted_node is None:
-            return CollectionStartPointMixin.initVariableModule(self, variable)
+            return TraceCollectionBase.initVariableModule(self, variable)
 
         assign_trace = ValueTraceAssignVeryTrusted(
             self.owner, assign_node=trusted_node.getParent(), previous=None
         )
 
-        # This is rare enough to not need a more optimized code.
         self.addVariableTrace(variable, 0, assign_trace)
-        self.markActiveVariableAsEscaped(variable)
 
-        return self.getVariableCurrentTrace(variable)
+        return assign_trace
 
 
 class TraceCollectionPureFunction(TraceCollectionFunction):
@@ -1125,7 +1199,10 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         CollectionStartPointMixin.__init__(self)
 
         TraceCollectionBase.__init__(
-            self, owner=module, name="module:" + module.getFullName(), parent=None
+            self,
+            owner=module,
+            name=module.getFullName(),
+            parent=None,
         )
 
         self.very_trusted_module_variables = very_trusted_module_variables
@@ -1135,6 +1212,16 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
         # Attempts to use a distribution in this module.
         self.distribution_names = OrderedDict()
+
+        for module_variable in module.locals_scope.getLocalsRelevantVariables():
+            assert module_variable.isModuleVariable(), module_variable
+
+            self.initVariableModule(module_variable)
+            self.variable_actives[module_variable] = 0
+
+        for temp_variable in module.getTempVariables(outline=None):
+            self.initVariableUninitialized(temp_variable)
+            self.variable_actives[temp_variable] = 0
 
     def getVeryTrustedModuleVariables(self):
         return self.very_trusted_module_variables
@@ -1167,50 +1254,6 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         self.distribution_names[distribution_name] = success
 
 
-# TODO: This should not exist, but be part of decision at the time these are collected.
-def areEmptyTraces(variable_traces):
-    """Do these traces contain any writes or accesses."""
-    # Many cases immediately return, that is how we do it here,
-    # pylint: disable=too-many-branches,too-many-return-statements
-
-    for variable_trace in variable_traces:
-        if variable_trace.isAssignTrace():
-            return False
-        elif variable_trace.isInitTrace():
-            return False
-        elif variable_trace.isDeletedTrace():
-            # A "del" statement can do this, and needs to prevent variable
-            # from being removed.
-
-            return False
-        elif variable_trace.isUninitializedTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isUnknownTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isEscapeTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isMergeTrace():
-            if variable_trace.getUsageCount():
-                # Checking definite is enough, the merges, we shall see
-                # them as well.
-                return False
-        elif variable_trace.isLoopTrace():
-            return False
-        else:
-            assert False, variable_trace
-
-    return True
-
-
 def areReadOnlyTraces(variable_traces):
     """Do these traces contain any writes."""
 
@@ -1239,6 +1282,24 @@ def areReadOnlyTraces(variable_traces):
             assert False, variable_trace
 
     return True
+
+
+def _checkActivesDiff(a1, a2):
+    result = True
+    for variable in a1:
+        if variable not in a2:
+            print("Only in a1", variable)
+            result = False
+        elif a1[variable] != a2[variable]:
+            print("Different ", variable, a1[variable], a2[variable])
+            result = False
+
+    for variable in a2:
+        if variable not in a1:
+            print("Only in a2", variable)
+            result = False
+
+    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

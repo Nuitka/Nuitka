@@ -59,7 +59,7 @@ def getModuleCode(
         parameters=None,
         closure_variables=(),
         user_variables=module.getOutlineLocalVariables(),
-        temp_variables=module.getTempVariables(),
+        temp_variables=module.getAllTempVariables(),
     )
 
     module_codes = Emission.SourceCodeCollector()
