@@ -122,6 +122,7 @@ Defaults to off.""",
             autoFormatFile(
                 git_stage["src_path"],
                 git_stage=git_stage,
+                assume_yes_for_downloads=options.assume_yes_for_downloads,
             )
     else:
         if not positional_args:

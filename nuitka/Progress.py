@@ -489,7 +489,7 @@ def wrapWithProgressBar(iterable, stage, unit):
 
 @contextmanager
 def withNuitkaDownloadProgressBar(*args, **kwargs):
-    if use_progress_bar == "none":
+    if use_progress_bar in (None, "none"):
         yield None
         return
 
