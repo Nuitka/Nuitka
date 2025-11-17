@@ -175,8 +175,18 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         return self.traces
 
     def hasEmptyTracesFor(self, owner):
+        """Do these traces contain any usage."""
         for trace in self.traces:
             if trace.owner is owner and trace.isUsingTrace():
+                return False
+
+        return True
+
+    def hasNoWritingTraces(self):
+        """Do these traces contain any writes."""
+
+        for trace in self.traces:
+            if trace.isWritingTrace():
                 return False
 
         return True
@@ -191,7 +201,7 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
 
             if trace.isAssignTrace():
                 writers.add(owner)
-            elif trace.isDeletedTrace() and owner is not self.owner:
+            elif owner is not self.owner and trace.isDeletedTrace():
                 writers.add(owner)
 
         self.writers = writers

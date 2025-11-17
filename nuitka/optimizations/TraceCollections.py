@@ -88,17 +88,6 @@ class CollectionUpdateMixin(object):
     def getVariableTrace(self, variable, version):
         return self.variable_traces[(variable, version)]
 
-    def getVariableTraces(self, variable):
-        result = []
-
-        for key, variable_trace in iterItems(self.variable_traces):
-            candidate = key[0]
-
-            if variable is candidate:
-                result.append(variable_trace)
-
-        return result
-
     def getVariableTracesAll(self):
         return self.variable_traces
 
@@ -208,11 +197,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     def getExceptionRaiseCollections(self):
         return self.exception_collections
 
-    def hasReadOnlyTraces(self, variable):
-        # TODO: Combine these steps into one for performance gains.
-        traces = self.getVariableTraces(variable)
-        return areReadOnlyTraces(traces)
-
+    # TODO: Eliminate this function, call it directly where this is used.
     def updateVariablesFromCollection(self, old_collection, source_ref):
         Variables.updateVariablesFromCollection(old_collection, self, source_ref)
 
@@ -384,7 +369,7 @@ class TraceCollectionBase(object):
                 self.addVariableTrace(
                     variable,
                     version,
-                    ValueTraceEscaped(owner=self.owner, previous=current),
+                    ValueTraceEscaped(self.owner, current),
                 )
 
             self.markCurrentVariableTrace(variable, version)
@@ -401,22 +386,25 @@ class TraceCollectionBase(object):
                 self.addVariableTrace(
                     variable,
                     version,
-                    ValueTraceUnknown(owner=self.owner, previous=current),
+                    ValueTraceUnknown(self.owner, current),
                 )
 
             self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsUnknown(self, variable):
-        current = self.getVariableCurrentTrace(variable)
+        version = self.variable_actives[variable]
+        current = self.getVariableTrace(variable, version)
 
         if not current.isUnknownOrVeryTrustedTrace():
-            version = variable.allocateTargetNumber()
+            # Unknown traces are div 3 rem 2.
+            version = version // 3 * 3 + 2
 
-            self.addVariableTrace(
-                variable,
-                version,
-                ValueTraceUnknown(owner=self.owner, previous=current),
-            )
+            if not self.hasVariableTrace(variable, version):
+                self.addVariableTrace(
+                    variable,
+                    version,
+                    ValueTraceUnknown(self.owner, current),
+                )
 
             self.markCurrentVariableTrace(variable, version)
 
@@ -487,9 +475,9 @@ class TraceCollectionBase(object):
 
     def onVariableSet(self, variable, version, assign_node):
         variable_trace = ValueTraceAssign(
-            owner=self.owner,
-            assign_node=assign_node,
-            previous=self.getVariableCurrentTrace(variable),
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
         )
 
         self.addVariableTrace(variable, version, variable_trace)
@@ -521,9 +509,9 @@ class TraceCollectionBase(object):
 
     def onVariableSetToUnescapableValue(self, variable, version, assign_node):
         variable_trace = ValueTraceAssignUnescapable(
-            owner=self.owner,
-            assign_node=assign_node,
-            previous=self.getVariableCurrentTrace(variable),
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
         )
 
         self.addVariableTrace(variable, version, variable_trace)
@@ -535,9 +523,9 @@ class TraceCollectionBase(object):
 
     def onVariableSetToVeryTrustedValue(self, variable, version, assign_node):
         variable_trace = ValueTraceAssignVeryTrusted(
-            owner=self.owner,
-            assign_node=assign_node,
-            previous=self.getVariableCurrentTrace(variable),
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
         )
 
         self.addVariableTrace(variable, version, variable_trace)
@@ -551,10 +539,10 @@ class TraceCollectionBase(object):
         self, variable, version, assign_node, replacement
     ):
         variable_trace = ValueTraceAssignUnescapablePropagated(
-            owner=self.owner,
-            assign_node=assign_node,
-            previous=self.getVariableCurrentTrace(variable),
-            replacement=replacement,
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
+            replacement,
         )
 
         self.addVariableTrace(variable, version, variable_trace)
@@ -572,7 +560,9 @@ class TraceCollectionBase(object):
         # TODO: Annotate value content as escaped.
 
         variable_trace = ValueTraceDeleted(
-            owner=self.owner, del_node=del_node, previous=old_trace
+            self.owner,
+            old_trace,
+            del_node,
         )
 
         # Assign to not initialized again.
@@ -833,6 +823,8 @@ class TraceCollectionBase(object):
         with TimerReport(
             message="Running merge for %s took %%.2f seconds" % collections,
             decider=False,
+            include_sleep_time=False,
+            use_perf_counters=False,
         ):
             new_actives = {}
 
@@ -967,14 +959,14 @@ class TraceCollectionBase(object):
         )
 
     def initVariableUnknown(self, variable):
-        trace = ValueTraceUnknown(owner=self.owner, previous=None)
+        trace = ValueTraceUnknown(self.owner, None)
 
         self.addVariableTrace(variable, 0, trace)
 
         return trace
 
     def initVariableModule(self, variable):
-        trace = ValueTraceUnknown(owner=self.owner, previous=None)
+        trace = ValueTraceUnknown(self.owner, None)
 
         self.addVariableTrace(variable, 0, trace)
 
@@ -1002,7 +994,7 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableUninitialized(self, variable):
-        trace = ValueTraceUninitialized(owner=self.owner, previous=None)
+        trace = ValueTraceUninitialized(self.owner, None)
 
         self.addVariableTrace(variable, 0, trace)
 
@@ -1152,7 +1144,9 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             return TraceCollectionBase.initVariableModule(self, variable)
 
         assign_trace = ValueTraceAssignVeryTrusted(
-            self.owner, assign_node=trusted_node.getParent(), previous=None
+            self.owner,
+            trusted_node.getParent(),
+            None,
         )
 
         self.addVariableTrace(variable, 0, assign_trace)
@@ -1252,36 +1246,6 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         )
 
         self.distribution_names[distribution_name] = success
-
-
-def areReadOnlyTraces(variable_traces):
-    """Do these traces contain any writes."""
-
-    # Many cases immediately return, that is how we do it here,
-    for variable_trace in variable_traces:
-        if variable_trace.isAssignTrace():
-            return False
-        elif variable_trace.isInitTrace():
-            pass
-        elif variable_trace.isDeletedTrace():
-            # A "del" statement can do this, and needs to prevent variable
-            # from being not released.
-
-            return False
-        elif variable_trace.isUninitializedTrace():
-            pass
-        elif variable_trace.isUnknownTrace():
-            return False
-        elif variable_trace.isEscapeTrace():
-            pass
-        elif variable_trace.isMergeTrace():
-            pass
-        elif variable_trace.isLoopTrace():
-            pass
-        else:
-            assert False, variable_trace
-
-    return True
 
 
 def _checkActivesDiff(a1, a2):

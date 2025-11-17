@@ -134,6 +134,10 @@ class ValueTraceBase(object):
     def isUsingTrace(self):
         """Is the trace indicating a usage of the variable."""
 
+    @abstractmethod
+    def isWritingTrace(self):
+        """Is the trace indicating a usage of the variable."""
+
     @staticmethod
     def isAssignTrace():
         return False
@@ -311,6 +315,10 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
         return self.usage_count
 
     @staticmethod
+    def isWritingTrace():
+        return False
+
+    @staticmethod
     def isTraceThatNeedsEscape():
         return False
 
@@ -334,6 +342,10 @@ class ValueTraceDeleted(ValueTraceUnassignedBase):
 
     @staticmethod
     def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
         return True
 
     def getDelNode(self):
@@ -365,6 +377,10 @@ class ValueTraceInit(ValueTraceBase):
     @staticmethod
     def isUsingTrace():
         return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
 
     @staticmethod
     def mustHaveValue():
@@ -437,6 +453,10 @@ class ValueTraceUnknown(ValueTraceBase):
 
     def isUsingTrace(self):
         return self.usage_count
+
+    @staticmethod
+    def isWritingTrace():
+        return True
 
     @staticmethod
     def isUnknownOrVeryTrustedTrace():
@@ -518,6 +538,10 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def isEscapeTrace():
         return True
 
+    @staticmethod
+    def isWritingTrace():
+        return False
+
     def isUsingTrace(self):
         return self.usage_count
 
@@ -566,6 +590,10 @@ class ValueTraceAssign(ValueTraceBase):
 
     @staticmethod
     def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
         return True
 
     def compareValueTrace(self, other):
@@ -673,6 +701,8 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
 
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+
     __slots__ = ()
 
     def addNameUsage(self):
@@ -722,9 +752,9 @@ class ValueTraceMerge(ValueTraceMergeBase):
                 if trace not in shorted:
                     shorted.append(trace)
 
-        traces = tuple(shorted)
+        assert len(shorted) > 1, traces
 
-        assert len(traces) > 1
+        traces = tuple(shorted)
 
         # assert len(set(traces)) == len(traces), [(v) for v in traces]
 
@@ -774,6 +804,10 @@ class ValueTraceMerge(ValueTraceMergeBase):
     def isUsingTrace(self):
         # Checking definite is enough, the merges, we shall see them as well.
         return self.usage_count
+
+    @staticmethod
+    def isWritingTrace():
+        return False
 
     def compareValueTrace(self, other):
         if not other.isMergeTrace():
@@ -865,6 +899,10 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     @staticmethod
     def isUsingTrace():
         return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
 
     def getTypeShape(self):
         if self.type_shape is None:
