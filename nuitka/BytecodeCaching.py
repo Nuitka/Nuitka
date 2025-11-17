@@ -51,7 +51,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 7
+_cache_format_version = 8
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -121,8 +121,8 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
     # The Json doesn't store integer keys.
     for pass_timing_info in data["timing_infos"]:
-        pass_timing_info[3] = dict(
-            (int(key), value) for (key, value) in pass_timing_info[3].items()
+        pass_timing_info[5] = dict(
+            (int(key), value) for (key, value) in pass_timing_info[5].items()
         )
 
     return result, data["timing_infos"]
