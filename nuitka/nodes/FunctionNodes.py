@@ -416,7 +416,7 @@ class ExpressionFunctionBodyBase(
 
     def optimizeVariableReleases(self):
         for parameter_variable in self.getParameterVariablesWithManualRelease():
-            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+            read_only = parameter_variable.hasNoWritingTraces()
 
             if read_only:
                 self.trace_collection.signalChange(
