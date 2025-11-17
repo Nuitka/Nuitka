@@ -283,7 +283,11 @@ def makeOptimizationPass():
         module_name = current_module.getFullName()
 
         with TimerReport(
-            message="Optimizing %s" % module_name, decider=False
+            message="Optimizing %s" % module_name,
+            logger=optimization_logger,
+            decider=False,
+            include_sleep_time=False,
+            use_perf_counters=current_module.isCompiledPythonModule(),
         ) as module_timer:
             changed, micro_passes = optimizeModule(current_module)
 
@@ -291,6 +295,7 @@ def makeOptimizationPass():
             module_name=module_name,
             pass_number=pass_count,
             time_used=module_timer.getDelta(),
+            perf_counters=module_timer.getPerfCounters(),
             micro_passes=micro_passes,
             merge_counts=fetchMergeCounts(),
         )

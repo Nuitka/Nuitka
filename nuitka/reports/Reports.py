@@ -429,6 +429,11 @@ def _addModulesToReport(root, report_input_data, diffable):
                 timing_xml_node.attrib["max_branch_merge"] = str(max_merge_size)
                 timing_xml_node.attrib["merged_total"] = str(merged_total)
 
+            if timing_info.cpu_instr_count is not None:
+                timing_xml_node.attrib["cpu_instr"] = str(timing_info.cpu_instr_count)
+            if timing_info.cpu_cycles_count is not None:
+                timing_xml_node.attrib["cpu_cycles"] = str(timing_info.cpu_cycles_count)
+
             module_xml_node.append(timing_xml_node)
 
         distributions = report_input_data["module_distribution_usages"][module_name]
