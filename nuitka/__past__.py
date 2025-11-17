@@ -13,6 +13,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 import pkgutil
 import sys
+import time
 from hashlib import md5 as _md5
 
 # pylint: disable=invalid-name,self-assigning-variable
@@ -177,6 +178,20 @@ except ValueError:
 
 else:
     md5 = _md5
+
+
+try:
+    perf_counter = time.perf_counter
+except AttributeError:
+    # Python2 didn't have it yet.
+    perf_counter = time.time
+
+try:
+    process_time = time.process_time
+except AttributeError:
+    # Python2 didn't have it yet.
+    process_time = time.time
+
 
 # For PyLint to be happy.
 assert long

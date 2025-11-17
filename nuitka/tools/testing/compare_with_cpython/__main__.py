@@ -37,7 +37,7 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getExtensionModuleSuffix
-from nuitka.utils.Timing import StopWatch
+from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
 
 
@@ -77,7 +77,7 @@ def checkNoPermissionError(output):
 
 
 def _getCPythonResults(cpython_cmd, send_kill):
-    stop_watch = StopWatch()
+    stop_watch = StopWatchWallClock()
 
     # Try a compile of times for permission denied, on Windows it can
     # be transient.
@@ -640,7 +640,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if trace_command:
             my_print("Going to output directory", os.getcwd())
 
-    stop_watch = StopWatch()
+    stop_watch = StopWatchWallClock()
     stop_watch.start()
 
     if not two_step_execution:

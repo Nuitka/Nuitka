@@ -297,12 +297,19 @@ module_timing_infos = {}
 
 ModuleOptimizationTimingInfo = makeNamedtupleClass(
     "ModuleOptimizationTimingInfo",
-    ("pass_number", "time_used", "micro_passes", "merge_counts"),
+    (
+        "pass_number",
+        "time_used",
+        "cpu_instr_count",
+        "cpu_cycles_count",
+        "micro_passes",
+        "merge_counts",
+    ),
 )
 
 
 def addModuleOptimizationTimeInformation(
-    module_name, pass_number, time_used, micro_passes, merge_counts
+    module_name, pass_number, time_used, perf_counters, micro_passes, merge_counts
 ):
     module_timing_info = list(module_timing_infos.get(module_name, []))
 
@@ -316,6 +323,8 @@ def addModuleOptimizationTimeInformation(
         ModuleOptimizationTimingInfo(
             pass_number=pass_number,
             time_used=time_used,
+            cpu_instr_count=perf_counters[0],
+            cpu_cycles_count=perf_counters[1],
             micro_passes=micro_passes,
             merge_counts=merge_counts,
         )
