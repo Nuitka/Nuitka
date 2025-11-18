@@ -369,6 +369,22 @@ def isGithubActionsPython():
     )
 
 
+def isWindowsStorePython():
+    if not isWin32Windows():
+        return False
+
+    # spell-checker: ignore LOCALAPPDATA
+    local_app_data = os.getenv("LOCALAPPDATA")
+    if not local_app_data:
+        # Not insisting to be any better for those.
+        return False
+
+    return isFilenameBelowPath(
+        path=os.path.join(local_app_data, "Microsoft", "WindowsApps"),
+        filename=sys.executable,
+    )
+
+
 def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
@@ -405,6 +421,8 @@ def getPythonFlavorName():
         return "MSYS2 MinGW"
     elif isTermuxPython():
         return "Android Termux"
+    elif isWindowsStorePython():
+        return "Windows Store Python"
     elif isCPythonOfficialPackage():
         return "CPython Official"
     elif isSelfCompiledPythonUninstalled():
@@ -413,6 +431,10 @@ def getPythonFlavorName():
         return "Manylinux Python"
     else:
         return "Unknown"
+
+
+def hasAcceleratedSupportedFlavor():
+    return not isWindowsStorePython()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
