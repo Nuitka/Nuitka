@@ -397,6 +397,13 @@ class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
                     self.warnUnusedPlugin("Tkinter needs TCL included.")
                     break
 
+    def getReportData(self):
+        return {
+            "tk_inter_version": self.tk_inter_version,
+            "tcl_library_dir": self.tcl_library_dir,
+            "tk_library_dir": self.tk_library_dir,
+        }
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

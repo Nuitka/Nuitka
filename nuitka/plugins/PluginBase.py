@@ -1509,6 +1509,11 @@ except Exception as e:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def getReportData(self):
+        """Provide dictionary of data for reporting purposes."""
+        # Virtual method, pylint: disable=no-self-use
+        return {}
+
     @staticmethod
     def getPackageVersion(module_name):
         """Provide package version of a distribution."""
