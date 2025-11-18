@@ -11,8 +11,8 @@ import copy
 import math
 from abc import abstractmethod
 
-from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonOperators import binary_operator_functions
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
@@ -257,7 +257,7 @@ class ExpressionOperationBinaryAdd(
         )
 
     operator = "Add"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -268,7 +268,7 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_SUB"
 
     operator = "Sub"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -348,7 +348,7 @@ class ExpressionOperationBinaryMult(
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
     operator = "Mult"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
@@ -408,7 +408,7 @@ class ExpressionOperationBinaryFloorDiv(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_FLOOR_DIV"
 
     operator = "FloorDiv"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -421,7 +421,7 @@ if python_version < 0x300:
         kind = "EXPRESSION_OPERATION_BINARY_OLD_DIV"
 
         operator = "OldDiv"
-        simulator = PythonOperators.binary_operator_functions[operator]
+        simulator = binary_operator_functions[operator]
 
         @staticmethod
         def _getOperationShape(left_shape, right_shape):
@@ -432,7 +432,7 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_TRUE_DIV"
 
     operator = "TrueDiv"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -443,7 +443,7 @@ class ExpressionOperationBinaryMod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_MOD"
 
     operator = "Mod"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -454,7 +454,7 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
     operator = "Divmod"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryBase.__init__(
@@ -507,7 +507,7 @@ class ExpressionOperationBinaryPow(
     kind = "EXPRESSION_OPERATION_BINARY_POW"
 
     operator = "Pow"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -549,7 +549,7 @@ class ExpressionOperationBinaryLshift(
     kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
 
     operator = "LShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -560,7 +560,7 @@ class ExpressionOperationBinaryRshift(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_RSHIFT"
 
     operator = "RShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -571,7 +571,7 @@ class ExpressionOperationBinaryBitOr(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_BIT_OR"
 
     operator = "BitOr"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -582,7 +582,7 @@ class ExpressionOperationBinaryBitAnd(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_BIT_AND"
 
     operator = "BitAnd"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -593,7 +593,7 @@ class ExpressionOperationBinaryBitXor(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_BIT_XOR"
 
     operator = "BitXor"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -606,7 +606,7 @@ if python_version >= 0x350:
         kind = "EXPRESSION_OPERATION_BINARY_MAT_MULT"
 
         operator = "MatMult"
-        simulator = PythonOperators.binary_operator_functions[operator]
+        simulator = binary_operator_functions[operator]
 
         @staticmethod
         def _getOperationShape(left_shape, right_shape):
@@ -730,7 +730,7 @@ class ExpressionOperationInplaceAdd(
     kind = "EXPRESSION_OPERATION_INPLACE_ADD"
 
     operator = "IAdd"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     def __init__(self, left, right, source_ref):
         ExpressionOperationBinaryInplaceBase.__init__(
@@ -746,7 +746,7 @@ class ExpressionOperationInplaceSub(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_SUB"
 
     operator = "ISub"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -757,7 +757,7 @@ class ExpressionOperationInplaceMult(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_MULT"
 
     operator = "IMult"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -768,7 +768,7 @@ class ExpressionOperationInplaceFloorDiv(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_FLOOR_DIV"
 
     operator = "IFloorDiv"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -781,7 +781,7 @@ if python_version < 0x300:
         kind = "EXPRESSION_OPERATION_INPLACE_OLD_DIV"
 
         operator = "IOldDiv"
-        simulator = PythonOperators.binary_operator_functions[operator]
+        simulator = binary_operator_functions[operator]
 
         @staticmethod
         def _getOperationShape(left_shape, right_shape):
@@ -792,7 +792,7 @@ class ExpressionOperationInplaceTrueDiv(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_TRUE_DIV"
 
     operator = "ITrueDiv"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -803,7 +803,7 @@ class ExpressionOperationInplaceMod(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_MOD"
 
     operator = "IMod"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -816,7 +816,7 @@ class ExpressionOperationInplacePow(
     kind = "EXPRESSION_OPERATION_INPLACE_POW"
 
     operator = "IPow"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -827,7 +827,7 @@ class ExpressionOperationInplaceLshift(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_LSHIFT"
 
     operator = "ILShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -838,7 +838,7 @@ class ExpressionOperationInplaceRshift(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_RSHIFT"
 
     operator = "IRShift"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -849,7 +849,7 @@ class ExpressionOperationInplaceBitOr(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_BIT_OR"
 
     operator = "IBitOr"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     # No inplace bitor special handling before 3.9
     if python_version < 0x390:
@@ -869,7 +869,7 @@ class ExpressionOperationInplaceBitAnd(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_BIT_AND"
 
     operator = "IBitAnd"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -880,7 +880,7 @@ class ExpressionOperationInplaceBitXor(ExpressionOperationBinaryInplaceBase):
     kind = "EXPRESSION_OPERATION_INPLACE_BIT_XOR"
 
     operator = "IBitXor"
-    simulator = PythonOperators.binary_operator_functions[operator]
+    simulator = binary_operator_functions[operator]
 
     @staticmethod
     def _getOperationShape(left_shape, right_shape):
@@ -893,7 +893,7 @@ if python_version >= 0x350:
         kind = "EXPRESSION_OPERATION_INPLACE_MAT_MULT"
 
         operator = "IMatMult"
-        simulator = PythonOperators.binary_operator_functions[operator]
+        simulator = binary_operator_functions[operator]
 
         @staticmethod
         def _getOperationShape(left_shape, right_shape):

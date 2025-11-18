@@ -8,13 +8,14 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, Variables
+from nuitka.Builtins import builtin_exception_names, builtin_names
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import (
     getUnboundLocalErrorErrorTemplate,
     python_version,
 )
 from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
+from nuitka.Variables import Variable
 
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
@@ -64,7 +65,7 @@ class ExpressionVariableRefBase(ExpressionBase):
         return self.variable
 
     def setVariable(self, variable):
-        assert isinstance(variable, Variables.Variable), repr(variable)
+        assert isinstance(variable, Variable), repr(variable)
 
         self.variable = variable
 
@@ -448,7 +449,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         ):
             variable_name = self.variable.getName()
 
-            if variable_name in Builtins.builtin_exception_names:
+            if variable_name in builtin_exception_names:
                 if not self.variable.getOwner().getLocalsScope().isEscaped():
                     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -469,7 +470,7 @@ Module variable '%s' found to be built-in exception reference.""" % (
                     change_tags = None
                     change_desc = None
 
-            elif variable_name in Builtins.builtin_names:
+            elif variable_name in builtin_names:
                 if (
                     variable_name in _hard_names
                     or not self.variable.getOwner().getLocalsScope().isEscaped()

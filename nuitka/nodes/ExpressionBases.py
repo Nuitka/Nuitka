@@ -11,13 +11,13 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
-from nuitka import Options
 from nuitka.__past__ import long
 
 # TODO: Probably should separate building reports out.
 from nuitka.code_generation.Reports import onMissingOverload
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .ChildrenHavingMixins import ChildHavingValueMixin
 from .NodeBases import NodeBase
@@ -500,7 +500,7 @@ class ExpressionBase(NodeBase):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 (
                     "float() argument must be a string or a number"
-                    if Options.is_full_compat and python_version < 0x300
+                    if states.is_full_compat and python_version < 0x300
                     else "float() argument must be a string or a number, not '%s'"
                 ),
                 operation="long",
@@ -556,7 +556,7 @@ class ExpressionBase(NodeBase):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 (
                     "complex() argument must be a string or a number"
-                    if Options.is_full_compat and python_version < 0x300
+                    if states.is_full_compat and python_version < 0x300
                     else "complex() argument must be a string or a number, not '%s'"
                 ),
                 operation="complex",
@@ -865,7 +865,7 @@ class ExpressionBase(NodeBase):
 
         # We want to have them all overloaded, so lets report cases where that
         # has not been happening.
-        if Options.is_debug:
+        if states.is_debug:
             onMissingOverload(method_name="getExpressionDictInConstant", node=self)
 
         return None

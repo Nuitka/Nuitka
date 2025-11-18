@@ -57,6 +57,7 @@ def main():
     ):
         import ctypes
 
+        # spell-checker: ignore SYSTEMMODAL
         ctypes.windll.user32.MessageBoxW(
             None,
             "You have to use the 'python.exe' and not a 'pythonw.exe' to run Nuitka",
@@ -186,9 +187,9 @@ def main():
         del os.environ["NUITKA_USER_SITE"]
 
     # Now the real main program of Nuitka can take over.
-    from nuitka import MainControl  # isort:skip
+    from nuitka.MainControl import main as nuitka_main  # isort:skip
 
-    MainControl.main()
+    nuitka_main()
 
     if Options.isShowMemory():
         MemoryUsage.showMemoryTrace()

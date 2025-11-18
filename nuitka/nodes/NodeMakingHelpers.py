@@ -17,6 +17,7 @@ from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import my_print, unusual_logger
 
 
@@ -290,7 +291,7 @@ def getComputationResult(node, computation, description, user_provided):
             value=result, node=node, user_provided=user_provided
         )
 
-        if Options.is_debug:
+        if states.is_debug:
             assert new_node is not node, (node, result)
 
         if new_node is not node:

@@ -18,7 +18,6 @@ classes.
 import inspect
 import re
 
-from nuitka import Options
 from nuitka.Constants import isMutable
 from nuitka.optimizations.TraceCollections import (
     TraceCollectionPureFunction,
@@ -30,6 +29,7 @@ from nuitka.specs.ParameterSpecs import (
     TooManyArguments,
     matchCall,
 )
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
@@ -811,7 +811,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             return
 
         def mySignal(tag, source_ref, change_desc):
-            if Options.is_verbose:
+            if states.is_verbose:
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),

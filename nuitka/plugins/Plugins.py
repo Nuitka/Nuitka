@@ -20,7 +20,6 @@ import traceback
 from contextlib import contextmanager
 from optparse import OptionConflictError
 
-from nuitka import Options, OutputDirectories
 from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -29,7 +28,22 @@ from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.Options import (
+    getForcedRuntimeEnvironmentVariableValues,
+    getPluginNameConsideringRenames,
+    getPluginsDisabled,
+    getPluginsEnabled,
+    getUserOptions,
+    hasPythonFlagNoAnnotations,
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
+    isShowInclusion,
+    shallDetectMissingPlugins,
+    shallRecompileExtensionModules,
+)
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
@@ -76,7 +90,7 @@ traceback included.""" % (
             template % args
         )
 
-        if Options.is_debug:
+        if states.is_debug:
             plugin.warning(message)
             raise
 
@@ -245,7 +259,7 @@ def getPluginClass(plugin_name):
     loadPlugins()
 
     # Backward compatibility.
-    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
+    plugin_name = getPluginNameConsideringRenames(plugin_name)
 
     if plugin_name not in plugin_name2plugin_classes:
         for plugin_name2 in plugin_name2plugin_classes:
@@ -266,7 +280,7 @@ def hasPluginName(plugin_name):
     loadPlugins()
 
     # Backward compatibility.
-    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
+    plugin_name = getPluginNameConsideringRenames(plugin_name)
 
     return plugin_name in plugin_name2plugin_classes
 
@@ -312,7 +326,7 @@ def _loadPluginClassesFromPackage(scan_package):
         try:
             plugin_module = module_loader.load_module(item.name)
         except Exception:
-            if Options.is_non_debug:
+            if states.is_non_debug:
                 plugins_logger.warning(
                     "Problem loading plugin %r ('%s'), ignored. Use '--debug' to make it visible."
                     % (item.name, module_loader.get_filename())
@@ -458,7 +472,7 @@ class Plugins(object):
                 raise
 
             if module_filename is None:
-                if Options.isShowInclusion():
+                if isShowInclusion():
                     plugin.info(
                         "Implicit module '%s' suggested for '%s' not found."
                         % (full_name, module.getFullName())
@@ -468,7 +482,7 @@ class Plugins(object):
 
             result.append((full_name, module_filename))
 
-        if result and Options.isShowInclusion():
+        if result and isShowInclusion():
             plugin.info(
                 "Implicit dependencies of module '%s' added '%s'."
                 % (module.getFullName(), ",".join(r[0] for r in result))
@@ -736,7 +750,7 @@ implicit import encountered."""
                 plugin.removeDllDependencies(dll_filename, dll_filenames)
             )
 
-            if removed_dlls and Options.isShowInclusion():
+            if removed_dlls and isShowInclusion():
                 plugin.info(
                     "Removing DLLs %s of %s by plugin decision."
                     % (dll_filename, removed_dlls)
@@ -776,17 +790,6 @@ implicit import encountered."""
                     yield included_datafile
 
     @staticmethod
-    def getDataFileTags(included_datafile):
-        tags = OrderedSet([included_datafile.kind])
-
-        tags.update(Options.getDataFileTags(tags))
-
-        for plugin in getActivePlugins():
-            plugin.updateDataFileTags(included_datafile)
-
-        return tags
-
-    @staticmethod
     def onDataFileTags(included_datafile):
         for plugin in getActivePlugins():
             plugin.onDataFileTags(included_datafile)
@@ -813,9 +816,9 @@ implicit import encountered."""
         module_name = makeTriggerModuleName(module.getFullName(), trigger_name)
 
         # In debug mode, put the files in the build folder, so they can be looked up easily.
-        if Options.is_debug and "HIDE_SOURCE" not in flags:
+        if states.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+                getSourceDirectoryPath(onefile=False, create=False),
                 module_name + ".py",
             )
 
@@ -1254,7 +1257,7 @@ implicit import encountered."""
                     elif value == "no" and result is None:
                         result = False, plugin_reason
 
-        options_value = Options.shallRecompileExtensionModules(module_name)
+        options_value = shallRecompileExtensionModules(module_name)
         if options_value[0] in (True, False):
             return options_value
 
@@ -1392,9 +1395,7 @@ may work too."""
         # Circular dependency.
         from nuitka.tree.SourceHandling import writeSourceCode
 
-        source_dir = OutputDirectories.getSourceDirectoryPath(
-            onefile=onefile, create=True
-        )
+        source_dir = getSourceDirectoryPath(onefile=onefile, create=True)
 
         for filename, source_code in Plugins._getExtraCodeFiles(onefile).items():
             target_dir = os.path.join(source_dir, "plugins")
@@ -1568,7 +1569,7 @@ may work too."""
                 legal_values=(None, True, False),
                 abstain_values=(None,),
                 method_name="decideAnnotations",
-                get_default_value=lambda: not Options.hasPythonFlagNoAnnotations(),
+                get_default_value=lambda: not hasPythonFlagNoAnnotations(),
             )
 
         return cls.decide_annotations_cache[module_name]
@@ -1583,7 +1584,7 @@ may work too."""
                 legal_values=(None, True, False),
                 abstain_values=(None,),
                 method_name="decideDocStrings",
-                get_default_value=lambda: not Options.hasPythonFlagNoDocStrings(),
+                get_default_value=lambda: not hasPythonFlagNoDocStrings(),
             )
 
         return cls.decide_doc_strings_cache[module_name]
@@ -1598,7 +1599,7 @@ may work too."""
                 legal_values=(None, True, False),
                 abstain_values=(None,),
                 method_name="decideAssertions",
-                get_default_value=lambda: not Options.hasPythonFlagNoAsserts(),
+                get_default_value=lambda: not hasPythonFlagNoAsserts(),
             )
 
         return cls.decide_assertions_cache[module_name]
@@ -1753,7 +1754,7 @@ def loadUserPlugin(plugin_filename):
             continue
 
         plugin_name = getattr(obj, "plugin_name", None)
-        if plugin_name and plugin_name not in Options.getPluginsDisabled():
+        if plugin_name and plugin_name not in getPluginsDisabled():
             plugin_class = obj
 
             valid_file = True
@@ -1847,16 +1848,13 @@ def activatePlugins():
     loadPlugins()
 
     # ensure plugin is known and not both, enabled and disabled
-    for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
+    for plugin_name in getPluginsEnabled() + getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
             plugins_logger.sysexit(
                 "Error, unknown plug-in '%s' referenced." % plugin_name
             )
 
-        if (
-            plugin_name in Options.getPluginsEnabled()
-            and plugin_name in Options.getPluginsDisabled()
-        ):
+        if plugin_name in getPluginsEnabled() and plugin_name in getPluginsDisabled():
             plugins_logger.sysexit(
                 "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
             )
@@ -1866,7 +1864,7 @@ def activatePlugins():
     for plugin_name, (plugin_class, plugin_detector) in sorted(
         plugin_name2plugin_classes.items()
     ):
-        if plugin_name in Options.getPluginsEnabled():
+        if plugin_name in getPluginsEnabled():
             if plugin_class.isAlwaysEnabled():
                 plugin_class.warning(
                     "Plugin is defined as always enabled, no need to enable it."
@@ -1882,13 +1880,13 @@ def activatePlugins():
                 plugin_class.warning(
                     "Not relevant with this OS, or Nuitka arguments given, not activated."
                 )
-        elif plugin_name in Options.getPluginsDisabled():
+        elif plugin_name in getPluginsDisabled():
             pass
         elif plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():
             _addActivePlugin(plugin_class, args=True)
         elif (
             plugin_detector is not None
-            and Options.shallDetectMissingPlugins()
+            and shallDetectMissingPlugins()
             and plugin_detector.isRelevant()
         ):
             plugin_detectors.add(plugin_detector)
@@ -2010,7 +2008,7 @@ def getPluginOptions(plugin_name):
     for option in plugin_options.get(plugin_name, {}):
         option_name = option._long_opts[0]  # pylint: disable=protected-access
 
-        arg_value = getattr(Options.options, option.dest)
+        arg_value = getattr(getUserOptions(), option.dest)
 
         if "[REQUIRED]" in option.help:
             if not arg_value:
@@ -2054,7 +2052,7 @@ def isTriggerModule(module):
 # TODO: Make this a dedicated thing generally.
 def _getMainModulePreloadCodes():
     forced_runtime_env_variable_values = tuple(
-        Options.getForcedRuntimeEnvironmentVariableValues()
+        getForcedRuntimeEnvironmentVariableValues()
     )
     if not forced_runtime_env_variable_values:
         return

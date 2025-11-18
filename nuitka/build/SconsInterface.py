@@ -14,19 +14,41 @@ import os
 import subprocess
 import sys
 
-from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import (
+    assumeYesForDownloads,
     getDebugModeIndications,
     getExperimentalIndications,
+    getFcfProtectionMode,
+    getFileVersion,
     getJobLimit,
+    getLtoMode,
+    getMacOSTargetArch,
+    getMsvcVersion,
+    getNoDeploymentIndications,
     getOnefileChildGraceTime,
+    getProductVersion,
+    getProgressBar,
     getPythonPathForScons,
+    getWindowsConsoleMode,
+    getWindowsVersionInfoStrings,
+    isClang,
     isDeploymentMode,
     isExperimental,
+    isMingw64,
+    isOnefileMode,
+    isOnefileTempDirMode,
     isShowScons,
+    isStandaloneMode,
+    isUnstripped,
     shallCompileWithoutBuildDirectory,
+    shallCreateAppBundle,
+    shallDisableCCacheUsage,
+    shallMakeDll,
+    shallMakeExe,
+    shallMakeModule,
+    shallRunInDebugger,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import (
@@ -42,6 +64,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
 from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
@@ -110,7 +133,7 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            Tracing.scons_logger.sysexit(
+            scons_logger.sysexit(
                 "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
@@ -138,7 +161,7 @@ def _getPythonForSconsExePath():
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
 
-        Tracing.scons_logger.sysexit(
+        scons_logger.sysexit(
             """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
 Nuitka needs to find a %s executable, so please install it.
@@ -259,7 +282,7 @@ def _buildSconsCommand(options, scons_filename):
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         if value is None:
-            Tracing.scons_logger.sysexit(
+            scons_logger.sysexit(
                 "Error, failure to provide argument for '%s', please report bug." % key
             )
 
@@ -375,16 +398,16 @@ def runScons(scons_options, env_values, scons_filename):
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
         # Pass quiet setting to scons via environment variable.
-        env_values["NUITKA_QUIET"] = "1" if Tracing.is_quiet else "0"
+        env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
 
         scons_command = _buildSconsCommand(
             options=scons_options, scons_filename=scons_filename
         )
 
         if isShowScons():
-            Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
+            scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
-        Tracing.flushStandardOutputs()
+        flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
             # Create debug script to quickly re-run this step only.
@@ -397,11 +420,11 @@ def runScons(scons_options, env_values, scons_filename):
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
-                Tracing.scons_logger.sysexit("User interrupted scons build.")
+                scons_logger.sysexit("User interrupted scons build.")
             else:
                 # TODO: We might want to make a difference for where reporting makes sense or not.
                 if result == 27:
-                    Tracing.scons_logger.sysexit("Fatal error in scons build.")
+                    scons_logger.sysexit("Fatal error in scons build.")
 
         # TODO: Actually this should only flush one of these, namely the one for
         # current source_dir.
@@ -414,7 +437,7 @@ def runScons(scons_options, env_values, scons_filename):
                 )
 
                 if not os.path.exists(scons_created_exe):
-                    Tracing.scons_logger.sysexit(
+                    scons_logger.sysexit(
                         "Error, scons failed to create the expected file %r. "
                         % scons_created_exe
                     )
@@ -500,44 +523,44 @@ def getCommonSconsOptions():
 
     scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
-    scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
+    scons_options["no_deployment"] = ",".join(getNoDeploymentIndications())
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
-    if Options.shallRunInDebugger():
+    if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
-    if Options.assumeYesForDownloads():
+    if assumeYesForDownloads():
         scons_options["assume_yes_for_downloads"] = asBoolStr(True)
 
-    if Options.getProgressBar() != "auto":
-        scons_options["progress_bar"] = Options.getProgressBar()
+    if getProgressBar() != "auto":
+        scons_options["progress_bar"] = getProgressBar()
 
-    if Options.isClang():
+    if isClang():
         scons_options["clang_mode"] = asBoolStr(True)
 
-    if Options.isShowScons():
+    if isShowScons():
         scons_options["show_scons"] = asBoolStr(True)
 
-    if Options.isMingw64():
+    if isMingw64():
         scons_options["mingw_mode"] = asBoolStr(True)
 
-    if Options.getMsvcVersion():
-        scons_options["msvc_version"] = Options.getMsvcVersion()
+    if getMsvcVersion():
+        scons_options["msvc_version"] = getMsvcVersion()
 
-    if Options.shallDisableCCacheUsage():
+    if shallDisableCCacheUsage():
         scons_options["disable_ccache"] = asBoolStr(True)
 
-    if isWin32Windows() and Options.getWindowsConsoleMode() != "attach":
-        scons_options["console_mode"] = Options.getWindowsConsoleMode()
+    if isWin32Windows() and getWindowsConsoleMode() != "attach":
+        scons_options["console_mode"] = getWindowsConsoleMode()
 
-    if Options.getLtoMode() != "auto":
-        scons_options["lto_mode"] = Options.getLtoMode()
+    if getLtoMode() != "auto":
+        scons_options["lto_mode"] = getLtoMode()
 
     if not isElfUsingPlatform():
         scons_options["noelf_mode"] = asBoolStr(True)
 
-    if Options.isUnstripped():
+    if isUnstripped():
         scons_options["unstripped_mode"] = asBoolStr(True)
 
     if isAnacondaPython():
@@ -572,22 +595,22 @@ def getCommonSconsOptions():
         macos_min_version = detectBinaryMinMacOS(sys.executable)
 
         if macos_min_version is None:
-            Tracing.general.sysexit(
+            general.sysexit(
                 "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 
         scons_options["macos_min_version"] = macos_min_version
 
-        scons_options["macos_target_arch"] = Options.getMacOSTargetArch()
+        scons_options["macos_target_arch"] = getMacOSTargetArch()
 
     scons_options["target_arch"] = getArchitecture()
 
-    if Options.getFcfProtectionMode() != "auto":
-        scons_options["cf_protection"] = Options.getFcfProtectionMode()
+    if getFcfProtectionMode() != "auto":
+        scons_options["cf_protection"] = getFcfProtectionMode()
 
     env_values = OrderedDict()
 
-    string_values = Options.getWindowsVersionInfoStrings()
+    string_values = getWindowsVersionInfoStrings()
     if "CompanyName" in string_values:
         env_values["NUITKA_COMPANY_NAME"] = string_values["CompanyName"]
     if "ProductName" in string_values:
@@ -595,8 +618,8 @@ def getCommonSconsOptions():
 
     # Merge version information if possible, to avoid collisions, or deep nesting
     # in file system.
-    product_version = Options.getProductVersion()
-    file_version = Options.getFileVersion()
+    product_version = getProductVersion()
+    file_version = getFileVersion()
 
     if product_version is None:
         product_version = file_version
@@ -621,14 +644,14 @@ def getCommonSconsOptions():
         env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
         env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
-    scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
-    scons_options["dll_mode"] = asBoolStr(Options.shallMakeDll())
-    scons_options["exe_mode"] = asBoolStr(Options.shallMakeExe())
+    scons_options["module_mode"] = asBoolStr(shallMakeModule())
+    scons_options["dll_mode"] = asBoolStr(shallMakeDll())
+    scons_options["exe_mode"] = asBoolStr(shallMakeExe())
 
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         scons_options["standalone_mode"] = asBoolStr(True)
 
-    if Options.isOnefileMode():
+    if isOnefileMode():
         scons_options["onefile_mode"] = asBoolStr(True)
 
         # Onefile grace time is shared, because client will also suicide based
@@ -637,12 +660,12 @@ def getCommonSconsOptions():
             getOnefileChildGraceTime()
         )
 
-        if Options.isOnefileTempDirMode():
+        if isOnefileTempDirMode():
             scons_options["onefile_temp_mode"] = asBoolStr(True)
 
     # TODO: Some things are going to hate that, we might need to bundle
     # for accelerated mode still.
-    if Options.shallCreateAppBundle():
+    if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     return scons_options, env_values

@@ -5,9 +5,9 @@
 
 """
 
-import nuitka.Options
+from nuitka.States import states
 
-nuitka.Options.is_full_compat = False
+states.is_full_compat = False
 
 # isort:start
 

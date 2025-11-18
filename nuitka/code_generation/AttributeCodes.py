@@ -6,7 +6,7 @@
 Attribute lookup, setting.
 """
 
-from nuitka import Options
+from nuitka.States import states
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -39,7 +39,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         if attribute_name == "__dict__":
@@ -78,7 +78,7 @@ def generateDelAttributeCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         statement.subnode_expression.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         getAttributeDelCode(

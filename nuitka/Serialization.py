@@ -9,7 +9,6 @@ import os
 import pickle
 import sys
 
-from nuitka import OutputDirectories
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     BaseExceptionGroup,
     ExceptionGroup,
@@ -28,6 +27,7 @@ from nuitka.Builtins import (
 # TODO: Move to constants
 from nuitka.code_generation.Namify import namifyConstant
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import openPickleFile
 
@@ -126,7 +126,7 @@ class ConstantStreamWriter(object):
         self.count = 0
 
         filename = os.path.join(
-            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+            getSourceDirectoryPath(onefile=False, create=False),
             filename,
         )
         self.file, self.pickle = openPickleFile(filename, "wb")
