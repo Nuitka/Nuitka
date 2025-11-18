@@ -8,7 +8,7 @@ finally block gets duplicated into handlers. So this is a common low level
 structure used, where exception handling and everything is made explicit.
 """
 
-from nuitka import Options
+from nuitka.States import states
 
 from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
 from .ErrorCodes import getMustNotGetHereCode
@@ -283,7 +283,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         assign_source.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         getBuiltinLoopBreakNextCode(

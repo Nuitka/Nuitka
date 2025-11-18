@@ -16,7 +16,7 @@ from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
 from nuitka.Tracing import OurLogger
-from nuitka.TreeXML import fromFile
+from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.Execution import (
     check_call,
     executeProcess,
@@ -316,7 +316,7 @@ def _updateCase(
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
-        old_report_root = fromFile("compilation-report.xml")
+        old_report_root = convertFileToXML("compilation-report.xml")
 
         if old_report_root is not None:
             existing_hash = getFileContentsHash(lock_filename)

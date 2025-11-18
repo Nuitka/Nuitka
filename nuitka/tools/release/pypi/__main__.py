@@ -96,7 +96,11 @@ Check if it would build, without uploading.
     checkReleaseDocumentation()
     tools_logger.info("Creating source distribution.", style="blue")
 
-    dist_filenames = makeNuitkaSourceDistribution(formats=("gztar",), sign=False)
+    # spell-checker: ignore gztar
+    dist_filenames = makeNuitkaSourceDistribution(
+        formats=("gztar",),
+        sign=False,
+    )
 
     # Test with these Pythons if the installed package would work.
     pythons = [

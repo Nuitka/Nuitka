@@ -9,7 +9,7 @@ import __future__
 
 import ast
 
-from nuitka import Constants, Options
+from nuitka.Constants import createConstantDict
 from nuitka.Errors import CodeTooComplexCode
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
@@ -31,7 +31,9 @@ from nuitka.nodes.KeyValuePairNodes import (
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.Options import hasPythonFlagNoDocStrings
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine
 
 
@@ -59,7 +61,7 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if Options.hasPythonFlagNoDocStrings():
+        if hasPythonFlagNoDocStrings():
             doc = None
 
     if doc is not None and python_version >= 0x3D0:
@@ -134,7 +136,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 elif name in ("bases", "decorator_list", "keywords", "type_params"):
                     for child in field:
                         _check(child)
-                elif name == "starargs":
+                elif name == "starargs":  # spell-checker: ignore starargs
                     if field is not None:
                         _check(field)
                 elif name == "kwargs":
@@ -418,7 +420,7 @@ def buildAnnotationNode(provider, node, source_ref):
 
         value = m["__annotations__"]["x"]
 
-        if Options.is_debug and python_version >= 0x390:
+        if states.is_debug and python_version >= 0x390:
             # TODO: In Python3.9+, we should only use ast.unparse
             assert value == ast.unparse(node)
 
@@ -430,7 +432,7 @@ def buildAnnotationNode(provider, node, source_ref):
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
-    if Options.is_full_compat:
+    if states.is_full_compat:
         co_name = "<module>"
     else:
         if module.isMainModule():
@@ -606,7 +608,7 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
         result = makeConstantRefNode(
-            constant=Constants.createConstantDict(
+            constant=createConstantDict(
                 keys=keys, values=[value.getCompileTimeConstant() for value in values]
             ),
             user_provided=True,

@@ -8,7 +8,6 @@
 import sys
 from abc import abstractmethod
 
-from nuitka import Options
 from nuitka.__past__ import (
     GenericAlias,
     UnionType,
@@ -35,6 +34,7 @@ from nuitka.Constants import (
     the_empty_unicode,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
@@ -284,7 +284,7 @@ class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
 
         self.user_provided = user_provided
 
-        if not user_provided and Options.is_debug:
+        if not user_provided and states.is_debug:
             try:
                 if type(constant) in (str, unicode, bytes):
                     max_size = 1000

@@ -8,14 +8,30 @@
 import glob
 import os
 
-from nuitka import ModuleRegistry, Options
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.freezer.ImportDetection import (
     detectEarlyImports,
     detectStdlibAutoInclusionModules,
 )
 from nuitka.importing import ImportCache, StandardLibrary
-from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
+from nuitka.ModuleRegistry import (
+    addRootModule,
+    addUsedModule,
+    getRootTopModule,
+)
+from nuitka.Options import (
+    getShallFollowInNoCase,
+    getShallFollowModules,
+    hasPythonFlagPackageMode,
+    isMultidistMode,
+    isShowInclusion,
+    isStandaloneMode,
+    shallFollowAllImports,
+    shallFollowNoImports,
+    shallFollowStandardLibrary,
+    shallMakeModule,
+    shallMakePackage,
+)
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -157,10 +173,10 @@ def _decideRecursion(
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
 
-    if using_module_name == "__main__" and Options.isMultidistMode():
+    if using_module_name == "__main__" and isMultidistMode():
         return True, "Main program multidist entry points."
 
-    if module_kind == "extension" and not Options.isStandaloneMode():
+    if module_kind == "extension" and not isStandaloneMode():
         return False, "Extension modules cannot be inspected."
 
     if module_kind == "built-in":
@@ -174,11 +190,11 @@ def _decideRecursion(
     )
 
     any_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowModules()
+        patterns=getShallFollowModules()
     )
 
     no_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowInNoCase()
+        patterns=getShallFollowInNoCase()
     )
 
     if is_stdlib and module_name in detectStdlibAutoInclusionModules() and not no_case:
@@ -186,8 +202,8 @@ def _decideRecursion(
 
     # In '-m' mode, when including the package, do not duplicate main program.
     if (
-        Options.hasPythonFlagPackageMode()
-        and not Options.shallMakeModule()
+        hasPythonFlagPackageMode()
+        and not shallMakeModule()
         and module_name.getBasename() == "__main__"
     ):
         if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
@@ -230,20 +246,20 @@ def _decideRecursion(
     if plugin_decision is not None:
         return plugin_decision
 
-    if Options.shallMakePackage():
+    if shallMakePackage():
         if module_name.hasNamespace(getRootTopModule().getFullName()):
             return True, "Submodule of compiled package."
 
     if extra_recursion:
         return True, "Lives in user provided directory."
 
-    if module_kind == "extension" and Options.isStandaloneMode():
+    if module_kind == "extension" and isStandaloneMode():
         return True, "Extension module needed for standalone mode."
 
     # PGO decisions are not overruling plugins, but all command line options, they are
     # supposed to be applied already.
 
-    if not is_stdlib or Options.shallFollowStandardLibrary():
+    if not is_stdlib or shallFollowStandardLibrary():
         # TODO: Bad placement of this function or should PGO also know about
         # bytecode modules loaded or not.
         from nuitka.tree.Building import decideCompilationMode
@@ -265,23 +281,16 @@ def _decideRecursion(
             if pgo_decision is not None:
                 return pgo_decision, "PGO based decision"
 
-    if (
-        is_stdlib
-        and not Options.isStandaloneMode()
-        and not Options.shallFollowStandardLibrary()
-    ):
+    if is_stdlib and not isStandaloneMode() and not shallFollowStandardLibrary():
         return (
             False,
             "Not following into stdlib unless standalone or requested to follow into stdlib.",
         )
 
-    if Options.shallFollowAllImports():
-        return (
-            True,
-            "Instructed by user to follow to all modules.",
-        )
+    if shallFollowAllImports():
+        return (True, "Instructed by user to follow to all modules.")
 
-    if Options.shallFollowNoImports():
+    if shallFollowNoImports():
         return (None, "Instructed by user to not follow at all.")
 
     # Means, we were not given instructions how to handle things.
@@ -303,8 +312,7 @@ def isSameModulePath(path1, path2):
 def _addIncludedModule(module, package_only):
     # Many branches, for the decision is very complex
     # pylint: disable=too-many-branches
-
-    if Options.isShowInclusion():
+    if isShowInclusion():
         recursion_logger.info(
             "Included '%s' as '%s'."
             % (
@@ -330,9 +338,9 @@ def _addIncludedModule(module, package_only):
             package_dir = os.path.dirname(package_filename)
 
             # Real packages will always be included.
-            ModuleRegistry.addRootModule(module)
+            addRootModule(module)
 
-        if Options.isShowInclusion():
+        if isShowInclusion():
             recursion_logger.info("Package directory '%s'." % package_dir)
 
         if not package_only:
@@ -369,10 +377,10 @@ def _addIncludedModule(module, package_only):
                             )
 
     elif module.isCompiledPythonModule() or module.isUncompiledPythonModule():
-        ModuleRegistry.addRootModule(module)
+        addRootModule(module)
     elif module.isPythonExtensionModule():
-        if Options.isStandaloneMode():
-            ModuleRegistry.addRootModule(module)
+        if isStandaloneMode():
+            addRootModule(module)
     else:
         assert False, module
 
@@ -380,8 +388,7 @@ def _addIncludedModule(module, package_only):
 def scanPluginSinglePath(plugin_filename, module_package, package_only):
     # The importing wants these to be unique.
     plugin_filename = os.path.abspath(plugin_filename)
-
-    if Options.isShowInclusion():
+    if isShowInclusion():
         recursion_logger.info(
             "Checking detail plug-in path '%s' '%s':"
             % (plugin_filename, module_package)
@@ -391,7 +398,7 @@ def scanPluginSinglePath(plugin_filename, module_package, package_only):
 
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
-    if module_kind == "extension" and not Options.isStandaloneMode():
+    if module_kind == "extension" and not isStandaloneMode():
         recursion_logger.warning(
             """\
 Cannot include extension module '%s' unless using at least standalone mode, \
@@ -434,7 +441,7 @@ the compiled result, and therefore asking to include them makes no sense.
 
 
 def scanPluginPath(plugin_filename, module_package):
-    if Options.isShowInclusion():
+    if isShowInclusion():
         recursion_logger.info(
             "Checking top level inclusion path '%s' for package '%s'."
             % (plugin_filename, module_package)
@@ -476,7 +483,7 @@ def scanPluginPath(plugin_filename, module_package):
 
 
 def scanPluginFilenamePattern(pattern):
-    if Options.isShowInclusion():
+    if isShowInclusion():
         recursion_logger.info("Checking plug-in pattern '%s':" % pattern)
 
     assert not os.path.isdir(pattern), pattern
