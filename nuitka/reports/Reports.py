@@ -783,12 +783,25 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         if plugin.isDetector():
             continue
 
-        appendTreeElement(
+        plugin_element = appendTreeElement(
             active_plugins_xml_node,
             "plugin",
             name=plugin.plugin_name,
             user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
         )
+
+        try:
+            # TODO: Actually expose these to other reports as well.
+            for key, value in plugin.getReportData():
+                if type(value) is bool:
+                    value = "yes" if value else "no"
+
+                plugin_element.attrib[key] = value
+
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Don't fail report generation for plugin report issues, they might be badly coded,
+            # for now we don't even warn about them.
+            pass
 
     if isOnefileMode():
         _onefile_xml_node = appendTreeElement(
