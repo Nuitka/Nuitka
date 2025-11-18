@@ -32,6 +32,7 @@ from nuitka.OptionParsing import (
 from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
+    hasAcceleratedSupportedFlavor,
     isAnacondaPython,
     isApplePython,
     isArchPackagePython,
@@ -464,18 +465,6 @@ def parseArgs():
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args
 
-    if os.name == "nt":
-        # Windows store Python's don't allow looking at the python, catch that.
-        try:
-            with openTextFile(sys.executable, "rb"):
-                pass
-        except OSError:
-            general.sysexit(
-                """\
-Error, the Python from Windows app store is not supported.""",
-                mnemonic="unsupported-windows-app-store-python",
-            )
-
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
         logger=options_logger
     )
@@ -867,6 +856,12 @@ it before using it: '%s' (from --output-filename='%s')."""
             options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
+
+    if isAcceleratedMode() and not hasAcceleratedSupportedFlavor():
+        options_logger.sysexit(
+            "Error, unsupported OS or Python flavor '%s' for accelerated mode."
+            % getPythonFlavorName()
+        )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
         options_logger.sysexit("Error, unsupported OS for onefile '%s'." % getOS())
