@@ -4,7 +4,7 @@
 """ Details see below in class definition.
 """
 
-from nuitka import Options
+from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -28,7 +28,7 @@ class NuitkaPluginGevent(NuitkaPluginBase):
         Returns:
             True if this is a standalone compilation.
         """
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     @staticmethod
     def createPostModuleLoadCode(module):

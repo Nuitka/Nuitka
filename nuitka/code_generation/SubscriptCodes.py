@@ -7,7 +7,7 @@ There is special handling for integer indexes, which can be dealt with
 much faster than general subscript lookups.
 """
 
-from nuitka import Options
+from nuitka.States import states
 
 from .CodeHelpers import (
     generateChildExpressionCode,
@@ -54,7 +54,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         if integer_subscript:
@@ -89,7 +89,7 @@ def generateDelSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         subscript.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         _getSubscriptDelCode(

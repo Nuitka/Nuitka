@@ -10,15 +10,16 @@ know how to handle these.
 import os
 import sys
 
-from nuitka import Options
 from nuitka.Constants import isConstant
 from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
+from nuitka.Options import shallMakeModule
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
     getImportlibSubPackages,
     python_version,
 )
+from nuitka.States import states
 from nuitka.utils.Utils import isWin32Windows
 
 # These module are supported in code generation to be imported the hard way.
@@ -197,7 +198,7 @@ else:
 
 
 # If we are not a module, we are not in REPL mode.
-if not Options.shallMakeModule():
+if not shallMakeModule():
     module_sys_trust["ps1"] = trust_not_exist
     module_sys_trust["ps2"] = trust_not_exist
 
@@ -216,11 +217,11 @@ def makeTypingModuleTrust():
         for name in typing.__all__:
             if name not in constant_typing_values:
                 trust = trust_exist
-                if Options.is_debug:
+                if states.is_debug:
                     assert not isConstant(getattr(typing, name))
             else:
                 trust = trust_constant
-                if Options.is_debug:
+                if states.is_debug:
                     assert isConstant(getattr(typing, name))
 
             result[name] = trust

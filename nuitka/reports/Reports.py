@@ -12,7 +12,6 @@ import os
 import sys
 import traceback
 
-from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsUtils import getSconsReportValue, readSconsErrorReport
@@ -57,6 +56,7 @@ from nuitka.PythonVersions import (
     python_version_full_str,
 )
 from nuitka.Tracing import ReportingSystemExit, reports_logger
+from nuitka.TreeXML import Element, appendTreeElement, convertXmlToString
 from nuitka.utils.Distributions import (
     getDistributionInstallerName,
     getDistributionLicense,
@@ -318,7 +318,7 @@ def _addModulesToReport(root, report_input_data, diffable):
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
 
-        module_xml_node = TreeXML.appendTreeElement(
+        module_xml_node = appendTreeElement(
             root,
             "module",
             name=module_name,
@@ -347,7 +347,7 @@ def _addModulesToReport(root, report_input_data, diffable):
         for plugin_name, influence, detail in report_input_data[
             "module_plugin_influences"
         ][module_name]:
-            influence_xml_node = TreeXML.Element(
+            influence_xml_node = Element(
                 "plugin-influence", name=plugin_name, influence=influence
             )
 
@@ -398,7 +398,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             module_xml_node.append(influence_xml_node)
 
         for timing_info in report_input_data["module_timing_infos"][module_name]:
-            timing_xml_node = TreeXML.Element(
+            timing_xml_node = Element(
                 "optimization-time",
             )
 
@@ -432,13 +432,13 @@ def _addModulesToReport(root, report_input_data, diffable):
         distributions = report_input_data["module_distribution_usages"][module_name]
 
         if distributions:
-            distributions_xml_node = TreeXML.appendTreeElement(
+            distributions_xml_node = appendTreeElement(
                 module_xml_node,
                 "distribution-usages",
             )
 
             for distribution in distributions:
-                TreeXML.appendTreeElement(
+                appendTreeElement(
                     distributions_xml_node,
                     "distribution-usage",
                     name=getDistributionName(distribution),
@@ -449,20 +449,20 @@ def _addModulesToReport(root, report_input_data, diffable):
         ]
 
         if module_distribution_names:
-            module_distribution_names_xml_node = TreeXML.appendTreeElement(
+            module_distribution_names_xml_node = appendTreeElement(
                 module_xml_node,
                 "distribution-lookups",
             )
 
             for distribution_name, found in module_distribution_names.items():
-                TreeXML.appendTreeElement(
+                appendTreeElement(
                     module_distribution_names_xml_node,
                     "distribution-lookup",
                     name=distribution_name,
                     found="yes" if found else "no",
                 )
 
-        used_modules_xml_node = TreeXML.appendTreeElement(
+        used_modules_xml_node = appendTreeElement(
             module_xml_node,
             "module_usages",
         )
@@ -489,7 +489,7 @@ def _addModulesToReport(root, report_input_data, diffable):
                 if exclusion_reason is None or next_used_module.finding != "not-found":
                     continue
 
-            module_usage_node = TreeXML.appendTreeElement(
+            module_usage_node = appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
@@ -516,7 +516,7 @@ def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
         if type(value) is not int:
             continue
 
-        TreeXML.appendTreeElement(
+        appendTreeElement(
             performance_xml_node,
             "memory_usage",
             name=key,
@@ -526,13 +526,13 @@ def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
 
 def _addUserDataToReport(root, user_data):
     if user_data:
-        user_data_xml_node = TreeXML.appendTreeElement(
+        user_data_xml_node = appendTreeElement(
             root,
             "user-data",
         )
 
         for key, value in user_data.items():
-            user_data_value_xml_node = TreeXML.appendTreeElement(
+            user_data_value_xml_node = appendTreeElement(
                 user_data_xml_node,
                 key,
             )
@@ -563,7 +563,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     else:
         completion = "exception"
 
-    root = TreeXML.Element(
+    root = Element(
         "nuitka-compilation-report",
         nuitka_version=report_input_data["nuitka_version"],
         nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
@@ -575,7 +575,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         root.attrib["exit_message"] = exit_message
 
     if completion == "exception":
-        exception_xml_node = TreeXML.appendTreeElement(
+        exception_xml_node = appendTreeElement(
             root,
             "exception",
             exception_type=str(sys.exc_info()[0].__name__),
@@ -585,7 +585,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         exception_xml_node.text = "\n" + traceback.format_exc()
 
     if report_input_data["cpp_flags"] is not None:
-        scons_environment_xml_node = TreeXML.appendTreeElement(
+        scons_environment_xml_node = appendTreeElement(
             root,
             "scons_environment",
         )
@@ -610,18 +610,16 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             ]
 
     if report_input_data["scons_error_report_data"]:
-        scons_error_reports_node = TreeXML.appendTreeElement(
-            root, "scons_error_reports"
-        )
+        scons_error_reports_node = appendTreeElement(root, "scons_error_reports")
 
         for cmd, (stdout, stderr) in report_input_data[
             "scons_error_report_data"
         ].items():
-            scons_error_report_node = TreeXML.appendTreeElement(
+            scons_error_report_node = appendTreeElement(
                 scons_error_reports_node, "scons_error_report"
             )
 
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 scons_error_report_node,
                 "command",
             ).text = cmd
@@ -632,7 +630,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
                 stdout = stdout.rstrip("\n") + "\n"
 
-                TreeXML.appendTreeElement(
+                appendTreeElement(
                     scons_error_report_node,
                     "stdout",
                 ).text = stdout
@@ -643,7 +641,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
                 stderr = stderr.rstrip("\n") + "\n"
 
-                TreeXML.appendTreeElement(
+                appendTreeElement(
                     scons_error_report_node,
                     "stderr",
                 ).text = stderr
@@ -653,7 +651,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
 
     if report_input_data["memory_infos"]:
-        performance_xml_node = TreeXML.appendTreeElement(
+        performance_xml_node = appendTreeElement(
             root,
             "performance",
         )
@@ -666,7 +664,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 root,
                 "data_file",
                 name=included_datafile.dest_path,
@@ -676,7 +674,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 tags=",".join(included_datafile.tags),
             )
         elif included_datafile.kind == "data_blob":
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 root,
                 "data_blob",
                 name=included_datafile.dest_path,
@@ -686,7 +684,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             )
 
     if report_input_data["included_metadata"]:
-        metadata_node = TreeXML.appendTreeElement(
+        metadata_node = appendTreeElement(
             root,
             "metadata",
         )
@@ -694,7 +692,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         for distribution_name, reasons in sorted(
             report_input_data["included_metadata"].items()
         ):
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 metadata_node,
                 "included_metadata",
                 name=distribution_name,
@@ -713,7 +711,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         else:
             ignored = False
 
-        TreeXML.appendTreeElement(
+        appendTreeElement(
             root,
             "included_" + kind,
             name=os.path.basename(standalone_entry_point.dest_path),
@@ -727,7 +725,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
     for standalone_entry_point, (reason, removed_dll_paths) in getRemovedUsedDllsInfo():
         for removed_dll_path in removed_dll_paths:
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 root,
                 "excluded_dll",
                 name=_getCompilationReportPath(removed_dll_path),
@@ -738,7 +736,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     if not diffable:
         data_composer_values = getDataComposerReportValues()
 
-        data_composer_xml_node = TreeXML.appendTreeElement(
+        data_composer_xml_node = appendTreeElement(
             root,
             "data_composer",
             blob_size=str(data_composer_values["blob_size"]),
@@ -754,22 +752,22 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                     for key in item_value:
                         item_value[key] = str(item_value[key])
 
-                    TreeXML.appendTreeElement(
+                    appendTreeElement(
                         data_composer_xml_node,
                         "module_data",
                         filename=item,
                         **item_value
                     )
 
-    options_xml_node = TreeXML.appendTreeElement(
+    options_xml_node = appendTreeElement(
         root,
         "command_line",
     )
 
     for arg in sys.argv[1:]:
-        TreeXML.appendTreeElement(options_xml_node, "option", value=arg)
+        appendTreeElement(options_xml_node, "option", value=arg)
 
-    active_plugins_xml_node = TreeXML.appendTreeElement(
+    active_plugins_xml_node = appendTreeElement(
         root,
         "plugins",
     )
@@ -778,7 +776,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         if plugin.isDetector():
             continue
 
-        TreeXML.appendTreeElement(
+        appendTreeElement(
             active_plugins_xml_node,
             "plugin",
             name=plugin.plugin_name,
@@ -786,20 +784,20 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         )
 
     if isOnefileMode():
-        _onefile_xml_node = TreeXML.appendTreeElement(
+        _onefile_xml_node = appendTreeElement(
             root,
             "onefile",
             cache_mode="temporary" if isOnefileTempDirMode() else "cached",
             unpack_dir=getOnefileTempDirSpec(),
         )
 
-    distributions_xml_node = TreeXML.appendTreeElement(
+    distributions_xml_node = appendTreeElement(
         root,
         "distributions",
     )
 
     for distribution in report_input_data["all_distributions"]:
-        distribution_node = TreeXML.appendTreeElement(
+        distribution_node = appendTreeElement(
             distributions_xml_node,
             "distribution",
             name=getDistributionName(distribution),
@@ -814,7 +812,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         ]:
             distribution_node.attrib["vendored"] = "yes"
 
-    python_xml_node = TreeXML.appendTreeElement(
+    python_xml_node = appendTreeElement(
         root,
         "python",
         python_exe=_getCompilationReportPath(report_input_data["python_exe"]),
@@ -832,13 +830,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     search_path = getPackageSearchPath(None)
 
     if search_path is not None:
-        search_path_xml_node = TreeXML.appendTreeElement(
+        search_path_xml_node = appendTreeElement(
             python_xml_node,
             "search_path",
         )
 
         for search_path in getPackageSearchPath(None):
-            TreeXML.appendTreeElement(
+            appendTreeElement(
                 search_path_xml_node,
                 "path",
                 value=_getCompilationReportPath(search_path),
@@ -846,7 +844,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
     _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
-    python_xml_node = TreeXML.appendTreeElement(
+    python_xml_node = appendTreeElement(
         root,
         "output",
         run_filename=_getCompilationReportPath(
@@ -854,7 +852,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         ),
     )
 
-    contents = TreeXML.toString(root)
+    contents = convertXmlToString(root)
 
     if type(contents) is not bytes:
         contents = contents.encode("utf8")

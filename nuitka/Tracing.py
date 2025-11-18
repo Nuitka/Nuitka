@@ -40,6 +40,10 @@ def setQuiet():
     is_quiet = True
 
 
+def isQuiet():
+    return is_quiet
+
+
 def printIndented(level, *what):
     print("    " * level, *what)
 

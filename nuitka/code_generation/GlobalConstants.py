@@ -5,10 +5,11 @@
 
 """
 
-from nuitka import Options
 from nuitka.__past__ import long
+from nuitka.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker: ignore fromlist
@@ -167,12 +168,12 @@ def getConstantDefaultPopulation():
         result.append("xrange")
 
     # Executables only
-    if not Options.shallMakeModule():
+    if not shallMakeModule():
         # The "site" module is referenced in inspect patching.
         result.append("site")
 
     # Built-in original values
-    if not Options.shallMakeModule():
+    if not shallMakeModule():
         result += ("type", "len", "range", "repr", "int", "iter")
 
         if python_version < 0x300:
@@ -190,10 +191,10 @@ def getConstantDefaultPopulation():
         result.append("ascii")
         result.append("punycode")
 
-    if not Options.shallMakeModule():
+    if not shallMakeModule():
         result.append("__main__")
 
-    if Options.shallMakeModule():
+    if shallMakeModule():
         result.append("loader")
 
     # Resource reader files interface, including for backport
@@ -214,7 +215,7 @@ def getConstantDefaultPopulation():
     if python_version >= 0x3A0:
         result.append("__match_args__")
 
-        if Options.is_debug:
+        if states.is_debug:
             result.append("__args__")
 
     if python_version >= 0x3B0:
@@ -227,7 +228,7 @@ def getConstantDefaultPopulation():
     if isWin32Windows():
         result.append("fileno")
 
-    if not Options.isDeploymentMode():
+    if not isDeploymentMode():
         result.append("args")
 
     for value in Plugins.getExtraConstantDefaultPopulation():

@@ -5,6 +5,8 @@
 
 """
 
+from nuitka.States import states
+
 from .FileOperations import getFilenameExtension, hasFilenameExtension
 from .Utils import isMacOS, isWin32Windows
 
@@ -29,9 +31,7 @@ Cannot detect the icon format from filename extension of '%s'."""
         try:
             import imageio  # pylint: disable=I0021,import-error,unused-import
         except ImportError as e:
-            from nuitka import Options
-
-            if Options.is_debug:
+            if states.is_debug:
                 logger.info("Exception importing 'imageio' is %s" % repr(e))
 
             logger.sysexit(

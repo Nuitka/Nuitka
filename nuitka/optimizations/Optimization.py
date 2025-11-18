@@ -10,18 +10,21 @@ make others possible.
 
 import inspect
 
-from nuitka import ModuleRegistry, Options, Variables
+from nuitka import ModuleRegistry
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
+from nuitka.Options import isCompileTimeProfile, isShowMemory, isShowProgress
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
     closeProgressBar,
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.States import states
 from nuitka.Tracing import general, optimization_logger, progress_logger
 from nuitka.utils.MemoryUsage import MemoryWatch, reportMemoryUsage
 from nuitka.utils.Timing import TimerReport, withProfiling
+from nuitka.Variables import removeVariablesFromCollection
 
 from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
@@ -36,7 +39,7 @@ def signalChange(tags, source_ref, message):
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
-        if Options.is_verbose:
+        if states.is_verbose:
             optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
@@ -60,7 +63,8 @@ def optimizeCompiledPythonModule(module):
 
     touched = False
 
-    if Options.isShowProgress() and Options.isShowMemory():
+    # TODO: Make this an option for the user to control instead.
+    if isShowProgress() and isShowMemory():
         memory_watch = MemoryWatch()
 
     # Temporary workaround, since we do some optimization based on the last pass results
@@ -118,7 +122,7 @@ def optimizeCompiledPythonModule(module):
         # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if Options.isShowProgress() and Options.isShowMemory():
+    if isShowProgress() and isShowMemory():
         memory_watch.finish(
             "Memory usage changed during optimization of '%s'" % (module.getFullName())
         )
@@ -183,7 +187,7 @@ def _restartProgress():
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
-    if not Options.is_verbose or optimization_logger.isFileOutput():
+    if not states.is_verbose or optimization_logger.isFileOutput():
         setupProgressBar(
             stage="PASS %d" % pass_count,
             unit="module",
@@ -211,7 +215,7 @@ after that.""".format(
         update=False,
     )
 
-    if Options.isShowProgress() and Options.isShowMemory():
+    if isShowProgress() and isShowMemory():
         reportMemoryUsage(
             "optimization/%d/%s" % (pass_count, current_module.getFullName()),
             (
@@ -219,7 +223,7 @@ after that.""".format(
                     "Total memory usage before optimizing module '%s'"
                     % current_module.getFullName()
                 )
-                if Options.isShowProgress() or Options.isShowMemory()
+                if isShowProgress() or isShowMemory()
                 else None
             ),
         )
@@ -241,9 +245,9 @@ def _endProgress():
 
 def restoreFromXML(text):
     from nuitka.nodes.NodeBases import fromXML
-    from nuitka.TreeXML import fromString
+    from nuitka.TreeXML import convertStringToXML
 
-    xml = fromString(text)
+    xml = convertStringToXML(text)
 
     module = fromXML(provider=None, xml=xml)
 
@@ -287,7 +291,8 @@ def makeOptimizationPass():
             logger=optimization_logger,
             decider=False,
             include_sleep_time=False,
-            use_perf_counters=current_module.isCompiledPythonModule(),
+            use_perf_counters=current_module.isCompiledPythonModule()
+            and not isCompileTimeProfile(),
         ) as module_timer:
             changed, micro_passes = optimizeModule(current_module)
 
@@ -311,11 +316,7 @@ def makeOptimizationPass():
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
             for unused_function in current_module.getUnusedFunctions():
-                Variables.updateVariablesFromCollection(
-                    old_collection=unused_function.trace_collection,
-                    new_collection=None,
-                    source_ref=unused_function.getSourceReference(),
-                )
+                removeVariablesFromCollection(unused_function.trace_collection)
 
                 unused_function.trace_collection = None
                 unused_function.finalize()
@@ -356,7 +357,7 @@ def optimizeModules(output_filename):
     with withProfiling(
         name="module-optimization",
         logger=general,
-        enabled=Options.isCompileTimeProfile(),
+        enabled=isCompileTimeProfile(),
     ):
         _optimizeModules(output_filename)
 

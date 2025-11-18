@@ -9,11 +9,12 @@ import collections
 from abc import abstractmethod
 from contextlib import contextmanager
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
+from nuitka.States import states
 from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -169,7 +170,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.is_debug and python_version >= 0x300
+        debug = states.is_debug and python_version >= 0x300
 
         if debug:
             keeper_obj_init = "Empty_Nuitka_ExceptionPreservationItem"
@@ -202,7 +203,7 @@ class TempMixin(object):
         # For finally handlers of Python3, which have conditions on assign and
         # use.
         if preserver_id not in self.preserver_variable_declaration:
-            needs_init = Options.is_debug and python_version >= 0x300
+            needs_init = states.is_debug and python_version >= 0x300
 
             if needs_init:
                 preserver_obj_init = "Nuitka_ExceptionStackItem_Empty"
@@ -286,7 +287,7 @@ CodeObjectHandle = collections.namedtuple(
 )
 
 
-if Options.isExperimental("new-code-objects"):
+if isExperimental("new-code-objects"):
 
     class CodeObjectsMixin(object):
         __slots__ = ()
@@ -904,7 +905,7 @@ class PythonModuleContext(
         return False
 
     def getConstantCode(self, constant, deep_check=False):
-        if deep_check and Options.is_debug:
+        if deep_check and states.is_debug:
             assert not isMutable(constant)
 
         return self.constant_accessor.getConstantCode(constant)

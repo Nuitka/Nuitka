@@ -7,9 +7,9 @@
 
 import math
 
-from nuitka import Options
 from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
@@ -66,7 +66,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
     @staticmethod
     def isUserProvided(values):
-        if Options.is_debug:
+        if states.is_debug:
             for value in values:
                 if (
                     value is not None
@@ -780,7 +780,7 @@ class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
             type_shape=type_shape,
         )
 
-    if Options.is_full_compat:
+    if states.is_full_compat:
 
         def getKeywordRefusalText(self):
             assert "." in self.name, self.name

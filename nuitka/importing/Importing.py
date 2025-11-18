@@ -26,15 +26,20 @@ import os
 import sys
 import zipfile
 
-from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaCodeDeficit
+from nuitka.Options import (
+    getMainEntryPointFilenames,
+    hasPythonFlagNoCurrentDirectoryInPath,
+    shallExplainImports,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
+from nuitka.States import states
 from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
@@ -71,31 +76,23 @@ _debug_module_finding = None
 # Do not add current directory to search path.
 _safe_path = None
 
+
 # Debug mode
-_is_debug = None
-
-
 def setupImportingFromOptions():
     """Set up the importing layer from giving options."""
 
-    # Should only be used inside of here.
-    from nuitka import Options
-
     # singleton, pylint: disable=global-statement
     global _debug_module_finding
-    _debug_module_finding = Options.shallExplainImports()
+    _debug_module_finding = shallExplainImports()
 
     global _safe_path
-    _safe_path = Options.hasPythonFlagNoCurrentDirectoryInPath()
-
-    global _is_debug
-    _is_debug = Options.is_debug
+    _safe_path = hasPythonFlagNoCurrentDirectoryInPath()
 
     # Lets try and have this complete, please report failures.
-    if _is_debug and not isNuitkaPython():
+    if states.is_debug and not isNuitkaPython():
         _checkRaisingBuiltinComplete()
 
-    main_filenames = Options.getMainEntryPointFilenames()
+    main_filenames = getMainEntryPointFilenames()
     for filename in main_filenames:
         # Inform the importing layer about the main script directory, so it can use
         # it when attempting to follow imports.
@@ -1004,7 +1001,7 @@ def locateModule(module_name, parent_package, level, logger=None):
                 module_name, module_package
             )
 
-            if _is_debug:
+            if states.is_debug:
                 assert module_name == found_module_name, (
                     module_name,
                     found_module_name,
@@ -1120,7 +1117,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
 # spell-checker: ignore _posixsubprocess,pyexpat,xxsubtype,_bytesio,_interpchannels
 # spell-checker: ignore _interpqueues,_lsprof,_multibytecodec,_posixshmem _winapi
 # spell-checker: ignore  _testbuffer _testexternalinspection _testimportmultiple
-# spell-checker: ignore _testinternalcapi _testmultiphase _testsinglephase
+# spell-checker: ignore _testinternalcapi _testmultiphase _testsinglephase _scproxy
 # spell-checker: ignore _xxtestfuzz _xxsubinterpreters imageop _xxinterpchannels
 _stdlib_module_raises = {
     "_abc": False,

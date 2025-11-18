@@ -6,7 +6,7 @@
 This aims at being general, but right now is only used for comparison code helpers.
 """
 
-from nuitka import Options
+from nuitka.States import states
 
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .Reports import onMissingHelper
@@ -50,7 +50,7 @@ def selectCodeHelper(
     if helper_function not in specialized_helpers_set:
         if (
             report_missing
-            and Options.report_missing_code_helpers
+            and states.report_missing_code_helpers
             and (
                 not non_specialized_helpers_set
                 or helper_function not in non_specialized_helpers_set

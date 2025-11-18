@@ -15,7 +15,7 @@ from nuitka.tools.quality.Git import (
     putFileHashContent,
     updateGitFile,
 )
-from nuitka.TreeXML import fromString, toString
+from nuitka.TreeXML import convertStringToXML, convertXmlToString
 from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 
 options = None
@@ -65,10 +65,10 @@ def findMatchingNode(root, search_node):
 def onCompilationReportChange(filename, git_stage):
     print("Working on", filename)
 
-    new_report = fromString(getFileContents(filename, mode="rb"), use_lxml=True)
+    new_report = convertStringToXML(getFileContents(filename, mode="rb"), use_lxml=True)
     old_git_contents = getFileHashContent(git_stage["src_hash"])
 
-    old_report = fromString(old_git_contents, use_lxml=True)
+    old_report = convertStringToXML(old_git_contents, use_lxml=True)
 
     new_nuitka_version = new_report.attrib["nuitka_version"]
     changed = False
@@ -86,7 +86,7 @@ def onCompilationReportChange(filename, git_stage):
                 changed = True
 
     if changed:
-        new_git_contents = toString(old_report)
+        new_git_contents = convertXmlToString(old_report)
         with withTemporaryFile(mode="w", delete=False) as output_file:
             tmp_filename = output_file.name
             output_file.write(new_git_contents)

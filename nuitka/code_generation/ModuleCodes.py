@@ -7,9 +7,13 @@
 
 import os
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
+from nuitka.Options import (
+    getFileReferenceMode,
+    isExperimental,
+    shallMakeModule,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
@@ -113,7 +117,7 @@ def getModuleCode(
 
     template = template_global_copyright + template_module_body_template
 
-    if is_top == 1 and Options.shallMakeModule():
+    if is_top == 1 and shallMakeModule():
         template += template_module_external_entry_point
 
     module_code_objects_decl = getCodeObjectsDeclCode(context)
@@ -121,13 +125,13 @@ def getModuleCode(
 
     module_init_codes = context.getModuleInitCodes()
 
-    if Options.isExperimental("new-code-objects"):
+    if isExperimental("new-code-objects"):
         # Create the always identical, but dynamic filename first thing.
         module_filename = module.getRunTimeFilename()
 
         # We do not care about release of this object, as code object live
         # forever anyway.
-        if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+        if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
             module_filename_obj_code = context.getConstantCode(constant=module_filename)
         else:
             module_filename_obj_code = (
