@@ -193,6 +193,14 @@ except AttributeError:
     process_time = time.time
 
 
+try:
+    import imp  # Before Python3.12 only, pylint: disable=I0021,import-error
+
+    imp.get_suffixes  # Just to test the attribute, pylint: disable=pointless-statement
+except (AttributeError, ImportError):
+    import _imp as imp
+
+
 # For PyLint to be happy.
 assert long
 assert unicode
@@ -208,6 +216,7 @@ assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
 assert FileNotFoundError
+assert imp
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

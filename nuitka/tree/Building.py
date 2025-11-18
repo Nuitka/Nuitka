@@ -1249,7 +1249,9 @@ Cannot follow import to module '%s' because of '%s'."""
             % (module_name, exc.__class__.__name__)
         )
 
-    source_ref = SourceCodeReferences.fromFilename(filename=module_filename)
+    source_ref = SourceCodeReferences.makeSourceReferenceFromFilename(
+        filename=module_filename
+    )
 
     module = CompiledPythonModule(
         module_name=module_name,
