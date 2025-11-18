@@ -34,6 +34,7 @@ from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
@@ -1079,14 +1080,14 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     if is_fake:
         source_filename = filename
 
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+        source_ref = makeSourceReferenceFromFilename(filename=filename)
 
         module_name = is_fake
 
     elif os.path.isfile(filename):
         source_filename = filename
 
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
+        source_ref = makeSourceReferenceFromFilename(filename=filename)
 
     elif isPackageDir(filename):
         is_package = True
@@ -1094,12 +1095,10 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
         source_filename = getNormalizedPath(os.path.join(filename, "__init__.py"))
 
         if not os.path.isfile(source_filename):
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=filename
-            ).atInternal()
+            source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()
             is_namespace = True
         else:
-            source_ref = SourceCodeReferences.fromFilename(
+            source_ref = makeSourceReferenceFromFilename(
                 filename=getNormalizedPath(os.path.abspath(source_filename))
             )
 

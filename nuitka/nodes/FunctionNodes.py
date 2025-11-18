@@ -18,7 +18,7 @@ classes.
 import inspect
 import re
 
-from nuitka import Options, Variables
+from nuitka import Options
 from nuitka.Constants import isMutable
 from nuitka.optimizations.TraceCollections import (
     TraceCollectionPureFunction,
@@ -35,6 +35,7 @@ from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
+from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -234,13 +235,9 @@ class ExpressionFunctionBodyBase(
 
         assert variable.getOwner() is not self
 
-        new_variable = Variables.LocalVariable(
-            owner=self, variable_name=variable.getName()
-        )
-        for variable_trace in variable.traces:
-            if variable_trace.getOwner() is self:
-                new_variable.addTrace(variable_trace)
-        new_variable.updateUsageState()
+        new_variable = LocalVariable(owner=self, variable_name=variable.getName())
+        if self in variable.traces:
+            new_variable.setTracesForUserFirst(self, variable.traces[self])
 
         self.locals_scope.unregisterClosureVariable(variable)
         self.locals_scope.registerProvidedVariable(new_variable)
@@ -489,7 +486,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         self.computeFunction(trace_collection)
 
-        trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
+        updateVariablesFromCollection(old_collection, trace_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
         statements_sequence = self.subnode_body
@@ -838,8 +835,8 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             with withChangeIndicationsTo(mySignal):
                 self.computeFunction(trace_collection)
 
-            trace_collection.updateVariablesFromCollection(
-                old_collection, self.source_ref
+            updateVariablesFromCollection(
+                old_collection, trace_collection, self.source_ref
             )
 
             if tags:

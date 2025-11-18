@@ -13,7 +13,6 @@ import contextlib
 from collections import defaultdict
 from contextlib import contextmanager
 
-from nuitka import Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -82,27 +81,15 @@ class CollectionUpdateMixin(object):
     # Mixins are not allowed to specify slots.
     __slots__ = ()
 
-    def hasVariableTrace(self, variable, version):
-        return (variable, version) in self.variable_traces
-
-    def getVariableTrace(self, variable, version):
-        return self.variable_traces[(variable, version)]
-
     def getVariableTracesAll(self):
         return self.variable_traces
 
-    def addVariableTrace(self, variable, version, trace):
-        key = variable, version
-
-        assert key not in self.variable_traces, (key, self)
-        self.variable_traces[key] = trace
-
     def addVariableMergeMultipleTrace(self, variable, traces):
-        version = variable.allocateTargetNumber()
-
         trace_merge = ValueTraceMerge(traces)
 
-        self.addVariableTrace(variable, version, trace_merge)
+        version = variable.allocateTargetNumber()
+
+        self.variable_traces[variable][version] = trace_merge
 
         return version
 
@@ -113,10 +100,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     These are modules, functions, etc. typically entry points.
     """
 
+    # Many things are traced, pylint: disable=too-many-instance-attributes
+
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
-
-    # Many things are traced
 
     def __init__(self):
         # Variable assignments performed in here, last issued number, only used
@@ -125,7 +112,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         # The full trace of a variable with a version for the function or module
         # this is.
-        self.variable_traces = {}
+        self.variable_traces = defaultdict(dict)
 
         self.break_collections = None
         self.continue_collections = None
@@ -133,6 +120,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
         self.exception_collections = None
 
         self.outline_functions = None
+
+        # What loop variables were there, them going away is something we want
+        # to know.
+        self.loop_variables = set()
 
     def getLoopBreakCollections(self):
         return self.break_collections
@@ -196,10 +187,6 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
     def getExceptionRaiseCollections(self):
         return self.exception_collections
-
-    # TODO: Eliminate this function, call it directly where this is used.
-    def updateVariablesFromCollection(self, old_collection, source_ref):
-        Variables.updateVariablesFromCollection(old_collection, self, source_ref)
 
     @contextlib.contextmanager
     def makeAbortStackContext(
@@ -327,7 +314,7 @@ class TraceCollectionBase(object):
         lazy so to keep the tracing branches minimal where possible.
         """
 
-        return self.getVariableTrace(variable, self.variable_actives[variable])
+        return self.variable_traces[variable][self.variable_actives[variable]]
 
     def hasVariableCurrentTrace(self, variable):
         return variable in self.variable_actives
@@ -359,52 +346,43 @@ class TraceCollectionBase(object):
 
     def markActiveVariableAsEscaped(self, variable):
         version = self.variable_actives[variable]
-        current = self.getVariableTrace(variable, version)
+        variable_traces = self.variable_traces[variable]
+        current = variable_traces[version]
 
         if current.isTraceThatNeedsEscape():
             # Escape traces are div 3 rem 1.
             version = version // 3 * 3 + 1
 
-            if not self.hasVariableTrace(variable, version):
-                self.addVariableTrace(
-                    variable,
-                    version,
-                    ValueTraceEscaped(self.owner, current),
-                )
+            if version not in variable_traces:
+                variable_traces[version] = ValueTraceEscaped(self.owner, current)
 
             self.markCurrentVariableTrace(variable, version)
 
     def markClosureVariableAsUnknown(self, variable):
         version = self.variable_actives[variable]
-        current = self.getVariableTrace(variable, version)
+        variable_traces = self.variable_traces[variable]
+        current = variable_traces[version]
 
         if not current.isUnknownTrace():
             # Unknown traces are div 3 rem 2.
             version = version // 3 * 3 + 2
 
-            if not self.hasVariableTrace(variable, version):
-                self.addVariableTrace(
-                    variable,
-                    version,
-                    ValueTraceUnknown(self.owner, current),
-                )
+            if version not in variable_traces:
+                variable_traces[version] = ValueTraceUnknown(self.owner, current)
 
             self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsUnknown(self, variable):
         version = self.variable_actives[variable]
-        current = self.getVariableTrace(variable, version)
+        variable_traces = self.variable_traces[variable]
+        current = variable_traces[version]
 
         if not current.isUnknownOrVeryTrustedTrace():
             # Unknown traces are div 3 rem 2.
             version = version // 3 * 3 + 2
 
-            if not self.hasVariableTrace(variable, version):
-                self.addVariableTrace(
-                    variable,
-                    version,
-                    ValueTraceUnknown(self.owner, current),
-                )
+            if version not in variable_traces:
+                variable_traces[version] = ValueTraceUnknown(self.owner, current)
 
             self.markCurrentVariableTrace(variable, version)
 
@@ -424,7 +402,7 @@ class TraceCollectionBase(object):
             result = ValueTraceLoopComplete(loop_node, current, shapes)
 
         version = variable.allocateTargetNumber()
-        self.addVariableTrace(variable, version, result)
+        self.variable_traces[variable][version] = result
 
         self.markCurrentVariableTrace(variable, version)
 
@@ -480,7 +458,7 @@ class TraceCollectionBase(object):
             self.getVariableCurrentTrace(variable),
         )
 
-        self.addVariableTrace(variable, version, variable_trace)
+        self.variable_traces[variable][version] = variable_trace
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -514,7 +492,7 @@ class TraceCollectionBase(object):
             self.getVariableCurrentTrace(variable),
         )
 
-        self.addVariableTrace(variable, version, variable_trace)
+        self.variable_traces[variable][version] = variable_trace
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -528,7 +506,7 @@ class TraceCollectionBase(object):
             self.getVariableCurrentTrace(variable),
         )
 
-        self.addVariableTrace(variable, version, variable_trace)
+        self.variable_traces[variable][version] = variable_trace
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -545,7 +523,7 @@ class TraceCollectionBase(object):
             replacement,
         )
 
-        self.addVariableTrace(variable, version, variable_trace)
+        self.variable_traces[variable][version] = variable_trace
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -566,7 +544,7 @@ class TraceCollectionBase(object):
         )
 
         # Assign to not initialized again.
-        self.addVariableTrace(variable, version, variable_trace)
+        self.variable_traces[variable][version] = variable_trace
 
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
@@ -765,8 +743,10 @@ class TraceCollectionBase(object):
             other_version = collection2.variable_actives[variable]
 
             if version != other_version:
-                trace1 = self.getVariableTrace(variable, version)
-                trace2 = self.getVariableTrace(variable, other_version)
+                variable_traces = self.variable_traces[variable]
+
+                trace1 = variable_traces[version]
+                trace2 = variable_traces[other_version]
 
                 if version % 3 == 1 and trace1.previous is trace2:
                     pass
@@ -840,8 +820,10 @@ class TraceCollectionBase(object):
                     escaped = []
                     winner_version = None
 
+                    variable_traces = self.variable_traces[variable]
+
                     for version in sorted(versions):
-                        trace = self.getVariableTrace(variable, version)
+                        trace = variable_traces[version]
 
                         if version % 3 == 1:
                             winner_version = version
@@ -872,7 +854,7 @@ class TraceCollectionBase(object):
 
             # TODO: This could be avoided, if we detect no actual changes being present, but it might
             # be more costly.
-            self.has_unescaped_variables = False
+            self.has_unescaped_variables = True
 
     def replaceBranch(self, collection_replace):
         self.variable_actives = collection_replace.variable_actives
@@ -961,48 +943,51 @@ class TraceCollectionBase(object):
     def initVariableUnknown(self, variable):
         trace = ValueTraceUnknown(self.owner, None)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
     def initVariableModule(self, variable):
         trace = ValueTraceUnknown(self.owner, None)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
     def initVariableInit(self, variable):
         trace = ValueTraceInit(self.owner)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
     def initVariableInitStarArgs(self, variable):
         trace = ValueTraceInitStarArgs(self.owner)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
     def initVariableInitStarDict(self, variable):
         trace = ValueTraceInitStarDict(self.owner)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
     def initVariableUninitialized(self, variable):
         trace = ValueTraceUninitialized(self.owner, None)
 
-        self.addVariableTrace(variable, 0, trace)
+        self.variable_traces[variable][0] = trace
 
         return trace
 
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
-    __slots__ = ("variable_traces",)
+    __slots__ = (
+        "variable_traces",
+        "loop_variables",
+    )
 
     def __init__(self, name, parent):
         TraceCollectionBase.__init__(
@@ -1021,6 +1006,7 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
 
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
+        self.loop_variables = parent.loop_variables
 
     def computeBranch(self, branch):
         assert branch.isStatementsSequence()
@@ -1034,7 +1020,10 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
 
 
 class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
-    __slots__ = ("variable_traces",)
+    __slots__ = (
+        "variable_traces",
+        "loop_variables",
+    )
 
     def __init__(self, name, parent):
         TraceCollectionBase.__init__(
@@ -1053,12 +1042,14 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
 
         # For quick access without going to parent.
         self.variable_traces = parent.variable_traces
+        self.loop_variables = parent.loop_variables
 
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
         "variable_versions",
         "variable_traces",
+        "loop_variables",
         "break_collections",
         "continue_collections",
         "return_collections",
@@ -1149,7 +1140,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             None,
         )
 
-        self.addVariableTrace(variable, 0, assign_trace)
+        self.variable_traces[variable][0] = assign_trace
 
         return assign_trace
 
@@ -1177,6 +1168,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
         "variable_versions",
         "variable_traces",
+        "loop_variables",
         "break_collections",
         "continue_collections",
         "return_collections",
@@ -1246,24 +1238,6 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         )
 
         self.distribution_names[distribution_name] = success
-
-
-def _checkActivesDiff(a1, a2):
-    result = True
-    for variable in a1:
-        if variable not in a2:
-            print("Only in a1", variable)
-            result = False
-        elif a1[variable] != a2[variable]:
-            print("Different ", variable, a1[variable], a2[variable])
-            result = False
-
-    for variable in a2:
-        if variable not in a1:
-            print("Only in a2", variable)
-            result = False
-
-    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

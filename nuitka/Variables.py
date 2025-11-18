@@ -51,17 +51,15 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
 
         self.shared_users = False
 
-        self.traces = set()
+        self.traces = {}
 
         # Derived from all traces.
-        self.users = None
-        self.writers = None
+        self.writers = set()
 
     if isCountingInstances():
         __del__ = counted_del()
 
     def finalize(self):
-        del self.users
         del self.writers
         del self.traces
         del self.owner
@@ -145,12 +143,12 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         if not self.shared_users:
             return False
 
-        if not self.users:
+        if not self.traces:
             return False
 
         owner = self.owner.getEntryPoint()
 
-        for user in self.users:
+        for user in self.traces:
             user = user.getEntryPoint()
 
             while user is not owner and (
@@ -164,58 +162,65 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
 
         return False
 
-    def addTrace(self, variable_trace):
-        self.traces.add(variable_trace)
+    def setTracesForUserFirst(self, user, variable_traces):
+        self.traces[user] = variable_traces
 
-    def removeTrace(self, variable_trace):
-        self.traces.remove(variable_trace)
+        for trace in variable_traces.values():
+            if trace.isAssignTrace():
+                self.writers.add(user)
 
-    def getTraces(self):
-        """For debugging only"""
-        return self.traces
+                break
+            if user is not self.owner and trace.isDeletedTrace():
+                self.writers.add(user)
 
-    def hasEmptyTracesFor(self, owner):
+                break
+
+    def setTracesForUserUpdate(self, user, variable_traces):
+        self.traces[user] = variable_traces
+
+        if user in self.writers:
+            for trace in variable_traces.values():
+                if trace.isAssignTrace():
+                    break
+                if user is not self.owner and trace.isDeletedTrace():
+                    break
+            else:
+                self.writers.remove(user)
+
+    def removeTracesForUser(self, user):
+        del self.traces[user]
+
+        if user in self.writers:
+            self.writers.remove(user)
+
+    def hasEmptyTracesFor(self, user):
         """Do these traces contain any usage."""
-        for trace in self.traces:
-            if trace.owner is owner and trace.isUsingTrace():
-                return False
+        if user in self.traces:
+            for trace in self.traces[user].values():
+                if trace.isUsingTrace():
+                    return False
 
         return True
 
     def hasNoWritingTraces(self):
         """Do these traces contain any writes."""
 
-        for trace in self.traces:
-            if trace.isWritingTrace():
-                return False
+        for traces in self.traces.values():
+            for trace in traces.values():
+                if trace.isWritingTrace():
+                    return False
 
         return True
-
-    def updateUsageState(self):
-        writers = set()
-        users = set()
-
-        for trace in self.traces:
-            owner = trace.owner
-            users.add(owner)
-
-            if trace.isAssignTrace():
-                writers.add(owner)
-            elif owner is not self.owner and trace.isDeletedTrace():
-                writers.add(owner)
-
-        self.writers = writers
-        self.users = users
 
     def hasAccessesOutsideOf(self, provider):
         if not self.owner.locals_scope.complete:
             return None
-        elif self.users is None:
+        elif not self.traces:
             return False
-        elif provider in self.users:
-            return len(self.users) > 1
+        elif provider in self.traces:
+            return len(self.traces) > 1
         else:
-            return bool(self.users)
+            return True
 
     def hasWritersOutsideOf(self, provider):
         if not self.owner.locals_scope.complete:
@@ -225,45 +230,50 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
             ):
                 return False
             return None
-        elif self.writers is None:
+        elif not self.writers:
             return False
         elif provider in self.writers:
             return len(self.writers) > 1
         else:
-            return bool(self.writers)
+            return True
 
     def getMatchingUnescapedAssignTrace(self, assign_node):
         found = None
-        for trace in self.traces:
-            if trace.isAssignTrace():
-                if trace.getAssignNode() is assign_node:
-                    found = trace
-            elif trace.isEscapeTrace():
-                return None
+        for traces in self.traces.values():
+            for trace in traces.values():
+                if trace.isAssignTrace():
+                    if trace.getAssignNode() is assign_node:
+                        found = trace
+                elif trace.isEscapeTrace():
+                    return None
+
+            if found is not None:
+                return found
 
         return found
 
     def getTypeShapes(self):
         result = set()
 
-        for trace in self.traces:
-            if trace.isAssignTrace():
-                result.add(trace.getAssignNode().getTypeShape())
-            elif trace.isUnknownTrace():
-                result.add(tshape_unknown)
-            elif trace.isEscapeTrace():
-                result.add(tshape_unknown)
-            elif trace.isInitTrace():
-                result.add(tshape_unknown)
-            elif trace.isUnassignedTrace():
-                pass
-            elif trace.isMergeTrace():
-                pass
-            # TODO: Remove this and be not unknown.
-            elif trace.isLoopTrace():
-                trace.getTypeShape().emitAlternatives(result.add)
-            else:
-                assert False, trace
+        for traces in self.traces.values():
+            for trace in traces.values():
+                if trace.isAssignTrace():
+                    result.add(trace.getAssignNode().getTypeShape())
+                elif trace.isUnknownTrace():
+                    result.add(tshape_unknown)
+                elif trace.isEscapeTrace():
+                    result.add(tshape_unknown)
+                elif trace.isInitTrace():
+                    result.add(tshape_unknown)
+                elif trace.isUnassignedTrace():
+                    pass
+                elif trace.isMergeTrace():
+                    pass
+                # TODO: Remove this and be not unknown.
+                elif trace.isLoopTrace():
+                    trace.getTypeShape().emitAlternatives(result.add)
+                else:
+                    assert False, trace
 
         return result
 
@@ -442,49 +452,60 @@ class LocalsDictVariable(Variable):
             return trace_collection.initVariableUnknown(self)
 
 
+def _updateVariablesFromCollectionFirst(new_collection):
+    for variable, variable_traces in iterItems(new_collection.getVariableTracesAll()):
+        variable.setTracesForUserFirst(new_collection.owner, variable_traces)
+
+    # Release the memory, and prevent the "active" state from being ever
+    # inspected, it's useless now.
+    new_collection.variable_actives.clear()
+    del new_collection.variable_actives
+
+
 def updateVariablesFromCollection(old_collection, new_collection, source_ref):
-    # After removing/adding traces, we need to pre-compute the users state
-    # information.
-    touched_variables = set()
-    loop_trace_removal = set()
 
+    if old_collection is None:
+        return _updateVariablesFromCollectionFirst(new_collection)
+
+    old_traces = old_collection.getVariableTracesAll()
+    new_traces = new_collection.getVariableTracesAll()
+    owner = new_collection.owner
+    # Release the memory, and prevent the "active" state from being ever
+    # inspected, it's useless now.
+    new_collection.variable_actives.clear()
+    del new_collection.variable_actives
+
+    for variable, variable_traces in iterItems(new_traces):
+        variable.setTracesForUserUpdate(owner, variable_traces)
+
+    for variable in old_traces:
+        # Remove traces for variables that are not in the new collection unless
+        # they are finalized, then we don't need to update them.
+        if variable not in new_traces and hasattr(variable, "users"):
+            variable.removeTracesForUser(owner)
+
+    if old_collection.loop_variables != new_collection.loop_variables:
+        new_collection.signalChange(
+            "var_usage",
+            source_ref,
+            lambda: "Loop variable '%s' usage ceased."
+            % ",".join(
+                sorted(
+                    variable.getName()
+                    for variable in (
+                        old_collection.loop_variables - new_collection.loop_variables
+                    )
+                )
+            ),
+        )
+
+
+def removeVariablesFromCollection(old_collection):
     if old_collection is not None:
-        for (variable, _version), variable_trace in iterItems(
-            old_collection.getVariableTracesAll()
-        ):
-            variable.removeTrace(variable_trace)
-            touched_variables.add(variable)
+        owner = old_collection.owner
 
-            if variable_trace.isLoopTrace():
-                loop_trace_removal.add(variable)
-
-    if new_collection is not None:
-        for (variable, _version), variable_trace in iterItems(
-            new_collection.getVariableTracesAll()
-        ):
-            variable.addTrace(variable_trace)
-            touched_variables.add(variable)
-
-            if variable_trace.isLoopTrace():
-                if variable in loop_trace_removal:
-                    loop_trace_removal.remove(variable)
-
-        # Release the memory, and prevent the "active" state from being ever
-        # inspected, it's useless now.
-        new_collection.variable_actives.clear()
-        del new_collection.variable_actives
-
-    for variable in touched_variables:
-        variable.updateUsageState()
-
-    if loop_trace_removal:
-        if new_collection is not None:
-            new_collection.signalChange(
-                "var_usage",
-                source_ref,
-                lambda: "Loop variable '%s' usage ceased."
-                % ",".join(variable.getName() for variable in loop_trace_removal),
-            )
+        for variable in old_collection.getVariableTracesAll():
+            variable.removeTracesForUser(owner)
 
 
 # To detect the Python2 shared variable deletion, that would be a syntax
