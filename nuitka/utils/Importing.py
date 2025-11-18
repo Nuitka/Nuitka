@@ -10,6 +10,7 @@ import os
 import sys
 from contextlib import contextmanager
 
+from nuitka.__past__ import imp
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -17,10 +18,19 @@ from .InlineCopies import getInlineCopyFolder
 from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 
+try:
+    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
+except ImportError:
+    pass
+
+try:
+    import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
+except ImportError:
+    pass
+
 
 def _importFilePy3NewWay(filename):
     """Import a file for Python versions 3.5+."""
-    import importlib.util  # pylint: disable=I0021,import-error,no-name-in-module
 
     spec = importlib.util.spec_from_file_location(
         os.path.basename(filename).split(".")[0], filename
@@ -32,17 +42,15 @@ def _importFilePy3NewWay(filename):
 
 def _importFilePy3OldWay(filename):
     """Import a file for Python versions before 3.5."""
-    from importlib.machinery import (  # pylint: disable=I0021,import-error,no-name-in-module
-        SourceFileLoader,
-    )
 
-    # pylint: disable=I0021,deprecated-method
-    return SourceFileLoader(filename, filename).load_module(filename)
+    # pylint: disable=I0021,deprecated-method,no-name-in-module
+    return importlib.machinery.SourceFileLoader(filename, filename).load_module(
+        filename
+    )
 
 
 def importFilePy2(filename):
     """Import a file for Python version 2."""
-    import imp  # Python2 only, pylint: disable=I0021,import-error
 
     basename = os.path.splitext(os.path.basename(filename))[0]
     return imp.load_source(basename, filename)
@@ -78,16 +86,12 @@ def getExtensionModuleSuffixes():
 
     if _extension_module_suffixes is None:
         if python_version < 0x300:
-            import imp  # Python2 only, pylint: disable=I0021,import-error
-
             _extension_module_suffixes = []
 
             for suffix, _mode, module_type in imp.get_suffixes():
                 if module_type == imp.C_EXTENSION:
                     _extension_module_suffixes.append(suffix)
         else:
-            import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
-
             _extension_module_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
 
         # Nuitka-Python on Windows has that
@@ -211,12 +215,7 @@ def importFromCompileTime(module_name, must_exist):
 
 
 def isBuiltinModuleName(module_name):
-    if python_version < 0x300:
-        import imp as _imp  # Python2 only, pylint: disable=I0021,import-error
-    else:
-        import _imp
-
-    result = _imp.is_builtin(module_name) or _imp.is_frozen(module_name)
+    result = imp.is_builtin(module_name) or imp.is_frozen(module_name)
 
     # Some frozen modules are not actually in that list, e.g.
     # "importlib._bootstrap_external" on Python3.10 doesn't report to
@@ -244,8 +243,6 @@ builtin_module_names = set(
 
 def getModuleFilenameSuffixes():
     if python_version < 0x3C0:
-        import imp  # Older Python only, pylint: disable=I0021,import-error
-
         for suffix, _mode, module_type in imp.get_suffixes():
             if module_type == imp.C_EXTENSION:
                 module_type = "C_EXTENSION"
@@ -258,8 +255,6 @@ def getModuleFilenameSuffixes():
 
             yield suffix, module_type
     else:
-        import importlib.machinery
-
         for suffix in importlib.machinery.EXTENSION_SUFFIXES:
             yield suffix, "C_EXTENSION"
         for suffix in importlib.machinery.SOURCE_SUFFIXES:
