@@ -156,7 +156,7 @@ class SourceCodeReferenceInternal(SourceCodeReference):
         return True
 
 
-def fromFilename(filename):
+def makeSourceReferenceFromFilename(filename):
     return SourceCodeReference.fromFilenameAndLine(filename=filename, line=1)
 
 

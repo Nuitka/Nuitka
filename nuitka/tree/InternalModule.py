@@ -16,9 +16,9 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionPureBody,
     ExpressionFunctionPureInlineConstBody,
 )
-from nuitka.SourceCodeReferences import fromFilename
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 
-internal_source_ref = fromFilename("internal").atInternal()
+internal_source_ref = makeSourceReferenceFromFilename("internal").atInternal()
 
 
 def once_decorator(func):
