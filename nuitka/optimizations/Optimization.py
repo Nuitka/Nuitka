@@ -14,7 +14,10 @@ from nuitka import ModuleRegistry
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.Options import isCompileTimeProfile, isShowMemory, isShowProgress
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    considerImplicitImports,
+    getModuleSysPathAdditions,
+)
 from nuitka.Progress import (
     closeProgressBar,
     reportProgressBar,
@@ -145,14 +148,14 @@ def optimizeUncompiledPythonModule(module):
 
     considerUsedModules(module=module, pass_count=pass_count)
 
-    Plugins.considerImplicitImports(module=module)
+    considerImplicitImports(module=module)
 
 
 def optimizeExtensionModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
-    Plugins.considerImplicitImports(module=module)
+    considerImplicitImports(module=module)
 
 
 def optimizeModule(module):
@@ -161,7 +164,7 @@ def optimizeModule(module):
     global tag_set
     tag_set = TagSet()
 
-    addExtraSysPaths(Plugins.getModuleSysPathAdditions(module.getFullName()))
+    addExtraSysPaths(getModuleSysPathAdditions(module.getFullName()))
 
     if module.isPythonExtensionModule():
         optimizeExtensionModule(module)

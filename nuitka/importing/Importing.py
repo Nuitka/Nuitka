@@ -35,7 +35,11 @@ from nuitka.Options import (
     hasPythonFlagNoCurrentDirectoryInPath,
     shallExplainImports,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    decideRecompileExtensionModules,
+    getPackageExtraScanPaths,
+    suppressUnknownImportWarning,
+)
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
@@ -319,7 +323,7 @@ def warnAboutNotFoundImport(importing, module_name, level, source_ref):
         if key not in warned_about:
             warned_about.add(key)
 
-            if Plugins.suppressUnknownImportWarning(
+            if suppressUnknownImportWarning(
                 importing=importing, source_ref=source_ref, module_name=module_name
             ):
                 return
@@ -689,9 +693,7 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
 
             def prioritize(c):
                 if c.module_type == "PY_SOURCE":
-                    decision, reason = Plugins.decideRecompileExtensionModules(
-                        c.found_as
-                    )
+                    decision, reason = decideRecompileExtensionModules(c.found_as)
                     _recompile_extension_modules[c.found_as] = decision, reason
                 else:
                     decision = False
@@ -832,7 +834,7 @@ def getPackageSearchPath(package_name):
         def getPackageDirCandidates(element):
             yield os.path.join(element, package_name.asPath()), False
 
-            for extra_path in Plugins.getPackageExtraScanPaths(package_name, element):
+            for extra_path in getPackageExtraScanPaths(package_name, element):
                 yield extra_path, True
 
         result = []

@@ -28,7 +28,12 @@ from nuitka.Options import (
     shallTraceExecution,
 )
 from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    getBuildDefinitions,
+    onBootstrapBinary,
+    onOnefileFinished,
+    writeExtraCodeFiles,
+)
 from nuitka.PostProcessing import executePostProcessingResources
 from nuitka.PythonVersions import (
     getZstandardSupportingVersions,
@@ -67,7 +72,7 @@ def packDistFolderToOnefile(dist_dir):
         start_binary=start_binary,
     )
 
-    Plugins.onOnefileFinished(onefile_output_filename)
+    onOnefileFinished(onefile_output_filename)
 
 
 def _runOnefileScons(onefile_compression, onefile_archive):
@@ -76,7 +81,7 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
 
     # Let plugins do their thing for onefile mode too.
-    Plugins.writeExtraCodeFiles(onefile=True)
+    writeExtraCodeFiles(onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
     scons_options["source_dir"] = source_dir
@@ -91,7 +96,7 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
 
     # Allow plugins to build definitions.
-    env_values.update(Plugins.getBuildDefinitions())
+    env_values.update(getBuildDefinitions())
 
     result = runScons(
         scons_options=scons_options,
@@ -238,7 +243,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(onefile_output_filename)
 
-    Plugins.onBootstrapBinary(onefile_output_filename)
+    onBootstrapBinary(onefile_output_filename)
 
     if isMacOS():
         addMacOSCodeSignature(filenames=[onefile_output_filename])

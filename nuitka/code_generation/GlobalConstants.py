@@ -7,7 +7,7 @@
 
 from nuitka.__past__ import long
 from nuitka.Options import isDeploymentMode, shallMakeModule
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.utils.Utils import isWin32Windows
@@ -231,7 +231,7 @@ def getConstantDefaultPopulation():
     if not isDeploymentMode():
         result.append("args")
 
-    for value in Plugins.getExtraConstantDefaultPopulation():
+    for value in getExtraConstantDefaultPopulation():
         if value not in result:
             result.append(value)
 

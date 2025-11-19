@@ -23,7 +23,11 @@ from nuitka.Options import (
     shallNotStoreDependsExeCachedResults,
     shallNotUseDependsExeCachedResults,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    decideAllowOutsideDependencies,
+    onCopiedDLLs,
+    removeDllDependencies,
+)
 from nuitka.Progress import (
     closeProgressBar,
     reportProgressBar,
@@ -238,7 +242,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
-    Plugins.onCopiedDLLs(
+    onCopiedDLLs(
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
     )
@@ -396,7 +400,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         ):
             allow_outside_dependencies = True
         else:
-            allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+            allow_outside_dependencies = decideAllowOutsideDependencies(
                 standalone_entry_point.module_name
             )
     else:
@@ -458,7 +462,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
 
         # Allow plugins can prevent inclusion, this may discard things from
         # used_dlls through its return value.
-        removed_dlls = Plugins.removeDllDependencies(
+        removed_dlls = removeDllDependencies(
             dll_filename=binary_filename, dll_filenames=OrderedSet(used_dll_paths)
         )
         used_dll_paths = used_dll_paths - removed_dlls

@@ -31,7 +31,7 @@ from nuitka.Options import (
     isStandaloneMode,
     shallMakeModule,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import encodeDataComposerName
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
@@ -50,7 +50,7 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
     module_name = module.getFullName()
 
     module_c_name = encodePythonStringToC(
-        Plugins.encodeDataComposerName(module_name.asString())
+        encodeDataComposerName(module_name.asString())
     )
 
     # Value of compile_time_name defaults to NULL and is only present in module

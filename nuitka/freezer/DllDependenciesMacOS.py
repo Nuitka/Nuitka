@@ -10,7 +10,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import isAcceptableMissingDLL
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     getSystemPrefixPath,
@@ -338,7 +338,7 @@ def _resolveBinaryPathDLLsMacOS(
                                 resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
-            acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
+            acceptable, plugin_name = isAcceptableMissingDLL(
                 package_name=package_name,
                 filename=binary_filename,
             )
@@ -352,7 +352,7 @@ def _resolveBinaryPathDLLsMacOS(
             # We check both the user and the used DLL if they are listed. This
             # might be a form of bug hiding, that the later is not sufficient,
             # that we should address later.
-            acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
+            acceptable, plugin_name = isAcceptableMissingDLL(
                 package_name=package_name,
                 filename=resolved_path,
             )
