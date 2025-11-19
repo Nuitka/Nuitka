@@ -50,7 +50,12 @@ from nuitka.Options import (
     shallMakeModule,
     shallRunInDebugger,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    getExtraIncludeDirectories,
+    getExtraLinkDirectories,
+    getExtraLinkLibraries,
+    getPreprocessorSymbols,
+)
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
@@ -572,22 +577,22 @@ def getCommonSconsOptions():
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
-    cpp_defines = Plugins.getPreprocessorSymbols()
+    cpp_defines = getPreprocessorSymbols()
     if cpp_defines:
         scons_options["cpp_defines"] = ",".join(
             "%s%s%s" % (key, "=" if value else "", value or "")
             for key, value in cpp_defines.items()
         )
 
-    cpp_include_dirs = Plugins.getExtraIncludeDirectories()
+    cpp_include_dirs = getExtraIncludeDirectories()
     if cpp_include_dirs:
         scons_options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
 
-    link_dirs = Plugins.getExtraLinkDirectories()
+    link_dirs = getExtraLinkDirectories()
     if link_dirs:
         scons_options["link_dirs"] = ",".join(link_dirs)
 
-    link_libraries = Plugins.getExtraLinkLibraries()
+    link_libraries = getExtraLinkLibraries()
     if link_libraries:
         scons_options["link_libraries"] = ",".join(link_libraries)
 
