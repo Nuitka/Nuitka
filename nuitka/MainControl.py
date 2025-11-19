@@ -99,7 +99,17 @@ from nuitka.Options import (
     shallUsePythonDebug,
     shallUseStaticLibPython,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    considerExtraDlls,
+    getBuildDefinitions,
+    onBeforeCodeParsing,
+    onCompilationStartChecks,
+    onFinalResult,
+    onModuleCompleteSet,
+    onModuleInitialSet,
+    onStandaloneDistributionFinished,
+    writeExtraCodeFiles,
+)
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
     closeProgressBar,
@@ -194,7 +204,7 @@ def _createMainModule():
     """
     # Many cases and details to deal with, pylint: disable=too-many-branches
 
-    Plugins.onBeforeCodeParsing()
+    onBeforeCodeParsing()
 
     # First, build the raw node tree from the source code.
     if isMultidistMode():
@@ -303,7 +313,7 @@ use the correct name instead."""
             )
 
     # Allow plugins to add more modules based on the initial set being complete.
-    Plugins.onModuleInitialSet()
+    onModuleInitialSet()
 
     # Then optimize the tree and potentially recursed modules.
     # TODO: The passed filename is really something that should come from
@@ -324,7 +334,7 @@ use the correct name instead."""
             )
 
     # Allow plugins to comment on final module set.
-    Plugins.onModuleCompleteSet()
+    onModuleCompleteSet()
 
     if isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
@@ -786,7 +796,7 @@ def runSconsBackend():
         scons_options["link_module_libs"] = ",".join(link_module_libs)
 
     # Allow plugins to build definitions.
-    env_values.update(Plugins.getBuildDefinitions())
+    env_values.update(getBuildDefinitions())
 
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
@@ -988,9 +998,9 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    runDataComposer(source_dir)
+    runDataComposer(source_dir)  # TODO: This should be a hook too
 
-    Plugins.writeExtraCodeFiles(onefile=False)
+    writeExtraCodeFiles(onefile=False)
 
     general.info("Running C compilation via Scons.")
 
@@ -1071,8 +1081,7 @@ def _main():
     # Initialize the importing layer from options, main filenames, debugging
     # options, etc.
     setupImportingFromOptions()
-
-    Plugins.onCompilationStartChecks()
+    onCompilationStartChecks()
 
     addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()
@@ -1123,7 +1132,7 @@ def _main():
         setMainEntryPoint(binary_filename)
 
         for module in ModuleRegistry.getDoneModules():
-            addIncludedEntryPoints(Plugins.considerExtraDlls(module))
+            addIncludedEntryPoints(considerExtraDlls(module))
 
         detectUsedDLLs(
             standalone_entry_points=getStandaloneEntryPoints(),
@@ -1154,7 +1163,7 @@ def _main():
 
             dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
 
-        Plugins.onStandaloneDistributionFinished(
+        onStandaloneDistributionFinished(
             dist_dir=dist_dir,
             standalone_binary=OutputDirectories.getResultFullpath(
                 onefile=False, real=True
@@ -1220,7 +1229,7 @@ def _main():
                 mnemonic="macos-cross-compile",
             )
 
-    Plugins.onFinalResult(final_filename)
+    onFinalResult(final_filename)
 
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)

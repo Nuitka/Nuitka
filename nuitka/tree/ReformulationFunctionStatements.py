@@ -50,7 +50,8 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.plugins.Plugins import Plugins, hasActivePlugin
+from nuitka.plugins.Hooks import onFunctionBodyParsing
+from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -235,9 +236,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     compilation_mode = decideFunctionCompilationMode(decorators)
 
-    Plugins.onFunctionBodyParsing(
-        provider=provider, function_name=node.name, body=node.body
-    )
+    onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
         node.name = mangleName(node.name, provider)
@@ -410,9 +409,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     compilation_mode = decideFunctionCompilationMode(decorators)
 
-    Plugins.onFunctionBodyParsing(
-        provider=provider, function_name=node.name, body=node.body
-    )
+    onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
         return _buildBytecodeOrSourceFunction(

@@ -18,7 +18,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.utils.CStrings import encodePythonStringToC
 
 from . import Contexts
@@ -570,7 +570,7 @@ def _generateModuleCode(module, data_filename):
         function_decl_codes=function_decl_codes,
         function_body_codes=function_body_codes,
         module_const_blob_name=encodePythonStringToC(
-            Plugins.deriveModuleConstantsBlobName(data_filename)
+            deriveModuleConstantsBlobName(data_filename)
         ),
         context=context,
     )

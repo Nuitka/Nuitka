@@ -110,6 +110,8 @@ from nuitka.utils.Utils import (
     withNoWarning,
 )
 
+from .Hooks import decideAnnotations, decideAssertions, decideDocStrings
+
 _warned_unused_plugins = set()
 
 # TODO: Could share data cache with meta data nodes
@@ -1947,20 +1949,13 @@ class TagContext(dict):
                 return False
 
             if key == "no_asserts":
-                # TODO: This should be better decoupled.
-                from .Plugins import Plugins
-
-                return Plugins.decideAssertions(self.full_name) is False
+                return decideAssertions(self.full_name) is False
 
             if key == "no_docstrings":
-                from .Plugins import Plugins
-
-                return Plugins.decideDocStrings(self.full_name) is False
+                return decideDocStrings(self.full_name) is False
 
             if key == "no_annotations":
-                from .Plugins import Plugins
-
-                return Plugins.decideAnnotations(self.full_name) is False
+                return decideAnnotations(self.full_name) is False
 
             self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."

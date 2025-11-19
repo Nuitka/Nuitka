@@ -33,7 +33,12 @@ from nuitka.Options import (
     shallMakePackage,
 )
 from nuitka.pgo.PGO import decideInclusionFromPGO
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    considerImplicitImports,
+    onModuleEncounter,
+    onModuleRecursion,
+    onModuleUsageLookAhead,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
@@ -87,7 +92,7 @@ def recurseTo(
         module = None
 
     if module is None:
-        Plugins.onModuleRecursion(
+        onModuleRecursion(
             module_filename=module_filename,
             module_name=module_name,
             module_kind=module_kind,
@@ -156,7 +161,7 @@ def decideRecursion(
         # module information, this indicates tentatively, that a module might
         # get used, but it may also not happen at all.
         if _recursion_decision_cache[key][0]:
-            Plugins.onModuleUsageLookAhead(
+            onModuleUsageLookAhead(
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,
@@ -209,7 +214,7 @@ def _decideRecursion(
         if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
             return False, "Main program is already included in package mode."
 
-    plugin_decision, deciding_plugins = Plugins.onModuleEncounter(
+    plugin_decision, deciding_plugins = onModuleEncounter(
         using_module_name=using_module_name,
         module_filename=module_filename,
         module_name=module_name,
@@ -576,7 +581,7 @@ def considerUsedModules(module, pass_count):
             )
 
     try:
-        Plugins.considerImplicitImports(module=module)
+        considerImplicitImports(module=module)
     except NuitkaForbiddenImportEncounter as e:
         recursion_logger.sysexit(
             "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."

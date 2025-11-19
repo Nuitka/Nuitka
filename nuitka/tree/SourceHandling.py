@@ -14,7 +14,7 @@ import sys
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import shallShowSourceModifications
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
@@ -181,7 +181,7 @@ def readSourceCodeFromFilenameWithInformation(
     # Allow plugins to mess with source code. Test code calls this without a
     # module and doesn't want any changes from plugins in that case.
     if module_name is not None:
-        source_code_modified, contributing_plugins = Plugins.onModuleSourceCode(
+        source_code_modified, contributing_plugins = onModuleSourceCode(
             module_name=module_name,
             source_filename=source_filename,
             source_code=source_code,

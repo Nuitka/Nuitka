@@ -13,7 +13,7 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Hashing import Hash, getStringHash
@@ -160,7 +160,7 @@ def _getModuleConfigHash(full_name):
     hash_value = Hash()
 
     # Plugins may change their influence.
-    hash_value.updateFromValues(*Plugins.getCacheContributionValues(full_name))
+    hash_value.updateFromValues(*getPluginsCacheContributionValues(full_name))
 
     # Take Nuitka and Python version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string, sys.version)

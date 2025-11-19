@@ -26,6 +26,7 @@ from nuitka.Options import (
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
+from nuitka.plugins.Hooks import considerDataFiles, onDataFileTags
 from nuitka.PythonFlavors import getSystemPrefixPath
 from nuitka.PythonVersions import python_version_str
 from nuitka.Tracing import general, inclusion_logger, options_logger
@@ -316,10 +317,7 @@ def addIncludedDataFile(included_datafile):
 
             return
 
-    # Cyclic dependency
-    from nuitka.plugins.Plugins import Plugins
-
-    Plugins.onDataFileTags(included_datafile)
+    onDataFileTags(included_datafile)
 
     # TODO: Catch duplicates sooner.
     # for candidate in _included_data_files:
@@ -517,11 +515,10 @@ def makeIncludedPackageDataFiles(
 def addIncludedDataFilesFromPlugins():
     # Cyclic dependency
     from nuitka import ModuleRegistry
-    from nuitka.plugins.Plugins import Plugins
 
     # Plugins provide per module through this.
     for module in ModuleRegistry.getDoneModules():
-        for included_datafile in Plugins.considerDataFiles(module=module):
+        for included_datafile in considerDataFiles(module=module):
             addIncludedDataFile(included_datafile)
 
 
@@ -624,7 +621,7 @@ def _handleDataFile(included_datafile, standalone_entry_points):
     tracer = included_datafile.tracer
 
     if not isinstance(included_datafile, IncludedDataFile):
-        tracer.sysexit("Error, can only accept 'IncludedData*' objects from plugins.")
+        tracer.sysexit("Error, can only accept 'IncludedData*' objects from ")
 
     if not isStandaloneMode():
         tracer.sysexit(

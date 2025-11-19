@@ -20,6 +20,7 @@ import traceback
 from contextlib import contextmanager
 from optparse import OptionConflictError
 
+import nuitka.plugins.Hooks
 from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -45,6 +46,7 @@ from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import plugins_logger, printLine, recursion_logger
+from nuitka.tree.SourceHandling import writeSourceCode
 from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -400,6 +402,9 @@ def loadStandardPluginClasses():
     Returns:
         None
     """
+    # We want the imports to be local though
+    # pylint: disable=redefined-outer-name
+
     import nuitka.plugins.standard
 
     _loadPluginClassesFromPackage(nuitka.plugins.standard)
@@ -566,6 +571,14 @@ implicit import encountered."""
 
     @classmethod
     def considerImplicitImports(cls, module):
+        """Let plugins add implicit imports for a module.
+
+        Args:
+            module: module object
+        Returns:
+            iterable of module names
+        """
+
         for plugin in getActivePlugins():
             key = (module.getFullName(), plugin)
 
@@ -1390,14 +1403,11 @@ may work too."""
 
         return result
 
-    @staticmethod
-    def writeExtraCodeFiles(onefile):
-        # Circular dependency.
-        from nuitka.tree.SourceHandling import writeSourceCode
-
+    @classmethod
+    def writeExtraCodeFiles(cls, onefile):
         source_dir = getSourceDirectoryPath(onefile=onefile, create=True)
 
-        for filename, source_code in Plugins._getExtraCodeFiles(onefile).items():
+        for filename, source_code in cls._getExtraCodeFiles(onefile).items():
             target_dir = os.path.join(source_dir, "plugins")
 
             if not os.path.isdir(target_dir):
@@ -1506,7 +1516,9 @@ may work too."""
             )
 
     @classmethod
-    def getCacheContributionValues(cls, module_name):
+    def getPluginsCacheContributionValues(cls, module_name):
+        """Let plugins provide values that need to be taken into account for caching."""
+
         for plugin in getActivePlugins():
             for value in plugin.getCacheContributionValues(module_name):
                 yield value
@@ -2069,6 +2081,16 @@ def _getMainModulePreloadCodes():
         )
 
     yield ("\n".join(result), "forcing environment variable(s)")
+
+
+def setupHooks():
+    """Provide the implementation bases to Hooks interface.
+
+    Notes:
+        This is to avoid circular dependencies, doing it just once here.
+    """
+
+    nuitka.plugins.Hooks.Plugins = Plugins
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -148,6 +148,10 @@ def main():
         getLaunchingNuitkaProcessEnvironmentValue
     )
 
+    from nuitka.plugins.Plugins import setupHooks
+
+    setupHooks()
+
     from nuitka import Options  # isort:skip
 
     Options.parseArgs()

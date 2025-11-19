@@ -125,7 +125,7 @@ from nuitka.Options import (
     shallWarnUnusualCode,
 )
 from nuitka.pgo.PGO import decideCompilationFromPGO
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import decideCompilation, onModuleDiscovered
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
     general,
@@ -1009,7 +1009,7 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
     if is_stdlib and module_name in detectEarlyImports():
         return "bytecode"
 
-    result = Plugins.decideCompilation(module_name)
+    result = decideCompilation(module_name)
 
     # Cannot change mode of "__main__" to bytecode, that is not going to work
     # currently, maybe in the future we could allow it.
@@ -1232,7 +1232,7 @@ def buildMainModuleTree(source_code):
 
     # Main modules do not get added to the import cache, but plugins get to see it.
     if module.isMainModule():
-        Plugins.onModuleDiscovered(module)
+        onModuleDiscovered(module)
     else:
         addImportedModule(imported_module=module)
 

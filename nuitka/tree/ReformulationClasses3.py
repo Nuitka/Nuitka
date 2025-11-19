@@ -84,7 +84,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.Options import isExperimental
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -153,7 +153,7 @@ def buildClassNode3(provider, node, source_ref):
     # according to Developer Manual.
 
     # First, allow plugins to modify the code if they want to.
-    Plugins.onClassBodyParsing(provider=provider, class_name=node.name, node=node)
+    onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
     # We need a container for the temporary variables to not pollute the outside.
     helper_name = "class_container"
