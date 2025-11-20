@@ -40,6 +40,7 @@ from nuitka.nodes.shapes.StandardShapes import (
     tshape_uninitialized,
     tshape_unknown,
 )
+from nuitka.States import states
 from nuitka.Tracing import my_print
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -752,7 +753,8 @@ class ValueTraceMerge(ValueTraceMergeBase):
                 if trace not in shorted:
                     shorted.append(trace)
 
-        assert len(shorted) > 1, traces
+        if states.is_debug:
+            assert len(shorted) > 1, traces
 
         traces = tuple(shorted)
 
