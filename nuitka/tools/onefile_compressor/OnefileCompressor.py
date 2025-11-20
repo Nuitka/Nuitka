@@ -12,6 +12,7 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import to_byte
+from nuitka.Options import getJobLimit
 from nuitka.Progress import (
     closeProgressBar,
     enableProgressBar,
@@ -45,7 +46,9 @@ def getCompressorFunction(expect_compression, low_memory):
     if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
 
-        compressor_context = ZstdCompressor(level=getCompressorLevel(low_memory))
+        compressor_context = ZstdCompressor(
+            level=getCompressorLevel(low_memory), threads=getJobLimit()
+        )
 
         @contextmanager
         def useCompressedFile(output_file):
@@ -83,7 +86,7 @@ def _attachOnefilePayloadFile(
     # Somewhat detail rich, at least unless we make more things mandatory, and
     # we also need to pass all modes, since this can be run in a separate process
     # that has no access to options.
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-statements
 
     payload_item_size = 0
 
@@ -156,9 +159,7 @@ def _attachOnefilePayloadFile(
                         ) as compressed_file_tmp2:
                             shutil.copyfileobj(input_file, compressed_file_tmp2)
 
-                        compressed_size = archive_entry_file.tell()
-                else:
-                    compressed_size = getFileSize(compression_cache_filename)
+                compressed_size = getFileSize(compression_cache_filename)
 
                 file_header += struct.pack("I", compressed_size)
 
@@ -310,18 +311,6 @@ def attachOnefilePayload(
                 compressed_file.write(filename_encoded)
                 payload_size += len(filename_encoded)
 
-                compressed_size = compressed_file.tell()
-
-            if compression_indicator == b"Y":
-                onefile_logger.info(
-                    "Onefile payload compression ratio (%.2f%%) size %d to %d."
-                    % (
-                        (float(compressed_size) / payload_size) * 100,
-                        payload_size,
-                        compressed_size,
-                    )
-                )
-
             # TODO: If put into a resource, this is not really needed anymore.
             if isWin32Windows():
                 # add padding to have the start position at a double world boundary
@@ -333,6 +322,18 @@ def attachOnefilePayload(
 
             output_file.seek(0, 2)
             end_pos = output_file.tell()
+
+            compressed_size = end_pos - start_pos
+
+            if compression_indicator == b"Y":
+                onefile_logger.info(
+                    "Onefile payload compression ratio (%.2f%%) size %d to %d."
+                    % (
+                        (float(compressed_size) / payload_size) * 100,
+                        payload_size,
+                        compressed_size,
+                    )
+                )
 
             # Size of the payload data plus the size of that size storage, so C code can
             # jump directly to it.
