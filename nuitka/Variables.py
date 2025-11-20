@@ -305,6 +305,8 @@ class LocalVariable(Variable):
 
     def initVariable(self, trace_collection):
         """Initialize variable in trace collection state."""
+        trace_collection.variable_escapable.add(self)
+        trace_collection.has_unescaped_variables = True
         return trace_collection.initVariableUninitialized(self)
 
     if str is not bytes:
@@ -371,6 +373,8 @@ class ModuleVariable(Variable):
 
     def initVariable(self, trace_collection):
         """Initialize variable in trace collection state."""
+        trace_collection.variable_escapable.add(self)
+        trace_collection.has_unescaped_variables = True
         return trace_collection.initVariableModule(self)
 
     def onControlFlowEscape(self, trace_collection):
