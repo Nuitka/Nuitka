@@ -442,7 +442,8 @@ class NodeBase(NodeMetaClassBase):
 
         return ()
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    @staticmethod
+    def collectVariableAccesses(emit_variable):
         """Collect variable reads and writes of child nodes."""
 
     @staticmethod

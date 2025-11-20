@@ -354,7 +354,7 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         # collections may tell us something.
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         local_variable_values = self.getLocalsScope().local_variables.values()
@@ -365,9 +365,9 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
                 variable not in local_variable_values
                 and variable not in local_temp_variables
             ):
-                emit_read(variable)
+                emit_variable(variable)
 
-        self.subnode_body.collectVariableAccesses(local_emit, local_emit)
+        self.subnode_body.collectVariableAccesses(local_emit)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)

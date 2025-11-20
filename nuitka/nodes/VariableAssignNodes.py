@@ -242,9 +242,9 @@ class StatementAssignmentVariableMixin(object):
 
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_write(self.variable)
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
+        self.subnode_source.collectVariableAccesses(emit_variable)
 
     @abstractmethod
     def hasVeryTrustedValue(self):
