@@ -19,6 +19,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
+from nuitka.States import states
 from nuitka.Tracing import (
     inclusion_logger,
     printError,
@@ -272,6 +273,7 @@ class TraceCollectionBase(object):
         "variable_actives",
         "variable_actives_needs_copy",
         "has_unescaped_variables",
+        "variable_escapable",
     )
 
     if isCountingInstances():
@@ -289,6 +291,8 @@ class TraceCollectionBase(object):
 
         # Even though it's empty, we set it, because init of variables won't do it.
         self.has_unescaped_variables = True
+
+        self.variable_escapable = set()
 
     def __repr__(self):
         return "<%s for %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
@@ -341,8 +345,6 @@ class TraceCollectionBase(object):
 
         variable.initVariable(self)
         self.variable_actives[variable] = 0
-
-        self.has_unescaped_variables = True
 
     def markActiveVariableAsEscaped(self, variable):
         version = self.variable_actives[variable]
@@ -436,8 +438,10 @@ class TraceCollectionBase(object):
         # to be considered escaped, pylint: disable=unused-argument
 
         if self.has_unescaped_variables:
-            for variable in self.variable_actives:
-                variable.onControlFlowEscape(self)
+            #            print("Control flow escape in", self.name, self.variable_escapable)
+            for variable in self.variable_escapable:
+                if variable in self.variable_actives:
+                    variable.onControlFlowEscape(self)
 
             self.has_unescaped_variables = False
 
@@ -728,18 +732,22 @@ class TraceCollectionBase(object):
 
         _merge_counts[2] += 1
 
-        # They must have the same content only or else some bug occurred.
-        if len(collection1.variable_actives) != len(collection2.variable_actives):
-            for variable, version in iterItems(collection1.variable_actives):
-                if variable not in collection2.variable_actives:
-                    print("Only in collection1", variable, version)
+        if states.is_debug:
+            # They must have the same content only or else some bug occurred.
+            if len(collection1.variable_actives) != len(collection2.variable_actives):
+                for variable, version in iterItems(collection1.variable_actives):
+                    if variable not in collection2.variable_actives:
+                        print("Only in collection1", variable, version)
 
-            for variable, version in iterItems(collection2.variable_actives):
-                if variable not in collection1.variable_actives:
-                    print("Only in collection2", variable, version)
+                for variable, version in iterItems(collection2.variable_actives):
+                    if variable not in collection1.variable_actives:
+                        print("Only in collection2", variable, version)
 
-            assert False
+                assert False
 
+        has_unescaped_variables = (
+            collection1.has_unescaped_variables or collection2.has_unescaped_variables
+        )
         new_actives = {}
         for variable, version in iterItems(collection1.variable_actives):
             other_version = collection2.variable_actives[variable]
@@ -763,6 +771,8 @@ class TraceCollectionBase(object):
                         ),
                     )
 
+                    has_unescaped_variables = True
+
             new_actives[variable] = version
 
         self.variable_actives = new_actives
@@ -770,7 +780,7 @@ class TraceCollectionBase(object):
 
         # TODO: This could be avoided, if we detect no actual changes being present, but it might
         # be more costly.
-        self.has_unescaped_variables = True
+        self.has_unescaped_variables = has_unescaped_variables
 
     def mergeMultipleBranches(self, collections):
         # Optimize for length 1, which is trivial merge and needs not a
@@ -809,6 +819,10 @@ class TraceCollectionBase(object):
             use_perf_counters=False,
         ):
             new_actives = {}
+
+            has_unescaped_variables = any(
+                collection.has_unescaped_variables for collection in collections
+            )
 
             for variable in collections[0].variable_actives:
                 versions = set(
@@ -849,6 +863,8 @@ class TraceCollectionBase(object):
                             traces,
                         )
 
+                        has_unescaped_variables = True
+
                 new_actives[variable] = version
 
             self.variable_actives = new_actives
@@ -856,7 +872,7 @@ class TraceCollectionBase(object):
 
             # TODO: This could be avoided, if we detect no actual changes being present, but it might
             # be more costly.
-            self.has_unescaped_variables = True
+            self.has_unescaped_variables = has_unescaped_variables
 
     def replaceBranch(self, collection_replace):
         self.variable_actives = collection_replace.variable_actives
@@ -1004,6 +1020,7 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         self.variable_actives = parent.variable_actives
         parent.variable_actives_needs_copy = True
 
+        self.variable_escapable = parent.variable_escapable
         self.has_unescaped_variables = parent.has_unescaped_variables
 
         # For quick access without going to parent.
@@ -1040,6 +1057,7 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
         self.variable_actives = parent.variable_actives
         parent.variable_actives_needs_copy = True
 
+        self.variable_escapable = parent.variable_escapable
         self.has_unescaped_variables = parent.has_unescaped_variables
 
         # For quick access without going to parent.
@@ -1090,30 +1108,44 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             for parameter_variable in parameters.getTopLevelVariables():
                 self.initVariableInit(parameter_variable)
                 self.variable_actives[parameter_variable] = 0
+                self.variable_escapable.add(parameter_variable)
+                self.has_unescaped_variables = True
 
             list_star_variable = parameters.getListStarArgVariable()
             if list_star_variable is not None:
                 self.initVariableInitStarArgs(list_star_variable)
                 self.variable_actives[list_star_variable] = 0
+                self.variable_escapable.add(list_star_variable)
+                self.has_unescaped_variables = True
 
             dict_star_variable = parameters.getDictStarArgVariable()
             if dict_star_variable is not None:
                 self.initVariableInitStarDict(dict_star_variable)
                 self.variable_actives[dict_star_variable] = 0
+                self.variable_escapable.add(dict_star_variable)
+                self.has_unescaped_variables = True
 
         for closure_variable in function_body.getClosureVariables():
             if closure_variable not in self.variable_actives:
                 self.initVariableUnknown(closure_variable)
                 self.variable_actives[closure_variable] = 0
 
+                if closure_variable.isLocalVariable():
+                    self.variable_escapable.add(closure_variable)
+                    self.has_unescaped_variables = True
+
         for local_variable in function_body.getLocalVariables():
             if local_variable not in self.variable_actives:
                 self.initVariableUninitialized(local_variable)
                 self.variable_actives[local_variable] = 0
+                self.variable_escapable.add(local_variable)
+                self.has_unescaped_variables = True
 
         for module_variable in function_body.getModuleVariables():
             self.initVariableModule(module_variable)
             self.variable_actives[module_variable] = 0
+            self.variable_escapable.add(module_variable)
+            self.has_unescaped_variables = True
 
         for temp_variable in function_body.getTempVariables(outline=None):
             self.initVariableUninitialized(temp_variable)
@@ -1206,6 +1238,8 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
             self.initVariableModule(module_variable)
             self.variable_actives[module_variable] = 0
+            self.variable_escapable.add(module_variable)
+            self.has_unescaped_variables = True
 
         for temp_variable in module.getTempVariables(outline=None):
             self.initVariableUninitialized(temp_variable)
