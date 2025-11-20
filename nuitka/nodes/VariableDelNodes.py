@@ -194,8 +194,8 @@ class StatementDelVariableBase(StatementBase):
 
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_write(self.variable)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
 
 
 class StatementDelVariableTolerant(StatementDelVariableBase):

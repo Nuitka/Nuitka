@@ -110,9 +110,7 @@ class StatementLoop(StatementLoopBase):
         # precise knowledge.
         if self.loop_variables is None:
             self.loop_variables = OrderedSet()
-            loop_body.collectVariableAccesses(
-                self.loop_variables.add, self.loop_variables.add
-            )
+            loop_body.collectVariableAccesses(self.loop_variables.add)
 
             all_first_pass = True
         else:
