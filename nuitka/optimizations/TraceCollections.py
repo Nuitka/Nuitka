@@ -374,17 +374,19 @@ class TraceCollectionBase(object):
 
     def markActiveVariableAsUnknown(self, variable):
         version = self.variable_actives[variable]
-        variable_traces = self.variable_traces[variable]
-        current = variable_traces[version]
 
-        if not current.isUnknownOrVeryTrustedTrace():
-            # Unknown traces are div 3 rem 2.
-            version = version // 3 * 3 + 2
+        if version % 3 != 2:
+            variable_traces = self.variable_traces[variable]
+            current = variable_traces[version]
 
-            if version not in variable_traces:
-                variable_traces[version] = ValueTraceUnknown(self.owner, current)
+            if not current.isUnknownOrVeryTrustedTrace():
+                # Unknown traces are div 3 rem 2.
+                version = version // 3 * 3 + 2
 
-            self.markCurrentVariableTrace(variable, version)
+                if version not in variable_traces:
+                    variable_traces[version] = ValueTraceUnknown(self.owner, current)
+
+                self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsLoopMerge(
         self, loop_node, current, variable, shapes, incomplete
