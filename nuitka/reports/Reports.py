@@ -27,6 +27,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.ModuleRegistry import (
     getDoneModules,
+    getModuleCodeGenerationTimingInfos,
     getModuleInclusionInfoByName,
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
@@ -114,7 +115,18 @@ def _getReportInputData(aborted):
     )
 
     module_timing_infos = dict(
-        (module.getFullName(), getModuleOptimizationTimingInfos(module.getFullName()))
+        (
+            module.getFullName(),
+            getModuleOptimizationTimingInfos(module.getFullName()),
+        )
+        for module in getDoneModules()
+    )
+
+    module_generation_timing_infos = dict(
+        (
+            module.getFullName(),
+            getModuleCodeGenerationTimingInfos(module.getFullName()),
+        )
         for module in getDoneModules()
     )
 
@@ -428,6 +440,25 @@ def _addModulesToReport(root, report_input_data, diffable):
 
                 timing_xml_node.attrib["max_branch_merge"] = str(max_merge_size)
                 timing_xml_node.attrib["merged_total"] = str(merged_total)
+
+            if timing_info.cpu_instr_count is not None:
+                timing_xml_node.attrib["cpu_instr"] = str(timing_info.cpu_instr_count)
+            if timing_info.cpu_cycles_count is not None:
+                timing_xml_node.attrib["cpu_cycles"] = str(timing_info.cpu_cycles_count)
+
+            module_xml_node.append(timing_xml_node)
+
+        timing_info = report_input_data["module_generation_timing_infos"].get(
+            module_name
+        )
+        if timing_info is not None:
+            timing_xml_node = Element(
+                "code-generation-time",
+            )
+
+            timing_xml_node.attrib["time"] = (
+                "volatile" if diffable else "%.2f" % timing_info.time_used
+            )
 
             if timing_info.cpu_instr_count is not None:
                 timing_xml_node.attrib["cpu_instr"] = str(timing_info.cpu_instr_count)
