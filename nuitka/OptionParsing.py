@@ -1102,6 +1102,16 @@ development_group.add_option(
 Enable cProfile based profiling of time spent during compilation. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-generate-indented-c-code",
+    action="store_true",
+    dest="devel_indent_generated_c_code",
+    default=False,
+    github_action=False,
+    help="""\
+Produce C code that is properly indented. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
