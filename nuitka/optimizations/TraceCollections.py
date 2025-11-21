@@ -344,7 +344,6 @@ class TraceCollectionBase(object):
             self.variable_actives_needs_copy = False
 
         variable.initVariable(self)
-        self.variable_actives[variable] = 0
 
     def markActiveVariableAsEscaped(self, variable):
         version = self.variable_actives[variable]
@@ -581,7 +580,6 @@ class TraceCollectionBase(object):
             return None
 
         parent = expression.parent
-        assert parent, expression
 
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
@@ -808,8 +806,6 @@ class TraceCollectionBase(object):
         elif merge_size == 2:
             return self.mergeBranches(*collections)
 
-        assert collections
-
         _merge_counts[len(collections)] += 1
 
         with TimerReport(
@@ -961,14 +957,18 @@ class TraceCollectionBase(object):
     def initVariableUnknown(self, variable):
         trace = ValueTraceUnknown(self.owner, None)
 
-        self.variable_traces[variable][0] = trace
+        # Unknown traces are div 3 rem 2.
+        self.variable_traces[variable][-1] = trace
+        self.variable_actives[variable] = -1
 
         return trace
 
     def initVariableModule(self, variable):
         trace = ValueTraceUnknown(self.owner, None)
 
-        self.variable_traces[variable][0] = trace
+        # Unknown traces are div 3 rem 2.
+        self.variable_traces[variable][-1] = trace
+        self.variable_actives[variable] = -1
 
         return trace
 
@@ -976,6 +976,7 @@ class TraceCollectionBase(object):
         trace = ValueTraceInit(self.owner)
 
         self.variable_traces[variable][0] = trace
+        self.variable_actives[variable] = 0
 
         return trace
 
@@ -983,6 +984,7 @@ class TraceCollectionBase(object):
         trace = ValueTraceInitStarArgs(self.owner)
 
         self.variable_traces[variable][0] = trace
+        self.variable_actives[variable] = 0
 
         return trace
 
@@ -990,6 +992,7 @@ class TraceCollectionBase(object):
         trace = ValueTraceInitStarDict(self.owner)
 
         self.variable_traces[variable][0] = trace
+        self.variable_actives[variable] = 0
 
         return trace
 
@@ -997,6 +1000,7 @@ class TraceCollectionBase(object):
         trace = ValueTraceUninitialized(self.owner, None)
 
         self.variable_traces[variable][0] = trace
+        self.variable_actives[variable] = 0
 
         return trace
 
@@ -1028,8 +1032,6 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         self.loop_variables = parent.loop_variables
 
     def computeBranch(self, branch):
-        assert branch.isStatementsSequence()
-
         result = branch.computeStatementsSequence(self)
 
         if result is not branch:
@@ -1081,12 +1083,12 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     def __init__(self, parent, function_body):
         # Many kinds of variables to setup, pylint: disable=too-many-branches
 
-        assert (
-            function_body.isExpressionFunctionBody()
-            or function_body.isExpressionGeneratorObjectBody()
-            or function_body.isExpressionCoroutineObjectBody()
-            or function_body.isExpressionAsyncgenObjectBody()
-        ), function_body
+        # assert (
+        #     function_body.isExpressionFunctionBody()
+        #     or function_body.isExpressionGeneratorObjectBody()
+        #     or function_body.isExpressionCoroutineObjectBody()
+        #     or function_body.isExpressionAsyncgenObjectBody()
+        # ), function_body
 
         CollectionStartPointMixin.__init__(self)
 
@@ -1107,49 +1109,36 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
 
             for parameter_variable in parameters.getTopLevelVariables():
                 self.initVariableInit(parameter_variable)
-                self.variable_actives[parameter_variable] = 0
                 self.variable_escapable.add(parameter_variable)
-                self.has_unescaped_variables = True
 
             list_star_variable = parameters.getListStarArgVariable()
             if list_star_variable is not None:
                 self.initVariableInitStarArgs(list_star_variable)
-                self.variable_actives[list_star_variable] = 0
                 self.variable_escapable.add(list_star_variable)
-                self.has_unescaped_variables = True
 
             dict_star_variable = parameters.getDictStarArgVariable()
             if dict_star_variable is not None:
                 self.initVariableInitStarDict(dict_star_variable)
-                self.variable_actives[dict_star_variable] = 0
                 self.variable_escapable.add(dict_star_variable)
-                self.has_unescaped_variables = True
 
         for closure_variable in function_body.getClosureVariables():
             if closure_variable not in self.variable_actives:
                 self.initVariableUnknown(closure_variable)
-                self.variable_actives[closure_variable] = 0
 
                 if closure_variable.isLocalVariable():
                     self.variable_escapable.add(closure_variable)
-                    self.has_unescaped_variables = True
 
         for local_variable in function_body.getLocalVariables():
             if local_variable not in self.variable_actives:
                 self.initVariableUninitialized(local_variable)
-                self.variable_actives[local_variable] = 0
                 self.variable_escapable.add(local_variable)
-                self.has_unescaped_variables = True
 
         for module_variable in function_body.getModuleVariables():
             self.initVariableModule(module_variable)
-            self.variable_actives[module_variable] = 0
             self.variable_escapable.add(module_variable)
-            self.has_unescaped_variables = True
 
         for temp_variable in function_body.getTempVariables(outline=None):
             self.initVariableUninitialized(temp_variable)
-            self.variable_actives[temp_variable] = 0
 
         # TODO: Have special function type for exec functions stuff.
         locals_scope = function_body.getLocalsScope()
@@ -1160,6 +1149,8 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
                     self.initVariableUninitialized(locals_dict_variable)
             else:
                 function_body.locals_scope = None
+
+        self.has_unescaped_variables = True
 
     def initVariableModule(self, variable):
         # print("initVariableModule", variable, self)
@@ -1174,7 +1165,10 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             None,
         )
 
+        # TODO: Make very trusted assign traces also div recognized by expanding
+        # to div 4.
         self.variable_traces[variable][0] = assign_trace
+        self.variable_actives[variable] = 0
 
         return assign_trace
 
@@ -1234,10 +1228,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         self.distribution_names = OrderedDict()
 
         for module_variable in module.locals_scope.getLocalsRelevantVariables():
-            assert module_variable.isModuleVariable(), module_variable
-
             self.initVariableModule(module_variable)
-            self.variable_actives[module_variable] = 0
             self.variable_escapable.add(module_variable)
             self.has_unescaped_variables = True
 
