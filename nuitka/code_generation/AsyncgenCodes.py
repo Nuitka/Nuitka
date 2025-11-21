@@ -19,7 +19,7 @@ from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
-    template_asyncgen_noexception_exit,
+    template_asyncgen_no_exception_exit,
     template_asyncgen_object_body,
     template_asyncgen_object_maker_template,
     template_asyncgen_return_exit,
@@ -90,7 +90,7 @@ def getAsyncgenObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_asyncgen_noexception_exit % {
+        generator_exit = template_asyncgen_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 

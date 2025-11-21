@@ -72,7 +72,7 @@ template_asyncgen_exception_exit = """\
     return NULL;
 """
 
-template_asyncgen_noexception_exit = """\
+template_asyncgen_no_exception_exit = """\
     NUITKA_CANNOT_GET_HERE("return must be present");
 
 %(function_cleanup)s
