@@ -19,6 +19,10 @@ from nuitka.build.SconsUtils import (
     readSconsErrorReport,
     readSconsReport,
 )
+from nuitka.code_generation.CodeGeneration import (
+    generateHelpersCode,
+    generateModuleCode,
+)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -43,6 +47,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
     scanPluginSinglePath,
 )
+from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.Options import (
     getDebuggerName,
     getExperimentalIndications,
@@ -175,7 +180,7 @@ from .build.SconsInterface import (
     getCommonSconsOptions,
     runScons,
 )
-from .code_generation import CodeGeneration, LoaderCodes, Reports
+from .code_generation import LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import getCompressorPython, packDistFolderToOnefile
 from .freezer.Standalone import (
@@ -464,35 +469,35 @@ def makeSourceDirectory():
             )
 
     # Prepare code generation, i.e. execute finalization for it.
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            Finalization.prepareCodeGeneration(module)
+    for current_module in ModuleRegistry.getDoneModules():
+        if current_module.isCompiledPythonModule():
+            Finalization.prepareCodeGeneration(current_module)
 
     # Do some reporting and determine compiled module to work on
     compiled_modules = []
 
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            compiled_modules.append(module)
+    for current_module in ModuleRegistry.getDoneModules():
+        if current_module.isCompiledPythonModule():
+            compiled_modules.append(current_module)
 
             if isShowInclusion():
                 inclusion_logger.info(
-                    "Included compiled module '%s'." % module.getFullName()
+                    "Included compiled module '%s'." % current_module.getFullName()
                 )
-        elif module.isPythonExtensionModule():
-            addExtensionModuleEntryPoint(module)
+        elif current_module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(current_module)
 
             if isShowInclusion():
                 inclusion_logger.info(
-                    "Included extension module '%s'." % module.getFullName()
+                    "Included extension module '%s'." % current_module.getFullName()
                 )
-        elif module.isUncompiledPythonModule():
+        elif current_module.isUncompiledPythonModule():
             if isShowInclusion():
                 inclusion_logger.info(
-                    "Included uncompiled module '%s'." % module.getFullName()
+                    "Included uncompiled module '%s'." % current_module.getFullName()
                 )
         else:
-            assert False, module
+            assert False, current_module
 
     # Pick filenames.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
@@ -509,15 +514,16 @@ def makeSourceDirectory():
 
     # Generate code for compiled modules, this can be slow, so do it separately
     # with a progress bar.
-    for module in compiled_modules:
-        c_filename = module_filenames[module]
+    for current_module in compiled_modules:
+        module_name = current_module.getFullName()
+        c_filename = module_filenames[current_module]
 
         reportProgressBar(
-            item=module.getFullName(),
+            item=module_name,
         )
 
-        source_code = CodeGeneration.generateModuleCode(
-            module=module,
+        source_code = generateModuleCode(
+            module=current_module,
             data_filename=changeFilenameExtension(
                 os.path.basename(c_filename), ".const"
             ),
@@ -532,7 +538,7 @@ def makeSourceDirectory():
         helper_impl_code,
         constants_header_code,
         constants_body_code,
-    ) = CodeGeneration.generateHelpersCode()
+    ) = generateHelpersCode()
 
     writeSourceCode(
         filename=os.path.join(source_dir, "__helpers.h"), source_code=helper_decl_code
@@ -1081,6 +1087,11 @@ def _main():
     # Initialize the importing layer from options, main filenames, debugging
     # options, etc.
     setupImportingFromOptions()
+
+    # Initialize value tracing if requested.
+    setupValueTraceFromOptions()
+
+    # Let the plugins know we are starting compilation and they should make their checks.
     onCompilationStartChecks()
 
     addIncludedDataFilesFromFlavor()

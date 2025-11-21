@@ -494,7 +494,7 @@ class ValueTraceEscaped(ValueTraceUnknown):
     __slots__ = ()
 
     def __init__(self, owner, previous):
-        if previous.isMergeTrace():
+        if _is_debug and previous.isMergeTrace():
             assert self not in previous.previous
 
         ValueTraceUnknown.__init__(self, owner=owner, previous=previous)
@@ -753,7 +753,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
                 if trace not in shorted:
                     shorted.append(trace)
 
-        if states.is_debug:
+        if _is_debug:
             assert len(shorted) > 1, traces
 
         traces = tuple(shorted)
@@ -1043,6 +1043,16 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
+
+
+_is_debug = None
+
+
+def setupValueTraceFromOptions():
+    # singleton, pylint: disable=global-statement
+
+    global _is_debug
+    _is_debug = states.is_debug
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
