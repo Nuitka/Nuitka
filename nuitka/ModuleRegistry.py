@@ -342,6 +342,31 @@ def setModuleOptimizationTimingInfos(module_name, timing_infos):
     ]
 
 
+ModuleCodeGenerationTimingInfo = makeNamedtupleClass(
+    "ModuleOptimizationTimingInfo",
+    (
+        "time_used",
+        "cpu_instr_count",
+        "cpu_cycles_count",
+    ),
+)
+
+# Information about how long the code generation took.
+module_generation_time_infos = {}
+
+
+def addModuleCodeGenerationTimeInformation(module_name, time_used, perf_counters):
+    module_generation_time_infos[module_name] = ModuleCodeGenerationTimingInfo(
+        time_used=time_used,
+        cpu_instr_count=perf_counters[0],
+        cpu_cycles_count=perf_counters[1],
+    )
+
+
+def getModuleCodeGenerationTimingInfos(module_name):
+    return module_generation_time_infos.get(module_name)
+
+
 def getImportedModuleNames():
     result = OrderedSet()
 

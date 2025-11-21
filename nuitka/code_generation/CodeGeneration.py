@@ -12,16 +12,19 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
+from nuitka.Options import isCompileTimeProfile
 from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
+from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
+from nuitka.utils.Timing import TimerReport
 
-from . import Contexts
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -92,6 +95,14 @@ from .ConstantCodes import (
     generateConstantGenericAliasCode,
     generateConstantReferenceCode,
     getConstantsDefinitionCode,
+)
+from .Contexts import (
+    PythonAsyncgenObjectContext,
+    PythonCoroutineObjectContext,
+    PythonFunctionCreatedContext,
+    PythonFunctionDirectContext,
+    PythonGeneratorObjectContext,
+    PythonModuleContext,
 )
 from .CoroutineCodes import (
     generateAsyncIterCode,
@@ -379,28 +390,34 @@ def generateFunctionBodyCode(function_body, context):
         return _generated_functions[function_identifier]
 
     if function_body.isExpressionGeneratorObjectBody():
-        function_context = Contexts.PythonGeneratorObjectContext(
-            parent=context, function=function_body
+        function_context = PythonGeneratorObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionClassBodyBase():
-        function_context = Contexts.PythonFunctionDirectContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionDirectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionCoroutineObjectBody():
-        function_context = Contexts.PythonCoroutineObjectContext(
-            parent=context, function=function_body
+        function_context = PythonCoroutineObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionAsyncgenObjectBody():
-        function_context = Contexts.PythonAsyncgenObjectContext(
-            parent=context, function=function_body
+        function_context = PythonAsyncgenObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.needsCreation():
-        function_context = Contexts.PythonFunctionCreatedContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionCreatedContext(
+            parent=context,
+            function=function_body,
         )
     else:
-        function_context = Contexts.PythonFunctionDirectContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionDirectContext(
+            parent=context,
+            function=function_body,
         )
 
     needs_exception_exit = function_body.mayRaiseException(BaseException)
@@ -514,10 +531,9 @@ def generateFunctionBodyCode(function_body, context):
 def _generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
-
     assert module.isCompiledPythonModule(), module
 
-    context = Contexts.PythonModuleContext(
+    context = PythonModuleContext(
         module=module,
         data_filename=data_filename,
     )
@@ -558,8 +574,9 @@ def _generateModuleCode(module, data_filename):
             file_scope=getExportScopeCode(
                 cross_module=function_body.isCrossModuleUsed()
             ),
-            context=Contexts.PythonFunctionDirectContext(
-                parent=context, function=function_body
+            context=PythonFunctionDirectContext(
+                parent=context,
+                function=function_body,
             ),
         )
 
@@ -577,8 +594,28 @@ def _generateModuleCode(module, data_filename):
 
 
 def generateModuleCode(module, data_filename):
+    module_name = module.getFullName()
+
     try:
-        return _generateModuleCode(module=module, data_filename=data_filename)
+        with TimerReport(
+            message="Generating C code for '%s'" % module_name,
+            logger=code_generation_logger,
+            decider=False,
+            include_sleep_time=False,
+            use_perf_counters=module.isCompiledPythonModule()
+            and not isCompileTimeProfile(),
+        ) as module_timer:
+            source_code = _generateModuleCode(
+                module=module, data_filename=data_filename
+            )
+
+            addModuleCodeGenerationTimeInformation(
+                module_name=module_name,
+                time_used=module_timer.getDelta(),
+                perf_counters=module_timer.getPerfCounters(),
+            )
+
+        return source_code
     except KeyboardInterrupt:
         raise KeyboardInterrupt("Interrupted while working on", module)
 
