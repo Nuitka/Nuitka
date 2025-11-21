@@ -98,11 +98,16 @@ def optimizeCompiledPythonModule(module):
 
         Graphs.onModuleOptimizationStep(module)
 
+        if unchanged_count == 1 and tag_set:
+            optimization_logger.sysexit(
+                "Changes made after there were already no changes in the extra micro pass.",
+            )
+
         # Search for local change tags.
         if not tag_set:
             unchanged_count += 1
 
-            if unchanged_count == 1 and pass_count == 1:
+            if unchanged_count == 1 and pass_count == 1 and states.is_debug:
                 optimization_logger.info_if_file(
                     "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
@@ -290,7 +295,7 @@ def makeOptimizationPass():
         module_name = current_module.getFullName()
 
         with TimerReport(
-            message="Optimizing %s" % module_name,
+            message="Optimizing '%s'" % module_name,
             logger=optimization_logger,
             decider=False,
             include_sleep_time=False,
