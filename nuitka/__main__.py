@@ -39,7 +39,7 @@ def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
             value = None
         else:
             if os.name != "nt":
-                if pid != os.getpid():
+                if pid != os.getpid():  # spell-checker: ignore getpid
                     value = None
 
     return value
