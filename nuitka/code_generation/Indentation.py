@@ -7,14 +7,16 @@ Language independent, the amount of the spaces is not configurable, as it needs
 to be the same as in templates.
 """
 
-
-def _indentedCode(codes, prefix):
-    return "\n".join(
-        prefix + line if (line and line[0] != "#") else line for line in codes
-    )
+from nuitka.States import states
 
 
 def indented(codes, level=4, vert_block=False):
+    if states.is_unindented_generated_code:
+        if type(codes) is not str:
+            codes = "\n".join(codes)
+
+        return codes
+
     if type(codes) is str:
         codes = codes.split("\n")
 
@@ -22,11 +24,9 @@ def indented(codes, level=4, vert_block=False):
         codes.insert(0, "")
         codes.append("")
 
-    return _indentedCode(codes, " " * level)
-
-
-def getCommentCode(comment, emit):
-    emit("// " + comment)
+    return "\n".join(
+        " " * level + line if (line and line[0] != "#") else line for line in codes
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
