@@ -41,8 +41,8 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
 
     @counted_init
     def __init__(self, owner, variable_name):
-        assert type(variable_name) is str, variable_name
-        assert type(owner) not in (tuple, list), owner
+        # assert type(variable_name) is str, variable_name
+        # assert type(owner) not in (tuple, list), owner
 
         self.variable_name = variable_name
         self.owner = owner
@@ -354,8 +354,8 @@ class ModuleVariable(Variable):
     __slots__ = ()
 
     def __init__(self, module, variable_name):
-        assert type(variable_name) is str, repr(variable_name)
-        assert module.isCompiledPythonModule()
+        # assert type(variable_name) is str, repr(variable_name)
+        # assert module.isCompiledPythonModule()
 
         Variable.__init__(self, owner=module, variable_name=variable_name)
 
