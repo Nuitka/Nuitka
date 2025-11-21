@@ -553,6 +553,8 @@ def parseArgs():
 
     states.is_verbose = options.verbose
 
+    states.is_unindented_generated_code = not shallIndentGeneratedCode()
+
     optimization_logger.is_quiet = not options.verbose
 
     if options.version:
@@ -1792,6 +1794,11 @@ def isRuntimeProfile():
 def isCompileTimeProfile():
     """:returns: bool derived from ``--devel-profile-compilation``"""
     return options.devel_profile_compilation
+
+
+def shallIndentGeneratedCode():
+    """:returns: bool derived from ``--devel-generate-indented-c-code``"""
+    return options.devel_indent_generated_c_code or _isDebug()
 
 
 def shallCreateGraph():
