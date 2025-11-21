@@ -25,7 +25,7 @@ from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
-    template_coroutine_noexception_exit,
+    template_coroutine_no_exception_exit,
     template_coroutine_object_body,
     template_coroutine_object_maker,
     template_coroutine_return_exit,
@@ -96,7 +96,7 @@ def getCoroutineObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_coroutine_noexception_exit % {
+        generator_exit = template_coroutine_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 

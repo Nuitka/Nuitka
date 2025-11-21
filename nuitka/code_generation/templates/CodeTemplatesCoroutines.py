@@ -73,7 +73,7 @@ template_coroutine_exception_exit = """\
     return NULL;
 """
 
-template_coroutine_noexception_exit = """\
+template_coroutine_no_exception_exit = """\
     NUITKA_CANNOT_GET_HERE("Return statement must be present");
 
 %(function_cleanup)s

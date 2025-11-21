@@ -218,7 +218,7 @@ def getModuleCode(
 def generateModuleAttributeFileCode(to_name, expression, emit, context):
     # TODO: Special treatment justified?
     with withObjectCodeTemporaryAssignment(
-        to_name, "module_fileattr_value", expression, emit, context
+        to_name, "module_file_attr_value", expression, emit, context
     ) as result_name:
         emit("%s = module_filename_obj;" % result_name)
 
