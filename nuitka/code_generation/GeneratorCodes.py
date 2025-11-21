@@ -23,7 +23,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_context_body_template,
     template_generator_context_maker_decl,
     template_generator_exception_exit,
-    template_generator_noexception_exit,
+    template_generator_no_exception_exit,
     template_generator_return_exit,
     template_make_empty_generator,
     template_make_generator,
@@ -91,7 +91,7 @@ def getGeneratorObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_generator_noexception_exit % {
+        generator_exit = template_generator_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 
