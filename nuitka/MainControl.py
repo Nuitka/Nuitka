@@ -148,7 +148,6 @@ from nuitka.Tracing import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
-from nuitka.utils import InstanceCounters
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     callProcess,
@@ -165,6 +164,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -995,7 +995,7 @@ def compileTree():
     )
 
     if isShowMemory():
-        InstanceCounters.printStats()
+        printInstanceCounterStats()
 
     Reports.doMissingOptimizationReport()
 
