@@ -15,7 +15,7 @@ from nuitka.Options import isShowMemory
 from nuitka.Tracing import printIndented, printLine
 
 counted_inits = {}
-counted_dels = {}
+counted_deletions = {}
 
 
 def isCountingInstances():
@@ -44,16 +44,16 @@ def counted_init(init):
 def _wrapped_del(self):
     # This cannot be necessary, because in program finalization, the
     # global variables were assign to None.
-    if counted_dels is None:
+    if counted_deletions is None:
         return
 
     name = self.__class__.__name__
     assert type(name) is str
 
-    if name not in counted_dels:
-        counted_dels[name] = 0
+    if name not in counted_deletions:
+        counted_deletions[name] = 0
 
-    counted_dels[name] += 1
+    counted_deletions[name] += 1
 
 
 def counted_del():
@@ -62,12 +62,12 @@ def counted_del():
     return _wrapped_del
 
 
-def printStats():
+def printInstanceCounterStats():
     printLine("Init/del/alive calls:")
 
     for name, count in sorted(counted_inits.items()):
-        dels = counted_dels.get(name, 0)
-        printIndented(1, name, count, dels, count - dels)
+        deletions = counted_deletions.get(name, 0)
+        printIndented(1, name, count, deletions, count - deletions)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
