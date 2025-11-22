@@ -632,9 +632,6 @@ class StatementAssignmentVariableConstantMutable(
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
-        self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
-        )
 
         provider = trace_collection.getOwner()
 
@@ -652,24 +649,30 @@ class StatementAssignmentVariableConstantMutable(
             else:
                 # Unused constants can be eliminated in any case.
                 if not last_trace.getUsageCount():
-                    if not last_trace.getPrevious().isUnassignedTrace():
-                        result = makeStatementDelVariable(
-                            variable=self.variable,
-                            version=self.variable_version,
-                            tolerant=True,
-                            source_ref=self.source_ref,
+                    if last_trace.getPrevious().isUnassignedTrace():
+                        return (
+                            None,
+                            "new_statements",
+                            "Dropped dead assignment statement to '%s'."
+                            % (self.getVariableName()),
                         )
                     else:
-                        result = None
+                        return trace_collection.computedStatementResult(
+                            statement=makeStatementDelVariable(
+                                variable=self.variable,
+                                version=self.variable_version,
+                                tolerant=True,
+                                source_ref=self.source_ref,
+                            ),
+                            change_tags="new_statements",
+                            change_desc="Lowered dead assignment statement to '%s' to previous value 'del'."
+                            % self.getVariableName(),
+                        )
 
-                    return (
-                        result,
-                        "new_statements",
-                        "Dropped dead assignment statement to '%s'."
-                        % (self.getVariableName()),
-                    )
-
-                # Can safely forward propagate only non-mutable constants.
+        # Can safely forward propagate only non-mutable constants.
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=variable, version=self.variable_version, assign_node=self
+        )
 
         return self, None, None
 
@@ -737,7 +740,14 @@ class StatementAssignmentVariableConstantImmutable(
             else:
                 # Unused constants can be eliminated in any case.
                 if not last_trace.getUsageCount():
-                    if not last_trace.getPrevious().isUnassignedTrace():
+                    if last_trace.getPrevious().isUnassignedTrace():
+                        return (
+                            None,
+                            "new_statements",
+                            "Dropped dead assignment statement to '%s'."
+                            % (self.getVariableName()),
+                        )
+                    else:
                         return trace_collection.computedStatementResult(
                             statement=makeStatementDelVariable(
                                 variable=self.variable,
@@ -749,13 +759,6 @@ class StatementAssignmentVariableConstantImmutable(
                             change_desc="Lowered dead assignment statement to '%s' to previous value 'del'."
                             % self.getVariableName(),
                         )
-                    else:
-                        return (
-                            None,
-                            "new_statements",
-                            "Dropped dead assignment statement to '%s'."
-                            % (self.getVariableName()),
-                        )
 
                 # Still trace or assignment, for the last time. TODO: Maybe this can be
                 # used for the keeping of the "replacement node" as well.
@@ -766,15 +769,15 @@ class StatementAssignmentVariableConstantImmutable(
                     replacement=lambda _replaced_node: self.subnode_source.makeClone(),
                 )
 
-                if not last_trace.getPrevious().isUnassignedTrace():
+                if last_trace.getPrevious().isUnassignedTrace():
+                    result = None
+                else:
                     result = makeStatementDelVariable(
                         variable=self.variable,
                         version=self.variable_version,
                         tolerant=True,
                         source_ref=self.source_ref,
                     )
-                else:
-                    result = None
 
                 return (
                     result,
