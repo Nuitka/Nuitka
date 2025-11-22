@@ -115,7 +115,8 @@ def optimizeCompiledPythonModule(module):
                 continue
 
             optimization_logger.info_if_file(
-                "Finished with the module.", other_logger=progress_logger
+                "Finished with the module.",
+                other_logger=progress_logger,
             )
             break
 
