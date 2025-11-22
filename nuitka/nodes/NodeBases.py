@@ -611,7 +611,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # Late added temp variables should be treated with care for the
         # remaining trace, therefore force usage, but do not track versions yet.
         if self.trace_collection is not None:
-            self.trace_collection.initVariableUnknown(result).addUsage()
+            self.trace_collection.initVariableUninitialized(result, None).addUsage()
             del self.trace_collection.variable_actives[result]
 
         return result

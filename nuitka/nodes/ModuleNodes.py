@@ -572,6 +572,7 @@ class CompiledPythonModule(
                 if old_collection is not None
                 else {}
             ),
+            old_collection=old_collection,
         )
 
         module_body = self.subnode_body
