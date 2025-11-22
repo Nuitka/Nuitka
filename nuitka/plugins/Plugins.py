@@ -28,6 +28,8 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
+from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Options import (
     getForcedRuntimeEnvironmentVariableValues,
@@ -497,9 +499,6 @@ class Plugins(object):
 
     @staticmethod
     def _reportImplicitImports(plugin, module, implicit_imports):
-        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
-        from nuitka.importing.Recursion import decideRecursion, recurseTo
-
         for full_name, module_filename in implicit_imports:
             # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
             _module_name2, module_kind = getModuleNameAndKindFromFilename(
@@ -527,12 +526,13 @@ class Plugins(object):
                 except NuitkaForbiddenImportEncounter as e:
                     plugins_logger.sysexit(
                         """\
-Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' through \
-implicit import encountered."""
+Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' \
+through implicit import by '%s' plugin encountered."""
                         % (
                             e.args[0],
                             e.args[1],
                             module.module_name,
+                            plugin.plugin_name,
                         )
                     )
 
