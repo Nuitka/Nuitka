@@ -20,6 +20,7 @@ import re
 
 from nuitka.Constants import isMutable
 from nuitka.optimizations.TraceCollections import (
+    TraceCollectionFunction,
     TraceCollectionPureFunction,
     withChangeIndicationsTo,
 )
@@ -474,13 +475,10 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         return self.getFunctionQualname() + ".<locals>." + function_name
 
     def computeFunctionRaw(self, trace_collection):
-        # TODO: Lets not go through imports on performance critical paths
-        from nuitka.optimizations.TraceCollections import (
-            TraceCollectionFunction,
-        )
-
         trace_collection = TraceCollectionFunction(
-            parent=trace_collection, function_body=self
+            parent=trace_collection,
+            function_body=self,
+            old_collection=self.trace_collection,
         )
         old_collection = self.setTraceCollection(trace_collection)
 
@@ -829,7 +827,9 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         tags = set()
 
         while 1:
-            trace_collection = TraceCollectionPureFunction(function_body=self)
+            trace_collection = TraceCollectionPureFunction(
+                function_body=self, old_collection=self.trace_collection
+            )
             old_collection = self.setTraceCollection(trace_collection)
 
             with withChangeIndicationsTo(mySignal):

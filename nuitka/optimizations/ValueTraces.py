@@ -58,27 +58,7 @@ class ValueTraceBase(object):
         "usage_count",
         "name_usage_count",
         "merge_usage_count",
-        "closure_usages",
-        "previous",
     )
-
-    @counted_init
-    def __init__(self, owner, previous):
-        self.owner = owner
-
-        # Definite usage indicator.
-        self.usage_count = 0
-
-        # If 0, this indicates, the variable name needs to be assigned as name.
-        self.name_usage_count = 0
-
-        # If 0, this indicates no value merges happened on the value.
-        self.merge_usage_count = 0
-
-        self.closure_usages = False
-
-        # Previous trace this is replacing.
-        self.previous = previous
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -183,19 +163,13 @@ class ValueTraceBase(object):
     def isMergeTrace():
         return False
 
+    @abstractmethod
     def mustHaveValue(self):
-        """Will this definitely have a value.
+        """Will this definitely have a value."""
 
-        Every trace has this overloaded.
-        """
-        assert False, self
-
+    @abstractmethod
     def mustNotHaveValue(self):
-        """Will this definitely have a value.
-
-        Every trace has this overloaded.
-        """
-        assert False, self
+        """Will this definitely have a value."""
 
     def getReplacementNode(self, usage):
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -302,11 +276,43 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         return True
 
 
-class ValueTraceUninitialized(ValueTraceUnassignedBase):
+class ValueTraceStartMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+    def addUsage(self):
+        self.usage_count += 1
+
+    def addMergeUsage(self):
+        self.usage_count += 1
+        self.merge_usage_count += 1
+
+    def addNameUsage(self):
+        self.usage_count += 1
+        self.name_usage_count += 1
+
+    @staticmethod
+    def getAttributeNode():
+        return None
+
+    @staticmethod
+    def getAttributeNodeTrusted():
+        return None
+
+    @staticmethod
+    def getAttributeNodeVeryTrusted():
+        return None
+
+
+class ValueTraceStartUninitialized(ValueTraceStartMixin, ValueTraceUnassignedBase):
+    __slots__ = ()
+
+    @counted_init
+    def __init__(self, owner):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     @staticmethod
     def isUninitializedTrace():
@@ -330,11 +336,19 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
 class ValueTraceDeleted(ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
 
-    __slots__ = ("del_node",)
+    __slots__ = (
+        "previous",
+        "del_node",
+    )
 
+    @counted_init
     def __init__(self, owner, previous, del_node):
-        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
+        self.previous = previous
         self.del_node = del_node
 
     @staticmethod
@@ -353,11 +367,15 @@ class ValueTraceDeleted(ValueTraceUnassignedBase):
         return self.del_node
 
 
-class ValueTraceInit(ValueTraceBase):
+class ValueTraceStartInit(ValueTraceStartMixin, ValueTraceBase):
     __slots__ = ()
 
+    @counted_init
     def __init__(self, owner):
-        ValueTraceBase.__init__(self, owner=owner, previous=None)
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     @staticmethod
     def getTypeShape():
@@ -392,7 +410,7 @@ class ValueTraceInit(ValueTraceBase):
         return False
 
 
-class ValueTraceInitStarArgs(ValueTraceInit):
+class ValueTraceStartInitStarArgs(ValueTraceStartInit):
     @staticmethod
     def getTypeShape():
         return tshape_tuple
@@ -406,7 +424,7 @@ class ValueTraceInitStarArgs(ValueTraceInit):
         return True
 
 
-class ValueTraceInitStarDict(ValueTraceInit):
+class ValueTraceStartInitStarDict(ValueTraceStartInit):
     @staticmethod
     def getTypeShape():
         return tshape_dict
@@ -420,8 +438,7 @@ class ValueTraceInitStarDict(ValueTraceInit):
         return True
 
 
-class ValueTraceUnknown(ValueTraceBase):
-    __slots__ = ()
+class ValueTraceUnknownBase(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
@@ -490,14 +507,33 @@ class ValueTraceUnknown(ValueTraceBase):
             return self.previous.getAttributeNodeVeryTrusted()
 
 
-class ValueTraceEscaped(ValueTraceUnknown):
+class ValueTraceUnknown(ValueTraceUnknownBase):
+    __slots__ = ("previous",)
+
+    @counted_init
+    def __init__(self, owner, previous):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+
+
+class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
+
+    @counted_init
+    def __init__(self, owner):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        if _is_debug and previous.isMergeTrace():
-            assert self not in previous.previous
 
-        ValueTraceUnknown.__init__(self, owner=owner, previous=previous)
+class ValueTraceEscaped(ValueTraceUnknown):
+    __slots__ = ()
 
     def addUsage(self):
         self.usage_count += 1
@@ -571,11 +607,19 @@ class ValueTraceEscaped(ValueTraceUnknown):
 
 
 class ValueTraceAssign(ValueTraceBase):
-    __slots__ = ("assign_node",)
+    __slots__ = (
+        "previous",
+        "assign_node",
+    )
 
+    @counted_init
     def __init__(self, owner, assign_node, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
+        self.previous = previous
         self.assign_node = assign_node
 
     def __repr__(self):
@@ -688,10 +732,18 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 
     __slots__ = ("replacement",)
 
+    @counted_init
     def __init__(self, owner, assign_node, previous, replacement):
-        ValueTraceAssignUnescapable.__init__(
-            self, owner=owner, assign_node=assign_node, previous=previous
-        )
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+        self.assign_node = assign_node
 
         self.replacement = replacement
 
@@ -704,9 +756,9 @@ class ValueTraceMergeBase(ValueTraceBase):
 
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
-    __slots__ = ()
+    __slots__ = ("previous",)
 
-    def addNameUsage(self):
+    def addNameUsage(self):  # pylint: disable=I0021,too-many-branches
         self.usage_count += 1
         self.name_usage_count += 1
 
@@ -741,6 +793,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     __slots__ = ()
 
+    @counted_init
     def __init__(self, traces):
         shorted = []
 
@@ -758,9 +811,12 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         traces = tuple(shorted)
 
-        # assert len(set(traces)) == len(traces), [(v) for v in traces]
+        self.owner = traces[0].owner
+        self.previous = traces
 
-        ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
@@ -875,11 +931,24 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+
+    # This one has many attributes, pylint: disable=too-many-instance-attributes
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
 
+    @counted_init
     def __init__(self, loop_node, previous, type_shapes):
-        # Note: That previous is being added to later.
-        ValueTraceMergeBase.__init__(self, owner=previous.owner, previous=(previous,))
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = previous.owner
+
+        # Note: That previous is being added to later, we will learn about more.
+        self.previous = (previous,)
+
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
         self.loop_node = loop_node
         self.type_shapes = type_shapes

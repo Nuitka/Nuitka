@@ -303,11 +303,11 @@ class LocalVariable(Variable):
     def isLocalVariable():
         return True
 
-    def initVariable(self, trace_collection):
+    def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
         trace_collection.variable_escapable.add(self)
         trace_collection.has_unescaped_variables = True
-        return trace_collection.initVariableUninitialized(self)
+        return trace_collection.initVariableUninitialized(self, None)
 
     if str is not bytes:
 
@@ -344,9 +344,9 @@ class ParameterVariable(LocalVariable):
     def isParameterVariable():
         return True
 
-    def initVariable(self, trace_collection):
+    def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
-        return trace_collection.initVariableInit(self)
+        return trace_collection.initVariableInit(self, None)
 
 
 class ModuleVariable(Variable):
@@ -371,11 +371,11 @@ class ModuleVariable(Variable):
     def isModuleVariable():
         return True
 
-    def initVariable(self, trace_collection):
+    def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
         trace_collection.variable_escapable.add(self)
         trace_collection.has_unescaped_variables = True
-        return trace_collection.initVariableModule(self)
+        return trace_collection.initVariableModule(self, None)
 
     def onControlFlowEscape(self, trace_collection):
         trace_collection.markActiveVariableAsUnknown(self)
@@ -423,9 +423,9 @@ class TempVariable(Variable):
     def getDescription(self):
         return "temp variable '%s'" % self.variable_name
 
-    def initVariable(self, trace_collection):
+    def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
-        return trace_collection.initVariableUninitialized(self)
+        return trace_collection.initVariableUninitialized(self, None)
 
     @staticmethod
     def removeAllKnowledge(trace_collection):
@@ -448,12 +448,12 @@ class LocalsDictVariable(Variable):
     def getVariableType():
         return "object"
 
-    def initVariable(self, trace_collection):
+    def initVariableLate(self, trace_collection):
         """Initialize variable in trace collection state."""
         if self.owner.getTypeShape() is tshape_dict:
-            return trace_collection.initVariableUninitialized(self)
+            return trace_collection.initVariableUninitialized(self, None)
         else:
-            return trace_collection.initVariableUnknown(self)
+            return trace_collection.initVariableUnknown(self, None)
 
 
 def _updateVariablesFromCollectionFirst(new_collection):

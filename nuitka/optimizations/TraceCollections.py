@@ -41,13 +41,14 @@ from .ValueTraces import (
     ValueTraceAssignVeryTrusted,
     ValueTraceDeleted,
     ValueTraceEscaped,
-    ValueTraceInit,
-    ValueTraceInitStarArgs,
-    ValueTraceInitStarDict,
     ValueTraceLoopComplete,
     ValueTraceLoopIncomplete,
     ValueTraceMerge,
-    ValueTraceUninitialized,
+    ValueTraceStartInit,
+    ValueTraceStartInitStarArgs,
+    ValueTraceStartInitStarDict,
+    ValueTraceStartUninitialized,
+    ValueTraceStartUnknown,
     ValueTraceUnknown,
 )
 
@@ -343,7 +344,7 @@ class TraceCollectionBase(object):
             self.variable_actives = self.variable_actives.copy()
             self.variable_actives_needs_copy = False
 
-        variable.initVariable(self)
+        variable.initVariableLate(self)
 
     def markActiveVariableAsEscaped(self, variable):
         version = self.variable_actives[variable]
@@ -954,8 +955,11 @@ class TraceCollectionBase(object):
             distribution_name=distribution_name, node=node, success=success
         )
 
-    def initVariableUnknown(self, variable):
-        trace = ValueTraceUnknown(self.owner, None)
+    def initVariableUnknown(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][-1]
+        else:
+            trace = ValueTraceStartUnknown(self.owner)
 
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
@@ -963,8 +967,11 @@ class TraceCollectionBase(object):
 
         return trace
 
-    def initVariableModule(self, variable):
-        trace = ValueTraceUnknown(self.owner, None)
+    def initVariableModule(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][-1]
+        else:
+            trace = ValueTraceStartUnknown(self.owner)
 
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
@@ -972,32 +979,44 @@ class TraceCollectionBase(object):
 
         return trace
 
-    def initVariableInit(self, variable):
-        trace = ValueTraceInit(self.owner)
+    def initVariableInit(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][0]
+        else:
+            trace = ValueTraceStartInit(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
 
         return trace
 
-    def initVariableInitStarArgs(self, variable):
-        trace = ValueTraceInitStarArgs(self.owner)
+    def initVariableInitStarArgs(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][0]
+        else:
+            trace = ValueTraceStartInitStarArgs(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
 
         return trace
 
-    def initVariableInitStarDict(self, variable):
-        trace = ValueTraceInitStarDict(self.owner)
+    def initVariableInitStarDict(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][0]
+        else:
+            trace = ValueTraceStartInitStarDict(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
 
         return trace
 
-    def initVariableUninitialized(self, variable):
-        trace = ValueTraceUninitialized(self.owner, None)
+    def initVariableUninitialized(self, variable, old_collection):
+        if old_collection is not None:
+            trace = old_collection.variable_traces[variable][0]
+        else:
+            trace = ValueTraceStartUninitialized(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
@@ -1080,7 +1099,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         "very_trusted_module_variables",
     )
 
-    def __init__(self, parent, function_body):
+    def __init__(self, parent, old_collection, function_body):
         # Many kinds of variables to setup, pylint: disable=too-many-branches
 
         # assert (
@@ -1108,37 +1127,37 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             parameters = function_body.getParameters()
 
             for parameter_variable in parameters.getTopLevelVariables():
-                self.initVariableInit(parameter_variable)
+                self.initVariableInit(parameter_variable, old_collection)
                 self.variable_escapable.add(parameter_variable)
 
             list_star_variable = parameters.getListStarArgVariable()
             if list_star_variable is not None:
-                self.initVariableInitStarArgs(list_star_variable)
+                self.initVariableInitStarArgs(list_star_variable, old_collection)
                 self.variable_escapable.add(list_star_variable)
 
             dict_star_variable = parameters.getDictStarArgVariable()
             if dict_star_variable is not None:
-                self.initVariableInitStarDict(dict_star_variable)
+                self.initVariableInitStarDict(dict_star_variable, old_collection)
                 self.variable_escapable.add(dict_star_variable)
 
         for closure_variable in function_body.getClosureVariables():
             if closure_variable not in self.variable_actives:
-                self.initVariableUnknown(closure_variable)
+                self.initVariableUnknown(closure_variable, old_collection)
 
                 if closure_variable.isLocalVariable():
                     self.variable_escapable.add(closure_variable)
 
         for local_variable in function_body.getLocalVariables():
             if local_variable not in self.variable_actives:
-                self.initVariableUninitialized(local_variable)
+                self.initVariableUninitialized(local_variable, old_collection)
                 self.variable_escapable.add(local_variable)
 
         for module_variable in function_body.getModuleVariables():
-            self.initVariableModule(module_variable)
+            self.initVariableModule(module_variable, old_collection)
             self.variable_escapable.add(module_variable)
 
         for temp_variable in function_body.getTempVariables(outline=None):
-            self.initVariableUninitialized(temp_variable)
+            self.initVariableUninitialized(temp_variable, old_collection)
 
         # TODO: Have special function type for exec functions stuff.
         locals_scope = function_body.getLocalsScope()
@@ -1146,18 +1165,20 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         if locals_scope is not None:
             if not locals_scope.isMarkedForPropagation():
                 for locals_dict_variable in locals_scope.variables.values():
-                    self.initVariableUninitialized(locals_dict_variable)
+                    self.initVariableUninitialized(locals_dict_variable, old_collection)
             else:
                 function_body.locals_scope = None
 
         self.has_unescaped_variables = True
 
-    def initVariableModule(self, variable):
+    def initVariableModule(self, variable, old_collection):
         # print("initVariableModule", variable, self)
         trusted_node = self.very_trusted_module_variables.get(variable)
 
         if trusted_node is None:
-            return TraceCollectionBase.initVariableModule(self, variable)
+            return TraceCollectionBase.initVariableModule(
+                self, variable, old_collection
+            )
 
         assign_trace = ValueTraceAssignVeryTrusted(
             self.owner,
@@ -1178,8 +1199,13 @@ class TraceCollectionPureFunction(TraceCollectionFunction):
 
     __slots__ = ("used_functions",)
 
-    def __init__(self, function_body):
-        TraceCollectionFunction.__init__(self, parent=None, function_body=function_body)
+    def __init__(self, old_collection, function_body):
+        TraceCollectionFunction.__init__(
+            self,
+            parent=None,
+            old_collection=old_collection,
+            function_body=function_body,
+        )
 
         self.used_functions = OrderedSet()
 
@@ -1207,7 +1233,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         "distribution_names",
     )
 
-    def __init__(self, module, very_trusted_module_variables):
+    def __init__(self, module, very_trusted_module_variables, old_collection):
         assert module.isCompiledPythonModule(), module
 
         CollectionStartPointMixin.__init__(self)
@@ -1228,13 +1254,13 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         self.distribution_names = OrderedDict()
 
         for module_variable in module.locals_scope.getLocalsRelevantVariables():
-            self.initVariableModule(module_variable)
+            self.initVariableModule(module_variable, old_collection)
             self.variable_escapable.add(module_variable)
-            self.has_unescaped_variables = True
 
         for temp_variable in module.getTempVariables(outline=None):
-            self.initVariableUninitialized(temp_variable)
-            self.variable_actives[temp_variable] = 0
+            self.initVariableUninitialized(temp_variable, old_collection)
+
+        self.has_unescaped_variables = True
 
     def getVeryTrustedModuleVariables(self):
         return self.very_trusted_module_variables
