@@ -19,10 +19,7 @@ import shlex
 import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.containers.OrderedSets import (
-    OrderedSet,
-    recommended_orderedset_package_name,
-)
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.OptionParsing import (
     parseOptions,
@@ -1345,19 +1342,6 @@ but errors may happen."""
             options_logger.warning(
                 "The '--debugger' option has no effect outside of '--debug' without '--run' option."
             )
-
-    # Check if the fallback is used, except for Python2 on Windows, where we cannot
-    # have it.
-    if hasattr(OrderedSet, "is_fallback") and not (
-        isWin32Windows() and python_version < 0x360
-    ):
-        # spell-checker: ignore orderedset
-        general.warning(
-            """\
-Using very slow fallback for ordered sets, please install '%s' \
-PyPI package for best Python compile time performance."""
-            % recommended_orderedset_package_name
-        )
 
     if shallUsePythonDebug() and not isDebugPython():
         general.sysexit(
