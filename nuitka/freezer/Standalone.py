@@ -151,7 +151,9 @@ def _detectBinaryDLLs(
         )
     elif isWin32Windows():
         with TimerReport(
-            message="Running 'depends.exe' for %s took %%.2f seconds" % binary_filename,
+            logger=inclusion_logger,
+            message="Detecting dependencies for %s took %%.2f seconds"
+            % binary_filename,
             decider=isShowProgress,
         ):
             return detectBinaryPathDLLsWin32(

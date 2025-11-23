@@ -342,6 +342,11 @@ def addExtensionModuleEntryPoint(module):
 def getIncludedExtensionModule(source_path):
     for standalone_entry_point in standalone_entry_points:
         if standalone_entry_point.kind == "extension":
+            if source_path == standalone_entry_point.source_path:
+                return standalone_entry_point
+
+    for standalone_entry_point in standalone_entry_points:
+        if standalone_entry_point.kind == "extension":
             if areSamePaths(source_path, standalone_entry_point.source_path):
                 return standalone_entry_point
 

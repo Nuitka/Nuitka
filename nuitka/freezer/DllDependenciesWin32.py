@@ -22,6 +22,7 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getDirectoryRealPath,
     getFileContentByLine,
+    getNormalizedPath,
     getSubDirectoriesWithDlls,
     isFilenameSameAsOrBelowPath,
     listDllFilesFromDirectory,
@@ -90,6 +91,8 @@ def detectBinaryPathDLLsWin32(
     use_cache,
     update_cache,
 ):
+    # Caching and tracing cause too many branches, pylint: disable=too-many-branches
+
     # For ARM64 and on user request, we can use "pefile" for dependency detection.
     dependency_tool = (
         "pefile"
@@ -115,14 +118,26 @@ def detectBinaryPathDLLsWin32(
                 if not os.path.exists(cache_filename):
                     use_cache = False
 
+                    if isShowProgress():
+                        inclusion_logger.info(
+                            "Cache for dependencies of '%s' file '%s' does not exist."
+                            % (binary_filename, cache_filename)
+                        )
+
         if use_cache:
             result = OrderedSet()
 
             for line in getFileContentByLine(cache_filename):
-                line = line.strip()
+                filename = line.strip()
 
                 # Detect files that have become missing by ignoring the cache.
-                if not os.path.exists(line):
+                if not os.path.exists(filename):
+                    if isShowProgress():
+                        inclusion_logger.info(
+                            "Cache for dependencies of '%s' contains non-existent file '%s', ignoring."
+                            % (binary_filename, filename)
+                        )
+
                     break
 
                 result.add(line)
@@ -149,6 +164,12 @@ def detectBinaryPathDLLsWin32(
         )
 
     if update_cache:
+        if isShowProgress():
+            inclusion_logger.info(
+                "Writing cache for dependencies of '%s' to '%s', ignoring."
+                % (binary_filename, cache_filename)
+            )
+
         putTextFileContents(filename=cache_filename, contents=result)
 
     return result
@@ -265,7 +286,7 @@ def _getCacheFilename(
     use_path,
 ):
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
-    original_filename = os.path.normcase(original_filename)
+    original_filename = getNormalizedPath(original_filename)
 
     hash_value = Hash()
 

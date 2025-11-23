@@ -9,7 +9,7 @@ to answer commonly asked questions regarding that, and to provide some insight o
 
 - If you plan on submitting an issue
 
-  Please follow this [template](https://github.com/Nuitka/Nuitka/blob/develop/.github/ISSUE_TEMPLATE.md).
+  Please follow this [template](https://github.com/Nuitka/Nuitka/blob/develop/.github/ISSUE_TEMPLATE/bug_report.md)
 
 - If you want to open a pull request
 

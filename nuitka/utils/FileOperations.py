@@ -100,6 +100,9 @@ def areSamePaths(path1, path2):
     path1 = os.path.abspath(getNormalizedPath(path1))
     path2 = os.path.abspath(getNormalizedPath(path2))
 
+    if path1 == path2:
+        return True
+
     if os.path.exists(path1) and os.path.exists(path2):
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
@@ -1253,7 +1256,7 @@ def getExternalUsePath(filename, only_dirname=False):
     if os.name == "nt":
         key = filename, only_dirname
 
-        if filename not in _external_use_path_cache:
+        if key not in _external_use_path_cache:
             filename = getFilenameRealPath(filename)
 
             if only_dirname:
@@ -1263,9 +1266,10 @@ def getExternalUsePath(filename, only_dirname=False):
             else:
                 filename = getWindowsShortPathName(filename)
 
+            # Cache result
             _external_use_path_cache[key] = filename
 
-            # Looking up again should give same result immediately.
+            # Looking the resolved path up again should give same result immediately.
             key = filename, only_dirname
             _external_use_path_cache[key] = filename
 

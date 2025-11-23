@@ -601,9 +601,16 @@ def _getMSVCRedistPath(logger):
 def getMSVCRedistPath(logger):
     global _msvc_redist_path  # singleton, pylint: disable=global-statement
 
-    if _msvc_redist_path is None:
+    if _msvc_redist_path is False:
+        # Cached error path, didn't find it.
+        return None
+    elif _msvc_redist_path is None:
         if isWin32Windows():
             _msvc_redist_path = _getMSVCRedistPath(logger=logger)
+
+            # Don't retry if it fails.
+            if _msvc_redist_path is None:
+                _msvc_redist_path = False
 
     return _msvc_redist_path
 

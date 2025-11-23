@@ -1041,6 +1041,16 @@ def locateModules(package_name):
             yield package_name.getChildNamed(sub_module.name)
 
 
+def hasModule(module_name):
+    """Tell if a module exists in the installation."""
+
+    _module_name, _module_filename, _module_kind, finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    return finding != "not-found"
+
+
 def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     # Many branches due to the many cases
 

@@ -194,6 +194,17 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                 source_ref=self.source_ref,
             )
 
+            if self.variable.getName() in (
+                "dir",
+                "eval",
+                "exec",
+                "execfile",
+                "locals",
+                "vars",
+            ):
+                # Just inform the collection that all escaped.
+                trace_collection.onLocalsUsage(self.getLocalsDictScope())
+
             return (
                 result,
                 "new_expression",
