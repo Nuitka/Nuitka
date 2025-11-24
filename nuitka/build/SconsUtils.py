@@ -13,7 +13,11 @@ import shutil
 import signal
 import sys
 
-from nuitka.__past__ import basestring, unicode
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    FileNotFoundError,
+    basestring,
+    unicode,
+)
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Progress import enableThreading
 from nuitka.PythonFlavors import isTermuxPython
