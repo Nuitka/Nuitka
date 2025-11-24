@@ -882,6 +882,446 @@ struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject 
     return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size);
 }
 
+
+#if PYTHON_VERSION >= 0x3e0
+
+static int
+Nuitka_PyCode_scan_varint(const uint8_t *ptr)
+{
+    unsigned int read = *ptr++;
+    unsigned int val = read & 63;
+    unsigned int shift = 0;
+    while (read & 64) {
+        read = *ptr++;
+        shift += 6;
+        val |= (read & 63) << shift;
+    }
+    return val;
+}
+
+static int
+Nuitka_PyCode_scan_signed_varint(const uint8_t *ptr)
+{
+    unsigned int uval = Nuitka_PyCode_scan_varint(ptr);
+    if (uval & 1) {
+        return -(int)(uval >> 1);
+    }
+    else {
+        return uval >> 1;
+    }
+}
+
+static int
+Nuitka_PyCode_get_line_delta(const uint8_t *ptr)
+{
+    int code = ((*ptr) >> 3) & 15;
+    switch (code) {
+        case PY_CODE_LOCATION_INFO_NONE:
+            return 0;
+        case PY_CODE_LOCATION_INFO_NO_COLUMNS:
+        case PY_CODE_LOCATION_INFO_LONG:
+            return Nuitka_PyCode_scan_signed_varint(ptr+1);
+        case PY_CODE_LOCATION_INFO_ONE_LINE0:
+            return 0;
+        case PY_CODE_LOCATION_INFO_ONE_LINE1:
+            return 1;
+        case PY_CODE_LOCATION_INFO_ONE_LINE2:
+            return 2;
+        default:
+            /* Same line */
+            return 0;
+    }
+}
+
+static PyObject *
+Nuitka_PyCode_remove_column_info(PyObject *locations)
+{
+    Py_ssize_t offset = 0;
+    const uint8_t *data = (const uint8_t *)PyBytes_AS_STRING(locations);
+    PyObject *res = PyBytes_FromStringAndSize(NULL, 32);
+    if (res == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    uint8_t *output = (uint8_t *)PyBytes_AS_STRING(res);
+    while (offset < PyBytes_GET_SIZE(locations)) {
+        Py_ssize_t write_offset = output - (uint8_t *)PyBytes_AS_STRING(res);
+        if (write_offset + 16 >= PyBytes_GET_SIZE(res)) {
+            if (_PyBytes_Resize(&res, PyBytes_GET_SIZE(res) * 2) < 0) {
+                return NULL;
+            }
+            output = (uint8_t *)PyBytes_AS_STRING(res) + write_offset;
+        }
+        int code = (data[offset] >> 3) & 15;
+        if (code == PY_CODE_LOCATION_INFO_NONE) {
+            *output++ = data[offset];
+        }
+        else {
+            int blength = (data[offset] & 7)+1;
+            output += write_location_entry_start(
+                output, PY_CODE_LOCATION_INFO_NO_COLUMNS, blength);
+            int ldelta = Nuitka_PyCode_get_line_delta(&data[offset]);
+            output += write_signed_varint(output, ldelta);
+        }
+        offset++;
+        while (offset < PyBytes_GET_SIZE(locations) &&
+            (data[offset] & 128) == 0) {
+            offset++;
+        }
+    }
+    Py_ssize_t write_offset = output - (uint8_t *)PyBytes_AS_STRING(res);
+    if (_PyBytes_Resize(&res, write_offset)) {
+        return NULL;
+    }
+    return res;
+}
+
+static int
+Nuitka_PyCode_intern_strings(PyObject *tuple)
+{
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    Py_ssize_t i;
+
+    for (i = PyTuple_GET_SIZE(tuple); --i >= 0; ) {
+        PyObject *v = PyTuple_GET_ITEM(tuple, i);
+        if (v == NULL || !PyUnicode_CheckExact(v)) {
+            PyErr_SetString(PyExc_SystemError,
+                            "non-string found in code slot");
+            return -1;
+        }
+        _PyUnicode_InternImmortal(interp, &_PyTuple_ITEMS(tuple)[i]);
+    }
+    return 0;
+}
+
+static int
+Nuitka_PyCode_should_intern_string(PyObject *o)
+{
+#ifdef Py_GIL_DISABLED
+    // The free-threaded build interns (and immortalizes) all string constants
+    return 1;
+#else
+    // compute if s matches [a-zA-Z0-9_]
+    const unsigned char *s, *e;
+
+    if (!PyUnicode_IS_ASCII(o))
+        return 0;
+
+    s = PyUnicode_1BYTE_DATA(o);
+    e = s + PyUnicode_GET_LENGTH(o);
+    for (; s != e; s++) {
+        if (!Py_ISALNUM(*s) && *s != '_')
+            return 0;
+    }
+    return 1;
+#endif
+}
+
+/* Intern constants. In the default build, this interns selected string
+   constants. In the free-threaded build, this also interns non-string
+   constants. */
+static int
+Nuitka_PyCode_intern_constants(PyObject *tuple, int *modified)
+{
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    for (Py_ssize_t i = PyTuple_GET_SIZE(tuple); --i >= 0; ) {
+        PyObject *v = PyTuple_GET_ITEM(tuple, i);
+        if (PyUnicode_CheckExact(v)) {
+            if (Nuitka_PyCode_should_intern_string(v)) {
+                PyObject *w = v;
+                _PyUnicode_InternMortal(interp, &v);
+                if (w != v) {
+                    PyTuple_SET_ITEM(tuple, i, v);
+                    if (modified) {
+                        *modified = 1;
+                    }
+                }
+            }
+        }
+        else if (PyTuple_CheckExact(v)) {
+            if (Nuitka_PyCode_intern_constants(v, NULL) < 0) {
+                return -1;
+            }
+        }
+        else if (PyFrozenSet_CheckExact(v)) {
+            PyObject *w = v;
+            PyObject *tmp = PySequence_Tuple(v);
+            if (tmp == NULL) {
+                return -1;
+            }
+            int tmp_modified = 0;
+            if (Nuitka_PyCode_intern_constants(tmp, &tmp_modified) < 0) {
+                Py_DECREF(tmp);
+                return -1;
+            }
+            if (tmp_modified) {
+                v = PyFrozenSet_New(tmp);
+                if (v == NULL) {
+                    Py_DECREF(tmp);
+                    return -1;
+                }
+
+                PyTuple_SET_ITEM(tuple, i, v);
+                Py_DECREF(w);
+                if (modified) {
+                    *modified = 1;
+                }
+            }
+            Py_DECREF(tmp);
+        }
+#ifdef Py_GIL_DISABLED
+        // Nuitka TODO: Fix some missing symbols here
+        else if (PySlice_Check(v)) {
+            PySliceObject *slice = (PySliceObject *)v;
+            PyObject *tmp = PyTuple_New(3);
+            if (tmp == NULL) {
+                return -1;
+            }
+            PyTuple_SET_ITEM(tmp, 0, Py_NewRef(slice->start));
+            PyTuple_SET_ITEM(tmp, 1, Py_NewRef(slice->stop));
+            PyTuple_SET_ITEM(tmp, 2, Py_NewRef(slice->step));
+            int tmp_modified = 0;
+            if (intern_constants(tmp, &tmp_modified) < 0) {
+                Py_DECREF(tmp);
+                return -1;
+            }
+            if (tmp_modified) {
+                v = PySlice_New(PyTuple_GET_ITEM(tmp, 0),
+                                PyTuple_GET_ITEM(tmp, 1),
+                                PyTuple_GET_ITEM(tmp, 2));
+                if (v == NULL) {
+                    Py_DECREF(tmp);
+                    return -1;
+                }
+                PyTuple_SET_ITEM(tuple, i, v);
+                Py_DECREF(slice);
+                if (modified) {
+                    *modified = 1;
+                }
+            }
+            Py_DECREF(tmp);
+        }
+
+        // Intern non-string constants in the free-threaded build
+        _PyThreadStateImpl *tstate = (_PyThreadStateImpl *)_PyThreadState_GET();
+        if (!_Py_IsImmortal(v) && !PyUnicode_CheckExact(v) &&
+            should_immortalize_constant(v) &&
+            !tstate->suppress_co_const_immortalization)
+        {
+            PyObject *interned = intern_one_constant(v);
+            if (interned == NULL) {
+                return -1;
+            }
+            else if (interned != v) {
+                PyTuple_SET_ITEM(tuple, i, interned);
+                Py_SETREF(v, interned);
+                if (modified) {
+                    *modified = 1;
+                }
+            }
+        }
+#endif
+    }
+    return 0;
+}
+
+static int
+Nuitka_PyCode_intern_code_constants(struct _PyCodeConstructor *con)
+{
+#ifdef Py_GIL_DISABLED
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    struct _py_code_state *state = &interp->code_state;
+    PyMutex_Lock(&state->mutex);
+#endif
+    if (Nuitka_PyCode_intern_strings(con->names) < 0) {
+        goto error;
+    }
+    if (Nuitka_PyCode_intern_constants(con->consts, NULL) < 0) {
+        goto error;
+    }
+    if (Nuitka_PyCode_intern_strings(con->localsplusnames) < 0) {
+        goto error;
+    }
+#ifdef Py_GIL_DISABLED
+    PyMutex_Unlock(&state->mutex);
+#endif
+    return 0;
+
+error:
+#ifdef Py_GIL_DISABLED
+    PyMutex_Unlock(&state->mutex);
+#endif
+    return -1;
+}
+
+
+static void
+Nuitka_PyCode_get_localsplus_counts(PyObject *names, PyObject *kinds,
+                      int *pnlocals, int *pncellvars,
+                      int *pnfreevars)
+{
+    int nlocals = 0;
+    int ncellvars = 0;
+    int nfreevars = 0;
+    Py_ssize_t nlocalsplus = PyTuple_GET_SIZE(names);
+    for (int i = 0; i < nlocalsplus; i++) {
+        _PyLocals_Kind kind = _PyLocals_GetKind(kinds, i);
+        if (kind & CO_FAST_LOCAL) {
+            nlocals += 1;
+            if (kind & CO_FAST_CELL) {
+                ncellvars += 1;
+            }
+        }
+        else if (kind & CO_FAST_CELL) {
+            ncellvars += 1;
+        }
+        else if (kind & CO_FAST_FREE) {
+            nfreevars += 1;
+        }
+    }
+    if (pnlocals != NULL) {
+        *pnlocals = nlocals;
+    }
+    if (pncellvars != NULL) {
+        *pncellvars = ncellvars;
+    }
+    if (pnfreevars != NULL) {
+        *pnfreevars = nfreevars;
+    }
+}
+
+static int
+Nuitka_PyCode_init_code(PyCodeObject *co, struct _PyCodeConstructor *con)
+{
+    int nlocalsplus = (int)PyTuple_GET_SIZE(con->localsplusnames);
+    int nlocals, ncellvars, nfreevars;
+    Nuitka_PyCode_get_localsplus_counts(con->localsplusnames, con->localspluskinds,
+                          &nlocals, &ncellvars, &nfreevars);
+    if (con->stacksize == 0) {
+        con->stacksize = 1;
+    }
+
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    co->co_filename = Py_NewRef(con->filename);
+    co->co_name = Py_NewRef(con->name);
+    co->co_qualname = Py_NewRef(con->qualname);
+    _PyUnicode_InternMortal(interp, &co->co_filename);
+    _PyUnicode_InternMortal(interp, &co->co_name);
+    _PyUnicode_InternMortal(interp, &co->co_qualname);
+    co->co_flags = con->flags;
+
+    co->co_firstlineno = con->firstlineno;
+    co->co_linetable = Py_NewRef(con->linetable);
+
+    co->co_consts = Py_NewRef(con->consts);
+    co->co_names = Py_NewRef(con->names);
+
+    co->co_localsplusnames = Py_NewRef(con->localsplusnames);
+    co->co_localspluskinds = Py_NewRef(con->localspluskinds);
+
+    co->co_argcount = con->argcount;
+    co->co_posonlyargcount = con->posonlyargcount;
+    co->co_kwonlyargcount = con->kwonlyargcount;
+
+    co->co_stacksize = con->stacksize;
+
+    co->co_exceptiontable = Py_NewRef(con->exceptiontable);
+
+    /* derived values */
+    co->co_nlocalsplus = nlocalsplus;
+    co->co_nlocals = nlocals;
+    co->co_framesize = nlocalsplus + con->stacksize + FRAME_SPECIALS_SIZE;
+    co->co_ncellvars = ncellvars;
+    co->co_nfreevars = nfreevars;
+#ifdef Py_GIL_DISABLED
+    PyMutex_Lock(&interp->func_state.mutex);
+#endif
+    co->co_version = interp->func_state.next_version;
+    if (interp->func_state.next_version != 0) {
+        interp->func_state.next_version++;
+    }
+#ifdef Py_GIL_DISABLED
+    PyMutex_Unlock(&interp->func_state.mutex);
+#endif
+    co->_co_monitoring = NULL;
+    co->_co_instrumentation_version = 0;
+    /* not set */
+    co->co_weakreflist = NULL;
+    co->co_extra = NULL;
+    co->_co_cached = NULL;
+    co->co_executors = NULL;
+
+    memcpy(_PyCode_CODE(co), PyBytes_AS_STRING(con->code),
+           PyBytes_GET_SIZE(con->code));
+#ifdef Py_GIL_DISABLED
+    co->co_tlbc = _PyCodeArray_New(INITIAL_SPECIALIZED_CODE_SIZE);
+    if (co->co_tlbc == NULL) {
+        return -1;
+    }
+    co->co_tlbc->entries[0] = co->co_code_adaptive;
+#endif
+    int entry_point = 0;
+    while (entry_point < Py_SIZE(co) &&
+        _PyCode_CODE(co)[entry_point].op.code != RESUME) {
+        entry_point++;
+    }
+    co->_co_firsttraceable = entry_point;
+#ifdef Py_GIL_DISABLED
+    //_PyCode_Quicken(_PyCode_CODE(co), Py_SIZE(co), interp->config.tlbc_enabled);
+#else
+    //_PyCode_Quicken(_PyCode_CODE(co), Py_SIZE(co), 1);
+#endif
+    // Nuitka shouldn't need any code watchers
+    //notify_code_watchers(PY_CODE_EVENT_CREATE, co);
+    return 0;
+}
+
+PyCodeObject *
+Nuitka_PyCode_New(struct _PyCodeConstructor *con)
+{
+    if (Nuitka_PyCode_intern_code_constants(con) < 0) {
+        return NULL;
+    }
+
+    PyObject *replacement_locations = NULL;
+    // Compact the linetable if we are opted out of debug
+    // ranges.
+    /*if (!_Py_GetConfig()->code_debug_ranges) {
+        replacement_locations = remove_column_info(con->linetable);
+        if (replacement_locations == NULL) {
+            return NULL;
+        }
+        con->linetable = replacement_locations;
+    }*/
+
+    Py_ssize_t size = PyBytes_GET_SIZE(con->code) / sizeof(_Py_CODEUNIT);
+    PyCodeObject *co;
+#ifdef Py_GIL_DISABLED
+    co = PyObject_GC_NewVar(PyCodeObject, &PyCode_Type, size);
+#else
+    co = PyObject_NewVar(PyCodeObject, &PyCode_Type, size);
+#endif
+    if (co == NULL) {
+        Py_XDECREF(replacement_locations);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (Nuitka_PyCode_init_code(co, con) < 0) {
+        Py_DECREF(co);
+        return NULL;
+    }
+
+#ifdef Py_GIL_DISABLED
+    co->_co_unique_id = _PyObject_AssignUniqueId((PyObject *)co);
+    Nuitka_GC_Track(co);
+#endif
+    Py_XDECREF(replacement_locations);
+    return co;
+}
+#endif
+
+
 // This is the backend of MAKE_CODE_OBJECT macro.
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
 #if PYTHON_VERSION >= 0x3b0
@@ -1053,6 +1493,34 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     int nlocals = 0;
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+    struct _PyCodeConstructor con = {
+        .filename = filename,
+        .name = names,
+        .qualname = names,
+        .flags = flags,
+
+        .code = code,
+        .firstlineno = line,
+        .linetable = lnotab,
+
+        .consts = consts,
+        .names = names,
+
+        .localsplusnames = const_tuple_empty,
+        .localspluskinds = const_tuple_empty,
+
+        .argcount = arg_count,
+        .posonlyargcount = pos_only_count,
+        .kwonlyargcount = kw_only_count,
+
+        .stacksize = stacksize,
+
+        .exceptiontable = exception_table,
+    };
+    PyCodeObject *result = Nuitka_PyCode_New(&con);
+#else
+
     // Not using PyCode_NewEmpty, it doesn't given us much beyond this
     // and is not available for Python2.
 
@@ -1091,6 +1559,8 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     );
 
     // assert(DEEP_HASH(tstate, arg_names) == hash);
+
+#endif
 
 #if PYTHON_VERSION < 0x300
     Py_DECREF(filename_str);
