@@ -643,6 +643,13 @@ for macOS. Please install the "universal" Python package as offered on \
 the Python download page."""
                 )
 
+        if options.macos_target_arch == "arm64" and getArchitecture() == "x86_64":
+            options_logger.sysexit(
+                """
+Cannot cross compile from 'x86_64' architecture Python to arm64 target. \
+Please use an 'arm64' Python to create it."""
+            )
+
     # Standalone implies no_site build unless overridden, therefore put it
     # at start of flags, so "site" can override it.
     if options.is_standalone:
