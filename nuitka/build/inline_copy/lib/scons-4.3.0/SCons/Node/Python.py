@@ -129,7 +129,7 @@ class Value(SCons.Node.Node):
             self.built_value = self.value
         return self.built_value
 
-    def get_text_contents(self) -> str:
+    def get_text_contents(self):
         """By the assumption that the node.built_value is a
         deterministic product of the sources, the contents of a Value
         are the concatenation of all the contents of its sources.  As
@@ -142,7 +142,7 @@ class Value(SCons.Node.Node):
             contents = contents + kid.get_csig()
         return contents
 
-    def get_contents(self) -> bytes:
+    def get_contents(self):
         """Get contents for signature calculations."""
         return self.get_text_contents().encode()
 

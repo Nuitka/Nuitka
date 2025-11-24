@@ -77,7 +77,7 @@ class Variables:
             if not Variables.instance:
                 Variables.instance=self
 
-    def _do_add(self, key, help="", default=None, validator=None, converter=None, **kwargs) -> None:
+    def _do_add(self, key, help="", default=None, validator=None, converter=None, **kwargs):
         class Variable:
             pass
 
@@ -107,11 +107,11 @@ class Variables:
             if alias in self.unknown:
                 del self.unknown[alias]
 
-    def keys(self) -> list:
+    def keys(self):
         """Returns the keywords for the options."""
         return [o.key for o in self.options]
 
-    def Add(self, key, *args, **kwargs) -> None:
+    def Add(self, key, *args, **kwargs):
         r""" Add an option.
 
         Args:
@@ -137,7 +137,7 @@ class Variables:
 
         return self._do_add(key, *args, **kwargs)
 
-    def AddVariables(self, *optlist) -> None:
+    def AddVariables(self, *optlist):
         """ Add a list of options.
 
         Each list element is a tuple/list of arguments to be passed on
@@ -156,7 +156,7 @@ class Variables:
         for o in optlist:
             self._do_add(*o)
 
-    def Update(self, env, args=None) -> None:
+    def Update(self, env, args=None):
         """ Update an environment with the option variables.
 
         Args:
@@ -227,14 +227,14 @@ class Variables:
             if option.validator and option.key in values:
                 option.validator(option.key, env.subst('${%s}'%option.key), env)
 
-    def UnknownVariables(self) -> dict:
+    def UnknownVariables(self):
         """ Returns unknown variables.
 
         Identifies options that were not known, declared options in this object.
         """
         return self.unknown
 
-    def Save(self, filename, env) -> None:
+    def Save(self, filename, env):
         """ Save the options to a file.
 
         Saves all the options which have non-default settings
@@ -286,7 +286,7 @@ class Variables:
         except IOError as x:
             raise SCons.Errors.UserError('Error writing options to file: %s\n%s' % (filename, x))
 
-    def GenerateHelpText(self, env, sort=None) -> str:
+    def GenerateHelpText(self, env, sort=None):
         """ Generate the help text for the options.
 
         Args:
@@ -304,7 +304,7 @@ class Variables:
         else:
             options = self.options
 
-        def format_opt(opt, self=self, env=env) -> str:
+        def format_opt(opt, self=self, env=env):
             if opt.key in env:
                 actual = env.subst('${%s}' % opt.key)
             else:
@@ -317,7 +317,7 @@ class Variables:
     fmt = '\n%s: %s\n    default: %s\n    actual: %s\n'
     aliasfmt = '\n%s: %s\n    default: %s\n    actual: %s\n    aliases: %s\n'
 
-    def FormatVariableHelpText(self, env, key, help, default, actual, aliases=None) -> str:
+    def FormatVariableHelpText(self, env, key, help, default, actual, aliases=None):
         if aliases is None:
             aliases = []
         # Don't display the key name itself as an alias.
