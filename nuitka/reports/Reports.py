@@ -267,11 +267,18 @@ def _getReportInputData(aborted):
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
     )
 
-    cpp_flags = getSconsReportValue(source_dir, "cpp_flags", default=None)
-    c_flags = getSconsReportValue(source_dir, "c_flags", default=None)
-    cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
-    cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
-    ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
+    if source_dir is not None:
+        cpp_flags = getSconsReportValue(source_dir, "cpp_flags", default=None)
+        c_flags = getSconsReportValue(source_dir, "c_flags", default=None)
+        cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
+        cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
+        ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
+    else:
+        cpp_flags = None
+        c_flags = None
+        cc_flags = None
+        cxx_flags = None
+        ld_flags = None
 
     del source_dir
 
