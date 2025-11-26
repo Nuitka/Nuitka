@@ -75,6 +75,7 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mangleName,
 )
 
@@ -225,6 +226,34 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
+def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
+    helper_name = "create_type_annotations"
+
+    outline_body = ExpressionOutlineFunction(
+        provider=provider, name=helper_name, source_ref=source_ref
+    )
+
+    assignments = []
+    for type_param in type_params:
+        type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
+
+        assign = StatementAssignmentVariableName(
+            provider=provider,
+            variable_name=type_param.name,
+            source=type_var,
+            source_ref=source_ref,
+        )
+        assignments.append(assign)
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            assignments, StatementReturn(expression=body, source_ref=source_ref)
+        )
+    )
+
+    return outline_body
+
+
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
@@ -350,6 +379,13 @@ def buildFunctionNode(provider, node, source_ref):
         annotations=annotations,
         source_ref=source_ref,
     )
+
+    # Add wrapping for function with generic types to be provided to the
+    # function body.
+    if python_version >= 0x3C0 and node.type_params:
+        function_creation = _wrapWithTypeAnnotations(
+            provider, node.type_params, function_creation, source_ref
+        )
 
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 

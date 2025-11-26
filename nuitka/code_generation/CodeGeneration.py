@@ -1003,6 +1003,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
+        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarCode,
+        "EXPRESSION_PARAMETER_SPECIFICATION": generateTypeVarCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
