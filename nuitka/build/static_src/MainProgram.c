@@ -18,6 +18,7 @@
 
 #if defined(__APPLE__)
 #include <unistd.h>
+#include <sys/types.h>
 #endif
 
 #include "nuitka/prelude.h"
@@ -1427,6 +1428,94 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         free(current_dir);
     }
+
+#if defined(_NUITKA_MACOS_CONSOLE_MODE_FORCE) || defined(_NUITKA_MACOS_CONSOLE_MODE_DETECT)
+    // Check if we should relaunch in Terminal
+    if (!terminal_launch) {
+        // Check if we already relaunched (using PID-based environment variable)
+        char env_var_name[128];
+        snprintf(env_var_name, sizeof(env_var_name), "NUITKA_TERMINAL_RELAUNCH_%d", getpid());
+
+        char const *already_relaunched = getenv(env_var_name);
+
+        if (already_relaunched == NULL) {
+            // Check if stdin is connected to a terminal
+            bool has_terminal = isatty(STDIN_FILENO);
+
+            bool should_relaunch = false;
+
+#if defined(_NUITKA_MACOS_CONSOLE_MODE_FORCE)
+            // Force mode: always relaunch if no terminal
+            should_relaunch = !has_terminal;
+#elif defined(_NUITKA_MACOS_CONSOLE_MODE_DETECT)
+            // Detect mode: intelligently decide (for now, same as force)
+            // TODO: Add more intelligent detection based on whether app uses console I/O
+            should_relaunch = !has_terminal;
+#endif
+
+            if (should_relaunch) {
+                // Set environment variable with our PID to prevent re-execution loop
+                char env_var_value[32];
+                snprintf(env_var_value, sizeof(env_var_value), "%d", getpid());
+                setenv(env_var_name, env_var_value, 1);
+
+                // Build the command to execute in Terminal
+                char const *binary_path = getBinaryFilenameHostEncoded(false);
+
+                // Escape the binary path for AppleScript
+                char escaped_path[PATH_MAX * 2];
+                char const *src = binary_path;
+                char *dst = escaped_path;
+
+                while (*src && (dst - escaped_path) < (sizeof(escaped_path) - 2)) {
+                    if (*src == '"' || *src == '\\') {
+                        *dst++ = '\\';
+                    }
+                    *dst++ = *src++;
+                }
+                *dst = '\0';
+
+                // Build the full command with arguments
+                char full_command[PATH_MAX * 3];
+                int cmd_len = snprintf(full_command, sizeof(full_command), "\\\"%s\\\"", escaped_path);
+
+                // Add command line arguments
+                for (int i = 1; i < argc; i++) {
+                    char escaped_arg[PATH_MAX * 2];
+                    char const *arg_src = argv[i];
+                    char *arg_dst = escaped_arg;
+
+                    while (*arg_src && (arg_dst - escaped_arg) < (sizeof(escaped_arg) - 2)) {
+                        if (*arg_src == '"' || *arg_src == '\\') {
+                            *arg_dst++ = '\\';
+                        }
+                        *arg_dst++ = *arg_src++;
+                    }
+                    *arg_dst = '\0';
+
+                    cmd_len += snprintf(full_command + cmd_len, sizeof(full_command) - cmd_len,
+                                       " \\\"%s\\\"", escaped_arg);
+                }
+
+                // Use AppleScript to open Terminal and run the command
+                char applescript_cmd[PATH_MAX * 4];
+                snprintf(applescript_cmd, sizeof(applescript_cmd),
+                    "osascript -e 'tell application \"Terminal\"' "
+                    "-e 'activate' "
+                    "-e 'do script \"%s\"' "
+                    "-e 'end tell'",
+                    full_command);
+
+                // Execute the command - system() is used here as we're just launching Terminal
+                // and then we'll exit. The actual program will run via exec in the Terminal.
+                int result = system(applescript_cmd);
+
+                // Exit this instance since we're relaunching in Terminal
+                exit(result == 0 ? 0 : 1);
+            }
+        }
+    }
+#endif
 #endif
 
     // Set up stdout/stderr according to user specification.

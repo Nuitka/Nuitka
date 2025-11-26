@@ -673,6 +673,10 @@ def getCommonSconsOptions():
     if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
 
+        # Pass macOS console mode setting
+        from nuitka.Options import getMacOSConsoleMode
+        scons_options["macos_console_mode"] = getMacOSConsoleMode()
+
     return scons_options, env_values
 
 
