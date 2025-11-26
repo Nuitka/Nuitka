@@ -461,8 +461,9 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'zoneinfo' # checksum: 70450440
+- module-name: 'zoneinfo' # checksum: 149e81f3
   # This tries to find non-stdlib module when being used.
   implicit-imports:
     - depends:
         - 'tzdata.zoneinfo'
+      when: 'win32'
