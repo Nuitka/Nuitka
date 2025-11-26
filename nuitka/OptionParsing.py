@@ -1819,11 +1819,11 @@ Password for the certificate file provided via
 )
 
 macos_group.add_option(
-    "--macos-console-mode",
+    "--macos-app-console-mode",
     action="store",
-    dest="macos_console_mode",
+    dest="macos_app_console_mode",
     choices=("force", "detect", "disable"),
-    metavar="CONSOLE_MODE",
+    metavar="MODE",
     default="detect",
     help="""\
 Select console mode for macOS app bundles. 'force' always opens Terminal

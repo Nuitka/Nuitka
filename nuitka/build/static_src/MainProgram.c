@@ -17,7 +17,11 @@
 #endif
 
 #if defined(__APPLE__)
+#include <errno.h>
 #include <limits.h>
+#include <spawn.h>
+#include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <sys/types.h>
 #endif
@@ -1512,27 +1516,54 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                     }
                 }
 
-                // Use AppleScript to open Terminal and run the command
-                char applescript_cmd[PATH_MAX * 8]; // Large buffer for full AppleScript command
-                int script_len = snprintf(applescript_cmd, sizeof(applescript_cmd),
-                    "osascript -e 'tell application \"Terminal\"' "
-                    "-e 'activate' "
-                    "-e 'do script \"%s\"' "
-                    "-e 'end tell'",
-                    full_command);
+                // Build AppleScript command arguments
+                // Use posix_spawn instead of system() to avoid shell and be more secure
+                char tell_app[64];
+                char activate_cmd[32];
+                char do_script[PATH_MAX * 7];
+                char end_tell[32];
 
-                // Check for buffer overflow in AppleScript command
-                if (script_len < 0 || script_len >= (int)sizeof(applescript_cmd)) {
-                    fprintf(stderr, "Error: AppleScript command too long for Terminal relaunch\n");
+                snprintf(tell_app, sizeof(tell_app), "tell application \"Terminal\"");
+                snprintf(activate_cmd, sizeof(activate_cmd), "activate");
+                int do_script_len = snprintf(do_script, sizeof(do_script), "do script \"%s\"", full_command);
+                snprintf(end_tell, sizeof(end_tell), "end tell");
+
+                // Check for buffer overflow
+                if (do_script_len < 0 || do_script_len >= (int)sizeof(do_script)) {
+                    fprintf(stderr, "Error: AppleScript do script command too long\n");
                     exit(1);
                 }
 
-                // Execute the command - system() is used here as we're just launching Terminal
-                // and then we'll exit. The actual program will run via exec in the Terminal.
-                int result = system(applescript_cmd);
+                // Build argv for osascript
+                char *osascript_argv[] = {
+                    "osascript",
+                    "-e", tell_app,
+                    "-e", activate_cmd,
+                    "-e", do_script,
+                    "-e", end_tell,
+                    NULL
+                };
+
+                // Use posix_spawn to execute osascript without invoking a shell
+                pid_t pid;
+                extern char **environ;
+                int spawn_result = posix_spawn(&pid, "/usr/bin/osascript", NULL, NULL,
+                                              osascript_argv, environ);
+
+                if (spawn_result != 0) {
+                    fprintf(stderr, "Error: Failed to spawn osascript: %s\n", strerror(spawn_result));
+                    exit(1);
+                }
+
+                // Wait for osascript to complete
+                int status;
+                if (waitpid(pid, &status, 0) == -1) {
+                    fprintf(stderr, "Error: Failed to wait for osascript: %s\n", strerror(errno));
+                    exit(1);
+                }
 
                 // Exit this instance since we're relaunching in Terminal
-                exit(result == 0 ? 0 : 1);
+                exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
             }
         }
     }

@@ -2581,8 +2581,8 @@ def getMacOSAppVersion():
 
 
 def getMacOSConsoleMode():
-    """*str* console mode for macOS app bundles ("force", "detect", "disable")"""
-    return options.macos_console_mode or "detect"
+    """*str* console mode for macOS app bundles, derived from ``--macos-app-console-mode`` value"""
+    return options.macos_app_console_mode
 
 
 # Mapping of Info.plist keys to the corresponding entitlement keys for hardened
