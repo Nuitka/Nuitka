@@ -1059,6 +1059,14 @@ static void Nuitka_Py_Initialize(void) {
     initNuitkaAllocators();
 #endif
 
+    // This dead code is a good spot to put this code that is just intended to
+    // for linking this API in.
+#if !defined(_WIN32) && PYTHON_VERSION >= 0x3d0
+    if (orig_argc == -1) {
+        _PyInterpreterConfig_AsDict(NULL);
+    }
+#endif
+
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
