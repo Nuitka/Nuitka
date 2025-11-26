@@ -247,7 +247,7 @@ def wrapWithTypeAnnotations(provider, type_params, body, source_ref):
 
     outline_body.setChildBody(
         makeStatementsSequenceFromStatements(
-            *assignments, StatementReturn(expression=body, source_ref=source_ref)
+            assignments, StatementReturn(expression=body, source_ref=source_ref)
         )
     )
 
