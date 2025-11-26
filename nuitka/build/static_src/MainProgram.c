@@ -17,6 +17,7 @@
 #endif
 
 #if defined(__APPLE__)
+#include <limits.h>
 #include <unistd.h>
 #include <sys/types.h>
 #endif
@@ -1462,49 +1463,69 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                 // Build the command to execute in Terminal
                 char const *binary_path = getBinaryFilenameHostEncoded(false);
 
-                // Escape the binary path for AppleScript
-                char escaped_path[PATH_MAX * 2];
-                char const *src = binary_path;
-                char *dst = escaped_path;
+                // Helper function to escape strings for AppleScript + shell context
+                // Must escape: ", \, ', $, `, and ! to prevent injection
+                auto void escapeForAppleScript(char *dst, size_t dst_size, char const *src) {
+                    size_t remaining = dst_size - 1; // Reserve space for null terminator
 
-                while (*src && (dst - escaped_path) < (sizeof(escaped_path) - 2)) {
-                    if (*src == '"' || *src == '\\') {
-                        *dst++ = '\\';
+                    while (*src && remaining > 1) {
+                        // Check if character needs escaping
+                        if (*src == '"' || *src == '\\' || *src == '\'' ||
+                            *src == '$' || *src == '`' || *src == '!') {
+                            if (remaining < 2) break; // Need space for \ + char
+                            *dst++ = '\\';
+                            remaining--;
+                        }
+                        *dst++ = *src++;
+                        remaining--;
                     }
-                    *dst++ = *src++;
+                    *dst = '\0';
                 }
-                *dst = '\0';
+
+                // Escape the binary path for AppleScript
+                char escaped_path[PATH_MAX * 3]; // Increased for more escaping
+                escapeForAppleScript(escaped_path, sizeof(escaped_path), binary_path);
 
                 // Build the full command with arguments
-                char full_command[PATH_MAX * 3];
+                char full_command[PATH_MAX * 6]; // Increased buffer for safety
                 int cmd_len = snprintf(full_command, sizeof(full_command), "\\\"%s\\\"", escaped_path);
+
+                // Check for buffer overflow
+                if (cmd_len < 0 || cmd_len >= (int)sizeof(full_command)) {
+                    fprintf(stderr, "Error: Command path too long for Terminal relaunch\n");
+                    exit(1);
+                }
 
                 // Add command line arguments
                 for (int i = 1; i < argc; i++) {
-                    char escaped_arg[PATH_MAX * 2];
-                    char const *arg_src = argv[i];
-                    char *arg_dst = escaped_arg;
+                    char escaped_arg[PATH_MAX * 3]; // Increased for more escaping
+                    escapeForAppleScript(escaped_arg, sizeof(escaped_arg), argv[i]);
 
-                    while (*arg_src && (arg_dst - escaped_arg) < (sizeof(escaped_arg) - 2)) {
-                        if (*arg_src == '"' || *arg_src == '\\') {
-                            *arg_dst++ = '\\';
-                        }
-                        *arg_dst++ = *arg_src++;
-                    }
-                    *arg_dst = '\0';
-
+                    int prev_len = cmd_len;
                     cmd_len += snprintf(full_command + cmd_len, sizeof(full_command) - cmd_len,
                                        " \\\"%s\\\"", escaped_arg);
+
+                    // Check for buffer overflow
+                    if (cmd_len < 0 || cmd_len >= (int)sizeof(full_command)) {
+                        fprintf(stderr, "Error: Command with arguments too long for Terminal relaunch\n");
+                        exit(1);
+                    }
                 }
 
                 // Use AppleScript to open Terminal and run the command
-                char applescript_cmd[PATH_MAX * 4];
-                snprintf(applescript_cmd, sizeof(applescript_cmd),
+                char applescript_cmd[PATH_MAX * 8]; // Large buffer for full AppleScript command
+                int script_len = snprintf(applescript_cmd, sizeof(applescript_cmd),
                     "osascript -e 'tell application \"Terminal\"' "
                     "-e 'activate' "
                     "-e 'do script \"%s\"' "
                     "-e 'end tell'",
                     full_command);
+
+                // Check for buffer overflow in AppleScript command
+                if (script_len < 0 || script_len >= (int)sizeof(applescript_cmd)) {
+                    fprintf(stderr, "Error: AppleScript command too long for Terminal relaunch\n");
+                    exit(1);
+                }
 
                 // Execute the command - system() is used here as we're just launching Terminal
                 // and then we'll exit. The actual program will run via exec in the Terminal.

@@ -1828,10 +1828,11 @@ macos_group.add_option(
     help="""\
 Select console mode for macOS app bundles. 'force' always opens Terminal
 if not already running in one, useful for console/TUI applications launched
-from Finder. 'detect' (default) intelligently determines if Terminal is needed
-based on the application type. 'disable' never opens Terminal automatically.
-This helps console applications work correctly when launched from GUI contexts
-like DMG files or Finder. Default is "detect".""",
+from Finder. 'detect' (default) opens Terminal when no terminal is detected
+(currently behaves the same as 'force', with smarter heuristics planned for
+future releases). 'disable' never opens Terminal automatically. This helps
+console applications work correctly when launched from GUI contexts like DMG
+files or Finder. Default is "detect".""",
 )
 
 del macos_group
