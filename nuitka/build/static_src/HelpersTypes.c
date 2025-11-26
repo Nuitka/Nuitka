@@ -247,7 +247,7 @@ typedef struct {
     PyObject *default_value;
     PyObject *evaluate_default;
 #endif
-} typevartupleobject;
+} typevartupleobject; // Following CPython, spell-checker: ignore typevartupleobject
 
 typedef struct {
     PyObject_HEAD PyObject *name;
