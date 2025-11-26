@@ -44,10 +44,14 @@ def initScons():
         # That's a noop, pylint: disable=unused-argument
         pass
 
-    # Avoid scons writing the scons database at all, spell-checker: ignore dblite
+    # Avoid scons writing the scons database at all, we don't care for it,
+    # spell-checker: ignore dblite
     import SCons.dblite  # pylint: disable=I0021,import-error
 
-    SCons.dblite.dblite.sync = no_sync
+    try:
+        SCons.dblite.dblite.sync = no_sync
+    except AttributeError:
+        SCons.dblite._Dblite.sync = no_sync  # pylint: disable=protected-access
 
     # We use threads during build, so keep locks if necessary for progress bar
     # updates.

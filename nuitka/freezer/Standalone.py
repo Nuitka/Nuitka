@@ -40,6 +40,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
+from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
     getNormalizedPath,
@@ -251,6 +252,13 @@ def signDistributionMacOS(
     # Make all top level directories symlinks for signing issues with MacOS
     # bundles. This is complex, because we also need to handle the need to
     # symlink and track information. pylint: disable=too-many-locals
+
+    # spell-checker: ignore xattr
+    executeToolChecked(
+        logger=inclusion_logger,
+        command=("/usr/bin/xattr", "-cr", dist_dir),
+        absence_message="needs 'xattr' to remove extended attributes",
+    )
 
     translations = OrderedSet()
     symlinks = OrderedSet()

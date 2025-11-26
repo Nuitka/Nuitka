@@ -131,19 +131,19 @@ def getBranchCategory(branch_name):
 
 def _makeDistFilenameBase(nuitka_version):
     if nuitka_version[3] is False:
-        return "dist/Nuitka-%d.%drc%d" % (
+        return "dist/nuitka-%d.%drc%d" % (
             nuitka_version[0],
             nuitka_version[1],
             nuitka_version[-1],
         )
     else:
         if nuitka_version[2] == 0:
-            return "dist/Nuitka-%d.%d" % (
+            return "dist/nuitka-%d.%d" % (
                 nuitka_version[0],
                 nuitka_version[1],
             )
         else:
-            return "dist/Nuitka-%d.%d.%d" % nuitka_version[:3]
+            return "dist/nuitka-%d.%d.%d" % nuitka_version[:3]
 
 
 def makeNuitkaSourceDistribution(formats=None, sign=True):
@@ -155,7 +155,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     python = findInstalledPython(
         python_versions=("3.10", "3.11", "3.12"),
-        module_name="setuptools",
+        module_name=None,
         module_version=None,
     )
 
@@ -173,7 +173,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
     ) as venv:
         # TODO: Should use a newer one, and predict more compliant filename, and
         # release 75.3.0 ought to work fine.
-        venv.runCommand("python -m pip install -U 'setuptools<68'")
+        venv.runCommand("python -m pip install -U 'setuptools==75.3.0'")
         venv.runCommand(
             "python setup.py sdist --formats=%s" % ",".join(formats), keep_cwd=True
         )
@@ -189,7 +189,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
     # Delete requires.txt as it confuses poetry and potentially other tools
     assert os.system("gunzip -9 %s" % filename) == 0
     os.system(
-        "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+        "tar --wildcards --delete --file %s nuitka-*/Nuitka.egg-info/requires.txt"
         % filename[:-3]
     )
 
@@ -207,7 +207,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
         # spell-checker: ignore bunzip2
         assert os.system("bunzip2 %s" % filename) == 0
         os.system(
-            "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+            "tar --wildcards --delete --file %s nuitka-*/Nuitka.egg-info/requires.txt"
             % filename[:-4]
         )
         assert os.system("bzip2 -9 %s" % filename[:-4]) == 0
@@ -219,7 +219,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     if os.path.exists(filename):
         # Delete requires.txt as it confuses poetry and potentially other tools
-        os.system("zip -d %s Nuitka-*/Nuitka.egg-info/requires.txt" % filename)
+        os.system("zip -d %s nuitka-*/Nuitka.egg-info/requires.txt" % filename)
         assert os.path.exists(filename), filename
 
         filenames.append(filename)

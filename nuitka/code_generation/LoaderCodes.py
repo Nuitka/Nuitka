@@ -53,6 +53,11 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
         Plugins.encodeDataComposerName(module_name.asString())
     )
 
+    # Value of compile_time_name defaults to NULL and is only present in module
+    # mode.
+    if shallMakeModule():
+        module_c_name += ", NULL"
+
     flags = ["NUITKA_TRANSLATED_FLAG"]
 
     if (
