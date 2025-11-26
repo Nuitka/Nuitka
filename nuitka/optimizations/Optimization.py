@@ -57,9 +57,11 @@ def signalChange(tags, source_ref, message):
 
 
 def optimizeCompiledPythonModule(module):
+    module_name = module.getFullName()
+
     optimization_logger.info_if_file(
         "Doing module local optimizations for '{module_name}'.".format(
-            module_name=module.getFullName()
+            module_name=module_name
         ),
         other_logger=progress_logger,
     )
@@ -100,7 +102,11 @@ def optimizeCompiledPythonModule(module):
 
         if unchanged_count == 1 and tag_set:
             optimization_logger.sysexit(
-                "Changes made after there were already no changes in the extra micro pass.",
+                """\
+Changes made after there were already no changes for module '%s' \
+in the extra micro pass that checks for that to not happen \
+that is done in debug mode."""
+                % module_name,
             )
 
         # Search for local change tags.
@@ -133,7 +139,7 @@ def optimizeCompiledPythonModule(module):
 
     if isShowProgress() and isShowMemory():
         memory_watch.finish(
-            "Memory usage changed during optimization of '%s'" % (module.getFullName())
+            "Memory usage changed during optimization of '%s'" % module_name
         )
 
     considerUsedModules(module=module, pass_count=pass_count)
@@ -142,10 +148,11 @@ def optimizeCompiledPythonModule(module):
 
 
 def optimizeUncompiledPythonModule(module):
-    full_name = module.getFullName()
+    module_name = module.getFullName()
+
     progress_logger.info(
         "Doing module dependency considerations for '{module_name}':".format(
-            module_name=full_name
+            module_name=module_name
         )
     )
 
