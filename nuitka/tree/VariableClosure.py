@@ -370,6 +370,14 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                         display_line=False,  # Wrong line anyway
                     )
 
+        if variable.isModuleVariable():
+            owner = node.getParentVariableProvider()
+
+            while owner is not provider:
+                owner.addClosureVariable(variable)
+
+                owner = owner.getParentVariableProvider()
+
         return variable
 
     def onEnterNode(self, node):
