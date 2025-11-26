@@ -56,7 +56,12 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionTypeAlias, ExpressionTypeVariable
+from nuitka.nodes.TypeNodes import (
+    ExpressionParameterSpecification,
+    ExpressionTypeAlias,
+    ExpressionTypeVariable,
+    ExpressionTypeVariableTuple,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
@@ -1228,6 +1233,14 @@ def buildTypeVarNode(node, source_ref):
     return ExpressionTypeVariable(node.name, source_ref=source_ref)
 
 
+def buildTypeVarTupleNode(node, source_ref):
+    return ExpressionTypeVariableTuple(node.name, source_ref=source_ref)
+
+
+def buildTypeParamSpec(node, source_ref):
+    return ExpressionParameterSpecification(node.name, source_ref=source_ref)
+
+
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
@@ -1242,7 +1255,10 @@ def buildTypeAliasNode(provider, node, source_ref):
 
         assignments = []
         for type_param in node.type_params:
-            type_var = buildTypeVarNode(type_param, source_ref=source_ref)
+            type_var = buildNode(
+                provider=provider, node=type_param, source_ref=source_ref
+            )
+
             assign = StatementAssignmentVariableName(
                 provider=outline_body,
                 variable_name=type_param.name,
