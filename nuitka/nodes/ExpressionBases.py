@@ -691,7 +691,8 @@ class ExpressionBase(NodeBase):
             return (
                 None,
                 "new_statements",
-                lambda: "Removed %s without effect." % self.getDescription(),
+                lambda: "Removed expression '%s' without effect."
+                % self.getDescription(),
             )
 
         return statement, None, None
