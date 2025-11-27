@@ -12,11 +12,11 @@ The issue applies to accelerated and standalone mode alike.
 spell-checker: ignore joblib,anyio
 """
 
-from nuitka import Options
 from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -42,7 +42,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return not Options.shallMakeModule()
+        return not shallMakeModule()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -63,7 +63,7 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 sys.executable = %s
 sys._base_executable = sys.executable
 """
-                % ("__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"),
+                % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
                 """\
 Monkey patching "%s" load environment."""
                 % full_name,

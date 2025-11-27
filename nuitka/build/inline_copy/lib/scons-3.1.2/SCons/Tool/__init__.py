@@ -47,7 +47,7 @@ import SCons.Errors
 import SCons.Node.FS
 import SCons.Scanner
 import SCons.Scanner.C
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 # import SCons.Scanner.D
 # import SCons.Scanner.LaTeX
 import SCons.Scanner.Prog
@@ -62,7 +62,7 @@ except ImportError:
 DefaultToolpath = []
 
 CScanner = SCons.Scanner.C.CScanner()
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 # DScanner = SCons.Scanner.D.DScanner()
 # LaTeXScanner = SCons.Scanner.LaTeX.LaTeXScanner()
 # PDFLaTeXScanner = SCons.Scanner.LaTeX.PDFLaTeXScanner()
@@ -87,7 +87,7 @@ SWIGSuffixes = ['.i']
 for suffix in CSuffixes:
     SourceFileScanner.add_scanner(suffix, CScanner)
 
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 # for suffix in DSuffixes:
 #     SourceFileScanner.add_scanner(suffix, DScanner)
 # for suffix in SWIGSuffixes:
@@ -97,7 +97,7 @@ for suffix in CSuffixes:
 # but look for different files, e.g., "picture.eps" vs. "picture.pdf".
 # The builders for DVI and PDF explicitly reference their scanners
 # I think that means this is not needed???
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 # for suffix in LaTeXSuffixes:
 #     SourceFileScanner.add_scanner(suffix, LaTeXScanner)
 #     SourceFileScanner.add_scanner(suffix, PDFLaTeXScanner)
@@ -1264,14 +1264,14 @@ def tool_list(platform, env):
         "prefer GNU tools on all other platforms"
         linkers = ['gnulink', 'ilink']
         c_compilers = ['gcc', 'intelc', 'icc', 'cc']
-        # Nuitka: Avoid ununused tools
+        # Nuitka: Avoid unused tools
         # cxx_compilers = ['g++', 'intelc', 'icc', 'cxx']
         cxx_compilers = ['g++']
         assemblers = ['gas', 'nasm', 'masm']
         fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77']
         ars = ['ar', ]
 
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 #     if not str(platform) == 'win32':
 #         other_plat_tools += ['m4', 'rpm']
 
@@ -1296,7 +1296,7 @@ def tool_list(platform, env):
             cxx_compiler = FindTool(cxx_compilers, env) or cxx_compilers[0]
 
         linker = FindTool(linkers, env) or linkers[0]
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 #         assembler = FindTool(assemblers, env) or assemblers[0]
 #         fortran_compiler = FindTool(fortran_compilers, env) or fortran_compilers[0]
 #         ar = FindTool(ars, env) or ars[0]
@@ -1304,12 +1304,12 @@ def tool_list(platform, env):
         ar = None
 
     d_compilers = ['dmd', 'ldc', 'gdc']
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 #     d_compiler = FindTool(d_compilers, env) or d_compilers[0]
     d_compiler = []
 
     other_tools = FindAllTools(other_plat_tools, env)
-# Nuitka: Avoid ununused tools + [
+# Nuitka: Avoid unused tools + [
 #         # TODO: merge 'install' into 'filesystem' and
 #         # make 'filesystem' the default
 #         'filesystem',

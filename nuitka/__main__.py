@@ -39,7 +39,7 @@ def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
             value = None
         else:
             if os.name != "nt":
-                if pid != os.getpid():
+                if pid != os.getpid():  # spell-checker: ignore getpid
                     value = None
 
     return value
@@ -57,6 +57,7 @@ def main():
     ):
         import ctypes
 
+        # spell-checker: ignore SYSTEMMODAL
         ctypes.windll.user32.MessageBoxW(
             None,
             "You have to use the 'python.exe' and not a 'pythonw.exe' to run Nuitka",
@@ -147,6 +148,10 @@ def main():
         getLaunchingNuitkaProcessEnvironmentValue
     )
 
+    from nuitka.plugins.Plugins import setupHooks
+
+    setupHooks()
+
     from nuitka import Options  # isort:skip
 
     Options.parseArgs()
@@ -186,9 +191,9 @@ def main():
         del os.environ["NUITKA_USER_SITE"]
 
     # Now the real main program of Nuitka can take over.
-    from nuitka import MainControl  # isort:skip
+    from nuitka.MainControl import main as nuitka_main  # isort:skip
 
-    MainControl.main()
+    nuitka_main()
 
     if Options.isShowMemory():
         MemoryUsage.showMemoryTrace()

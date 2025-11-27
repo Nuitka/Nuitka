@@ -69,7 +69,7 @@ def _converter(val):
     return val
 
 
-def _validator(key, val, env, searchfunc) -> None:
+def _validator(key, val, env, searchfunc):
     """ """
     # NB: searchfunc is currently undocumented and unsupported
     # TODO write validator, check for path
@@ -83,7 +83,7 @@ def _validator(key, val, env, searchfunc) -> None:
             'Path does not exist for option %s: %s' % (key, val))
 
 
-def PackageVariable(key, help, default, searchfunc=None) -> Tuple[str, str, str, Callable, Callable]:
+def PackageVariable(key, help, default, searchfunc=None):
     """Return a tuple describing a package list SCons Variable.
 
     The input parameters describe a 'package list' option. Returns

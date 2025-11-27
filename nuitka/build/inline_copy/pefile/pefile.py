@@ -975,7 +975,7 @@ class Structure:
         else:
             self.name = format[0]
 
-    def __get_format__(self) -> str:
+    def __get_format__(self):
         return self.__format_str__
 
     def get_field_absolute_offset(self, field_name):
@@ -2314,8 +2314,8 @@ allowed_function_name = (
 
 @lru_cache(maxsize=2048)
 def is_valid_function_name(
-    s: Union[str, bytes, bytearray], relax_allowed_characters: bool = False
-) -> bool:
+    s, relax_allowed_characters = False
+):
     allowed_extra = b"._?@$()<>"
     if relax_allowed_characters:
         allowed_extra = b"!\"#$%&'()*+,-./:<>?[\\]^_`{|}~@"
@@ -7474,7 +7474,7 @@ class PE:
 
         return True
 
-    def set_data_bytes(self, offset: int, data: bytes):
+    def set_data_bytes(self, offset, data):
         if not isinstance(self.__data__, bytearray):
             new_data = bytearray(self.__data__)
             self._close_data()

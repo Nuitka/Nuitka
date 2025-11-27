@@ -32,6 +32,11 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     // Full module name, including package name.
     char const *name;
 
+#if _NUITKA_MODULE_MODE
+    // Runtime module name, updated to match what package we are loaded into.
+    char const *compilation_name;
+#endif
+
     // Entry function if compiled module, otherwise NULL.
     module_init_func python_init_func;
 

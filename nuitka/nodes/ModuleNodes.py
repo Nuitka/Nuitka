@@ -9,15 +9,19 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import os
 
-from nuitka import Options, Variables
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
-from nuitka.Options import hasPythonFlagIsolated
+from nuitka.Options import (
+    getFileReferenceMode,
+    hasPythonFlagIsolated,
+    hasPythonFlagPackageMode,
+    shallMakeModule,
+)
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import fromFilename
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import switchFilenameExtension
@@ -26,6 +30,7 @@ from nuitka.utils.Importing import (
     getPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.Variables import ModuleVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
@@ -174,7 +179,7 @@ class PythonModuleBase(NodeBase):
         return result
 
     def getRunTimeFilename(self):
-        reference_mode = Options.getFileReferenceMode()
+        reference_mode = getFileReferenceMode()
 
         if reference_mode == "original":
             return self.getCompileTimeFilename()
@@ -261,7 +266,9 @@ class CompiledPythonModule(
         )
 
         ClosureGiverNodeMixin.__init__(
-            self, name=module_name.getBasename(), code_prefix="module"
+            self,
+            name=module_name.getBasename(),
+            code_prefix="module",
         )
 
         ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
@@ -440,7 +447,7 @@ class CompiledPythonModule(
     def createProvidedVariable(self, variable_name):
         assert variable_name not in self.variables
 
-        result = Variables.ModuleVariable(module=self, variable_name=variable_name)
+        result = ModuleVariable(module=self, variable_name=variable_name)
 
         self.variables[variable_name] = result
 
@@ -494,6 +501,11 @@ class CompiledPythonModule(
         return self.trace_collection.getModuleUsageAttempts()
 
     def getUsedDistributions(self):
+        if self.trace_collection is None:
+            # Optimization is not yet done at all, but report writing for error
+            # exit may happen.
+            return ()
+
         return self.trace_collection.getUsedDistributions()
 
     def addUsedFunction(self, function_body):
@@ -560,6 +572,7 @@ class CompiledPythonModule(
                 if old_collection is not None
                 else {}
             ),
+            old_collection=old_collection,
         )
 
         module_body = self.subnode_body
@@ -597,8 +610,8 @@ class CompiledPythonModule(
             )
 
         # Finalize locals scopes previously determined for removal in last pass.
-        self.trace_collection.updateVariablesFromCollection(
-            old_collection=old_collection, source_ref=self.source_ref
+        updateVariablesFromCollection(
+            old_collection, self.trace_collection, self.source_ref
         )
 
         # Indicate if this is pass 1 for the module as return value.
@@ -704,7 +717,7 @@ class CompiledPythonModule(
             return None
 
     def getRuntimeNameValue(self):
-        if self.isMainModule() and Options.hasPythonFlagPackageMode():
+        if self.isMainModule() and hasPythonFlagPackageMode():
             return "__main__"
         elif self.module_name.isMultidistModuleName():
             return "__main__"
@@ -759,7 +772,7 @@ class CompiledPythonNamespacePackage(CompiledPythonPackage):
 def makeUncompiledPythonModule(
     module_name, reason, filename, bytecode, is_package, technical
 ):
-    source_ref = fromFilename(filename)
+    source_ref = makeSourceReferenceFromFilename(filename)
 
     if is_package:
         return UncompiledPythonPackage(
@@ -865,7 +878,7 @@ class PythonMainModule(CompiledPythonModule):
     __slots__ = ("main_added", "standard_library_modules")
 
     def __init__(self, module_name, main_added, mode, future_spec, source_ref):
-        assert not Options.shallMakeModule()
+        assert not shallMakeModule()
 
         # Is this one from a "__main__.py" file
         self.main_added = main_added

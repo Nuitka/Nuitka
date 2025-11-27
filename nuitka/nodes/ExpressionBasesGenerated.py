@@ -34,6 +34,7 @@ spell-checker: ignore winmode zfill
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
 
+
 from abc import abstractmethod
 
 from .ExpressionBases import ExpressionBase
@@ -69,7 +70,7 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     def mayRaiseException(exception_type):
         return False
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
 
@@ -85,7 +86,9 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionParameterSpecification
     #   ExpressionTypeVariable
+    #   ExpressionTypeVariableTuple
 
     def __init__(self, name, source_ref):
         self.name = name
@@ -146,12 +149,14 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     def mayRaiseException(exception_type):
         return False
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
 
 # Assign the names that are easier to import with a stable name.
+ExpressionParameterSpecificationBase = NoChildHavingFinalNoRaiseNameMixin
 ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableTupleBase = NoChildHavingFinalNoRaiseNameMixin
 
 
 class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
@@ -263,11 +268,11 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_args
         )
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_args:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -454,19 +459,19 @@ class ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
             )
         )
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_args:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
 
         if subnode_name is not None:
-            self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_obj = self.subnode_obj
 
         if subnode_obj is not None:
-            self.subnode_obj.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_obj.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -656,19 +661,19 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
             )
         )
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_args:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
 
         if subnode_name is not None:
-            self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_path = self.subnode_path
 
         if subnode_path is not None:
-            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_path.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -791,11 +796,11 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_callable_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sentinel.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_callable_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sentinel.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -876,10 +881,10 @@ class ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_distribution_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_distribution_name.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1003,11 +1008,11 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_elements
         )
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_elements:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1111,10 +1116,10 @@ class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1243,11 +1248,11 @@ class ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
 
     @abstractmethod
     def computeExpressionConstantName(self, trace_collection):
@@ -1372,11 +1377,11 @@ class ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_interpolations:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1502,11 +1507,11 @@ class ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
             exception_type
         ) or self.subnode_right.mayRaiseException(exception_type)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_left.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_right.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_left.collectVariableAccesses(emit_variable)
+        self.subnode_right.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1605,10 +1610,10 @@ class ChildHavingListArgNoRaiseMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1740,11 +1745,11 @@ class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_item.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_item.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1870,11 +1875,11 @@ class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1991,11 +1996,11 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_pairs
         )
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2102,13 +2107,13 @@ class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_prompt = self.subnode_prompt
 
         if subnode_prompt is not None:
-            self.subnode_prompt.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_prompt.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2202,10 +2207,10 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2348,14 +2353,14 @@ class ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBas
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
         subnode_format_spec = self.subnode_format_spec
 
         if subnode_format_spec is not None:
-            self.subnode_format_spec.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_format_spec.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.

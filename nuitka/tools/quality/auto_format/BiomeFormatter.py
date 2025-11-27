@@ -22,7 +22,7 @@ from nuitka.utils.Utils import getArchitecture, getOS
 _biome_path = None
 
 
-def _getBiomeBinaryPath(assume_yes_for_downloads=False):
+def _getBiomeBinaryPath(assume_yes_for_downloads):
     """
     Downloads and returns the path to the biome executable.
     """

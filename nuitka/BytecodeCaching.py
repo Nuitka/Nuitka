@@ -13,7 +13,7 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Hashing import Hash, getStringHash
@@ -51,7 +51,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 7
+_cache_format_version = 8
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -121,8 +121,8 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
     # The Json doesn't store integer keys.
     for pass_timing_info in data["timing_infos"]:
-        pass_timing_info[3] = dict(
-            (int(key), value) for (key, value) in pass_timing_info[3].items()
+        pass_timing_info[5] = dict(
+            (int(key), value) for (key, value) in pass_timing_info[5].items()
         )
 
     return result, data["timing_infos"]
@@ -160,7 +160,7 @@ def _getModuleConfigHash(full_name):
     hash_value = Hash()
 
     # Plugins may change their influence.
-    hash_value.updateFromValues(*Plugins.getCacheContributionValues(full_name))
+    hash_value.updateFromValues(*getPluginsCacheContributionValues(full_name))
 
     # Take Nuitka and Python version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string, sys.version)

@@ -137,8 +137,10 @@ addInlineCopy("pkg_resources")
 # "scons.py" in bin with respect to versions selection.
 addInlineCopy("bin")
 
-if os.name == "nt" or sdist_mode:
+if (os.name == "nt" and sys.version_info < (3, 7)) or sdist_mode:
     addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (3,))
+if (os.name == "nt" and sys.version_info >= (3, 7)) or sdist_mode:
+    addInlineCopy("lib/scons-4.10.1", do_byte_compile=sys.version_info >= (3, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:

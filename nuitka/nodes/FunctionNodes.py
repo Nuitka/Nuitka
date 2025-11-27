@@ -18,9 +18,9 @@ classes.
 import inspect
 import re
 
-from nuitka import Options, Variables
 from nuitka.Constants import isMutable
 from nuitka.optimizations.TraceCollections import (
+    TraceCollectionFunction,
     TraceCollectionPureFunction,
     withChangeIndicationsTo,
 )
@@ -30,11 +30,13 @@ from nuitka.specs.ParameterSpecs import (
     TooManyArguments,
     matchCall,
 )
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
+from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -104,7 +106,11 @@ class ExpressionFunctionBodyBase(
 
         ClosureTakerMixin.__init__(self, provider=provider)
 
-        ClosureGiverNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+        ClosureGiverNodeMixin.__init__(
+            self,
+            name=name,
+            code_prefix=code_prefix,
+        )
 
         ExpressionBase.__init__(self, source_ref)
 
@@ -230,19 +236,18 @@ class ExpressionFunctionBodyBase(
 
         assert variable.getOwner() is not self
 
-        new_variable = Variables.LocalVariable(
-            owner=self, variable_name=variable.getName()
-        )
-        for variable_trace in variable.traces:
-            if variable_trace.getOwner() is self:
-                new_variable.addTrace(variable_trace)
-        new_variable.updateUsageState()
+        new_variable = LocalVariable(owner=self, variable_name=variable.getName())
+        if self in variable.traces:
+            new_variable.setTracesForUserFirst(self, variable.traces[self])
 
         self.locals_scope.unregisterClosureVariable(variable)
         self.locals_scope.registerProvidedVariable(new_variable)
 
         updateVariableUsage(
-            provider=self, old_variable=variable, new_variable=new_variable
+            provider=self,
+            old_locals_scope=None,
+            new_locals_scope=None,
+            variable_translations={variable: new_variable},
         )
 
     def hasClosureVariable(self, variable):
@@ -268,7 +273,10 @@ class ExpressionFunctionBodyBase(
 
             # Remember that we need that closure variable for something, so
             # we don't create it again all the time.
-            if not result.isModuleVariable():
+            # TODO: Why is this done inconsistently in function or locals scope.
+            if result.isModuleVariable():
+                self.addClosureVariable(result)
+            else:
                 self.locals_scope.registerClosureVariable(result)
 
             entry_point = self.getEntryPoint()
@@ -388,7 +396,7 @@ class ExpressionFunctionBodyBase(
             ):
                 continue
 
-            empty = self.trace_collection.hasEmptyTraces(closure_variable)
+            empty = closure_variable.hasEmptyTracesFor(self.trace_collection.owner)
 
             if empty:
                 changed = True
@@ -406,7 +414,7 @@ class ExpressionFunctionBodyBase(
 
     def optimizeVariableReleases(self):
         for parameter_variable in self.getParameterVariablesWithManualRelease():
-            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+            read_only = parameter_variable.hasNoWritingTraces()
 
             if read_only:
                 self.trace_collection.signalChange(
@@ -467,18 +475,16 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         return self.getFunctionQualname() + ".<locals>." + function_name
 
     def computeFunctionRaw(self, trace_collection):
-        from nuitka.optimizations.TraceCollections import (
-            TraceCollectionFunction,
-        )
-
         trace_collection = TraceCollectionFunction(
-            parent=trace_collection, function_body=self
+            parent=trace_collection,
+            function_body=self,
+            old_collection=self.trace_collection,
         )
         old_collection = self.setTraceCollection(trace_collection)
 
         self.computeFunction(trace_collection)
 
-        trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
+        updateVariablesFromCollection(old_collection, trace_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
         statements_sequence = self.subnode_body
@@ -803,7 +809,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             return
 
         def mySignal(tag, source_ref, change_desc):
-            if Options.is_verbose:
+            if states.is_verbose:
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),
@@ -821,14 +827,16 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         tags = set()
 
         while 1:
-            trace_collection = TraceCollectionPureFunction(function_body=self)
+            trace_collection = TraceCollectionPureFunction(
+                function_body=self, old_collection=self.trace_collection
+            )
             old_collection = self.setTraceCollection(trace_collection)
 
             with withChangeIndicationsTo(mySignal):
                 self.computeFunction(trace_collection)
 
-            trace_collection.updateVariablesFromCollection(
-                old_collection, self.source_ref
+            updateVariablesFromCollection(
+                old_collection, trace_collection, self.source_ref
             )
 
             if tags:

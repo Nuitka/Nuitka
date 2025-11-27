@@ -82,12 +82,12 @@ except ImportError:
 #     xml_writer = None
 
 
-def toBytes(tree, indent=True, encoding=None):
+def convertXmlToBytes(tree, indent=True, encoding=None):
     return xml_tostring(tree, indent=indent, encoding=encoding)
 
 
-def toString(tree):
-    result = toBytes(tree, encoding="utf8")
+def convertXmlToString(tree):
+    result = convertXmlToBytes(tree, encoding="utf8")
 
     if str is not bytes:
         result = result.decode("utf8")
@@ -95,14 +95,14 @@ def toString(tree):
     return result
 
 
-def fromString(text, use_lxml=False):
+def convertStringToXML(text, use_lxml=False):
     if type(text) is str:
-        return fromFile(StringIO(text), use_lxml=use_lxml)
+        return convertFileToXML(StringIO(text), use_lxml=use_lxml)
     else:
-        return fromFile(BytesIO(text), use_lxml=use_lxml)
+        return convertFileToXML(BytesIO(text), use_lxml=use_lxml)
 
 
-def fromFile(file_handle, use_lxml=False):
+def convertFileToXML(file_handle, use_lxml=False):
     if isinstance(file_handle, basestring):
         if not os.path.isfile(file_handle):
             return None
@@ -130,7 +130,7 @@ def appendTreeElement(parent, *args, **kwargs):
 def dumpTreeXMLToFile(tree, output_file):
     """Write an XML node tree to a file."""
 
-    value = toBytes(tree).rstrip()
+    value = convertXmlToBytes(tree).rstrip()
     output_file.write(value)
     output_file.write(b"\n")
 

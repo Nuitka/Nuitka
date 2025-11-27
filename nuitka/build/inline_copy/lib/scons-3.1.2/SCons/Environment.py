@@ -51,7 +51,8 @@ import SCons.Memoize
 import SCons.Node
 import SCons.Node.Alias
 import SCons.Node.FS
-import SCons.Node.Python
+# Nuitka: Avoid unused tools
+# import SCons.Node.Python
 import SCons.Platform
 import SCons.SConf
 import SCons.SConsign
@@ -2002,7 +2003,7 @@ class Base(SubstitutionEnvironment):
             pass
         else:
             del kw['target_factory']
-            
+
         bld = SCons.Builder.Builder(**bkw)
         return bld(self, target, source, **kw)
 

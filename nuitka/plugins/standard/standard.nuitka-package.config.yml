@@ -1147,6 +1147,11 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'dateparser' # checksum: 6aaa99cc
+  data-files:
+    - dirs:
+        - 'data'
+
 - module-name: 'debian' # checksum: a633a55a
   data-files:
     - include-metadata:

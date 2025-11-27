@@ -8,7 +8,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AttributeLookupNodes import ExpressionAttributeLookupSpecial
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import (
@@ -36,6 +35,7 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import (
@@ -57,7 +57,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Many details, pylint: disable=too-many-branches,too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if python_version < 0x380 and Options.is_full_compat:
+    if python_version < 0x380 and states.is_full_compat:
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")

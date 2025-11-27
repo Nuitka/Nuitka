@@ -42,7 +42,7 @@ TRUE_STRINGS = ('y', 'yes', 'true', 't', '1', 'on' , 'all')
 FALSE_STRINGS = ('n', 'no', 'false', 'f', '0', 'off', 'none')
 
 
-def _text2bool(val) -> bool:
+def _text2bool(val):
     """Converts strings to True/False.
 
     If *val* looks like it expresses a bool-like value, based on
@@ -63,7 +63,7 @@ def _text2bool(val) -> bool:
     raise ValueError("Invalid value for boolean option: %s" % val)
 
 
-def _validator(key, val, env) -> None:
+def _validator(key, val, env):
     """Validates the given value to be either true or false.
 
     This is usable as a validator function for SCons Variables.
@@ -78,7 +78,7 @@ def _validator(key, val, env) -> None:
         )
 
 
-def BoolVariable(key, help, default) -> Tuple[str, str, str, Callable, Callable]:
+def BoolVariable(key, help, default):
     """Return a tuple describing a boolean SCons Variable.
 
     The input parameters describe a boolean option. Returns a tuple

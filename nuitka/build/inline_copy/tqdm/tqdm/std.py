@@ -1142,7 +1142,10 @@ class tqdm(Comparable):
             warn("AttributeError ignored", TqdmWarning, stacklevel=2)
 
     def __del__(self):
-        self.close()
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def __str__(self):
         return self.format_meter(**self.format_dict)

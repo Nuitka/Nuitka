@@ -19,6 +19,10 @@ from nuitka.build.SconsUtils import (
     readSconsErrorReport,
     readSconsReport,
 )
+from nuitka.code_generation.CodeGeneration import (
+    generateHelpersCode,
+    generateModuleCode,
+)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -43,19 +47,74 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
     scanPluginSinglePath,
 )
+from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.Options import (
+    getDebuggerName,
+    getExperimentalIndications,
+    getFileReferenceMode,
+    getForcedStderrPath,
+    getForcedStdoutPath,
+    getMainArgs,
+    getMainEntryPointFilenames,
+    getMustIncludeModules,
+    getMustIncludePackages,
+    getOutputDir,
+    getPgoArgs,
+    getPositionalArgs,
     getPythonPgoInput,
+    getShallFollowExtra,
+    getShallFollowExtraFilePatterns,
+    getShallFollowModules,
+    getShallIncludeDistributionMetadata,
+    getXMLDumpOutputFilename,
     hasPythonFlagIsolated,
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoBytecodeRuntimeCache,
     hasPythonFlagNoCurrentDirectoryInPath,
     hasPythonFlagNoDocStrings,
+    hasPythonFlagNoRandomization,
+    hasPythonFlagNoSite,
     hasPythonFlagNoWarnings,
+    hasPythonFlagTraceImports,
     hasPythonFlagUnbuffered,
+    isCompileTimeProfile,
+    isCPgoMode,
     isExperimental,
+    isLowMemory,
+    isMultidistMode,
+    isOnefileMode,
+    isRemoveBuildDir,
+    isRuntimeProfile,
+    isShowInclusion,
+    isShowMemory,
+    isShowProgress,
+    isStandaloneMode,
+    shallAskForWindowsAdminRights,
+    shallCreatePythonPgoInput,
+    shallCreateScriptFileForExecution,
+    shallExecuteImmediately,
+    shallMakeModule,
+    shallMakePackage,
+    shallNotDoExecCCompilerCall,
+    shallOnlyExecCCompilerCall,
+    shallRunInDebugger,
+    shallTraceExecution,
+    shallTreatUninstalledPython,
+    shallUsePythonDebug,
+    shallUseStaticLibPython,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    considerExtraDlls,
+    getBuildDefinitions,
+    onBeforeCodeParsing,
+    onCompilationStartChecks,
+    onFinalResult,
+    onModuleCompleteSet,
+    onModuleInitialSet,
+    onStandaloneDistributionFinished,
+    writeExtraCodeFiles,
+)
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
     closeProgressBar,
@@ -81,6 +140,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Serialization import ConstantAccessor
 from nuitka.Tracing import (
+    code_generation_logger,
     doNotBreakSpaces,
     general,
     inclusion_logger,
@@ -88,7 +148,6 @@ from nuitka.Tracing import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
-from nuitka.utils import InstanceCounters
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     callProcess,
@@ -105,21 +164,23 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
+from nuitka.utils.Timing import withProfiling
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-from . import ModuleRegistry, Options, OutputDirectories
+from . import ModuleRegistry, OutputDirectories
 from .build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
     runScons,
 )
-from .code_generation import CodeGeneration, LoaderCodes, Reports
+from .code_generation import LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import getCompressorPython, packDistFolderToOnefile
 from .freezer.Standalone import (
@@ -131,6 +192,7 @@ from .freezer.Standalone import (
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .reports.Reports import writeCompilationReports
+from .States import states
 from .tree.Building import buildMainModuleTree
 from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
@@ -147,11 +209,11 @@ def _createMainModule():
     """
     # Many cases and details to deal with, pylint: disable=too-many-branches
 
-    Plugins.onBeforeCodeParsing()
+    onBeforeCodeParsing()
 
     # First, build the raw node tree from the source code.
-    if Options.isMultidistMode():
-        assert not Options.shallMakeModule()
+    if isMultidistMode():
+        assert not shallMakeModule()
 
         main_module = buildMainModuleTree(
             source_code=createMultidistMainSourceCode(),
@@ -163,7 +225,7 @@ def _createMainModule():
 
     OutputDirectories.setMainModule(main_module)
 
-    for distribution_name in Options.getShallIncludeDistributionMetadata():
+    for distribution_name in getShallIncludeDistributionMetadata():
         distribution = getDistribution(distribution_name)
 
         if distribution is None:
@@ -193,11 +255,11 @@ use the correct name instead."""
     # harm.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=True)
 
-    if not Options.shallOnlyExecCCompilerCall():
+    if not shallOnlyExecCCompilerCall():
         cleanSconsDirectory(source_dir)
 
         # Prepare the ".dist" directory, throwing away what was there before.
-        if Options.isStandaloneMode():
+        if isStandaloneMode():
             OutputDirectories.initStandaloneDirectory(logger=general)
 
     # Delete result file, to avoid confusion with previous build and to
@@ -206,7 +268,7 @@ use the correct name instead."""
         path=OutputDirectories.getResultFullpath(onefile=False, real=True),
         must_exist=False,
     )
-    if Options.isOnefileMode():
+    if isOnefileMode():
         deleteFile(
             path=OutputDirectories.getResultFullpath(onefile=True, real=True),
             must_exist=False,
@@ -216,20 +278,20 @@ use the correct name instead."""
         getCompressorPython()
 
     # Second, do it for the directories given.
-    for plugin_filename in Options.getShallFollowExtra():
+    for plugin_filename in getShallFollowExtra():
         scanPluginPath(plugin_filename=plugin_filename, module_package=None)
 
-    for pattern in Options.getShallFollowExtraFilePatterns():
+    for pattern in getShallFollowExtraFilePatterns():
         scanPluginFilenamePattern(pattern=pattern)
 
     # For packages, include the full suite.
-    if Options.shallMakePackage():
+    if shallMakePackage():
         scanIncludedPackage(main_module.getFullName())
 
-    for package_name in Options.getMustIncludePackages():
+    for package_name in getMustIncludePackages():
         scanIncludedPackage(package_name)
 
-    for module_name in Options.getMustIncludeModules():
+    for module_name in getMustIncludeModules():
         module_name, module_filename, module_kind, finding = locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
@@ -256,7 +318,7 @@ use the correct name instead."""
             )
 
     # Allow plugins to add more modules based on the initial set being complete.
-    Plugins.onModuleInitialSet()
+    onModuleInitialSet()
 
     # Then optimize the tree and potentially recursed modules.
     # TODO: The passed filename is really something that should come from
@@ -265,7 +327,7 @@ use the correct name instead."""
     optimizeModules(main_module.getOutputFilename())
 
     # Freezer may have concerns for some modules.
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         checkFreezingModuleSet()
 
     # Check if distribution meta data is included, that cannot be used.
@@ -277,9 +339,9 @@ use the correct name instead."""
             )
 
     # Allow plugins to comment on final module set.
-    Plugins.onModuleCompleteSet()
+    onModuleCompleteSet()
 
-    if Options.isExperimental("check_xml_persistence"):
+    if isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
             if module.isMainModule():
                 return module
@@ -291,7 +353,7 @@ use the correct name instead."""
 
 
 def dumpTreeXML():
-    filename = Options.getXMLDumpOutputFilename()
+    filename = getXMLDumpOutputFilename()
 
     if filename is not None:
         with openTextFile(filename, "wb") as output_file:
@@ -394,7 +456,7 @@ def makeSourceDirectory():
 
     # Lets check if the asked modules are actually present, and warn the
     # user if one of those was not found.
-    for any_case_module in Options.getShallFollowModules():
+    for any_case_module in getShallFollowModules():
         if "*" in any_case_module or "{" in any_case_module:
             continue
 
@@ -402,40 +464,40 @@ def makeSourceDirectory():
             any_case_module
         ) and not ModuleRegistry.hasRootModule(any_case_module):
             general.warning(
-                "Did not follow import to unused '%s', consider include options."
+                "Did not follow import to unused '%s', consider include "
                 % any_case_module
             )
 
     # Prepare code generation, i.e. execute finalization for it.
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            Finalization.prepareCodeGeneration(module)
+    for current_module in ModuleRegistry.getDoneModules():
+        if current_module.isCompiledPythonModule():
+            Finalization.prepareCodeGeneration(current_module)
 
     # Do some reporting and determine compiled module to work on
     compiled_modules = []
 
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            compiled_modules.append(module)
+    for current_module in ModuleRegistry.getDoneModules():
+        if current_module.isCompiledPythonModule():
+            compiled_modules.append(current_module)
 
-            if Options.isShowInclusion():
+            if isShowInclusion():
                 inclusion_logger.info(
-                    "Included compiled module '%s'." % module.getFullName()
+                    "Included compiled module '%s'." % current_module.getFullName()
                 )
-        elif module.isPythonExtensionModule():
-            addExtensionModuleEntryPoint(module)
+        elif current_module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(current_module)
 
-            if Options.isShowInclusion():
+            if isShowInclusion():
                 inclusion_logger.info(
-                    "Included extension module '%s'." % module.getFullName()
+                    "Included extension module '%s'." % current_module.getFullName()
                 )
-        elif module.isUncompiledPythonModule():
-            if Options.isShowInclusion():
+        elif current_module.isUncompiledPythonModule():
+            if isShowInclusion():
                 inclusion_logger.info(
-                    "Included uncompiled module '%s'." % module.getFullName()
+                    "Included uncompiled module '%s'." % current_module.getFullName()
                 )
         else:
-            assert False, module
+            assert False, current_module
 
     # Pick filenames.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
@@ -452,15 +514,16 @@ def makeSourceDirectory():
 
     # Generate code for compiled modules, this can be slow, so do it separately
     # with a progress bar.
-    for module in compiled_modules:
-        c_filename = module_filenames[module]
+    for current_module in compiled_modules:
+        module_name = current_module.getFullName()
+        c_filename = module_filenames[current_module]
 
         reportProgressBar(
-            item=module.getFullName(),
+            item=module_name,
         )
 
-        source_code = CodeGeneration.generateModuleCode(
-            module=module,
+        source_code = generateModuleCode(
+            module=current_module,
             data_filename=changeFilenameExtension(
                 os.path.basename(c_filename), ".const"
             ),
@@ -475,7 +538,7 @@ def makeSourceDirectory():
         helper_impl_code,
         constants_header_code,
         constants_body_code,
-    ) = CodeGeneration.generateHelpersCode()
+    ) = generateHelpersCode()
 
     writeSourceCode(
         filename=os.path.join(source_dir, "__helpers.h"), source_code=helper_decl_code
@@ -503,7 +566,7 @@ def _runPgoBinary():
         general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
 
     return callProcess(
-        [getExternalUsePath(pgo_executable)] + Options.getPgoArgs(),
+        [getExternalUsePath(pgo_executable)] + getPgoArgs(),
         shell=False,
     )
 
@@ -619,25 +682,25 @@ def runSconsBackend():
         onefile=False, create=False
     )
     scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
-    scons_options["debug_mode"] = asBoolStr(Options.is_debug)
-    scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
-    scons_options["python_debug"] = asBoolStr(Options.shallUsePythonDebug())
-    scons_options["full_compat"] = asBoolStr(Options.is_full_compat)
-    scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
-    scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
-    scons_options["file_reference_mode"] = Options.getFileReferenceMode()
+    scons_options["debug_mode"] = asBoolStr(states.is_debug)
+    scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
+    scons_options["python_debug"] = asBoolStr(shallUsePythonDebug())
+    scons_options["full_compat"] = asBoolStr(states.is_full_compat)
+    scons_options["experimental"] = ",".join(getExperimentalIndications())
+    scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
+    scons_options["file_reference_mode"] = getFileReferenceMode()
     scons_options["compiled_module_count"] = "%d" % len(
         ModuleRegistry.getCompiledModules()
     )
 
-    if Options.isLowMemory():
+    if isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
 
     scons_options["result_exe"] = OutputDirectories.getResultFullpath(
         onefile=False, real=False
     )
 
-    if not Options.shallMakeModule():
+    if not shallMakeModule():
         main_module = ModuleRegistry.getRootTopModule()
         assert main_module.isMainModule()
 
@@ -645,7 +708,7 @@ def runSconsBackend():
         if main_module_name != "__main__":
             scons_options["main_module_name"] = main_module_name
 
-    if Options.shallUseStaticLibPython():
+    if shallUseStaticLibPython():
         scons_options["static_libpython"] = getSystemStaticLibPythonPath()
 
     if isDebianPackagePython():
@@ -659,16 +722,16 @@ def runSconsBackend():
     if isPyenvPython():
         scons_options["pyenv_python"] = asBoolStr(True)
 
-    if Options.getForcedStdoutPath():
-        scons_options["forced_stdout_path"] = Options.getForcedStdoutPath()
+    if getForcedStdoutPath():
+        scons_options["forced_stdout_path"] = getForcedStdoutPath()
 
-    if Options.getForcedStderrPath():
-        scons_options["forced_stderr_path"] = Options.getForcedStderrPath()
+    if getForcedStderrPath():
+        scons_options["forced_stderr_path"] = getForcedStderrPath()
 
-    if Options.isProfile():
+    if isRuntimeProfile():
         scons_options["profile_mode"] = asBoolStr(True)
 
-    if Options.shallTreatUninstalledPython():
+    if shallTreatUninstalledPython():
         scons_options["uninstalled_python"] = asBoolStr(True)
 
     if ModuleRegistry.getUncompiledTechnicalModules():
@@ -703,13 +766,13 @@ def runSconsBackend():
     if sys.flags.bytes_warning:
         scons_options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.getenv("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
+    if int(os.getenv("NUITKA_NOSITE_FLAG", hasPythonFlagNoSite())):
         scons_options["python_sysflag_no_site"] = asBoolStr(True)
 
-    if Options.hasPythonFlagTraceImports():
+    if hasPythonFlagTraceImports():
         scons_options["python_sysflag_verbose"] = asBoolStr(True)
 
-    if Options.hasPythonFlagNoRandomization():
+    if hasPythonFlagNoRandomization():
         scons_options["python_sysflag_no_randomization"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.unicode:
@@ -739,9 +802,9 @@ def runSconsBackend():
         scons_options["link_module_libs"] = ",".join(link_module_libs)
 
     # Allow plugins to build definitions.
-    env_values.update(Plugins.getBuildDefinitions())
+    env_values.update(getBuildDefinitions())
 
-    if Options.shallCreatePythonPgoInput():
+    if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
 
         result = runScons(
@@ -760,11 +823,11 @@ def runSconsBackend():
         return True, scons_options
 
         # Need to restart compilation from scratch here.
-    if Options.isCPgoMode():
+    if isCPgoMode():
         # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
         # and standalone mode proper support, which might need data files to be
         # there, which currently are not yet there, so it won't run.
-        if Options.isCPgoMode():
+        if isCPgoMode():
             scons_options["pgo_mode"] = "generate"
 
             result = runScons(
@@ -800,22 +863,22 @@ def runSconsBackend():
 def callExecPython(args, add_path, uac):
     if add_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
+            os.environ["PYTHONPATH"] += ":" + getOutputDir()
         else:
-            os.environ["PYTHONPATH"] = Options.getOutputDir()
+            os.environ["PYTHONPATH"] = getOutputDir()
 
     # Add the main arguments, previous separated.
-    args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
+    args += getPositionalArgs()[1:] + getMainArgs()
 
     callExecProcess(args, uac=uac)
 
 
 def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
-    if Options.shallRunInDebugger() and not Options.shallCreateScriptFileForExecution():
+    if shallRunInDebugger() and not shallCreateScriptFileForExecution():
         args = wrapCommandForDebuggerForExec(
             command=(binary_filename,),
-            debugger=Options.getDebuggerName(),
+            debugger=getDebuggerName(),
         )
     else:
         args = (binary_filename, binary_filename)
@@ -823,7 +886,7 @@ def _executeMain(binary_filename):
     callExecPython(
         args=args,
         add_path=False,
-        uac=isWin32Windows() and Options.shallAskForWindowsAdminRights(),
+        uac=isWin32Windows() and shallAskForWindowsAdminRights(),
     )
 
 
@@ -843,7 +906,7 @@ assert os.path.normcase(os.path.abspath(os.path.normpath(\
 importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
 
-    output_dir = os.path.normpath(Options.getOutputDir())
+    output_dir = os.path.normpath(getOutputDir())
     if output_dir != ".":
         python_command_template = (
             """\
@@ -866,10 +929,10 @@ import sys; sys.path.insert(0, %(output_dir)r)
         "output_dir": output_dir,
     }
 
-    if Options.shallRunInDebugger():
+    if shallRunInDebugger():
         args = wrapCommandForDebuggerForExec(
             command=(sys.executable, "-c", python_command),
-            debugger=Options.getDebuggerName(),
+            debugger=getDebuggerName(),
         )
     else:
         args = (sys.executable, "python", "-c", python_command)
@@ -882,20 +945,25 @@ def compileTree():
 
     general.info("Completed Python level compilation and optimization.")
 
-    if not Options.shallOnlyExecCCompilerCall():
+    if not shallOnlyExecCCompilerCall():
         general.info("Generating source code for C backend compiler.")
 
         reportMemoryUsage(
             "before_c_code_generation",
             (
                 "Total memory usage before generating C code"
-                if Options.isShowProgress() or Options.isShowMemory()
+                if isShowProgress() or isShowMemory()
                 else None
             ),
         )
 
         # Now build the target language code for the whole tree.
-        makeSourceDirectory()
+        with withProfiling(
+            name="code-generation",
+            logger=code_generation_logger,
+            enabled=isCompileTimeProfile(),
+        ):
+            makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -921,24 +989,24 @@ def compileTree():
         "before_running_scons",
         (
             "Total memory usage before running scons"
-            if Options.isShowProgress() or Options.isShowMemory()
+            if isShowProgress() or isShowMemory()
             else None
         ),
     )
 
-    if Options.isShowMemory():
-        InstanceCounters.printStats()
+    if isShowMemory():
+        printInstanceCounterStats()
 
     Reports.doMissingOptimizationReport()
 
-    if Options.shallNotDoExecCCompilerCall():
+    if shallNotDoExecCCompilerCall():
         return True, {}
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    runDataComposer(source_dir)
+    runDataComposer(source_dir)  # TODO: This should be a hook too
 
-    Plugins.writeExtraCodeFiles(onefile=False)
+    writeExtraCodeFiles(onefile=False)
 
     general.info("Running C compilation via Scons.")
 
@@ -954,7 +1022,7 @@ def handleSyntaxError(e):
     # versions he wants, tell him about the potential version problem.
     error_message = SyntaxErrors.formatOutput(e)
 
-    if not Options.is_full_compat:
+    if not states.is_full_compat:
         suggested_python_version_str = getSupportedPythonVersions()[-1]
 
         error_message += """
@@ -1011,7 +1079,7 @@ def _main():
         "after_launch",
         (
             "Total memory usage before processing"
-            if Options.isShowProgress() or Options.isShowMemory()
+            if isShowProgress() or isShowMemory()
             else None
         ),
     )
@@ -1020,7 +1088,11 @@ def _main():
     # options, etc.
     setupImportingFromOptions()
 
-    Plugins.onCompilationStartChecks()
+    # Initialize value tracing if requested.
+    setupValueTraceFromOptions()
+
+    # Let the plugins know we are starting compilation and they should make their checks.
+    onCompilationStartChecks()
 
     addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()
@@ -1048,7 +1120,7 @@ def _main():
         )
 
     # Relaunch in case of Python PGO input to be produced.
-    if Options.shallCreatePythonPgoInput():
+    if shallCreatePythonPgoInput():
         # Will not return.
         pgo_filename = OutputDirectories.getPgoRunInputFilename()
         general.info(
@@ -1057,21 +1129,21 @@ def _main():
         )
         reExecuteNuitka(pgo_filename=pgo_filename)
 
-    if Options.shallNotDoExecCCompilerCall():
-        if Options.isShowMemory():
+    if shallNotDoExecCCompilerCall():
+        if isShowMemory():
             showMemoryTrace()
 
         sys.exit(0)
 
     executePostProcessing(scons_options["result_exe"])
 
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         binary_filename = scons_options["result_exe"]
 
         setMainEntryPoint(binary_filename)
 
         for module in ModuleRegistry.getDoneModules():
-            addIncludedEntryPoints(Plugins.considerExtraDlls(module))
+            addIncludedEntryPoints(considerExtraDlls(module))
 
         detectUsedDLLs(
             standalone_entry_points=getStandaloneEntryPoints(),
@@ -1082,7 +1154,7 @@ def _main():
 
         dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 
-        if not Options.shallOnlyExecCCompilerCall():
+        if not shallOnlyExecCCompilerCall():
             main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
@@ -1102,17 +1174,17 @@ def _main():
 
             dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
 
-        Plugins.onStandaloneDistributionFinished(
+        onStandaloneDistributionFinished(
             dist_dir=dist_dir,
             standalone_binary=OutputDirectories.getResultFullpath(
                 onefile=False, real=True
             ),
         )
 
-        if Options.isOnefileMode():
+        if isOnefileMode():
             packDistFolderToOnefile(dist_dir)
 
-            if Options.isRemoveBuildDir():
+            if isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
 
                 removeDirectory(
@@ -1130,7 +1202,7 @@ def _main():
     # Remove the source directory (now build directory too) if asked to.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
-    if Options.isRemoveBuildDir():
+    if isRemoveBuildDir():
         general.info("Removing build directory '%s'." % source_dir)
 
         # Make sure the scons report is cached before deleting it.
@@ -1148,10 +1220,10 @@ def _main():
         general.info("Keeping build directory '%s'." % source_dir)
 
     final_filename = OutputDirectories.getResultFullpath(
-        onefile=Options.isOnefileMode(), real=True
+        onefile=isOnefileMode(), real=True
     )
 
-    if Options.isStandaloneMode() and isMacOS():
+    if isStandaloneMode() and isMacOS():
         general.info(
             "Created binary that runs on macOS %s (%s) or higher."
             % (scons_options["macos_min_version"], scons_options["macos_target_arch"])
@@ -1163,14 +1235,14 @@ def _main():
                 % (
                     scons_options["macos_target_arch"],
                     sys.executable,
-                    Options.getMainEntryPointFilenames()[0],
+                    getMainEntryPointFilenames()[0],
                 ),
                 mnemonic="macos-cross-compile",
             )
 
-    Plugins.onFinalResult(final_filename)
+    onFinalResult(final_filename)
 
-    if Options.shallMakeModule():
+    if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
         if os.path.isdir(base_path) and getPackageDirFilename(base_path):
@@ -1187,15 +1259,13 @@ exist, out e.g. '--output-dir=output' to sure is importable."""
 
     writeCompilationReports(aborted=False)
 
-    run_filename = OutputDirectories.getResultRunFilename(
-        onefile=Options.isOnefileMode()
-    )
+    run_filename = OutputDirectories.getResultRunFilename(onefile=isOnefileMode())
 
     # Execute the module immediately if option was given.
-    if Options.shallExecuteImmediately():
+    if shallExecuteImmediately():
         general.info("Launching '%s'." % run_filename)
 
-        if Options.shallMakeModule():
+        if shallMakeModule():
             _executeModule(tree=main_module)
         else:
             _executeMain(run_filename)

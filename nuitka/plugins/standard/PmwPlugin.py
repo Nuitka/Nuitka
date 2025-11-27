@@ -8,8 +8,8 @@
 import os
 import re
 
-from nuitka import Options
 from nuitka.__past__ import StringIO
+from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContents, listDir
 
@@ -225,7 +225,7 @@ class NuitkaPluginDetectorPmw(NuitkaPluginBase):
 
     @classmethod
     def isRelevant(cls):
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     def onModuleDiscovered(self, module):
         if module.getFullName() == "Pmw":

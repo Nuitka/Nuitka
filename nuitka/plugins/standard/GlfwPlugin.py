@@ -8,7 +8,7 @@
 import os
 import re
 
-from nuitka import Options
+from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContents
 from nuitka.utils.ModuleNames import ModuleName
@@ -44,7 +44,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
         Returns:
             True if this is a standalone compilation.
         """
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     def getImplicitImports(self, module):
         if module.getFullName() == "OpenGL":

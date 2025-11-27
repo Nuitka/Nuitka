@@ -8,13 +8,14 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, Variables
+from nuitka.Builtins import builtin_exception_names, builtin_names
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import (
     getUnboundLocalErrorErrorTemplate,
     python_version,
 )
 from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
+from nuitka.Variables import Variable
 
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
@@ -62,6 +63,11 @@ class ExpressionVariableRefBase(ExpressionBase):
 
     def getVariable(self):
         return self.variable
+
+    def setVariable(self, variable):
+        assert isinstance(variable, Variable), repr(variable)
+
+        self.variable = variable
 
     def getVariableTrace(self):
         return self.variable_trace
@@ -410,14 +416,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         return cls(variable=variable, source_ref=source_ref)
 
-    def getVariable(self):
-        return self.variable
-
-    def setVariable(self, variable):
-        assert isinstance(variable, Variables.Variable), repr(variable)
-
-        self.variable = variable
-
     def computeExpressionRaw(self, trace_collection):
         # Terribly detailed, pylint: disable=too-many-branches,too-many-statements
 
@@ -451,7 +449,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         ):
             variable_name = self.variable.getName()
 
-            if variable_name in Builtins.builtin_exception_names:
+            if variable_name in builtin_exception_names:
                 if not self.variable.getOwner().getLocalsScope().isEscaped():
                     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -472,7 +470,7 @@ Module variable '%s' found to be built-in exception reference.""" % (
                     change_tags = None
                     change_desc = None
 
-            elif variable_name in Builtins.builtin_names:
+            elif variable_name in builtin_names:
                 if (
                     variable_name in _hard_names
                     or not self.variable.getOwner().getLocalsScope().isEscaped()
@@ -623,8 +621,8 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return None, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_read(self.variable)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
 
     def hasShapeListExact(self):
         return (

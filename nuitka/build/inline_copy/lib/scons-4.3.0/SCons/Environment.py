@@ -1869,7 +1869,7 @@ class Base(SubstitutionEnvironment):
     def _find_toolpath_dir(self, tp):
         return self.fs.Dir(self.subst(tp)).srcnode().get_abspath()
 
-    def Tool(self, tool, toolpath=None, **kwargs) -> SCons.Tool.Tool:
+    def Tool(self, tool, toolpath=None, **kwargs):
         if is_String(tool):
             tool = self.subst(tool)
             if toolpath is None:

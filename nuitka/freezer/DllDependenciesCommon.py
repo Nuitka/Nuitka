@@ -7,7 +7,7 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getModuleSpecificDllPaths
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
 from nuitka.utils.ModuleNames import ModuleName
@@ -63,7 +63,7 @@ that should not happen. Please report the issue."""
             scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         if consider_plugins:
-            for plugin_provided_dir in Plugins.getModuleSpecificDllPaths(package_name):
+            for plugin_provided_dir in getModuleSpecificDllPaths(package_name):
                 if os.path.isdir(plugin_provided_dir):
                     scan_dirs.add(plugin_provided_dir)
                     scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))

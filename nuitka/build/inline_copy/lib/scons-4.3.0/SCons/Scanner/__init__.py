@@ -197,7 +197,7 @@ class ScannerBase:
 
         return self.path_function(env, dir, target, source)
 
-    def __call__(self, node, env, path=()) -> list:
+    def __call__(self, node, env, path=()):
         """Scans a single object.
 
         Args:

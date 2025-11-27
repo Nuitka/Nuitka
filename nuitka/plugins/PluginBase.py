@@ -19,7 +19,6 @@ import os
 import sys
 import unittest
 
-from nuitka import Options
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -44,10 +43,13 @@ from nuitka.ModuleRegistry import (
 from nuitka.Options import (
     getCompanyName,
     getFileVersion,
+    getMacOSTargetArch,
+    getModuleParameter,
     getProductFileVersion,
     getProductName,
     getProductVersion,
     isDeploymentMode,
+    isExperimental,
     isOnefileMode,
     isOnefileTempDirMode,
     isStandaloneMode,
@@ -66,6 +68,7 @@ from nuitka.PythonVersions import (
     python_version_full_str,
     python_version_str,
 )
+from nuitka.States import states
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
@@ -106,6 +109,8 @@ from nuitka.utils.Utils import (
     isWin32Windows,
     withNoWarning,
 )
+
+from .Hooks import decideAnnotations, decideAssertions, decideDocStrings
 
 _warned_unused_plugins = set()
 
@@ -1392,7 +1397,7 @@ except Exception as e:
         command = [sys.executable, "-c", cmd]
 
         if isMacOS():
-            command = ["arch", "-" + Options.getMacOSTargetArch()] + command
+            command = ["arch", "-" + getMacOSTargetArch()] + command
 
         try:
             feedback = check_output(command, env=env)
@@ -1405,7 +1410,7 @@ except Exception as e:
 
                 return None
 
-            if Options.is_debug:
+            if states.is_debug:
                 self.info(cmd, keep_format=True)
 
             if e.returncode == 39:
@@ -1505,6 +1510,11 @@ except Exception as e:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def getReportData(self):
+        """Provide dictionary of data for reporting purposes."""
+        # Virtual method, pylint: disable=no-self-use
+        return {}
 
     @staticmethod
     def getPackageVersion(module_name):
@@ -1615,7 +1625,7 @@ except Exception as e:
                             values=tuple(declarations.items()),
                         )
 
-                    if Options.isExperimental("display-yaml-variables"):
+                    if isExperimental("display-yaml-variables"):
                         self.info("Evaluated %r" % info)
 
                     if info is None:
@@ -1675,7 +1685,7 @@ except Exception as e:
         context["get_constant"] = get_constant
 
         def get_parameter(parameter_name, default):
-            result = Options.getModuleParameter(config_module_name, parameter_name)
+            result = getModuleParameter(config_module_name, parameter_name)
 
             if result is None:
                 result = default
@@ -1699,7 +1709,7 @@ except Exception as e:
             try:
                 result = eval(expression, context)
             except Exception as e:  # Catch all the things, pylint: disable=broad-except
-                if Options.is_debug:
+                if states.is_debug:
                     raise
 
                 self.sysexit(
@@ -1790,7 +1800,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
-            result = Options.getModuleParameter(full_name, parameter_name)
+            result = getModuleParameter(full_name, parameter_name)
 
             if result is None:
                 result = default
@@ -1811,7 +1821,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             try:
                 result = eval(condition, context)
             except Exception as e:  # Catch all the things, pylint: disable=broad-except
-                if Options.is_debug:
+                if states.is_debug:
                     raise
 
                 self.sysexit(
@@ -1872,7 +1882,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
 
     @classmethod
     def debug(cls, message, keep_format=False):
-        if Options.is_debug:
+        if states.is_debug:
             cls.info(message, keep_format=keep_format)
 
     @classmethod
@@ -1939,20 +1949,13 @@ class TagContext(dict):
                 return False
 
             if key == "no_asserts":
-                # TODO: This should be better decoupled.
-                from .Plugins import Plugins
-
-                return Plugins.decideAssertions(self.full_name) is False
+                return decideAssertions(self.full_name) is False
 
             if key == "no_docstrings":
-                from .Plugins import Plugins
-
-                return Plugins.decideDocStrings(self.full_name) is False
+                return decideDocStrings(self.full_name) is False
 
             if key == "no_annotations":
-                from .Plugins import Plugins
-
-                return Plugins.decideAnnotations(self.full_name) is False
+                return decideAnnotations(self.full_name) is False
 
             self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."

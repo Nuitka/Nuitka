@@ -25,7 +25,7 @@ def _checkNuitkaInVirtualenv(python):
     ) as venv:
         tools_logger.info("Installing Nuitka into virtualenv:", style="blue")
         tools_logger.info("*" * 40, style="blue")
-        venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
+        venv.runCommand("python -m pip install ../dist/nuitka*.tar.gz")
         tools_logger.info("*" * 40, style="blue")
 
         tools_logger.info("Compiling basic test with runner:", style="blue")
@@ -96,7 +96,11 @@ Check if it would build, without uploading.
     checkReleaseDocumentation()
     tools_logger.info("Creating source distribution.", style="blue")
 
-    dist_filenames = makeNuitkaSourceDistribution(formats=("gztar",), sign=False)
+    # spell-checker: ignore gztar
+    dist_filenames = makeNuitkaSourceDistribution(
+        formats=("gztar",),
+        sign=False,
+    )
 
     # Test with these Pythons if the installed package would work.
     pythons = [

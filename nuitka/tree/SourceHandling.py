@@ -11,11 +11,12 @@ import os
 import re
 import sys
 
-from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.plugins.Plugins import Plugins
+from nuitka.Options import shallShowSourceModifications
+from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import python_version, python_version_str
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
@@ -133,7 +134,7 @@ def _readSourceCodeFromFilename2(source_filename):
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details"""
                     % (wrong_byte, source_filename, count + 1),
-                    SourceCodeReferences.fromFilename(source_filename).atLineNumber(
+                    makeSourceReferenceFromFilename(source_filename).atLineNumber(
                         count + 1
                     ),
                     display_line=False,
@@ -180,7 +181,7 @@ def readSourceCodeFromFilenameWithInformation(
     # Allow plugins to mess with source code. Test code calls this without a
     # module and doesn't want any changes from plugins in that case.
     if module_name is not None:
-        source_code_modified, contributing_plugins = Plugins.onModuleSourceCode(
+        source_code_modified, contributing_plugins = onModuleSourceCode(
             module_name=module_name,
             source_filename=source_filename,
             source_code=source_code,
@@ -191,7 +192,7 @@ def readSourceCodeFromFilenameWithInformation(
 
     if (
         module_name is not None
-        and Options.shallShowSourceModifications(module_name)
+        and shallShowSourceModifications(module_name)
         and source_code_modified != source_code
     ):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)

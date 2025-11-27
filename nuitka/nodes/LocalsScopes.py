@@ -299,7 +299,7 @@ class LocalsDictHandleBase(object):
                 and not variable.isParameterVariable()
                 and variable.getOwner() is self.owner
             ):
-                empty = trace_collection.hasEmptyTraces(variable)
+                empty = variable.hasEmptyTracesFor(trace_collection.owner)
 
                 if empty:
                     removals.append(variable)

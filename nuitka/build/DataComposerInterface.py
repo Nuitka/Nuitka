@@ -11,6 +11,7 @@ import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import isExperimental
+from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import changeFilenameExtension, getFileSize
@@ -26,14 +27,12 @@ def getDataComposerReportValues():
 
 
 def runDataComposer(source_dir):
-    from nuitka.plugins.Plugins import Plugins
-
     # This module is a singleton, pylint: disable=global-statement
     global _data_composer_stats
 
-    Plugins.onDataComposerRun()
+    onDataComposerRun()
     blob_filename, _data_composer_stats = _runDataComposer(source_dir=source_dir)
-    Plugins.onDataComposerResult(blob_filename)
+    onDataComposerResult(blob_filename)
 
     global _data_composer_size
     _data_composer_size = getFileSize(blob_filename)

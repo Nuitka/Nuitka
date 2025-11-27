@@ -155,7 +155,7 @@ def scons_copytree(src, dst, symlinks=False, ignore=None, copy_function=copy2,
 #
 # Functions doing the actual work of the Install Builder.
 #
-def copyFunc(dest, source, env) -> int:
+def copyFunc(dest, source, env):
     """Install a source file or directory into a destination by copying.
 
     Mode/permissions bits will be copied as well, except that the target
@@ -183,7 +183,7 @@ def copyFunc(dest, source, env) -> int:
 #
 # Functions doing the actual work of the InstallVersionedLib Builder.
 #
-def copyFuncVersionedLib(dest, source, env) -> int:
+def copyFuncVersionedLib(dest, source, env):
     """Install a versioned library into a destination by copying.
 
     Any required symbolic links for other library names are created.
@@ -235,7 +235,7 @@ def installShlibLinks(dest, source, env):
         CreateLibSymlinks(env, symlinks)
     return
 
-def installFunc(target, source, env) -> int:
+def installFunc(target, source, env):
     """Install a source file into a target.
 
     Uses the function specified in the INSTALL construction variable.
@@ -260,7 +260,7 @@ def installFunc(target, source, env) -> int:
 
     return 0
 
-def installFuncVersionedLib(target, source, env) -> int:
+def installFuncVersionedLib(target, source, env):
     """Install a versioned library into a target.
 
     Uses the function specified in the INSTALL construction variable.

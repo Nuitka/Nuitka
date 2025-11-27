@@ -50,13 +50,13 @@ import SCons.Errors
 __all__ = ['EnumVariable',]
 
 
-def _validator(key, val, env, vals) -> None:
+def _validator(key, val, env, vals):
     if val not in vals:
         raise SCons.Errors.UserError(
             'Invalid value for option %s: %s.  Valid values are: %s' % (key, val, vals))
 
 
-def EnumVariable(key, help, default, allowed_values, map={}, ignorecase=0) -> Tuple[str, str, str, Callable, Callable]:
+def EnumVariable(key, help, default, allowed_values, map={}, ignorecase=0):
     """Return a tuple describing an enumaration SCons Variable.
 
     The input parameters describe an option with only certain values

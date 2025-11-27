@@ -176,7 +176,7 @@ def buildExecNode(provider, node, source_ref):
 
     # Handle exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and getKind(body) == "Tuple":
-        parts = body.elts
+        parts = body.elts  # spell-checker: ignore elts
         body = parts[0]
 
         if len(parts) > 1:

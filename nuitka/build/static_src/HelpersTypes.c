@@ -241,6 +241,26 @@ typedef struct {
     bool infer_variance;
 } typevarobject;
 
+typedef struct {
+    PyObject_HEAD PyObject *name;
+#if PYTHON_VERSION >= 0x3d0
+    PyObject *default_value;
+    PyObject *evaluate_default;
+#endif
+} typevartupleobject; // Following CPython, spell-checker: ignore typevartupleobject
+
+typedef struct {
+    PyObject_HEAD PyObject *name;
+    PyObject *bound;
+#if PYTHON_VERSION >= 0x3d0
+    PyObject *default_value;
+    PyObject *evaluate_default;
+#endif
+    bool covariant;
+    bool contravariant;
+    bool infer_variance;
+} paramspecobject;
+
 static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
                                             PyObject *evaluate_bound, PyObject *constraints,
                                             PyObject *evaluate_constraints, bool covariant, bool contravariant,
@@ -276,11 +296,68 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
     return result;
 }
 
+static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module,
+                                                      PyObject *default_value) {
+    PyTypeObject *tp = tstate->interp->cached_objects.typevartuple_type;
+    typevartupleobject *tvt = Nuitka_GC_New(tp);
+    if (tvt == NULL) {
+        return NULL;
+    }
+    tvt->name = Py_NewRef(name);
+#if PYTHON_VERSION >= 0x3d0
+    tvt->default_value = Py_XNewRef(default_value);
+    tvt->evaluate_default = NULL;
+#endif
+    _PyObject_GC_TRACK(tvt);
+    if (module != NULL) {
+        if (PyObject_SetAttrString((PyObject *)tvt, "__module__", module) < 0) {
+            Py_DECREF(tvt);
+            return NULL;
+        }
+    }
+    return tvt;
+}
+
+static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
+                                                PyObject *default_value, bool covariant, bool contravariant,
+                                                bool infer_variance, PyObject *module) {
+    PyTypeObject *tp = tstate->interp->cached_objects.paramspec_type;
+    paramspecobject *ps = Nuitka_GC_New(tp);
+    if (ps == NULL) {
+        return NULL;
+    }
+    ps->name = Py_NewRef(name);
+    ps->bound = Py_XNewRef(bound);
+    ps->covariant = covariant;
+    ps->contravariant = contravariant;
+    ps->infer_variance = infer_variance;
+#if PYTHON_VERSION >= 0x3d0
+    ps->default_value = Py_XNewRef(default_value);
+    ps->evaluate_default = NULL;
+#endif
+    _PyObject_GC_TRACK(ps);
+    if (module != NULL) {
+        if (PyObject_SetAttrString((PyObject *)ps, "__module__", module) < 0) {
+            Py_DECREF(ps);
+            return NULL;
+        }
+    }
+    return ps;
+}
+
 PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name) {
     // TODO: For Python 3.13 this would work.
     // return _PyIntrinsics_UnaryFunctions[INTRINSIC_TYPEVAR].func(tstate, name);
 
     return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, NULL, NULL, NULL, false, false, true, NULL);
+}
+
+PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name) {
+    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL);
+}
+
+PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name) {
+    return (PyObject *)_Nuitka_paramspec_alloc(tstate, name, NULL, NULL, false, false, true, NULL);
 }
 
 static PyTypeObject *_getTypeGenericAliasType(void) {

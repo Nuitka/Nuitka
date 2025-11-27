@@ -60,7 +60,7 @@ def getZstandardSupportingVersions():
 
 
 def getSconsSupportingVersions():
-    result = getSupportedPythonVersions()
+    result = getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
 
     result = tuple(version for version in result if version not in ("3.4",))
 

@@ -13,7 +13,7 @@ from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental, isShowProgress
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
@@ -310,7 +310,7 @@ def _getCacheFilename(
     hash_value.updateFromValues(sys.version, sys.executable)
 
     # Plugins may change their influence.
-    hash_value.updateFromValues(*Plugins.getCacheContributionValues(package_name))
+    hash_value.updateFromValues(*getPluginsCacheContributionValues(package_name))
 
     # Take Nuitka version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string)

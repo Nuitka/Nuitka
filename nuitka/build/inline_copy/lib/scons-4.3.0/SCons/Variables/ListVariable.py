@@ -99,7 +99,7 @@ class _ListVariable(collections.UserList):
     def prepare_to_store(self):
         return self.__str__()
 
-def _converter(val, allowedElems, mapdict) -> _ListVariable:
+def _converter(val, allowedElems, mapdict):
     """ """
     if val == 'none':
         val = []
@@ -122,7 +122,7 @@ def _converter(val, allowedElems, mapdict) -> _ListVariable:
 #     pass
 
 
-def ListVariable(key, help, default, names, map={}) -> Tuple[str, str, str, None, Callable]:
+def ListVariable(key, help, default, names, map={}):
     """Return a tuple describing a list SCons Variable.
 
     The input parameters describe a 'list' option. Returns

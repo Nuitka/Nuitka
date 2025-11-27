@@ -3,8 +3,8 @@
 
 """ Eval/exec/execfile/compile built-in related codes. """
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .CodeHelpers import (
     generateExpressionCode,
@@ -256,7 +256,7 @@ def generateExecCode(statement, emit, context):
         to_name=filename_name,
         constant=(
             "<string>"
-            if Options.is_full_compat
+            if states.is_full_compat
             else "<string at %s>" % source_ref.getAsString()
         ),
         may_escape=False,
@@ -272,7 +272,7 @@ def generateExecCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         locals_arg.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         res_name = context.getBoolResName()

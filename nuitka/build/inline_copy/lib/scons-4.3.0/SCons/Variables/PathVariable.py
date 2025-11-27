@@ -83,12 +83,12 @@ __all__ = ['PathVariable',]
 class _PathVariableClass:
 
     @staticmethod
-    def PathAccept(key, val, env) -> None:
+    def PathAccept(key, val, env):
         """Accepts any path, no checking done."""
         pass
 
     @staticmethod
-    def PathIsDir(key, val, env) -> None:
+    def PathIsDir(key, val, env):
         """Validator to check if Path is a directory."""
         if not os.path.isdir(val):
             if os.path.isfile(val):
@@ -98,7 +98,7 @@ class _PathVariableClass:
             raise SCons.Errors.UserError(m % (key, val))
 
     @staticmethod
-    def PathIsDirCreate(key, val, env) -> None:
+    def PathIsDirCreate(key, val, env):
         """Validator to check if Path is a directory,
            creating it if it does not exist."""
         try:
@@ -111,7 +111,7 @@ class _PathVariableClass:
             raise SCons.Errors.UserError(m % (key, val))
 
     @staticmethod
-    def PathIsFile(key, val, env) -> None:
+    def PathIsFile(key, val, env):
         """Validator to check if Path is a file"""
         if not os.path.isfile(val):
             if os.path.isdir(val):
@@ -121,13 +121,13 @@ class _PathVariableClass:
             raise SCons.Errors.UserError(m % (key, val))
 
     @staticmethod
-    def PathExists(key, val, env) -> None:
+    def PathExists(key, val, env):
         """Validator to check if Path exists"""
         if not os.path.exists(val):
             m = 'Path for option %s does not exist: %s'
             raise SCons.Errors.UserError(m % (key, val))
 
-    def __call__(self, key, help, default, validator=None) -> Tuple[str, str, str, Callable, None]:
+    def __call__(self, key, help, default, validator=None):
         """Return a tuple describing a path list SCons Variable.
 
         The input parameters describe a 'path list' option. Returns

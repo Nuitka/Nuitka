@@ -20,6 +20,7 @@ from nuitka.importing.Importing import (
     flushImportCache,
     locateModule,
 )
+from nuitka.plugins.Plugins import setupHooks
 from nuitka.PythonVersions import python_version
 from nuitka.reports.CompilationReportReader import (
     getEmbeddedDataFilenames,
@@ -68,6 +69,10 @@ def addToPythonPath(python_path, in_front=False):
 class build(distutils.command.build.build):
     # pylint: disable=attribute-defined-outside-init
     def run(self):
+        # Plugins are considered during location of modules, so
+        # we need that setup done.
+        setupHooks()
+
         wheel_logger.info("Specified packages: %s." % self.distribution.packages)
         wheel_logger.info("Specified modules: %s." % self.distribution.py_modules)
 

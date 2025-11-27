@@ -84,6 +84,7 @@ class StatementDelVariableBase(StatementBase):
     def fromXML(cls, provider, source_ref, **args):
         owner = getOwnerFromCodeName(args["owner"])
 
+        # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
                 args["variable_name"], temp_type=args["var_type"]
@@ -193,8 +194,8 @@ class StatementDelVariableBase(StatementBase):
 
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_write(self.variable)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
 
 
 class StatementDelVariableTolerant(StatementDelVariableBase):

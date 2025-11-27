@@ -132,7 +132,7 @@ def _call_env_subst(env, string, *args, **kw):
 
 def smart_link(source, target, env, for_signature):
     import SCons.Tool.cxx
-    # Nuitka: Avoid ununused tools
+    # Nuitka: Avoid unused tools
     # import SCons.Tool.FortranCommon
 
     has_cplusplus = SCons.Tool.cxx.iscplusplus(source)
