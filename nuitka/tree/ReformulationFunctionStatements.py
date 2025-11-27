@@ -226,7 +226,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
-def wrapWithTypeAnnotations(provider, type_params, body, source_ref):
+def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
     helper_name = "create_type_annotations"
 
     outline_body = ExpressionOutlineFunction(
@@ -380,8 +380,10 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 0x3C0:
-        function_creation = wrapWithTypeAnnotations(
+    # Add wrapping for function with generic types to be provided to the
+    # function body.
+    if python_version >= 0x3C0 and node.type_params:
+        function_creation = _wrapWithTypeAnnotations(
             provider, node.type_params, function_creation, source_ref
         )
 
