@@ -179,7 +179,7 @@ def attachLeadingComment(filename, effective_filename, comments, replacements=()
         bom = False
 
     if comments and os.path.basename(effective_filename) != os.path.basename(__file__):
-        assert b'Part of "Nuitka"' not in b"".join(old_lines), effective_filename
+        assert b'Part of "Nuitka"' not in b"".join(old_lines), filename
 
     if comments and comments[1] == b"" and any(line.strip() for line in old_lines):
         pre_comments = comments[:1]
