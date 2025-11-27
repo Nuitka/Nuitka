@@ -354,7 +354,7 @@ NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyThreadState *tstate,
         SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
                                                             "too many values to unpack (expected %d)", expected);
 #else
-        int gotten = -1;
+        Py_ssize_t gotten = -1;
 
         if (Py_TYPE(iterator) == &PyTupleIter_Type) {
             gotten = PyTuple_GET_SIZE(((_PyTupleIterObject *)iterator)->it_seq);
