@@ -984,7 +984,7 @@ a) If a suitable Visual Studio version is installed (check above trace
    outputs for rejection messages), it will be located automatically via
    registry. But not if you activate the wrong prompt.
 
-b) Using "--mingw64" lets Nuitka download MinGW64 for you. Note: MinGW64
+b) Using "--mingw64" forces Nuitka download MinGW64 for you. Note: MinGW64
    is the project name, it does *not* mean 64 bits, just a gcc with better
    Windows compatibility, it is available for 32 and 64 bits. Cygwin based
    gcc e.g. do not work.
