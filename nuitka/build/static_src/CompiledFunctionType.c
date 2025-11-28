@@ -1375,7 +1375,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
     } else if (offset < 0) {
         // Try to catch if we are missing values for the specialized shared
         // bodies.
-        NUITKA_CANNOT_GET_HERE("Compiled function unpickle problem");
+        NUITKA_CANNOT_GET_HERE("Compiled function un-pickle problem");
     }
 
     assert(result->m_dict == NULL);
