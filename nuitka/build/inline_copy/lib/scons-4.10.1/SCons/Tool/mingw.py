@@ -41,23 +41,10 @@ import SCons.Defaults
 import SCons.Tool
 import SCons.Util
 
-# TODO: should this be synced with SCons/Platform/mingw.py:MINGW_DEFAULTPATHS
-#  i.e. either keep the same, or make sure there's only one?
-mingw_base_paths = [
-    r'c:\MinGW\bin',
-    r'C:\cygwin64\bin',
-    r'C:\msys64',
-    r'C:\msys64\mingw64\bin',
-    r'C:\cygwin\bin',
-    r'C:\msys',
-    # Chocolatey mingw (pkg name for MinGW-w64) does not use ChocolateyToolsLocation
-    r'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin',
-]
-# Chocolatey msys2 uses envvar ChocolateyToolsLocation to base the install
-# location (unless the user supplied additional params). Try to reproduce:
-choco = os.environ.get('ChocolateyToolsLocation')
-if choco:
-    mingw_base_paths.append(choco + r'\msys64\bin')
+# Nuitka: Only use version specific paths if possible.
+# Cygwin and msys2 should be avoided.
+mingw_base_paths = []
+mingw_paths = []
 
 
 def shlib_generator(target, source, env, for_signature):
@@ -66,10 +53,15 @@ def shlib_generator(target, source, env, for_signature):
     dll = env.FindIxes(target, 'SHLIBPREFIX', 'SHLIBSUFFIX')
     if dll: cmd.extend(['-o', dll])
 
-    cmd.extend(['$SOURCES', '$_LIBDIRFLAGS', '$_LIBFLAGS'])
+    # Nuitka: Use linker file
+    tmp_linker_filename = "@%s" % (
+        os.path.join(env.source_dir, "@link_input.txt").replace(os.path.sep, "/"),
+    )
+    cmd.extend([tmp_linker_filename, '$_LIBDIRFLAGS', '$_LIBFLAGS'])
 
-    implib = env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX')
-    if implib: cmd.append('-Wl,--out-implib,' + implib.get_string(for_signature))
+    # Nuitka: Disable implib here, we do it manually.
+    # implib = env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX')
+    # if implib: cmd.append('-Wl,--out-implib,' + implib.get_string(for_signature))
 
     def_target = env.FindIxes(target, 'WINDOWSDEFPREFIX', 'WINDOWSDEFSUFFIX')
     insert_def = env.subst("$WINDOWS_INSERT_DEF")
@@ -130,19 +122,13 @@ SCons.Tool.SourceFileScanner.add_scanner('.rc', SCons.Defaults.CScan)
 key_program = 'mingw32-make'
 
 
-def find_version_specific_mingw_paths():
-    r"""
-    One example of default mingw install paths is:
-    C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev2\mingw64\bin
-
-    Use glob'ing to find such and add to mingw_base_paths
-    """
-    new_paths = glob.glob(r"C:\mingw-w64\*\mingw64\bin")
-
-    return new_paths
+# Nuitka: We try to find matching ones only.
+def find_version_specific_mingw_paths(env):
+    return []
 
 
-_mingw_all_paths = None
+
+_mingw_all_paths = []
 
 def get_mingw_paths():
     global _mingw_all_paths
@@ -151,8 +137,10 @@ def get_mingw_paths():
     return _mingw_all_paths
 
 def generate(env):
+    global mingw_paths
     # Check for reasoanble mingw default paths
-    mingw_paths = get_mingw_paths()
+    # Nuitks: Do not do that anymore.
+    # mingw_paths += find_version_specific_mingw_paths(env)
 
     mingw = SCons.Tool.find_program_path(env, key_program, default_paths=mingw_paths)
     if mingw:
