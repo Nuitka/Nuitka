@@ -1988,12 +1988,12 @@ linux_group.add_option(
     default="detect",
     help="""\
 Select console mode for Linux app bundles. 'force' always opens Terminal
-if not already running in one, useful for console/TUI applications launched
-from Finder. 'detect' (default) opens Terminal when no terminal is detected
+if not already running in one, useful for console/TUI applications launched. 
+'detect' (default) opens Terminal when no terminal is detected
 (currently behaves the same as 'force', with smarter heuristics planned for
 future releases). 'disable' never opens Terminal automatically. This helps
-console applications work correctly when launched from GUI contexts like DMG
-files or Finder. Default is "detect".""",
+console applications work correctly when launched from GUI contexts. 
+Default is "detect".""",
 )
 
 del linux_group
