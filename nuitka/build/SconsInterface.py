@@ -25,6 +25,7 @@ from nuitka.options.Options import (
     getJobLimit,
     getLtoMode,
     getMacOSTargetArch,
+    getLinuxConsoleMode,
     getMsvcVersion,
     getNoDeploymentIndications,
     getOnefileChildGraceTime,
@@ -749,6 +750,10 @@ def getCommonSconsOptions():
     # for accelerated mode still.
     if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
+
+
+        # Pass macOS console mode setting
+        scons_options["linux_app_console_mode"] = getLinuxConsoleMode()
 
     return scons_options, env_values
 
