@@ -361,6 +361,17 @@ class {{mixin_name}}({{base_class}}):
         return self.computeExpression(trace_collection)
 {% endif %}
 
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
 {% if raise_mode == "no_raise" %}
     @staticmethod
     def mayRaiseExceptionOperation():
