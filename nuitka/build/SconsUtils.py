@@ -195,8 +195,11 @@ def _prepareFromEnvironmentVar(var_name):
 
 
 def _prepareEnvironment(mingw_mode):
-    mingw_mode, zig_mode = _prepareFromEnvironmentVar("CC")
+    mingw_mode_from_env, zig_mode = _prepareFromEnvironmentVar("CC")
     _prepareFromEnvironmentVar("CXX")
+
+    if mingw_mode_from_env:
+        mingw_mode = True
 
     anaconda_python = getArgumentBool("anaconda_python", False)
 
