@@ -73,7 +73,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     // The empty name means global.
     loadConstantsBlob(tstate, &global_constants[0], "");
 
-#if _NUITKA_EXE_MODE
+#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the
        distribution for standalone. */
     Nuitka_SysSetObject(
