@@ -2580,6 +2580,11 @@ def getMacOSAppVersion():
     return options.macos_app_version
 
 
+def getMacOSConsoleMode():
+    """*str* console mode for macOS app bundles, derived from ``--macos-app-console-mode`` value"""
+    return options.macos_app_console_mode
+
+
 # Mapping of Info.plist keys to the corresponding entitlement keys for hardened
 # runtime, spell-checker: ignore addressbook
 _macos_protected_resource_entitlements = {

@@ -1818,6 +1818,23 @@ Password for the certificate file provided via
 '--macos-sign-keyring-filename'. Default empty.""",
 )
 
+macos_group.add_option(
+    "--macos-app-console-mode",
+    action="store",
+    dest="macos_app_console_mode",
+    choices=("force", "detect", "disable"),
+    metavar="MODE",
+    default="detect",
+    help="""\
+Select console mode for macOS app bundles. 'force' always opens Terminal
+if not already running in one, useful for console/TUI applications launched
+from Finder. 'detect' (default) opens Terminal when no terminal is detected
+(currently behaves the same as 'force', with smarter heuristics planned for
+future releases). 'disable' never opens Terminal automatically. This helps
+console applications work correctly when launched from GUI contexts like DMG
+files or Finder. Default is "detect".""",
+)
+
 del macos_group
 
 
