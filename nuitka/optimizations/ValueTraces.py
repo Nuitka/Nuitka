@@ -85,6 +85,9 @@ class ValueTraceBase(object):
     def addUsage(self):
         self.usage_count += 1
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
     def addNameUsage(self):
         self.usage_count += 1
         self.name_usage_count += 1
@@ -92,9 +95,20 @@ class ValueTraceBase(object):
         if self.name_usage_count <= 2 and self.previous is not None:
             self.previous.addNameUsage()
 
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+        if self.name_usage_count < 2 and self.previous is not None:
+            self.previous.removeNameUsage()
+
     def addMergeUsage(self):
         self.usage_count += 1
         self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
 
     def getUsageCount(self):
         return self.usage_count
@@ -283,13 +297,24 @@ class ValueTraceStartMixin(object):
     def addUsage(self):
         self.usage_count += 1
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
     def addMergeUsage(self):
         self.usage_count += 1
         self.merge_usage_count += 1
 
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
+
     def addNameUsage(self):
         self.usage_count += 1
         self.name_usage_count += 1
+
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
 
     @staticmethod
     def getAttributeNode():
@@ -454,12 +479,25 @@ class ValueTraceUnknownBase(ValueTraceBase):
         if self.previous:
             self.previous.addUsage()
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        if self.previous:
+            self.previous.removeUsage()
+
     def addMergeUsage(self):
         self.usage_count += 1
         self.merge_usage_count += 1
 
         if self.previous:
             self.previous.addMergeUsage()
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
+
+        if self.previous:
+            self.previous.removeMergeUsage()
 
     def compareValueTrace(self, other):
         # We are unknown, just need to know if the other one is, pylint: disable=no-self-use
@@ -542,6 +580,13 @@ class ValueTraceEscaped(ValueTraceUnknown):
         if self.usage_count <= 2:
             self.previous.addNameUsage()
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        # The previous must be prevented from optimization if still used afterwards.
+        if self.usage_count < 2:
+            self.previous.removeNameUsage()
+
     def addMergeUsage(self):
         self.usage_count += 1
         if self.usage_count <= 2:
@@ -550,6 +595,15 @@ class ValueTraceEscaped(ValueTraceUnknown):
         self.merge_usage_count += 1
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        if self.usage_count < 2:
+            self.previous.removeNameUsage()
+
+        self.merge_usage_count -= 1
+        if self.merge_usage_count < 2:
+            self.previous.removeMergeUsage()
 
     def getTypeShape(self):
         return self.previous.getTypeShape()
@@ -766,6 +820,14 @@ class ValueTraceMergeBase(ValueTraceBase):
             for previous in self.previous:
                 previous.addNameUsage()
 
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+        if self.name_usage_count < 2 and self.previous is not None:
+            for previous in self.previous:
+                previous.removeNameUsage()
+
     def addUsage(self):
         self.usage_count += 1
 
@@ -774,9 +836,21 @@ class ValueTraceMergeBase(ValueTraceBase):
             for trace in self.previous:
                 trace.addMergeUsage()
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        # Only do it once.
+        if self.usage_count == 0:
+            for trace in self.previous:
+                trace.removeMergeUsage()
+
     def addMergeUsage(self):
         self.addUsage()
         self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.removeUsage()
+        self.merge_usage_count -= 1
 
     def isUsingTrace(self):
         # Checking definite is enough, the merges, we shall see them as well.

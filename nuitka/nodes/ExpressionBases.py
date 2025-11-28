@@ -153,7 +153,7 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def extractUnhashableNodeType():
-        """Return the value type that is not hashable, if isKnowtoBeHashable() returns False."""
+        """Return the value type that is not hashable, if isKnownToBeHashable() returns False."""
 
         # Not available by default.
         return None
@@ -181,6 +181,11 @@ class ExpressionBase(NodeBase):
             evaluated first, but this allows e.g. to deal with branches, do
             not overload this unless necessary.
         """
+
+    @staticmethod
+    def undoComputeExpressionRaw(trace_collection):
+        # Virtual method
+        pass
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
