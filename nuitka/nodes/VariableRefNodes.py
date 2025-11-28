@@ -557,6 +557,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return self, None, None
 
+    def undoComputeExpressionRaw(self, trace_collection):
+        self.variable_trace.removeUsage()
+
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         if self.variable_trace is not None:
             attribute_node = self.variable_trace.getAttributeNode()

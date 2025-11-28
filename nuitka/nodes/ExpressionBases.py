@@ -182,6 +182,11 @@ class ExpressionBase(NodeBase):
             not overload this unless necessary.
         """
 
+    @staticmethod
+    def undoComputeExpressionRaw(trace_collection):
+        # Virtual method, pylint: disable=unused-argument
+        pass
+
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
