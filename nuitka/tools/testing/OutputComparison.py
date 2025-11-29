@@ -281,7 +281,7 @@ exceeded while calling a Python object' in \
                     break
 
                 if 'File "' in next_line:
-                    end_index = next_index
+                    end_index = next_index - 1
                     break
 
             if end_index is not None:
