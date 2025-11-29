@@ -360,6 +360,17 @@ def printVersionInformation():
     )
 
 
+def _warnAppBundleOnlyOption(option_name):
+    if isMacOS() and not shallCreateAppBundle():
+        if not options.github_workflow_options:
+            options_logger.warning(
+                """\
+Note: Using app bundle specific option '%s' unless building macOS app bundle \
+need to use --mode=app if you want that."""
+                % option_name
+            )
+
+
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
         if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
@@ -1194,6 +1205,10 @@ library. Please upgrade/downgrade to a supported micro version."""
         _warnOSSpecificOption("--macos-app-protected-resource", "Darwin")
     if options.macos_app_mode is not None:
         _warnOSSpecificOption("--macos-app-mode", "Darwin")
+    if options.macos_create_dmg:
+        # TODO: These are not all, do it for all app only options.
+        _warnAppBundleOnlyOption("--macos-app-create-dmg")
+        _warnOSSpecificOption("--macos-app-create-dmg", "Darwin")
     if options.macos_prohibit_multiple_instances:
         _warnOSSpecificOption("--macos-prohibit-multiple-instances", "Darwin")
     if getMacOSSigningCertificatePassword():
@@ -2545,6 +2560,11 @@ def shallCreateAppBundle():
         return False
 
     return options.macos_create_bundle and isMacOS()
+
+
+def shallCreateDmgFile():
+    """*bool* shall create a DMG file, derived from ``--macos-app-create-dmg`` value"""
+    return options.macos_create_dmg and isMacOS()
 
 
 def getMacOSSigningIdentity():

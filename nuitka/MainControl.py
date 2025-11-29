@@ -91,6 +91,7 @@ from nuitka.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
+    shallCreateDmgFile,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
@@ -165,6 +166,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
+from nuitka.utils.MacOSDmg import createDmgFile
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -1256,6 +1258,10 @@ exist, out e.g. '--output-dir=output' to sure is importable."""
             )
 
     general.info("Successfully created '%s'." % getReportPath(final_filename))
+
+    # Archive creations, installer creations go here.
+    if shallCreateDmgFile():
+        createDmgFile(general)
 
     writeCompilationReports(aborted=False)
 

@@ -394,6 +394,19 @@ def getNullInput():
         r.close()
 
 
+def filterOutputByLine(output, filter_func):
+    """For use by stderr filters of executeToolChecked."""
+    non_errors = []
+
+    for line in output.splitlines():
+        if line and not filter_func(line):
+            non_errors.append(line)
+
+    output = b"\n".join(non_errors)
+
+    return (0 if non_errors else None), output
+
+
 def executeToolChecked(
     logger,
     command,

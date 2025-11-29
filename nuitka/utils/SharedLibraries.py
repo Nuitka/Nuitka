@@ -17,7 +17,7 @@ from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked
+from .Execution import executeToolChecked, filterOutputByLine
 from .FileOperations import (
     addFileExecutablePermission,
     changeFilenameExtension,
@@ -310,19 +310,6 @@ def _getMacOSArchOption():
         return ()
 
 
-# TODO: Use this for more output filters.
-def _filterOutputByLine(output, filter_func):
-    non_errors = []
-
-    for line in output.splitlines():
-        if line and not filter_func(line):
-            non_errors.append(line)
-
-    output = b"\n".join(non_errors)
-
-    return (0 if non_errors else None), output
-
-
 def _filterOtoolErrorOutput(stderr):
     def isNonErrorExit(line):
         if b"missing from root that overrides" in line:
@@ -330,7 +317,7 @@ def _filterOtoolErrorOutput(stderr):
 
         return False
 
-    return _filterOutputByLine(stderr, isNonErrorExit)
+    return filterOutputByLine(stderr, isNonErrorExit)
 
 
 def _getOToolCommandOutput(otool_option, filename, cached):
