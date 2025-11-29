@@ -463,10 +463,7 @@ def createEnvironment(
     if env.onefile_dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
 
-
-    linux_app_console_mode = getArgumentDefaulted(
-        "linux_app_console_mode", "detect"
-        )
+    linux_app_console_mode = getArgumentDefaulted("linux_app_console_mode", "detect")
     if linux_app_console_mode == "force":
         env.Append(CPPDEFINES=["_NUITKA_LINUX_CONSOLE_MODE_FORCE"])
     elif linux_app_console_mode == "detect":
