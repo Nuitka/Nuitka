@@ -99,6 +99,7 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
+    isLinux
 )
 
 from .SconsCaching import checkCachingSuccess
@@ -674,8 +675,7 @@ def getCommonSconsOptions():
     if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
 
-
-        # Pass macOS console mode setting
+    if isLinux():
         scons_options["linux_app_console_mode"] = getLinuxConsoleMode()
 
     return scons_options, env_values
