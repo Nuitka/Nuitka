@@ -20,6 +20,18 @@
 #include <unistd.h>
 #endif
 
+#if defined(__linux__)
+#include <errno.h>
+#include <limits.h>
+#include <spawn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
 #include "nuitka/prelude.h"
 
 #ifndef __IDE_ONLY__
@@ -1367,6 +1379,81 @@ void setLANGSystemLocaleMacOS(void) {
 #endif
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
+
+#if(defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && !defined(_WIN32) && !defined(__APPLE__)
+
+if (!isatty(STDIN_FILENO)) {
+
+    const * already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
+    if (already_relaunched == NULL) {
+        setenv("NUITKA_TERMINAL_RELAUNCH", "1", 1);
+
+
+        char
+        const * binary_path = getBinaryFilenameHostEncoded(true);
+
+        char ** spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 2));
+        if (spawn_argv == NULL) {
+            fprintf(stderr, "Error: Memory allocation failed for xdg-terminal-exec argv.\n");
+            exit(1); // Exit indicating a failure
+        }
+
+
+        spawn_argv[0] = "xdg-terminal-exec";
+        spawn_argv[1] = (char * ) binary_path;
+        for (int i = 1; i < argc; i++) {
+            spawn_argv[i + 1] = argv[i];
+        }
+        spawn_argv[argc + 1] = NULL;
+
+        pid_t pid;
+        extern char ** environ;
+        int spawn_result = posix_spawnp( & pid, "xdg-terminal-exec", NULL, NULL, spawn_argv, environ);
+
+        free(spawn_argv); 
+
+        if (spawn_result != 0) {
+            // Same allocation check and `posix_spawnp` logic for the fallback terminal.
+            char ** fallback_spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 3));
+            if (fallback_spawn_argv == NULL) {
+                fprintf(stderr, "Error: Memory allocation failed for x-terminal-emulator argv.\n");
+                exit(1);
+            }
+            fallback_spawn_argv[0] = "x-terminal-emulator";
+            fallback_spawn_argv[1] = "-e";
+            fallback_spawn_argv[2] = (char * ) binary_path;
+            for (int i = 1; i < argc; i++) {
+                fallback_spawn_argv[i + 2] = argv[i];
+            }
+            fallback_spawn_argv[argc + 2] = NULL;
+
+            spawn_result = posix_spawnp( & pid, "x-terminal-emulator", NULL, NULL, fallback_spawn_argv, environ);
+            free(fallback_spawn_argv);
+
+            if (spawn_result != 0) {
+                fprintf(stderr, "Error: Failed to spawn terminal: %s\n", strerror(spawn_result));
+                exit(1);
+            }
+        }
+
+        int status;
+        int wait_result;
+        do {
+            wait_result = waitpid(pid, & status, 0);
+        } while (wait_result == -1 && errno == EINTR);
+
+
+        if (wait_result == -1) {
+            fprintf(stderr, "Error: waitpid failed for terminal process %d: %s\n", (int) pid, strerror(errno));
+        }
+
+        
+        exit(0);
+    }
+}
+#endif
+
+
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
 #endif
