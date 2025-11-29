@@ -465,7 +465,7 @@ def createEnvironment(
 
 
     linux_app_console_mode = getArgumentDefaulted(
-        "linux_app_console_mode", "disable"
+        "linux_app_console_mode", "detect"
         )
     if linux_app_console_mode == "force":
         env.Append(CPPDEFINES=["_NUITKA_LINUX_CONSOLE_MODE_FORCE"])
