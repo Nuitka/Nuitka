@@ -1393,24 +1393,25 @@ void setLANGSystemLocaleMacOS(void) {
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
-#if defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)
-// Check if we should relaunch in a terminal on Linux.
-// The logic is: if we are not attached to a terminal, we should probably relaunch.
+#if(defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && !defined(_WIN32) && !defined(__APPLE__)
+
 if (!isatty(STDIN_FILENO)) {
-    // Use an environment variable to prevent an infinite loop of relaunches.
-    char
+
     const * already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
     if (already_relaunched == NULL) {
-        // Set the variable for the child process.
         setenv("NUITKA_TERMINAL_RELAUNCH", "1", 1);
 
-        // The command to launch is ourselves. Nuitka provides a helper for this.
+
         char
         const * binary_path = getBinaryFilenameHostEncoded(true);
 
-        // We need to build a new argv for the posix_spawn call.
-        // It will be: "xdg-terminal-exec", "/path/to/our/binary", "arg1", "arg2", ..., NULL
         char ** spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 2));
+        if (spawn_argv == NULL) {
+            fprintf(stderr, "Error: Memory allocation failed for xdg-terminal-exec argv.\n");
+            exit(1); // Exit indicating a failure
+        }
+
+
         spawn_argv[0] = "xdg-terminal-exec";
         spawn_argv[1] = (char * ) binary_path;
         for (int i = 1; i < argc; i++) {
@@ -1418,16 +1419,19 @@ if (!isatty(STDIN_FILENO)) {
         }
         spawn_argv[argc + 1] = NULL;
 
-        // Use posix_spawn for security
         pid_t pid;
         extern char ** environ;
-        int spawn_result = posix_spawn( & pid, "/usr/bin/xdg-terminal-exec", NULL, NULL, spawn_argv, environ);
+        int spawn_result = posix_spawnp( & pid, "xdg-terminal-exec", NULL, NULL, spawn_argv, environ);
 
-        free(spawn_argv);
+        free(spawn_argv); 
 
         if (spawn_result != 0) {
-            // Fallback for when xdg-terminal-exec is not in /usr/bin
+            // Same allocation check and `posix_spawnp` logic for the fallback terminal.
             char ** fallback_spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 3));
+            if (fallback_spawn_argv == NULL) {
+                fprintf(stderr, "Error: Memory allocation failed for x-terminal-emulator argv.\n");
+                exit(1);
+            }
             fallback_spawn_argv[0] = "x-terminal-emulator";
             fallback_spawn_argv[1] = "-e";
             fallback_spawn_argv[2] = (char * ) binary_path;
@@ -1436,7 +1440,7 @@ if (!isatty(STDIN_FILENO)) {
             }
             fallback_spawn_argv[argc + 2] = NULL;
 
-            spawn_result = posix_spawn( & pid, "/usr/bin/x-terminal-emulator", NULL, NULL, fallback_spawn_argv, environ);
+            spawn_result = posix_spawnp( & pid, "x-terminal-emulator", NULL, NULL, fallback_spawn_argv, environ);
             free(fallback_spawn_argv);
 
             if (spawn_result != 0) {
@@ -1445,15 +1449,15 @@ if (!isatty(STDIN_FILENO)) {
             }
         }
 
-        
         int status;
         int wait_result;
         do {
-            wait_result = waitpid(pid, &status, 0);
-        } while (wait_result == -1 && errno == EINTR); // Was interrupted by signal
+            wait_result = waitpid(pid, & status, 0);
+        } while (wait_result == -1 && errno == EINTR);
+
 
         if (wait_result == -1) {
-              fprintf(stderr, "Error: waitpid failed for terminal process %d: %s\n", (int)pid, strerror(errno));
+            fprintf(stderr, "Error: waitpid failed for terminal process %d: %s\n", (int) pid, strerror(errno));
         }
 
         
@@ -1461,6 +1465,7 @@ if (!isatty(STDIN_FILENO)) {
     }
 }
 #endif
+
 
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
