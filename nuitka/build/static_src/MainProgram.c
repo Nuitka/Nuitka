@@ -1447,7 +1447,14 @@ if (!isatty(STDIN_FILENO)) {
 
         
         int status;
-        waitpid(pid, & status, 0);
+        int wait_result;
+        do {
+            wait_result = waitpid(pid, &status, 0);
+        } while (wait_result == -1 && errno == EINTR); // Was interrupted by signal
+
+        if (wait_result == -1) {
+              fprintf(stderr, "Error: waitpid failed for terminal process %d: %s\n", (int)pid, strerror(errno));
+        }
 
         
         exit(0);
