@@ -223,7 +223,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             enter_await_statement,
         )
     # It's weird, but 3.14 looks up __exit__ before __enter__
-    elif (python_version >= 0x360) and (python_version < 0x3E0) and sync:
+    elif 0x360 <= python_version < 0x3E0 and sync:
         attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
     else:
         attribute_assignments = (attribute_exit_assignment, attribute_enter_assignment)
