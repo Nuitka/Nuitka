@@ -23,9 +23,9 @@ from nuitka.Options import (
     getFcfProtectionMode,
     getFileVersion,
     getJobLimit,
+    getLinuxConsoleMode,
     getLtoMode,
     getMacOSTargetArch,
-    getLinuxConsoleMode,
     getMsvcVersion,
     getNoDeploymentIndications,
     getOnefileChildGraceTime,
@@ -96,10 +96,10 @@ from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
     isElfUsingPlatform,
+    isLinux,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
-    isLinux
 )
 
 from .SconsCaching import checkCachingSuccess
