@@ -456,6 +456,14 @@ class LocalsDictVariable(Variable):
         else:
             return trace_collection.initVariableUnknown(self, None)
 
+    def inhibitsClassScopeForwardPropagation(self):
+        for traces in self.traces.values():
+            for trace in traces.values():
+                if trace.inhibitsClassScopeForwardPropagation():
+                    return True
+
+        return False
+
 
 def _updateVariablesFromCollectionFirst(new_collection):
     for variable, variable_traces in iterItems(new_collection.getVariableTracesAll()):

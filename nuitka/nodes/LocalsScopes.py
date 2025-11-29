@@ -246,6 +246,8 @@ class LocalsDictHandleBase(object):
                 temp_type="object",
             )
 
+            trace_collection.initVariableLate(self.propagation[variable_name])
+
         return self.propagation[variable_name]
 
     def getPropagationVariables(self):
@@ -334,9 +336,8 @@ class LocalsDictHandle(LocalsDictHandleBase):
             return
 
         for variable in self.variables.values():
-            for variable_trace in variable.traces:
-                if variable_trace.inhibitsClassScopeForwardPropagation():
-                    return
+            if variable.inhibitsClassScopeForwardPropagation():
+                return
 
         trace_collection.signalChange(
             "var_usage",
