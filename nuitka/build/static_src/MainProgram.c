@@ -20,17 +20,17 @@
 #include <unistd.h>
 #endif
 
- #if defined(__linux__)
- #include <errno.h>
- #include <limits.h>
- #include <spawn.h>
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
- #include <sys/types.h>
- #include <sys/wait.h>
- #include <unistd.h>
- #endif
+#if defined(__linux__)
+#include <errno.h>
+#include <limits.h>
+#include <spawn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 #include "nuitka/prelude.h"
 
