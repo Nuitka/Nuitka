@@ -1517,68 +1517,6 @@ if (!isatty(STDIN_FILENO)) {
     }
 #endif
 
-
-#if defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)
-     // Check if we should relaunch in a terminal on Linux.
-     // The logic is: if we are not attached to a terminal, we should probably relaunch.
-     if (!isatty(STDIN_FILENO)) {
-         // Use an environment variable to prevent an infinite loop of relaunches.
-         char const *already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
-         if (already_relaunched == NULL) {
-             // Set the variable for the child process.
-             setenv("NUITKA_TERMINAL_RELAUNCH", "1", 1);
-
-             // The command to launch is ourselves. Nuitka provides a helper for this.
-             char const *binary_path = getBinaryFilenameHostEncoded(true);
-
-             // We need to build a new argv for the posix_spawn call.
-             // It will be: "xdg-terminal-exec", "/path/to/our/binary", "arg1", "arg2", ..., NULL
-             char **spawn_argv = (char **)malloc(sizeof(char *) * (argc + 2));
-             spawn_argv[0] = "xdg-terminal-exec";
-             spawn_argv[1] = (char *)binary_path;
-             for (int i = 1; i < argc; i++) {
-                 spawn_argv[i + 1] = argv[i];
-             }
-             spawn_argv[argc + 1] = NULL;
-
-             // Use posix_spawn for security, just like the macOS version.
-             pid_t pid;
-             extern char **environ;
-             int spawn_result = posix_spawn(&pid, "/usr/bin/xdg-terminal-exec", NULL, NULL, spawn_argv, environ);
-
-             free(spawn_argv);
-
-             if (spawn_result != 0) {
-                 // Fallback for when xdg-terminal-exec is not in /usr/bin
-                 char **fallback_spawn_argv = (char **)malloc(sizeof(char *) * (argc + 3));
-                 fallback_spawn_argv[0] = "x-terminal-emulator";
-                 fallback_spawn_argv[1] = "-e";
-                 fallback_spawn_argv[2] = (char *)binary_path;
-                  for (int i = 1; i < argc; i++) {
-                     fallback_spawn_argv[i + 2] = argv[i];
-                 }
-                 fallback_spawn_argv[argc + 2] = NULL;
-
-                 spawn_result = posix_spawn(&pid, "/usr/bin/x-terminal-emulator", NULL, NULL, fallback_spawn_argv, environ);
-                 free(fallback_spawn_argv);
-
-                 if (spawn_result != 0) {
-                     fprintf(stderr, "Error: Failed to spawn terminal: %s\n", strerror(spawn_result));
-                     exit(1);
-                 }
-             }
-
-
-             // Wait for the terminal process to complete.
-             int status;
-             waitpid(pid, &status, 0);
-
-             // Exit this parent process.
-             exit(0);
-         }
-     }
-#endif
-
     // Set up stdout/stderr according to user specification.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(NUITKA_FORCED_STDOUT_PATH)
