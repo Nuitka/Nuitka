@@ -68,6 +68,9 @@ did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
 
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
+    # Take any arbitrary test output from CPython and make it work against
+    # Nuitka's output. For example, some tracebacks would take a lot of work
+    # to implement for little benefit, so they're omitted with this function.
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
 
