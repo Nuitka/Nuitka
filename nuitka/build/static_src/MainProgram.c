@@ -20,7 +20,7 @@
 #include <unistd.h>
 #endif
 
- #if !defined(_WIN32) && !defined(__APPLE__)
+ #if defined(__linux__)
  #include <errno.h>
  #include <limits.h>
  #include <spawn.h>
