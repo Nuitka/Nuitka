@@ -1696,6 +1696,16 @@ macos_group.add_option(
     help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
+macos_group.add_option(
+    "--macos-app-create-dmg",
+    action="store_true",
+    dest="macos_create_dmg",
+    default=False,
+    help="""\
+When compiling for macOS, create a DMG file for the application bundle.
+Defaults to off.""",
+)
+
 
 macos_group.add_option(
     "--macos-signed-app-name",
