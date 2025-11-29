@@ -463,6 +463,15 @@ def createEnvironment(
     if env.onefile_dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
 
+
+    linux_app_console_mode = getArgumentDefaulted(
+        "linux_app_console_mode", "disable"
+        )
+    if linux_app_console_mode == "force":
+        env.Append(CPPDEFINES=["_NUITKA_LINUX_CONSOLE_MODE_FORCE"])
+    elif linux_app_console_mode == "detect":
+        env.Append(CPPDEFINES=["_NUITKA_LINUX_CONSOLE_MODE_DETECT"])
+
     env.forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
     env.forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 
