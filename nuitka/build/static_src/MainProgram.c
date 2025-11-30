@@ -21,6 +21,7 @@
 #endif
 
 #if defined(__linux__)
+#define _GNU_SOURCE 
 #include <errno.h>
 #include <limits.h>
 #include <spawn.h>
@@ -29,7 +30,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <unistd.h>
+#include <signal.h>
 #endif
 
 #include "nuitka/prelude.h"
