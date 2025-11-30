@@ -1393,75 +1393,49 @@ void setLANGSystemLocaleMacOS(void) {
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
-#if(defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && defined(__linux__)
-
+#if (defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && defined(__linux__)
 if (!isatty(STDIN_FILENO)) {
-
-    const * already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
+    const char *already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
     if (already_relaunched == NULL) {
         setenv("NUITKA_TERMINAL_RELAUNCH", "1", 1);
+        char const *binary_path = getBinaryFilenameHostEncoded(true);
 
-
-        char
-        const * binary_path = getBinaryFilenameHostEncoded(true);
-
-        char ** spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 2));
-        if (spawn_argv == NULL) {
-            fprintf(stderr, "Error: Memory allocation failed for xdg-terminal-exec argv.\n");
-            exit(1); // Exit indicating a failure
-        }
-
-
-        spawn_argv[0] = "xdg-terminal-exec";
-        spawn_argv[1] = (char * ) binary_path;
-        for (int i = 1; i < argc; i++) {
-            spawn_argv[i + 1] = argv[i];
-        }
-        spawn_argv[argc + 1] = NULL;
-
-        pid_t pid;
-        extern char ** environ;
-        int spawn_result = posix_spawnp( & pid, "xdg-terminal-exec", NULL, NULL, spawn_argv, environ);
-
-        free(spawn_argv); 
-
-        if (spawn_result != 0) {
-            // Same allocation check and `posix_spawnp` logic for the fallback terminal.
-            char ** fallback_spawn_argv = (char ** ) malloc(sizeof(char * ) * (argc + 3));
-            if (fallback_spawn_argv == NULL) {
-                fprintf(stderr, "Error: Memory allocation failed for x-terminal-emulator argv.\n");
+        const char *terminals[] = {
+            "xdg-terminal-exec",
+            "x-terminal-emulator",
+            "gnome-terminal",
+            "konsole",
+            "xfce4-terminal",
+            NULL
+        };
+        for (int t = 0; terminals[t] != NULL; t++) {
+            int needs_e = (strcmp(terminals[t], "xdg-terminal-exec") != 0); // pre xdg-terminal-exec era
+            int arg_count = argc + (needs_e ? 2 : 1);
+            char **args = malloc(sizeof(char *) * (arg_count + 1));
+            if (!args) {
+                fprintf(stderr, "Memory allocation failed.\n");
                 exit(1);
             }
-            fallback_spawn_argv[0] = "x-terminal-emulator";
-            fallback_spawn_argv[1] = "-e";
-            fallback_spawn_argv[2] = (char * ) binary_path;
+            args[0] = (char *)terminals[t];
+            int offset = 1;
+            if (needs_e) {
+                args[1] = "-e";
+                args[2] = (char *)binary_path;
+                offset = 3;
+            } else {
+                args[1] = (char *)binary_path;
+                offset = 2;
+            }
             for (int i = 1; i < argc; i++) {
-                fallback_spawn_argv[i + 2] = argv[i];
+                args[i + offset - 1] = argv[i];
             }
-            fallback_spawn_argv[argc + 2] = NULL;
-
-            spawn_result = posix_spawnp( & pid, "x-terminal-emulator", NULL, NULL, fallback_spawn_argv, environ);
-            free(fallback_spawn_argv);
-
-            if (spawn_result != 0) {
-                fprintf(stderr, "Error: Failed to spawn terminal: %s\n", strerror(spawn_result));
-                exit(1);
-            }
+            args[arg_count] = NULL;
+            execvp(args[0], args);
+            free(args);
         }
-
-        int status;
-        int wait_result;
-        do {
-            wait_result = waitpid(pid, & status, 0);
-        } while (wait_result == -1 && errno == EINTR);
-
-
-        if (wait_result == -1) {
-            fprintf(stderr, "Error: waitpid failed for terminal process %d: %s\n", (int) pid, strerror(errno));
-        }
-
-        
-        exit(0);
+        // All terminals failed
+        fprintf(stderr, "Error: Could not launch a terminal. Tried multiple options.\n");
+        exit(1);
     }
 }
 #endif
