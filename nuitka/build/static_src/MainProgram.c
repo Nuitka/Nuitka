@@ -1393,7 +1393,7 @@ void setLANGSystemLocaleMacOS(void) {
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
-#if(defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && !defined(_WIN32) && !defined(__APPLE__)
+#if(defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && defined(__linux__)
 
 if (!isatty(STDIN_FILENO)) {
 
