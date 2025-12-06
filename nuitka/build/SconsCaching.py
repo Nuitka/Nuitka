@@ -21,6 +21,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getLinkTarget,
+    getNormalizedPathJoin,
     makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
@@ -52,7 +53,7 @@ def _getCcacheGuessedPaths(python_prefix):
     if isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         for python_dir in _getPythonDirCandidates(python_prefix):
-            yield os.path.join(python_dir, "bin", "ccache")
+            yield getNormalizedPathJoin(python_dir, "bin", "ccache")
 
         yield "/usr/local/opt/ccache"
         yield "/opt/homebrew/bin/ccache"
@@ -149,7 +150,9 @@ def enableCcache(
         # The ccache needs absolute path, otherwise it will not work.
         # spell-checker: ignore getpid
         ccache_logfile = getExternalUsePath(
-            os.path.abspath(os.path.join(source_dir, "ccache-%d.txt" % os.getpid())),
+            os.path.abspath(
+                getNormalizedPathJoin(source_dir, "ccache-%d.txt" % os.getpid())
+            ),
             only_dirname=True,
         )
 
@@ -212,14 +215,18 @@ def enableCcache(
                 makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
-                    env, "ZIG_LOCAL_CACHE_DIR", os.path.join(zig_cache_dir, "local")
+                    env,
+                    "ZIG_LOCAL_CACHE_DIR",
+                    getNormalizedPathJoin(zig_cache_dir, "local"),
                 )
 
             if not os.getenv("ZIG_GLOBAL_CACHE_DIR"):
                 makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
-                    env, "ZIG_GLOBAL_CACHE_DIR", os.path.join(zig_cache_dir, "global")
+                    env,
+                    "ZIG_GLOBAL_CACHE_DIR",
+                    getNormalizedPathJoin(zig_cache_dir, "global"),
                 )
 
 
@@ -251,7 +258,7 @@ def enableClcache(env, source_dir):
 
     # The clcache stats filename needs absolute path, otherwise it will not work.
     clcache_stats_filename = os.path.abspath(
-        os.path.join(source_dir, "clcache-stats.%d.txt" % os.getpid())
+        getNormalizedPathJoin(source_dir, "clcache-stats.%d.txt" % os.getpid())
     )
 
     setEnvironmentVariable(env, "CLCACHE_STATS", clcache_stats_filename)

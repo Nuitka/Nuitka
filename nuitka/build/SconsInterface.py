@@ -82,6 +82,8 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
+    getNormalizedPath,
+    getNormalizedPathJoin,
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
@@ -113,7 +115,7 @@ def getSconsDataPath():
 def _getSconsInlinePath():
     """Return path to inline copy of scons."""
 
-    return os.path.join(getSconsDataPath(), "inline_copy")
+    return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
 
 
 def _getSconsBinaryCall():
@@ -123,7 +125,7 @@ def _getSconsBinaryCall():
     or if we are on Windows, there it is mandatory.
     """
 
-    inline_path = os.path.join(_getSconsInlinePath(), "bin", "scons.py")
+    inline_path = getNormalizedPathJoin(_getSconsInlinePath(), "bin", "scons.py")
 
     if os.path.exists(inline_path) and not isExperimental("force-system-scons"):
         return [
@@ -313,7 +315,7 @@ def _createSconsDebugScript(source_dir, scons_command):
     )
 
     putTextFileContents(
-        filename=os.path.join(source_dir, scons_debug_python_name),
+        filename=getNormalizedPathJoin(source_dir, scons_debug_python_name),
         contents="""\
 # -*- coding: utf-8 -*-
 
@@ -348,7 +350,7 @@ cd "${0%/*}"
 """
 
     putTextFileContents(
-        filename=os.path.join(
+        filename=getNormalizedPathJoin(
             source_dir,
             changeFilenameExtension(scons_debug_python_name, script_extension),
         ),
@@ -437,8 +439,10 @@ def runScons(scons_options, env_values, scons_filename):
 
         if "source_dir" in scons_options and result == 0:
             if "result_exe" in scons_options:
-                scons_created_exe = getSconsReportValue(
-                    source_dir or scons_options["source_dir"], "TARGET"
+                scons_created_exe = getNormalizedPath(
+                    getSconsReportValue(
+                        source_dir or scons_options["source_dir"], "TARGET"
+                    )
                 )
 
                 if not os.path.exists(scons_created_exe):
@@ -496,13 +500,13 @@ def cleanSconsDirectory(source_dir):
         for path, _filename in listDir(source_dir):
             check(path)
 
-        static_dir = os.path.join(source_dir, "static_src")
+        static_dir = getNormalizedPathJoin(source_dir, "static_src")
 
         if os.path.exists(static_dir):
             for path, _filename in listDir(static_dir):
                 check(path)
 
-        plugins_dir = os.path.join(source_dir, "plugins")
+        plugins_dir = getNormalizedPathJoin(source_dir, "plugins")
 
         if os.path.exists(plugins_dir):
             for path, _filename in listDir(plugins_dir):

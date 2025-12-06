@@ -389,8 +389,7 @@ addPythonHaclLib(env, link_module_libs=link_module_libs)
 if env.gcc_mode and env.static_libpython:
     env.Append(LIBS=[env.File(env.static_libpython)])
 else:
-    if not env.msys2_mingw_python:
-        addWin32PythonLib(env)
+    addWin32PythonLib(env)
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.

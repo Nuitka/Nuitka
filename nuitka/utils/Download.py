@@ -18,6 +18,7 @@ from .FileOperations import (
     addFileExecutablePermission,
     deleteFile,
     getNormalizedPath,
+    getNormalizedPathJoin,
     makePath,
     queryUser,
 )
@@ -147,18 +148,20 @@ def getCachedDownload(
 
     nuitka_download_dir = getDownloadCacheDir()
 
-    nuitka_download_dir = os.path.join(
+    nuitka_download_dir = getNormalizedPathJoin(
         nuitka_download_dir, os.path.basename(binary).replace(".exe", "")
     )
 
     if is_arch_specific:
-        nuitka_download_dir = os.path.join(nuitka_download_dir, is_arch_specific)
+        nuitka_download_dir = getNormalizedPathJoin(
+            nuitka_download_dir, is_arch_specific
+        )
 
     if specificity:
-        nuitka_download_dir = os.path.join(nuitka_download_dir, specificity)
+        nuitka_download_dir = getNormalizedPathJoin(nuitka_download_dir, specificity)
 
-    download_path = os.path.join(nuitka_download_dir, os.path.basename(url))
-    exe_path = os.path.join(nuitka_download_dir, binary)
+    download_path = getNormalizedPathJoin(nuitka_download_dir, os.path.basename(url))
+    exe_path = getNormalizedPathJoin(nuitka_download_dir, binary)
 
     makePath(nuitka_download_dir)
 

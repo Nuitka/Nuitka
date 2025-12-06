@@ -590,7 +590,10 @@ def _getMSVCRedistPath(logger):
         "x86": "x86",
     }
     arch_folder = arch_folder_map.get(getArchitecture())
-    final_path = os.path.join(redist_base_path, latest_version, arch_folder)
+
+    from .FileOperations import getNormalizedPathJoin
+
+    final_path = getNormalizedPathJoin(redist_base_path, latest_version, arch_folder)
 
     if os.path.exists(final_path):
         return final_path

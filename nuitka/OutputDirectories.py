@@ -28,6 +28,7 @@ from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
     getNormalizedPath,
+    getNormalizedPathJoin,
     hasFilenameExtension,
     isFilesystemEncodable,
     makePath,
@@ -82,7 +83,7 @@ def getSourceDirectoryPath(onefile=False, create=False):
     if create:
         makePath(result)
 
-        git_ignore_filename = os.path.join(result, ".gitignore")
+        git_ignore_filename = getNormalizedPathJoin(result, ".gitignore")
 
         if not os.path.exists(git_ignore_filename):
             putTextFileContents(filename=git_ignore_filename, contents="*")
@@ -135,7 +136,7 @@ def getStandaloneDirectoryPath(bundle, real):
     result = getOutputPath(path=dist_folder_name)
 
     if bundle and shallCreateAppBundle() and not isOnefileMode():
-        result = os.path.join(result, "Contents", "MacOS")
+        result = getNormalizedPathJoin(result, "Contents", "MacOS")
 
     return result
 
@@ -184,11 +185,13 @@ def getResultBasePath(onefile=False, real=False):
 
     if isOnefileMode() and onefile:
         if shallCreateAppBundle():
-            file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
+            file_path = getNormalizedPathJoin(
+                file_path + ".app", "Contents", "MacOS", file_path
+            )
 
         return getOutputPath(path=file_path)
     elif isStandaloneMode() and not onefile:
-        return os.path.join(
+        return getNormalizedPathJoin(
             getStandaloneDirectoryPath(bundle=True, real=real),
             file_path,
         )
@@ -214,12 +217,12 @@ def getResultFullpath(onefile, real):
             if onefile:
                 result = getOutputPath(output_filename)
             else:
-                result = os.path.join(
+                result = getNormalizedPathJoin(
                     getStandaloneDirectoryPath(bundle=True, real=real),
                     os.path.basename(output_filename),
                 )
         elif isStandaloneMode() and output_filename is not None:
-            result = os.path.join(
+            result = getNormalizedPathJoin(
                 getStandaloneDirectoryPath(bundle=True, real=real),
                 os.path.basename(output_filename),
             )
