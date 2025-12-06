@@ -14,7 +14,7 @@ module.
 
 import os
 
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
 from nuitka.utils.FileOperations import (
     getFileContents,
     getNormalizedPath,
@@ -112,11 +112,7 @@ def getStandardLibraryPaths():
 
 def _isStandardLibraryPath(filename):
     # These never are in standard library paths.
-    if (
-        "dist-packages" in filename
-        or "site-packages" in filename
-        or "vendor-packages" in filename
-    ):
+    if any(candidate in filename for candidate in getSitePackageCandidateNames()):
         return False
 
     for candidate in getStandardLibraryPaths():
@@ -157,6 +153,10 @@ def scanStandardLibraryPath(stdlib_dir):
         def _removeDirsIfPresent(*remove_dirs):
             # pylint: intended for loop usage, pylint: disable=cell-var-from-loop
             for remove_dir in remove_dirs:
+                if type(remove_dir) in (tuple, list):
+                    _removeDirsIfPresent(*remove_dir)
+                    continue
+
                 if remove_dir in dirs:
                     dirs.remove(remove_dir)
 
@@ -175,9 +175,7 @@ def scanStandardLibraryPath(stdlib_dir):
             ]
 
             _removeDirsIfPresent(
-                "site-packages",
-                "dist-packages",
-                "vendor-packages",
+                getSitePackageCandidateNames(),
                 "test",
                 "ensurepip",
                 "turtledemo",

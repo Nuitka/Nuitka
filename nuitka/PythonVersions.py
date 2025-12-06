@@ -507,6 +507,11 @@ def isPythonWithGil():
     return python_version < 0x3D0 or sys.flags.gil
 
 
+def getSitePackageCandidateNames():
+    """Get the list of site package candidate names."""
+    return ("site-packages", "dist-packages", "vendor-packages")
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
