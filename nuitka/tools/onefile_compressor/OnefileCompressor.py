@@ -12,7 +12,6 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import to_byte
-from nuitka.Options import getJobLimit
 from nuitka.Progress import (
     closeProgressBar,
     enableProgressBar,
@@ -40,14 +39,14 @@ def getCompressorLevel(low_memory):
     return 3 if low_memory else 22
 
 
-def getCompressorFunction(expect_compression, low_memory):
+def getCompressorFunction(expect_compression, low_memory, job_limit):
     # spell-checker: ignore zstd, closefd
 
     if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
 
         compressor_context = ZstdCompressor(
-            level=getCompressorLevel(low_memory), threads=getJobLimit()
+            level=getCompressorLevel(low_memory), threads=job_limit
         )
 
         @contextmanager
@@ -236,10 +235,12 @@ def attachOnefilePayload(
     file_checksums,
     win_path_sep,
     low_memory,
+    job_limit,
 ):
     compression_indicator, compressor = getCompressorFunction(
         expect_compression=expect_compression,
         low_memory=low_memory,
+        job_limit=job_limit,
     )
 
     @decoratorRetries(
@@ -355,6 +356,7 @@ def main():
     low_memory = sys.argv[6] == "True"
     as_archive = sys.argv[7] == "True"
     use_compression_cache = sys.argv[8] == "True"
+    job_limit = int(sys.argv[9])
 
     enableProgressBar(os.getenv("NUITKA_PROGRESS_BAR", "none"))
 
@@ -369,6 +371,7 @@ def main():
         file_checksums=file_checksums,
         win_path_sep=win_path_sep,
         low_memory=low_memory,
+        job_limit=job_limit,
     )
 
     sys.exit(0)
