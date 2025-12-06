@@ -41,6 +41,7 @@ from nuitka.Tracing import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFilenameExtension,
+    getNormalizedPath,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
@@ -531,9 +532,8 @@ if os.name == "nt":
     elif env.gcc_mode and env.static_libpython:
         env.Append(LIBS=[env.File(env.static_libpython)])
     else:
-        # Some non CPython flavors on Windows have this.
-        if not env.msys2_mingw_python:
-            addWin32PythonLib(env)
+        # All Python flavors on Windows have this.
+        addWin32PythonLib(env)
 elif env.exe_mode or env.dll_mode:
     # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
@@ -732,35 +732,43 @@ source_files = discoverSourceFiles()
 # supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
-
 if env.module_mode:
     # For Python modules, the standard shared library extension is not what gets
     # used. spell-checker: ignore SHLIBSUFFIX
     module_suffix = getFilenameExtension(result_exe)
-    result_base_path = changeFilenameExtension(result_exe, "")
+    result_base_path = changeFilenameExtension(getNormalizedPath(result_exe), "")
 
     extra_suffix = getFilenameExtension(result_base_path)
     if extra_suffix != "":
         module_suffix = extra_suffix + module_suffix
-        result_base_path = changeFilenameExtension(result_base_path, "")
+        result_base_path = changeFilenameExtension(
+            getNormalizedPath(result_base_path), ""
+        )
 
     assert getFilenameExtension(result_base_path) == "", result_base_path
 
     env["SHLIBSUFFIX"] = module_suffix
 
+    # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.SharedLibrary(
-        result_base_path, source_files, no_import_lib=no_import_lib
+        os.path.normpath(result_base_path),
+        source_files,
+        no_import_lib=no_import_lib,
     )
 elif env.dll_mode:
     module_suffix = getFilenameExtension(result_exe)
-    result_base_path = changeFilenameExtension(result_exe, "")
+    result_base_path = changeFilenameExtension(getNormalizedPath(result_exe), "")
     env["SHLIBSUFFIX"] = module_suffix
 
+    # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.SharedLibrary(
-        result_base_path, source_files, no_import_lib=no_import_lib
+        os.path.normpath(result_base_path),
+        source_files,
+        no_import_lib=no_import_lib,
     )
 else:
-    target = env.Program(result_exe, source_files)
+    # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
+    target = env.Program(os.path.normpath(result_exe), source_files)
 
 # Use compiler/linker flags provided via environment variables
 importEnvironmentVariableSettings(env)

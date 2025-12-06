@@ -248,7 +248,7 @@ def _getRealPathWindows(path):
                 # Python versions, many tools won't work with those.
                 _real_path_windows_cache[path] = path
             else:
-                _real_path_windows_cache[path] = os.path.join(
+                _real_path_windows_cache[path] = getNormalizedPathJoin(
                     os.path.dirname(path), result.rstrip("\r\n")
                 )
         else:
@@ -307,7 +307,7 @@ def _restoreWindowsPath(orig_path, path):
                 if os.path.sep not in dirname:
                     dirname = dirname + os.path.sep
 
-                path = os.path.normpath(os.path.join(dirname, filename))
+                path = getNormalizedPathJoin(dirname, filename)
 
     return path
 
@@ -379,7 +379,10 @@ def listDir(path):
             return value
 
     return sorted(
-        (_tryDecodeToStr(os.path.join(path, filename)), _tryDecodeToStr(filename))
+        (
+            _tryDecodeToStr(getNormalizedPathJoin(path, filename)),
+            _tryDecodeToStr(filename),
+        )
         for filename in os.listdir(real_path)
     )
 
@@ -442,7 +445,7 @@ def getFileList(
             if only_suffixes and not os.path.normcase(filename).endswith(only_suffixes):
                 continue
 
-            fullname = os.path.join(root, filename)
+            fullname = getNormalizedPathJoin(root, filename)
 
             if normalize:
                 fullname = getNormalizedPath(fullname)
@@ -482,7 +485,7 @@ def getSubDirectories(path, ignore_dirs=()):
         dirnames.sort()
 
         for dirname in dirnames:
-            result.append(os.path.join(root, dirname))
+            result.append(getNormalizedPathJoin(root, dirname))
 
     result.sort()
     return result
@@ -697,7 +700,13 @@ def changeFilenameExtension(path, extension):
     if not is_legal:
         raise NuitkaFilenameError(illegal_reason)
 
-    return os.path.splitext(path)[0] + extension
+    result = os.path.splitext(path)[0] + extension
+
+    is_legal, illegal_reason = isLegalPath(result)
+    if not is_legal:
+        raise NuitkaFilenameError(illegal_reason)
+
+    return result
 
 
 def switchFilenameExtension(path, old_extension, new_extension):
@@ -866,6 +875,7 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if "w" in mode:
         is_legal, illegal_reason = isLegalPath(filename)
         if not is_legal:
+            assert False, filename
             raise NuitkaFilenameError(illegal_reason)
 
     # Doesn't exist anymore for Python3.7 or later.
@@ -1027,7 +1037,7 @@ def resolveSymlink(path):
     """Resolve a symlink, to a relative path."""
     link_source_abs = os.path.abspath(path)
     link_target_abs = os.path.abspath(
-        os.path.join(os.path.dirname(path), os.readlink(path))
+        getNormalizedPathJoin(os.path.dirname(path), os.readlink(path))
     )
     link_target_rel = relpath(link_target_abs, os.path.dirname(link_source_abs))
 
@@ -1046,7 +1056,7 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
 
         if isFilenameBelowPath(
             path=dist_dir,
-            filename=os.path.join(os.path.dirname(dest_path), link_target_rel),
+            filename=getNormalizedPathJoin(os.path.dirname(dest_path), link_target_rel),
         ):
             os.symlink(link_target_rel, dest_path)
             return
@@ -1252,17 +1262,16 @@ def getExternalUsePath(filename, only_dirname=False):
     """
 
     filename = os.path.abspath(filename)
+    key = filename, only_dirname
 
-    if os.name == "nt":
-        key = filename, only_dirname
-
-        if key not in _external_use_path_cache:
+    if key not in _external_use_path_cache:
+        if os.name == "nt":
             filename = getFilenameRealPath(filename)
 
             if only_dirname:
                 dirname = getWindowsShortPathName(os.path.dirname(filename))
                 assert os.path.exists(dirname)
-                filename = os.path.join(dirname, os.path.basename(filename))
+                filename = getNormalizedPathJoin(dirname, os.path.basename(filename))
             else:
                 filename = getWindowsShortPathName(filename)
 
@@ -1272,10 +1281,10 @@ def getExternalUsePath(filename, only_dirname=False):
             # Looking the resolved path up again should give same result immediately.
             key = filename, only_dirname
             _external_use_path_cache[key] = filename
+        else:
+            _external_use_path_cache[key] = filename
 
-        return _external_use_path_cache[key]
-    else:
-        return filename
+    return _external_use_path_cache[key]
 
 
 _report_path_cache = {}
@@ -1321,22 +1330,16 @@ def _getReportPath(filename, prefixes):
             if isFilenameBelowPath(
                 path=prefix_path, filename=abs_filename, consider_short=False
             ):
-                return os.path.normpath(
-                    os.path.join(
-                        prefix_name, relpath(path=abs_filename, start=prefix_path)
-                    )
+                return getNormalizedPathJoin(
+                    prefix_name, relpath(path=abs_filename, start=prefix_path)
                 )
 
             if isFilenameBelowPath(
                 path=prefix_path, filename=abs_filename, consider_short=True
             ):
-                return os.path.normpath(
-                    os.path.join(
-                        prefix_name,
-                        relpath(
-                            path=abs_filename, start=getExternalUsePath(prefix_path)
-                        ),
-                    )
+                return getNormalizedPathJoin(
+                    prefix_name,
+                    relpath(path=abs_filename, start=getExternalUsePath(prefix_path)),
                 )
 
     if isWin32Windows():
@@ -1353,7 +1356,9 @@ def _getReportPath(filename, prefixes):
                 except FileNotFoundError:
                     pass
                 else:
-                    filename = os.path.join(dirname, os.path.basename(filename))
+                    filename = getNormalizedPathJoin(
+                        dirname, os.path.basename(filename)
+                    )
         else:
             if old_filename != filename:
                 return _getReportPath(filename, prefixes)
@@ -1377,7 +1382,7 @@ def getLinkTarget(filename):
     while os.path.exists(filename) and os.path.islink(filename):
         link_target = os.readlink(filename)
 
-        filename = os.path.join(os.path.dirname(filename), link_target)
+        filename = getNormalizedPathJoin(os.path.dirname(filename), link_target)
         is_link = True
 
     return is_link, filename
@@ -1601,6 +1606,15 @@ def getNormalizedPath(path):
         path = os.path.expanduser(path)
 
     return path
+
+
+def getNormalizedPathJoin(*paths):
+    """Return join of path elements as a normalized path that is also a native path,
+       i.e. only legal characters.
+
+    Needed, because MSYS2 likes to keep "/" in normalized paths.
+    """
+    return getNormalizedPath(os.path.join(*paths))
 
 
 def getFileContentsHash(filename, as_string=True, line_filter=None):

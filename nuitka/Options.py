@@ -69,6 +69,7 @@ from nuitka.Tracing import (
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getNormalizedPath,
+    getNormalizedPathJoin,
     getReportPath,
     isLegalPath,
     isNonLocalPath,
@@ -786,7 +787,7 @@ mandatory."""
 
         output_filename_dir = os.path.dirname(output_filename) or "."
 
-        output_dir = os.path.join(getOutputDir(), output_filename_dir)
+        output_dir = getNormalizedPathJoin(getOutputDir(), output_filename_dir)
 
         if output_filename_dir != "." and not os.path.isdir(output_dir):
             options_logger.sysexit(
@@ -794,7 +795,7 @@ mandatory."""
 Error, specified output directory does not exist, you have to create \
 it before using it: '%s' (from --output-filename='%s')."""
                 % (
-                    getNormalizedPath(output_dir),
+                    output_dir,
                     output_filename,
                 )
             )
@@ -1710,7 +1711,7 @@ def getShallIncludeDataFiles():
             for pattern in _splitShellPattern(pattern):
                 pattern = os.path.expanduser(pattern)
 
-                yield os.path.join(src, pattern), src, dest, data_file_desc
+                yield getNormalizedPathJoin(src, pattern), src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
@@ -1820,7 +1821,7 @@ def getOutputFilename():
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
     if options.output_dir:
-        return getNormalizedPath(os.path.join(options.output_dir, path))
+        return getNormalizedPathJoin(options.output_dir, path)
     else:
         return path
 
@@ -2326,7 +2327,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = os.path.join(".", options.pgo_executable)
+            options.pgo_executable = getNormalizedPathJoin(".", options.pgo_executable)
 
     return options.pgo_executable
 

@@ -52,7 +52,7 @@ from nuitka.tree.SourceHandling import writeSourceCode
 from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
-    getNormalizedPath,
+    getNormalizedPathJoin,
     makePath,
     putTextFileContents,
 )
@@ -839,11 +839,9 @@ through implicit import by '%s' plugin encountered."""
 
         try:
             trigger_module = buildModule(
-                module_filename=getNormalizedPath(
-                    os.path.join(
-                        os.path.dirname(module.getCompileTimeFilename()),
-                        module_name.asPath() + ".py",
-                    )
+                module_filename=getNormalizedPathJoin(
+                    os.path.dirname(module.getCompileTimeFilename()),
+                    module_name.asPath() + ".py",
                 ),
                 module_name=module_name,
                 reason="trigger",

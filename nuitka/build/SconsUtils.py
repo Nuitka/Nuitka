@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFilenameExtension,
     getNormalizedPath,
+    getNormalizedPathJoin,
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
@@ -69,7 +70,7 @@ def setupScons(env, source_dir):
     # make it version dependent on the Python version of running Scons, as its
     # pickle is being used, spell-checker: ignore sconsign
     sconsign_filename = os.path.abspath(
-        os.path.join(
+        getNormalizedPathJoin(
             source_dir, ".sconsign-%d%s" % (sys.version_info[0], sys.version_info[1])
         )
     )
@@ -205,7 +206,7 @@ def _prepareEnvironment(mingw_mode):
 
     if isLinux() and anaconda_python:
         python_prefix = getArgumentRequired("python_prefix")
-        addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
+        addToPATH(None, getNormalizedPathJoin(python_prefix, "bin"), prefix=True)
 
     return mingw_mode, zig_mode
 
@@ -446,7 +447,7 @@ def getExecutablePath(filename, env):
     for path_element in path_elements:
         path_element = path_element.strip('"')
 
-        full = os.path.normpath(os.path.join(path_element, filename))
+        full = getNormalizedPathJoin(path_element, filename)
 
         if os.path.isfile(full):
             return full
@@ -529,7 +530,7 @@ def writeSconsReport(env, target):
         print("ld_flags=%s" % (env.ld_flags or ""), file=report_file)
 
         print("PATH=%s" % os.environ["PATH"], file=report_file)
-        print("TARGET=%s" % target[0].abspath, file=report_file)
+        print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
@@ -567,11 +568,11 @@ def flushSconsReports():
 
 
 def _getSconsReportFilename(source_dir):
-    return os.path.join(source_dir, "scons-report.txt")
+    return getNormalizedPathJoin(source_dir, "scons-report.txt")
 
 
 def _getSconsErrorReportFilename(source_dir):
-    return os.path.join(source_dir, "scons-error-report.txt")
+    return getNormalizedPathJoin(source_dir, "scons-error-report.txt")
 
 
 def readSconsReport(source_dir):
@@ -652,7 +653,7 @@ def addClangClPathFromMSVC(env):
             "Error, Visual Studio required for using ClangCL on Windows."
         )
 
-    clang_dir = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
+    clang_dir = getNormalizedPathJoin(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
 
     if (
         getCompilerArch(
@@ -660,9 +661,9 @@ def addClangClPathFromMSVC(env):
         )
         == "pei-x86-64"
     ):
-        clang_dir = os.path.join(clang_dir, "x64", "bin")
+        clang_dir = getNormalizedPathJoin(clang_dir, "x64", "bin")
     else:
-        clang_dir = os.path.join(clang_dir, "bin")
+        clang_dir = getNormalizedPathJoin(clang_dir, "bin")
 
     if not os.path.exists(clang_dir):
         scons_details_logger.sysexit(
@@ -751,8 +752,8 @@ def cheapCopyFile(src, dst):
 
 
 def provideStaticSourceFile(env, sub_path, c11_mode):
-    source_filename = os.path.join(env.nuitka_src, "static_src", sub_path)
-    target_filename = os.path.join(
+    source_filename = getNormalizedPathJoin(env.nuitka_src, "static_src", sub_path)
+    target_filename = getNormalizedPathJoin(
         env.source_dir, "static_src", os.path.basename(sub_path)
     )
 
@@ -761,7 +762,8 @@ def provideStaticSourceFile(env, sub_path, c11_mode):
 
     cheapCopyFile(source_filename, target_filename)
 
-    return target_filename
+    # We want to use "/" paths with MSYS2 here.
+    return os.path.normpath(target_filename)
 
 
 def scanSourceDir(env, dirname, plugins):
@@ -785,7 +787,7 @@ def scanSourceDir(env, dirname, plugins):
         ) or not filename_base.startswith(("module.", "__", "plugin.")):
             continue
 
-        filename = os.path.join(dirname, filename_base)
+        filename = getNormalizedPathJoin(dirname, filename_base)
 
         target_filename = filename
 
@@ -820,7 +822,7 @@ def createDefinitionsFile(source_dir, filename, definitions):
     for env_name in os.environ["_NUITKA_BUILD_DEFINITIONS_CATALOG"].split(","):
         definitions[env_name] = os.environ[env_name]
 
-    build_definitions_filename = os.path.join(source_dir, filename)
+    build_definitions_filename = getNormalizedPathJoin(source_dir, filename)
 
     with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
@@ -1015,7 +1017,7 @@ def makeResultPathFileSystemEncodable(env, result_exe):
     deleteFile(result_exe, must_exist=False)
 
     if os.name == "nt" and not isFilesystemEncodable(result_exe):
-        result_exe = os.path.join(
+        result_exe = getNormalizedPathJoin(
             os.path.dirname(result_exe),
             "_nuitka_temp.pyd" if env.module_mode else "_nuitka_temp.exe",
         )

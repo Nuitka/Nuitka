@@ -115,7 +115,10 @@ def applyPythonBuildSettings(env):
 def addWin32PythonLib(env):
     # Make sure to locate the Python link library from multiple potential
     # locations (installed vs. self-built).
-    if env.python_debug:
+    if env.msys2_mingw_python:
+        win_lib_name = "libpython" + env.python_abi_version + ".dll.a"
+        win_lib_filename = win_lib_name
+    elif env.python_debug:
         win_lib_name = "python" + env.python_abi_version.replace(".", "") + "_d"
     else:
         win_lib_name = "python" + env.python_abi_version.replace(".", "")
@@ -127,13 +130,14 @@ def addWin32PythonLib(env):
     else:
         pc_build_dir = "PCBuild"
 
-    for candidate in ("libs", pc_build_dir):
+    for candidate in ("libs", "lib", pc_build_dir):
         win_lib_path = os.path.join(env.python_prefix_external, candidate)
 
-        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+        print(win_lib_name)
+        if os.path.exists(os.path.join(win_lib_path, win_lib_filename)):
             break
     else:
-        scons_logger.sysexit("Error, cannot find '%s.lib' file." % win_lib_name)
+        scons_logger.sysexit("Error, cannot find '%s' file." % win_lib_filename)
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])

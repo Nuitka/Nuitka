@@ -14,7 +14,11 @@ from nuitka.Options import isExperimental
 from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
-from nuitka.utils.FileOperations import changeFilenameExtension, getFileSize
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    getFileSize,
+    getNormalizedPathJoin,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 
 # Indicate not done with -1
@@ -40,7 +44,7 @@ def runDataComposer(source_dir):
 
 def _runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
+        getNormalizedPathJoin(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
 
     mapping = {
@@ -78,7 +82,7 @@ def _runDataComposer(source_dir):
 
 
 def getConstantBlobFilename(source_dir):
-    return os.path.join(source_dir, "__constants.bin")
+    return getNormalizedPathJoin(source_dir, "__constants.bin")
 
 
 def deriveModuleConstantsBlobName(filename):

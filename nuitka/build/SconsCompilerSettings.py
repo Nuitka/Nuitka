@@ -302,7 +302,11 @@ def checkWindowsCompilerFound(
 
         # On MSYS2, cannot use the POSIX compiler, drop that even before we check arches, since that
         # will of course still match.
-        if env.msys2_mingw_python and compiler_path.endswith("/usr/bin/gcc.exe"):
+        if (
+            env.msys2_mingw_python
+            and compiler_path is not None
+            and compiler_path.endswith("/usr/bin/gcc.exe")
+        ):
             compiler_path = None
 
         if compiler_path is not None:
@@ -417,9 +421,13 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                     compiler_path = None
                     env["CC"] = None
 
-        if compiler_path is None and msvc_version is None:
+        if (
+            compiler_path is None
+            and msvc_version is None
+            and env.python_version < (3, 13)
+        ):
             scons_details_logger.info(
-                "No usable C compiler, attempt fallback to winlibs gcc or clang."
+                "No usable C compiler, attempt fallback to winlibs gcc."
             )
 
             # This will download "gcc.exe" (and "clang.exe") when all others have been

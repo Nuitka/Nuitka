@@ -20,7 +20,7 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import getNormalizedPathJoin, openTextFile
 from nuitka.utils.Utils import isLinux, isMacOS
 
 from .SconsUtils import (
@@ -182,7 +182,7 @@ def getEnhancedToolDetect():
 
 
 def makeGccUseLinkerFile(env, source_files):
-    tmp_linker_filename = os.path.join(env.source_dir, "@link_input.txt")
+    tmp_linker_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
 
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
