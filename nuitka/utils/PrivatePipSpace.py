@@ -9,13 +9,15 @@ import os
 import subprocess
 import sys
 
+from nuitka.PythonVersions import getSitePackageCandidateNames
+
 from .InlineCopies import getDownloadCopyFolder
 
 
 def _findDownloadSitePackagesDir(download_folder):
     for root, dirnames, _filenames in os.walk(download_folder):
         found_candidate = None
-        for candidate in ("site-packages", "dist-packages", "vendor-packages"):
+        for candidate in getSitePackageCandidateNames():
             if candidate in dirnames:
                 # Unclear which one to use.
                 if found_candidate is not None:

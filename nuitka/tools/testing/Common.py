@@ -18,7 +18,11 @@ from optparse import OptionParser
 from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getCommercialVersion
-from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
+from nuitka.PythonVersions import (
+    getSitePackageCandidateNames,
+    getTestExecutionPythonVersions,
+    isDebugPython,
+)
 from nuitka.Tracing import OurLogger, flushStandardOutputs, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
@@ -1777,9 +1781,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith(
-            ("site-packages", "dist-packages", "vendor-packages")
-        ):
+        if loaded_filename.endswith(getSitePackageCandidateNames()):
             continue
 
         # QtNetwork insist on doing this it seems.

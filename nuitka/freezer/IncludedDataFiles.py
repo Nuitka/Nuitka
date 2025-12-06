@@ -28,7 +28,10 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.plugins.Hooks import considerDataFiles, onDataFileTags
 from nuitka.PythonFlavors import getSystemPrefixPath
-from nuitka.PythonVersions import python_version_str
+from nuitka.PythonVersions import (
+    getSitePackageCandidateNames,
+    python_version_str,
+)
 from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -216,12 +219,7 @@ default_ignored_suffixes = (
 
 default_ignored_suffixes += getExtensionModuleSuffixes()
 
-default_ignored_dirs = (
-    "__pycache__",
-    "site-packages",
-    "dist-packages",
-    "vendor-packages",
-)
+default_ignored_dirs = ("__pycache__",) + getSitePackageCandidateNames()
 
 default_ignored_filenames = ("py.typed",)
 if not isMacOS():
