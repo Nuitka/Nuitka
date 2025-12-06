@@ -392,8 +392,15 @@ typedef long Py_hash_t;
  * The Python 3.7.0 release on at Linux doesn't work this way either, was
  * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
  * become runtime incompatible.
+ *
+ * On Python 3.14.0, the introduction of _Py_TriggerGC() also broke this.
  */
-#if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK

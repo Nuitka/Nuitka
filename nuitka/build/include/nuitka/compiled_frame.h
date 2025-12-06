@@ -290,6 +290,13 @@ static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3d0
+static inline bool Nuitka_Frame_IsSuspended(struct Nuitka_FrameObject *frame) {
+    CHECK_OBJECT(frame);
+    return frame->m_frame_state == FRAME_SUSPENDED;
+}
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
 
 #if PYTHON_VERSION < 0x3d0

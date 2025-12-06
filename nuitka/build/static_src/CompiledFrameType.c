@@ -574,6 +574,14 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3d0
+    if (Nuitka_Frame_IsSuspended(frame)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear a suspended frame");
+
+        return NULL;
+    }
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
     if (frame->m_frame_state == FRAME_COMPLETED) {
         Nuitka_Frame_tp_clear(frame);
