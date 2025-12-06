@@ -150,7 +150,7 @@ def _addWindowsIconFromIcons(onefile):
             )
 
             if icon_index is not None:
-                postprocessing_logger.sysexit(
+                return postprocessing_logger.sysexit(
                     "Cannot specify indexes with non-ico format files in '%s'."
                     % icon_spec
                 )

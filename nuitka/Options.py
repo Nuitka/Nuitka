@@ -69,6 +69,7 @@ from nuitka.Tracing import (
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getNormalizedPath,
+    getNormalizedPathJoin,
     getReportPath,
     isLegalPath,
     isNonLocalPath,
@@ -132,7 +133,8 @@ def _convertOldStylePathSpecQuotes(value):
 
 
 def checkPathSpec(value, arg_name, allow_disable):
-    # There are never enough checks here, pylint: disable=too-many-branches
+    # There are never enough checks here and sysexit is returned,
+    # pylint: disable=too-many-branches,too-many-return-statements
     old = value
     value = _convertOldStylePathSpecQuotes(value)
     if old != value:
@@ -145,57 +147,57 @@ def checkPathSpec(value, arg_name, allow_disable):
     value = getNormalizedPath(value)
 
     if "\n" in value or "\r" in value:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Using a new line in value '%s=%r' value is not allowed."
             % (arg_name, value)
         )
 
     if "{NONE}" in value:
         if not allow_disable:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NONE}' in '%s=%s' value is not allowed."
                 % (arg_name, value)
             )
 
         if value != "{NONE}":
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NONE}' in '%s=%s' value does not allow anything else used too."
                 % (arg_name, value)
             )
 
     if "{NULL}" in value:
         if not allow_disable:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NULL}' in '%s=%s' value is not allowed."
                 % (arg_name, value)
             )
 
         if value != "{NULL}":
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NULL}' in '%s=%s' value does not allow anything else used too."
                 % (arg_name, value)
             )
 
     if "{COMPANY}" in value and not getCompanyName():
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{COMPANY}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if "{PRODUCT}" in value and not getProductName():
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{PRODUCT}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{VERSION}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if value.count("{") != value.count("}"):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """Unmatched '{}' is wrong for '%s=%s' and may \
 definitely not do what you want it to do."""
             % (arg_name, value)
@@ -206,18 +208,18 @@ definitely not do what you want it to do."""
     for c in value:
         if c in "{":
             if var_name is not None:
-                options_logger.sysexit(
+                return options_logger.sysexit(
                     """Nested '{' is wrong for '%s=%s'.""" % (arg_name, value)
                 )
             var_name = ""
         elif c == "}":
             if var_name is None:
-                options_logger.sysexit(
+                return options_logger.sysexit(
                     """Stray '}' is wrong for '%s=%s'.""" % (arg_name, value)
                 )
 
             if var_name not in run_time_variable_names:
-                onefile_logger.sysexit(
+                return onefile_logger.sysexit(
                     "Found unknown variable name '%s' in for '%s=%s'."
                     "" % (var_name, arg_name, value)
                 )
@@ -236,7 +238,7 @@ definitely not do what you want it to do."""
         "{TEMP}",
     ):
         if candidate in value[1:]:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Absolute run time paths of '%s' can only be at the start of \
 '%s=%s', using it in the middle of it is not allowed."""
@@ -244,7 +246,7 @@ Absolute run time paths of '%s' can only be at the start of \
             )
 
         if candidate == value:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """Cannot use folder '%s', may only be the \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
@@ -252,7 +254,7 @@ start of '%s=%s', using that alone is not allowed."""
 
         if value.startswith(candidate) and candidate != "{PROGRAM_BASE}":
             if value[len(candidate)] != os.path.sep:
-                options_logger.sysexit(
+                return options_logger.sysexit(
                     """Cannot use general system folder %s, without a path \
 separator '%s=%s', just appending to these is not allowed, needs to be \
 below them."""
@@ -261,7 +263,7 @@ below them."""
 
     is_legal, reason = isLegalPath(value)
     if not is_legal:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """Cannot use illegal paths '%s=%s', due to %s."""
             % (arg_name, value, reason)
         )
@@ -277,7 +279,7 @@ def _checkOnefileTargetSpec():
     )
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
 you cannot unpack the onefile payload into the same directory as the binary,
@@ -427,7 +429,7 @@ Using OS specific option '%s' has no effect on %s."""
 
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value '%s' description, must specify a relative target path with '=' separating it."
             % (option_name, data_dir)
         )
@@ -435,13 +437,13 @@ def _checkDataDirOptionValue(data_dir, option_name):
     src, dst = data_dir.split("=", 1)
 
     if os.path.isabs(dst):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value, must specify relative target path for data dir, not '%s' as in '%s'."
             % (option_name, dst, data_dir)
         )
 
     if not os.path.isdir(src):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
             % (option_name, src, data_dir)
         )
@@ -449,7 +451,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
 
 def _checkFilenameOnlyArgument(option_name, filename, extra_message):
     if os.path.basename(filename) != filename:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, '%s' value cannot contain a directory part%s."""
             % (option_name, extra_message)
@@ -457,7 +459,7 @@ Error, '%s' value cannot contain a directory part%s."""
 
     is_legal, reason = isLegalPath(filename)
     if not is_legal:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, '%s' value '%s' is not a legal filename: %s%s."""
             % (option_name, filename, reason, extra_message)
@@ -469,8 +471,8 @@ def parseArgs():
 
     :meta private:
     """
-    # singleton with many cases checking the options right away.
-    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
+    # Singleton with many cases checking the options right away, and sysexit is returned
+    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements,too-many-return-statements
     global is_nuitka_run, options, positional_args, extra_args
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
@@ -543,7 +545,7 @@ def parseArgs():
         getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
         and not isAllowedToReexecute()
     ):
-        general.sysexit("Error, not allowed to re-execute, but that has happened.")
+        return general.sysexit("Error, not allowed to re-execute, but that has happened.")
 
     # Force to persist this one early.
     getLaunchingSystemPrefixPath()
@@ -594,7 +596,7 @@ def parseArgs():
             or options.module_mode
             or options.macos_create_bundle
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Cannot use both '--mode=' and deprecated options that specify mode."
             )
 
@@ -635,7 +637,7 @@ def parseArgs():
         macos_target_arch = getMacOSTargetArch()
 
         if macos_target_arch == "universal":
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
             )
 
@@ -647,7 +649,7 @@ def parseArgs():
             if not hasUniversalOrMatchingMacOSArchitecture(
                 os.path.realpath(sys.executable)
             ):
-                options_logger.sysexit(
+                return options_logger.sysexit(
                     """\
 Cannot cross compile to other arch, using non-universal Python binaries \
 for macOS. Please install the "universal" Python package as offered on \
@@ -655,7 +657,7 @@ the Python download page."""
                 )
 
         if options.macos_target_arch == "arm64" and getArchitecture() == "x86_64":
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """
 Cannot cross compile from 'x86_64' architecture Python to arm64 target. \
 Please use an 'arm64' Python to create it."""
@@ -676,7 +678,7 @@ Please use an 'arm64' Python to create it."""
     # Check onefile splash image
     if options.splash_screen_image:
         if not os.path.exists(options.splash_screen_image):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, splash screen image path '%s' does not exist."
                 % options.splash_screen_image
             )
@@ -688,7 +690,7 @@ Please use an 'arm64' Python to create it."""
             not options.onefile_child_grace_time.isdigit()
             and options.onefile_child_grace_time != "infinity"
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, the value given for '--onefile-child-grace-time' must be integer or 'infinity'."""
             )
@@ -719,7 +721,7 @@ Error, the value given for '--onefile-child-grace-time' must be integer or 'infi
     # standard library.
     if options.is_standalone:
         if options.module_mode:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable.
 
@@ -739,7 +741,7 @@ makes no sense to include a Python runtime."""
                 bad = False
 
         if bad:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, '--follow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % any_case_module
@@ -757,7 +759,7 @@ Error, '--follow-import-to' takes only module names or patterns, not directory p
                 bad = False
 
         if bad:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, '--nofollow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % no_case_module
@@ -766,7 +768,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
     scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.isfile(scons_python):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, no such Python binary '%s', should be full path." % scons_python
         )
 
@@ -774,7 +776,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 
     if output_filename is not None:
         if shallMakeModule():
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, may not module mode where filenames and modules matching are
 mandatory."""
@@ -786,45 +788,45 @@ mandatory."""
 
         output_filename_dir = os.path.dirname(output_filename) or "."
 
-        output_dir = os.path.join(getOutputDir(), output_filename_dir)
+        output_dir = getNormalizedPathJoin(getOutputDir(), output_filename_dir)
 
         if output_filename_dir != "." and not os.path.isdir(output_dir):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, specified output directory does not exist, you have to create \
 it before using it: '%s' (from --output-filename='%s')."""
                 % (
-                    getNormalizedPath(output_dir),
+                    output_dir,
                     output_filename,
                 )
             )
 
     if isLinux():
         if len(getLinuxIconPaths()) > 1:
-            options_logger.sysexit("Error, can only use one icon file on Linux.")
+            return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
     if isMacOS():
         if len(getMacOSIconPaths()) > 1:
-            options_logger.sysexit("Error, can only use one icon file on macOS.")
+            return options_logger.sysexit("Error, can only use one icon file on macOS.")
 
     for icon_path in getWindowsIconPaths():
         if "#" in icon_path and isWin32Windows():
             icon_path, icon_index = icon_path.rsplit("#", 1)
 
             if not icon_index.isdigit() or int(icon_index) < 0:
-                options_logger.sysexit(
+                return options_logger.sysexit(
                     "Error, icon number in '%s#%s' not valid."
                     % (icon_path + "#" + icon_index)
                 )
 
         if getWindowsIconExecutablePath():
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
             )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
@@ -832,7 +834,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
@@ -840,17 +842,17 @@ it before using it: '%s' (from --output-filename='%s')."""
         product_version = getProductVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
 
     if getCompanyName() == "":
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, empty string is not an acceptable company name."""
         )
 
     if getProductName() == "":
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, empty string is not an acceptable product name."""
         )
 
@@ -858,7 +860,7 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     if splash_screen_filename is not None:
         if not os.path.isfile(splash_screen_filename):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, specified splash screen image '%s' does not exist."
                 % splash_screen_filename
             )
@@ -870,18 +872,18 @@ it before using it: '%s' (from --output-filename='%s')."""
         and isWin32Windows()
     ):
         if not (file_version or product_version) and getCompanyName():
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
     if isAcceleratedMode() and not hasAcceleratedSupportedFlavor():
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, unsupported OS or Python flavor '%s' for accelerated mode."
             % getPythonFlavorName()
         )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        options_logger.sysexit("Error, unsupported OS for onefile '%s'." % getOS())
+        return options_logger.sysexit("Error, unsupported OS for onefile '%s'." % getOS())
 
     for module_pattern, _filename_pattern in getShallIncludePackageData():
         if (
@@ -889,7 +891,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "/" in module_pattern
             or "\\" in module_pattern
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, '--include-package-data' needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
@@ -900,7 +902,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "/" in module_pattern
             or "\\" in module_pattern
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, '--follow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
@@ -910,14 +912,14 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "/" in module_pattern
             or "\\" in module_pattern
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
     for data_file_desc in options.data_files:
         if "=" not in data_file_desc:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
@@ -933,16 +935,16 @@ it before using it: '%s' (from --output-filename='%s')."""
         filenames = resolveShellPatternToFilenames(src_pattern)
 
         if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
                 % src
             )
 
         if not filenames:
-            options_logger.sysexit("Error, '%s' does not match any files." % src)
+            return options_logger.sysexit("Error, '%s' does not match any files." % src)
 
         if os.path.isabs(dst):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, must specify relative target path for data file, not absolute path '%s'."
                 % data_file_desc
             )
@@ -955,20 +957,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, pattern '%s' given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
     for directory_name in getShallFollowExtra():
         if not os.path.isdir(directory_name):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, value '%s' given to '--include-plugin-directory' must be a directory name."
                 % directory_name
             )
 
         if isStandardLibraryPath(directory_name):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
@@ -979,7 +981,7 @@ options instead."""
     if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         usable, reason = _couldUseStaticLibPython()
 
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, a static libpython is either not found or not supported for \
 this Python (%s) installation: %s"""
@@ -990,7 +992,7 @@ this Python (%s) installation: %s"""
         )
 
     if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
 might be missing required packages. Disable with --static-libpython=no" if you don't \
 want to install it."""
@@ -998,7 +1000,7 @@ want to install it."""
 
     if isApplePython():
         if isStandaloneMode():
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, on macOS, for standalone mode, Apple Python is not supported \
 due to being tied to specific OS releases, use e.g. CPython instead \
@@ -1007,7 +1009,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
             )
 
         if str is bytes:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
@@ -1021,7 +1023,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
 
     pgo_executable = getPgoExecutable()
     if pgo_executable and not isPathExecutable(pgo_executable):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, path '%s' to binary to use for PGO is not executable."
             % pgo_executable
         )
@@ -1031,7 +1033,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
         and isTermuxPython()
         and getExecutablePath("termux-elf-cleaner") is None
     ):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, onefile mode on Termux requires 'termux-elf-cleaner' to be installed, \
 use 'pkg install termux-elf-cleaner' to use it."""
@@ -1039,7 +1041,7 @@ use 'pkg install termux-elf-cleaner' to use it."""
 
     for user_yaml_filename in getUserProvidedYamlFiles():
         if not os.path.exists(user_yaml_filename):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, cannot find user provider yaml file '%s'."""
                 % user_yaml_filename
@@ -1055,17 +1057,18 @@ def commentArgs():
     :meta private:
 
     """
-    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
+    # A ton of cases to consider.
+    # pylint: disable=too-many-branches,too-many-statements,too-many-return-statements
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
         if not os.path.exists(filename):
-            general.sysexit("Error, file '%s' is not found." % filename)
+            return general.sysexit("Error, file '%s' is not found." % filename)
 
         if (shallMakeModule() or isStandaloneMode()) and os.path.normcase(
             os.path.basename(filename)
         ) == "__init__.py":
-            general.sysexit(
+            return general.sysexit(
                 """\
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
             )
@@ -1098,7 +1101,7 @@ version '%s' instead or newer Nuitka."""
 
     if python_release_level not in ("final", "candidate"):
         if python_version_str not in getNotYetSupportedPythonVersions():
-            general.sysexit(
+            return general.sysexit(
                 """\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \
 final version instead."""
@@ -1118,7 +1121,7 @@ testing."""
             )
 
         elif not isExperimental("python" + python_version_str):
-            general.sysexit(
+            return general.sysexit(
                 """\
 The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
 release will add it. In the mean time use '%s' instead."""
@@ -1137,7 +1140,7 @@ and recommended only for use in Nuitka development and testing."""
         )
 
     if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
-        general.sysexit(
+        return general.sysexit(
             """\
 Due to a CPython bug of 3.13.4 precisely (<=3.13.4 is OK and >=3.13.5
 as well) it's not possible to use Nuitka with this Python version, as \
@@ -1219,16 +1222,16 @@ library. Please upgrade/downgrade to a supported micro version."""
         _warnOSSpecificOption("--macos-sign-keyring-filename", "Darwin")
 
         if not os.path.exists(cert_filename):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, signing certificate file '%s' does not exist." % cert_filename
             )
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
-            options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
+            return options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
 
         if isMingw64():
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Requesting both Windows specific compilers makes no sense."
             )
 
@@ -1236,7 +1239,7 @@ library. Please upgrade/downgrade to a supported micro version."""
         if getMsvcVersion().count(".") != 1 or not all(
             x.isdigit() for x in getMsvcVersion().split(".")
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
                 % getMsvcVersion()
             )
@@ -1244,7 +1247,7 @@ library. Please upgrade/downgrade to a supported micro version."""
     try:
         getJobLimit()
     except ValueError:
-        options_logger.sysexit(
+        return options_logger.sysexit(
             "For '--jobs' value, use integer values only, not, but not '%s'."
             % options.jobs
         )
@@ -1263,7 +1266,7 @@ library. Please upgrade/downgrade to a supported micro version."""
         )
 
     if options.follow_all is True and shallMakeModule():
-        optimization_logger.sysexit(
+        return optimization_logger.sysexit(
             """\
 In module mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
@@ -1366,7 +1369,7 @@ but errors may happen."""
             )
 
     if shallUsePythonDebug() and not isDebugPython():
-        general.sysexit(
+        return general.sysexit(
             """\
 Error, for using the debug Python version, you need to run it will that version
 and not with the non-debug version.
@@ -1386,7 +1389,7 @@ to disable this warning."""
         and shallUseSigningForNotarization()
         and getMacOSSigningIdentity() == "-"
     ):
-        general.sysexit(
+        return general.sysexit(
             """\
 Error, need to provide signing identity with '--macos-sign-identity' for \
 notarization capable signature, the default identify 'ad-hoc' is not going \
@@ -1457,7 +1460,7 @@ have any effect anymore on non-Windows."""
         and getWindowsVersionInfoStrings()
         and getProductFileVersion() is None
     ):
-        options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, when providing version information on Windows, you must also
 provide either '--product-version' or '--file-version' as these can
@@ -1710,7 +1713,7 @@ def getShallIncludeDataFiles():
             for pattern in _splitShellPattern(pattern):
                 pattern = os.path.expanduser(pattern)
 
-                yield os.path.join(src, pattern), src, dest, data_file_desc
+                yield getNormalizedPathJoin(src, pattern), src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
@@ -1820,7 +1823,7 @@ def getOutputFilename():
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
     if options.output_dir:
-        return getNormalizedPath(os.path.join(options.output_dir, path))
+        return getNormalizedPathJoin(options.output_dir, path)
     else:
         return path
 
@@ -2326,7 +2329,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = os.path.join(".", options.pgo_executable)
+            options.pgo_executable = getNormalizedPathJoin(".", options.pgo_executable)
 
     return options.pgo_executable
 

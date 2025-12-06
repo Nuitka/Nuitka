@@ -159,6 +159,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
     getExternalUsePath,
+    getNormalizedPathJoin,
     getReportPath,
     isFilesystemEncodable,
     openTextFile,
@@ -231,7 +232,7 @@ def _createMainModule():
         distribution = getDistribution(distribution_name)
 
         if distribution is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, could not find distribution '%s' for which metadata was asked to be included."
                 % distribution_name
             )
@@ -301,7 +302,7 @@ use the correct name instead."""
         )
 
         if finding != "absolute":
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to locate module '%s' that you asked to include."
                 % module_name.asString()
             )
@@ -335,7 +336,7 @@ use the correct name instead."""
     # Check if distribution meta data is included, that cannot be used.
     for distribution_name, meta_data_value in getDistributionMetadataValues():
         if not ModuleRegistry.hasDoneModule(meta_data_value.module_name):
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."
                 % (distribution_name, meta_data_value.module_name)
             )
@@ -389,19 +390,21 @@ def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()
 
     def _getModuleFilenames(module):
-        nice_filename = os.path.join(source_dir, "module." + module.getFullName())
+        nice_filename = getNormalizedPathJoin(
+            source_dir, "module." + module.getFullName()
+        )
 
         # Note: Could detect if the file system is cases sensitive in source_dir
         # or not, but that's probably not worth the effort. False positives do
         # no harm at all. We cannot use normcase, as macOS is not using one that
         # will tell us the truth.
-        collision_filename = os.path.join(
+        collision_filename = getNormalizedPathJoin(
             source_dir, "module." + module.getFullName().asString().lower()
         )
 
         # When the filename becomes to long to add ".const", we use a hash name
         # instead.
-        hash_filename = os.path.join(
+        hash_filename = getNormalizedPathJoin(
             source_dir,
             "module.hashed_" + module.getFullName().asLegalFilename(name_limit=1),
         )
@@ -543,20 +546,22 @@ def makeSourceDirectory():
     ) = generateHelpersCode()
 
     writeSourceCode(
-        filename=os.path.join(source_dir, "__helpers.h"), source_code=helper_decl_code
+        filename=getNormalizedPathJoin(source_dir, "__helpers.h"),
+        source_code=helper_decl_code,
     )
 
     writeSourceCode(
-        filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
+        filename=getNormalizedPathJoin(source_dir, "__helpers.c"),
+        source_code=helper_impl_code,
     )
 
     writeSourceCode(
-        filename=os.path.join(source_dir, "__constants.h"),
+        filename=getNormalizedPathJoin(source_dir, "__constants.h"),
         source_code=constants_header_code,
     )
 
     writeSourceCode(
-        filename=os.path.join(source_dir, "__constants.c"),
+        filename=getNormalizedPathJoin(source_dir, "__constants.c"),
         source_code=constants_body_code,
     )
 
@@ -565,7 +570,7 @@ def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
 
     if not os.path.isfile(pgo_executable):
-        general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
+        return general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
 
     return callProcess(
         [getExternalUsePath(pgo_executable)] + getPgoArgs(),
@@ -629,7 +634,7 @@ def _runCPgoBinary():
         exit_code_pgo = _runPgoBinary()
 
         # gcc file suffix, spell-checker: ignore gcda
-        gcc_constants_pgo_filename = os.path.join(
+        gcc_constants_pgo_filename = getNormalizedPathJoin(
             OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
             "__constants.gcda",
         )
@@ -644,7 +649,7 @@ fully before using '--pgo-c' option."""
         )
 
     if not pgo_data_collected:
-        pgo_logger.sysexit(
+        return pgo_logger.sysexit(
             """\
 Error, no C PGO compiled program did not produce expected information, \
 did the created binary run at all?"""
@@ -664,7 +669,7 @@ def _runPythonPgoBinary():
         exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
-        general.sysexit(
+        return general.sysexit(
             """\
 Error, no Python PGO information produced, did the created binary
 run (exit code %d) as expected?"""
@@ -976,7 +981,8 @@ def compileTree():
         loader_code = LoaderCodes.getMetaPathLoaderBodyCode(bytecode_accessor)
 
         writeSourceCode(
-            filename=os.path.join(source_dir, "__loader.c"), source_code=loader_code
+            filename=getNormalizedPathJoin(source_dir, "__loader.c"),
+            source_code=loader_code,
         )
 
     else:

@@ -50,6 +50,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     getFileContentsHash,
     getNormalizedPath,
+    getNormalizedPathJoin,
     listDir,
     removeDirectory,
 )
@@ -556,7 +557,7 @@ def _findModuleInPath3(
         for suffix, module_type in getModuleFilenameSuffixes():
             package_file_name = "__init__" + suffix
 
-            file_path = os.path.join(package_directory, package_file_name)
+            file_path = getNormalizedPathJoin(package_directory, package_file_name)
 
             if os.path.isfile(file_path):
                 yield (
@@ -595,7 +596,7 @@ def _findModuleInPath3(
             if module_type == last_module_type:
                 continue
 
-            full_path = os.path.join(search_path_entry, module_name + suffix)
+            full_path = getNormalizedPathJoin(search_path_entry, module_name + suffix)
 
             if os.path.isfile(full_path):
                 yield (
@@ -619,7 +620,9 @@ def _getSetuptoolsDistutilsPackageDir():
     )[1]
 
     if setuptools_package_dir is not None:
-        setuptools_package_dir = os.path.join(setuptools_package_dir, "_distutils")
+        setuptools_package_dir = getNormalizedPathJoin(
+            setuptools_package_dir, "_distutils"
+        )
 
     return setuptools_package_dir
 
@@ -654,7 +657,9 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
             continue
         considered.add(os.path.normcase(search_path_entry))
 
-        package_directory = os.path.join(search_path_entry, module_name.asPath())
+        package_directory = getNormalizedPathJoin(
+            search_path_entry, module_name.asPath()
+        )
 
         for candidate in _findModuleInPath3(
             module_name=module_name,
@@ -763,7 +768,7 @@ def _unpackPathElement(path_entry):
             if path_entry not in _egg_files:
                 checksum = getFileContentsHash(path_entry)
 
-                target_dir = os.path.join(getCacheDir("egg-content"), checksum)
+                target_dir = getNormalizedPathJoin(getCacheDir("egg-content"), checksum)
 
                 if not os.path.exists(target_dir):
                     try:
@@ -813,7 +818,7 @@ def getPackageSearchPath(package_name):
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = os.path.join(element, child_package_name.asPath())
+            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
@@ -832,7 +837,7 @@ def getPackageSearchPath(package_name):
             return preloaded_path
 
         def getPackageDirCandidates(element):
-            yield os.path.join(element, package_name.asPath()), False
+            yield getNormalizedPathJoin(element, package_name.asPath()), False
 
             for extra_path in getPackageExtraScanPaths(package_name, element):
                 yield extra_path, True
@@ -1061,7 +1066,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     is_package = False
 
     if is_main and os.path.isdir(filename):
-        source_filename = getNormalizedPath(os.path.join(filename, "__main__.py"))
+        source_filename = getNormalizedPathJoin(filename, "__main__.py")
 
         if not os.path.isfile(source_filename):
             sys.stderr.write(
@@ -1091,7 +1096,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getNormalizedPath(os.path.join(filename, "__init__.py"))
+        source_filename = getNormalizedPathJoin(filename, "__init__.py")
 
         if not os.path.isfile(source_filename):
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()

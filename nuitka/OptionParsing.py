@@ -2052,7 +2052,7 @@ def _considerPluginOptions(logger):
         ):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
-                logger.sysexit(
+                return logger.sysexit(
                     """\
 Error, plugin options format changed. Use '--enable-plugin=%s --help' \
 to know new options."""
@@ -2068,7 +2068,7 @@ to know new options."""
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                logger.sysexit(
+                return logger.sysexit(
                     """\
 Error, plugin options format changed. Use '--user-plugin=%s --help'
 to know new options."""
@@ -2165,15 +2165,17 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     try:
         contents_by_line = getFileContentByLine(filename_arg, "rb")
     except (OSError, IOError):
-        return
+        return []
 
     def sysexit(count, message):
-        logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
+        return logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
 
     execute_block = True
     expect_block = False
 
     cond_level = -1
+
+    result = []
 
     for line_number, line in enumerate(contents_by_line):
         match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
@@ -2185,7 +2187,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
-                sysexit(
+                return sysexit(
                     line_number,
                     "Error, 'nuitka-project-if|else' is expected to be followed by block start.",
                 )
@@ -2206,7 +2208,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             if command == "-if":
                 if not arg.endswith(":"):
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
@@ -2232,13 +2234,13 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 cond_level = level
             elif command == "-else":
                 if arg:
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-else' cannot have argument.",
                     )
 
                 if cond_level != level:
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-else' not currently allowed after nested nuitka-project-if.",
                     )
@@ -2251,9 +2253,11 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 if not arg:
                     continue
 
-                yield _expandProjectArg(arg, filename_arg, for_eval=False)
+                result.append(_expandProjectArg(arg, filename_arg, for_eval=False))
             else:
                 assert False, (command, line)
+
+    return result
 
 
 def _considerGithubWorkflowOptions(phase):
@@ -2386,7 +2390,7 @@ def parseOptions(logger):
     for filename in filename_args:
         sys.argv = (
             [sys.argv[0]]
-            + list(getNuitkaProjectOptions(logger, filename, module_mode))
+            + getNuitkaProjectOptions(logger, filename, module_mode)
             + sys.argv[1:]
         )
 
@@ -2405,7 +2409,7 @@ def parseOptions(logger):
     ):
         parser.print_help()
 
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, need filename argument with python module, package directory or main
 program."""
@@ -2414,7 +2418,7 @@ program."""
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""

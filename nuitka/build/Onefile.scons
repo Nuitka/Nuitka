@@ -69,6 +69,7 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
+    makeResultPathFileSystemEncodable,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     scanSourceDir,
@@ -438,7 +439,13 @@ def discoverSourceFiles():
 
 source_files = discoverSourceFiles()
 
-target = env.Program(result_exe, source_files)
+# Remove the target file to avoid cases where it falsely doesn't get rebuild and
+# then lingers from previous builds, and also workaround for MinGW64 not
+# supporting unicode result paths for "-o" basename.
+result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
+
+# For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
+target = env.Program(os.path.normpath(result_exe), source_files)
 
 # Use compiler/linker flags provided via environment variables
 importEnvironmentVariableSettings(env)

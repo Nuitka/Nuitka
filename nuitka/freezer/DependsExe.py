@@ -21,6 +21,7 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContentByLine,
     getNormalizedPath,
+    getNormalizedPathJoin,
     getWindowsLongPathName,
     isFilenameBelowPath,
     isFilesystemEncodable,
@@ -72,7 +73,7 @@ def _attemptToFindNotFoundDLL(dll_filename):
         return currently_loaded_dlls[dll_filename]
 
     # Lets try the Windows system, spell-checker: ignore systemroot
-    dll_filename = os.path.join(
+    dll_filename = getNormalizedPathJoin(
         os.environ["SYSTEMROOT"],
         "System32" if getArchitecture() == "x86_64" else "SysWOW64",
         dll_filename,
@@ -132,7 +133,8 @@ def _parseDependsExeOutput2(lines):
         dll_filename = os.path.normcase(dll_filename)
 
         if isFilenameBelowPath(
-            path=os.path.join(os.environ["SYSTEMROOT"], "WinSxS"), filename=dll_filename
+            path=getNormalizedPathJoin(os.environ["SYSTEMROOT"], "WinSxS"),
+            filename=dll_filename,
         ):
             continue
 
@@ -204,8 +206,8 @@ def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
     if not isFilesystemEncodable(temp_base_name):
         temp_base_name = "dependency_walker"
 
-    dwp_filename = os.path.join(source_dir, temp_base_name + ".dwp")
-    output_filename = os.path.join(source_dir, temp_base_name + ".depends")
+    dwp_filename = getNormalizedPathJoin(source_dir, temp_base_name + ".dwp")
+    output_filename = getNormalizedPathJoin(source_dir, temp_base_name + ".depends")
 
     # User query should only happen once if at all.
     with withFileLock(

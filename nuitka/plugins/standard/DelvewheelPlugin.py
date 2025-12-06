@@ -13,7 +13,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.utils.FileOperations import (
-    getNormalizedPath,
+    getNormalizedPathJoin,
     listDllFilesFromDirectory,
 )
 
@@ -134,9 +134,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
             for dll_filename, dll_basename in listDllFilesFromDirectory(dll_directory):
                 yield self.makeDllEntryPoint(
                     source_path=dll_filename,
-                    dest_path=getNormalizedPath(
-                        os.path.join(target_directory, dll_basename)
-                    ),
+                    dest_path=getNormalizedPathJoin(target_directory, dll_basename),
                     module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),

@@ -28,7 +28,12 @@ from nuitka.plugins.Plugins import (
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
-from nuitka.utils.FileOperations import getFileList, getNormalizedPath, listDir
+from nuitka.utils.FileOperations import (
+    getFileList,
+    getNormalizedPath,
+    getNormalizedPathJoin,
+    listDir,
+)
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
@@ -164,13 +169,13 @@ of files that you may not want to be included.""",
 
     def _getQmlTargetDir(self):
         """Where does the Qt bindings package expect the QML files."""
-        return os.path.join(self.binding_name, "qml")
+        return getNormalizedPathJoin(self.binding_name, "qml")
 
     def _isUsingMacOSFrameworks(self):
         """Is this a framework based build, or one that shared more commonality with Linux"""
         if isMacOS() and self.binding_name in ("PySide6", "PySide2"):
             return os.path.exists(
-                os.path.join(
+                getNormalizedPathJoin(
                     self._getQtInformation().data_path,
                     "lib/QtWebEngineCore.framework",
                 )
@@ -185,7 +190,7 @@ of files that you may not want to be included.""",
                 return "resources"
             else:
                 # While PyQt6/PySide6 complains about these, they are not working
-                # return os.path.join(self.binding_name, "resources")
+                # return getNormalizedPathJoin(self.binding_name, "resources")
                 return "."
         else:
             if self.binding_name in ("PySide2", "PySide6", "PyQt6"):
@@ -199,7 +204,7 @@ of files that you may not want to be included.""",
         """Where does the Qt bindings package expect the translation files."""
         if isMacOS():
             # default name of PySide6, spell-checker: ignore qtwebengine_locales
-            return os.path.join(self.binding_name, "Qt", "translations")
+            return getNormalizedPathJoin(self.binding_name, "Qt", "translations")
         elif isWin32Windows():
             if self.binding_name in ("PySide2", "PyQt5"):
                 return "translations"
@@ -207,7 +212,7 @@ of files that you may not want to be included.""",
                 # TODO: PyQt6 is complaining about not being in "translations", but ignores it there.
                 return "."
             else:
-                return os.path.join(self.binding_name, "translations")
+                return getNormalizedPathJoin(self.binding_name, "translations")
         else:
             if self.binding_name in ("PySide2", "PySide6", "PyQt6"):
                 return "."
@@ -396,12 +401,12 @@ import %(binding_name)s.QtCore
     def _getWebEngineResourcesPath(self):
         """Get the path to the Qt web engine resources."""
         if self._isUsingMacOSFrameworks():
-            return os.path.join(
+            return getNormalizedPathJoin(
                 self._getQtInformation().data_path,
                 "lib/QtWebEngineCore.framework/Resources",
             )
         else:
-            resources_path = os.path.join(
+            resources_path = getNormalizedPathJoin(
                 self._getQtInformation().data_path, "resources"
             )
 
@@ -456,12 +461,12 @@ import %(binding_name)s.QtCore
     def _getQtBinDirs(self):
         for plugin_dir in self.getQtPluginDirs():
             if "PyQt" in self.binding_name:
-                qt_bin_dir = getNormalizedPath(os.path.join(plugin_dir, "..", "bin"))
+                qt_bin_dir = getNormalizedPathJoin(plugin_dir, "..", "bin")
 
                 if os.path.isdir(qt_bin_dir):
                     yield qt_bin_dir
             else:
-                qt_bin_dir = getNormalizedPath(os.path.join(plugin_dir, ".."))
+                qt_bin_dir = getNormalizedPathJoin(plugin_dir, "..")
 
                 yield qt_bin_dir
 
@@ -481,7 +486,7 @@ import %(binding_name)s.QtCore
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
-            qml_plugin_dir = getNormalizedPath(os.path.join(plugin_dir, "..", "qml"))
+            qml_plugin_dir = getNormalizedPathJoin(plugin_dir, "..", "qml")
 
             if os.path.exists(qml_plugin_dir):
                 return qml_plugin_dir
@@ -534,7 +539,7 @@ import %(binding_name)s.QtCore
 
                 yield self.makeDllEntryPoint(
                     source_path=filename,
-                    dest_path=os.path.join(
+                    dest_path=getNormalizedPathJoin(
                         self.getQtPluginTargetPath(),
                         filename_relative,
                     ),
@@ -967,7 +972,9 @@ Prefix = .
 
         for used_framework in used_frameworks:
             yield self.makeIncludedAppBundleFramework(
-                source_path=os.path.join(self._getQtInformation().data_path, "lib"),
+                source_path=getNormalizedPathJoin(
+                    self._getQtInformation().data_path, "lib"
+                ),
                 framework_name=used_framework,
                 reason="Qt WebEngine dependency",
             )
@@ -976,14 +983,14 @@ Prefix = .
         self, source_path, framework_name, reason, tags=""
     ):
         framework_basename = framework_name + ".framework"
-        framework_path = os.path.join(source_path, framework_basename)
+        framework_path = getNormalizedPathJoin(source_path, framework_basename)
 
         for filename in getFileList(framework_path):
             filename_relative = os.path.relpath(filename, framework_path)
 
             yield self.makeIncludedDataFile(
                 source_path=filename,
-                dest_path=os.path.join(
+                dest_path=getNormalizedPathJoin(
                     self.binding_name,
                     "Qt",
                     "lib",
@@ -1002,7 +1009,7 @@ Prefix = .
 
             yield self.makeIncludedDataFile(
                 source_path=filename,
-                dest_path=os.path.join(
+                dest_path=getNormalizedPathJoin(
                     self._getWebEngineResourcesTargetDir(), filename_relative
                 ),
                 reason="Qt resources",
@@ -1017,7 +1024,7 @@ Prefix = .
 
                 yield self.makeIncludedDataFile(
                     source_path=filename,
-                    dest_path=os.path.join(dest_path, filename_relative),
+                    dest_path=getNormalizedPathJoin(dest_path, filename_relative),
                     reason="Qt translation",
                     tags="translation",
                 )
@@ -1038,7 +1045,7 @@ Prefix = .
 
                 yield self.makeIncludedDataFile(
                     source_path=filename,
-                    dest_path=os.path.join(
+                    dest_path=getNormalizedPathJoin(
                         qml_target_dir,
                         filename_relative,
                     ),
@@ -1063,8 +1070,8 @@ Prefix = .
             if filename_relative.startswith("QtWebEngineProcess"):
                 yield self.makeExeEntryPoint(
                     source_path=filename,
-                    dest_path=getNormalizedPath(
-                        os.path.join(self._getWebEngineTargetDir(), filename_relative)
+                    dest_path=getNormalizedPathJoin(
+                        self._getWebEngineTargetDir(), filename_relative
                     ),
                     module_name=full_name,
                     package_name=full_name,
@@ -1082,9 +1089,9 @@ Prefix = .
 
     def getQtPluginTargetPath(self):
         if self.binding_name == "PyQt6":
-            return os.path.join(self.binding_name, "Qt6", "plugins")
+            return getNormalizedPathJoin(self.binding_name, "Qt6", "plugins")
         else:
-            return os.path.join(self.binding_name, "qt-plugins")
+            return getNormalizedPathJoin(self.binding_name, "qt-plugins")
 
     def isDefaultQtPluginTargetPath(self):
         # So far we use the default only with PyQt6, since our post load code to
@@ -1154,7 +1161,7 @@ Prefix = .
 
                     yield self.makeDllEntryPoint(
                         source_path=filename,
-                        dest_path=os.path.join(
+                        dest_path=getNormalizedPathJoin(
                             qml_target_dir,
                             filename_relative,
                         ),
@@ -1210,7 +1217,7 @@ Prefix = .
                     dll_filename = dll_basename + arch_suffix + ".dll"
 
                     for plugin_dir in self._getQtBinDirs():
-                        candidate = os.path.join(plugin_dir, dll_filename)
+                        candidate = getNormalizedPathJoin(plugin_dir, dll_filename)
 
                         if os.path.exists(candidate):
                             yield self.makeDllEntryPoint(
@@ -1366,11 +1373,8 @@ to compiled functions, etc. may not be working.""",
 
                     # That is how it is built for Anaconda.
                     if "_h_env" in path_parts:
-                        return getNormalizedPath(
-                            os.path.join(
-                                conda_prefix,
-                                *path_parts[path_parts.index("_h_env") + 1 :]
-                            )
+                        return getNormalizedPathJoin(
+                            conda_prefix, *path_parts[path_parts.index("_h_env") + 1 :]
                         )
                     else:
                         return value
