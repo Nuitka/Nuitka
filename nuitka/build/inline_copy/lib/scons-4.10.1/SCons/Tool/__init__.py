@@ -699,7 +699,8 @@ def tool_list(platform, env):
     # change these search orders, update the man page as well.
     if str(platform) == 'win32':
         "prefer Microsoft tools on Windows"
-        linkers = ['mslink', 'gnulink', 'ilink', 'linkloc', 'ilink32']
+        # Nuitka: Do not use "link" tools.
+        linkers = ['mslink', 'gnulink']
         c_compilers = ['msvc', 'mingw', 'gcc', 'clang', 'intelc', 'icl', 'icc', 'cc', 'bcc32']
         cxx_compilers = ['msvc', 'intelc', 'icc', 'g++', 'clang++', 'cxx', 'bcc32']
         assemblers = ['masm', 'nasm', 'gas', '386asm']
