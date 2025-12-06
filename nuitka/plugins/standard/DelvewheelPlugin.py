@@ -12,6 +12,7 @@ from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonVersions import getSitePackageCandidateNames
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     listDllFilesFromDirectory,
@@ -100,11 +101,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         if self.dll_directory is not None:
             self.dll_directory = os.path.normpath(self.dll_directory)
 
-            if os.path.basename(self.dll_directory) in (
-                "site-packages",
-                "dist-packages",
-                "vendor-packages",
-            ):
+            if os.path.basename(self.dll_directory) in getSitePackageCandidateNames():
                 self.dll_directory = None
 
         self.dll_directories[module_name] = self.dll_directory
