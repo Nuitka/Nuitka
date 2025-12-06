@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Configure C Extension",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": [
+                "${workspaceFolder}/misc/vscode_config_gen.py"
+            ],
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "cmd.exe",
+                        "args": [
+                            "/d",
+                            "/c"
+                        ]
+                    }
+                }
+            },
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "presentation": {
+                "reveal": "silent"
+            }
+        }
+    ]
+}
