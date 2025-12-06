@@ -16,6 +16,7 @@ from nuitka.build.SconsInterface import (
     runScons,
 )
 from nuitka.Options import (
+    getJobLimit,
     getOnefileTempDirSpec,
     getProgressBar,
     getWindowsSplashScreen,
@@ -165,6 +166,7 @@ def runOnefileCompressor(
             file_checksums=file_checksums,
             win_path_sep=win_path_sep,
             low_memory=isLowMemory(),
+            job_limit=getJobLimit(),
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -197,6 +199,7 @@ def runOnefileCompressor(
                     str(isLowMemory()),
                     str(shallOnefileAsArchive()),
                     str(not shallDisableCompressionCacheUsage()),
+                    str(getJobLimit()),
                 ],
                 shell=False,
             )
