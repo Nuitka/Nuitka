@@ -316,21 +316,6 @@ setupCCompiler(
     onefile_compile=True,
 )
 
-# Avoid them as appearing to be different files. TODO: Find out which
-# clang version has this, clang-8 does not.
-if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
-    if source_dir != "." and not full_names:
-        # TODO: This also lies for modules codes.
-        env.Append(
-            CCFLAGS=[
-                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
-                "--file-prefix-map=%s=%s"
-                % (
-                    os.path.normpath(os.path.join(source_dir, "static_src")),
-                    os.path.normpath(os.path.join(nuitka_src, "static_src")),
-                ),
-            ]
-        )
 
 if env.msvc_mode:
     # With Clang on Windows, there is also an linker to use.

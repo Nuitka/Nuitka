@@ -194,6 +194,7 @@ env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
 env.console_mode = console_mode
+env.source_dir = "/dev/null"
 env.nuitka_src = nuitka_src
 env.low_memory = False
 env.macos_min_version = macos_min_version
