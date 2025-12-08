@@ -1159,6 +1159,15 @@ Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW P
 )
 
 c_compiler_group.add_option(
+    "--zig",
+    dest="zig",
+    action="store_true",
+    default=False,
+    help="""\
+Enforce usage of Zig on for C compilation. Defaults to off.""",
+)
+
+c_compiler_group.add_option(
     "--msvc",
     action="store",
     dest="msvc_version",

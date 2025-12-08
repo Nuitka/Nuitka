@@ -351,9 +351,11 @@ if isClangName(env.the_cc_name):
 
 # We consider clang to be a form of gcc for the most things, they strive to
 # be compatible.
-env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
-env.clang_mode = clang_mode
 env.zig_mode = isZigName(env.the_cc_name)
+env.gcc_mode = (
+    isGccName(env.the_cc_name) or clang_mode or (env.zig_mode and not os.name == "nt")
+)
+env.clang_mode = clang_mode
 
 
 # Only use MSVC if not already clear, we are using MinGW.
@@ -362,7 +364,12 @@ env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
 env.clangcl_mode = clangcl_mode
 
 # For Python3.13, we need to enforce it for now to use MSVC
-if os.name == "nt" and not env.msvc_mode and env.python_version >= (3, 13):
+if (
+    os.name == "nt"
+    and not env.msvc_mode
+    and not env.zig_mode
+    and env.python_version >= (3, 13)
+):
     scons_logger.sysexit(
         """\
 Sorry, non-MSVC is not currently supported with Python 3.13,

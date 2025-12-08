@@ -504,6 +504,22 @@ def parseArgs():
 
     states.report_missing_trust = options.report_missing_trust
 
+    if options.zig:
+        if options.mingw64:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--mingw64'."
+            )
+
+        if options.msvc_version:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--msvc'."
+            )
+
+        if options.clang:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--clang'."
+            )
+
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         setQuiet()
 
@@ -2090,6 +2106,10 @@ def isMingw64():
         return bool(options.mingw64 or isMSYS2MingwPython())
     else:
         return None
+
+
+def isZig():
+    return options.zig
 
 
 def getMsvcVersion():

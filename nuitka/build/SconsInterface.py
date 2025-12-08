@@ -42,6 +42,7 @@ from nuitka.Options import (
     isShowScons,
     isStandaloneMode,
     isUnstripped,
+    isZig,
     shallCompileWithoutBuildDirectory,
     shallCreateAppBundle,
     shallDisableCCacheUsage,
@@ -93,6 +94,7 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -553,6 +555,11 @@ def getCommonSconsOptions():
 
     if isMingw64():
         scons_options["mingw_mode"] = asBoolStr(True)
+
+    if isZig():
+        scons_options["zig_exe_path"] = getZigBinaryPath(
+            assume_yes_for_downloads=assumeYesForDownloads()
+        )
 
     if getMsvcVersion():
         scons_options["msvc_version"] = getMsvcVersion()
