@@ -391,7 +391,6 @@ switchFromGccToGpp(
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
 
-no_import_lib = False
 
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
@@ -418,18 +417,6 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
-if env.msvc_mode:
-    if env.module_mode or env.dll_mode:
-        # Make sure we handle import library on our own and put it into the
-        # build directory, spell-checker: ignore IMPLIB
-
-        no_import_lib = True
-        env.Append(
-            LINKFLAGS=[
-                "/IMPLIB:%s" % os.path.join(source_dir, "import.lib"),
-            ]
-        )
 
 if env.exe_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
@@ -745,7 +732,7 @@ if env.module_mode:
     target = env.SharedLibrary(
         os.path.normpath(result_base_path),
         source_files,
-        no_import_lib=no_import_lib,
+        no_import_lib=env.no_import_lib,
     )
 elif env.dll_mode:
     module_suffix = getFilenameExtension(result_exe)
@@ -756,7 +743,7 @@ elif env.dll_mode:
     target = env.SharedLibrary(
         os.path.normpath(result_base_path),
         source_files,
-        no_import_lib=no_import_lib,
+        no_import_lib=env.no_import_lib,
     )
 else:
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.

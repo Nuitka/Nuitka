@@ -111,6 +111,18 @@ def applyPythonBuildSettings(env):
     if env.static_libpython:
         env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
+    if env.msvc_mode and (env.module_mode or env.dll_mode):
+        # Make sure we handle import library on our own and put it into the
+        # build directory, spell-checker: ignore IMPLIB
+        env.no_import_lib = True
+        env.Append(
+            LINKFLAGS=[
+                "/IMPLIB:%s" % os.path.join(env.source_dir, "import.lib"),
+            ]
+        )
+    else:
+        env.no_import_lib = False
+
 
 def addWin32PythonLib(env):
     # Make sure to locate the Python link library from multiple potential
