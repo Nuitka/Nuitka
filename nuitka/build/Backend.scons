@@ -419,8 +419,6 @@ setupCCompiler(
 )
 
 
-# Avoid them as appearing to be different files. TODO: Find out which
-# clang version has this, clang-8 does not.
 if env.msvc_mode:
     # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
     env.Append(

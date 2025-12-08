@@ -30,6 +30,7 @@ from .SconsUtils import (
     addToPATH,
     createEnvironment,
     decideArchMismatch,
+    getArgumentBool,
     getExecutablePath,
     getLinkerArch,
     getMsvcVersion,
@@ -1089,6 +1090,36 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
         )
 
     enableOutputSettings(env)
+
+    # Avoid them as appearing to be different files.
+    if (
+        env.gcc_mode
+        and env.source_dir != "."
+        and not getArgumentBool("full_names", False)
+    ):
+        if env.zig_mode:
+            # Zig cc supports it
+            file_prefix_map_supported = True
+        elif env.clang_mode:
+            # Clang 10+ supports --file-prefix-map
+            file_prefix_map_supported = env.clang_version >= (10,)
+        else:
+            # GCC supports it starting from 8.0
+            file_prefix_map_supported = env.gcc_version >= (8,)
+
+        if file_prefix_map_supported:
+            # TODO: This also lies for modules codes, the mapping should take
+            # those into account as well.
+            env.Append(
+                CCFLAGS=[
+                    "--file-prefix-map=%s=%s" % (os.path.normpath(env.source_dir), "."),
+                    "--file-prefix-map=%s=%s"
+                    % (
+                        os.path.normpath(os.path.join(env.source_dir, "static_src")),
+                        os.path.normpath(os.path.join(env.nuitka_src, "static_src")),
+                    ),
+                ]
+            )
 
 
 def _enablePgoSettings(env):
