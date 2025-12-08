@@ -212,13 +212,22 @@ def _prepareEnvironment(mingw_mode):
 
 
 def createEnvironment(
-    mingw_mode, msvc_version, target_arch, experimental, no_deployment, debug_modes
+    mingw_mode,
+    msvc_version,
+    target_arch,
+    experimental,
+    no_deployment,
+    debug_modes,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
+    # Zig compiler mode usually from the option --zig.
+    zig_exe_path = getArgumentDefaulted("zig_exe_path", None)
 
     # Prepare environment for compiler detection.
-    mingw_mode, zig_mode = _prepareEnvironment(mingw_mode=mingw_mode)
+    mingw_mode, zig_mode_env = _prepareEnvironment(mingw_mode=mingw_mode)
+    zig_mode = zig_mode_env or zig_exe_path
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
@@ -278,6 +287,41 @@ def createEnvironment(
         MSVC_VERSION=msvc_version if msvc_version != "latest" else None,
         **args
     )
+
+    if zig_exe_path:
+        env["CC"] = zig_exe_path
+        env["CXX"] = zig_exe_path
+        env["LINK"] = zig_exe_path
+        env["CCVERSION"] = None
+
+        # escape backslashes for SCons string interpolation^
+        safe_zig_path = zig_exe_path.replace("\\", "\\\\")
+
+        env["CCCOM"] = (
+            '"%s" cc -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' % safe_zig_path
+        )
+        env["CXXCOM"] = (
+            '"%s" c++ -o $TARGET -c $CXXFLAGS $CCFLAGS $_CCCOMCOM $SOURCES'
+            % safe_zig_path
+        )
+        env["LINKCOM"] = (
+            '"%s" cc -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS'
+            % safe_zig_path
+        )
+        env["SHCCCOM"] = (
+            '"%s" cc -o $TARGET -c $SHCFLAGS $SHCCFLAGS $_CCCOMCOM $SOURCES'
+            % safe_zig_path
+        )
+        env["SHCXXCOM"] = (
+            '"%s" c++ -o $TARGET -c $SHCXXFLAGS $SHCCFLAGS $_CCCOMCOM $SOURCES'
+            % safe_zig_path
+        )
+        env["SHLINKCOM"] = (
+            '"%s" cc -o $TARGET $SHLINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS'
+            % safe_zig_path
+        )
+
+        scons_details_logger.info("Overridden with Zig compiler: %r" % zig_exe_path)
 
     # Various flavors could influence builds.
     env.nuitka_python = getArgumentBool("nuitka_python", False)

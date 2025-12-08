@@ -38,6 +38,39 @@ def getCertifiModule():
     return certifi
 
 
+def shouldDownload(message, reject, assume_yes_for_downloads, download_ok):
+    """Check if we should download"""
+
+    if not download_ok:
+        reply = "no"
+    elif assume_yes_for_downloads:
+        reply = "yes"
+    else:
+        reply = queryUser(
+            question="""\
+%s
+
+Is it OK to download and put it in local user cache.
+
+Fully automatic, cached. Proceed and download"""
+            % (message,),
+            choices=("yes", "no"),
+            default="yes",
+            default_non_interactive="no",
+        )
+
+    if reply != "yes":
+        if reject is not None:
+            if not download_ok:
+                reject += " Make sure to allow downloading it when prompted."
+
+            return general.sysexit(reject)
+
+        return False
+
+    return True
+
+
 def getDownload(name, url, download_path):
     if python_version < 0x300:
         from urllib2 import (  # pylint: disable=I0021,import-error
@@ -144,7 +177,7 @@ def getCachedDownload(
     download_ok,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements
 
     nuitka_download_dir = getDownloadCacheDir()
 
@@ -166,44 +199,27 @@ def getCachedDownload(
     makePath(nuitka_download_dir)
 
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
-        if not download_ok:
-            reply = "no"
-        elif assume_yes_for_downloads:
-            reply = "yes"
-        else:
-            reply = queryUser(
-                question="""\
-%s
+        if not shouldDownload(
+            message=message,
+            reject=reject,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            download_ok=download_ok,
+        ):
+            return None
 
-Is it OK to download and put it in '%s'.
+        general.info("Downloading '%s'." % url)
 
-Fully automatic, cached. Proceed and download"""
-                % (message, nuitka_download_dir),
-                choices=("yes", "no"),
-                default="yes",
-                default_non_interactive="no",
+        try:
+            getDownload(
+                name=name,
+                url=url,
+                download_path=download_path,
             )
-
-        if reply != "yes":
-            if reject is not None:
-                if not download_ok:
-                    reject += " Make sure to allow downloading it when prompted."
-
-                general.sysexit(reject)
-        else:
-            general.info("Downloading '%s'." % url)
-
-            try:
-                getDownload(
-                    name=name,
-                    url=url,
-                    download_path=download_path,
-                )
-            except Exception as e:  # Any kind of error, pylint: disable=broad-except
-                general.sysexit(
-                    "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
-                    % (url, e, download_path)
-                )
+        except Exception as e:  # Any kind of error, pylint: disable=broad-except
+            return general.sysexit(
+                "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                % (url, e, download_path)
+            )
 
     if unzip:
         if not os.path.isfile(exe_path) and os.path.isfile(download_path):
@@ -233,7 +249,7 @@ Fully automatic, cached. Proceed and download"""
                 deleteFile(binary, must_exist=False)
                 deleteFile(download_path, must_exist=True)
 
-                general.sysexit(
+                return general.sysexit(
                     "Error, need '%s' as extracted from '%s'." % (binary, url)
                 )
 
@@ -242,7 +258,7 @@ Fully automatic, cached. Proceed and download"""
             addFileExecutablePermission(exe_path)
         else:
             if reject:
-                general.sysexit(reject)
+                return general.sysexit(reject)
 
             return None
 
