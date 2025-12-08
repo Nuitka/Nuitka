@@ -18,7 +18,8 @@
         "tamasfe.even-better-toml",
         "swyddfa.esbonio",
         "ms-python.vscode-pylance",
-        "dnut.rewrap-revived"
+        "dnut.rewrap-revived",
+        "github.vscode-github-actions"
 
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
