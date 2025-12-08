@@ -1121,6 +1121,20 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
                 ]
             )
 
+    if env.msvc_mode:
+        # With Clang on Windows, there is also an linker to use.
+        env.Append(
+            CCFLAGS=[
+                "/EHsc",  # No C++ exception handling code.
+                "/J",  # default char type is unsigned.
+                "/Gd",  # Use C calling convention by default.
+                "/bigobj",  # Product object files with larger internal limits, spell-checker: ignore bigobj
+            ]
+        )
+
+        # No incremental linking.
+        env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
+
 
 def _enablePgoSettings(env):
     if env.pgo_mode == "no":
