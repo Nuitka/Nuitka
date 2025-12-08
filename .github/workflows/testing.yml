@@ -16,7 +16,56 @@ permissions:
   contents: read
 
 jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    name: Checks
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install patchelf gdb ccache libfuse2
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: PyLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-pylint
+
+      - name: RestLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-restlint
+
+      - name: YamlLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-yamllint
+
+      - name: Codespell on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-codespell
+
+      - name: Auto-format check on Nuitka source code
+        run: |
+          # Install clang-format that matches what we use in VS code.
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get install software-properties-common
+          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main'
+          sudo apt-get update
+          sudo apt-get install clang-format-21
+
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
+
   linux:
+    needs: checks
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -80,39 +129,10 @@ jobs:
           env | sort
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
-      - name: PyLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-pylint
-        if: matrix.python_version == '3.9'
 
-      - name: RestLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-restlint
-        if: matrix.python_version == '3.9'
-
-      - name: YamlLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-yamllint
-        if: matrix.python_version == '3.9'
-
-      - name: Codespell on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-codespell
-        if: matrix.python_version == '3.9'
-
-      - name: Auto-format check on Nuitka source code
-        run: |
-          # Install clang-format that matches what we use in VS code.
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-get install software-properties-common
-          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main'
-          sudo apt-get update
-          sudo apt-get install clang-format-21
-
-          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
-        if: matrix.python_version == '3.9'
 
   mac-python3:
+    needs: linux
     runs-on: macos-latest
     strategy:
       matrix:
@@ -185,6 +205,7 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
 
   windows:
+    needs: linux
     runs-on: windows-latest
     strategy:
       matrix:
