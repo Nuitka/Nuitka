@@ -17,6 +17,7 @@ from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
@@ -40,6 +41,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getFileList,
+    getNormalizedPathJoin,
     getParentDirectories,
     isFilenameSameAsOrBelowPath,
     makePath,
@@ -1081,12 +1083,18 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
     if not os.path.exists(stage_dir):
         os.makedirs(stage_dir)
 
-    my_dirname = os.path.join(os.path.dirname(__file__), "../../..")
-    my_dirname = os.path.normpath(my_dirname)
+    my_dirname = getNormalizedPathJoin(os.path.dirname(__file__), "../../..")
 
-    paths = [path for path in sys.path if not path.startswith(my_dirname)]
+    paths = [
+        path
+        for path in sys.path
+        if not isFilenameSameAsOrBelowPath(path=my_dirname, filename=path)
+        if not isStandardLibraryPath(path)
+        if os.path.isdir(path)
+        if path != sys.prefix
+    ]
 
-    my_print("Using standard library paths:")
+    my_print("Using library paths:")
     for path in paths:
         my_print(path)
 

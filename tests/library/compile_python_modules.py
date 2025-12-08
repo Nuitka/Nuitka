@@ -47,7 +47,7 @@ tmp_dir = getTempDir()
 
 # spell-checker: ignore idnadata,tweedie
 
-ignore_list = (
+ignore_filenames_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
     "idnadata",  # Avoid too complex code for main program.
     "joined_strings.py",
@@ -69,7 +69,7 @@ late_syntax_errors = (
 def decide(_root, filename):
     return (
         filename.endswith(".py")
-        and filename not in ignore_list
+        and filename not in ignore_filenames_list
         and "(" not in filename
         and filename.count(".") == 1
     )
