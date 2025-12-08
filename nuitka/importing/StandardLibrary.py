@@ -33,6 +33,9 @@ from nuitka.utils.Utils import (
 def getStandardLibraryPaths():
     """Get the standard library paths."""
 
+    # Many cases to deal with, to make detection of standard library paths
+    # for different OSes and flavors, pylint: disable=too-many-branches
+
     # Using the function object to cache its result, avoiding global variable
     # usage.
     if not hasattr(getStandardLibraryPaths, "result"):
@@ -40,7 +43,7 @@ def getStandardLibraryPaths():
         if os_filename.endswith(".pyc"):
             os_filename = os_filename[:-1]
 
-        os_path = os.path.normcase(os.path.dirname(os_filename))
+        os_path = os.path.normcase(getNormalizedPath(os.path.dirname(os_filename)))
 
         stdlib_paths = set([os_path])
 
@@ -95,17 +98,18 @@ def getStandardLibraryPaths():
                 stdlib_paths.add(candidate)
 
         if isWin32OrPosixWindows():
-            from nuitka.Options import shallUseStaticLibPython
-
-            if not shallUseStaticLibPython():
+            try:
                 import _ctypes
+            except ImportError:
+                pass
+            else:
+                if _ctypes.__file__ is not None:
+                    stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
-                stdlib_paths.add(os.path.dirname(_ctypes.__file__))
-
-        getStandardLibraryPaths.result = [
-            os.path.normcase(os.path.normpath(stdlib_path))
+        getStandardLibraryPaths.result = tuple(
+            os.path.normcase(getNormalizedPath(stdlib_path))
             for stdlib_path in stdlib_paths
-        ]
+        )
 
     return getStandardLibraryPaths.result
 
