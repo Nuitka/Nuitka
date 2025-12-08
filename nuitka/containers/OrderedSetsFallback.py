@@ -5,6 +5,8 @@
 Python at all.
 
 It was originally downloaded from http://code.activestate.com/recipes/576694/
+
+spell-checker: ignore Hettinger
 """
 
 # Copyright 2009 Raymond Hettinger
@@ -38,8 +40,6 @@ from nuitka.__past__ import MutableSet
 
 
 class OrderedSet(MutableSet):
-    is_fallback = True
-
     def __init__(self, iterable=()):
         self.end = end = []
         end += (None, end, end)  # sentinel node for doubly linked list

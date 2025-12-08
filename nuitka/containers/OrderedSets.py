@@ -5,10 +5,7 @@ spell-checker: ignore orderedset,orderedsets
 
 """
 
-import sys
-
 from nuitka.PythonVersions import python_version
-from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
 
 recommended_orderedset_package_name, recommended_orderedset_module_name = (
     ("ordered-set", "ordered_set")
@@ -32,25 +29,8 @@ def _tryImportOrderedSet():
 OrderedSet = _tryImportOrderedSet()
 
 
-def _tryDownloadOrderedSet():
-    return tryDownloadPackageName(
-        recommended_orderedset_package_name,
-        recommended_orderedset_module_name,
-        package_version=None,
-    )
-
-
 if OrderedSet is None:
-    downloaded_pip = _tryDownloadOrderedSet()
-
-    try:
-        sys.path.insert(0, downloaded_pip)
-        OrderedSet = _tryImportOrderedSet()
-    finally:
-        del sys.path[0]
-
-    if OrderedSet is None:
-        from .OrderedSetsFallback import OrderedSet
+    from .OrderedSetsFallback import OrderedSet
 
 
 def buildOrderedSet(*producers):
