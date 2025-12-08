@@ -317,20 +317,6 @@ setupCCompiler(
 )
 
 
-if env.msvc_mode:
-    # With Clang on Windows, there is also an linker to use.
-    env.Append(
-        CCFLAGS=[
-            "/EHsc",  # No C++ exception handling code.
-            "/J",  # default char type is unsigned.
-            "/Gd",  # Use C calling convention by default.
-            "/bigobj",  # Product object files with larger internal limits.
-        ]
-    )
-
-    # No incremental linking.
-    env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
-
 if debug_mode:
     if env.msvc_mode:
         # Disable warnings that system headers already show.

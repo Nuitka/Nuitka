@@ -420,19 +420,6 @@ setupCCompiler(
 
 
 if env.msvc_mode:
-    # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
-    env.Append(
-        CCFLAGS=[
-            "/EHsc",  # No C++ exception handling code.
-            "/J",  # default char type is unsigned.
-            "/Gd",  # Use C calling convention by default.
-            "/bigobj",  # Product object files with larger internal limits.
-        ]
-    )
-
-    # No incremental linking.
-    env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
-
     if env.module_mode or env.dll_mode:
         # Make sure we handle import library on our own and put it into the
         # build directory, spell-checker: ignore IMPLIB

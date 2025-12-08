@@ -274,8 +274,6 @@ switchFromGccToGpp(
 if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
     raiseNoCompilerFoundErrorExit()
 
-no_import_lib = False
-
 if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
     my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
@@ -301,19 +299,6 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-if env.msvc_mode:
-    # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
-    env.Append(
-        CCFLAGS=[
-            "/EHsc",  # No C++ exception handling code.
-            "/J",  # default char type is unsigned.
-            "/Gd",  # Use C calling convention by default.
-            "/bigobj",  # Product object files with larger internal limits.
-        ]
-    )
-
-    # No incremental linking.
-    env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
 if env.debug_mode:
     if env.gcc_mode:
