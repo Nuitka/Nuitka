@@ -429,15 +429,17 @@ def addIncludedDataFilesFromFlavor():
         if getArchitecture() == "64":
             lib_part = "lib64"
         else:
-            inclusion_logger.sysexit(
-                "Error, need to define the path of the '%s' file in the Python installation '%s'."
+            return inclusion_logger.sysexit(
+                """\
+Error, change Nuitka code to define the path of the '%s' \
+file in the Python installation '%s'."""
                 % (filename, system_prefix)
             )
 
         filename_full = os.path.join(system_prefix, lib_part, filename)
 
         if not os.path.exists(filename_full):
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, the defined path of the '%s' file in the Python installation '%s' is wrong."
                 % (filename_full, system_prefix)
             )

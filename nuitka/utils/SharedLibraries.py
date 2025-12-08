@@ -472,7 +472,7 @@ installed. Use 'apt/dnf/yum install patchelf' first."""
     )
 
     if output.split() == b"0.18.0":
-        logger.sysexit(
+        return logger.sysexit(
             "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
         )
 
@@ -538,7 +538,7 @@ def setSharedLibraryRPATH(filename, rpath):
     expected_rpaths = [rpath]
 
     if updated_rpaths != expected_rpaths and isStaticallyLinked(filename) is not True:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Error, failed to update rpath for '%s' (%r != %r). Please report the bug."
             % (filename, updated_rpaths, expected_rpaths)
         )
@@ -759,7 +759,7 @@ def makeMacOSThinBinary(dest_path, original_path):
             os.unlink(dest_path)
             os.rename(dest_path + ".tmp", dest_path)
     elif macos_target_arch not in file_output:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Error, cannot use file '%s' (%s) to build arch '%s' result"
             % (original_path, file_output, macos_target_arch)
         )

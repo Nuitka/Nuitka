@@ -150,7 +150,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         if message is not None:
             exit_message += "\n" + message
 
-        logger.sysexit(exit_message)
+        return logger.sysexit(exit_message)
     finally:
         # Do not forget to remove it from sys.path again.
         del sys.path[0]

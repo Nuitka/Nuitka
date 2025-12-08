@@ -348,38 +348,38 @@ def buildClassNode3(provider, node, source_ref):
         def makeBasesRef():
             return ExpressionTempVariableRef(variable=tmp_bases, source_ref=source_ref)
 
+        if needs_orig_bases:
+            statements.append(
+                makeStatementConditional(
+                    condition=makeComparisonExpression(
+                        comparator="NotEq",
+                        left=ExpressionTempVariableRef(
+                            variable=tmp_bases, source_ref=source_ref
+                        ),
+                        right=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementLocalsDictOperationSet(
+                        locals_scope=locals_scope,
+                        variable_name="__orig_bases__",
+                        source=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
+
     else:
 
         def makeBasesRef():
             return makeConstantRefNode(constant=(), source_ref=source_ref)
 
         needs_orig_bases = False
-
-    if has_bases and needs_orig_bases:
-        statements.append(
-            makeStatementConditional(
-                condition=makeComparisonExpression(
-                    comparator="NotEq",
-                    left=ExpressionTempVariableRef(
-                        variable=tmp_bases, source_ref=source_ref
-                    ),
-                    right=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                yes_branch=StatementLocalsDictOperationSet(
-                    locals_scope=locals_scope,
-                    variable_name="__orig_bases__",
-                    source=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                no_branch=None,
-                source_ref=source_ref,
-            )
-        )
 
     statements += (
         makeStatementAssignmentVariable(

@@ -51,7 +51,7 @@ def main():
         rpm_project_name = "Nuitka-Factory"
         spec_suffix = "-factory"
     else:
-        tools_logger.sysexit("Skipping RPM build for branch '%s'" % branch_name)
+        return tools_logger.sysexit("Skipping RPM build for branch '%s'" % branch_name)
 
     with withDirectoryChange("build"):
         tools_logger.info(

@@ -495,7 +495,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=Non
         if os.path.exists(compare_with_cpython):
             command = [sys.executable, compare_with_cpython, path, "silent"]
         else:
-            test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
+            return test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags

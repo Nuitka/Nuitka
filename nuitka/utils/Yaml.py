@@ -37,42 +37,46 @@ class PackageConfigYaml(object):
         self.name = name
 
         assert type(file_data) is bytes
-        data = parseYaml(file_data)
-
-        if not data:
-            general.sysexit(
-                """\
+        data = parseYaml(
+            file_data,
+            logger=general,
+            error_message="""\
 Error, empty (or malformed?) user package configuration '%s' used."""
-                % name
-            )
+            % name,
+        )
 
         assert type(data) is list, type(data)
 
+        self._init(data)
+
+    def _init(self, data):
         self.data = OrderedDict()
 
         for item in data:
             module_name = item.pop("module-name")
 
             if not module_name:
-                general.sysexit(
+                return general.sysexit(
                     "Error, invalid config in '%s' looks like an empty module name was given."
                     % (self.name)
                 )
 
             if "/" in module_name:
-                general.sysexit(
+                return general.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
                     % (self.name, module_name)
                 )
 
             if not checkModuleName(module_name):
-                general.sysexit(
+                return general.sysexit(
                     "Error, invalid module name in '%s' not valid '%s'."
                     % (self.name, module_name)
                 )
 
             if module_name in self.data:
-                general.sysexit("Duplicate module name '%s' encountered." % module_name)
+                return general.sysexit(
+                    "Duplicate module name '%s' encountered." % module_name
+                )
 
             self.data[module_name] = item
 
@@ -124,7 +128,7 @@ def getYamlPackage():
     return getYamlPackage.yaml
 
 
-def parseYaml(data):
+def parseYaml(data, logger, error_message):
     yaml = getYamlPackage()
 
     # Make sure dictionaries are ordered even before 3.6 in the result. We use
@@ -141,7 +145,12 @@ def parseYaml(data):
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
     )
 
-    return yaml.load(data, OrderedLoader)
+    result = yaml.load(data, OrderedLoader)
+
+    if not result:
+        return logger.sysexit(error_message)
+
+    return result
 
 
 _yaml_cache = {}

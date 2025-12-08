@@ -1438,7 +1438,7 @@ except Exception as e:
             feedback.pop(0)
 
         if feedback.count("-" * 27) != len(keys):
-            self.sysexit(
+            return self.sysexit(
                 "Error, mismatch in output retrieving %r information." % info_name
             )
 
@@ -1451,7 +1451,7 @@ except Exception as e:
                 *(_literal_eval(value) for value in feedback)
             )
         except ValueError:
-            self.sysexit(
+            return self.sysexit(
                 "Error, non-constant values in output retrieving %r information."
                 % info_name
             )
@@ -1588,7 +1588,7 @@ except Exception as e:
                 declarations = variable_config.get("declarations", {})
 
                 if len(declarations) < 1:
-                    self.sysexit(
+                    return self.sysexit(
                         "Error, no variable 'declarations' for %s makes no sense."
                         % full_name
                     )
@@ -1629,7 +1629,7 @@ except Exception as e:
                         self.info("Evaluated %r" % info)
 
                     if info is None:
-                        self.sysexit(
+                        return self.sysexit(
                             "Error, failed to evaluate variables for '%s'." % full_name
                         )
 
@@ -1712,7 +1712,7 @@ except Exception as e:
                 if states.is_debug:
                     raise
 
-                self.sysexit(
+                return self.sysexit(
                     "Error, failed to evaluate expression %r in this context, exception was '%r'."
                     % (expression, e)
                 )
@@ -1739,7 +1739,7 @@ except Exception as e:
 
     def _checkStrResult(self, value, expression, full_name):
         if type(value) not in (str, unicode):
-            self.sysexit(
+            return self.sysexit(
                 """\
 Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result, but '%s'"""
                 % (expression, full_name, type(value))
@@ -1747,7 +1747,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
 
     def _checkSequenceResult(self, value, expression, full_name):
         if type(value) not in (tuple, list):
-            self.sysexit(
+            return self.sysexit(
                 """\
 Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list[str]' result."""
                 % (expression, full_name)
@@ -1824,13 +1824,13 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
                 if states.is_debug:
                     raise
 
-                self.sysexit(
+                return self.sysexit(
                     "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
                     % (condition, e)
                 )
 
         if type(result) is not bool:
-            self.sysexit(
+            return self.sysexit(
                 "Error, condition '%s' for module '%s' did not evaluate to boolean result."
                 % (condition, full_name)
             )
@@ -1872,7 +1872,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         # user errors still.
         mnemonic = kwargs.pop("mnemonic", None)
         if kwargs:
-            plugins_logger.sysexit("Illegal keyword arguments for self.warning")
+            return plugins_logger.sysexit("Illegal keyword arguments for self.warning")
 
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
@@ -1887,7 +1887,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
 
     @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
-        plugins_logger.sysexit(
+        return plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
 
@@ -1957,7 +1957,7 @@ class TagContext(dict):
             if key == "no_annotations":
                 return decideAnnotations(self.full_name) is False
 
-            self.logger.sysexit(
+            return self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
                 % (key, self.config_name, self.full_name)
             )

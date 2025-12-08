@@ -191,9 +191,23 @@ def _reorderDictionaryList(entry_list, key_order):
     return result
 
 
-def deepCompareYamlFiles(path1, path2):
-    yaml1 = PackageConfigYaml(path1, parseYaml(getFileContents(path1)))
-    yaml2 = PackageConfigYaml(path2, parseYaml(getFileContents(path2)))
+def deepCompareYamlFiles(logger, path1, path2):
+    yaml1 = PackageConfigYaml(
+        path1,
+        parseYaml(
+            getFileContents(filename=path1),
+            logger=logger,
+            error_message="Error, file 1 for comparison empty of broken.",
+        ),
+    )
+    yaml2 = PackageConfigYaml(
+        path2,
+        parseYaml(
+            getFileContents(filename=path2),
+            logger=logger,
+            error_message="Error, file 2 for comparison empty of broken.",
+        ),
+    )
 
     import deepdiff  # pylint: disable=I0021,import-error
 
@@ -202,7 +216,7 @@ def deepCompareYamlFiles(path1, path2):
     return diff
 
 
-def formatYaml(path, ignore_diff=False):
+def formatYaml(logger, path, ignore_diff=False):
     """
     format and sort a yaml file
     """
@@ -384,9 +398,9 @@ def formatYaml(path, ignore_diff=False):
             output_file.write(line + "\n")
 
     if not ignore_diff:
-        diff = deepCompareYamlFiles(path, tmp_path)
+        diff = deepCompareYamlFiles(logger=logger, path1=path, path2=tmp_path)
         if diff:
-            tools_logger.sysexit(
+            return tools_logger.sysexit(
                 "Error, auto-format for Yaml file %s is changing contents %s"
                 % (path, diff)
             )

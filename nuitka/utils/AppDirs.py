@@ -65,7 +65,7 @@ def _getCacheDir():
             if e.errno != errno.EACCES:
                 raise
 
-            general.sysexit(
+            return general.sysexit(
                 """\
 Error, failed to create cache directory '%s'. If this is due to a special environment, \
 please consider making a PR for a general solution that adds support for it, or use \

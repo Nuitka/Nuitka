@@ -152,7 +152,7 @@ def check_call(*popenargs, **kwargs):
     try:
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
-        general.sysexit(
+        return general.sysexit(
             "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
         )
 
@@ -289,7 +289,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, the selected debugger '%s' was not found in path."
                 % debugger_name
             )
@@ -311,7 +311,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
             )
 
@@ -348,7 +348,9 @@ def wrapCommandForDebuggerForExec(command, debugger):
             #            "--leak-check=full",
         ) + command
     else:
-        general.sysexit("Error, the selected debugger '%s' was not found in path.")
+        return general.sysexit(
+            "Error, the selected debugger '%s' was not found in path."
+        )
 
     return args
 
@@ -418,6 +420,10 @@ def executeToolChecked(
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
+    # We are doing many returns, because for logger.sysexit() we need to
+    # return from the function, for proper pylint support.
+    # pylint: disable=too-many-return-statements
+
     command = list(command)
     tool = command[0]
 
@@ -426,13 +432,13 @@ def executeToolChecked(
             logger.warning(absence_message)
             return b"" if decoding else ""
         else:
-            logger.sysexit(absence_message)
+            return logger.sysexit(absence_message)
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
 
     if None in command:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed due to 'None' value: %s index %d."
             % (tool, command, command.index(None))
         )
@@ -454,7 +460,7 @@ def executeToolChecked(
         if e.errno != errno.E2BIG:
             raise
 
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed, command line was too long: %r"
             % (tool, command)
         )
@@ -466,11 +472,11 @@ def executeToolChecked(
             result = new_result
 
     if result != 0:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
     elif stderr:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
 

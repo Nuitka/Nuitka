@@ -269,7 +269,7 @@ def next_extractor(node):
 
 
 def sum_extractor(node):
-    # Split up sumwith and without start value, one is much easier.
+    # Split up sum with and without start value, one is much easier.
     def selectSumBuiltinClass(sequence, start, source_ref):
         if start is None:
             return ExpressionBuiltinSum1(sequence=sequence, source_ref=source_ref)
@@ -1442,10 +1442,14 @@ if python_version < 0x300:
 
     _dispatch_dict["range"] = range_extractor
 else:
-    # This one is not in Python2:
+    # This one is not in Python2
     _dispatch_dict["bytes"] = bytes_extractor
-    _dispatch_dict["ascii"] = ascii_extractor
-    _dispatch_dict["exec"] = exec_extractor
+    _dispatch_dict["ascii"] = (
+        ascii_extractor  # pylint: disable=possibly-used-before-assignment
+    )
+    _dispatch_dict["exec"] = (
+        exec_extractor  # pylint: disable=possibly-used-before-assignment
+    )
 
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor

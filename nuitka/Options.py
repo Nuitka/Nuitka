@@ -472,7 +472,7 @@ def parseArgs():
     :meta private:
     """
     # Singleton with many cases checking the options right away, and sysexit is returned
-    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements,too-many-return-statements
+    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
@@ -545,7 +545,9 @@ def parseArgs():
         getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
         and not isAllowedToReexecute()
     ):
-        return general.sysexit("Error, not allowed to re-execute, but that has happened.")
+        return general.sysexit(
+            "Error, not allowed to re-execute, but that has happened."
+        )
 
     # Force to persist this one early.
     getLaunchingSystemPrefixPath()
@@ -883,7 +885,9 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        return options_logger.sysexit("Error, unsupported OS for onefile '%s'." % getOS())
+        return options_logger.sysexit(
+            "Error, unsupported OS for onefile '%s'." % getOS()
+        )
 
     for module_pattern, _filename_pattern in getShallIncludePackageData():
         if (
@@ -1058,7 +1062,7 @@ def commentArgs():
 
     """
     # A ton of cases to consider.
-    # pylint: disable=too-many-branches,too-many-statements,too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
