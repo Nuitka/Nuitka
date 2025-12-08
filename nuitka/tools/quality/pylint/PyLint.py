@@ -145,6 +145,21 @@ def checkVersion():
 # arguments-differ
 # We override static methods with non-static all the time.
 
+# use-yield-from
+# Keeping code portable to Python2 is still good.
+
+# unnecessary-lambda-assignment
+# For deciders, we do this and like it.
+
+# unnecessary-dunder-call
+# We do make those intentionally only.
+
+# arguments-differ
+# Not sure
+
+# redefined-slots-in-subclass
+# We do this to allow for bases classes and mixins and different slot loadout.
+
 
 def getOptions():
     pylint_version = checkVersion()
@@ -159,7 +174,9 @@ deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
 ungrouped-imports,no-else-return,c-extension-no-member,\
 inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
 useless-object-inheritance,useless-return,assignment-from-no-return,\
-redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehension,
+redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehension,\
+unnecessary-lambda-assignment,unnecessary-dunder-call,arguments-differ,\
+redefined-slots-in-subclass
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -182,6 +199,7 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10
+--load-plugins=pylint.extensions.no_self_use
 --score=no\
 """.split(
         "\n"
@@ -190,21 +208,10 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
-    if pylint_version < (2, 17):
-        default_pylint_options.append("--disable=bad-whitespace")
-        default_pylint_options.append("--disable=bad-continuation")
-        default_pylint_options.append("--disable=no-init")
-        default_pylint_options.append("--disable=similar-code")
-        default_pylint_options.append("--disable=I0012")
-        default_pylint_options.append("--disable=W1504")
-        default_pylint_options.append("--disable=R0204")
-    else:
-        default_pylint_options.append("--load-plugins=pylint.extensions.no_self_use")
-        default_pylint_options.append("--disable=unnecessary-lambda-assignment")
-        default_pylint_options.append("--disable=unnecessary-dunder-call")
-        default_pylint_options.append("--disable=arguments-differ")
-        default_pylint_options.append("--disable=redefined-slots-in-subclass")
-
+    if pylint_version >= (4, 0):
+        default_pylint_options.append("--disable=use-yield-from")
+        default_pylint_options.append("--max-positional-arguments=20")
+        default_pylint_options.append("--disable=deprecated-class")
     return default_pylint_options
 
 

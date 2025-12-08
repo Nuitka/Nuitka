@@ -1107,7 +1107,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
             )
 
     else:
-        logger.sysexit(
+        return logger.sysexit(
             "%s: can't open file '%s'." % (os.path.basename(sys.argv[0]), filename),
             exit_code=2,
         )

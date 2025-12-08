@@ -268,13 +268,15 @@ def getPluginClass(plugin_name):
     if plugin_name not in plugin_name2plugin_classes:
         for plugin_name2 in plugin_name2plugin_classes:
             if plugin_name.lower() == plugin_name2.lower():
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     """\
 Error, unknown plug-in '%s' in wrong case referenced, use '%s' instead."""
                     % (plugin_name, plugin_name2)
                 )
 
-        plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
+        return plugins_logger.sysexit(
+            "Error, unknown plug-in '%s' referenced." % plugin_name
+        )
 
     return plugin_name2plugin_classes[plugin_name][0]
 
@@ -293,7 +295,7 @@ def _addPluginClass(plugin_class, detector):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name in plugin_name2plugin_classes:
-        plugins_logger.sysexit(
+        return plugins_logger.sysexit(
             "Error, plugins collide by name %s: %s <-> %s"
             % (plugin_name, plugin_class, plugin_name2plugin_classes[plugin_name])
         )
@@ -358,7 +360,7 @@ def _loadPluginClassesFromPackage(scan_package):
         # First the ones with detectors.
         for detector in detectors:
             if detector.detector_for is None:
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     """Error, detector plugin %s without detector_for pointing to a plugin."""
                     % detector
                 )
@@ -377,7 +379,7 @@ def _loadPluginClassesFromPackage(scan_package):
             detector.plugin_name = plugin_class.plugin_name
 
             if plugin_class not in plugin_classes:
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     "Plugin detector %r references unknown plugin %r"
                     % (detector, plugin_class)
                 )
@@ -428,9 +430,12 @@ class Plugins(object):
         result = []
 
         def iterateModuleNames(value):
+            def sysexit(message):
+                return plugin.sysexit(message)
+
             for v in value:
                 if type(v) in (tuple, list):
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' needs to be change to only return modules names, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -442,7 +447,7 @@ class Plugins(object):
                     return
 
                 if not checkModuleName(v):
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' returned an invalid module name, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -450,7 +455,7 @@ class Plugins(object):
                 v = ModuleName(v)
 
                 if v.getTopLevelPackageName() == "":
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' returned an invalid relative module name, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -524,7 +529,7 @@ class Plugins(object):
                         using_module_name=module.module_name,
                     )
                 except NuitkaForbiddenImportEncounter as e:
-                    plugins_logger.sysexit(
+                    plugin.sysexit(
                         """\
 Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' \
 through implicit import by '%s' plugin encountered."""

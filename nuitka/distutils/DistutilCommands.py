@@ -99,7 +99,7 @@ class build(distutils.command.build.build):
                     self.script_module_names.add(ModuleName(script_module_name))
 
         if not self.compile_packages and not self.py_modules:
-            wheel_logger.sysexit(
+            return wheel_logger.sysexit(
                 "No modules or packages specified, aborting. Did you provide packages in 'setup.cfg' or 'setup.py'?"
             )
 
@@ -135,7 +135,7 @@ class build(distutils.command.build.build):
             )[1]
 
             if script_module_filename is None:
-                wheel_logger.sysexit(
+                return wheel_logger.sysexit(
                     "Error, failed to locate script containing module '%s'"
                     % script_module_name
                 )
@@ -331,7 +331,7 @@ class build(distutils.command.build.build):
 
             for option in options:
                 if option.startswith(("--standalone", "--onefile", "--mode=")):
-                    wheel_logger.sysexit(
+                    return wheel_logger.sysexit(
                         "Cannot specify mode in options when building wheels."
                     )
 

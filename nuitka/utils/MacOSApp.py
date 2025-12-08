@@ -137,7 +137,9 @@ def createPlistInfoFile(logger, onefile):
         _entitlement_name,
     ) in getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:
-            logger.sysexit("Duplicate value for '%s' is not allowed." % resource_name)
+            return logger.sysexit(
+                "Duplicate value for '%s' is not allowed." % resource_name
+            )
 
         infos[resource_name] = resource_desc
 

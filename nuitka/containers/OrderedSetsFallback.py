@@ -53,19 +53,19 @@ class OrderedSet(MutableSet):
     def __contains__(self, key):
         return key in self.map
 
-    def add(self, key):
-        if key not in self.map:
+    def add(self, value):
+        if value not in self.map:
             end = self.end
             curr = end[1]
-            curr[2] = end[1] = self.map[key] = [key, curr, end]
+            curr[2] = end[1] = self.map[value] = [value, curr, end]
 
     def update(self, keys):
         for key in keys:
             self.add(key)
 
-    def discard(self, key):
-        if key in self.map:
-            key, prev, next = self.map.pop(key)
+    def discard(self, value):
+        if value in self.map:
+            _key, prev, next = self.map.pop(value)
             prev[2] = next
             next[1] = prev
 

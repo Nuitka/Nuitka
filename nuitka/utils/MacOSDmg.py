@@ -43,7 +43,7 @@ def createDmgFile(logger):
 
     # TODO: Move that to options checking.
     if create_dmg_path is None:
-        logger.sysexit("Cannot find 'create-dmg' tool, not creating DMG.")
+        return logger.sysexit("Cannot find 'create-dmg' tool, not creating DMG.")
 
     app_bundle_path = getStandaloneDirectoryPath(bundle=False, real=True)
 

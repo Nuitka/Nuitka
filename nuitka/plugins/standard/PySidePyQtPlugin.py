@@ -1196,20 +1196,23 @@ Prefix = .
             if not self._isUsingMacOSFrameworks():
                 yield self._getExtraBinariesWebEngineGeneric(full_name=full_name)
 
+    def _getArchSuffix(self):
+        arch_name = getArchitecture()
+
+        if arch_name == "x86":
+            return ""
+        elif arch_name == "x86_64":
+            return "-x64"
+        else:
+            return self.sysexit(
+                "Error, unknown architecture encountered, need to add support for %s."
+                % arch_name
+            )
+
     def _getExtraBinariesQtNetwork(self, full_name):
         if isWin32Windows():
             if self.binding_name == "PyQt5":
-                arch_name = getArchitecture()
-
-                if arch_name == "x86":
-                    arch_suffix = ""
-                elif arch_name == "x86_64":
-                    arch_suffix = "-x64"
-                else:
-                    self.sysexit(
-                        "Error, unknown architecture encountered, need to add support for %s."
-                        % arch_name
-                    )
+                arch_suffix = self._getArchSuffix()
 
                 # Manually loaded DLLs by Qt5.
                 # spell-checker: ignore libcrypto

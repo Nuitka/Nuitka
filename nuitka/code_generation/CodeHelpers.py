@@ -409,6 +409,8 @@ class HelperCallHandle(object):
 
 @contextmanager
 def withCleanupFinally(name, release_name, needs_exception, emit, context):
+    # We do not handle exceptions here, because they abort compilation anyway.
+    # pylint: disable=contextmanager-generator-missing-cleanup
     assert not context.needsCleanup(release_name)
 
     if needs_exception:

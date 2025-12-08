@@ -470,7 +470,7 @@ Retrying after a second of delay."""
 
                     return result
 
-            logger.sysexit("Failed to %s, %s." % (purpose, consequence))
+            return logger.sysexit("Failed to %s, %s." % (purpose, consequence))
 
         return retryingFunction
 

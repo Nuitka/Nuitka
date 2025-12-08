@@ -818,7 +818,11 @@ def autoFormatFile(
                     _cleanupMarkdownFmt(tmp_filename)
 
                 if is_package_config_yaml:
-                    formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
+                    formatYaml(
+                        logger=tools_logger,
+                        path=tmp_filename,
+                        ignore_diff=ignore_yaml_diff,
+                    )
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
                     checkYamlSchema(
@@ -827,7 +831,11 @@ def autoFormatFile(
                         effective_filename=effective_filename,
                         update=True,
                     )
-                    formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
+                    formatYaml(
+                        logger=tools_logger,
+                        path=tmp_filename,
+                        ignore_diff=ignore_yaml_diff,
+                    )
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
         elif is_png:

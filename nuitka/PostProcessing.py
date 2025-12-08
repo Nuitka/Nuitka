@@ -183,7 +183,7 @@ def _addWindowsIconFromIcons(onefile):
 
             if icon_index is not None:
                 if icon_index > len(icons):
-                    postprocessing_logger.sysexit(
+                    return postprocessing_logger.sysexit(
                         "Error, referenced icon index %d in file '%s' with only %d icons."
                         % (icon_index, icon_path, len(icons))
                     )
@@ -526,7 +526,7 @@ def executePostProcessing(result_filename):
                 python_dll_filename = dependency
                 break
         else:
-            postprocessing_logger.sysexit(
+            return postprocessing_logger.sysexit(
                 """
 Error, expected 'libpython dependency not found. Please report the bug."""
             )

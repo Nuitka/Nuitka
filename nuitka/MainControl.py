@@ -570,7 +570,9 @@ def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
 
     if not os.path.isfile(pgo_executable):
-        return general.sysexit("Error, failed to produce PGO binary '%s'" % pgo_executable)
+        return general.sysexit(
+            "Error, failed to produce PGO binary '%s'" % pgo_executable
+        )
 
     return callProcess(
         [getExternalUsePath(pgo_executable)] + getPgoArgs(),

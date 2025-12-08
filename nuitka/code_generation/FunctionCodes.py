@@ -787,6 +787,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         old_exception_target = context.setExceptionEscape(exception_target)
     else:
         exception_target = None
+        old_exception_target = None
 
     with withObjectCodeTemporaryAssignment(
         to_name, "outline_return_value", expression, emit, context
