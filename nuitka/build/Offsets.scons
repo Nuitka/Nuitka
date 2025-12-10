@@ -46,8 +46,7 @@ from nuitka.utils.FileOperations import getExternalUsePath
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
-    checkWindowsCompilerFound,
-    importEnvironmentVariableSettings,
+    createEnvironmentAndCheckCompiler,
     reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
@@ -61,9 +60,7 @@ from .SconsPythonBuild import (
 )
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
-    addClangClPathFromMSVC,
     changeKeyboardInterruptToErrorExit,
-    createEnvironment,
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
@@ -71,9 +68,6 @@ from .SconsUtils import (
     getExecutablePath,
     getMsvcVersionString,
     initScons,
-    isClangName,
-    isGccName,
-    isZigName,
     makeResultPathFileSystemEncodable,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
@@ -175,49 +169,22 @@ Environment.Detect = getEnhancedToolDetect()
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
-env = createEnvironment(
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
+env = createEnvironmentAndCheckCompiler(
     mingw_mode=mingw_mode,
     msvc_version=msvc_version,
+    clang_mode=clang_mode,
+    clangcl_mode=clangcl_mode,
     target_arch=target_arch,
     experimental=[],
     no_deployment=[],
     debug_modes=[],
-)
-
-scons_details_logger.info("Initial CC: %r" % env.get("CC"))
-scons_details_logger.info(
-    "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
-)
-
-if "CC" in os.environ:
-    # If the environment variable CC is set, use that.
-    env["CC"] = os.environ["CC"]
-    env["CCVERSION"] = None
-
-    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
-elif clangcl_mode:
-    # If possible, add Clang directory from MSVC if available.
-    addClangClPathFromMSVC(env=env)
-elif clang_mode and not mingw_mode:
-    # If requested by the user, use the clang compiler, overriding what was
-    # said in environment.
-
-    env["CC"] = "clang"
-    env["CCVERSION"] = None
-
-# On Windows, in case MSVC was not found and not previously forced, use the
-# winlibs MinGW64 as a download, and use it as a fallback.
-env = checkWindowsCompilerFound(
-    env=env,
-    target_arch=target_arch,
-    clang_mode=clang_mode,
-    msvc_version=msvc_version,
+    consider_environ_variables=True,
     assume_yes_for_downloads=assume_yes_for_downloads,
     download_ok=True,
 )
 
-env.the_compiler = env["CC"]
-env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.debug_mode = False
 env.debugger_mode = False
 env.unstripped_mode = False
@@ -229,23 +196,6 @@ env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
 env.target_arch = target_arch
 
-# Requested or user provided, detect if it's clang even from environment
-if isClangName(env.the_cc_name):
-    clang_mode = True
-    env["CCVERSION"] = None
-
-# We consider clang to be a form of gcc for the most things, they strive to
-# be compatible.
-env.zig_mode = isZigName(env.the_cc_name)
-env.gcc_mode = (
-    isGccName(env.the_cc_name) or clang_mode or (env.zig_mode and not os.name == "nt")
-)
-env.clang_mode = clang_mode
-
-# Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = os.name == "nt" and not env.gcc_mode and not env.zig_mode
-env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
-env.clangcl_mode = clangcl_mode
 
 # For Python3.13, we need to enforce it for now to use MSVC
 if os.name == "nt" and not env.msvc_mode and python_version >= (3, 13):
@@ -423,9 +373,6 @@ source_files = discoverSourceFiles()
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 target = env.Program(result_exe, source_files)
-
-# Use compiler/linker flags provided via environment variables
-importEnvironmentVariableSettings(env)
 
 
 if job_count:
