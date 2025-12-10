@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in codes
+"""Built-in codes
 
 This is code generation for built-in references, and some built-ins like range,
 bin, etc.

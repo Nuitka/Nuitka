@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes to inject C code into generated code. """
+"""Nodes to inject C code into generated code."""
 
 from .NodeBases import StatementBase
 

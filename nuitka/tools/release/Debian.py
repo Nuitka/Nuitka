@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Release tools related to Debian packaging.
-
-"""
+"""Release tools related to Debian packaging."""
 
 import os
 import sys

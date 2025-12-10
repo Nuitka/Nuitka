@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that covers all module attributes. """
+"""Test that covers all module attributes."""
 
 from __future__ import print_function
 

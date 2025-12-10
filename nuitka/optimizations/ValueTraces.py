@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Value trace objects.
+"""Value trace objects.
 
 Value traces indicate the flow of values and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.

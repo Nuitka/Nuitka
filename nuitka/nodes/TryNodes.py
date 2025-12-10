@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for try/except/finally handling.
+"""Nodes for try/except/finally handling.
 
 This is the unified low level solution to trying a block, and executing code
 when it returns, break, continues, or raises an exception. See Developer

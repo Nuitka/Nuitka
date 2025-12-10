@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Python version specifics.
+"""Python version specifics.
 
 This abstracts the Python version decisions. This makes decisions based on
 the numbers, and attempts to give them meaningful names. Where possible it

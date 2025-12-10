@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for constant expressions. Can be all common built-in types.
-
-"""
+"""Node for constant expressions. Can be all common built-in types."""
 
 import sys
 from abc import abstractmethod

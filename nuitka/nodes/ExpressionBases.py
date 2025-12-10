@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Expression base classes.
+"""Expression base classes.
 
 These classes provide the generic base classes available for
 expressions. They have a richer interface, mostly related to

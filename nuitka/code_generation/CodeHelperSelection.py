@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Select from code helpers.
+"""Select from code helpers.
 
 This aims at being general, but right now is only used for comparison code helpers.
 """

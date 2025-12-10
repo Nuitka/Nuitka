@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Search modes for Nuitka's test runner.
+"""Search modes for Nuitka's test runner.
 
 The test runner can handle found errors, skip tests, etc. with search
 modes, which are implemented here.

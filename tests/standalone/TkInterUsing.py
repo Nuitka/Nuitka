@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" TkInter standalone test, trying to make sure it loads.
-
-"""
+"""TkInter standalone test, trying to make sure it loads."""
 
 # nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
 

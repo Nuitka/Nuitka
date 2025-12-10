@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for standalone program tests of Nuitka.
+"""Runner for standalone program tests of Nuitka.
 
 These tests aim at showing that one specific module works in standalone
 mode, trying to find issues with that packaging.

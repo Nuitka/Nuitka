@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Return codes
+"""Return codes
 
 This handles code generation for return statements of normal functions and of
 generator functions. Also the value currently being returned, and intercepted

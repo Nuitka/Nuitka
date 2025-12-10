@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module deals with finding and information about static libraries.
-
-"""
+"""This module deals with finding and information about static libraries."""
 
 import os
 

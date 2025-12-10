@@ -1,9 +1,7 @@
 #     Copyright 2025, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in> find license text at end of file
 
 
-""" Node for Iteration Handles.
-
-"""
+"""Node for Iteration Handles."""
 
 import math
 from abc import abstractmethod

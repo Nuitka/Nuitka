@@ -1,6 +1,4 @@
-""" Debian/Ubuntu package release.
-
-"""
+"""Debian/Ubuntu package release."""
 
 import os
 import shutil

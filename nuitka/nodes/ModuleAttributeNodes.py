@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module/Package attribute nodes
+"""Module/Package attribute nodes
 
 The represent special values of the modules. The "__name__", "__package__",
 "__file__", and "__spec__" values can all be highly dynamic and version

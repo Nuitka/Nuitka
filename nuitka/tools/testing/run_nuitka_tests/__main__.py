@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main front-end to the tests of Nuitka.
+"""Main front-end to the tests of Nuitka.
 
 Has many options, read --help output.
 """

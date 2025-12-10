@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Utils module to provide helper for our common json operations.
-
-"""
+"""Utils module to provide helper for our common json operations."""
 
 from __future__ import absolute_import
 

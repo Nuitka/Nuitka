@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for profiling.
+"""Tools for profiling.
 
 Currently using perf kernel interface for native Linux are the only thing exposed,
 they don't work inside of containers though, or with default security settings.

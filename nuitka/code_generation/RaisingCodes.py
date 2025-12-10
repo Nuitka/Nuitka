@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for implicit and explicit exception raises.
+"""Code generation for implicit and explicit exception raises.
 
 Exceptions from other operations are consider ErrorCodes domain.
 

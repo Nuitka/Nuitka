@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka yaml utility functions.
+"""Nuitka yaml utility functions.
 
 Because we want to work with Python2.6 or higher, we play a few tricks with
 what library to use for what Python. We have an 2 inline copy of PyYAML, one

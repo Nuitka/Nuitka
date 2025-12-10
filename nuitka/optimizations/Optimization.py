@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Control the flow of optimizations applied to node tree.
+"""Control the flow of optimizations applied to node tree.
 
 Applies abstract execution on all so far known modules until no more
 optimization is possible. Every successful optimization to anything might

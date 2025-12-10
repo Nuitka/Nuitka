@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for program tests of Nuitka.
+"""Runner for program tests of Nuitka.
 
 Program tests are typically aiming at checking specific module constellations
 and making sure the details are being right there. These are synthetic small

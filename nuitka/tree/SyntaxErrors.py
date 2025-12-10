@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Handling of syntax errors.
+"""Handling of syntax errors.
 
 Format SyntaxError/IndentationError exception for output, as well as
 raise it for the given source code reference.

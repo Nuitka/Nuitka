@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for classes and their creations.
+"""Nodes for classes and their creations.
 
 The classes are are at the core of the language and have their complexities.
 

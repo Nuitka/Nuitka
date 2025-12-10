@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that build and operate on str.
-
-"""
+"""Nodes that build and operate on str."""
 
 from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationCapitalizeBase,

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Normal function (no generator, not yielding) related templates.
-
-"""
+"""Normal function (no generator, not yielding) related templates."""
 
 template_function_make_declaration = """\
 static PyObject *MAKE_FUNCTION_%(function_identifier)s(%(function_creation_args)s);

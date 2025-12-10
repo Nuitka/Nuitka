@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Ignore listing of modules that are not found, but probably that's acceptable.
-
-"""
+"""Ignore listing of modules that are not found, but probably that's acceptable."""
 
 import sys
 

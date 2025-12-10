@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for accessing distributions and resolving package names for them. """
+"""Tools for accessing distributions and resolving package names for them."""
 
 import base64
 import hashlib

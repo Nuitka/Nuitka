@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Run a construct based comparison test.
+"""Run a construct based comparison test.
 
 This executes a program with and without snippet of code and
 stores the numbers about it, extracted with Valgrind for use

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Import cache.
+"""Import cache.
 
 This is not about caching the search of modules in the file system, but about
 maintaining a cache of module trees built.

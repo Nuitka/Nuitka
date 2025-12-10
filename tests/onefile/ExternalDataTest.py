@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" In this test, we show external data files to be found.
-
-"""
+"""In this test, we show external data files to be found."""
 
 # nuitka-project: --mode=onefile
 # nuitka-project: --include-data-dir={MAIN_DIRECTORY}/external-data=external-data

@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for distutils integration
+"""Runner for distutils integration
 
 Tests for example packages demonstrating that wheel creation with Nuitka
 is compatible to standard packaging tools.

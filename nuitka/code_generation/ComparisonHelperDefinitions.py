@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Shared definitions of what comparison operation helpers are available.
+"""Shared definitions of what comparison operation helpers are available.
 
 These are functions to work with helper names, as well as sets of functions to
 generate specialized code variants for.

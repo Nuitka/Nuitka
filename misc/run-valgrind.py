@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Run code with Nuitka compiled and put that through Valgrind.
-
-"""
+"""Run code with Nuitka compiled and put that through Valgrind."""
 
 import os
 import sys

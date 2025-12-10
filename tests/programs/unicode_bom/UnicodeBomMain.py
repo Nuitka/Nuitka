@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Program that imports a BOM using module.
-
-"""
+"""Program that imports a BOM using module."""
 
 from __future__ import print_function
 

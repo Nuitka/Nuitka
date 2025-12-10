@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reports about code generation.
+"""Reports about code generation.
 
 Initially this is about missing optimization only, but it should expand into
 real stuff.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools related to management of copyright headers and footers."""
+"""Tools related to management of copyright headers and footers."""
 
 import ast
 import os
@@ -137,7 +137,7 @@ def _formatComments(filename, comments):
         comments = [
             (b"// %s" % comment if comment != b"" else b"//") for comment in comments
         ]
-    elif filename.endswith(".cmd"):
+    elif filename.endswith((".cmd", ".bat")):
         comments = [
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]

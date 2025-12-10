@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module gets setup by the plugins and provides hooks for use in Nuitka.
+"""This module gets setup by the plugins and provides hooks for use in Nuitka.
 
 It does not contain much of any business logic, but only functions that will
 be calling members "nuitka.plugins.Plugins" that is updated.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Emission of source code.
+"""Emission of source code.
 
 Code generation is driven via "emit", which is to receive lines of code and
 this is to collect them, providing the emit implementation. Sometimes nested

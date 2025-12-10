@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for lists.
+"""Code generation for lists.
 
 Right now only the creation is done here. But more should be added later on.
 """

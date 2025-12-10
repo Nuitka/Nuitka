@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Internal module
+"""Internal module
 
 This is a container for helper functions that are shared across modules. It
 may not exist, and is treated specially in code generation. This avoids to

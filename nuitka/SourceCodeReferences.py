@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Source code reference record.
+"""Source code reference record.
 
 All the information to lookup line and file of a code location, together with
 the future flags in use there.

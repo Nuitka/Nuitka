@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Builtin vars node.
+"""Builtin vars node.
 
 Not used much, esp. not in the form with arguments. Maybe used in some meta programming,
 and hopefully can be predicted, because at run time, it is hard to support.

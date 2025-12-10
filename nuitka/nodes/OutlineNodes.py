@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Outline nodes.
+"""Outline nodes.
 
 We use them for re-formulations and for in-lining of code. They are expressions
 that get their value from return statements in their code body. They do not

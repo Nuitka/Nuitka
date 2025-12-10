@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test Nuitka compiling itself and compiling itself in compiled form again.
+"""Test Nuitka compiling itself and compiling itself in compiled form again.
 
 This should not only give no errors, but the same source for modules being
 compiled when Nuitka is running compiled and uncompiled, so we can discover

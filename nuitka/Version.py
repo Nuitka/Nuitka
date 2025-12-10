@@ -1,9 +1,6 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com
 
-
-""" Nuitka version related stuff.
-
-"""
+"""Nuitka version related stuff."""
 
 version_string = """\
 Nuitka V4.0rc2

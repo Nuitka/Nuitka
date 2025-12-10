@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for variable release
+"""Nodes for variable release
 
 These refer to resolved variable objects.
 

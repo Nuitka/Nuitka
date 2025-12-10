@@ -1,4 +1,4 @@
-""" This module is only an abstraction of OrderedSet which is not present in
+"""This module is only an abstraction of OrderedSet which is not present in
 Python at all.
 
 spell-checker: ignore orderedset,orderedsets

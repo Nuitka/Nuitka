@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for functions and their creations.
+"""Nodes for functions and their creations.
 
 Lambdas are functions too. The functions are at the core of the language and
 have their complexities.

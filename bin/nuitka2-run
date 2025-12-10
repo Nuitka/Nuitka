@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for Nuitka the compiler itself.
-
-"""
+"""Launcher for Nuitka the compiler itself."""
 
 # Import as little as possible initially, because we might be re-executing
 # soon.

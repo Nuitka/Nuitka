@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test runners test
+"""Test runners test
 
 This shows that known good existing static optimization works and produces
 constant results. This should be used to preserve successful optimization

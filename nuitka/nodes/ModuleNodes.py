@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module/Package nodes
+"""Module/Package nodes
 
 The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.

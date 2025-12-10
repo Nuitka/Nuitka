@@ -1,8 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Deprecated trio plugin.
-"""
+"""Deprecated trio plugin."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 

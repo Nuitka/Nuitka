@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to tell user about needed or useful options for packages.
+"""Standard plug-in to tell user about needed or useful options for packages.
 
 When certain GUI packages are used, disabling the console may or may not be what
 the user wants, or even be required, as e.g. "wx" on macOS will crash unless the

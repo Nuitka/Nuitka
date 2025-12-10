@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This cares about resolving module names at compile time compensating meta path based importers.
-
-"""
+"""This cares about resolving module names at compile time compensating meta path based importers."""
 
 from nuitka.__past__ import unicode
 from nuitka.Options import isExperimental

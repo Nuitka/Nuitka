@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test using matplotlib, should actually do something with it. """
+"""Test using matplotlib, should actually do something with it."""
 
 import os
 

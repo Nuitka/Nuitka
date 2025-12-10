@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Optimize calls to built-in references to specific built-in calls.
+"""Optimize calls to built-in references to specific built-in calls.
 
 For built-in name references, we check if it's one of the supported built-in
 types, and then specialize for the ones, where it makes sense.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Low coverage Pandas importing test. """
+"""Low coverage Pandas importing test."""
 
 # nuitka-skip-unless-imports: pandas
 

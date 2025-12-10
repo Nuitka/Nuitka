@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to automatically format source code in Nuitka style.
+"""Tool to automatically format source code in Nuitka style.
 
 spell-checker: ignore mdformat,rstfmt,thirdparty,cpptools,pybench
 spell-checker: ignore containerfile,rpmlintrc,gitmodules
@@ -63,6 +63,7 @@ BLACK_SKIP_LIST = [
     "tests/basics/PrintingTest_2.py",
     "tests/benchmarks/binary-trees.py",
     "tests/benchmarks/comparisons/GeneratorFunctionVsGeneratorExpression.py",
+    "tests/benchmarks/constructs/InplaceOperationLongAdd_27.py",
     "tests/benchmarks/constructs/InplaceOperationUnicodeAdd_27.py",
     "tests/benchmarks/constructs/RichComparisonConditionStrings.py",
     "tests/programs/syntax_errors/IndentationErroring.py",

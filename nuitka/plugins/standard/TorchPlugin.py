@@ -1,8 +1,7 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Deprecated torch plugin.
-"""
+"""Deprecated torch plugin."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 

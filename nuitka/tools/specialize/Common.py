@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Common helper functions for specializing code."""
+"""Common helper functions for specializing code."""
 
 from nuitka.Constants import the_empty_unicode
 from nuitka.tools.quality.auto_format.AutoFormat import (  # For import from here, pylint: disable=unused-import

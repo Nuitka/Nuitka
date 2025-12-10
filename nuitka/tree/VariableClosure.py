@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Variable closure taking.
+"""Variable closure taking.
 
 This is the completion of variable object completion. The variables were not
 immediately resolved to be bound to actual scopes, but are only now.

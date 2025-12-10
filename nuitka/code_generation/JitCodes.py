@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for JIT specific stuff, preserving source code for runtime. """
+"""Code generation for JIT specific stuff, preserving source code for runtime."""
 
 from nuitka.Options import isStandaloneMode
 

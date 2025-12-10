@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" CType classes for C "float" (double), (used in conjunction with PyFloatObject *)
-
-"""
+"""CType classes for C "float" (double), (used in conjunction with PyFloatObject *)"""
 
 from math import copysign, isinf, isnan
 

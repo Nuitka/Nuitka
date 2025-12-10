@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module names are common string type, which deserves special operations.
+"""Module names are common string type, which deserves special operations.
 
 These are used in Nuitka for module and package names in most places, and
 allow to easily make checks on them.

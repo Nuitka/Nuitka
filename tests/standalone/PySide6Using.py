@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This test is using signals and will only work if PySide properly accepts
+"""This test is using signals and will only work if PySide properly accepts
 compiled functions as callables.
 """
 

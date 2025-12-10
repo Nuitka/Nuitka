@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Integer related codes, long and int.
-
-"""
+"""Integer related codes, long and int."""
 
 from nuitka.PythonVersions import python_version
 

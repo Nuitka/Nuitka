@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" CType classes for C void, this cannot represent unassigned, nor indicate exception.
-
-"""
+"""CType classes for C void, this cannot represent unassigned, nor indicate exception."""
 
 from nuitka.code_generation.ErrorCodes import getReleaseCode
 

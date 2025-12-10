@@ -1,8 +1,7 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Details see below in class definition.
-"""
+"""Details see below in class definition."""
 
 import os
 import sys

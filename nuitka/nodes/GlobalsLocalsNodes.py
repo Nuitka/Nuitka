@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Globals/locals/single arg dir nodes
+"""Globals/locals/single arg dir nodes
 
 These nodes give access to variables, highly problematic, because using them,
 the code may change or access anything about them, so nothing can be trusted

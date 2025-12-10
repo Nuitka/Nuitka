@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main module code templates
+"""Main module code templates
 
 This for the main program in case of executables, the module templates and
 stuff related to importing, and of course the generated code license.

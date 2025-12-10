@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Program execution related stuff.
+"""Program execution related stuff.
 
 Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.

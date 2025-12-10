@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that covers attributes if function objects.
-
-"""
+"""Test that covers attributes if function objects."""
 
 from __future__ import print_function
 

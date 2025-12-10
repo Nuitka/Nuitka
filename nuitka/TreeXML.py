@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" XML node tree handling
+"""XML node tree handling
 
 Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.

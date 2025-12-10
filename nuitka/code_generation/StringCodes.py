@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" String related codes, str and unicode.
-
-"""
+"""String related codes, str and unicode."""
 
 from nuitka.PythonVersions import python_version
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for calls.
+"""Code generation for calls.
 
 The different kinds of calls get dedicated code. Most notable, calls with
 only positional arguments, are attempted through helpers that might be

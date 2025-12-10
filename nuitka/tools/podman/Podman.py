@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Podman container usage tools. """
+"""Podman container usage tools."""
 
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.Utils import (

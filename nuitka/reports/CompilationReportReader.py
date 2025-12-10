@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This is for use in testing, but also for user tools too."""
+"""This is for use in testing, but also for user tools too."""
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.TreeXML import convertFileToXML

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Low level variable code generation.
-
-"""
+"""Low level variable code generation."""
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,

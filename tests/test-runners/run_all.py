@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test runners test
+"""Test runners test
 
 This shows that typical test runners like nose and py.test can be used with
 compiled packages.

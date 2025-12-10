@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Yield related codes.
+"""Yield related codes.
 
 The normal "yield", and the Python 3 "yield from" variant.
 """

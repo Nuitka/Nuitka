@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for handling Windows resources.
+"""Module for handling Windows resources.
 
 Nuitka needs to do a couple of things with Windows resources, e.g. adding
 and removing manifests amd copying icon image resources into the created

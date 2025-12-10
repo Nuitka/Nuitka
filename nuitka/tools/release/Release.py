@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Release related common functionality.
-
-"""
+"""Release related common functionality."""
 
 import os
 import shutil

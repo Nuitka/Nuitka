@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node the calls to the 'input' built-in.
+"""Node the calls to the 'input' built-in.
 
 This has a specific result value, which can be useful to know, but mostly
 we want to apply hacks for redirected error output only, and still have

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Assignment tests, cover most forms of them. """
+"""Assignment tests, cover most forms of them."""
 
 # nuitka-project: --nofollow-imports
 

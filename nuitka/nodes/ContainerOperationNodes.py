@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Operations on Containers.
-
-"""
+"""Operations on Containers."""
 
 from .ChildrenHavingMixins import ChildrenExpressionSetOperationUpdateMixin
 from .ExpressionBases import ExpressionBase

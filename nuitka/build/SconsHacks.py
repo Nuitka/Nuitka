@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Hacks for scons that we apply.
+"""Hacks for scons that we apply.
 
 We block some tools from the standard scan, there is e.g. no need to ask
 what fortran version we have installed to compile with Nuitka.

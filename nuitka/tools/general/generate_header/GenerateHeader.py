@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Generate header files that provide compiler specifics."""
+"""Generate header files that provide compiler specifics."""
 
 from nuitka.build.SconsInterface import (
     cleanSconsDirectory,

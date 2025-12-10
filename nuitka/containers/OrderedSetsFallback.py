@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module is only an abstraction of OrderedSet which is not present in
+"""This module is only an abstraction of OrderedSet which is not present in
 Python at all.
 
 It was originally downloaded from http://code.activestate.com/recipes/576694/

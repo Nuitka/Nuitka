@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Just something to allow the plugin to look at.
-
-"""
+"""Just something to allow the plugin to look at."""
 
 # nuitka-project: --user-plugin={MAIN_DIRECTORY}/parameter-using-plugin.py
 # nuitka-project: --trace-my-plugin

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for the calls to the 'dict' built-in.
-
-"""
+"""Node for the calls to the 'dict' built-in."""
 
 from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 

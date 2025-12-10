@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helpers for code generation.
+"""Helpers for code generation.
 
 This dispatch building of expressions and statements, as well as providing
 typical support functions to building parts.

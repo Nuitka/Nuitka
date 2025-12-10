@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to make PyQt and PySide work well in standalone mode.
+"""Standard plug-in to make PyQt and PySide work well in standalone mode.
 
 To run properly, these need the Qt plugins copied along, which have their
 own dependencies.

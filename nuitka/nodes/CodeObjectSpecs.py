@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code object specifications.
+"""Code object specifications.
 
 For code objects that will be attached to module, function, and generator
 objects, as well as tracebacks. They might be shared.

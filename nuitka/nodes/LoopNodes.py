@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Loop nodes.
+"""Loop nodes.
 
 There are for and loop nodes, but both are reduced to loops with break/continue
 statements for it. These re-formulations require that optimization of loops has

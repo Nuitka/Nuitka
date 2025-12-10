@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Low level constant code generation.
+"""Low level constant code generation.
 
 This deals with constants, there creation, there access, and some checks about
 them. Even mutable constants should not change during the course of the

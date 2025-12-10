@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare reference counting behavior of CPython and Nuitka.
-
-"""
+"""Tool to compare reference counting behavior of CPython and Nuitka."""
 
 import os
 import sys

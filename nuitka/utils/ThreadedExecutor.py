@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Threaded pool execution.
+"""Threaded pool execution.
 
 This can use Python3 native, or even Python2.7 backport, or has a Python2.6
 stub that does not thread at all.

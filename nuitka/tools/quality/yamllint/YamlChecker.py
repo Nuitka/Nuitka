@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Check and update Yaml checksum if possible."""
+"""Check and update Yaml checksum if possible."""
 
 import ast
 import re

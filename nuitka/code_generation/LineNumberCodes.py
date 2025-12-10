@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Generate code that updates the source code line.
-
-"""
+"""Generate code that updates the source code line."""
 
 
 def getCurrentLineNumberCode(context):

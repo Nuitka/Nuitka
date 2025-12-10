@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node dedicated to "".join() code pattern.
+"""Node dedicated to "".join() code pattern.
 
 This is used for Python 3.6 fstrings re-formulation and has pretty direct
 code alternative to actually looking up that method from the empty string

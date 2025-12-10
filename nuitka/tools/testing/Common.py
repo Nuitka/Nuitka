@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Common test infrastructure functions. To be used by test runners. """
+"""Common test infrastructure functions. To be used by test runners."""
 
 import atexit
 import gc

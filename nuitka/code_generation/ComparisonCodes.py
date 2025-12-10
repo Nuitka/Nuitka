@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Comparison related codes.
+"""Comparison related codes.
 
 Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.

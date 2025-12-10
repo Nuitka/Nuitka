@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of subscript into slicing.
+"""Reformulation of subscript into slicing.
 
 For Python2, there is a difference between x[a], x[a:b], x[a:b:c] whereas
 Python3 treats the later by making a slice object, Python2 tries to have

@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for git hook installer tool.
-
-"""
+"""Launcher for git hook installer tool."""
 
 import os
 import sys

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Distutils example that contains a package and a data file.
-
-"""
+"""Distutils example that contains a package and a data file."""
 
 from setuptools import setup
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with module loaders.
+"""Code to generate and interact with module loaders.
 
 This is for generating the look-up table for the modules included in a binary
 or distribution folder.

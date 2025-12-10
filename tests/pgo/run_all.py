@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for Python PGO tests of Nuitka.
+"""Runner for Python PGO tests of Nuitka.
 
 PGO tests attempt to cover inclusion/non-inclusion of code and detection of
 types.

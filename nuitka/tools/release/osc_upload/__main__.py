@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" OpenSUSE Build Service (OSC) upload release tool.
+"""OpenSUSE Build Service (OSC) upload release tool.
 
 Uploads Nuitka branches adapting the RPM configuration to the different
 projects on OSC.

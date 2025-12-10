@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Variables link the storage and use of a Python variable together.
+"""Variables link the storage and use of a Python variable together.
 
 Different kinds of variables represent different scopes and owners types,
 and their links between each other, i.e. references as in closure or

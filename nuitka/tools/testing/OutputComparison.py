@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools to compare outputs of compiled and not compiled programs.
+"""Tools to compare outputs of compiled and not compiled programs.
 
 There is a couple of replacements to be done for compiled programs to
 make the diff meaningful. The compiled type representations are just

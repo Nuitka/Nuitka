@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for generated tests of Nuitka.
+"""Runner for generated tests of Nuitka.
 
 These tests are created on the fly, and some use Nuitka internals to
 decide what to test for or how, e.g. to check that a type indeed does

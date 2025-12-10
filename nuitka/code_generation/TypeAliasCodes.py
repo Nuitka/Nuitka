@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for type alias statement helpers.
-
-"""
+"""Code generation for type alias statement helpers."""
 
 from .CodeHelpers import (
     generateChildExpressionCode,

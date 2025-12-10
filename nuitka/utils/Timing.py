@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Time taking.
+"""Time taking.
 
 Mostly for measurements of Nuitka of itself, e.g. how long did it take to
 call an external tool.

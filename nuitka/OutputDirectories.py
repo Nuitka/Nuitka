@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Directories and paths to for output of Nuitka.
+"""Directories and paths to for output of Nuitka.
 
 There are two major outputs, the build directory *.build and for
 standalone mode, the *.dist folder.

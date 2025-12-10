@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Stage changes in Nuitka-Watch automatically
+"""Stage changes in Nuitka-Watch automatically
 
 This aims at recognizing unimportant changes automatically and is used
 for larger report format migrations in the future potentially.

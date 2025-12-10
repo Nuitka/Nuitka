@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" C string encoding
+"""C string encoding
 
 This contains the code to create string literals for C to represent the given
 values.

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Postprocessing tasks for create binaries or modules.
-
-"""
+"""Postprocessing tasks for create binaries or modules."""
 
 import ctypes
 import os

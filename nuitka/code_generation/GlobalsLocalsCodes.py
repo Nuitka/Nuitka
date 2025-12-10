@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for locals and globals handling.
+"""Code generation for locals and globals handling.
 
 This also includes writing back to locals for exec statements.
 """

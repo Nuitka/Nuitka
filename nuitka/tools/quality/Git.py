@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Functions to handle git staged content.
+"""Functions to handle git staged content.
 
 Inspired from https://raw.githubusercontent.com/hallettj/git-format-staged/master/git-format-staged
 Original author: Jesse Hallett <jesse@sitr.us>

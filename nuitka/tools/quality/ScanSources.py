@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Many tools work on Nuitka sources and need to find the files.
-
-"""
+"""Many tools work on Nuitka sources and need to find the files."""
 
 import os
 

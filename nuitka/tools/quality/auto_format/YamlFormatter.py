@@ -1,7 +1,7 @@
 #     Copyright 2025, Fire-Cube <ben7@gmx.ch> find license text at end of file
 
 
-""" Automatic formatting of Yaml files.
+"""Automatic formatting of Yaml files.
 
 spell-checker: ignore ruamel, scalarstring
 """

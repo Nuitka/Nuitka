@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Build the internal node tree from source code.
+"""Build the internal node tree from source code.
 
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.

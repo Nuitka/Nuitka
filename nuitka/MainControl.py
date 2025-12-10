@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This is the main actions of Nuitka.
+"""This is the main actions of Nuitka.
 
 This can do all the steps to translate one module to a target language using
 the Python C/API, to compile it to either an executable or an extension

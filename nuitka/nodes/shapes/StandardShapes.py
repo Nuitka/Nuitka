@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard shapes that commonly appear. """
+"""Standard shapes that commonly appear."""
 
 from abc import abstractmethod
 

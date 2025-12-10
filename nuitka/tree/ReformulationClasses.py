@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of Python2 class statements.
+"""Reformulation of Python2 class statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.

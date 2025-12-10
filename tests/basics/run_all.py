@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for basic tests of Nuitka.
+"""Runner for basic tests of Nuitka.
 
 Basic tests are those that cover our back quickly, but need not necessarily,
 be complete.

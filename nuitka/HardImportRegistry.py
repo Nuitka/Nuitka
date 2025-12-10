@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Registry for hard import data.
+"""Registry for hard import data.
 
 Part of it is static, but modules can get at during scan by plugins that
 know how to handle these.

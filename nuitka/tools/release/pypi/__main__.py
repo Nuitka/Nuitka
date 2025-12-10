@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Make PyPI upload of Nuitka, and check success of it. """
+"""Make PyPI upload of Nuitka, and check success of it."""
 
 import os
 import shutil

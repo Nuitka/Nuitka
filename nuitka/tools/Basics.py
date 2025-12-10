@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Basics for Nuitka tools.
-
-"""
+"""Basics for Nuitka tools."""
 
 import os
 import sys
