@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: Checks
     env:
-      CLANG_FORMAT_VERSION: '21'
+      CLANG_FORMAT_VERSION: "21"
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - name: 🐍 Use Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -77,12 +77,12 @@ jobs:
     strategy:
       matrix:
         python_version:
-            - '3.8'
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
@@ -136,19 +136,17 @@ jobs:
           env | sort
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
-
-
   mac-python3:
     needs: linux
     runs-on: macos-latest
     strategy:
       matrix:
         python_version:
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
@@ -217,13 +215,13 @@ jobs:
     strategy:
       matrix:
         python_version:
-            - '3.7'
-            - '3.8'
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
