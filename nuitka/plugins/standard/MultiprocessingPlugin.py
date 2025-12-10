@@ -110,6 +110,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
         # source code.
         root_module = getRootTopModule()
 
+        # TODO: Might have to also make "__mp_main__"
         module_name = ModuleName("__parents_main__")
 
         source_code = readSourceCodeFromFilename(module_name, root_module.getFilename())
@@ -124,7 +125,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
 def __nuitka_freeze_support():
     import sys
 
-    # Not needed, and can crash from minor __file__ differences, depending on invocation
+    # Not needed, and can crash from minor "__file__" differences, depending on invocation
     import multiprocessing.spawn
     multiprocessing.spawn._fixup_main_from_path = lambda mod_name : None
 
