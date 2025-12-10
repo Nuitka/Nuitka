@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Using pkgutil to read data from a package.
+"""Using pkgutil to read data from a package.
 
 This test can use the commercial code, which includes the file inside
 the binary, inaccessible to the user, as as well a the free code, where

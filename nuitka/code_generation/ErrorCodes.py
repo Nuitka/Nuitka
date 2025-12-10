@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Error codes
+"""Error codes
 
 These are the helper functions that will emit the error exit codes. They
 can abstractly check conditions or values directly. The release of statement

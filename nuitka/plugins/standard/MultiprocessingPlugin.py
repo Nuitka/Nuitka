@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to make multiprocessing and joblib work well.
+"""Standard plug-in to make multiprocessing and joblib work well.
 
 On Windows, the multiprocessing modules forks new processes which then have
 to start from scratch. This won't work if there is no "sys.executable" to

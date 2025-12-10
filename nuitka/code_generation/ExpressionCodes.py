@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Expression codes, side effects, or statements that are an unused expression.
+"""Expression codes, side effects, or statements that are an unused expression.
 
 When you write "f()", i.e. you don't use the return value, that is an expression
 only statement.

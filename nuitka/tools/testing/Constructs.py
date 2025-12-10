@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for construct tests.
-
-"""
+"""Tools for construct tests."""
 
 
 def generateConstructCases(construct_source_code):

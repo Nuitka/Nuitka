@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack and copy files for standalone mode.
+"""Pack and copy files for standalone mode.
 
 This is expected to work for macOS, Windows, and Linux. Other things like
 FreeBSD are also very welcome, but might break with time and need your

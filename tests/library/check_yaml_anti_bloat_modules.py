@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This test runner compiles all Python files as a module.
+"""This test runner compiles all Python files as a module.
 
 This is a test to achieve some coverage, it will only find assertions of
 within Nuitka or warnings from the C compiler. Code will not be run

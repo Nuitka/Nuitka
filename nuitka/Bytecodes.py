@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Handle bytecode and compile source code to bytecode. """
+"""Handle bytecode and compile source code to bytecode."""
 
 import ast
 

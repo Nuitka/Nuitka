@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helper functions for the scons file.
-
-"""
+"""Helper functions for the scons file."""
 
 from __future__ import print_function
 

@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for restlint checker tool.
-
-"""
+"""Main program for restlint checker tool."""
 
 import sys
 

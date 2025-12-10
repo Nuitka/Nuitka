@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack distribution folders into a single file.
-
-"""
+"""Pack distribution folders into a single file."""
 
 import os
 import subprocess

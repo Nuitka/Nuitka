@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that build and operate on dictionaries.
+"""Nodes that build and operate on dictionaries.
 
 The "pair" is a sub-structure of the dictionary, representing a key/value pair
 that is the child of the dictionary creation.

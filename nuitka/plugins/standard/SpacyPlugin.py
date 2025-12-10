@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Plugin for spacy.
+"""Plugin for spacy.
 
 spell-checker: ignore spacy
 """

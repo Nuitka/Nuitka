@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module abstracts what site.py is normally doing in .pth files.
+"""This module abstracts what site.py is normally doing in .pth files.
 
 This tries to extract "namespaces" packages that were manually created and
 point to package directories, which need no "__init__.py" to count as a

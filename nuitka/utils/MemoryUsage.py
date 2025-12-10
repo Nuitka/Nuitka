@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for tracing memory usage at compiled time.
-
-"""
+"""Tools for tracing memory usage at compiled time."""
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import memory_logger, printLine

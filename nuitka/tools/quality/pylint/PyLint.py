@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" PyLint handling for Nuitka.
+"""PyLint handling for Nuitka.
 
 Our usage of PyLint also works around a few issues that PyLint
 has.

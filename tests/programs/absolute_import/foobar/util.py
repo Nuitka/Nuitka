@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module that provides a function for import.
-
-"""
+"""Module that provides a function for import."""
 
 
 def someFunction():

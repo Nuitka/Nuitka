@@ -1,7 +1,7 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Standard plug-in to make pbr module work when compiled.
+"""Standard plug-in to make pbr module work when compiled.
 
 The pbr module needs to find a version number in compiled mode. The value
 itself seems less important than the fact that some value does exist.

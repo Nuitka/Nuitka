@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Print related codes.
+"""Print related codes.
 
 This is broken down to to level on printing one individual item, and
 a new line potentially. The heavy lifting for 'softspace', etc. is

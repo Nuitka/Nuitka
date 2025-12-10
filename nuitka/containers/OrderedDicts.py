@@ -1,4 +1,4 @@
-""" This module is only an abstraction of OrderedDict as present in 2.7 and 3.x.
+"""This module is only an abstraction of OrderedDict as present in 2.7 and 3.x.
 
 It is not in 2.6, for this version we are using the odict.py as mentioned in the
 PEP-0372.

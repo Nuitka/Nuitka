@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Templates for handling exceptions.
-
-"""
+"""Templates for handling exceptions."""
 
 template_publish_exception_to_handler = """\
 {

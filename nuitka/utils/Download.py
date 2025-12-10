@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Download utilities and extract locally when allowed.
+"""Download utilities and extract locally when allowed.
 
 Mostly used on Windows, for dependency walker and ccache binaries.
 """

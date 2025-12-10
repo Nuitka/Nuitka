@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for yamllint checker tool.
-
-"""
+"""Main program for yamllint checker tool."""
 
 import os
 import sys

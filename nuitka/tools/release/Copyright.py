@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools related to management of copyright headers and footers."""
+"""Tools related to management of copyright headers and footers."""
 
 import ast
 import os

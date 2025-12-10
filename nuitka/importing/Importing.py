@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Locating modules and package source on disk.
+"""Locating modules and package source on disk.
 
 The actual import of a module would already execute code that changes things.
 Imagine a module that does ``os.system()``, it would be done during

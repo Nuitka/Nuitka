@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that deal with locals, as dict or mapping.
+"""Nodes that deal with locals, as dict or mapping.
 
 The mapping types can be optimized into dict types, and the ones with
 fallback can be optimized to no fallback variants.

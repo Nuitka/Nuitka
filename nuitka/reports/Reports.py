@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Collection of information for reports and their writing.
+"""Collection of information for reports and their writing.
 
 These reports are in XML form, and with Jinja2 templates in any form you like.
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for variable deletion
+"""Nodes for variable deletion
 
 These refer to resolved variable objects.
 

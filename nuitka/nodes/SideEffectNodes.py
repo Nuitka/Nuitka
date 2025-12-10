@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node that models side effects.
+"""Node that models side effects.
 
 Sometimes, the effect of an expression needs to be had, but the value itself
 does not matter at all.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for running a script inside a container.
+"""Launcher for running a script inside a container.
 
 Podman and Docker should both work, but the first one is recommended.
 """

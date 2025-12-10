@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for reporting SxS using extension modules.
-
-"""
+"""Launcher for reporting SxS using extension modules."""
 
 import os
 import sys

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Caching of compiled code.
+"""Caching of compiled code.
 
 Initially this deals with preserving compiled module state after bytecode demotion
 such that it allows to restore it directly.

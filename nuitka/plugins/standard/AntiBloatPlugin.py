@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to avoid bloat at compile time.
+"""Standard plug-in to avoid bloat at compile time.
 
 Nuitka hard codes stupid monkey patching normally not needed here and avoids
 that to be done and causing massive degradations.

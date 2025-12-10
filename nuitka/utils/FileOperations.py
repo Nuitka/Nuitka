@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Utils for file and directory operations.
+"""Utils for file and directory operations.
 
 This provides enhanced and more error resilient forms of standard
 stuff. It will also frequently add sorting for determinism.

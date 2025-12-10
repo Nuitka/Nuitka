@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Included data files for standalone mode.
+"""Included data files for standalone mode.
 
 This keeps track of data files for standalone mode. Do not should them for
 DLLs or extension modules, these need to be seen by Nuitka as entry points

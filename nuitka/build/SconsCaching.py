@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Caching of C compiler output.
-
-"""
+"""Caching of C compiler output."""
 
 import ast
 import os

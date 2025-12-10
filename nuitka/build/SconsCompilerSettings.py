@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This contains the tuning of the compilers towards defined goals.
-
-"""
+"""This contains the tuning of the compilers towards defined goals."""
 
 import os
 import re

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Cleanup of caches for Nuitka.
+"""Cleanup of caches for Nuitka.
 
 This is triggered by "--clean-cache=" usage, and can cleanup all kinds of
 caches and is supposed to run before or instead of Nuitka compilation.

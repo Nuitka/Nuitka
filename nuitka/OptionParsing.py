@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Command line options of Nuitka.
+"""Command line options of Nuitka.
 
 These provide only the optparse options to use, and the mechanic to actually
 do it, but updating and checking module "nuitka.Options" values is not in

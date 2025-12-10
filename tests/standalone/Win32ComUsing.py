@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that uses win32com superficially.
+"""Test that uses win32com superficially.
 
 Please help make it more useful, ideally by adding something
 that would work on every machine.

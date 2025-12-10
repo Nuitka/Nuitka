@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Distutils example that contains only plain module.
-
-"""
+"""Distutils example that contains only plain module."""
 
 from setuptools import setup
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Progress bars in Nuitka.
+"""Progress bars in Nuitka.
 
 This is responsible for wrapping the rendering of progress bar and emitting tracing
 to the user while it's being displayed.

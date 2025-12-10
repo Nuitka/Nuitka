@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for async generator objects and their creations.
+"""Nodes for async generator objects and their creations.
 
 Async generator are turned into normal functions that create generator objects,
 whose implementation lives here. The creation itself also lives here.

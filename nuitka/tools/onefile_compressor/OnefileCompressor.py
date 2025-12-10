@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Internal tool, compression standalone distribution files and attach to onefile bootstrap binary.
-
-"""
+"""Internal tool, compression standalone distribution files and attach to onefile bootstrap binary."""
 
 import os
 import shutil

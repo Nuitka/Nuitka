@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" C labels, small helpers.
+"""C labels, small helpers.
 
 Much things are handled with "goto" statements in the generated code, error
 exits, finally blocks, etc. this provides just the means to emit a label or

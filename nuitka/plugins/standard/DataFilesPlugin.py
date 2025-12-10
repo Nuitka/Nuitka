@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to find data files.
-
-"""
+"""Standard plug-in to find data files."""
 
 import os
 import pkgutil

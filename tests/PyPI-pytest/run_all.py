@@ -2,7 +2,7 @@
 #     Copyright 2025, Tommy Li, mailto:<tommyli3318@gmail.com> find license text at end of file
 
 
-""" Runner for PyPI Pytest comparison
+"""Runner for PyPI Pytest comparison
 
 This script automates the comparing of pytest results of a nuitka compiled wheel
 using `python setup.py bdist_nuitka` to the pytest results of an uncompiled wheel

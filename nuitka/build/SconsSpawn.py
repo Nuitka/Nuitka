@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Spawning processes.
+"""Spawning processes.
 
 This is to replace the standard spawn implementation with one that tracks the
 progress, and gives warnings about things taking very long.

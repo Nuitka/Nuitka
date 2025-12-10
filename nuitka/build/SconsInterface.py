@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Scons interface.
+"""Scons interface.
 
 Interaction with scons. Find the binary, and run it with a set of given
 options.

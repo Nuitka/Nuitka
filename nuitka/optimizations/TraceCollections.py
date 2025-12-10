@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Trace collection (also often still referred to as constraint collection).
+"""Trace collection (also often still referred to as constraint collection).
 
 At the core of value propagation there is the collection of constraints that
 allow to propagate knowledge forward or not.

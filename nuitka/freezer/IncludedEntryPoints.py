@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Included entry points for standalone mode.
+"""Included entry points for standalone mode.
 
 This keeps track of entry points for standalone. These should be extension
 modules, added by core code, the main binary, added by core code, and from

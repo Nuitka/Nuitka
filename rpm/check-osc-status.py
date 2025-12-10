@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for OSC status checker tool.
-
-"""
+"""Launcher for OSC status checker tool."""
 
 import os
 import sys

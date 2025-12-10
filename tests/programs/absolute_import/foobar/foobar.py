@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Using absolute import, do from module imports.
-
-"""
+"""Using absolute import, do from module imports."""
 
 from __future__ import absolute_import, print_function
 

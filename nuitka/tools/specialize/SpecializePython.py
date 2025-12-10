@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This tool is generating node variants from Jinja templates.
-
-"""
+"""This tool is generating node variants from Jinja templates."""
 
 import sys
 

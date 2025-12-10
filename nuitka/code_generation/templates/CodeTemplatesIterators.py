@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Templates for the iterator handling.
-
-"""
+"""Templates for the iterator handling."""
 
 template_loop_break_next = """\
 if (%(to_name)s == NULL) {

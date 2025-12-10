@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node the calls to the 'range' built-in.
+"""Node the calls to the 'range' built-in.
 
 This is a rather complex beast as it has many cases, is difficult to know if
 it's sizable enough to compute, and there are complex cases, where the bad

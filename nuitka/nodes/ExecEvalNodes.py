@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes concern with exec and eval builtins.
+"""Nodes concern with exec and eval builtins.
 
 These are the dynamic codes, and as such rather difficult. We would like
 to eliminate or limit their impact as much as possible, but it's difficult

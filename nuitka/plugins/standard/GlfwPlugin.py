@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Support for glfw, details in below class definitions.
-
-"""
+"""Support for glfw, details in below class definitions."""
 
 import os
 import re

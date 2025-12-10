@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for variable references.
+"""Node for variable references.
 
 These represent all variable references in the node tree. Can be in assignments
 and its expressions, changing the meaning of course dramatically.

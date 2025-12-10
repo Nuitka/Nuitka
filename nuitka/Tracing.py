@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Outputs to the user.
+"""Outputs to the user.
 
 Printing with intends or plain, mostly a compensation for the print strangeness.
 
@@ -577,7 +577,7 @@ optimization_logger = FileLogger("Nuitka-Optimization")
 pgo_logger = FileLogger("Nuitka-PGO")
 code_generation_logger = OurLogger("Nuitka-CodeGen")
 inclusion_logger = FileLogger("Nuitka-Inclusion")
-scons_logger = OurLogger("Nuitka-Scons")
+scons_logger = OurSconsLogger("Nuitka-Scons")
 scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")

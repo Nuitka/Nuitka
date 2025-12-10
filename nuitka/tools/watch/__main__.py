@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka watch main part.
+"""Nuitka watch main part.
 
 This tool is used to monitor effect of PyPI changes on Nuitka and effect
 of Nuitka changes on PyPI packages.

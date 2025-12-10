@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Creating virtualenvs and running commands in them.
-
-"""
+"""Creating virtualenvs and running commands in them."""
 
 import os
 import sys

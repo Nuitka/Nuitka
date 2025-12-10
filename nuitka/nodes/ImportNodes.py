@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes related to importing modules or names.
+"""Nodes related to importing modules or names.
 
 Normally imports are mostly relatively static, but Nuitka also attempts to
 cover the uses of "__import__" built-in and other import techniques, that

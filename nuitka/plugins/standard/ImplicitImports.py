@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to tell Nuitka about implicit imports.
+"""Standard plug-in to tell Nuitka about implicit imports.
 
 When C extension modules import other modules, we cannot see this and need to
 be told that. This encodes the knowledge we have for various modules. Feel free

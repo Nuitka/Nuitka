@@ -4,9 +4,7 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Automatic formatting of JSON files.
-
-"""
+"""Automatic formatting of JSON files."""
 
 import os
 

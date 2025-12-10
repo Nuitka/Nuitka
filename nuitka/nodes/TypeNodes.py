@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The type nodes.
+"""The type nodes.
 
 These ones deal with types and they are great for optimization. We need to know
 them, their relationship or check for them in re-formulations.

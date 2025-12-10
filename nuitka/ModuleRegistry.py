@@ -1,14 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This to keep track of used modules.
+"""This to keep track of used modules.
 
-    There is a set of root modules, which are user specified, and must be
-    processed. As they go, they add more modules to active modules list
-    and move done modules out of it.
+There is a set of root modules, which are user specified, and must be
+processed. As they go, they add more modules to active modules list
+and move done modules out of it.
 
-    That process can be restarted and modules will be fetched back from
-    the existing set of modules.
+That process can be restarted and modules will be fetched back from
+the existing set of modules.
 """
 
 import collections

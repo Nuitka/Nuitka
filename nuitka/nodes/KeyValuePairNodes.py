@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Dictionary pairs, for use in dictionary building, calls, etc.
+"""Dictionary pairs, for use in dictionary building, calls, etc.
 
 These represent the a=b part, as they occur in calls, and dictionary
 values, but they do not form a dictionary. As a sequence, they can

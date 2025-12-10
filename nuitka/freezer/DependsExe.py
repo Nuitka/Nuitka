@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Interface to depends.exe on Windows.
+"""Interface to depends.exe on Windows.
 
 We use "depends.exe" to investigate needed DLLs of Python DLLs.
 

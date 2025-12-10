@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for PyLint checker tool.
+"""Main program for PyLint checker tool.
 
 spell-checker: ignore unpushed
 """

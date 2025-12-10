@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Setup file for Nuitka.
+"""Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
 the source code. Second, the packages are scanned from the filesystem,

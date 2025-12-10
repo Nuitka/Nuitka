@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of sequence creations.
+"""Reformulation of sequence creations.
 
 Sequences might be directly translated to constants, or they might become
 nodes that build tuples, lists, or sets.

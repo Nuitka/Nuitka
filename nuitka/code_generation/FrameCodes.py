@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Frame codes
+"""Frame codes
 
 This is about frame stacks and their management. There are different kinds
 of frames for different uses.

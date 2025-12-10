@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for standard CPython/API calls.
+"""Code generation for standard CPython/API calls.
 
 This is generic stuff, geared at calling functions that accept Python objects
 and return Python objects. As these all work in a similar way, it makes sense

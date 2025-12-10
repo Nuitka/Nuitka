@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Playing around with constants only. """
+"""Playing around with constants only."""
 
 # pylint: disable=invalid-name,redefined-outer-name
 

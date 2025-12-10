@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For enhanced bug reporting, these exceptions should be used.
+"""For enhanced bug reporting, these exceptions should be used.
 
 They ideally should point out what it ought to take for reproducing the
 issue when output.

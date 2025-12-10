@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Assignment related nodes.
+"""Assignment related nodes.
 
 The most simple assignment statement ``a = b`` is what we have here. All others
 are either re-formulated using temporary variables, e.g. ``a, b = c`` or are

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tree nodes for built-in references.
+"""Tree nodes for built-in references.
 
 There is 2 major types of built-in references. One is the values from
 built-ins, the other is built-in exceptions. They work differently and

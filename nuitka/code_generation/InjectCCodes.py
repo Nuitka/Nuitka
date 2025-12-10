@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" C code inject related nodes.
+"""C code inject related nodes.
 
 These are only coming from special purpose plugins.
 """

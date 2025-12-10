@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Parameter using Nuitka plugin.
-
-"""
+"""Parameter using Nuitka plugin."""
 
 import os
 import sys

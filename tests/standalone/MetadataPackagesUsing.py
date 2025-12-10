@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This test uses the meta data of metadata entry points lookups that wouldn't work at runtime.
+"""This test uses the meta data of metadata entry points lookups that wouldn't work at runtime.
 
 But since Nuitka resolves them at compile time, no issue should happen.
 """

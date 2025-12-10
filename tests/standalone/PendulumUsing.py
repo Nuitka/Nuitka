@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pendulum standalone basic test.
+"""Pendulum standalone basic test.
 
 When this import works, locales are there.
 """

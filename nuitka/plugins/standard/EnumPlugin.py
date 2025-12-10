@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to make enum module work when compiled.
+"""Standard plug-in to make enum module work when compiled.
 
 The enum module provides a free function __new__ in class dictionaries to
 manual metaclass calls. These become then unbound methods instead of static

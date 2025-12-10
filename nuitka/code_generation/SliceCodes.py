@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for slicing.
+"""Code generation for slicing.
 
 This is about slice lookups, assignments, and deletions. There is also a
 special case, for using index values instead of objects. The slice objects

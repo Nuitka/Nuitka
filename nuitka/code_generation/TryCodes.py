@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Try statement and related code generation.
+"""Try statement and related code generation.
 
 For Nuitka, all try/except and try/finally are dealt with this, where the
 finally block gets duplicated into handlers. So this is a common low level

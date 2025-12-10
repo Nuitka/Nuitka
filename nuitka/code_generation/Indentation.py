@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Indentation of code.
+"""Indentation of code.
 
 Language independent, the amount of the spaces is not configurable, as it needs
 to be the same as in templates.

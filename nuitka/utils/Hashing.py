@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for working with hashes in Nuitka.
+"""Module for working with hashes in Nuitka.
 
 Offers support for hashing incrementally and files esp. without having
 to read their contents.

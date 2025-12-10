@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node base classes.
+"""Node base classes.
 
 These classes provide the generic base classes available for nodes,
 statements or expressions alike. There is a dedicated module for

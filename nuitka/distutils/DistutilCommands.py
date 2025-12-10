@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka distutils integration.
-
-"""
+"""Nuitka distutils integration."""
 
 import distutils.command.build  # pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # pylint: disable=I0021,import-error,no-name-in-module

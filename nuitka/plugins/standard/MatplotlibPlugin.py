@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Matplotlib standard plugin module. """
+"""Matplotlib standard plugin module."""
 
 import os
 

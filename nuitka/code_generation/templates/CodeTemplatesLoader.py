@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Templates for the loading of embedded modules.
-
-"""
+"""Templates for the loading of embedded modules."""
 
 template_metapath_loader_compiled_module_entry = """\
 {%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s

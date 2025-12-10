@@ -1,7 +1,7 @@
 #     Copyright 2025, Kevin Rodriguez <mailto:turcioskevinr@gmail.com> find license text at end of file
 
 
-""" Plugin for Playwright.
+"""Plugin for Playwright.
 
 spell-checker: ignore Playwright
 """

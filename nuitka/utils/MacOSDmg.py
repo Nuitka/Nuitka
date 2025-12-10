@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For macOS DMG file creation
-
-"""
+"""For macOS DMG file creation"""
 
 import os
 

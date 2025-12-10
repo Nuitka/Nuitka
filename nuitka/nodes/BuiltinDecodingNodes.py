@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in ord/chr nodes
+"""Built-in ord/chr nodes
 
 These are good for optimizations, as they give a very well known result. In the case of
 'chr', it's one of 256 strings, and in case of 'ord' it's one of 256 numbers, so these can

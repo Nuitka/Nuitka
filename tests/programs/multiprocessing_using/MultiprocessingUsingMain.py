@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that checks that accelerated mode usage of multiprocessing works too. """
+"""Test that checks that accelerated mode usage of multiprocessing works too."""
 
 from multiprocessing import freeze_support
 

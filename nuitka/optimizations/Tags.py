@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tags and set of it.
+"""Tags and set of it.
 
 Used by optimization to keep track of the current state of optimization, these
 tags trigger the execution of optimization steps, which in turn may emit these

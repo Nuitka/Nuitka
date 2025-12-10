@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes the represent ways to access metadata pkg_resources, importlib.resources etc.
-
-"""
+"""Nodes the represent ways to access metadata pkg_resources, importlib.resources etc."""
 
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.Options import isStandaloneMode, shallMakeModule

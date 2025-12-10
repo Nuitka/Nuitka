@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Script to generate Visual Studio Code configuration file.
+"""Script to generate Visual Studio Code configuration file.
 
 This detects the Python include path and version, and the MSVC compiler path and
 Windows SDK version. It then generates a "c_cpp_properties.json" file that can be

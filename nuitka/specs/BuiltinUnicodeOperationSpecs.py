@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Unicode operation specs, Python2 only. """
+"""Unicode operation specs, Python2 only."""
 
 from .BuiltinParameterSpecs import (
     BuiltinMethodParameterSpecBase,

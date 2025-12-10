@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with compiled coroutine objects.
-
-"""
+"""Code to generate and interact with compiled coroutine objects."""
 
 from .CodeHelpers import (
     generateChildExpressionsCode,

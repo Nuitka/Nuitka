@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in iterator nodes.
+"""Built-in iterator nodes.
 
 These play a role in for loops, and in unpacking. They can something be
 predicted to succeed or fail, in which case, code can become less complex.

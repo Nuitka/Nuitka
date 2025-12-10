@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""DLL dependency scan methods for POSIX (Linux, *BSD, MSYS2).
-
-"""
+"""DLL dependency scan methods for POSIX (Linux, *BSD, MSYS2)."""
 
 import os
 import sys

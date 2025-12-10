@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Access to standard library distinction.
+"""Access to standard library distinction.
 
 For code to be in the standard library means that it's not written by the
 user for sure. We treat code differently based on that information, by e.g.

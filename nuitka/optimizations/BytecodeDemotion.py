@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Demotion of compiled modules to bytecode modules.
-
-"""
+"""Demotion of compiled modules to bytecode modules."""
 
 import marshal
 

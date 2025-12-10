@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node the calls to the 'hash' built-in.
+"""Node the calls to the 'hash' built-in.
 
 This is a specific thing, which must be calculated at run time, but we can
 predict things about its type, and the fact that it won't raise an exception

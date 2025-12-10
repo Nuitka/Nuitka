@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The code generation.
+"""The code generation.
 
 No language specifics at all are supposed to be present here. Instead it is
 using primitives from the given generator to build code sequences (list of
