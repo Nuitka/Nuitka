@@ -531,6 +531,42 @@ class FileLogger(OurLogger):
             other_logger.info(message, style=style)
 
 
+class OurSconsLogger(OurLogger):
+    def sysexit(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        exit_code=1,
+        reporting=False,
+        env=None,
+    ):
+        if env is not None:
+            from nuitka.utils.FileOperations import getNormalizedPathJoin
+            from nuitka.utils.Json import writeJsonToFilename
+
+            writeJsonToFilename(
+                getNormalizedPathJoin(env.source_dir, "scons-error.json"),
+                {
+                    "message": message,
+                    "mnemonic": mnemonic,
+                    "exit_code": exit_code,
+                    "reporting": reporting,
+                },
+            )
+
+            sys.exit(27)
+        else:
+            OurLogger.sysexit(
+                self,
+                message,
+                style=style,
+                mnemonic=mnemonic,
+                exit_code=exit_code,
+                reporting=reporting,
+            )
+
+
 general = OurLogger("Nuitka")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Inclusion")

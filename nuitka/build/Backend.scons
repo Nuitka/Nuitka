@@ -368,12 +368,15 @@ if (
 ):
     scons_logger.sysexit(
         """\
-Sorry, non-MSVC is not currently supported with Python 3.13,
+Sorry, MinGW64 is not currently supported with Python 3.13,
 due to differences in layout internal structures of Python.
 
-Newer Nuitka will work to solve this. Use Python 3.12 or
-option "--msvc=latest" as a workaround for now and wait
-for updates of Nuitka to add MinGW64 support back."""
+Newer Nuitka will work eventually to solve this. Either use
+Python 3.12 or option "--zig" (another Free Software compiler)
+as a workaround for now and wait for updates of Nuitka to add
+MinGW64 support back. Alternatively you can also install MSVC
+as described in the documentation.""",
+        env=env,
     )
 
 # gcc compiler cf_protection option
