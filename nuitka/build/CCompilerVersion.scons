@@ -60,17 +60,13 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
-    setArguments,
 )
 
 # spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
 # spell-checker: ignore cxxflags,ldflags,libpath,linkflags
 
-# Set the arguments.
-setArguments(ARGUMENTS)
-
 # Set up the basic stuff.
-initScons()
+initScons(ARGUMENTS)
 
 nuitka_src = getArgumentRequired("nuitka_src")
 
