@@ -179,8 +179,14 @@ async def run():
     await execute()
 
 
+try:
+    event_loop = asyncio.new_event_loop()
+except RuntimeError:
+    event_loop = asyncio.get_event_loop()
+
+
 def simpleFunction10():
-    asyncio.get_event_loop().run_until_complete(run())
+    event_loop.run_until_complete(run())
 
 
 def simpleFunction11():
