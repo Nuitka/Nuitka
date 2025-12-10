@@ -9,6 +9,7 @@ import re
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
+    getNormalizedPathJoin,
     getReportPath,
     openTextFile,
     putTextFileContents,
@@ -17,6 +18,7 @@ from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.Utils import (
     isAIX,
     isFedoraBasedLinux,
+    isLinux,
     isMacOS,
     isPosixWindows,
     isWin32Windows,
@@ -29,6 +31,7 @@ from .SconsUtils import (
     createEnvironment,
     decideArchMismatch,
     getArgumentBool,
+    getArgumentRequired,
     getExecutablePath,
     getLinkerArch,
     getMsvcVersion,
@@ -456,16 +459,85 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             env = createEnvironment(
                 mingw_mode=True,
                 msvc_version=None,
+                clang_mode=False,
+                clangcl_mode=False,
                 target_arch=target_arch,
                 experimental=env.experimental_flags,
                 no_deployment=env.no_deployment_flags,
                 debug_modes=env.debug_modes_flags,
+                consider_environ_variables=False,
             )
 
             if clang_mode:
                 env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
         else:
             raiseNoCompilerFoundErrorExit()
+
+    return env
+
+
+def createEnvironmentAndCheckCompiler(
+    mingw_mode,
+    msvc_version,
+    clang_mode,
+    clangcl_mode,
+    target_arch,
+    experimental,
+    no_deployment,
+    debug_modes,
+    consider_environ_variables,
+    assume_yes_for_downloads,
+    download_ok,
+):
+    anaconda_python = getArgumentBool("anaconda_python", False)
+
+    if isLinux() and anaconda_python:
+        python_prefix = getArgumentRequired("python_prefix")
+        addToPATH(None, getNormalizedPathJoin(python_prefix, "bin"), prefix=True)
+
+    env = createEnvironment(
+        mingw_mode=mingw_mode,
+        msvc_version=msvc_version,
+        clang_mode=clang_mode,
+        clangcl_mode=clangcl_mode,
+        target_arch=target_arch,
+        experimental=experimental,
+        no_deployment=no_deployment,
+        debug_modes=debug_modes,
+        consider_environ_variables=consider_environ_variables,
+    )
+
+    env = checkWindowsCompilerFound(
+        env=env,
+        target_arch=target_arch,
+        clang_mode=clang_mode,
+        msvc_version=msvc_version,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        download_ok=download_ok,
+    )
+
+    env.the_compiler = env["CC"] or env["CXX"]
+    env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
+
+    # Requested or user provided, detect if it's clang even from environment
+    if isClangName(env.the_cc_name):
+        clang_mode = True
+        env["CCVERSION"] = None
+
+    # We consider clang to be a form of gcc for the most things, they strive to
+    # be compatible.
+    env.zig_mode = isZigName(env.the_cc_name)
+    env.gcc_mode = (
+        isGccName(env.the_cc_name)
+        or clang_mode
+        or (env.zig_mode and not os.name == "nt")
+    )
+    env.clang_mode = clang_mode
+
+    # Only use MSVC if not already clear, we are using MinGW.
+    env.msvc_mode = os.name == "nt" and not env.gcc_mode and not env.zig_mode
+    env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
+    env.clangcl_mode = clangcl_mode
 
     return env
 
@@ -1132,6 +1204,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
 
         # No incremental linking.
         env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
+
+    # Use compiler/linker flags provided via environment variables, these
+    # are always added and consider_environment_variables does not apply
+    # since that's about selecting the compiler, not configuring it.
+    importEnvironmentVariableSettings(env)
 
 
 def _enablePgoSettings(env):

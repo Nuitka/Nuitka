@@ -203,22 +203,19 @@ def _prepareEnvironment(mingw_mode):
     if mingw_mode_from_env:
         mingw_mode = True
 
-    anaconda_python = getArgumentBool("anaconda_python", False)
-
-    if isLinux() and anaconda_python:
-        python_prefix = getArgumentRequired("python_prefix")
-        addToPATH(None, getNormalizedPathJoin(python_prefix, "bin"), prefix=True)
-
     return mingw_mode, zig_mode
 
 
 def createEnvironment(
     mingw_mode,
     msvc_version,
+    clang_mode,
+    clangcl_mode,
     target_arch,
     experimental,
     no_deployment,
     debug_modes,
+    consider_environ_variables,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -227,7 +224,11 @@ def createEnvironment(
     zig_exe_path = getArgumentDefaulted("zig_exe_path", None)
 
     # Prepare environment for compiler detection.
-    mingw_mode, zig_mode_env = _prepareEnvironment(mingw_mode=mingw_mode)
+    if consider_environ_variables:
+        mingw_mode, zig_mode_env = _prepareEnvironment(mingw_mode=mingw_mode)
+    else:
+        zig_mode_env = False
+
     zig_mode = zig_mode_env or zig_exe_path
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
@@ -323,6 +324,28 @@ def createEnvironment(
         )
 
         scons_details_logger.info("Overridden with Zig compiler: %r" % zig_exe_path)
+
+    if consider_environ_variables:
+        scons_details_logger.info("Initial CC: %r" % env.get("CC"))
+        scons_details_logger.info(
+            "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
+        )
+
+        if "CC" in os.environ:
+            # If the environment variable CC is set, use that.
+            env["CC"] = os.environ["CC"]
+            env["CCVERSION"] = None
+
+            scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
+        elif clangcl_mode:
+            # If possible, add Clang directory from MSVC if available.
+            addClangClPathFromMSVC(env=env)
+        elif clang_mode and not mingw_mode:
+            # If requested by the user, use the clang compiler, overriding what was
+            # said in environment.
+
+            env["CC"] = "clang"
+            env["CCVERSION"] = None
 
     # Various flavors could influence builds.
     env.nuitka_python = getArgumentBool("nuitka_python", False)
