@@ -41,7 +41,10 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
-def initScons():
+def initScons(arguments):
+    # Set the arguments.
+    _setArguments(arguments)
+
     # Avoid localized outputs.
     os.environ["LC_ALL"] = "C"
 
@@ -63,6 +66,20 @@ def initScons():
     enableThreading()
 
 
+scons_arguments = {}
+
+
+def _setArguments(arguments):
+    """Decode command line arguments."""
+
+    arg_encoding = arguments.get("argument_encoding")
+
+    for key, value in arguments.items():
+        if arg_encoding is not None:
+            value = decodeData(value)
+        scons_arguments[key] = value
+
+
 def setupScons(env, source_dir):
     env["BUILD_DIR"] = source_dir
 
@@ -76,20 +93,6 @@ def setupScons(env, source_dir):
     )
 
     env.SConsignFile(sconsign_filename)
-
-
-scons_arguments = {}
-
-
-def setArguments(arguments):
-    """Decode command line arguments."""
-
-    arg_encoding = arguments.get("argument_encoding")
-
-    for key, value in arguments.items():
-        if arg_encoding is not None:
-            value = decodeData(value)
-        scons_arguments[key] = value
 
 
 def getArgumentRequired(name):

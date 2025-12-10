@@ -77,18 +77,14 @@ from .SconsUtils import (
     makeResultPathFileSystemEncodable,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
-    setArguments,
     setupScons,
     writeSconsReport,
 )
 
 # spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
 
-# Set the arguments.
-setArguments(ARGUMENTS)
-
 # Set up the basic stuff.
-initScons()
+initScons(ARGUMENTS)
 
 # The directory used for building.
 source_dir = getArgumentRequired("source_dir")
