@@ -139,9 +139,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
     return False
 
 
-def enableCcache(
-    env, source_dir, python_prefix, assume_yes_for_downloads, disable_ccache
-):
+def enableCcache(env, source_dir, python_prefix, disable_ccache):
     inject_ccache = not disable_ccache and not env.zig_mode
 
     if inject_ccache:
@@ -193,7 +191,7 @@ def enableCcache(
             env=env,
             cc_path=cc_path,
             python_prefix=python_prefix,
-            assume_yes_for_downloads=assume_yes_for_downloads,
+            assume_yes_for_downloads=env.assume_yes_for_downloads,
         )
 
     # If we failed to inject zig argument into ccache command line, we need to
