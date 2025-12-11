@@ -9,7 +9,7 @@ some handling of defaults.
 """
 
 # These are for use in option values.
-# spell-checker: ignore uiaccess,noannotations,reexecution,etherium
+# spell-checker: ignore uiaccess,noannotations,etherium
 # spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
 import fnmatch

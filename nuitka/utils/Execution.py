@@ -167,6 +167,40 @@ def callProcess(*popenargs, **kwargs):
     return subprocess.call(*popenargs, **kwargs)
 
 
+def callProcessChunked(command, chunks, **kwargs):
+    """Call a process with arguments chunked to avoid Windows command line limits."""
+
+    # Chunking to avoid command line length limit on Windows.
+    # Windows limit is 32767 characters. We stay safely below.
+    MAX_CMD_LEN = 20000
+
+    chunk = []
+    current_len = sum(len(arg) + 1 for arg in command)
+
+    result = 0
+
+    for filename in chunks:
+        arg_len = len(filename) + 1
+
+        if current_len + arg_len > MAX_CMD_LEN:
+            chunk_result = callProcess(command + chunk, **kwargs)
+            if chunk_result != 0:
+                result = chunk_result
+
+            chunk = []
+            current_len = sum(len(arg) + 1 for arg in command)
+
+        chunk.append(filename)
+        current_len += arg_len
+
+    if chunk:
+        chunk_result = callProcess(command + chunk, **kwargs)
+        if chunk_result != 0:
+            result = chunk_result
+
+    return result
+
+
 @contextmanager
 def withEnvironmentPathAdded(env_var_name, *paths, **kw):
     # Workaround star args with keyword args on older Python
