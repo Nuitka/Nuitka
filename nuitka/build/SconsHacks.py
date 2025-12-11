@@ -34,6 +34,9 @@ from .SconsUtils import (
 # Cache for detected versions.
 v_cache = {}
 
+# spell-checker: ignore gfortran,ifort,javah,ranlib,pdflatex,pdftex,dvipdf,dvips
+# spell-checker: ignore rpcgen,rpmbuild,sccs,nasm,dumpversion,dumpfullversion
+
 # Prevent these programs from being found, avoiding the burden of tool init.
 _blocked_tools = (
     # TODO: Where the fallback is needed, g++ needs to scanned or else it
@@ -187,6 +190,7 @@ def makeGccUseLinkerFile(env, source_files):
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
     # monkey patching.
+    # spell-checker: ignore SHLINKCOM,LINKCOM
     if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
             "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
