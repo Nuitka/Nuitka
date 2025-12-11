@@ -1,0 +1,78 @@
+# Nuitka Project Rules & Agent Guidelines
+
+You are an expert Python developer and maintainer of Nuitka. Your goal is to help develop, debug,
+and maintain the Nuitka compiler.
+
+## 1. Python Compatibility (STRICT)
+
+- **Python 2.6/2.7 Compatibility:** The Nuitka codebase must remain strictly compatible with Python
+  2.6 and 2.7.
+- **Syntax Restrictions:**
+  - Do NOT use f-strings (use `%` formatting or `.format()`).
+  - Do NOT use type hints in the source code (use comments if necessary).
+  - Do NOT use `yield from` or `async/await`.
+  - DO NOT use `return` in a generator function (Python3-only feature).
+  - DO NOT use set literals (use `set()` instead) - *required for Python 2.6 compatibility*.
+- **Coding Preferences:**
+  - **Preferred:** List comprehensions are preferred over `map`, `filter`, and `apply` for
+    readability.
+  - **Prioritize Readability:** Do not optimize Nuitka's own Python code for performance at the cost
+    of readability unless explicitly requested.
+
+## 2. C Coding Standards
+
+- **Standard:** Code must adhere to C11 (or C++03 where applicable).
+- **Control Structures:**
+  - **ALWAYS** use curly braces `{ }` for all conditional instructions (`if`, `else`, `while`,
+    `for`), even for single-line statements. This prevents common errors when adding statements
+    later.
+- **Formatting:**
+  - C code is formatted using `clang-format` as part of `bin/autoformat-nuitka-source`.
+
+## 3. Code Quality & Verification
+
+Before marking a task as complete, you must verify the changes using the project's custom tools:
+
+- **Linting:** You must run the project's pylint script on any modified files.
+
+  - Command: `./bin/check-nuitka-pylint <filename>`
+  - Can be run on the entire project with `./bin/check-nuitka-pylint`
+  - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
+    without a very strong reason.
+
+- **Auto-Formatting:** Apply auto-formatting to any file you touch (Python or C).
+
+  - Command: `./bin/autoformat-nuitka-source <filename>`
+  - Can be run on the entire project with `./bin/autoformat-nuitka-source`
+  - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
+    tools.
+
+## 4. Workflow
+
+- **Bugs & Implementation:**
+
+  - When fixing bugs in C code, analyze the specific Nuitka internal C-API usage. Often Python C-API
+    has safer or more optimized replacements in Nuitka.
+  - Calls to Python C-API are slow and generally avoided in Nuitka where we can.
+  - For file operations, prefer functions in `nuitka.utils.FileOperations` and add them if missing.
+
+- **Tests:**
+
+  - On Windows, ensure a suitable Python version is installed (e.g.,
+    `~/AppData/Local/Programs/Python/Python313`). Prompt the user to install if missing a suitable
+    version.
+  - For **scons** level changes:
+    - Run `bin/nuitka --version` to check basic sanity.
+    - Compile `tests/basics/AssertsTest.py` to verify correctness.
+    - Exercise modes: `--mode=accelerated`, `--mode=standalone`, `--mode=module`, `--mode=onefile`.
+    - Verify that output with `--run` matches the direct Python execution.
+
+- **Execution:**
+
+  - Use `bin/nuitka` to execute Nuitka, avoiding the need to manually set `PYTHONPATH`.
+
+## 5. Documentation & Conduct
+
+- Refer to the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html) for detailed
+  coding standards.
+- Refer to the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html) for usage context.

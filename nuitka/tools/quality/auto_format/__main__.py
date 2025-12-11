@@ -159,6 +159,7 @@ Defaults to off.""",
                     ".h",
                     ".yml",
                     ".json",
+                    ".cursorrules",
                 ),
             )
         )

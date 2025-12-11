@@ -690,10 +690,14 @@ def autoFormatFile(
         "control",
         "copyright",
         "lintian-overrides",
+        ".cursorrules",
     )
 
     is_rst = effective_filename.endswith((".rst", ".inc"))
-    is_md = effective_filename.endswith(".md")
+    is_md = (
+        effective_filename.endswith(".md")
+        or os.path.basename(effective_filename) == ".cursorrules"
+    )
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
     is_json = effective_filename.endswith(".json")
 
