@@ -8,8 +8,7 @@ import os
 from nuitka.Tracing import scons_logger
 from nuitka.utils.Utils import isLinux, isMacOS
 
-# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,
-# spell-checker: ignore linkflags,libpath,libflags
+# spell-checker: ignore cppdefines,cpppath,linkflags,libpath
 
 
 def _detectPythonHeaderPath(env):
@@ -121,6 +120,12 @@ def applyPythonBuildSettings(env):
     else:
         env.no_import_lib = False
 
+    if env.deployment_mode:
+        env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
+
+    if env.frozen_modules:
+        env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % env.frozen_modules])
+
 
 def addWin32PythonLib(env):
     # Make sure to locate the Python link library from multiple potential
@@ -195,6 +200,8 @@ def addPythonHaclLib(env, link_module_libs):
             for link_module_lib in link_module_libs
             if "libHacl_Hash_SHA2" not in link_module_lib
         ]
+
+    return link_module_libs
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -136,7 +136,7 @@ def getArgumentList(option_name, default=None):
         return []
 
 
-def _enableFlagSettings(env, name, experimental_flags):
+def enableFlagSettings(env, name, experimental_flags):
     for flag_name in experimental_flags:
         if not flag_name:
             continue
@@ -212,10 +212,8 @@ def createEnvironment(
     clang_mode,
     clangcl_mode,
     target_arch,
-    experimental,
-    no_deployment,
-    debug_modes,
     consider_environ_variables,
+    source_dir,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -290,6 +288,8 @@ def createEnvironment(
         **args
     )
 
+    env.source_dir = source_dir
+
     if zig_exe_path:
         env["CC"] = zig_exe_path
         env["CXX"] = zig_exe_path
@@ -298,6 +298,10 @@ def createEnvironment(
 
         # escape backslashes for SCons string interpolation^
         safe_zig_path = zig_exe_path.replace("\\", "\\\\")
+
+        # spell-checker: ignore CCCOM,CFLAGS,CCFLAGS,CCCOMCOM,CXXCOM,CXXFLAGS
+        # spell-checker: ignore LINKCOM,LIBDIRFLAGS,LIBFLAGS,SHCCCOM,SHCFLAGS
+        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,SHLINKFLAGS
 
         env["CCCOM"] = (
             '"%s" cc -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' % safe_zig_path
@@ -414,15 +418,6 @@ def createEnvironment(
 
     # Target arch for some decisions
     env.target_arch = target_arch
-
-    _enableFlagSettings(env, "no_deployment", no_deployment)
-    env.no_deployment_flags = no_deployment
-
-    _enableFlagSettings(env, "experimental", experimental)
-    env.experimental_flags = experimental
-
-    _enableFlagSettings(env, "debug", debug_modes)
-    env.debug_modes_flags = debug_modes
 
     # Standalone mode
     env.standalone_mode = getArgumentBool("standalone_mode", False)
