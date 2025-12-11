@@ -198,6 +198,7 @@
     "curexc_traceback",
     "curexc_type",
     "curexc_value",
+    "cursorrules",
     "Cython",
     "dask",
     "deepcopy",
