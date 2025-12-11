@@ -38,7 +38,7 @@ def getCompressorLevel(low_memory):
 
 
 def getCompressorFunction(expect_compression, low_memory, job_limit):
-    # spell-checker: ignore zstd, closefd
+    # spell-checker: ignore closefd
 
     if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error

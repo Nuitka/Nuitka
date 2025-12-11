@@ -5,8 +5,8 @@
  * It needs to unpack the attached files and and then loads and executes
  * the compiled program as a separate process.
  *
- * spell-checker: ignore _wrename,SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
- * spell-checker: ignore HRESULT,HINSTANCE,lpUnkcaller,MAKELANGID,SUBLANG
+ * spell-checker: ignore SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
+ * spell-checker: ignore HINSTANCE
  *
  */
 

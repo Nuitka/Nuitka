@@ -300,7 +300,7 @@ extern void patchTracebackDealloc(void);
 // Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
 
-// Default __init__ slot wrapper, spell-checker: ignore initproc
+// Default __init__ slot wrapper
 extern python_init_proc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300

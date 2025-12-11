@@ -12,7 +12,7 @@ from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
-# spell-checker: ignore tkinterdnd,tkdnd,tcltk,tcltest
+# spell-checker: ignore tcltk,tcltest
 
 
 def _isTkInterModule(module):
