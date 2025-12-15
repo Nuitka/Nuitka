@@ -195,7 +195,7 @@ redefined-slots-in-subclass
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=16
+--max-parents=17
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10

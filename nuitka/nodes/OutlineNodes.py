@@ -9,6 +9,7 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
+from nuitka.ModuleRegistry import addUsedModule
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .ChildrenHavingMixins import ChildHavingBodyOptionalMixin
@@ -19,7 +20,48 @@ from .FunctionNodes import ExpressionFunctionBodyBase
 from .LocalsScopes import getLocalsDictHandle
 
 
-class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
+class ExpressionOutlineMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def getDetails(self):
+        return {"provider": self.provider, "name": self.name}
+
+    def getDetailsForDisplay(self):
+        return {"name": self.name, "provider": self.provider.getCodeName()}
+
+    def getEntryPoint(self):
+        """Entry point for code.
+
+        Normally ourselves. Only outlines will refer to their parent which
+        technically owns them.
+
+        """
+
+        return self.provider.getEntryPoint()
+
+    def getOutlineTempScope(self):
+        # We use our own name as a temp_scope, cached from the parent, if the
+        # scope is None.
+        if self.temp_scope is None:
+            self.temp_scope = self.provider.allocateTempScope(self.name)
+
+        return self.temp_scope
+
+    def allocateTempScope(self, name):
+        # Let's scope the temporary scopes by the outline they come from.
+        return self.provider.allocateTempScope(name=self.name + "$" + name)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_body.mayRaiseException(exception_type)
+
+    def willRaiseAnyException(self):
+        return self.subnode_body.willRaiseAnyException()
+
+
+class ExpressionOutlineBody(
+    ExpressionOutlineMixin, ChildHavingBodyOptionalMixin, ExpressionBase
+):
     """Outlined expression code.
 
     This is for a call to a piece of code to be executed in a specific
@@ -56,31 +98,22 @@ class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
         # officially a child yet. Important during building.
         self.parent = provider
 
-    def getDetails(self):
-        return {"provider": self.provider, "name": self.name}
+    def getContainingClassDictCreation(self):
+        return self.getParentVariableProvider().getContainingClassDictCreation()
 
-    def getOutlineTempScope(self):
-        # We use our own name as a temp_scope, cached from the parent, if the
-        # scope is None.
-        if self.temp_scope is None:
-            self.temp_scope = self.provider.allocateTempScope(self.name)
-
-        return self.temp_scope
-
-    def allocateTempVariable(self, temp_scope, name, temp_type):
+    def allocateTempVariable(self, temp_scope, name, temp_type, late=False):
         if temp_scope is None:
             temp_scope = self.getOutlineTempScope()
 
-        return self.provider.allocateTempVariable(
-            temp_scope=temp_scope, name=name, temp_type=temp_type
+        entry_point = self.getEntryPoint()
+
+        return entry_point.allocateTempVariable(
+            temp_scope=temp_scope,
+            name=name,
+            temp_type=temp_type,
+            late=late,
+            outline=None,
         )
-
-    def allocateTempScope(self, name):
-        # Let's scope the temporary scopes by the outline they come from.
-        return self.provider.allocateTempScope(name=self.name + "$" + name)
-
-    def getContainingClassDictCreation(self):
-        return self.getParentVariableProvider().getContainingClassDictCreation()
 
     def computeExpressionRaw(self, trace_collection):
         owning_module = self.getParentModule()
@@ -88,8 +121,6 @@ class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
         # Make sure the owning module is added to the used set. This is most
         # important for helper functions, or modules, which otherwise have
         # become unused.
-        from nuitka.ModuleRegistry import addUsedModule
-
         addUsedModule(
             module=owning_module,
             using_module=None,
@@ -157,27 +188,19 @@ class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
         # collections may tell us something.
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
-        return self.subnode_body.mayRaiseException(exception_type)
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
 
-    def willRaiseAnyException(self):
-        return self.subnode_body.willRaiseAnyException()
+        local_temp_variables = self.getEntryPoint().getTempVariables(self)
 
-    def getEntryPoint(self):
-        """Entry point for code.
+        def local_emit(variable):
+            if variable not in local_temp_variables:
+                emit_variable(variable)
 
-        Normally ourselves. Only outlines will refer to their parent which
-        technically owns them.
-
-        """
-
-        return self.provider.getEntryPoint()
-
-    def getCodeName(self):
-        return self.provider.getCodeName()
+        self.subnode_body.collectVariableAccesses(local_emit)
 
 
-class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
+class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBodyBase):
     """Outlined function code.
 
     This is for a call to a function to be called in-line to be executed
@@ -206,21 +229,27 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
 
         self.temp_scope = None
 
+    @staticmethod
+    def isExpressionOutlineFunctionBase():
+        return True
+
     def makeClone(self):
         result = ExpressionFunctionBodyBase.makeClone(self)
         result.name += "_clone"
+
+        entry_point = self.getEntryPoint()
 
         # False alarm, pylint doesn't see the actual type, pylint: disable=assigning-non-slot
         result.locals_scope, variable_translations = self.locals_scope.makeClone(
             new_owner=result
         )
 
-        entry_point = self.getEntryPoint()
         for temp_variable in entry_point.getTempVariables(self):
             new_temp_variable = entry_point.allocateTempVariable(
                 temp_scope=None,
                 name=temp_variable.getName() + "_clone",
                 temp_type=temp_variable.getVariableType(),
+                outline=result,
             )
 
             variable_translations[temp_variable] = new_temp_variable
@@ -233,16 +262,6 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         )
 
         return result
-
-    @staticmethod
-    def isExpressionOutlineFunctionBase():
-        return True
-
-    def getDetails(self):
-        return {"name": self.name, "provider": self.provider}
-
-    def getDetailsForDisplay(self):
-        return {"name": self.name, "provider": self.provider.getCodeName()}
 
     def computeExpressionRaw(self, trace_collection):
         # Need to insert and remove a whole new context for evaluation.
@@ -369,46 +388,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
 
         self.subnode_body.collectVariableAccesses(local_emit)
 
-    def mayRaiseException(self, exception_type):
-        return self.subnode_body.mayRaiseException(exception_type)
-
-    def willRaiseAnyException(self):
-        return self.subnode_body.willRaiseAnyException()
-
     def getTraceCollection(self):
         return self.provider.getTraceCollection()
-
-    def getOutlineTempScope(self):
-        # We use our own name as a temp_scope, cached from the parent, if the
-        # scope is None.
-        if self.temp_scope is None:
-            self.temp_scope = self.provider.allocateTempScope(self.name)
-
-        return self.temp_scope
-
-    def allocateTempVariable(self, temp_scope, name, temp_type):
-        if temp_scope is None:
-            temp_scope = self.getOutlineTempScope()
-
-        entry_point = self.getEntryPoint()
-
-        return entry_point.allocateTempVariable(
-            temp_scope=temp_scope, name=name, temp_type=temp_type, outline=self
-        )
-
-    def allocateTempScope(self, name):
-        # Let's scope the temporary scopes by the outline they come from.
-        return self.provider.allocateTempScope(name=self.name + "$" + name)
-
-    def getEntryPoint(self):
-        """Entry point for code.
-
-        Normally ourselves. Only outlines will refer to their parent which
-        technically owns them.
-
-        """
-
-        return self.provider.getEntryPoint()
 
     def getClosureVariable(self, variable_name):
         # Simply try and get from our parent.
@@ -424,6 +405,20 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
 
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
+
+    def allocateTempVariable(self, temp_scope, name, temp_type, late=False):
+        if temp_scope is None:
+            temp_scope = self.getOutlineTempScope()
+
+        entry_point = self.getEntryPoint()
+
+        return entry_point.allocateTempVariable(
+            temp_scope=temp_scope,
+            name=name,
+            temp_type=temp_type,
+            late=late,
+            outline=self,
+        )
 
 
 class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):

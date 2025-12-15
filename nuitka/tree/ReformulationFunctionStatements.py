@@ -189,6 +189,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
     globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider=provider,
+        locals_scope=provider.getLocalsScope(),
         globals_node=None,
         locals_node=None,
         temp_scope=temp_scope,
@@ -794,7 +795,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 tried=statements,
                 variables=tuple(
                     sorted(
-                        outer_body.getTempVariables(),
+                        outer_body.getTempVariables(None),
                         key=lambda variable: variable.getName(),
                     )
                 ),

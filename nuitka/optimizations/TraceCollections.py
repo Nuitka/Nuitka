@@ -127,6 +127,8 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
         # to know.
         self.loop_variables = set()
 
+        self.delayed_work = []
+
     def getLoopBreakCollections(self):
         return self.break_collections
 
@@ -259,6 +261,33 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         if needs_visit or function_body.isExpressionFunctionPureBody():
             function_body.computeFunctionRaw(self)
+
+    def onDelayedWork(self, node, function, old_desc, describe_new_node):
+        self.delayed_work.append((node, function, old_desc, describe_new_node))
+
+    def performDelayedWork(self):
+        for node, delayed_function, old_desc, describe_new_node in self.delayed_work:
+            # We might point to a node that has been removed.
+            if not node.isConnected():
+                if states.is_debug:
+                    # Might be normal though, but we will aim at avoiding the
+                    # necessity of encountering this where possible.
+                    assert False, "Node %s is not connected" % node
+                continue
+
+            new_node = delayed_function(node)
+            if new_node is not node:
+                node.getParent().replaceChild(node, new_node)
+
+                tags, new_node_description = describe_new_node(new_node)
+                self.signalChange(
+                    tags=tags,
+                    message="Replaced %s with %s." % (old_desc, new_node_description),
+                    source_ref=node.getSourceReference(),
+                )
+
+        # Surely do this only once.
+        del self.delayed_work
 
 
 class TraceCollectionBase(object):
@@ -1023,6 +1052,17 @@ class TraceCollectionBase(object):
 
         return trace
 
+    def initVariableUninitializedLate(self, variable):
+        trace = ValueTraceStartUninitialized(self.owner)
+
+        self.variable_traces[variable][0] = trace
+        variable.setTracesForUserFirst(self.owner, self.variable_traces[variable])
+
+        return trace
+
+    def onDelayedWork(self, node, function, old_desc, describe_new_node):
+        self.parent.onDelayedWork(node, function, old_desc, describe_new_node)
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = (
@@ -1097,6 +1137,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         "exception_collections",
         "outline_functions",
         "very_trusted_module_variables",
+        "delayed_work",
     )
 
     def __init__(self, parent, old_collection, function_body):
@@ -1231,6 +1272,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         "very_trusted_module_variables",
         "module_usage_attempts",
         "distribution_names",
+        "delayed_work",
     )
 
     def __init__(self, module, very_trusted_module_variables, old_collection):

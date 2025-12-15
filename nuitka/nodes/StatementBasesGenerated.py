@@ -1949,91 +1949,6 @@ class StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
 StatementSetOperationAddBase = StatementChildrenHavingSetArgValueOperationMixin
 
 
-class StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentVariableName
-
-    def __init__(self, source, provider, variable_name, source_ref):
-        source.parent = self
-
-        self.subnode_source = source
-
-        self.provider = provider
-        self.variable_name = variable_name
-
-        StatementBase.__init__(self, source_ref)
-
-        self.postInitNode()
-
-    @abstractmethod
-    def postInitNode(self):
-        """For overload"""
-
-    def getDetails(self):
-        return {
-            "provider": self.provider,
-            "variable_name": self.variable_name,
-        }
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        return (self.subnode_source,)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (("source", self.subnode_source),)
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_source
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_source = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "source": self.subnode_source.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_source.finalize()
-        del self.subnode_source
-
-    def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_source.collectVariableAccesses(emit_variable)
-
-
-# Assign the names that are easier to import with a stable name.
-StatementAssignmentVariableNameBase = (
-    StatementChildHavingSourcePostInitProviderVariableNameMixin
-)
-
-
 class StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -2258,6 +2173,91 @@ class StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
 # Assign the names that are easier to import with a stable name.
 StatementLocalsDictOperationSetBase = (
     StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin
+)
+
+
+class StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   StatementAssignmentVariableName
+
+    def __init__(self, source, provider, variable_name, source_ref):
+        source.parent = self
+
+        self.subnode_source = source
+
+        self.provider = provider
+        self.variable_name = variable_name
+
+        StatementBase.__init__(self, source_ref)
+
+        self.postInitNode()
+
+    @abstractmethod
+    def postInitNode(self):
+        """For overload"""
+
+    def getDetails(self):
+        return {
+            "provider": self.provider,
+            "variable_name": self.variable_name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_source,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("source", self.subnode_source),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_source
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_source = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "source": self.subnode_source.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_source.finalize()
+        del self.subnode_source
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_source.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+StatementAssignmentVariableNameBase = (
+    StatementChildHavingSourcePostInitProviderVariableNameMixin
 )
 
 

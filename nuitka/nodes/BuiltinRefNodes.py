@@ -162,7 +162,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
-            builtin_name=self.builtin_name, call_node=call_node
+            builtin_name=self.builtin_name,
+            call_node=call_node,
+            trace_collection=trace_collection,
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
