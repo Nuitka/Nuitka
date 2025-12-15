@@ -576,6 +576,9 @@ class PythonChildContextBase(PythonContextBase):
     def setModuleVariableAccessorCaching(self, variable_name, caching):
         self.parent.setModuleVariableAccessorCaching(variable_name, caching)
 
+    def isModuleVariableAccessorCaching(self, variable_name):
+        return self.parent.isModuleVariableAccessorCaching(variable_name)
+
 
 class FrameDeclarationsMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
