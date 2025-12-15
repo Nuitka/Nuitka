@@ -65,7 +65,38 @@ class NodeBase(NodeMetaClassBase):
 
     @abstractmethod
     def finalize(self):
-        pass
+        """Finalize the node, intended to release memory and make it un-usable.
+
+        This is to break reference cycles and allow for garbage collection of
+        variables, functions and other stuff that holds a lot of memory
+        potentially, and to make sure that we catch use after free errors.
+        """
+
+    def isConnected(self):
+        current = self
+        while current.parent is not None:
+            if not hasattr(current, "parent"):
+                # If current is not self, this is indicating we might have made
+                # an error by not calling finalize() on a node.
+                break
+
+            if current not in current.parent.getVisitableNodes():
+                # TODO: Add experimental tracing for this so we can catch these
+                # cases and see if they are indicating a bug, however, this
+                # could also be normal and will always indicate it's a not
+                # connected node, because one of the parents became disconnected.
+                if states.is_debug:
+                    assert False, current
+
+                return False
+
+            current = current.parent
+
+        # TODO: Function bodies maybe are not connected, are they?
+        if states.is_debug:
+            assert not current.isExpressionFunctionBody(), current
+
+        return current.isCompiledPythonModule()
 
     def __repr__(self):
         return "<Node %s>" % (self.getDescription())
@@ -141,6 +172,10 @@ class NodeBase(NodeMetaClassBase):
             assert False, (self, self.source_ref)
 
         return self.parent
+
+    def onForwardPropagation(self, propagated_scopes):
+        # pylint: disable=unused-argument
+        return self, None, None
 
     def getChildName(self):
         """Return the role in the current parent, subject to changes."""
@@ -593,7 +628,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return "%s_%d" % (name, self.temp_scopes[name])
 
-    def allocateTempVariable(self, temp_scope, name, temp_type, outline=None):
+    def allocateTempVariable(
+        self, temp_scope, name, temp_type, late=False, outline=None
+    ):
         if temp_scope is not None:
             full_name = "%s__%s" % (temp_scope, name)
         else:
@@ -611,8 +648,10 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # Late added temp variables should be treated with care for the
         # remaining trace, therefore force usage, but do not track versions yet.
         if self.trace_collection is not None:
-            self.trace_collection.initVariableUninitialized(result, None).addUsage()
-            del self.trace_collection.variable_actives[result]
+            if late:
+                self.trace_collection.initVariableUninitializedLate(result).addUsage()
+            else:
+                self.trace_collection.initVariableUninitialized(result, None).addUsage()
 
         return result
 

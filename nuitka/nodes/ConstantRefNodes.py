@@ -1292,7 +1292,9 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
             )
 
             new_node, tags, message = computeBuiltinCall(
-                builtin_name=self.constant.__name__, call_node=call_node
+                builtin_name=self.constant.__name__,
+                call_node=call_node,
+                trace_collection=trace_collection,
             )
 
             return new_node, tags, message

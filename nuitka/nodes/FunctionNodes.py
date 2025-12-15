@@ -505,6 +505,8 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             if result is not statements_sequence:
                 self.setChildBody(result)
 
+        self.trace_collection.performDelayedWork()
+
     def removeVariableReleases(self, variable):
         assert variable in self.locals_scope.providing.values(), (self, variable)
 

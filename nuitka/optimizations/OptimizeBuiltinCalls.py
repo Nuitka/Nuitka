@@ -99,6 +99,8 @@ from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval,
+    ExpressionBuiltinExec,
+    ExpressionBuiltinExecfile,
 )
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
@@ -150,6 +152,17 @@ from nuitka.tree.TreeHelpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
 )
+
+
+def mustBeDoneLater(extractor_function):
+    """Decorator for extractor functions that need to be done later.
+
+    Providing an outline body with temporary variables is not
+    possible at the time of the call, so we need to do it later
+    for these.
+    """
+    extractor_function.must_be_done_later = True
+    return extractor_function
 
 
 def dir_extractor(node):
@@ -767,8 +780,8 @@ def locals_extractor(node):
 
 
 if python_version < 0x300:
-    from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
+    @mustBeDoneLater
     def execfile_extractor(node):
         def wrapExpressionBuiltinExecfileCreation(
             filename, globals_arg, locals_arg, source_ref
@@ -776,11 +789,12 @@ if python_version < 0x300:
             outline_body = ExpressionOutlineBody(
                 provider=node.getParentVariableProvider(),
                 name="execfile_call",
-                source_ref=source_ref,
+                source_ref=node.source_ref,
             )
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=node.getParentVariableProvider(),
+                provider=outline_body,
+                locals_scope=node.getParentVariableProvider().getLocalsScope(),
                 globals_node=globals_arg,
                 locals_node=locals_arg,
                 temp_scope=outline_body.getOutlineTempScope(),
@@ -839,6 +853,7 @@ if python_version < 0x300:
         )
 
 
+@mustBeDoneLater
 def eval_extractor(node):
     def wrapEvalBuiltin(source, globals_arg, locals_arg, source_ref):
         provider = node.getParentVariableProvider()
@@ -850,7 +865,8 @@ def eval_extractor(node):
         )
 
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-            provider=provider,
+            provider=outline_body,
+            locals_scope=provider.getLocalsScope(),
             globals_node=globals_arg,
             locals_node=locals_arg,
             temp_scope=outline_body.getOutlineTempScope(),
@@ -994,8 +1010,8 @@ def eval_extractor(node):
 
 
 if python_version >= 0x300:
-    from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
+    @mustBeDoneLater
     def exec_extractor(node):
         def wrapExpressionBuiltinExecCreation(
             source, globals_arg, locals_arg, closure=None, source_ref=None
@@ -1007,7 +1023,8 @@ if python_version >= 0x300:
             )
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider=provider,
+                provider=outline_body,
+                locals_scope=provider.getLocalsScope(),
                 globals_node=globals_arg,
                 locals_node=locals_arg,
                 temp_scope=outline_body.getOutlineTempScope(),
@@ -1483,81 +1500,68 @@ _builtin_ignore_list = (
 )
 
 
-def _describeNewNode(builtin_name, inspect_node):
+def _describeNewNode(new_node):
     """Describe the change for better understanding."""
 
     # Don't mention side effects, that's not what we care about.
-    if inspect_node.isExpressionSideEffects():
-        inspect_node = inspect_node.subnode_expression
+    if new_node.isExpressionSideEffects():
+        new_node = new_node.subnode_expression
 
-    if inspect_node.isExpressionBuiltinImport():
+    if new_node.isExpressionBuiltinImport():
         tags = "new_import"
-        message = """\
-Replaced dynamic "__import__" call with static built-in call."""
-    elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
+        message = "built-in __import__ call"
+    elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
         tags = "new_builtin"
-        message = "Replaced call to built-in '%s' with built-in call '%s'." % (
-            builtin_name,
-            inspect_node.kind,
-        )
-    elif inspect_node.isExpressionRaiseException():
+        message = "built-in call '%s'" % new_node.kind
+    elif new_node.isExpressionRaiseException():
         tags = "new_raise"
-        message = """\
-Replaced call to built-in '%s' with exception raise.""" % (
-            builtin_name,
-        )
-    elif inspect_node.isExpressionOperationBinary():
+        message = "exception raise"
+    elif new_node.isExpressionOperationBinary():
         tags = "new_expression"
-        message = """\
-Replaced call to built-in '%s' with binary operation '%s'.""" % (
-            builtin_name,
-            inspect_node.getOperator(),
-        )
-    elif inspect_node.isExpressionOperationUnary():
+        message = "binary operation '%s'" % new_node.getOperator()
+    elif new_node.isExpressionOperationUnary():
         tags = "new_expression"
-        message = """\
-Replaced call to built-in '%s' with unary operation '%s'.""" % (
-            builtin_name,
-            inspect_node.getOperator(),
-        )
-    elif inspect_node.isExpressionCall():
+        message = "unary operation '%s'" % new_node.getOperator()
+    elif new_node.isExpressionCall():
         tags = "new_expression"
-        message = """\
-Replaced call to built-in '%s' with call.""" % (
-            builtin_name,
-        )
-    elif inspect_node.isExpressionOutlineBody():
+        message = "call"
+    elif new_node.isExpressionOutlineBody():
         tags = "new_expression"
-        message = (
-            """\
-Replaced call to built-in '%s' with outlined call."""
-            % builtin_name
-        )
-    elif inspect_node.isExpressionConstantRef():
+        message = "outlined function"
+    elif new_node.isExpressionConstantRef():
         tags = "new_expression"
-        message = (
-            """\
-Replaced call to built-in '%s' with constant value."""
-            % builtin_name
-        )
+        message = "constant value"
     else:
-        assert False, (builtin_name, "->", inspect_node)
+        assert False, new_node
 
     return tags, message
 
 
-def computeBuiltinCall(builtin_name, call_node):
+def computeBuiltinCall(builtin_name, call_node, trace_collection):
     # There is some dispatching for how to output various types of changes,
     # with lots of cases.
     if builtin_name in _dispatch_dict:
+        extractor_function = _dispatch_dict[builtin_name]
+
+        if getattr(extractor_function, "must_be_done_later", False):
+            trace_collection.onDelayedWork(
+                call_node,
+                extractor_function,
+                "call to built-in '%s'" % builtin_name,
+                _describeNewNode,
+            )
+            return call_node, None, None
+
         new_node = _dispatch_dict[builtin_name](call_node)
 
         assert new_node is not call_node, builtin_name
         assert new_node is not None, builtin_name
 
-        # For traces, we are going to ignore side effects, and output traces
-        # only based on the basis of it.
-        tags, message = _describeNewNode(builtin_name, new_node)
+        tags, new_node_description = _describeNewNode(new_node)
+        message = "Replaced builtin '%s' with %s." % (
+            builtin_name,
+            new_node_description,
+        )
 
         return new_node, tags, message
     else:
