@@ -614,6 +614,7 @@ def getMSVCRedistPath(logger):
             # Don't retry if it fails.
             if _msvc_redist_path is None:
                 _msvc_redist_path = False
+                return None
 
     return _msvc_redist_path
 
