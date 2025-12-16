@@ -531,7 +531,12 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
     else:
         path = os.path.join(dirname, filename)
 
-    command = [_python_executable, "-mcompileall", path]
+    command = [
+        _python_executable,
+        "-m",
+        "compileall",
+        path,
+    ]
 
     try:
         result = subprocess.call(command)
@@ -669,7 +674,7 @@ def snapObjRefCntMap(before):
         else:
             k = str(x)
 
-        c = sys.getrefcount(x)
+        c = sys.getrefcount(x)  # spell-checker: ignore getrefcount
 
         if k in m:
             m[k] += c
@@ -1428,6 +1433,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         loaded_basename = os.path.basename(loaded_filename)
 
         if isWin32Windows():
+            # spell-checker: ignore SYSTEMROOT
             if areSamePaths(
                 os.path.dirname(loaded_filename),
                 os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
@@ -1439,10 +1445,12 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             ):
                 continue
 
+            # spell-checker: ignore winsxs
             if r"windows\winsxs" in loaded_filename:
                 continue
 
-            # GitHub actions have these in PATH overriding SYSTEMROOT
+            # GitHub actions have these in PATH overriding SYSTEMROOT,
+            # spell-checker: ignore tortoisesvn
             if r"windows performance toolkit" in loaded_filename:
                 continue
             if r"powershell" in loaded_filename:
@@ -1518,7 +1526,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         ):
             continue
 
-        # TCL/tk for tkinter for non-Windows is OK.
+        # TCL/tk for tkinter for non-Windows is OK, spell-checker: ignore tcltk
         if loaded_filename.startswith(
             (
                 "/usr/lib/tcltk/",
@@ -1566,11 +1574,17 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_basename == "openssl.cnf":
             continue
 
-        # Taking these from system is harmless and desirable
+        # Taking these from system is harmless and desirable, spell-checker: ignore libz libgcc
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
 
-        # System C libraries are to be expected.
+        # System C libraries are to be expected,
+        # spell-checker: ignore libm,libdl,libpthread,libanl,libcrypt
+        # spell-checker: ignore libcidn,libBrokenLocale,libSegFault,libutil
+        # spell-checker: ignore libnsl,libnss_compat,libnss_db,libnss_dns
+        # spell-checker: ignore libnss_files,libnss_hesiod,libnss_nis
+        # spell-checker: ignore libnss_nisplus,libpcprofile,libresolv,
+        # spell-checker: ignore librt,libthread_db,libmemusage,libmvec
         if loaded_basename.startswith(
             (
                 "ld-linux-x86-64.so",
@@ -1604,14 +1618,19 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # System C++ standard library is also OK.
+        # spell-checker: ignore libstdc++
         if loaded_basename.startswith("libstdc++."):
             continue
 
         # Curses library is OK from system too.
+        # spell-checker: ignore libtinfo
         if loaded_basename.startswith("libtinfo.so."):
             continue
 
         # Loaded by C library potentially for DNS lookups.
+        # spell-checker: ignore libnss,libnsl,libattr,libbz2,libcap,
+        # spell-checker: ignore libdw,libelf,liblzma,libselinux,libpcre,
+        # spell-checker: ignore libblkid,libmount,libpcre2-8,libuuid
         if loaded_basename.startswith(
             (
                 "libnss_",
@@ -1641,6 +1660,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Loaded by cowbuilder and pbuilder on Debian
+        # spell-checker: ignore .ilist,cowbuilder,cowdancer,eatmydata
         if loaded_basename == ".ilist":
             continue
         if "cowdancer" in loaded_filename:
@@ -1668,6 +1688,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 
         # TODO: Unclear, loading gconv from filesystem of installed system
         # may be OK or not. I think it should be.
+        # spell-checker: ignore gconv,libicu
         if loaded_basename == "gconv-modules.cache":
             continue
         if "/gconv/" in loaded_filename:
@@ -1727,7 +1748,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
             continue
 
-        # GTK accesses package directories only.
+        # GTK accesses package directories only, spell-checker: ignore gobject
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gtk-2.0/gtk"):
             continue
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
@@ -1792,11 +1813,11 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename.endswith(getSitePackageCandidateNames()):
             continue
 
-        # QtNetwork insist on doing this it seems.
+        # QtNetwork insist on doing this it seems, spell-checker: ignore libcrypto
         if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
             continue
 
-        # macOS uses these:
+        # macOS uses these, spell-checker: ignore libfribidi
         if loaded_basename in (
             "libc.dylib",
             "libcrypto.1.0.0.dylib",
@@ -1807,15 +1828,13 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         ):
             continue
 
-        # Linux onefile uses this
-        if loaded_basename.startswith("libfuse.so."):
-            continue
-
         # MSVC run time DLLs, due to SxS come from system.
+        # spell-checker: ignore msvcr90
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
 
         if isMacOS():
+            # spell-checker: ignore libexec,preboot
             ignore = True
             for ignored_dir in (
                 "/System/Library",
@@ -1836,6 +1855,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             if loaded_filename == "/usr/libexec/rosetta/runtime":
                 continue
 
+            # spell-checker: ignore libfakelink,liboah,libobjc
             if loaded_filename in (
                 "/usr/lib/libSystem.B.dylib",
                 "/usr/lib/libc++.1.dylib",
