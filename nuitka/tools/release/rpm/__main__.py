@@ -33,7 +33,7 @@ def main():
     shutil.rmtree("build", ignore_errors=True)
     makePath("build")
 
-    # Used by rpmbuild
+    # Used by rpmbuild, spell-checker: ignore rpmbuild
     makePath(os.path.expanduser("~/rpmbuild/SOURCES"))
 
     # Upload stable releases to OpenSUSE Build Service:
@@ -58,6 +58,7 @@ def main():
             "Building source distribution for %s %s"
             % (rpm_project_name, nuitka_version)
         )
+        # spell-checker: ignore gztar
         assert os.system("%s ../setup.py sdist --formats=gztar" % sys.executable) == 0
         nuitka_dist_filename = "Nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
         renameFile(
