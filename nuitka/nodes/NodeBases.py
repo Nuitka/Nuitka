@@ -549,8 +549,8 @@ class CodeNodeMixin(object):
         # The code name is determined on demand only.
         self.code_name = None
 
-        # The "UID" values of children kinds are kept here.
-        self.uids = {}
+        # The "UUID" values of children kinds are kept here.
+        self.uuids = {}
 
     def getName(self):
         return self.name
@@ -578,12 +578,12 @@ class CodeNodeMixin(object):
         return self.code_name
 
     def getChildUID(self, node):
-        if node.kind not in self.uids:
-            self.uids[node.kind] = 0
+        if node.kind not in self.uuids:
+            self.uuids[node.kind] = 0
 
-        self.uids[node.kind] += 1
+        self.uuids[node.kind] += 1
 
-        return self.uids[node.kind]
+        return self.uuids[node.kind]
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):

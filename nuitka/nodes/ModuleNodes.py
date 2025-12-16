@@ -238,7 +238,7 @@ class CompiledPythonModule(
         "name",
         "code_prefix",
         "code_name",
-        "uids",
+        "uuids",
         "temp_variables",
         "temp_scopes",
         "preserver_id",
