@@ -5420,6 +5420,12 @@
     - dirs:
         - 'zoneinfo'
 
+- module-name: 'pyuac.admin' # checksum: 4ef0dbfe
+  anti-bloat:
+    - change_function:
+        'runAsAdmin': "'''raise RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin')'''"
+      when: 'win32'
+
 - module-name: 'pyvista' # checksum: e4ffea88
   anti-bloat:
     - description: 'remove IPython reference'
@@ -9336,14 +9342,14 @@
         - 'win32comext'
       when: 'win32'
 
-- module-name: 'win32com.server.register' # checksum: ee461289
+- module-name: 'win32com.server.register' # checksum: 71e74707
   anti-bloat:
     - replacements_plain:
         'pythoncom.frozen': '1'
         'sys.frozen': 'True'
         'GetShortPathName(sys.executable)': 'GetShortPathName(sys.argv[0])'
       change_function:
-        'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
+        'ReExecuteElevated': "'''raise RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin')'''"
   implicit-imports:
     - depends:
         - 'win32timezone'
