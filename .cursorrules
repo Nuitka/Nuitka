@@ -7,6 +7,9 @@ and maintain the Nuitka compiler.
 
 - **Python 2.6/2.7 Compatibility:** The Nuitka codebase must remain strictly compatible with Python
   2.6 and 2.7.
+  - **Exception:** For Windows, Python 2.7 support is desirable but not mandatory. Use your judgment
+    to avoid complex workarounds for niche Windows 2.7 issues (e.g., symlinks need not be
+    supported).
 - **Syntax Restrictions:**
   - Do NOT use f-strings (use `%` formatting or `.format()`).
   - Do NOT use type hints in the source code (use comments if necessary).
@@ -19,7 +22,46 @@ and maintain the Nuitka compiler.
   - **Prioritize Readability:** Do not optimize Nuitka's own Python code for performance at the cost
     of readability unless explicitly requested.
 
-## 2. C Coding Standards
+## 2. Python Coding Rules & Standards
+
+- **Naming Conventions:**
+
+  - **Classes:** `CamelCase` (e.g., `SomeClass`). Abstract base classes must end in `Base`.
+  - **Functions/Methods:** `camelCase` (starting lower) (e.g., `doSomething`,
+    `getSequenceCreationCode`).
+  - **Variables/Arguments:** `snake_case` (e.g., `some_parameter`, `local_var`).
+  - **Modules:** `CamelCase` (e.g., `Nodes`, `Options`).
+  - **Packages:** `lower_case` (e.g., `nuitka`, `codegen`). No code in `__init__.py`.
+  - **Context Managers:** Must start with `with` (e.g., `withFileLock`, `withDirectoryChange`).
+
+- **Docstrings (Nuitka/Google Style):**
+
+  - **Format:**
+    ```python
+    def someFunction(arg1):
+        """Brief one-line summary.
+
+        Notes:
+            Detailed explanation (optional).
+
+        Args:
+            arg1: Description of argument.
+
+        Returns:
+            Description of return value.
+        """
+    ```
+  - **Sections:** `Notes:`, `Args:`, `Kwargs:`, `Returns:`, `Yields:`, `Raises:`, `Examples:`.
+  - **Quoting:** Use single ticks `'...'` for function names/identifiers in docstrings (e.g.,
+    `'os.path.join'`), NOT backticks or double quotes.
+
+- **Coding Practices:**
+
+  - **List Contractions:** PREFERRED over `map`, `filter`, `apply`.
+  - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
+  - **Imports:** Sort imports using `isort` (handled by auto-format).
+
+## 3. C Coding Standards
 
 - **Standard:** Code must adhere to C11 (or C++03 where applicable).
 - **Control Structures:**
@@ -29,7 +71,7 @@ and maintain the Nuitka compiler.
 - **Formatting:**
   - C code is formatted using `clang-format` as part of `bin/autoformat-nuitka-source`.
 
-## 3. Code Quality & Verification
+## 4. Code Quality & Verification
 
 Before marking a task as complete, you must verify the changes using the project's custom tools:
 
@@ -47,7 +89,7 @@ Before marking a task as complete, you must verify the changes using the project
   - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
     tools.
 
-## 4. Workflow
+## 5. Workflow
 
 - **Bugs & Implementation:**
 
@@ -71,7 +113,7 @@ Before marking a task as complete, you must verify the changes using the project
 
   - Use `bin/nuitka` to execute Nuitka, avoiding the need to manually set `PYTHONPATH`.
 
-## 5. Documentation & Conduct
+## 6. Documentation & Conduct
 
 - Refer to the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html) for detailed
   coding standards.
