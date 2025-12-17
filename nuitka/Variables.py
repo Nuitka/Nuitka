@@ -60,7 +60,6 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         __del__ = counted_del()
 
     def finalize(self):
-        del self.users
         del self.writers
         del self.traces
         del self.owner
@@ -492,7 +491,9 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
         variable.setTracesForUserUpdate(owner, variable_traces)
 
     for variable in old_traces:
-        if variable not in new_traces:
+        # Remove traces for variables that are not in the new collection unless
+        # they are finalized, then we don't need to update them.
+        if variable not in new_traces and hasattr(variable, "users"):
             variable.removeTracesForUser(owner)
 
     if old_collection.loop_variables != new_collection.loop_variables:
