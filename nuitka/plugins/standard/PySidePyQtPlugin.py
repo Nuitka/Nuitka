@@ -1341,6 +1341,12 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt5"
 
+    def getUncompiledDecoratorNames(self):
+        if python_version >= 0x390:
+            return ("pyqtSlot", "asyncSlot")
+        else:
+            return ()
+
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         NuitkaPluginQtBindingsPluginBase.__init__(
             self,
@@ -1619,6 +1625,12 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
     plugin_desc = "Required by the PyQt6 package for standalone mode."
 
     binding_name = "PyQt6"
+
+    def getUncompiledDecoratorNames(self):
+        if python_version >= 0x390:
+            return ("pyqtSlot", "asyncSlot")
+        else:
+            return ()
 
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         NuitkaPluginQtBindingsPluginBase.__init__(
