@@ -608,6 +608,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return bytecode
 
     @staticmethod
+    def getUncompiledDecoratorNames():
+        """Return a tuple of decorator names that should cause the function to be uncompiled.
+
+        Returns:
+            tuple of strings
+        """
+        return ()
+
+    @staticmethod
     def createPreModuleLoadCode(module):
         """Create code to execute before importing a module.
 

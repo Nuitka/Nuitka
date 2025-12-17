@@ -728,6 +728,26 @@ through implicit import by '%s' plugin encountered."""
 
         return result
 
+    _uncompiled_decorator_names = None
+
+    @classmethod
+    def getUncompiledDecoratorNames(cls):
+        """Provide a list of decorators that should cause a function to be uncompiled.
+
+        Returns:
+            set of strings
+        """
+
+        if cls._uncompiled_decorator_names is None:
+            cls._uncompiled_decorator_names = set()
+
+            for plugin in getActivePlugins():
+                for decorator_name in plugin.getUncompiledDecoratorNames():
+                    assert type(decorator_name) is str, decorator_name
+                    cls._uncompiled_decorator_names.add(decorator_name)
+
+        return cls._uncompiled_decorator_names
+
     sys_path_additions_cache = {}
 
     @classmethod

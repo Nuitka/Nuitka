@@ -50,8 +50,10 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.plugins.Hooks import onFunctionBodyParsing
-from nuitka.plugins.Plugins import hasActivePlugin
+from nuitka.plugins.Hooks import (
+    getUncompiledDecoratorNames,
+    onFunctionBodyParsing,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -127,31 +129,33 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-_has_pyqt_plugin = None
+def _isUncompiledDecorator(decorator):
+    if decorator.isExpressionVariableNameRef():
+        decorator_name = decorator.getVariableName()
+    elif decorator.isExpressionCall():
+        if decorator.subnode_called.isExpressionVariableNameRef():
+            decorator_name = decorator.subnode_called.getVariableName()
+        else:
+            return False
+    else:
+        return False
+
+    # Hard coded name.
+    if decorator_name == "nuitka_ignore":
+        return True
+
+    # False alarm, pylint: disable=unsupported-membership-test
+    if decorator_name in getUncompiledDecoratorNames():
+        return True
+
+    return False
 
 
 def decideFunctionCompilationMode(decorators):
     """Decide how to compile a function based on decorator names."""
-
-    global _has_pyqt_plugin  # singleton, pylint: disable=global-statement
-
-    if _has_pyqt_plugin is None:
-        _has_pyqt_plugin = hasActivePlugin("pyqt5") or hasActivePlugin("pyqt6")
-
-    # TODO: Expose the interface to plugins, so we don't hardcode stuff for
-    # specific plugins here, but for performance I guess, we would have to add a
-    # registry for the plugins to use, so not every decorator name is being
-    # called for every plugin.
-
-    # TODO: This can only work with 3.9 or higher so far.
-    if _has_pyqt_plugin and python_version >= 0x390:
-        for decorator in decorators:
-            if (
-                decorator.isExpressionCall()
-                and decorator.subnode_called.isExpressionVariableNameRef()
-            ):
-                if decorator.subnode_called.variable_name in ("pyqtSlot", "asyncSlot"):
-                    return "bytecode"
+    for decorator in decorators:
+        if _isUncompiledDecorator(decorator):
+            return "bytecode"
 
     return "compiled"
 
