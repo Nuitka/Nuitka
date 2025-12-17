@@ -10,6 +10,7 @@ import os
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # We use chrom to identify either chrome or chromium
 # spell-checker: ignore chrom
@@ -77,16 +78,15 @@ to exclude all browsers.""",
         elif env_defined:
             result = os.path.normpath(env_defined)
         else:
-            cache_directory = ""
-            if os.name == "posix":
-                cache_directory = os.environ.get(
-                    "XDG_CACHE_HOME", os.path.join(path_home, ".cache")
-                )
-            elif os.name == "darwin":
-                cache_directory = os.path.join(path_home, "Library", "Caches")
-            elif os.name == "nt":
+            if isWin32Windows():
                 cache_directory = os.environ.get(
                     "LOCALAPPDATA", os.path.join(path_home, "AppData", "Local")
+                )
+            elif isMacOS():
+                cache_directory = os.path.join(path_home, "Library", "Caches")
+            else:
+                cache_directory = os.environ.get(
+                    "XDG_CACHE_HOME", os.path.join(path_home, ".cache")
                 )
 
             result = os.path.join(cache_directory, "ms-playwright")
