@@ -208,6 +208,36 @@ def isPathExecutable(path):
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
+def hasDirectoryContents(path):
+    """Check if a directory has contents.
+
+    Args:
+        path: directory to check
+
+    Returns:
+        bool: True if directory exists and has contents, False otherwise.
+    """
+    if not os.path.isdir(path):
+        return False
+
+    if python_version >= 0x350:
+        try:
+            scan = os.scandir(path)
+            result = next(scan, None) is not None
+        except OSError:
+            return False
+
+        if python_version >= 0x360:
+            scan.close()
+
+        return result
+    else:
+        try:
+            return bool(os.listdir(path))
+        except OSError:
+            return False
+
+
 # Make sure we don't repeat this too much.
 _real_path_windows_cache = {}
 _powershell_path = None
