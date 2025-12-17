@@ -127,6 +127,15 @@ def areInSamePaths(path1, path2):
 
 
 def haveSameFileContents(path1, path2):
+    """Check if two files have the same contents.
+
+    Args:
+        path1: First path
+        path2: Second path
+
+    Returns:
+        bool: True if files have same content.
+    """
     # Local import, to avoid this for normal use cases.
     import filecmp
 
@@ -134,6 +143,14 @@ def haveSameFileContents(path1, path2):
 
 
 def getFileSize(path):
+    """Get the size of a file.
+
+    Args:
+        path: File path
+
+    Returns:
+        int: File size in bytes.
+    """
     return os.path.getsize(path)
 
 
@@ -167,6 +184,14 @@ def relpath(path, start="."):
 
 
 def isRelativePath(path):
+    """Check if a path is relative.
+
+    Args:
+        path: Path to check
+
+    Returns:
+        bool: True if path is relative.
+    """
     if os.path.isabs(path):
         return False
     if path.startswith((".." + os.path.sep, "../")):
@@ -197,6 +222,11 @@ def makePath(path):
 
 
 def makeContainingPath(filename):
+    """Create the directory for containing a file if it doesn't exist.
+
+    Args:
+        filename: Path to the file.
+    """
     target_dir = os.path.dirname(filename)
 
     if not os.path.isdir(target_dir):
@@ -204,7 +234,14 @@ def makeContainingPath(filename):
 
 
 def isPathExecutable(path):
-    """Is the given path executable."""
+    """Check if the given path is executable.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        bool: True if executable.
+    """
     return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
@@ -331,7 +368,7 @@ def _restoreWindowsPath(orig_path, path):
             if dirname:
                 dirname = getDirectoryRealPath(dirname)
 
-                # Drive letters do not get slashes from "os.path.join", so
+                # Drive letters do not get slashes from 'os.path.join', so
                 # we inject this here and normalize the path afterwards to
                 # remove any duplication added.
                 if os.path.sep not in dirname:
@@ -384,12 +421,12 @@ def listDir(path):
         calling side.
 
         This should be used, because it makes sure to resolve the
-        symlinks to directories on Windows, that a naive "os.listdir"
+        symlinks to directories on Windows, that a naive 'os.listdir'
         won't do by default.
     """
     real_path = getDirectoryRealPath(path)
 
-    # The "os.listdir" output needs to be unicode paths, or else it can be unusable
+    # The 'os.listdir' output needs to be unicode paths, or else it can be unusable
     # for Python2 on Windows at least. We try to go back on the result.
     if str is bytes and type(real_path) is str:
         real_path = unicode(real_path)
@@ -522,6 +559,14 @@ def getSubDirectories(path, ignore_dirs=()):
 
 
 def getDllBasename(path):
+    """Get the basename of a DLL file, stripping version and extension.
+
+    Args:
+        path: Path to DLL file.
+
+    Returns:
+        str or None: Basename of DLL or None if not a DLL.
+    """
     compare_path = os.path.normcase(path)
 
     for suffix in (".dll", ".so", ".dylib"):
@@ -654,6 +699,14 @@ def _isMacOSFramework(path):
 
 
 def isLink(path):
+    """Check if a path is a symbolic link (or junction on Windows).
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        bool: True if path is a link.
+    """
     result = os.path.islink(path)
 
     # Special handling for Junctions.
@@ -697,7 +750,15 @@ def deleteFile(path, must_exist):
 
 
 def searchPrefixPath(path, element):
-    """Search element and return prefix in path, if any."""
+    """Search element and return prefix in path, if any.
+
+    Args:
+        path: Path to search in.
+        element: Element to search for.
+
+    Returns:
+         str or None: Prefix path if found, None otherwise.
+    """
 
     while path:
         if os.path.normcase(os.path.basename(path)) == os.path.normcase(element):
@@ -724,7 +785,15 @@ def getFilenameExtension(path):
 
 
 def changeFilenameExtension(path, extension):
-    """Change the filename extension."""
+    """Change the filename extension.
+
+    Args:
+        path: Path to change.
+        extension: New extension (including dot).
+
+    Returns:
+        str: Path with new extension.
+    """
 
     is_legal, illegal_reason = isLegalPath(path)
     if not is_legal:
@@ -740,7 +809,16 @@ def changeFilenameExtension(path, extension):
 
 
 def switchFilenameExtension(path, old_extension, new_extension):
-    """Switch the filename extension specified to another one."""
+    """Switch the filename extension specified to another one.
+
+    Args:
+        path: Path to check.
+        old_extension: Extension expected.
+        new_extension: Extension to switch to.
+
+    Returns:
+        str: Path with switched extension.
+    """
     assert path.endswith(old_extension)
     return path[: -len(old_extension)] + new_extension
 
@@ -762,6 +840,15 @@ def hasFilenameExtension(path, extensions):
 
 
 def addFilenameExtension(path, extension):
+    """Add an extension to a filename if it doesn't already have it.
+
+    Args:
+        path: Path to add extension to.
+        extension: Extension to add (including dot).
+
+    Returns:
+        str: Path with extension added if missing.
+    """
     if not hasFilenameExtension(path, extension):
         path += extension
 
@@ -819,6 +906,14 @@ def removeDirectory(path, logger, ignore_errors, extra_recommendation):
 
 
 def resetDirectory(path, logger, ignore_errors, extra_recommendation):
+    """Reset a directory, removing it if it exists and recreating it empty.
+
+    Args:
+        path: Path to reset.
+        logger: Logger for output.
+        ignore_errors: Whether to ignore errors during removal.
+        extra_recommendation: Recommendation message for errors.
+    """
     removeDirectory(
         path=path,
         logger=logger,
@@ -830,7 +925,18 @@ def resetDirectory(path, logger, ignore_errors, extra_recommendation):
 
 @contextmanager
 def withTemporaryFile(prefix="", suffix="", mode="w", delete=True, temp_path=None):
-    """Provide a temporary file opened and potentially deleted."""
+    """Provide a temporary file opened and potentially deleted.
+
+    Args:
+        prefix: Filename prefix.
+        suffix: Filename suffix.
+        mode: Open mode.
+        delete: Whether to delete the file on exit.
+        temp_path: Directory for temporary file.
+
+    Yields:
+        file: The temporary file object.
+    """
     with tempfile.NamedTemporaryFile(
         prefix=prefix, suffix=suffix, mode=mode, delete=delete, dir=temp_path
     ) as temp_file:
@@ -839,7 +945,16 @@ def withTemporaryFile(prefix="", suffix="", mode="w", delete=True, temp_path=Non
 
 @contextmanager
 def withTemporaryFilename(prefix="", suffix="", temp_path=None):
-    """Provide a temporary filename."""
+    """Provide a temporary filename.
+
+    Args:
+        prefix: Filename prefix.
+        suffix: Filename suffix.
+        temp_path: Directory for temporary file.
+
+    Yields:
+        str: The temporary filename.
+    """
     with tempfile.NamedTemporaryFile(
         prefix=prefix,
         suffix=suffix,
@@ -855,6 +970,17 @@ def withTemporaryFilename(prefix="", suffix="", temp_path=None):
 
 
 def getFileContentByLine(filename, mode="r", encoding=None, errors=None):
+    """Get the contents of a file as lines.
+
+    Args:
+        filename: str with the file to be read
+        mode: "r" for str, "rb" for bytes result
+        encoding: optional encoding to used when reading the file, e.g. "utf8"
+        errors: optional error handler decoding the content, as defined in `codecs`
+
+    Returns:
+        list: List of lines.
+    """
     # We read the whole, to keep lock times minimal. We only deal with small
     # files like this normally.
     return getFileContents(
@@ -900,6 +1026,17 @@ def getFileFirstLine(filename, mode="r", encoding=None):
 
 
 def openTextFile(filename, mode, encoding=None, errors=None):
+    """Open a text file with proper handling.
+
+    Args:
+        filename: Path to file.
+        mode: Open mode.
+        encoding: Encoding to use.
+        errors: Error handling.
+
+    Returns:
+        file: Opened file object.
+    """
     # Do not attempt to create files with what we consider
     # illegal filenames.
     if "w" in mode:
@@ -981,6 +1118,11 @@ def changeTextFileContents(filename, contents, encoding=None, compare_only=False
 
 @contextmanager
 def withPreserveFileMode(filenames):
+    """Context manager to preserve file modes.
+
+    Args:
+        filenames: Single filename or list of filenames.
+    """
     if isinstance(filenames, basestring):
         filenames = [filenames]
 
@@ -996,6 +1138,11 @@ def withPreserveFileMode(filenames):
 
 @contextmanager
 def withMadeWritableFileMode(filenames):
+    """Context manager to make files writable temporarily.
+
+    Args:
+        filenames: Single filename or list of filenames.
+    """
     if isinstance(filenames, basestring):
         filenames = [filenames]
 
@@ -1007,6 +1154,11 @@ def withMadeWritableFileMode(filenames):
 
 
 def removeFileExecutablePermission(filename):
+    """Remove executable permission from a file.
+
+    Args:
+        filename: Path to file.
+    """
     old_stat = os.stat(filename)
 
     mode = old_stat.st_mode
@@ -1017,6 +1169,11 @@ def removeFileExecutablePermission(filename):
 
 
 def addFileExecutablePermission(filename):
+    """Add executable permission to a file.
+
+    Args:
+        filename: Path to file.
+    """
     old_stat = os.stat(filename)
 
     mode = old_stat.st_mode
@@ -1027,6 +1184,12 @@ def addFileExecutablePermission(filename):
 
 
 def renameFile(source_filename, dest_filename):
+    """Rename a file, with failover to copy+delete on Windows.
+
+    Args:
+        source_filename: Source path.
+        dest_filename: Destination path.
+    """
     # There is no way to safely update a file on Windows, but lets
     # try on Linux at least.
     old_stat = os.stat(source_filename)
@@ -1048,7 +1211,7 @@ def copyTree(source_path, dest_path):
         dest_path: where to copy to, may already exist
 
     Notes:
-        This must be used over `shutil.copytree` which has troubles
+        This must be used over 'shutil.copytree' which has troubles
         with existing directories on some Python versions.
     """
     if python_version >= 0x380:
@@ -1064,7 +1227,14 @@ def copyTree(source_path, dest_path):
 
 
 def resolveSymlink(path):
-    """Resolve a symlink, to a relative path."""
+    """Resolve a symlink, to a relative path.
+
+    Args:
+        path: Path to symlink.
+
+    Returns:
+        str: Relative path to link target.
+    """
     link_source_abs = os.path.abspath(path)
     link_target_abs = os.path.abspath(
         getNormalizedPathJoin(os.path.dirname(path), os.readlink(path))
@@ -1074,18 +1244,23 @@ def resolveSymlink(path):
     return link_target_rel
 
 
-def copyFileWithPermissions(source_path, dest_path, dist_dir):
-    """Improved version of shutil.copy2 for putting things to dist folder
+def copyFileWithPermissions(source_path, dest_path, target_dir):
+    """Improved version of 'shutil.copy2' for putting things to dist folder.
 
-    File systems might not allow to transfer extended attributes, which we then ignore
-    and only copy permissions.
+    File systems might not allow to transfer extended attributes, which we then
+    ignore and only copy permissions.
+
+    Args:
+        source_path: Source file.
+        dest_path: Destination file.
+        target_dir: Target directory (to check for symlink containment).
     """
 
     if os.path.islink(source_path) and not isWin32Windows():
         link_target_rel = resolveSymlink(source_path)
 
         if isFilenameBelowPath(
-            path=dist_dir,
+            path=target_dir,
             filename=getNormalizedPathJoin(os.path.dirname(dest_path), link_target_rel),
         ):
             os.symlink(link_target_rel, dest_path)
@@ -1106,10 +1281,14 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
 
 
 def copyFile(source_path, dest_path):
-    """Improved version of shutil.copy
+    """Improved version of 'shutil.copy'.
 
-    This handles errors with a chance to correct them, e.g. on Windows, files might be
-    locked by running program or virus checkers.
+    This handles errors with a chance to correct them, e.g. on Windows, files
+    might be locked by running program or virus checkers.
+
+    Args:
+        source_path: Source file.
+        dest_path: Destination file.
     """
 
     while 1:
@@ -1138,18 +1317,29 @@ def copyFile(source_path, dest_path):
 
 
 def getWindowsDrive(path):
-    """Windows drive for a given path."""
+    """Windows drive for a given path.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        str: Drive letter with colon, normalized.
+    """
 
     drive, _ = os.path.splitdrive(os.path.abspath(path))
     return os.path.normcase(drive)
 
 
 def isFilenameBelowPath(path, filename, consider_short=True):
-    """Is a filename inside of a given directory path
+    """Is a filename inside of a given directory path.
 
     Args:
-        path: location to be below
-        filename: candidate being checked
+        path: Location to be below (can be tuple/list of paths).
+        filename: Candidate being checked.
+        consider_short: Whether to consider short paths on Windows.
+
+    Returns:
+        bool: True if filename is below path.
     """
     if type(path) in (tuple, list):
         for p in path:
@@ -1287,7 +1477,7 @@ def getExternalUsePath(filename, only_dirname=False):
     Returns:
         Path that is a absolute and (on Windows) short filename pointing at the same file.
     Notes:
-        This is only "os.path.abspath" except on Windows, where is converts
+        This is only 'os.path.abspath' except on Windows, where is converts
         to a short path too.
     """
 
@@ -1321,7 +1511,14 @@ _report_path_cache = {}
 
 
 def getReportSourceReference(source_ref):
-    """Convert a source ref into a path suitable for user output."""
+    """Convert a source ref into a path suitable for user output.
+
+    Args:
+        source_ref: Source reference object.
+
+    Returns:
+        str: String representation for reporting.
+    """
     return "%s:%s" % (
         getReportPath(source_ref.getFilename()),
         source_ref.getLineNumber(),
@@ -1329,7 +1526,15 @@ def getReportSourceReference(source_ref):
 
 
 def getReportPath(filename, prefixes=()):
-    """Convert filename into a path suitable for reporting, avoiding home directory paths."""
+    """Convert filename into a path suitable for reporting, avoiding home directory paths.
+
+    Args:
+        filename: Path to convert.
+        prefixes: Optional prefixes to relativize against.
+
+    Returns:
+        str: Path suitable for reporting.
+    """
     key = filename, tuple(prefixes)
 
     if key not in _report_path_cache:
@@ -1343,6 +1548,12 @@ def isNonLocalPath(path):
 
     This is not reliable and mainly for reporting purposes to identify paths
     work looking to abbreviate.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        bool: True if path is likely non-local.
     """
     return path.startswith("..") or os.path.isabs(path)
 
@@ -1476,7 +1687,12 @@ def resolveShellPatternToFilenames(pattern):
 
 @contextmanager
 def withDirectoryChange(path, allow_none=False):
-    """Change current directory temporarily in a context."""
+    """Change current directory temporarily in a context.
+
+    Args:
+        path: Director to be currently in.
+        allow_none: If None is passed, do nothing associated with this.
+    """
 
     # spell-checker: ignore chdir
 
@@ -1491,7 +1707,15 @@ def withDirectoryChange(path, allow_none=False):
 
 
 def containsPathElements(path, elements):
-    """Test if a path contains any unwanted elements."""
+    """Test if a path contains any unwanted elements.
+
+    Args:
+        path: directory path to check
+        elements: iterable of elements that must not be in the path
+
+    Returns:
+        bool - True if any of elements is part of the path name
+    """
 
     elements = tuple(os.path.normcase(element) for element in elements)
     path = os.path.normpath(path)
@@ -1543,6 +1767,14 @@ def isFilesystemEncodable(filename):
 
 
 def makeFilesystemEncodable(filename):
+    """Make a filename safe for filesystem usage.
+
+    Args:
+        filename: Path to make safe.
+
+    Returns:
+        str: Safe filename (short path on Windows if necessary).
+    """
     if not os.path.isabs(filename):
         filename = os.path.abspath(filename)
 
@@ -1553,6 +1785,16 @@ def makeFilesystemEncodable(filename):
 
 
 def openPickleFile(filename, mode, protocol=-1):
+    """Open a pickle file with proper handling.
+
+    Args:
+        filename: Path to pickle file.
+        mode: Open mode.
+        protocol: Pickle protocol version.
+
+    Returns:
+        tuple: (file_handle, pickler)
+    """
     file_handle = openTextFile(filename, mode)
 
     if python_version < 0x300:
@@ -1564,6 +1806,14 @@ def openPickleFile(filename, mode, protocol=-1):
 
 
 def isLegalPath(path):
+    """Check if a path is legal on the current platform.
+
+    Args:
+        path: Path to check.
+
+    Returns:
+        tuple: (bool, str or None) - (is_legal, illegal_reason)
+    """
     illegal_suffixes = "/\\"
     illegal_chars = "\0"
 
@@ -1611,7 +1861,14 @@ def isLegalPath(path):
 
 
 def getParentDirectories(path):
-    """Get all parent directories of a path in descending order."""
+    """Get all parent directories of a path in descending order.
+
+    Args:
+        path: Path to start from.
+
+    Yields:
+        str: Parent directory paths.
+    """
 
     while 1:
         old_path = path
@@ -1648,6 +1905,16 @@ def getNormalizedPathJoin(*paths):
 
 
 def getFileContentsHash(filename, as_string=True, line_filter=None):
+    """Get the hash of a file's content.
+
+    Args:
+        filename: Path to file.
+        as_string: Return as string (hex digest) or bytes (digest).
+        line_filter: Optional filter function for lines.
+
+    Returns:
+        str or bytes: Hash result.
+    """
     result = Hash()
     result.updateFromFile(filename=filename, line_filter=line_filter)
 
