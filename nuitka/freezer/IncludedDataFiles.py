@@ -655,7 +655,7 @@ def _handleDataFile(included_datafile, standalone_entry_points):
         copyFileWithPermissions(
             source_path=included_datafile.source_path,
             dest_path=dest_path,
-            dist_dir=dist_dir,
+            target_dir=dist_dir,
         )
     else:
         assert False, included_datafile
