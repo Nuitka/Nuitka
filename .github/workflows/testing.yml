@@ -26,10 +26,43 @@ jobs:
     env:
       CLANG_FORMAT_VERSION: "21"
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python 3.11
         uses: actions/setup-python@v5
@@ -43,23 +76,23 @@ jobs:
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
-      - name: PyLint on Nuitka source code
+      - name: 🔎 PyLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-pylint
 
-      - name: RestLint on Nuitka source code
+      - name: 🔎 RestLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-restlint
 
-      - name: YamlLint on Nuitka source code
+      - name: 🔎 YamlLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-yamllint
 
-      - name: Codespell on Nuitka source code
+      - name: 🔎 Codespell on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-codespell
 
-      - name: Auto-format check on Nuitka source code
+      - name: 🔎 Auto-format check on Nuitka source code
         run: |
           # Install clang-format that matches what we use in VS code.
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -85,10 +118,43 @@ jobs:
           - "3.13"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
@@ -102,7 +168,7 @@ jobs:
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
-      - name: Verbose scons output in compilation
+      - name: ⚙️ Verbose scons output in compilation
         run: |
           set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
@@ -113,7 +179,7 @@ jobs:
           python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
-      - name: Archive compilation reports for empty modules
+      - name: 📤 Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -130,7 +196,7 @@ jobs:
       #     ## limits ssh access and adds the ssh public keys of the listed GitHub users
       #     limit-access-to-users: kayhayen
 
-      - name: Run Nuitka test suite
+      - name: 🧪 Run Nuitka test suite
         run: |
           python -m nuitka --version
           env | sort
@@ -149,17 +215,50 @@ jobs:
           - "3.13"
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Verbose installation output for Python
+      - name: ⚙️ Verbose installation output for Python
         run: |
           set -x
           which python
@@ -191,7 +290,7 @@ jobs:
           path: |
             *.xml
 
-      - name: Check all modes for debug output
+      - name: 🐞 Check all modes for debug output
         run: |
           set -x
           python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug tests/basics/EmptyModuleTest.py
@@ -224,10 +323,43 @@ jobs:
           - "3.13"
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
