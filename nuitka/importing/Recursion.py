@@ -113,8 +113,25 @@ _recursion_decision_cache = {}
 
 
 def getRecursionDecisions():
-    """Access to recursion decisions, intended only for reporting."""
+    """Access to recursion decisions, intended for reporting and code generation."""
     return _recursion_decision_cache
+
+
+def getExcludedModuleNames():
+    """Return the list of excluded module names for code generation.
+
+    Returns:
+        Yields (module_name, reason) tuples.
+    """
+    for (
+        _using_module_name,
+        _module_filename,
+        module_name,
+        _module_kind,
+        _extra_recursion,
+    ), (decision, reason) in _recursion_decision_cache.items():
+        if decision is False and reason:
+            yield module_name, reason
 
 
 def decideRecursion(
@@ -235,7 +252,11 @@ def _decideRecursion(
                 % module_name
             )
 
-        return False, "Module %s instructed by user to not follow to." % reason
+        return (
+            False,
+            "Module %s instructed by user to not follow to using '--nofollow-import-to'."
+            % reason,
+        )
 
     if any_case:
         if plugin_decision and not plugin_decision[0] and deciding_plugins:
@@ -294,7 +315,10 @@ def _decideRecursion(
         return (True, "Instructed by user to follow to all modules.")
 
     if shallFollowNoImports():
-        return (None, "Instructed by user to not follow at all.")
+        return (
+            None,
+            "Instructed by user to not follow at all using '--nofollow-imports'.",
+        )
 
     # Means, we were not given instructions how to handle things.
     return (
