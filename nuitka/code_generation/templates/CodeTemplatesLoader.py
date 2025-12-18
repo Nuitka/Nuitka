@@ -24,6 +24,13 @@ template_metapath_loader_bytecode_module_entry = """\
 #endif
 },"""
 
+template_metapath_loader_excluded_module_entry = """\
+{%(module_name)s, (module_init_func)%(exclusion_reason)s, 0, 0, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, NULL
+#endif
+},"""
+
 
 template_metapath_loader_body = r"""
 /* Code to register embedded modules for meta path based loading if any. */
@@ -74,7 +81,6 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
         init_done = true;
     }
 }
-
 
 void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;

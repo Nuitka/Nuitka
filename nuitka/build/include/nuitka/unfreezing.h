@@ -18,6 +18,11 @@
 
 #define NUITKA_PERFECT_SUPPORTED_FLAG 32
 
+#if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
+    !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
+#define NUITKA_EXCLUDED_MODULE_FLAG 64
+#endif
+
 struct Nuitka_MetaPathBasedLoaderEntry;
 
 typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
