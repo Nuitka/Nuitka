@@ -351,24 +351,29 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
         # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 0x300 and provider.isExpressionFunctionBodyBase():
-            was_taken = provider.hasTakenVariable(variable_name)
-
-            if not was_taken and variable.getOwner() is not provider:
-                parent_provider = provider.getParentVariableProvider()
-
-                while parent_provider.isExpressionClassBodyBase():
-                    parent_provider = parent_provider.getParentVariableProvider()
-
+            if variable.getOwner() is not provider:
+                # Explicit globals are fine.
                 if (
-                    parent_provider.isExpressionFunctionBody()
-                    and parent_provider.isUnqualifiedExec()
+                    not variable.isModuleVariable()
+                    or not provider.hasProvidedVariable(variable_name)
+                    or variable.getOwner()
+                    is not provider.getProvidedVariable(variable_name).getOwner()
                 ):
-                    raiseSyntaxError(
-                        getErrorMessageExecWithNestedFunction()
-                        % parent_provider.getName(),
-                        node.getSourceReference(),
-                        display_line=False,  # Wrong line anyway
-                    )
+                    parent_provider = provider.getParentVariableProvider()
+
+                    while parent_provider.isExpressionClassBodyBase():
+                        parent_provider = parent_provider.getParentVariableProvider()
+
+                    if (
+                        parent_provider.isExpressionFunctionBody()
+                        and parent_provider.isUnqualifiedExec()
+                    ):
+                        raiseSyntaxError(
+                            getErrorMessageExecWithNestedFunction()
+                            % parent_provider.getName(),
+                            node.getSourceReference(),
+                            display_line=False,  # Wrong line anyway
+                        )
 
         if variable.isModuleVariable():
             owner = node.getParentVariableProvider()
