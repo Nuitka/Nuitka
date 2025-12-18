@@ -1343,7 +1343,7 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     def getUncompiledDecoratorNames(self):
         if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot")
+            return ("pyqtSlot", "asyncSlot", "Slot")
         else:
             return ()
 
@@ -1628,7 +1628,7 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     def getUncompiledDecoratorNames(self):
         if python_version >= 0x390:
-            return ("pyqtSlot", "asyncSlot")
+            return ("pyqtSlot", "asyncSlot", "Slot")
         else:
             return ()
 
