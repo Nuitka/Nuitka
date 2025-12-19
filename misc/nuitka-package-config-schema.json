@@ -1,11 +1,20 @@
 {
+  "definitions": {
+    "non-empty-string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "python-expression": {
+      "$ref": "#/definitions/non-empty-string"
+    }
+  },
   "type": "array",
   "items": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "module-name": {
-        "type": "string",
+        "$ref": "#/definitions/non-empty-string",
         "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
       },
       "parameters": {
@@ -15,10 +24,10 @@
           "additionalProperties": false,
           "properties": {
             "name": {
-              "type": "string"
+              "$ref": "#/definitions/non-empty-string"
             },
             "values": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             },
             "default": {
               "type": "string"
@@ -37,7 +46,7 @@
           "declarations": {
             "type": "object",
             "additionalProperties": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -49,23 +58,23 @@
           "environment": {
             "type": "object",
             "additionalProperties": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           },
           "setup_code": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           },
           "declarations": {
             "type": "object",
             "additionalProperties": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           },
           "when": {
-            "type": "string"
+            "$ref": "#/definitions/python-expression"
           }
         }
       },
@@ -76,7 +85,7 @@
           "additionalProperties": false,
           "properties": {
             "dest_path": {
-              "type": "string"
+              "$ref": "#/definitions/non-empty-string"
             },
             "dirs": {
               "type": "array",
@@ -122,7 +131,7 @@
               }
             },
             "when": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -162,7 +171,10 @@
                   "type": "string"
                 },
                 "prefixes": {
-                  "type": "array"
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "suffixes": {
                   "type": "array",
@@ -203,10 +215,10 @@
               }
             },
             "dest_path": {
-              "type": "string"
+              "$ref": "#/definitions/non-empty-string"
             },
             "when": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -218,7 +230,7 @@
           "additionalProperties": false,
           "properties": {
             "description": {
-              "type": "string"
+              "$ref": "#/definitions/non-empty-string"
             },
             "context": {
               "type": "array",
@@ -244,7 +256,7 @@
             "global_replacements": {
               "type": "object",
               "additionalProperties": {
-                "type": "string"
+                "$ref": "#/definitions/python-expression"
               }
             },
             "global_replacements_plain": {
@@ -262,32 +274,50 @@
             "replacements": {
               "type": "object",
               "additionalProperties": {
-                "type": "string"
+                "$ref": "#/definitions/python-expression"
               }
             },
             "change_class": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "global_change_function": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "change_function": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "append_result": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             },
             "append_plain": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             },
             "no-follow": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "no-auto-follow": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "bloat-mode-overrides": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/non-empty-string"
+              }
             },
             "annotations": {
               "type": "string",
@@ -314,7 +344,7 @@
               ]
             },
             "when": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -344,7 +374,7 @@
               }
             },
             "when": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
@@ -360,7 +390,7 @@
               "additionalProperties": false,
               "properties": {
                 "description": {
-                  "type": "string"
+                  "$ref": "#/definitions/non-empty-string"
                 },
                 "macos_bundle": {
                   "type": "string",
@@ -389,7 +419,7 @@
                   ]
                 },
                 "when": {
-                  "type": "string"
+                  "$ref": "#/definitions/python-expression"
                 }
               }
             }
@@ -461,7 +491,7 @@
               ]
             },
             "when": {
-              "type": "string"
+              "$ref": "#/definitions/python-expression"
             }
           }
         }
