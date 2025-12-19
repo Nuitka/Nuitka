@@ -76,6 +76,41 @@ def withFileLock(reason="unknown"):
     file_lock.release()
 
 
+@contextmanager
+def withTemporaryDirectory(
+    logger,
+    prefix=None,
+    suffix=None,
+    directory=None,
+    ignore_errors=False,
+    extra_recommendation=None,
+):
+    """Create a temporary directory and remove it afterwards.
+
+    Args:
+        logger: Logger to use for error reporting.
+        prefix: Prefix of the directory name.
+        suffix: Suffix of the directory name.
+        directory: Directory where to create it.
+        ignore_errors: Ignore errors when removing the directory.
+        extra_recommendation: Recommendation what to do if removal fails.
+
+    Yields:
+        The path of the temporary directory.
+    """
+    temp_dir = tempfile.mkdtemp(prefix=prefix, suffix=suffix, dir=directory)
+
+    try:
+        yield temp_dir
+    finally:
+        removeDirectory(
+            temp_dir,
+            logger=logger,
+            ignore_errors=ignore_errors,
+            extra_recommendation=extra_recommendation,
+        )
+
+
 def areSamePaths(path1, path2):
     """Decide if two paths the same.
 
