@@ -3,226 +3,41 @@
 
 """Check and update Yaml checksum if possible."""
 
-import ast
-import re
-from posixpath import normpath
-
-from nuitka.utils.FileOperations import (
-    getFileContents,
-    openTextFile,
-    putTextFileContents,
-)
+from nuitka.utils.FileOperations import getFileContents, putTextFileContents
 from nuitka.utils.ModuleNames import checkModuleName
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
+    checkSectionValues,
     getYamlDataHash,
-    getYamlPackage,
-    getYamlPackageConfigurationSchemaFilename,
     parsePackageYaml,
+    parseYaml,
+    validateSchema,
 )
 
 
-def checkSchema(logger, document):
-    import json
+def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
+    """Check the schema of the Nuitka package configuration YAML file."""
+    yaml_data = parseYaml(
+        logger=logger,
+        data=getFileContents(document, mode="rb"),
+        error_message="Error, malformed yaml in '%s'." % document,
+    )
 
-    # pylint: disable=I0021,import-error
-    from jsonschema import validators
-    from jsonschema.exceptions import ValidationError
+    validateSchema(
+        logger=logger,
+        name=effective_filename or document,
+        data=yaml_data,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
 
-    yaml = getYamlPackage()
-
-    with openTextFile(getYamlPackageConfigurationSchemaFilename(), "r") as schema_file:
-        with openTextFile(document, "r") as yaml_file:
-            yaml_data = yaml.load(yaml_file, yaml.BaseLoader)
-
-            try:
-                validators.Draft202012Validator(
-                    schema=json.loads(schema_file.read())
-                ).validate(instance=yaml_data)
-            except ValidationError as e:
-                try:
-                    module_name = repr(yaml_data[e.path[0]]["module-name"])
-                except Exception:  # pylint: disable=broad-except
-                    module_name = "unknown"
-
-                logger.sysexit(
-                    "Error, please fix the schema error in yaml file '%s' for %s module:\n%s"
-                    % (document, module_name, e.message)
-                )
-            else:
-                logger.info("OK, schema validated.", style="blue")
-
-
-def _isParsable(value):
-    try:
-        ast.parse(value)
-    except (SyntaxError, IndentationError):
-        return False
-    else:
-        return True
-
-
-def _isNormalizedPosixPath(path):
-    if "\\" in path:
-        return False
-
-    return path == normpath(path)
-
-
-def _checkRegexp(regexp, replacement):
-    try:
-        re.sub(regexp, replacement, "", re.S)
-    except re.error as e:
-        return False, e
-
-    return True, None
-
-
-def _checkValues(logger, filename, module_name, section, value):
-    # many checks of course, pylint: disable=too-many-branches,too-many-statements
-
-    result = True
-
-    if type(value) is dict:
-        for k, v in value.items():
-            if k == "description" and v != v.strip():
-                logger.info(
-                    """\
-%s: %s config value of %s %s should not contain trailing or leading spaces"""
-                    % (filename, module_name, section, k)
-                )
-                result = False
-
-            if k in ("when", "append_result"):
-                if not _isParsable(v):
-                    logger.info(
-                        """\
-%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
-                        % (filename, module_name, section, k, v),
-                        keep_format=True,
-                    )
-                    result = False
-
-            if k in ("replacements", "global_replacements"):
-                for m, d in v.items():
-                    if m == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s cannot be empty."""
-                            % (filename, module_name, section, k)
-                        )
-                        result = False
-                    elif not _isParsable(d):
-                        logger.info(
-                            """\
-%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
-                            % (filename, module_name, section, k, v),
-                            keep_format=True,
-                        )
-                        result = False
-
-            if k in ("replacements_re", "global_replacements_re"):
-                for m, d in v.items():
-                    if m == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s cannot be empty."""
-                            % (filename, module_name, section, k)
-                        )
-                        result = False
-                    else:
-                        valid, error = _checkRegexp(m, d)
-                        if not valid:
-                            logger.info(
-                                """\
-%s: %s config value of '%s' '%s' contains invalid regexp \
-syntax in value '%s' leading to error '%s'"""
-                                % (filename, module_name, section, m, d, error),
-                                keep_format=True,
-                            )
-                            result = False
-
-            if k == "replacements_plain":
-                for m, d in v.items():
-                    if m == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s cannot be empty."""
-                            % (filename, module_name, section, k)
-                        )
-                        result = False
-
-            if k in ("dest_path", "relative_path") and not _isNormalizedPosixPath(v):
-                logger.info(
-                    """\
-%s: module '%s' config value of '%s' '%s' should be normalized posix \
-path, with '/' style slashes not '%s'."""
-                    % (filename, module_name, section, k, v)
-                )
-                result = False
-
-            if k in ("dirs", "raw_dirs", "empty_dirs"):
-                for e in v:
-                    if not _isNormalizedPosixPath(e):
-                        logger.info(
-                            """\
-%s: module '%s' config values of '%s' '%s' should be normalized posix \
-path, with '/' style slashes not '%s'."""
-                            % (filename, module_name, section, k, e)
-                        )
-                        result = False
-
-            if k == "no-auto-follow":
-                for m, d in v.items():
-                    if d == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
-if you want no message."""
-                            % (filename, module_name, section, k, m)
-                        )
-                        result = False
-
-            if k == "declarations":
-                for m, d in v.items():
-                    if m == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s should not use empty value for declaration name."""
-                            % (filename, module_name, section, k)
-                        )
-                        result = False
-
-                    if d == "":
-                        logger.info(
-                            """\
-%s: %s config value of %s %s should not use empty value for declaration name."""
-                            % (filename, module_name, section, k)
-                        )
-                        result = False
-                    elif not _isParsable(d):
-                        logger.info(
-                            """\
-%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
-                            % (filename, module_name, section, k, v),
-                            keep_format=True,
-                        )
-                        result = False
-
-            if not _checkValues(logger, filename, module_name, section, v):
-                result = False
-    elif type(value) in (list, tuple):
-        for item in value:
-            if not _checkValues(logger, filename, module_name, section, item):
-                result = False
-
-    return result
+    logger.info("OK, schema validated.", style="blue")
 
 
 module_allow_list = ("mozilla-ca",)
 
 
 def checkYamlModuleName(logger, module_name):
+    """Check if the module name is valid."""
     if module_name in module_allow_list:
         return True
 
@@ -244,9 +59,13 @@ def checkYamlModuleName(logger, module_name):
 
 
 def checkValues(logger, filename):
+    """Check validness of values in the Nuitka package configuration YAML file."""
     yaml = PackageConfigYaml(
+        logger=logger,
         name=filename,
         file_data=getFileContents(filename, mode="rb"),
+        assume_yes_for_downloads=False,
+        check_checksums=False,
     )
 
     result = True
@@ -255,7 +74,9 @@ def checkValues(logger, filename):
             result = False
 
         for section, section_config in config.items():
-            if not _checkValues(logger, filename, module_name, section, section_config):
+            if not checkSectionValues(
+                logger, filename, module_name, section, section_config
+            ):
                 result = False
 
     if result:
@@ -265,6 +86,7 @@ def checkValues(logger, filename):
 
 
 def checkYamllint(logger, document):
+    """Run yamllint on the file."""
     import yamllint.cli  # pylint: disable=I0021,import-error
 
     try:
@@ -281,9 +103,16 @@ def checkYamllint(logger, document):
 
 
 def checkOrUpdateChecksum(filename, update, logger):
+    """Check or update module checksums."""
     yaml_file_text = getFileContents(filename, encoding="utf8")
 
-    yaml_data = parsePackageYaml(package_name=None, filename=filename)
+    yaml_data = parsePackageYaml(
+        logger=logger,
+        package_name=None,
+        filename=filename,
+        assume_yes_for_downloads=False,
+        check_checksums=False,
+    )
 
     lines = []
 
@@ -317,9 +146,15 @@ def checkOrUpdateChecksum(filename, update, logger):
 
 
 def checkYamlSchema(logger, filename, effective_filename, update):
+    """Check the YAML schema and values, and update checksums."""
     logger.info("Checking '%s' for proper contents:" % effective_filename, style="blue")
 
-    checkSchema(logger, filename)
+    checkSchema(
+        logger,
+        filename,
+        effective_filename=effective_filename,
+        assume_yes_for_downloads=False,
+    )
     checkValues(logger, filename)
     checkOrUpdateChecksum(filename=filename, update=update, logger=logger)
     checkYamllint(logger, filename)
