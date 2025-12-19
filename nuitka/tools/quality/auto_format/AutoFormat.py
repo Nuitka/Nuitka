@@ -826,6 +826,7 @@ def autoFormatFile(
                     formatYaml(
                         logger=tools_logger,
                         path=tmp_filename,
+                        assume_yes_for_downloads=assume_yes_for_downloads,
                         ignore_diff=ignore_yaml_diff,
                     )
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
@@ -839,6 +840,7 @@ def autoFormatFile(
                     formatYaml(
                         logger=tools_logger,
                         path=tmp_filename,
+                        assume_yes_for_downloads=assume_yes_for_downloads,
                         ignore_diff=ignore_yaml_diff,
                     )
                     cleanupWindowsNewlines(tmp_filename, effective_filename)

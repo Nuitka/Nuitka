@@ -11,6 +11,7 @@ import struct
 from binascii import crc32
 
 from nuitka.__past__ import md5, unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 
 
 class HashBase(object):
@@ -19,7 +20,7 @@ class HashBase(object):
     def updateFromValues(self, *values):
         for value in values:
             if type(value) is int:
-                value = str(int)
+                value = str(value)
 
             if type(value) in (str, unicode):
                 if str is not bytes:
@@ -28,7 +29,7 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
-            elif type(value) is dict:
+            elif type(value) in (dict, OrderedDict):
                 self.updateFromBytes(b"dict")
                 self.updateFromValues(*list(value.items()))
             elif type(value) is tuple:
@@ -37,6 +38,8 @@ class HashBase(object):
             elif type(value) is list:
                 self.updateFromBytes(b"list")
                 self.updateFromValues(*value)
+            elif value is None:
+                self.updateFromBytes(b"none")
             else:
                 assert False, type(value)
 
@@ -107,8 +110,15 @@ class HashCRC32(HashBase):
 
         return self.hash
 
-    def asHexDigest(self):
-        return hex(self.asDigest())[2:]
+    if str is bytes:
+        # For Python2, we need to remove the 'L' suffix.
+        def asHexDigest(self):
+            return hex(self.asDigest())[2:].rstrip("L")
+
+    else:
+
+        def asHexDigest(self):
+            return hex(self.asDigest())[2:]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -451,8 +451,8 @@ def updateCase(
 
 def updateCases(case_dir, reset_pipenv, no_pipenv_update, nuitka_update_mode, jobs):
     for case_data in parseYaml(
-        data=getFileContents("case.yml", mode="rb"),
         logger=watch_logger,
+        data=getFileContents("case.yml", mode="rb"),
         error_message="Error, empty (or malformed?) case.yml used.",
     ):
         updateCase(
