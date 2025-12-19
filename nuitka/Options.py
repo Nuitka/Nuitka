@@ -2883,6 +2883,8 @@ def getPluginNameConsideringRenames(plugin_name):
         return "ethereum"
     if plugin_name == "pyzmq":
         return "delvewheel"
+    if plugin_name == "signing":
+        return "signtool"
 
     return plugin_name
 

@@ -569,6 +569,29 @@ Pattern of data files to embed for use with Qt at run time. These should match t
 \fB\-\-embed\-debug\-qt\-resources\fR
 For debugging purposes, print out information for Qt resources not found.
 .IP
+Plugin options of 'esigner' (categories: commercial, integration):
+.TP
+\fB\-\-esigner\-sign\-deep\fR
+Also sign included DLLs (shared libraries) and extension modules in the distribution. Use with care, as this may break some things.
+.TP
+\fB\-\-esigner\-disable\-signing\-cache\fR
+Disable usage of the hashing based signing cache. This will make deep signing much slower.
+.TP
+\fB\-\-esigner\-tool\-path\fR=\fI\,ESIGNER_TOOL_PATH\/\fR
+Path to the 'CodeSignTool' executable/batch file provided by SSL.com.
+.TP
+\fB\-\-esigner\-username\fR=\fI\,ESIGNER_USERNAME\/\fR
+SSL.com username.
+.TP
+\fB\-\-esigner\-password\fR=\fI\,ESIGNER_PASSWORD\/\fR
+SSL.com password.
+.TP
+\fB\-\-esigner\-credential\-id\fR=\fI\,ESIGNER_CREDENTIAL_ID\/\fR
+Credential ID for the signing certificate.
+.TP
+\fB\-\-esigner\-totp\-secret\fR=\fI\,ESIGNER_TOTP_SECRET\/\fR
+TOTP secret for the signing account (static secret).
+.IP
 Plugin options of 'pelock' (categories: commercial, integration):
 .TP
 \fB\-\-pelock\-path\fR=\fI\,PELOCK_PATH\/\fR
@@ -577,9 +600,15 @@ The location of the PELock software, by default it's searched in PATH and home d
 \fB\-\-pelock\-unbundled\-files\fR=\fI\,PELOCK_UNBUNDLED\/\fR
 Patterns of files to not be bundled inside the binary, i.e. that shall be user visible.
 .IP
-Plugin options of 'signing' (categories: commercial, integration):
+Plugin options of 'signtool' (categories: commercial, integration):
 .TP
-\fB\-\-windows\-signing\-tool\fR=\fI\,WINDOWS_SIGNTOOL\/\fR
+\fB\-\-windows\-sign\-deep\fR
+Also sign included DLLs (shared libraries) and extension modules in the distribution. Use with care, as this may break some things.
+.TP
+\fB\-\-windows\-disable\-signing\-cache\fR
+Disable usage of the hashing based signing cache. This will make deep signing much slower.
+.TP
+\fB\-\-windows\-signing\-tool\-path\fR=\fI\,WINDOWS_SIGNTOOL_PATH\/\fR
 The 'signtool' executable. You may make this a wrapper script should you want very specific options, by default `signtool` from PATH or used MSVC used is used.
 .TP
 \fB\-\-windows\-certificate\-name\fR=\fI\,WINDOWS_CERTIFICATE_NAME\/\fR
