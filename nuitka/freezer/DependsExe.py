@@ -56,7 +56,7 @@ def getDependsExePath():
         message="""\
 Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",
-        reject="Nuitka does not work in --standalone or --onefile on Windows without.",
+        reject="Nuitka does not work in '--mode=standalone' or '--mode=onefile' on Windows without dependency walker.",
         assume_yes_for_downloads=assumeYesForDownloads(),
         download_ok=True,
     )
