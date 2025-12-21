@@ -2170,6 +2170,12 @@ int Py_Main(int argc, char **argv) { return 0; }
 #endif
 #endif
 
+// For cases of gcc used to compile with Nuitka vs. the one used to compile
+// libpython.
+#if defined(__linux__) && defined(__GNUC__)
+__attribute__((weak)) void __warn_memset_zero_len(void) {}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
