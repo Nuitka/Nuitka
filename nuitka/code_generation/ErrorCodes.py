@@ -65,6 +65,21 @@ def getErrorExitBoolCode(
     fetched_exception=False,
     needs_check=True,
 ):
+    """Emit error exit code based on a condition.
+
+    Args:
+        condition: C boolean expression checking for error.
+        emit: Function to emit code.
+        context: Code generation context.
+        release_names: Tuple/list of variable names to release.
+        release_name: Single variable name to release.
+        fetched_exception: Whether exception is already fetched.
+        needs_check: Whether validation of condition is needed.
+
+    Notes:
+        `release_name` and `release_names` are mutually exclusive.
+        Use `release_name` for a single variable, `release_names` for multiple.
+    """
     assert not condition.endswith(";")
 
     if release_names:
@@ -130,6 +145,21 @@ def getErrorExitCode(
     fetched_exception=False,
     needs_check=True,
 ):
+    """Emit error exit code by checking a variable.
+
+    Args:
+        check_name: Variable to check for error condition.
+        emit: Function to emit code.
+        context: Code generation context.
+        release_names: Tuple/list of variable names to release.
+        release_name: Single variable name to release.
+        fetched_exception: Whether exception is already fetched.
+        needs_check: Whether validation of condition is needed.
+
+    Notes:
+        `release_name` and `release_names` are mutually exclusive.
+        Use `release_name` for a single variable, `release_names` for multiple.
+    """
     getErrorExitBoolCode(
         condition=check_name.getCType().getExceptionCheckCondition(check_name),
         release_names=release_names,
