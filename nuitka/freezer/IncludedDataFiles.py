@@ -59,11 +59,24 @@ data_file_tags = []
 
 
 def addDataFileTags(pattern):
+    """Add a data file tag pattern.
+
+    Args:
+        pattern: The pattern and tags in "pattern:tags" format.
+    """
     assert ":" in pattern, pattern
     data_file_tags.append(pattern)
 
 
 def getDataFileTags(dest_path):
+    """Get the data file tags for a specific destination path.
+
+    Args:
+        dest_path: The destination path to check.
+
+    Returns:
+        OrderedSet of tags applicable to the path.
+    """
     result = OrderedSet()
 
     for value in data_file_tags:
@@ -76,6 +89,14 @@ def getDataFileTags(dest_path):
 
 
 def hasDataFileTag(tag):
+    """Check if a specific tag exists in any registered patterns.
+
+    Args:
+        tag: The tag to search for.
+
+    Returns:
+        bool: True if the tag is found, False otherwise.
+    """
     for value in data_file_tags:
         _pattern, tags = value.rsplit(":", 1)
 
@@ -84,7 +105,18 @@ def hasDataFileTag(tag):
 
 
 def decodeDataFileTags(tags):
-    """In many places, strings are accepted for tags, convert to OrderedSet for internal use."""
+    """Convert tags argument to an OrderedSet.
+
+    Notes:
+        In many places, strings are accepted for tags, convert to OrderedSet
+        for internal use.
+
+    Args:
+        tags: string (comma separated) or iterable of tags.
+
+    Returns:
+        OrderedSet of tags.
+    """
 
     if type(tags) is str:
         tags = tags.split(",") if tags else ()
@@ -93,6 +125,22 @@ def decodeDataFileTags(tags):
 
 
 class IncludedDataFile(object):
+    """Details of an included data file.
+
+    Notes:
+        This class holds all information about a data file to be included in
+        the standalone distribution.
+
+    Args:
+        kind: The kind of data file ("data_file" or "data_blob").
+        source_path: The source path of the file (if kind is "data_file").
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        data: The binary data (if kind is "data_blob").
+        tags: Tags associated with this file.
+        tracer: The tracer to use for logging.
+    """
+
     __slots__ = ("kind", "source_path", "dest_path", "reason", "data", "tags", "tracer")
 
     def __init__(self, kind, source_path, dest_path, reason, data, tags, tracer):
@@ -139,9 +187,19 @@ class IncludedDataFile(object):
         )
 
     def needsCopy(self):
+        """Check if the file needs to be copied.
+
+        Returns:
+            bool: True if the file should be copied, False otherwise.
+        """
         return "copy" in self.tags
 
     def getFileContents(self):
+        """Get the contents of the data file.
+
+        Returns:
+            bytes: The content of the file.
+        """
         if self.kind == "data_file":
             return getFileContents(filename=self.source_path, mode="rb")
         elif self.kind == "data_blob":
@@ -150,6 +208,11 @@ class IncludedDataFile(object):
             assert False
 
     def getFileSize(self):
+        """Get the size of the data file.
+
+        Returns:
+            int: The size of the file in bytes.
+        """
         if self.kind == "data_file":
             return getFileSize(self.source_path)
         elif self.kind == "data_blob":
@@ -159,6 +222,17 @@ class IncludedDataFile(object):
 
 
 def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
+    """Create an included data file representing an empty directory.
+
+    Args:
+        dest_path: The destination path for the directory.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with this directory.
+
+    Returns:
+        IncludedDataFile: The created data file object (using a marker file).
+    """
     dest_path = os.path.join(dest_path, ".keep_dir.txt")
 
     return makeIncludedGeneratedDataFile(
@@ -167,6 +241,18 @@ def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
 
 
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
+    """Create an included data file.
+
+    Args:
+        source_path: The source path of the file.
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with this file.
+
+    Returns:
+        IncludedDataFile: The created data file object.
+    """
     tags = decodeDataFileTags(tags)
 
     # Refuse directories, these must be kept distinct.
@@ -240,6 +326,24 @@ def makeIncludedDataDirectory(
     normalize=True,
     raw=False,
 ):
+    """Create included data files from a directory.
+
+    Args:
+        source_path: The source directory path.
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with these files.
+        ignore_dirs: Directories to ignore.
+        ignore_filenames: Filenames to ignore.
+        ignore_suffixes: File suffixes to ignore.
+        only_suffixes: Only include files with these suffixes.
+        normalize: Whether to normalize paths.
+        raw: Whether to include raw directory contents (ignores defaults).
+
+    Yields:
+        IncludedDataFile: Included data file objects found in the directory.
+    """
     assert isRelativePath(dest_path), dest_path
     assert os.path.isdir(source_path), source_path
 
@@ -281,6 +385,18 @@ def makeIncludedDataDirectory(
 
 
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
+    """Create an included data file from generated data.
+
+    Args:
+        data: The binary data content.
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with this file.
+
+    Returns:
+        IncludedDataFile: The created data file object.
+    """
     assert isRelativePath(dest_path), dest_path
 
     if type(data) is str and str is not bytes:
@@ -303,6 +419,11 @@ _included_data_files = []
 
 
 def addIncludedDataFile(included_datafile):
+    """Add a data file to the included list.
+
+    Args:
+        included_datafile: The IncludedDataFile object to add.
+    """
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
     for external_datafile_pattern in getShallNotIncludeDataFilePatterns():
@@ -345,6 +466,11 @@ same directory and need to use '--output-dir' option."""
 
 
 def getIncludedDataFiles():
+    """Get all included data files.
+
+    Returns:
+        list: List of IncludedDataFile objects.
+    """
     return _included_data_files
 
 
@@ -422,6 +548,11 @@ def _addIncludedDataFilesFromFileOptions():
 
 
 def addIncludedDataFilesFromFlavor():
+    """Add data files required by the Python flavor/OS.
+
+    Notes:
+        Example: AIX requires libpython embedded.
+    """
     if isAIX():
         # On AIX, the Python DLL is hidden in an archive.
         filename = "libpython%s.a" % python_version_str
@@ -457,13 +588,27 @@ file in the Python installation '%s'."""
 
 
 def addIncludedDataFilesFromFileOptions():
-    """Early data files, from user options that work with file system."""
+    """Early data files, from user options that work with file system.
+
+    Notes:
+        These are processed early as they come from direct file/directory
+        arguments.
+    """
 
     for included_datafile in _addIncludedDataFilesFromFileOptions():
         addIncludedDataFile(included_datafile)
 
 
 def scanIncludedPackageDataFiles(package_directory, pattern):
+    """Scan a package directory for data files matching a pattern.
+
+    Args:
+        package_directory: The directory of the package to scan.
+        pattern: The filename pattern to match.
+
+    Returns:
+        list: List of matching filenames.
+    """
     ignore_suffixes = default_ignored_suffixes
 
     if pattern is not None:
@@ -496,6 +641,19 @@ def scanIncludedPackageDataFiles(package_directory, pattern):
 def makeIncludedPackageDataFiles(
     tracer, package_name, package_directory, pattern, reason, tags
 ):
+    """Create included data files for a package.
+
+    Args:
+        tracer: The tracer to use for logging.
+        package_name: The name of the package.
+        package_directory: The directory of the package.
+        pattern: The filename pattern to search for.
+        reason: The reason for inclusion.
+        tags: Tags associated with these files.
+
+    Yields:
+        IncludedDataFile: Included data file objects found.
+    """
     tags = decodeDataFileTags(tags)
     tags.add("package_data")
 
@@ -514,6 +672,11 @@ def makeIncludedPackageDataFiles(
 
 
 def addIncludedDataFilesFromPlugins():
+    """Add included data files from plugins.
+
+    Notes:
+        Plugins can yield included data files via the considerDataFiles hook.
+    """
     # Plugins provide per module through this.
     for module in ModuleRegistry.getDoneModules():
         for included_datafile in considerDataFiles(module=module):
@@ -521,7 +684,11 @@ def addIncludedDataFilesFromPlugins():
 
 
 def addIncludedDataFilesFromPackageOptions():
-    """Late data files, from plugins and user options that work with packages"""
+    """Late data files, from plugins and user options that work with packages.
+
+    Notes:
+        These are processed after modules are located.
+    """
 
     for package_name, filename_pattern in getShallIncludePackageData():
         package_name, package_directory, _module_kind, _finding = locateModule(
@@ -559,6 +726,7 @@ _data_file_traces = OrderedDict()
 
 
 def _reportDataFiles():
+    """Report (log) the included data files summary."""
     for key in _data_file_traces:
         count = len(_data_file_traces[key])
         tracer, reason = key
@@ -592,6 +760,12 @@ def _reportDataFiles():
 
 
 def _checkPathConflict(dest_path, standalone_entry_points):
+    """Check for conflicts with standalone entry points.
+
+    Args:
+        dest_path: The destination path to check.
+        standalone_entry_points: List of standalone entry points.
+    """
     assert getNormalizedPath(dest_path) == dest_path
 
     while dest_path:
@@ -610,7 +784,15 @@ Error, data file to be placed in distribution as '%s' conflicts with %s '%s'."""
 
 
 def _handleDataFile(included_datafile, standalone_entry_points):
-    """Handle a data file."""
+    """Handle a single data file, writing or copying it.
+
+    Args:
+        included_datafile: The IncludedDataFile object.
+        standalone_entry_points: List of standalone entry points to check conflicts against.
+
+    Returns:
+        tuple: (external, dest_path) where external is bool.
+    """
     tracer = included_datafile.tracer
 
     if not isinstance(included_datafile, IncludedDataFile):
@@ -663,6 +845,12 @@ def copyDataFiles(standalone_entry_points):
         This is for data files only, not DLLs or even extension modules,
         those must be registered as entry points, and would not go through
         necessary handling if provided like this.
+
+    Args:
+        standalone_entry_points: List of standalone entry points available.
+
+    Returns:
+        list: List of paths to the copied data files.
     """
 
     data_file_paths = []
