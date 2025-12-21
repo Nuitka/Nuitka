@@ -494,8 +494,5 @@
       "*.nuitka-package.config.yaml"
     ]
   },
-  "yaml.maxItemsComputed": 10000,
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  }
+  "yaml.maxItemsComputed": 10000
 }
