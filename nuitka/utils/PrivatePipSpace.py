@@ -61,6 +61,7 @@ def tryDownloadPackageName(
                 "-m",
                 "pip",
                 "install",
+                "--no-warn-script-location",
                 "--root",
                 download_folder,
                 package_spec,
