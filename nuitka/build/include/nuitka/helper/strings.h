@@ -12,6 +12,7 @@ extern PyObject *UNICODE_PARTITION(PyThreadState *tstate, PyObject *str, PyObjec
 extern PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep);
 
 extern PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size);
+extern PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char);
 
 #endif
 

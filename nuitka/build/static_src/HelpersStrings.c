@@ -276,7 +276,7 @@ static PyObject *_NuitkaUnicode_New(Py_ssize_t length) {
 
 static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length) {
     if (_PyUnicode_KIND(unicode) != PyUnicode_WCHAR_KIND) {
-        PyObject *copy = PyUnicode_New(length, PyUnicode_MAX_CHAR_VALUE(unicode));
+        PyObject *copy = Nuitka_Unicode_New(length, PyUnicode_MAX_CHAR_VALUE(unicode));
         if (unlikely(copy == NULL)) {
             return NULL;
         }
@@ -302,7 +302,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length) {
     // TODO: We should inline this one as well, it's doable and would save a bunch
     // for the copying case as well.
-    PyObject *copy = PyUnicode_New(length, PyUnicode_MAX_CHAR_VALUE(unicode));
+    PyObject *copy = Nuitka_Unicode_New(length, PyUnicode_MAX_CHAR_VALUE(unicode));
 
     if (unlikely(copy == NULL)) {
         return NULL;
@@ -696,7 +696,7 @@ PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right)
     Py_UCS4 max_char2 = PyUnicode_MAX_CHAR_VALUE(right);
     max_char = Py_MAX(max_char, max_char2);
 
-    PyObject *result = PyUnicode_New(new_len, max_char);
+    PyObject *result = Nuitka_Unicode_New(new_len, max_char);
     if (unlikely(result == NULL)) {
         return NULL;
     }
@@ -748,7 +748,7 @@ bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right) {
 
         max_char = Py_MAX(max_char, max_char2);
 
-        PyObject *res = PyUnicode_New(new_len, max_char);
+        PyObject *res = Nuitka_Unicode_New(new_len, max_char);
         if (unlikely(res == NULL)) {
             return false;
         }
@@ -981,6 +981,150 @@ PyObject *BUILTIN_STR(PyObject *value) {
 }
 
 #endif
+
+PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
+    if (size == 0) {
+        Py_INCREF_IMMORTAL(const_str_empty);
+        return const_str_empty;
+    }
+
+#ifndef MAX_UNICODE
+#define MAX_UNICODE 0x10ffff
+#endif
+
+#if PYTHON_VERSION >= 0x300 && defined(_NUITKA_EXE_MODE)
+    // Implementation of PyUnicode_New for Python 3.
+    if (max_char < 128) {
+        PyASCIIObject *ascii = (PyASCIIObject *)NuitkaObject_Malloc(sizeof(PyASCIIObject) + size + 1);
+        if (unlikely(ascii == NULL)) {
+            return PyErr_NoMemory();
+        }
+
+        Nuitka_Py_NewReference((PyObject *)ascii);
+        Py_SET_TYPE(ascii, &PyUnicode_Type);
+
+        ascii->length = size;
+        ascii->hash = -1;
+        ascii->state.ascii = 1;
+        ascii->state.compact = 1;
+        ascii->state.kind = PyUnicode_1BYTE_KIND;
+        ascii->state.interned = 0;
+#if PYTHON_VERSION < 0x3c0
+        ascii->state.ready = 1;
+        ascii->wstr = NULL;
+#endif
+#if PYTHON_VERSION >= 0x3c7
+        ascii->state.statically_allocated = 0;
+#endif
+
+        ((char *)(ascii + 1))[size] = 0;
+
+#ifdef Py_DEBUG
+        memset((char *)(ascii + 1), 0xff, size);
+#endif
+
+#ifndef __NUITKA_NO_ASSERT__
+        _PyUnicode_CheckConsistency((PyObject *)ascii, 0);
+#endif
+        return (PyObject *)ascii;
+    }
+
+    int kind;
+    Py_ssize_t char_size;
+
+    if (max_char < 256) {
+        kind = PyUnicode_1BYTE_KIND;
+        char_size = 1;
+    } else if (max_char < 65536) {
+        kind = PyUnicode_2BYTE_KIND;
+        char_size = 2;
+    } else {
+        assert(max_char <= MAX_UNICODE);
+        kind = PyUnicode_4BYTE_KIND;
+        char_size = 4;
+    }
+
+    // Ensure we won't overflow the size.
+    assert(size >= 0);
+
+    // We are not checking for overflow of size > ((PY_SSIZE_T_MAX -
+    // sizeof(PyCompactUnicodeObject)) / char_size - 1) because we assume the
+    // caller has done that already and we are only called with valid sizes.
+    assert(size <= ((PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyCompactUnicodeObject)) / char_size - 1));
+
+    Py_ssize_t struct_size = sizeof(PyCompactUnicodeObject) + (size + 1) * char_size;
+    PyObject *result = (PyObject *)NuitkaObject_Malloc(struct_size);
+    if (unlikely(result == NULL)) {
+        return PyErr_NoMemory();
+    }
+
+    Nuitka_Py_NewReference(result);
+    Py_SET_TYPE(result, &PyUnicode_Type);
+
+    PyCompactUnicodeObject *compact = (PyCompactUnicodeObject *)result;
+    compact->_base.length = size;
+    compact->_base.hash = -1;
+    compact->_base.state.ascii = 0;
+    compact->_base.state.compact = 1;
+    compact->_base.state.kind = kind;
+    compact->_base.state.interned = 0;
+#if PYTHON_VERSION < 0x3c0
+    compact->_base.state.ready = 1;
+    compact->_base.wstr = NULL;
+#endif
+#if PYTHON_VERSION >= 0x3c7
+    compact->_base.state.statically_allocated = 0;
+#endif
+
+    compact->utf8 = NULL;
+    compact->utf8_length = 0;
+
+    void *data = (void *)(compact + 1);
+
+#if PYTHON_VERSION < 0x3c0
+    int is_sharing = 0;
+    if (kind == PyUnicode_2BYTE_KIND) {
+        if (sizeof(wchar_t) == 2) {
+            is_sharing = 1;
+        }
+    } else if (kind == PyUnicode_4BYTE_KIND) {
+        if (sizeof(wchar_t) == 4) {
+            is_sharing = 1;
+        }
+    }
+
+    if (is_sharing) {
+        compact->wstr_length = size;
+        compact->_base.wstr = (wchar_t *)data;
+    } else {
+        compact->wstr_length = 0;
+        compact->_base.wstr = NULL;
+    }
+#endif
+    if (kind == PyUnicode_1BYTE_KIND) {
+        ((char *)data)[size] = 0;
+    } else if (kind == PyUnicode_2BYTE_KIND) {
+        ((Py_UCS2 *)data)[size] = 0;
+    } else {
+        ((Py_UCS4 *)data)[size] = 0;
+    }
+
+#ifdef Py_DEBUG
+    memset(data, 0xff, size * kind);
+#endif
+
+#ifndef __NUITKA_NO_ASSERT__
+    _PyUnicode_CheckConsistency(result, 0);
+#endif
+    return result;
+#elif PYTHON_VERSION >= 0x300
+    // Python3 < 3.12
+    return PyUnicode_New(size, max_char);
+#else
+    // Python 2
+    return PyUnicode_FromUnicode(NULL, size);
+#endif
+}
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
