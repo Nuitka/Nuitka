@@ -27,6 +27,10 @@ sys.path.insert(
 
 import subprocess
 
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.environments.Virtualenv import (
     NuitkaCalledProcessError,
     withVirtualenv,
@@ -134,20 +138,21 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_cpython", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        if is_pyproject:
-            venv.runCommand("pip install build")
+        venv.runCommand("pip install setuptools build wheel", style="test-prepare")
 
+        if is_pyproject:
             pyproject_filename = _adaptPyProjectFile(
                 case_dir=case_dir, variant="cpython"
             )
 
-            venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
+            venv.runCommand(
+                commands=['cd "%s"' % case_dir, "python -m build"], style="test-prepare"
+            )
             deleteFile(pyproject_filename, must_exist=True)
         else:
-            venv.runCommand("pip install setuptools wheel")
-
             venv.runCommand(
-                commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
+                commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"],
+                style="test-prepare",
             )
 
         dist_dir = os.path.join(case_dir, "dist")
@@ -219,134 +224,170 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_nuitka", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        # Create the wheel with Nuitka compilation.
-        if is_pyproject:
-            venv.runCommand("pip install build")
+        venv.runCommand("pip install setuptools build wheel")
 
-            pyproject_filename = _adaptPyProjectFile(
-                case_dir=case_dir, variant="nuitka"
-            )
-
-            venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build -w"])
-
-            deleteFile(pyproject_filename, must_exist=True)
-        else:
-            venv.runCommand("pip install setuptools wheel")
-            # Install nuitka from source so "bdist_nuitka" can work.
-
-            try:
-                venv.runCommand(
-                    commands=['cd "%s"' % nuitka_dir, "python setup.py install"],
-                    style="test-prepare",
-                    env={"PYTHONWARNINGS": "ignore"},
-                )
-            finally:
-                # Remove that left over from the install command.
-                removeDirectory(
-                    path=os.path.join(nuitka_dir, "Nuitka.egg-info"),
-                    logger=test_logger,
-                    ignore_errors=False,
-                    extra_recommendation=None,
-                )
-
-            venv.runCommand(
-                commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
-            )
-
-        dist_dir = os.path.join(case_dir, "dist")
         venv.runCommand(
-            'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
+            commands=['cd "%s"' % nuitka_dir, "python setup.py install"],
+            style="test-prepare",
+            env={"PYTHONWARNINGS": "ignore"},
+        )
+        # Remove that left over from the install command.
+        removeDirectory(
+            path=os.path.join(nuitka_dir, "Nuitka.egg-info"),
+            logger=test_logger,
+            ignore_errors=False,
+            extra_recommendation=None,
         )
 
-        runner_binary = os.path.join(
-            venv.getVirtualenvDir(),
-            "bin" if os.name != "nt" else "scripts",
-            "runner",
-        )
+        build_commands = []
 
-        # TODO: Is this something to be abstracted into a function.
-        # pylint: disable=consider-using-with
-        if os.path.exists(runner_binary):
-            command = [
-                os.path.join(
+        if is_pyproject:
+            build_commands.append("python -m build -w")
+        else:
+            build_commands.append("python setup.py bdist_nuitka")
+
+        if "versioneer" not in case_dir:  # spell-checker: ignore versioneer
+            build_commands.append(
+                "python -m nuitka --project=build --mode=standalone --report=compilation-report.xml"
+            )
+
+        for command_desc in build_commands:
+            # Create the wheel or standalone binary with Nuitka compilation.
+            if is_pyproject:
+                pyproject_filename = _adaptPyProjectFile(
+                    case_dir=case_dir, variant="nuitka"
+                )
+
+                venv.runCommand(
+                    commands=['cd "%s"' % case_dir, command_desc],
+                    style="test-execution",
+                )
+
+                deleteFile(pyproject_filename, must_exist=True)
+            else:
+                venv.runCommand(
+                    commands=['cd "%s"' % case_dir, command_desc],
+                    style="test-execution",
+                )
+
+            if "--project" not in command_desc:
+                dist_dir = os.path.join(case_dir, "dist")
+                venv.runCommand(
+                    'pip install "%s"'
+                    % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
+                )
+
+                runner_binary = os.path.join(
                     venv.getVirtualenvDir(),
                     "bin" if os.name != "nt" else "scripts",
-                    "python",
-                ),
-                runner_binary,
-            ]
-        else:
-            assert os.path.exists(runner_binary + ".exe")
+                    "runner",
+                )
 
-            command = [runner_binary + ".exe"]
+                # TODO: Is this something to be abstracted into a function.
+                # pylint: disable=consider-using-with
+                if os.path.exists(runner_binary):
+                    command = [
+                        os.path.join(
+                            venv.getVirtualenvDir(),
+                            "bin" if os.name != "nt" else "scripts",
+                            "python",
+                        ),
+                        runner_binary,
+                    ]
+                else:
+                    assert os.path.exists(runner_binary + ".exe")
 
-        process = subprocess.Popen(
-            args=command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+                    command = [runner_binary + ".exe"]
 
-        stdout_nuitka, stderr_nuitka = process.communicate()
-        exit_nuitka = process.returncode
+                process = subprocess.Popen(
+                    args=command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
 
-        if exit_nuitka == -11:
-            command = wrapCommandForDebuggerForSubprocess(
-                command=command, debugger=os.getenv("NUITKA_DEBUGGER_CHOICE")
+                stdout_nuitka, stderr_nuitka = process.communicate()
+                exit_nuitka = process.returncode
+
+                if exit_nuitka == -11:
+                    command = wrapCommandForDebuggerForSubprocess(
+                        command=command, debugger=os.getenv("NUITKA_DEBUGGER_CHOICE")
+                    )
+
+                    test_logger.warning("Rerunning due to segfault in debugger.")
+                    stdout_nuitka, stderr_nuitka = process.communicate()
+
+                    process = subprocess.Popen(
+                        args=command,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+
+                    stdout_nuitka, stderr_nuitka = process.communicate()
+
+                my_print("STDOUT Nuitka:")
+                my_print(stdout_nuitka)
+                my_print("STDERR Nuitka:")
+                my_print(stderr_nuitka)
+
+                if exit_nuitka == -11:
+                    my_print("EXIT was segfault.")
+                    os._exit(2)
+
+                assert exit_nuitka == 0, exit_nuitka
+                my_print("EXIT was OK.")
+            else:
+                my_print("Matching output of '%s' against CPython..." % command_desc)
+
+                compilation_report = parseCompilationReport(
+                    os.path.join(case_dir, "compilation-report.xml")
+                )
+
+                binary_filename = getCompilationOutputBinary(
+                    compilation_report=compilation_report,
+                    prefixes=(("${cwd}", case_dir),),
+                )
+
+                process = subprocess.Popen(
+                    args=[binary_filename],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+
+                stdout_nuitka, stderr_nuitka = process.communicate()
+                exit_nuitka = process.returncode
+
+            exit_code_stdout = compareOutput(
+                "stdout",
+                stdout_cpython,
+                stdout_nuitka,
+                ignore_warnings=True,
+                syntax_errors=True,
             )
 
-            test_logger.warning("Rerunning due to segfault in debugger.")
-            stdout_nuitka, stderr_nuitka = process.communicate()
-
-            process = subprocess.Popen(
-                args=command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            exit_code_stderr = compareOutput(
+                "stderr",
+                stderr_cpython,
+                stderr_nuitka,
+                ignore_warnings=True,
+                syntax_errors=True,
             )
 
-            stdout_nuitka, stderr_nuitka = process.communicate()
+            exit_code_return = exit_cpython != exit_nuitka
 
-        my_print("STDOUT Nuitka:")
-        my_print(stdout_nuitka)
-        my_print("STDERR Nuitka:")
-        my_print(stderr_nuitka)
-
-        if exit_nuitka == -11:
-            my_print("EXIT was segfault.")
-            os._exit(2)
-
-        assert exit_nuitka == 0, exit_nuitka
-        my_print("EXIT was OK.")
-
-    exit_code_stdout = compareOutput(
-        "stdout",
-        stdout_cpython,
-        stdout_nuitka,
-        ignore_warnings=True,
-        syntax_errors=True,
-    )
-
-    exit_code_stderr = compareOutput(
-        "stderr",
-        stderr_cpython,
-        stderr_nuitka,
-        ignore_warnings=True,
-        syntax_errors=True,
-    )
-
-    exit_code_return = exit_cpython != exit_nuitka
-
-    if exit_code_return:
-        my_print(
-            """\
+            if exit_code_return:
+                my_print(
+                    """\
 Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
-                exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
-            )
-        )
+                        exit_cpython=exit_cpython, exit_nuitka=exit_nuitka
+                    )
+                )
 
-    exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+            exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
-    if exit_code:
-        sys.exit("Error, outputs differed.")
+            if exit_code:
+                sys.exit("Error, outputs differed.")
+
+            my_print("OK, outputs matched.")
 
 
 def main():

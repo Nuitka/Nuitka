@@ -43,6 +43,15 @@ from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 _main_module = None
 
 
+def _getResultBaseName(suffix):
+    # If the user specified a build basename, we use that.
+    build_basename = getOutputFolderName()
+    if build_basename:
+        return build_basename + suffix
+
+    return os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
+
+
 def setMainModule(main_module):
     """Call this before using other methods of this module."""
     # Technically required.
@@ -73,7 +82,7 @@ def getSourceDirectoryPath(onefile=False, create=False):
     else:
         suffix = ".build"
 
-    filename = os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
+    filename = _getResultBaseName(suffix)
 
     if isWin32Windows() and not isFilesystemEncodable(filename):
         filename = "_nuitka_temp" + suffix
@@ -104,9 +113,7 @@ def _getActualOutputFolderName(bundle):
     dist_folder_name = getOutputFolderName()
 
     if dist_folder_name is None:
-        dist_folder_name = os.path.basename(
-            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
-        )
+        dist_folder_name = _getResultBaseName(_getStandaloneDistSuffix(bundle))
     else:
         # Add the suffix if not provided by the user
         standalone_dist_suffix = _getStandaloneDistSuffix(bundle)
@@ -181,7 +188,7 @@ def renameStandaloneDirectory(dist_dir):
 
 
 def getResultBasePath(onefile=False, real=False):
-    file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+    file_path = _getResultBaseName("")
 
     if isOnefileMode() and onefile:
         if shallCreateAppBundle():

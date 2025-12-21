@@ -75,7 +75,7 @@ inline_copy_files = []
 no_byte_compile = []
 
 
-def addDataFiles(data_files, base_path, do_byte_compile=True):
+def addDataFiles(files_list, base_path, do_byte_compile=True):
     patterns = (
         "%s/*.py" % base_path,
         "%s/*/*.py" % base_path,
@@ -88,7 +88,7 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
         "%s/READ*" % base_path,
     )
 
-    data_files.extend(patterns)
+    files_list.extend(patterns)
 
     if not do_byte_compile:
         no_byte_compile.extend(patterns)
@@ -185,6 +185,7 @@ package_data = {
 }
 
 
+data_files = []
 try:
     import distutils.util
 except ImportError:
@@ -458,17 +459,18 @@ Python compiler with full language support and CPython compatibility""",
     },
     zip_safe=False,
     scripts=scripts,
+    data_files=data_files,
     entry_points={
         "distutils.commands": [
             "bdist_nuitka = \
-             nuitka.distutils.DistutilCommands:bdist_nuitka",
+             nuitka.distutils.DistutilsCommands:bdist_nuitka",
             "build_nuitka = \
-             nuitka.distutils.DistutilCommands:build",
+             nuitka.distutils.DistutilsCommands:build",
             "install_nuitka = \
-             nuitka.distutils.DistutilCommands:install",
+             nuitka.distutils.DistutilsCommands:install",
         ],
         "distutils.setup_keywords": [
-            "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
+            "build_with_nuitka = nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsCommands"
         ],
         "console_scripts": console_scripts,
     },
