@@ -27,6 +27,9 @@ When compiling with Python 3.4 provide the path of a Python binary to use for Sc
 .TP
 \fB\-\-main\fR=\fI\,PATH\/\fR
 If specified once, this takes the place of the positional argument, i.e. the filename to compile. When given multiple times, it enables "multidist" (see User Manual) it allows you to create binaries that depending on file name or invocation name.
+.TP
+\fB\-\-project\fR=\fI\,PROJECT_MODE\/\fR
+Compile the project in the current directory by extracting configuration from it. Currently only supports 'build' backend.
 .IP
 Control the inclusion of modules and packages in result:
 .TP

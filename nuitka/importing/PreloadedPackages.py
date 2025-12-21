@@ -81,7 +81,7 @@ def isPreloadedPackagePath(path):
 
 
 def _considerPthImportedPackage(module_name):
-    if module_name in ("os", "sys"):
+    if module_name in ("os", "sys", "nuitka_strings"):
         return None
 
     if module_name.startswith("__editable__"):

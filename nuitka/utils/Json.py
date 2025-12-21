@@ -17,9 +17,14 @@ def loadJsonFromFilename(filename):
         return None
 
 
+def writeJsonToFile(file_handle, contents, indent=2):
+    json.dump(contents, file_handle, indent=indent, sort_keys=True)
+    file_handle.write("\n")
+
+
 def writeJsonToFilename(filename, contents, indent=2):
     with openTextFile(filename, "w") as output:
-        json.dump(contents, output, indent=indent, sort_keys=True)
+        writeJsonToFile(output, contents, indent=indent)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

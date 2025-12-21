@@ -19,9 +19,20 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import isPythonWithGil
+from nuitka.PythonVersions import getSitePackageCandidateNames, isPythonWithGil
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Execution import (
+    executeProcess,
+    withEnvironmentVarsOverridden,
+)
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    makePath,
+    putTextFileContents,
+    withDirectoryChange,
+    withTemporaryDirectory,
+)
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
@@ -199,6 +210,166 @@ When given multiple times, it enables "multidist"
 that depending on file name or invocation name.
 """,
 )
+
+# If specified, this takes the place of a "--main" argument, i.e. a
+# filename to compile. The value is "binary_name=module:function" and results in
+# generated main program that imports the module and calls the function.
+# Default empty.
+parser.add_option(
+    "--main-entry-point",
+    action="append",
+    dest="main_entry_points",
+    metavar="ENTRY_POINT",
+    default=[],
+    help=SUPPRESS_HELP,
+    github_action=False,
+)
+
+parser.add_option(
+    "--project",
+    action="store",
+    dest="project_mode",
+    choices=("build",),
+    default=None,
+    help="""\
+Compile the project in the current directory by extracting configuration
+from it. Currently only supports 'build' backend.""",
+)
+
+
+def getBuildConfigurationOptions(logger):
+    project_mode = None
+
+    for i, arg in enumerate(sys.argv):
+        if arg.startswith("--project="):
+            project_mode = arg.split("=", 1)[1]
+            break
+        if arg == "--project":
+            if i + 1 < len(sys.argv):
+                project_mode = sys.argv[i + 1]
+            break
+
+    if not project_mode:
+        return []
+
+    if project_mode == "poetry":
+        return logger.sysexit("Error, --project mode 'poetry' is not yet supported.")
+
+    if project_mode not in ("build", "poetry"):
+        return logger.sysexit(
+            "Error, --project mode '%s' is not known, only 'build' and 'poetry' are currently."
+            % project_mode
+        )
+
+    # This is "build" handling.
+    with withTemporaryDirectory("nuitka-project-dump") as temp_dir:
+
+        mock_site_packages_path = os.path.join(temp_dir, "site_packages")
+        makePath(mock_site_packages_path)
+
+        nuitka_path = os.path.dirname(os.path.dirname(sys.modules["nuitka"].__file__))
+
+        # spell-checker: ignore sitecustomize,cmdclass
+        putTextFileContents(
+            filename=os.path.join(mock_site_packages_path, "sitecustomize.py"),
+            contents="""
+import sys
+import os
+
+# Ensure nuitka is importable
+nuitka_path = %(nuitka_path)r
+if nuitka_path not in sys.path:
+    sys.path.insert(0, nuitka_path)
+
+import setuptools
+import distutils.core
+import setuptools.command.egg_info
+from nuitka.distutils.DistutilsCommands import build as nuitka_build
+
+# Patch setuptools
+_old_setuptools_setup = setuptools.setup
+def new_setuptools_setup(**attrs):
+    attrs['cmdclass'] = attrs.get('cmdclass', {})
+    attrs['cmdclass']['build'] = nuitka_build
+    return _old_setuptools_setup(**attrs)
+setuptools.setup = new_setuptools_setup
+
+# Patch distutils
+_old_distutils_setup = distutils.core.setup
+def new_distutils_setup(**attrs):
+    attrs['cmdclass'] = attrs.get('cmdclass', {})
+    attrs['cmdclass']['build'] = nuitka_build
+    return _old_distutils_setup(**attrs)
+distutils.core.setup = new_distutils_setup
+
+# Force egg_base to temp_dir
+_old_egg_info_initialize_options = setuptools.command.egg_info.egg_info.initialize_options
+def new_egg_info_initialize_options(self):
+    _old_egg_info_initialize_options(self)
+    self.egg_base = %(egg_base)r
+setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initialize_options
+"""
+            % {
+                "nuitka_path": nuitka_path,
+                "egg_base": temp_dir,
+            },
+        )
+
+        dump_filename = os.path.join(temp_dir, "build_config.json")
+
+        # We use the temporary directory for the project to avoid implicit imports
+        # of the current directory, which may contain a "build" folder that clashes.
+        project_dir = os.getcwd()
+
+        with withEnvironmentVarsOverridden(
+            {
+                "NUITKA_DUMP_BUILD_CONFIG": dump_filename,
+                "NUITKA_PROJECT_DIR": project_dir,
+                "PYTHONPATH": os.pathsep.join(
+                    [mock_site_packages_path]
+                    + [
+                        candidate
+                        for candidate in sys.path
+                        if os.path.dirname(candidate) in getSitePackageCandidateNames()
+                    ]
+                ),
+            }
+        ):
+            with withDirectoryChange(temp_dir):
+                _stdout, _stderr, exit_code = executeProcess(
+                    [
+                        sys.executable,
+                        "-m",
+                        "build",
+                        "--no-isolation",
+                        "--skip-dependency-check",
+                        project_dir,
+                    ],
+                    stdin=False,
+                )
+
+        # The build is expected to fail with exit code 1 because we exit(0)
+        # without producing a wheel, causing build frontend to complain. But if
+        # we have the dump file, we are good.
+        if exit_code == 0 or not os.path.exists(dump_filename):
+            assert False, _stdout
+            return logger.sysexit(
+                "Error, failed to extract build configuration via 'python -m build'."
+            )
+
+        config = loadJsonFromFilename(dump_filename)
+
+        # Cyclic dependency
+        from nuitka.importing.Importing import addMainScriptDirectory
+
+        package_dir = config.get("package_dir")
+        if package_dir and "" in package_dir:
+            addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
+        else:
+            addMainScriptDirectory(os.getcwd())
+
+    return config.get("arguments", [])
+
 
 # Option for use with GitHub action workflow, where options are read
 # from the environment variable with the input values given there.
@@ -2382,6 +2553,8 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="early")
 
+    sys.argv = [sys.argv[0]] + getBuildConfigurationOptions(logger) + sys.argv[1:]
+
     for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
@@ -2414,6 +2587,7 @@ def parseOptions(logger):
     if (
         not positional_args
         and not options.mains
+        and not options.main_entry_points
         and not parser.hasNonCompilingAction(options)
     ):
         parser.print_help()

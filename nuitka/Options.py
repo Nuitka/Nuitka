@@ -79,6 +79,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import checkIconUsage
 from nuitka.utils.Importing import getInlineCopyFolder
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -496,7 +497,6 @@ def parseArgs():
 
     states.report_missing_code_helpers = options.report_missing_code_helpers
 
-    # Add validation for the new option
     if options.output_folder_name is not None:
         _checkFilenameOnlyArgument(
             "--output-folder-name", options.output_folder_name, ""
@@ -650,6 +650,12 @@ def parseArgs():
     # macOS bundle implies standalone build.
     if shallCreateAppBundle():
         options.is_standalone = True
+
+    if options.project_mode == "build":
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, with '--project=build' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
+            )
 
     if isMacOS():
         macos_target_arch = getMacOSTargetArch()
@@ -1876,6 +1882,35 @@ def getMainArgs():
     return tuple(extra_args)
 
 
+def getMainEntryPointSpecs():
+    """*tuple*, main entry points, none, one or more"""
+    result = []
+
+    for main_entry_point in options.main_entry_points:
+        if "=" not in main_entry_point:
+            options_logger.sysexit(
+                "Error, invalid value for main entry point '%s', must be 'binary=module:function'"
+                % main_entry_point
+            )
+
+        binary_name, rest = main_entry_point.split("=", 1)
+        binary_name = binary_name.strip()
+
+        if ":" not in rest:
+            options_logger.sysexit(
+                "Error, invalid value for main entry point '%s', must be 'binary=module:function'"
+                % main_entry_point
+            )
+
+        module_name, function_name = rest.split(":", 1)
+        module_name = module_name.strip()
+        function_name = function_name.strip()
+
+        result.append((binary_name, module_name, function_name))
+
+    return tuple(result)
+
+
 def getMainEntryPointFilenames():
     """*tuple*, main programs, none, one or more"""
     if options.mains:
@@ -1887,6 +1922,12 @@ def getMainEntryPointFilenames():
         result = (positional_args[0],)
 
     return tuple(getNormalizedPath(r) for r in result)
+
+
+def addMainEntryPointFilename(filename):
+    if options.mains is None:
+        options.mains = []
+    options.mains.append(filename)
 
 
 def isMultidistMode():

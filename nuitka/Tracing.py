@@ -234,6 +234,8 @@ def _aliasStyle(style):
 
     if style == "test-prepare":
         return "pink"
+    if style == "test-execution":
+        return "green"
     if style == "test-progress":
         return "blue"
     if style == "test-debug":

@@ -32,9 +32,11 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.Options import (
     getMainEntryPointFilenames,
+    getOutputFolderName,
     hasPythonFlagNoCurrentDirectoryInPath,
     shallExplainImports,
 )
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import (
     decideRecompileExtensionModules,
     getPackageExtraScanPaths,
@@ -48,6 +50,7 @@ from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     getFileContentsHash,
     getNormalizedPath,
     getNormalizedPathJoin,
@@ -97,11 +100,21 @@ def setupImportingFromOptions():
     if states.is_debug and not isNuitkaPython():
         _checkRaisingBuiltinComplete()
 
-    main_filenames = getMainEntryPointFilenames()
-    for filename in main_filenames:
+    if getOutputFolderName() is not None:
+        source_dir = getSourceDirectoryPath(create=False)
+    else:
+        source_dir = None
+
+    for filename in getMainEntryPointFilenames():
         # Inform the importing layer about the main script directory, so it can use
         # it when attempting to follow imports.
-        addMainScriptDirectory(main_dir=os.path.dirname(os.path.abspath(filename)))
+
+        main_dir = os.path.dirname(os.path.abspath(filename))
+
+        if source_dir is not None and areSamePaths(source_dir, main_dir):
+            continue
+
+        addMainScriptDirectory(main_dir)
 
 
 def _checkRaisingBuiltinComplete():
