@@ -61,6 +61,7 @@ def displayError(dirname, filename):
 
     if isLinux():
         test_logger.info("ELF listing of main binary:")
+        # spell-checker: ignore readelf
         os.system("readelf -d " + filename[:-3] + ".dist/" + filename[:-3] + ".bin")
 
     inclusion_log_path = filename[:-3] + ".py.inclusion.log"
