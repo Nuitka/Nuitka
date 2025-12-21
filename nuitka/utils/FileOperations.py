@@ -1494,7 +1494,7 @@ def getWindowsLongPathName(filename):
             if ctypes.GetLastError() == 5:
                 return filename
 
-            raiseWindowsError("getWindowsLongPathName for %s" % filename)
+            raiseWindowsError("getWindowsLongPathName for '%s'" % filename)
         if output_buf_size >= needed:
             return output_buf.value
         else:
