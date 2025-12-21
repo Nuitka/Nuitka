@@ -72,6 +72,8 @@ and maintain the Nuitka compiler.
   - **ALWAYS** use curly braces `{ }` for all conditional instructions (`if`, `else`, `while`,
     `for`), even for single-line statements. This prevents common errors when adding statements
     later.
+    - **Incorrect:** `if (condition) return;`
+    - **Correct:** `if (condition) { return; }`
 - **Formatting:**
   - C code is formatted using `clang-format` as part of `bin/autoformat-nuitka-source`.
 
