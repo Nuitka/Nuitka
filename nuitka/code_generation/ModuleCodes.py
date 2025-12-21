@@ -210,6 +210,9 @@ def getModuleCode(
         "module_const_blob_name": module_const_blob_name,
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
+        "module_includes": "\n".join(
+            '#include "%s"' % include for include in context.getModuleIncludes()
+        ),
     }
 
 
