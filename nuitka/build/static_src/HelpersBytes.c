@@ -90,6 +90,23 @@ PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size) {
 
 #endif
 
+void Nuitka_Bytes_AsStringAndSize(PyObject *obj, char **s, Py_ssize_t *len) {
+    CHECK_OBJECT(obj);
+    assert(s != NULL);
+    assert(len != NULL);
+    assert(PyBytes_Check(obj));
+
+    *s = PyBytes_AS_STRING(obj);
+    *len = PyBytes_GET_SIZE(obj);
+}
+
+char *Nuitka_Bytes_AsString(PyObject *obj) {
+    CHECK_OBJECT(obj);
+    assert(PyBytes_Check(obj));
+
+    return PyBytes_AS_STRING(obj);
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

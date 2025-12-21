@@ -618,7 +618,7 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 
         CHECK_OBJECT(name_punycode);
 
-        snprintf(buffer, buffer_size, "PyInitU_%s", PyBytes_AsString(name_punycode));
+        snprintf(buffer, buffer_size, "PyInitU_%s", Nuitka_Bytes_AsString(name_punycode));
 
         Py_DECREF(name_punycode);
     } else {
