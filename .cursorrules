@@ -81,8 +81,8 @@ Before marking a task as complete, you must verify the changes using the project
 
 - **Linting:** You must run the project's pylint script on any modified files.
 
-  - Command: `./bin/check-nuitka-pylint <filename>`
-  - Can be run on the entire project with `./bin/check-nuitka-pylint`
+  - Command: `./bin/check-nuitka-with-pylint <filename>`
+  - Can be run on the entire project with `./bin/check-nuitka-with-pylint`
   - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
     without a very strong reason.
 
@@ -92,6 +92,12 @@ Before marking a task as complete, you must verify the changes using the project
   - Can be run on the entire project with `./bin/autoformat-nuitka-source`
   - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
     tools.
+
+- **Temporary Verification Files:**
+
+  - All temporary test scripts, reproduction scripts, and their artifacts created during
+    verification MUST be placed in `tests/scratch/`.
+  - This directory is git-ignored and ensures the repository remains clean.
 
 ## 5. Workflow
 
