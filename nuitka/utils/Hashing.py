@@ -97,12 +97,15 @@ def getHashFromValues(*values):
     return result.asHexDigest()
 
 
-class HashCRC32(HashBase):
-    def __init__(self):
+class HashAlgorithmBase(HashBase):
+    __slots__ = ("hash_func",)
+
+    def __init__(self, hash_func):
         self.hash = 0
+        self.hash_func = hash_func
 
     def updateFromBytes(self, value):
-        self.hash = crc32(value, self.hash)
+        self.hash = self.hash_func(value, self.hash)
 
     def asDigest(self):
         if self.hash < 0:
@@ -119,6 +122,11 @@ class HashCRC32(HashBase):
 
         def asHexDigest(self):
             return hex(self.asDigest())[2:]
+
+
+class HashCRC32(HashAlgorithmBase):
+    def __init__(self):
+        HashAlgorithmBase.__init__(self, crc32)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
