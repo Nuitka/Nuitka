@@ -905,17 +905,6 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, unsupported OS for onefile '%s'." % getOS()
         )
 
-    for module_pattern, _filename_pattern in getShallIncludePackageData():
-        if (
-            module_pattern.startswith("-")
-            or "/" in module_pattern
-            or "\\" in module_pattern
-        ):
-            return options_logger.sysexit(
-                "Error, '--include-package-data' needs module name or pattern as an argument, not '%s'."
-                % module_pattern
-            )
-
     for module_pattern in getShallFollowModules():
         if (
             module_pattern.startswith("-")
@@ -1703,18 +1692,42 @@ def getShallIncludePackageData():
 
     The filename pattern can be None if not given. Empty values give None too.
     """
+    result = []
+
     for package_data_pattern in sum(
         [_splitShellPattern(x) for x in options.package_data], []
     ):
         if ":" in package_data_pattern:
-            module_pattern, filename_pattern = package_data_pattern.split(":", 1)
+            package_name, filename_pattern = package_data_pattern.split(":", 1)
             # Empty equals None.
             filename_pattern = filename_pattern or None
         else:
-            module_pattern = package_data_pattern
+            package_name = package_data_pattern
             filename_pattern = None
 
-        yield module_pattern, filename_pattern
+        if not package_name:
+            options_logger.sysexit(
+                "Error, '--include-package-data' does not accept empty values as in '%s'."
+                % package_data_pattern
+            )
+
+        if (
+            package_name.startswith("-")
+            or "/" in package_name
+            or "\\" in package_name
+            or "=" in package_name
+            or not checkModuleName(package_name)
+        ):
+            return options_logger.sysexit(
+                """\
+Error, '--include-package-data' needs package name (optionally with a pattern \
+separated by ':') as an argument, not '%s'."""
+                % package_name
+            )
+
+        result.append((ModuleName(package_name), filename_pattern))
+
+    return tuple(result)
 
 
 def getShallIncludeDataFiles():

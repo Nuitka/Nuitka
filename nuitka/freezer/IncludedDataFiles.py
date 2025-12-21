@@ -11,8 +11,10 @@ for dependency analysis.
 import fnmatch
 import os
 
+from nuitka import ModuleRegistry
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Importing import locateModule
 from nuitka.Options import (
     getOutputPath,
     getShallIncludeDataDirs,
@@ -51,7 +53,6 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getArchitecture, isAIX, isMacOS
 
 data_file_tags = []
@@ -513,9 +514,6 @@ def makeIncludedPackageDataFiles(
 
 
 def addIncludedDataFilesFromPlugins():
-    # Cyclic dependency
-    from nuitka import ModuleRegistry
-
     # Plugins provide per module through this.
     for module in ModuleRegistry.getDoneModules():
         for included_datafile in considerDataFiles(module=module):
@@ -525,21 +523,16 @@ def addIncludedDataFilesFromPlugins():
 def addIncludedDataFilesFromPackageOptions():
     """Late data files, from plugins and user options that work with packages"""
 
-    # Cyclic dependency
-    from nuitka.importing.Importing import locateModule
-
-    # TODO: Should provide ModuleName objects directly.
-
     for package_name, filename_pattern in getShallIncludePackageData():
         package_name, package_directory, _module_kind, _finding = locateModule(
-            module_name=ModuleName(package_name),
+            module_name=package_name,
             parent_package=None,
             level=0,
         )
 
         if package_directory is None:
             options_logger.warning(
-                "Failed to locate package directory of '%s'" % package_name.asString()
+                "Failed to locate package directory of '%s'." % package_name.asString()
             )
             continue
 
