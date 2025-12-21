@@ -62,6 +62,7 @@ def tryDownloadPackageName(
                 "pip",
                 "install",
                 "--no-warn-script-location",
+                "--disable-pip-version-check",
                 "--root",
                 download_folder,
                 package_spec,
