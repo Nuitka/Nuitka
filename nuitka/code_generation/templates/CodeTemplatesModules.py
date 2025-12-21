@@ -37,6 +37,8 @@ template_module_body_template = r"""
 
 #include "__helpers.h"
 
+%(module_includes)s
+
 /* The "module_%(module_identifier)s" is a Python object pointer of module type.
  *
  * Note: For full compatibility with CPython, every module variable access
