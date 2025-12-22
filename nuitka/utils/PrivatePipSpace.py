@@ -7,12 +7,19 @@ import os
 import subprocess
 import sys
 
-from nuitka.PythonVersions import getSitePackageCandidateNames
+from nuitka.PythonVersions import (
+    getSitePackageCandidateNames,
+    python_version_str,
+)
 
-from .Download import shouldDownload
+from .Download import getDownloadCacheDir, shouldDownload
 from .Execution import getExecutablePath
 from .FileOperations import getNormalizedPathJoin
-from .InlineCopies import getDownloadCopyFolder
+
+
+def getDownloadCopyFolder():
+    """Get the inline copy folder for a given name."""
+    return os.path.join(getDownloadCacheDir(), "pip-private-%s" % python_version_str)
 
 
 def _findDownloadSitePackagesDir(download_folder):
