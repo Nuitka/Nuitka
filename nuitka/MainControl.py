@@ -1062,6 +1062,10 @@ def _main():
     if pgo_filename is not None:
         readPGOInputFile(pgo_filename)
 
+    # Reset source code cache statistics for this compilation run
+    from nuitka.SourceCodeCaching import resetCacheStatistics
+    resetCacheStatistics()
+
     general.info(
         leader="Starting Python compilation with:",
         message="%s %s %s."

@@ -1390,13 +1390,23 @@ def buildModule(
                 )
 
         try:
-            with withNoSyntaxWarning():
-                ast_tree = parseSourceCodeToAst(
-                    source_code=source_code,
-                    module_name=module_name,
-                    filename=source_filename,
-                    line_offset=0,
-                )
+            # Try to get cached AST first
+            from nuitka.SourceCodeCaching import getCachedAST, writeCachedAST
+
+            ast_tree = getCachedAST(module_name, source_code)
+
+            if ast_tree is None:
+                # Cache miss - parse the AST
+                with withNoSyntaxWarning():
+                    ast_tree = parseSourceCodeToAst(
+                        source_code=source_code,
+                        module_name=module_name,
+                        filename=source_filename,
+                        line_offset=0,
+                    )
+
+                # Cache the AST for next time
+                writeCachedAST(module_name, source_code, ast_tree)
         except (SyntaxError, IndentationError) as e:
             # Do not hide SyntaxError if asked not to.
             if not hide_syntax_error:
