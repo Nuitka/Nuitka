@@ -461,7 +461,9 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
 def makeRaiseImportErrorReplacementExpression(expression, module_name):
     return makeRaiseExceptionReplacementExpression(
         expression=expression,
-        exception_type="ImportError",
+        exception_type=(
+            "ModuleNotFoundError" if python_version >= 0x360 else "ImportError"
+        ),
         exception_value=module_name.asString(),
     )
 
