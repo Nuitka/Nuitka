@@ -31,11 +31,6 @@ def getInlineCopyFolder(module_name):
     return folder_name
 
 
-def getDownloadCopyFolder():
-    """Get the inline copy folder for a given name."""
-    return os.path.join(_getInlineCopyBaseFolder(), "downloads", "pip")
-
-
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
