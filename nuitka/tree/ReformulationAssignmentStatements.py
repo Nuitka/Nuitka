@@ -28,10 +28,6 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.InjectCNodes import (
-    StatementInjectCCode,
-    StatementInjectCDecl,
-)
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -71,9 +67,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general
 
 from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -125,26 +119,9 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, and has many branches due to the many cases
     # dealt with and it is return driven.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     if kind == "Name":
-        if detail in ("_inject_c_code", "_inject_c_decl") and isExperimental(
-            "c-code-injection"
-        ):
-            if not source.isExpressionConstantStrRef():
-                general.sysexit(
-                    "Error, value assigned to '%s' not be constant str" % detail
-                )
-
-            if detail == "_inject_c_code":
-                return StatementInjectCCode(
-                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
-                )
-            else:
-                return StatementInjectCDecl(
-                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
-                )
-
         return StatementAssignmentVariableName(
             provider=provider,
             variable_name=detail,

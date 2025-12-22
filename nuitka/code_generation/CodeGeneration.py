@@ -201,7 +201,6 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode,
 )
-from .InjectCCodes import generateInjectCCode
 from .IntegerCodes import (
     generateBuiltinInt1Code,
     generateBuiltinInt2Code,
@@ -1101,7 +1100,6 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
-        "STATEMENT_INJECT_C_CODE": generateInjectCCode,
     }
 )
 
