@@ -296,7 +296,7 @@ def buildClassNode3(provider, node, source_ref):
 
     for type_params_expression in type_params_expressions:
         assign = StatementAssignmentVariableName(
-            provider=provider,
+            provider=class_creation_function,
             variable_name=type_params_expression.name,
             source=type_params_expression.makeClone(),
             source_ref=source_ref,
