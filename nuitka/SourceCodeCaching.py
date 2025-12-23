@@ -241,7 +241,7 @@ def writeCachedAST(module_name, source_code, ast_tree):
             with os.fdopen(fd, "wb") as f:
                 pickle.dump(ast_tree, f, protocol=pickle.HIGHEST_PROTOCOL)
             replaceFileAtomic(temp_tree_filename, tree_filename)
-        except:
+        except Exception:
             # Clean up temp file if something went wrong
             if os.path.exists(temp_tree_filename):
                 os.unlink(temp_tree_filename)
@@ -261,7 +261,7 @@ def writeCachedAST(module_name, source_code, ast_tree):
             }
             writeJsonToFilename(filename=temp_meta_filename, contents=metadata)
             replaceFileAtomic(temp_meta_filename, meta_filename)
-        except:
+        except Exception:
             # Clean up temp file if something went wrong
             if os.path.exists(temp_meta_filename):
                 os.unlink(temp_meta_filename)
