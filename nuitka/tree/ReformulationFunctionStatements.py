@@ -243,7 +243,7 @@ def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
         type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
 
         assign = StatementAssignmentVariableName(
-            provider=provider,
+            provider=outline_body,
             variable_name=type_param.name,
             source=type_var,
             source_ref=source_ref,
