@@ -45,6 +45,7 @@ from nuitka.BytecodeCaching import (
     hasCachedImportedModuleUsageAttempts,
 )
 from nuitka.Bytecodes import loadCodeObjectData
+from nuitka.SourceCodeCaching import getCachedAST, writeCachedAST
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
 from nuitka.freezer.ImportDetection import (
@@ -1391,8 +1392,6 @@ def buildModule(
 
         try:
             # Try to get cached AST first
-            from nuitka.SourceCodeCaching import getCachedAST, writeCachedAST
-
             ast_tree = getCachedAST(module_name, source_code)
 
             if ast_tree is None:

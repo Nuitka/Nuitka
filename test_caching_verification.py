@@ -173,7 +173,11 @@ def test_cache_miss_then_hit():
 
 
 def test_source_modification_invalidates_cache():
-    """Test that modifying source code invalidates the cache."""
+    """Test that modifying source code invalidates the cache.
+
+    Note: This test modifies test_caching.py in-place (with backup/restore).
+    For CI integration, consider isolating this test or using a dedicated test file.
+    """
     test_file = "test_caching.py"
 
     if not os.path.exists(test_file):
@@ -240,8 +244,13 @@ def test_corrupt_cache_handling():
         print(f"Warning: Could not get cache dir: {e}")
         return True  # Skip test if we can't access cache
 
+    # Clear cache to start fresh
+    print("\n6. Clearing cache for clean test...")
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
+
     # First compilation to create cache
-    print("\n6. Creating cache...")
+    print("\n7. Creating cache...")
     returncode, stdout, stderr = run_nuitka_compile(test_file)
     if returncode != 0:
         print(f"ERROR: Initial compilation failed")
@@ -253,27 +262,39 @@ def test_corrupt_cache_handling():
         return True
 
     pkl_files = list(Path(cache_dir).glob("*.pkl"))
-    json_files = list(Path(cache_dir).glob("*.json"))
 
     if not pkl_files:
         print("Warning: No cache files found, skipping corrupt cache test")
         return True
 
-    # Corrupt a cache file
-    print("\n7. Corrupting cache file...")
-    corrupt_file = pkl_files[0]
-    with open(corrupt_file, 'wb') as f:
-        f.write(b"CORRUPTED DATA")
+    # Corrupt ALL cache files to ensure we hit corruption
+    print(f"\n8. Corrupting {len(pkl_files)} cache file(s)...")
+    for corrupt_file in pkl_files:
+        with open(corrupt_file, 'wb') as f:
+            f.write(b"CORRUPTED DATA")
 
     # Try to compile again - should handle corruption gracefully
-    print("\n8. Compiling with corrupt cache (expecting graceful handling)...")
+    print("\n9. Compiling with corrupt cache (expecting graceful handling)...")
     returncode, stdout, stderr = run_nuitka_compile(test_file)
 
     if returncode != 0:
         print(f"ERROR: Compilation with corrupt cache failed (should handle gracefully)")
         return False
 
-    print("\n[PASS] Corrupt cache handled gracefully (compilation succeeded)")
+    output = stdout + stderr
+    stats = parse_cache_stats(output)
+
+    if stats is None:
+        print("ERROR: Could not parse cache statistics from corrupt cache compilation")
+        return False
+
+    print(f"  Cache stats: {stats['hits']} hits, {stats['misses']} misses")
+
+    if stats['misses'] == 0:
+        print("ERROR: Expected cache miss when encountering corrupt cache")
+        return False
+
+    print("\n[PASS] Corrupt cache handled gracefully (compilation succeeded with cache miss)")
     return True
 
 
