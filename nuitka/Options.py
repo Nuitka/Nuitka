@@ -505,6 +505,11 @@ def parseArgs():
     states.report_missing_trust = options.report_missing_trust
 
     if options.zig:
+        if isWin32Windows() and getArchitecture() == "x86":
+            return options_logger.sysexit(
+                "Error, cannot use '--zig' on Windows and x86."
+            )
+
         if options.mingw64:
             return options_logger.sysexit(
                 "Error, conflicting options '--zig' and '--mingw64'."
