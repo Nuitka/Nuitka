@@ -5,16 +5,13 @@
 
 from setuptools import setup
 
-# use `python setup.py bdist_nuitka` to use nuitka or use
-# in the setup(..., build_with_nuitka=True, ...)
-# and bdist and build will always use nuitka
-
 setup(
-    name="bdist_nuitka_test_3",
-    description="nuitka bdist_nuitka test-case compiling a namespace package",
-    author="Nobody really",
-    author_email="email@someplace.com",
-    version="0.2",
+    name="example-3-setuptools32",
+    version="1.0",
+    author="Nuitka Contributors",
+    author_email="contributors@nuitka.invalid",
+    description="Nuitka distutils test case: example_3_setuptools32",
+    url="https://nuitka.net",
     packages=["outer.inner"],
     entry_points={"console_scripts": ["runner = outer.inner.main:main"]},
 )

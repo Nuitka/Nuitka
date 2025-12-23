@@ -1,13 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 [tool.poetry]
-version = "0.1.0"
-name = "example-3-poetry-dep"
-description = "Poetry dependency test"
+name = "example-3-dependencies-pyproject"
+version = "1.0"
+description = "Nuitka distutils test case: example_3_dependencies_pyproject"
+authors = ["Nuitka Contributors <contributors@nuitka.invalid>"]
+homepage = "https://nuitka.net"
 packages = [
     {include = "main.py", from = "src" },
 ]
-authors = ["Nuitka Test <email@example.com>"]
 
 [tool.poetry.dependencies]
 python = "*"
