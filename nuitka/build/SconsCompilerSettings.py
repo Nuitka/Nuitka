@@ -462,7 +462,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 download_ok=download_ok,
                 experimental="winlibs-new" in experimental_flags,
             )
-        else:
+        elif target_arch != "x86":
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
 
             # This will download "zig.exe" when all others have been rejected
