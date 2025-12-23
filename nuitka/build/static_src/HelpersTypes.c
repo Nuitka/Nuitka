@@ -308,7 +308,7 @@ static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyO
     tvt->default_value = Py_XNewRef(default_value);
     tvt->evaluate_default = NULL;
 #endif
-    _PyObject_GC_TRACK(tvt);
+    Nuitka_GC_Track(tvt);
     if (module != NULL) {
         if (PyObject_SetAttrString((PyObject *)tvt, "__module__", module) < 0) {
             Py_DECREF(tvt);
@@ -335,7 +335,7 @@ static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject 
     ps->default_value = Py_XNewRef(default_value);
     ps->evaluate_default = NULL;
 #endif
-    _PyObject_GC_TRACK(ps);
+    Nuitka_GC_Track(ps);
     if (module != NULL) {
         if (PyObject_SetAttrString((PyObject *)ps, "__module__", module) < 0) {
             Py_DECREF(ps);
