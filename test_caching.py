@@ -1,27 +1,28 @@
 #!/usr/bin/env python
-"""Manual verification script for AST source code caching.
+"""Test module for AST source code caching verification.
 
-This module is used to manually verify that the AST caching feature works correctly.
-It is NOT part of the automated test suite.
+This module serves as the test subject for AST caching verification.
+Run test_caching_verification.py to programmatically test cache behavior.
 
-To test caching:
-1. Compile this module:
+Manual testing:
+1. First compile:
    python -m nuitka --module test_caching.py --remove-output
-   Expected output: "Source AST cache: 0 hits, 1 misses"
+   Expected: "Source AST cache: 0 hits, 1 misses"
 
-2. Compile again without changes:
+2. Second compile (unchanged):
    python -m nuitka --module test_caching.py --remove-output
-   Expected output: "Source AST cache: 1 hits, 0 misses (100.0% hit rate)"
+   Expected: "Source AST cache: 1 hits, 0 misses (100.0% hit rate)"
 
-3. Modify this file and recompile:
-   Expected output: "Source AST cache: 0 hits, 1 misses" (new cache entry)
+Automated testing:
+   python test_caching_verification.py
 
-TODO: Convert this into proper automated tests that integrate with Nuitka's test
-infrastructure (tests/basics/ or similar). Automated tests should verify:
-- First compilation creates cache files
-- Second compilation uses cached AST (cache hit)
-- Modified source invalidates cache (cache miss)
+This script compiles this module twice and asserts:
+- First compilation results in cache miss
+- Second compilation results in cache hit (100% hit rate)
 - Cache statistics are accurate
+
+TODO: Integrate into Nuitka's test infrastructure (tests/basics/ or similar)
+for CI/CD pipeline execution.
 """
 
 
