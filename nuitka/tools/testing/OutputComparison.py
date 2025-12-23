@@ -17,6 +17,7 @@ from nuitka.Tracing import my_print
 
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
+instance_re_truncated = re.compile(r"\[[0-9]+ chars\][0-9a-fA-F]+")
 thread_re = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
 compiled_types_re = re.compile(
     r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)"
@@ -68,6 +69,9 @@ did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
 
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
+    # Take any arbitrary test output from CPython and make it work against
+    # Nuitka's output. For example, some tracebacks would take a lot of work
+    # to implement for little benefit, so they're omitted with this function.
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
 
@@ -85,7 +89,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
                 lines = [line]
                 break
 
-    for line in lines:
+    for index, line in enumerate(lines):
         if type(line) is not str:
             try:
                 line = line.decode("utf-8" if os.name != "nt" else "cp850")
@@ -140,6 +144,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
+        line = instance_re_truncated.sub(r"[x chars]xxxx", line)
         line = thread_re.sub(r"Thread 0xXXXXXXXX", line)
         line = compiled_types_re.sub(r"\1", line)
         line = global_name_error_re.sub(r"\1\2\3", line)
@@ -263,6 +268,28 @@ exceeded while calling a Python object' in \
 
         if re.search(r"Gtk-WARNING.*cannot open display", line):
             continue
+
+        # Ensure that there's only a single line for each file in the traceback
+        if 'File "' in line:
+            end_index = None
+            for next_index, next_line in enumerate(lines[index + 1 :]):
+                # TODO: Deduplicate this code.
+                if type(next_line) is not str:
+                    try:
+                        next_line = next_line.decode(
+                            "utf-8" if os.name != "nt" else "cp850"
+                        )
+                    except UnicodeDecodeError:
+                        next_line = repr(next_line)
+
+                # If there's no indent, then we're no longer in a traceback.
+                if ('File "' in next_line) or (not next_line.startswith("  ")):
+                    end_index = next_index - 1
+                    break
+
+            if end_index is not None:
+                for _ in range(end_index):
+                    lines.pop(index + 2)
 
         result.append(line)
 
