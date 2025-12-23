@@ -19,13 +19,22 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    makeExpressionBuiltinTypeRef,
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonGt
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
 )
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
@@ -43,6 +52,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
@@ -58,6 +68,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
+from .InternalModule import makeInternalHelperFunctionBody
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
@@ -603,6 +614,87 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
+def deferredAnnotateBody(provider, keys, values, source_ref):
+    function_name = "__annotate__"
+    parameters = ParameterSpec(
+        ps_name=function_name,
+        ps_normal_args=("format",),
+        ps_list_star_arg=None,
+        ps_dict_star_arg=None,
+        ps_default_count=0,
+        ps_kw_only_args=(),
+        ps_pos_only_args=(),
+    )
+    parent_module = provider.getParentModule()
+    code_object = CodeObjectSpec(
+        co_name=function_name,
+        co_qualname=function_name,
+        co_kind="Function",
+        co_varnames=parameters.getParameterNames(),
+        co_freevars=(),
+        co_argcount=parameters.getArgumentCount(),
+        co_posonlyargcount=parameters.getPosOnlyParameterCount(),
+        co_kwonlyargcount=parameters.getKwOnlyParameterCount(),
+        co_has_starlist=parameters.getStarListArgumentName() is not None,
+        co_has_stardict=parameters.getStarDictArgumentName() is not None,
+        co_filename=parent_module.getRunTimeFilename(),
+        co_lineno=source_ref.getLineNumber(),
+        future_spec=parent_module.getFutureSpec(),
+    )
+
+    outer_body = ExpressionFunctionBody(
+        provider=provider,
+        name=function_name,
+        code_object=code_object,
+        flags=set(),
+        doc=None,
+        parameters=parameters,
+        auto_release=None,
+        code_prefix="function",
+        source_ref=source_ref,
+    )
+
+    body = makeStatementConditional(
+        condition=ExpressionComparisonGt(
+            ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionConstantIntRef(2, source_ref=source_ref),
+            source_ref,
+        ),
+        yes_branch=StatementRaiseException(
+            exception_type=ExpressionBuiltinExceptionRef(
+                "NotImplementedError", source_ref=source_ref
+            ),
+            exception_value=None,
+            exception_cause=None,
+            exception_trace=None,
+            source_ref=source_ref,
+        ),
+        no_branch=StatementReturn(
+            expression=makeDictCreationOrConstant2(
+                keys=keys, values=values, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
+
+    outer_body.setChildBody(body)
+    return outer_body
+
+
+def makeDeferredAnnotateFunction(provider, keys, values, source_ref):
+    return makeExpressionFunctionCreation(
+        function_ref=ExpressionFunctionRef(
+            function_body=deferredAnnotateBody(provider, keys, values, source_ref),
+            source_ref=source_ref,
+        ),
+        defaults=(),
+        kw_defaults=None,
+        annotations=None,
+        source_ref=source_ref,
+    )
+
+
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
@@ -672,9 +764,15 @@ def buildParameterAnnotations(provider, node, source_ref):
         )
 
     if keys:
-        return makeDictCreationOrConstant2(
-            keys=keys, values=values, source_ref=source_ref
-        )
+        # On 3.14+, annotations are deferred by default.
+        if python_version >= 0x3E0:
+            return makeDeferredAnnotateFunction(
+                provider=provider, keys=keys, values=values, source_ref=source_ref
+            )
+        else:
+            return makeDictCreationOrConstant2(
+                keys=keys, values=values, source_ref=source_ref
+            )
     else:
         return None
 
