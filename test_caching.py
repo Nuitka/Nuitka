@@ -16,13 +16,15 @@ Manual testing:
 Automated testing:
    python test_caching_verification.py
 
-This script compiles this module twice and asserts:
-- First compilation results in cache miss
-- Second compilation results in cache hit (100% hit rate)
-- Cache statistics are accurate
+This script runs comprehensive cache verification tests:
+1. Cache miss/hit behavior: First compile misses, second hits (100%)
+2. Cache invalidation: Modified source triggers cache miss
+3. Error handling: Corrupt cache files handled gracefully
+
+All tests include concrete assertions and exit code reporting for CI/CD.
 
 TODO: Integrate into Nuitka's test infrastructure (tests/basics/ or similar)
-for CI/CD pipeline execution.
+for full CI/CD pipeline execution.
 """
 
 
