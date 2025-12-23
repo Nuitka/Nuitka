@@ -21,9 +21,35 @@ from pathlib import Path
 def run_nuitka_compile(test_file, remove_output=True):
     """Run Nuitka compilation and capture output.
 
+    Security note: This function is for testing purposes only with controlled
+    input (hardcoded "test_caching.py"). Input validation ensures the file
+    path is safe. Command is passed as list to subprocess.run (no shell=True)
+    which prevents command injection.
+
+    Args:
+        test_file: Path to Python file to compile (validated)
+        remove_output: Whether to add --remove-output flag
+
     Returns:
         tuple: (returncode, stdout, stderr)
     """
+    # Validate input: must be a .py file without shell metacharacters
+    if not isinstance(test_file, str):
+        raise ValueError("test_file must be a string")
+
+    if not test_file.endswith('.py'):
+        raise ValueError("test_file must be a .py file")
+
+    # Check for shell metacharacters that could indicate injection attempts
+    dangerous_chars = ['|', '&', ';', '$', '`', '\n', '(', ')']
+    if any(char in test_file for char in dangerous_chars):
+        raise ValueError("test_file contains potentially dangerous characters")
+
+    # Verify file exists to avoid path traversal issues
+    if not os.path.isfile(test_file):
+        raise FileNotFoundError(f"test_file does not exist: {test_file}")
+
+    # Build command as list (safe from shell injection)
     cmd = [
         sys.executable,
         "-m",
@@ -34,10 +60,13 @@ def run_nuitka_compile(test_file, remove_output=True):
     if remove_output:
         cmd.append("--remove-output")
 
+    # shell=False (default) prevents shell injection
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
+        shell=False,  # Explicit: do not use shell
+        check=False,  # We handle return codes manually
     )
     return result.returncode, result.stdout, result.stderr
 
