@@ -7,8 +7,12 @@ from setuptools import setup
 # (relative to the 'root' dir, where setup.py is)
 # You could be more specific.
 setup(
-    name="multiple_packages_example",
-    version="101",
+    name="example-multiple-packages",
+    version="1.0",
+    author="Nuitka Contributors",
+    author_email="contributors@nuitka.invalid",
+    description="Nuitka distutils test case: example_multiple_packages",
+    url="https://nuitka.net",
     packages=[
         "some_package",
         "some_package_a",
@@ -18,11 +22,7 @@ setup(
     ],
     py_modules=["main_module"],
     scripts=["runner"],
-    description="hello",
-    author="Nobody really",
-    author_email="email@someplace.com",
-    url="whatever",
-    long_description="""Really long text here.""",
+    long_description="Nuitka distutils test case: example_multiple_packages",
 )
 
 #     Python test originally created or extracted from other peoples work. The

@@ -6,18 +6,13 @@
 import versioneer
 from setuptools import setup
 
-# use `python setup.py bdist_nuitka` to use nuitka or use
-# in the setup(..., build_with_nuitka=True, ...)
-# and bdist and build will always use nuitka
-
-
 cmdclass = versioneer.get_cmdclass()
-
 setup(
-    name="example_versioneer",
-    description="nuitka bdist_nuitka test-case compiling versioneer self modifying code",
-    author="Nobody really",
-    author_email="email@someplace.com",
+    name="example-5-versioneer-setuptools32",
+    author="Nuitka Contributors",
+    author_email="contributors@nuitka.invalid",
+    description="Nuitka distutils test case: example_5_versioneer_setuptools32",
+    url="https://nuitka.net",
     packages=["some_package"],
     version=versioneer.get_version(),
     scripts=["runner"],

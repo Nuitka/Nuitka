@@ -4,15 +4,18 @@
 where = ["src"]
 
 [project]
-name = "example-4-pyproject-dep"
-version = "0.1.0"
-description = "Pyproject dependency test"
-authors = [
-    {name = "Nuitka Test", email = "email@example.com"},
-]
+name = "example-4-dependencies-pyproject"
+version = "1.0"
+description = "Nuitka distutils test case: example_4_dependencies_pyproject"
+authors = [{name = "Nuitka Contributors", email = "contributors@nuitka.invalid"}]
+
 dependencies = [
     "idna",
 ]
+
+[project.urls]
+Homepage = "https://nuitka.net"
+
 
 [project.scripts]
 runner = "example4:main"

@@ -1,9 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 [tool.poetry]
-version = "0.1.0"
-name = "hello-world-example"
-description = "Hello places and things"
+name = "example-2-pyproject"
+version = "1.0"
+description = "Nuitka distutils test case: example_2_pyproject"
+authors = ["Nuitka Contributors <contributors@nuitka.invalid>"]
+homepage = "https://nuitka.net"
 packages = [
     {include = "main.py", from = "src" },
 ]
@@ -15,8 +17,6 @@ classifiers = [
     "License :: Other/Proprietary License",
     "Operating System :: OS Independent"
 ]
-authors = ["Nobody really <email@someplace.com>"]
-homepage = "https://www.nuitka.net"
 
 [tool.poetry.dependencies]
 python = "*"
