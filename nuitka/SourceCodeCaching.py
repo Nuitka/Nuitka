@@ -247,25 +247,14 @@ def writeCachedAST(module_name, source_code, ast_tree):
                 os.unlink(temp_tree_filename)
             raise
 
-        # Write metadata to temporary file, then atomically move it
-        fd, temp_meta_filename = tempfile.mkstemp(dir=cache_dir, suffix=".json.tmp")
-        try:
-            # Close the fd; writeJsonToFilename will open it
-            os.close(fd)
-
-            metadata = {
-                "file_format_version": _cache_format_version,
-                "module_name": module_name.asString(),
-                "nuitka_version": version_string,
-                "python_version": sys.version,
-            }
-            writeJsonToFilename(filename=temp_meta_filename, contents=metadata)
-            replaceFileAtomic(temp_meta_filename, meta_filename)
-        except Exception:
-            # Clean up temp file if something went wrong
-            if os.path.exists(temp_meta_filename):
-                os.unlink(temp_meta_filename)
-            raise
+        # Write metadata
+        metadata = {
+            "file_format_version": _cache_format_version,
+            "module_name": module_name.asString(),
+            "nuitka_version": version_string,
+            "python_version": sys.version,
+        }
+        writeJsonToFilename(filename=meta_filename, contents=metadata)
 
     except Exception as e:
         general.warning(
