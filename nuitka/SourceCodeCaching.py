@@ -141,42 +141,6 @@ def _validateCacheMetadata(meta_filename, tree_filename, module_name):
         return None
 
 
-def _hasASTCacheEntry(module_name, source_code):
-    """Check if a compatible AST cache entry exists without loading it.
-
-    This is a lightweight check that validates cache existence and compatibility
-    without unpickling the AST or updating statistics.
-
-    Args:
-        module_name: ModuleName object
-        source_code: String containing the source code
-
-    Returns:
-        Boolean indicating if a compatible cache entry exists
-    """
-    cache_name = makeCacheName(module_name, source_code)
-    tree_filename = _getCacheFilename(cache_name, "pkl")
-    meta_filename = _getCacheFilename(cache_name, "json")
-
-    return _validateCacheMetadata(meta_filename, tree_filename, module_name) is not None
-
-
-def hasCachedAST(module_name, source_code):
-    """Check if a cached AST exists for the given module.
-
-    This performs a lightweight existence check without loading the AST
-    or updating cache statistics.
-
-    Args:
-        module_name: ModuleName object
-        source_code: String containing the source code
-
-    Returns:
-        Boolean indicating if cache exists
-    """
-    return _hasASTCacheEntry(module_name=module_name, source_code=source_code)
-
-
 def getCachedAST(module_name, source_code):
     """Load a cached AST from disk.
 
