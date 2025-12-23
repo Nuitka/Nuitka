@@ -47,17 +47,21 @@ def _getCacheFilename(cache_name, extension):
 def makeCacheName(module_name, source_code):
     """Generate a cache name based on module name, config, and source content.
 
+    The module name is hashed to keep cache paths short even for deeply
+    nested or very long module names, avoiding filesystem path length limits.
+
     Args:
         module_name: ModuleName object
         source_code: String containing the source code
 
     Returns:
-        String in format: module_name@config_hash@source_hash
+        String in format: module_name_hash@config_hash@source_hash
     """
     module_config_hash = _getModuleConfigHash(module_name)
+    module_name_hash = getStringHash(module_name.asString())
 
     return (
-        module_name.asLegalFilename()
+        module_name_hash
         + "@"
         + module_config_hash
         + "@"
