@@ -19,20 +19,9 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import getSitePackageCandidateNames, isPythonWithGil
+from nuitka.PythonVersions import isPythonWithGil
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
-from nuitka.utils.Execution import (
-    executeProcess,
-    withEnvironmentVarsOverridden,
-)
-from nuitka.utils.FileOperations import (
-    getFileContentByLine,
-    makePath,
-    putTextFileContents,
-    withDirectoryChange,
-    withTemporaryDirectory,
-)
-from nuitka.utils.Json import loadJsonFromFilename
+from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
@@ -227,148 +216,69 @@ parser.add_option(
 
 parser.add_option(
     "--project",
-    action="store",
-    dest="project_mode",
-    choices=("build",),
-    default=None,
+    action="store_true",
+    dest="is_project_mode",
+    default=False,
     help="""\
 Compile the project in the current directory by extracting configuration
-from it. Currently only supports 'build' backend.""",
+from it. Default is not to use it.""",
+)
+
+parser.add_option(
+    "--pyproject-requires",
+    action="append",
+    dest="pyproject_requires",
+    default=[],
+    github_action=False,
+    help=SUPPRESS_HELP,
 )
 
 
 def getBuildConfigurationOptions(logger):
-    project_mode = None
-
-    for i, arg in enumerate(sys.argv):
-        if arg.startswith("--project="):
-            project_mode = arg.split("=", 1)[1]
-            break
-        if arg == "--project":
-            if i + 1 < len(sys.argv):
-                project_mode = sys.argv[i + 1]
-            break
-
-    if not project_mode:
+    if "--project" not in sys.argv:
         return []
 
-    if project_mode == "poetry":
-        return logger.sysexit("Error, --project mode 'poetry' is not yet supported.")
+    # Auto-detection of Poetry, we want to support that without the user saying so,
+    # but only if --project is given.
+    if os.path.exists("pyproject.toml"):
+        from nuitka.utils.Toml import loadToml
 
-    if project_mode not in ("build", "poetry"):
-        return logger.sysexit(
-            "Error, --project mode '%s' is not known, only 'build' and 'poetry' are currently."
-            % project_mode
-        )
+        pyproject_data = loadToml("pyproject.toml")
 
-    # This is "build" handling.
-    with withTemporaryDirectory("nuitka-project-dump") as temp_dir:
+        if pyproject_data is not None:
+            tool_data = pyproject_data.get("tool", {})
 
-        mock_site_packages_path = os.path.join(temp_dir, "site_packages")
-        makePath(mock_site_packages_path)
+            # Check if it is a Poetry project
+            if "poetry" in tool_data:
+                from nuitka.options.Poetry import getPoetryBuildConfiguration
 
-        nuitka_path = os.path.dirname(os.path.dirname(sys.modules["nuitka"].__file__))
+                return getPoetryBuildConfiguration(logger)
 
-        # spell-checker: ignore sitecustomize,cmdclass
-        putTextFileContents(
-            filename=os.path.join(mock_site_packages_path, "sitecustomize.py"),
-            contents="""
-import sys
-import os
+            build_system_data = pyproject_data.get("build-system", {})
+            build_backend = build_system_data.get("build-backend", "")
 
-# Ensure nuitka is importable
-nuitka_path = %(nuitka_path)r
-if nuitka_path not in sys.path:
-    sys.path.insert(0, nuitka_path)
-
-import setuptools
-import distutils.core
-import setuptools.command.egg_info
-from nuitka.distutils.DistutilsCommands import build as nuitka_build
-
-# Patch setuptools
-_old_setuptools_setup = setuptools.setup
-def new_setuptools_setup(**attrs):
-    attrs['cmdclass'] = attrs.get('cmdclass', {})
-    attrs['cmdclass']['build'] = nuitka_build
-    return _old_setuptools_setup(**attrs)
-setuptools.setup = new_setuptools_setup
-
-# Patch distutils
-_old_distutils_setup = distutils.core.setup
-def new_distutils_setup(**attrs):
-    attrs['cmdclass'] = attrs.get('cmdclass', {})
-    attrs['cmdclass']['build'] = nuitka_build
-    return _old_distutils_setup(**attrs)
-distutils.core.setup = new_distutils_setup
-
-# Force egg_base to temp_dir
-_old_egg_info_initialize_options = setuptools.command.egg_info.egg_info.initialize_options
-def new_egg_info_initialize_options(self):
-    _old_egg_info_initialize_options(self)
-    self.egg_base = %(egg_base)r
-setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initialize_options
-"""
-            % {
-                "nuitka_path": nuitka_path,
-                "egg_base": temp_dir,
-            },
-        )
-
-        dump_filename = os.path.join(temp_dir, "build_config.json")
-
-        # We use the temporary directory for the project to avoid implicit imports
-        # of the current directory, which may contain a "build" folder that clashes.
-        project_dir = os.getcwd()
-
-        with withEnvironmentVarsOverridden(
-            {
-                "NUITKA_DUMP_BUILD_CONFIG": dump_filename,
-                "NUITKA_PROJECT_DIR": project_dir,
-                "PYTHONPATH": os.pathsep.join(
-                    [mock_site_packages_path]
-                    + [
-                        candidate
-                        for candidate in sys.path
-                        if os.path.dirname(candidate) in getSitePackageCandidateNames()
-                    ]
-                ),
-            }
-        ):
-            with withDirectoryChange(temp_dir):
-                _stdout, _stderr, exit_code = executeProcess(
-                    [
-                        sys.executable,
-                        "-m",
-                        "build",
-                        "--no-isolation",
-                        "--skip-dependency-check",
-                        project_dir,
-                    ],
-                    stdin=False,
+            # Check if it is a "setuptools" project
+            if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
+                from nuitka.options.BuildPackage import (
+                    getBuildBackendConfiguration,
                 )
 
-        # The build is expected to fail with exit code 1 because we exit(0)
-        # without producing a wheel, causing build frontend to complain. But if
-        # we have the dump file, we are good.
-        if exit_code == 0 or not os.path.exists(dump_filename):
-            assert False, _stdout
+                return getBuildBackendConfiguration(logger)
+
             return logger.sysexit(
-                "Error, failed to extract build configuration via 'python -m build'."
+                "Error, unrecognized build-backend '%s' in 'pyproject.toml'."
+                % build_backend
             )
 
-        config = loadJsonFromFilename(dump_filename)
+    # Check if it is old-style "setuptools".
+    if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
+        from nuitka.options.BuildPackage import getBuildBackendConfiguration
 
-        # Cyclic dependency
-        from nuitka.importing.Importing import addMainScriptDirectory
+        return getBuildBackendConfiguration(logger)
 
-        package_dir = config.get("package_dir")
-        if package_dir and "" in package_dir:
-            addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
-        else:
-            addMainScriptDirectory(os.getcwd())
-
-    return config.get("arguments", [])
+    logger.sysexit(
+        "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."
+    )
 
 
 # Option for use with GitHub action workflow, where options are read

@@ -656,10 +656,10 @@ def parseArgs():
     if shallCreateAppBundle():
         options.is_standalone = True
 
-    if options.project_mode == "build":
+    if options.is_project_mode:
         if not isStandaloneMode():
             return options_logger.sysexit(
-                "Error, with '--project=build' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
+                "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
             )
 
     if isMacOS():
@@ -3228,6 +3228,14 @@ def getCompilationMode():
         return "standalone"
     elif shallMakeDll():
         return "dll"
+
+
+def getPyProjectRequiredPackages():
+    """Get the requirements that are not Nuitka from project configuration."""
+    # TODO: Move this to using code to avoid cyclic dependency.
+    from nuitka.utils.Distributions import filterInstallRequires
+
+    return filterInstallRequires(options.pyproject_requires)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

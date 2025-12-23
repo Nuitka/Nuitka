@@ -5,7 +5,7 @@ version = "0.1.0"
 name = "hello-world-example"
 description = "Hello places and things"
 packages = [
-    {include = "src" },
+    {include = "main.py", from = "src" },
 ]
 keywords = [
     "Hello",
@@ -19,7 +19,10 @@ authors = ["Nobody really <email@someplace.com>"]
 homepage = "https://www.nuitka.net"
 
 [tool.poetry.dependencies]
-python = "3.6.3"
+python = "*"
+
+[tool.poetry.scripts]
+runner = "main:main"
 
 [tool.poetry.dev-dependencies]
 nuitka = "*"
