@@ -148,6 +148,12 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
     def getStaticAttributes(self):
         return tuple(self.static_attributes)
 
+    def addStaticAttribute(self, static_attribute):
+        self.static_attributes.append(static_attribute)
+
+    def getStaticAttributes(self):
+        return tuple(self.static_attributes)
+
 
 class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBase):
     kind = "EXPRESSION_CLASS_DICT_BODY_P2"
