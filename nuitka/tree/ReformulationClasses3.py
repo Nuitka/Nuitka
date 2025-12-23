@@ -279,6 +279,9 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
+    if python_version >= 0x300:
+        qualname_assign = statements[-1]
+
     if python_version >= 0x3C0:
         type_param_nodes = node.type_params
     else:
@@ -299,9 +302,6 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=source_ref,
         )
         statements.append(assign)
-
-    if python_version >= 0x300:
-        qualname_assign = statements[-1]
 
     if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
