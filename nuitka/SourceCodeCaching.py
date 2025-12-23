@@ -104,79 +104,6 @@ _cache_misses = 0
 _cache_restored_modules = []
 
 
-def _validateCacheFileSecurity(filename):
-    """Validate that a cache file is safe to load.
-
-    This checks basic security properties on both the cache file and its
-    containing directory to reduce the risk of loading malicious pickled data
-    and to narrow TOCTOU windows where the file could be swapped.
-    Not foolproof, but catches common issues for a per-user cache directory.
-
-    Args:
-        filename: Path to the cache file
-
-    Returns:
-        Boolean indicating if the file appears safe to load
-    """
-    try:
-        # Check if file exists
-        if not os.path.exists(filename):
-            return False
-
-        # Check directory security to reduce the window where an attacker
-        # controlling the directory could swap the file between validation
-        # and open.
-        dir_name = os.path.dirname(os.path.abspath(filename)) or "."
-        dir_stat = os.stat(dir_name)
-
-        if os.name != 'nt':
-            import stat
-
-            # Only allow directories owned by the current user.
-            if hasattr(os, 'getuid'):
-                current_uid = os.getuid()
-                if dir_stat.st_uid != current_uid:
-                    general.warning(
-                        "Cache directory '%s' is not owned by the current user. "
-                        "Skipping for security." % dir_name
-                    )
-                    return False
-
-            # Disallow world-writable cache directories.
-            if dir_stat.st_mode & stat.S_IWOTH:
-                general.warning(
-                    "Cache directory '%s' is world-writable. Skipping for security."
-                    % dir_name
-                )
-                return False
-
-        # Get file stats
-        stat_info = os.stat(filename)
-
-        # On Unix-like systems, check that file is not world-writable
-        # Windows doesn't have the same permission model, so we skip there
-        if hasattr(stat_info, 'st_mode') and os.name != 'nt':
-            import stat
-            # Check if world-writable (others have write permission)
-            if stat_info.st_mode & stat.S_IWOTH:
-                general.warning(
-                    "Cache file '%s' is world-writable. Skipping for security." % filename
-                )
-                return False
-
-            # Check if current user owns the file
-            if hasattr(os, 'getuid') and stat_info.st_uid != os.getuid():
-                general.warning(
-                    "Cache file '%s' is not owned by current user. Skipping for security." % filename
-                )
-                return False
-
-        return True
-    except (OSError, AttributeError):
-        # If we can't validate, assume unsafe
-        return False
-
-
 def _validateCacheMetadata(meta_filename, tree_filename, module_name):
     """Load and validate AST cache metadata.
 
@@ -269,14 +196,6 @@ def getCachedAST(module_name, source_code):
     # Validate cache metadata using shared helper
     metadata = _validateCacheMetadata(meta_filename, tree_filename, module_name)
     if metadata is None:
-        _cache_misses += 1
-        return None
-
-    # Validate cache file security before unpickling
-    if not _validateCacheFileSecurity(tree_filename):
-        general.warning(
-            "Cache file security validation failed for '%s'. Skipping cache." % module_name
-        )
         _cache_misses += 1
         return None
 
