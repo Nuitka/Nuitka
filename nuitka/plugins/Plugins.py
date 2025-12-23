@@ -1042,6 +1042,9 @@ through implicit import by '%s' plugin encountered."""
 
                 fake_modules[full_name].append((fake_module, plugin, reason))
 
+                # Main modules do not get added to the import cache, but plugins get to see it.
+                cls.onModuleDiscovered(fake_module)
+
     @staticmethod
     def onModuleSourceCode(module_name, source_filename, source_code):
         assert type(module_name) is ModuleName
