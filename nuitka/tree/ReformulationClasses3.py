@@ -34,6 +34,11 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantTupleRef,
     makeConstantRefNode,
 )
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    ExpressionConstantTupleRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
