@@ -19,7 +19,6 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.plugins.Plugins import setupHooks
-from nuitka.PythonVersions import python_version
 from nuitka.reports.CompilationReportReader import (
     getEmbeddedDataFilenames,
     parseCompilationReport,
@@ -29,6 +28,7 @@ from nuitka.utils.Execution import check_call, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
 from nuitka.utils.Json import writeJsonToFile, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Toml import loadToml
 
 
 def setupNuitkaDistutilsCommands(dist, keyword, value):
@@ -171,12 +171,12 @@ class build(distutils.command.build.build):
 
         nuitka_command.append("--output-folder-name=%s" % self.distribution.get_name())
 
+        if self.distribution.install_requires:
+            for req in self.distribution.install_requires:
+                nuitka_command.append("--pyproject-requires=%s" % req)
+
         result = {
-            "entry_points": self.distribution.entry_points,
-            "package_data": self.distribution.package_data,
-            "data_files": self.distribution.data_files,
             "package_dir": self.distribution.package_dir,
-            "install_requires": self.distribution.install_requires,
             "arguments": nuitka_command,
         }
 
@@ -375,21 +375,8 @@ class build(distutils.command.build.build):
 
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
-                # Import toml parser like "build" module does.
-                if python_version >= 0x3B0:
-                    # stdlib only for 3.11+, pylint: disable=I0021,import-error
-                    from tomllib import loads as toml_loads
-                else:
-                    try:
-                        from tomli import loads as toml_loads
-                    except ImportError:
-                        from toml import loads as toml_loads
 
-                # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
-                # pylint: disable=unspecified-encoding
-
-                with open(toml_filename) as toml_file:
-                    toml_options = toml_loads(toml_file.read())
+                toml_options = loadToml(toml_filename)
 
                 for option, value in toml_options.get("nuitka", {}).items():
                     options.extend(self._parseOptionsEntry(option, value))

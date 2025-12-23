@@ -6,6 +6,7 @@
 import base64
 import hashlib
 import os
+import re
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
@@ -783,6 +784,55 @@ _user_site_directory = None
 def setUserSiteDirectory(user_site_directory):
     global _user_site_directory  # singleton, pylint: disable=global-statement
     _user_site_directory = user_site_directory
+
+
+def isNuitkaInstallRequire(requirement):
+    """Check if a requirement is Nuitka.
+
+    Args:
+        requirement (str): The requirement string.
+
+    Returns:
+        bool: True if the requirement is Nuitka, False otherwise.
+    """
+    # Check if it starts with "nuitka" followed by end of string or a non-name
+    # character, valid name chars: [a-z0-9_.-]
+    if re.match(r"^nuitka(?:[<>=!~;@\s]|$)", requirement.lower()):
+        return True
+
+    # Check for a file URL pointing to Nuitka.
+    match = re.search(r"file://([^;\s]+)", requirement)
+    if match:
+        path = match.group(1)
+
+        if os.path.exists(path) and os.path.isdir(path):
+            if os.path.exists(
+                os.path.join(path, "nuitka", "MainControl.py")
+            ) and os.path.exists(os.path.join(path, "nuitka", "Version.py")):
+                return True
+
+    # Check for GitHub URLs pointing to Nuitka or Nuitka extensions.
+    if re.search(
+        r"github\.com/Nuitka/Nuitka(?:-[a-zA-Z0-9_-]+)?(?:\.git|/|#|@|$)", requirement
+    ):
+        return True
+
+    return False
+
+
+def filterInstallRequires(install_requires):
+    """Filter out Nuitka from install_requires.
+
+    Args:
+        install_requires (list): List of install requirements.
+
+    Returns:
+        list: Filtered list of install requirements.
+    """
+    if install_requires is None:
+        return []
+
+    return [req for req in install_requires if not isNuitkaInstallRequire(req)]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

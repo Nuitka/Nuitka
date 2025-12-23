@@ -1,40 +1,25 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-[tool.poetry]
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "example-4-pyproject-dep"
 version = "0.1.0"
-name = "hello-world-example"
-description = "Hello places and things"
-packages = [
-    {include = "main.py", from = "src" },
+description = "Pyproject dependency test"
+authors = [
+    {name = "Nuitka Test", email = "email@example.com"},
 ]
-keywords = [
-    "Hello",
+dependencies = [
+    "idna",
 ]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: Other/Proprietary License",
-    "Operating System :: OS Independent"
-]
-authors = ["Nobody really <email@someplace.com>"]
-homepage = "https://www.nuitka.net"
 
-[tool.poetry.dependencies]
-python = "*"
-
-[tool.poetry.scripts]
-runner = "main:main"
-
-[tool.poetry.dev-dependencies]
-nuitka = "*"
-build = "*"
+[project.scripts]
+runner = "example4:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[virtualenvs]
-create = true
-in-project = true
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

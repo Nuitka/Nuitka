@@ -1,40 +1,19 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-[tool.poetry]
-version = "0.1.0"
-name = "hello-world-example"
-description = "Hello places and things"
-packages = [
-    {include = "main.py", from = "src" },
-]
-keywords = [
-    "Hello",
-]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: Other/Proprietary License",
-    "Operating System :: OS Independent"
-]
-authors = ["Nobody really <email@someplace.com>"]
-homepage = "https://www.nuitka.net"
 
-[tool.poetry.dependencies]
-python = "*"
+import sys
 
-[tool.poetry.scripts]
-runner = "main:main"
+import idna
 
-[tool.poetry.dev-dependencies]
-nuitka = "*"
-build = "*"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+def main():
+    print("Hello from main")
+    print("idna version:", idna.__version__)
+    print("OK")
 
-[virtualenvs]
-create = true
-in-project = true
+
+if __name__ == "__main__":
+    main()
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

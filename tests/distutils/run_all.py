@@ -102,9 +102,11 @@ def _handleCase(python_version, nuitka_dir, filename):
 
     my_print("Consider distutils example: '%s'" % filename, style="blue")
 
-    if filename == "example_2_pyproject":
+    if "dependencies" in filename:
+        # TODO: Dependencies are not yet supported, but need to create a virtualenv in Nuitka
+        # during compilation to achieve that, but it's not done yet.
         reportSkip(
-            "'poetry' based pyproject is not working for now",
+            "Skipped, dependencies are not yet supported",
             ".",
             filename,
         )
@@ -138,7 +140,9 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_cpython", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        venv.runCommand("pip install setuptools build wheel", style="test-prepare")
+        venv.runCommand(
+            "pip install setuptools build wheel poetry-core", style="test-prepare"
+        )
 
         if is_pyproject:
             pyproject_filename = _adaptPyProjectFile(
@@ -161,29 +165,15 @@ def _handleCase(python_version, nuitka_dir, filename):
             'pip install "%s"' % (os.path.join(dist_dir, os.listdir(dist_dir)[0]))
         )
 
-        runner_binary = os.path.join(
-            venv.getVirtualenvDir(),
-            "bin" if os.name != "nt" else "scripts",
-            "runner",
-        )
-
-        # TODO: Is this something to be abstracted into a function.
+        runner_binary = venv.getBinaryPath("runner")
         # pylint: disable=consider-using-with
 
         if os.path.exists(runner_binary):
             # Need to call CPython binary for Windows.
             process = subprocess.Popen(
                 args=[
-                    os.path.join(
-                        venv.getVirtualenvDir(),
-                        "bin" if os.name != "nt" else "scripts",
-                        "python",
-                    ),
-                    os.path.join(
-                        venv.getVirtualenvDir(),
-                        "bin" if os.name != "nt" else "scripts",
-                        "runner",
-                    ),
+                    venv.getBinaryPath("python"),
+                    venv.getBinaryPath("runner"),
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -224,7 +214,7 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_nuitka", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        venv.runCommand("pip install setuptools build wheel")
+        venv.runCommand("pip install setuptools build wheel poetry-core")
 
         venv.runCommand(
             commands=['cd "%s"' % nuitka_dir, "python setup.py install"],
@@ -241,14 +231,12 @@ def _handleCase(python_version, nuitka_dir, filename):
 
         build_commands = []
 
-        if is_pyproject:
-            build_commands.append("python -m build -w")
-        else:
+        if not is_pyproject:
             build_commands.append("python setup.py bdist_nuitka")
 
         if "versioneer" not in case_dir:  # spell-checker: ignore versioneer
             build_commands.append(
-                "python -m nuitka --project=build --mode=standalone --report=compilation-report.xml"
+                "python -m nuitka --project --mode=standalone --report=compilation-report.xml"
             )
 
         for command_desc in build_commands:
