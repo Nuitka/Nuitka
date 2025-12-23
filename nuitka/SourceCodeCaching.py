@@ -262,19 +262,6 @@ def writeCachedAST(module_name, source_code, ast_tree):
         )
 
 
-def resetCacheStatistics():
-    """Reset cache statistics to zero.
-
-    This should be called at the start of a compilation run to ensure
-    statistics reflect only the current compilation.
-    """
-    global _cache_hits, _cache_misses, _cache_restored_modules
-
-    _cache_hits = 0
-    _cache_misses = 0
-    _cache_restored_modules = []
-
-
 def getCacheStatistics():
     """Get cache hit/miss statistics.
 
