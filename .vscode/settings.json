@@ -486,7 +486,8 @@
     "nuitka/build/inline_copy",
     "debian",
     "rpm/*.spec",
-    "tests/scratch"
+    "tests/scratch",
+    "doc/*.1"
   ],
   "yaml.schemas": {
     "misc/nuitka-package-config-schema.json": [
