@@ -31,7 +31,7 @@ from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
     plugin_name = "dll-files"
     plugin_desc = "Include DLLs as per package configuration files."
-    plugin_category = "core"
+    plugin_category = "core,feature"
 
     @staticmethod
     def isAlwaysEnabled():

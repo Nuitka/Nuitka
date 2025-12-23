@@ -26,9 +26,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
     # TODO: Maybe rename to opengl maybe
     plugin_name = "glfw"  # Nuitka knows us by this name
-    plugin_desc = (
-        "Required for 'OpenGL' (PyOpenGL) and 'glfw' package in standalone mode."
-    )
+    plugin_desc = "Required by 'glfw' and 'PyOpenGL' packages."
     plugin_category = "package-support"
 
     @staticmethod

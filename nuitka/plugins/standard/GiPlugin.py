@@ -10,7 +10,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
 
 class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
-    plugin_desc = "Support for GI package typelib dependency."
+    plugin_desc = "Required by 'gi' package."
     plugin_category = "package-support"
 
     @staticmethod

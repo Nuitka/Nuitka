@@ -20,9 +20,9 @@ from nuitka.utils.Utils import isMacOS
 class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
     plugin_name = "options-nanny"
     plugin_desc = (
-        "Inform the user about potential problems as per package configuration files."
+        "Inform user about potential problems as per package configuration files."
     )
-    plugin_category = "core"
+    plugin_category = "core,package-support"
 
     @staticmethod
     def isAlwaysEnabled():

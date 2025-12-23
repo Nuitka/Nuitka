@@ -28,9 +28,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
     """
 
     plugin_name = "delvewheel"  # Nuitka knows us by this name
-    plugin_desc = (
-        "Required for support of 'delvewheel' using packages in standalone mode."
-    )
+    plugin_desc = "Required by 'delvewheel' using packages."
     plugin_category = "core"
 
     def __init__(self):

@@ -14,7 +14,7 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     """This is to make dill/ray/cloudpickle modules work with compiled methods."""
 
     plugin_name = "dill-compat"
-    plugin_desc = "Required for 'dill' package and 'cloudpickle' compatibility."
+    plugin_desc = "Required by 'dill' and 'cloudpickle' packages."
     plugin_category = "package-support"
 
     pickle_package_names = ("dill", "cloudpickle", "ray")

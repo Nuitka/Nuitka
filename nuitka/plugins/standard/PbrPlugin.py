@@ -15,7 +15,7 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
     """This is to make pbr module work when compiled with Nuitka."""
 
     plugin_name = "pbr-compat"
-    plugin_desc = "Required by the 'pbr' package in standalone mode."
+    plugin_desc = "Required by 'pbr' package."
     plugin_category = "package-support"
 
     @classmethod

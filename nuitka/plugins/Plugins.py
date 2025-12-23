@@ -1731,26 +1731,42 @@ def listPlugins():
 
     plist = []
     max_name_length = 0
-    for plugin_name, detector_info in sorted(plugin_name2plugin_classes.items()):
-        plugin = plugin_name2plugin_classes[plugin_name][0]
-
-        if plugin.isDeprecated():
+    for plugin_name, (plugin_class, plugin_detector) in sorted(
+        plugin_name2plugin_classes.items(), key=_keyPluginForSort2
+    ):
+        if plugin_class.isDeprecated():
             continue
 
-        plugin_desc = getattr(plugin, "plugin_desc", None)
+        plugin_desc = getattr(plugin_class, "plugin_desc", None)
 
-        plist.append(
-            (
-                plugin_name,
-                plugin_desc,
-                "" if detector_info[1] is None else "Has detector.",
-            )
-        )
+        categories = ", ".join(plugin_class.getCategories())
+        if categories:
+            categories = "(%s)" % categories
+        else:
+            categories = ""
+
+        status = []
+        if plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():
+            status.append("auto-enabled")
+        if plugin_detector is not None:
+            status.append("has detector")
+
+        if status:
+            status_str = "[%s]" % ", ".join(status)
+        else:
+            status_str = ""
+
+        plist.append((plugin_name, plugin_desc, categories, status_str))
 
         max_name_length = max(len(plugin_name), max_name_length)
 
     for line in plist:
-        printLine(" " + line[0].ljust(max_name_length + 1), line[1], line[2])
+        printLine(
+            " " + line[0].ljust(max_name_length + 1),
+            line[1],
+            line[2],
+            line[3],
+        )
 
 
 def isObjectAUserPluginBaseClass(obj):
@@ -1831,7 +1847,7 @@ def loadPlugins():
 
 # TODO: Use in more places.
 def _keyPluginForSort(plugin_class):
-    return plugin_class.getCategories(), plugin_class.plugin_name
+    return tuple(plugin_class.getCategories()), plugin_class.plugin_name
 
 
 def _keyPluginForSort2(item):

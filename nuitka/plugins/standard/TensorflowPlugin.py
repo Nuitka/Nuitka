@@ -10,7 +10,7 @@ class NuitkaPluginTensorflow(NuitkaPluginBase):
     """This plugin is now not doing anything anymore."""
 
     plugin_name = "tensorflow"
-    plugin_desc = "Deprecated, was once required by the tensorflow package"
+    plugin_desc = "Deprecated, was once required by 'tensorflow' package."
     plugin_category = "package-support,obsolete"
 
     @classmethod
