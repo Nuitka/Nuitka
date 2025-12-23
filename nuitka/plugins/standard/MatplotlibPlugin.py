@@ -34,7 +34,7 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
     """
 
     plugin_name = "matplotlib"  # Nuitka knows us by this name
-    plugin_desc = "Required for 'matplotlib' module."
+    plugin_desc = "Required by 'matplotlib' package."
     plugin_category = "package-support"
 
     @staticmethod

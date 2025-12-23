@@ -34,7 +34,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
     plugin_desc = (
         "Patch stupid imports out of widely used library modules source codes."
     )
-    plugin_category = "core"
+    plugin_category = "core,feature,package-support"
 
     @staticmethod
     def isAlwaysEnabled():

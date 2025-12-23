@@ -1337,7 +1337,7 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     """
 
     plugin_name = "pyqt5"
-    plugin_desc = "Required by the PyQt5 package."
+    plugin_desc = "Required by 'PyQt5' package."
 
     binding_name = "PyQt5"
 
@@ -1427,7 +1427,7 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
     """
 
     plugin_name = "pyside2"
-    plugin_desc = "Required by the PySide2 package."
+    plugin_desc = "Required by 'PySide2' package."
 
     binding_name = "PySide2"
 
@@ -1586,7 +1586,7 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
     """
 
     plugin_name = "pyside6"
-    plugin_desc = "Required by the PySide6 package for standalone mode."
+    plugin_desc = "Required by 'PySide6' package."
 
     binding_name = "PySide6"
 
@@ -1622,7 +1622,7 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
     """
 
     plugin_name = "pyqt6"
-    plugin_desc = "Required by the PyQt6 package for standalone mode."
+    plugin_desc = "Required by 'PyQt6' package."
 
     binding_name = "PyQt6"
 

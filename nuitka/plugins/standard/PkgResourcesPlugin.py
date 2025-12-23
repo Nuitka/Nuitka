@@ -18,7 +18,7 @@ from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
 
 class NuitkaPluginResources(NuitkaPluginBase):
     plugin_name = "pkg-resources"
-    plugin_desc = "Workarounds for 'pkg_resources'."
+    plugin_desc = "Required by 'pkg_resources' package."
     plugin_category = "package-support"
 
     def __init__(self):

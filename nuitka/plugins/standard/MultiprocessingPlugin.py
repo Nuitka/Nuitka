@@ -37,7 +37,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """
 
     plugin_name = "multiprocessing"
-    plugin_desc = "Required by Python's 'multiprocessing' module."
+    plugin_desc = "Required by 'multiprocessing' package."
     plugin_category = "package-support"
 
     @classmethod

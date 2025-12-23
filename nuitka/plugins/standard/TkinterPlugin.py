@@ -54,7 +54,7 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
-    plugin_desc = "Required by Python's Tk modules."
+    plugin_desc = "Required by 'tkinter' package."
     plugin_category = "package-support"
 
     # Automatically suppress detectors for any other toolkit

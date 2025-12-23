@@ -530,7 +530,10 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         if plugin_category is None:
             result = ()
         else:
-            result = plugin_category.split(",")
+            if isinstance(plugin_category, (tuple, list)):
+                result = list(plugin_category)
+            else:
+                result = plugin_category.split(",")
 
         return OrderedSet(sorted(result))
 
