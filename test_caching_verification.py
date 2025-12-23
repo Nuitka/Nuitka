@@ -11,6 +11,7 @@ Run this with: python test_caching_verification.py
 
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -50,12 +51,13 @@ def run_nuitka_compile(test_file, remove_output=True):
         raise FileNotFoundError(f"test_file does not exist: {test_file}")
 
     # Build command as list (safe from shell injection)
+    # Even though list+shell=False is safe, we use shlex.escape() for defense-in-depth
     cmd = [
         sys.executable,
         "-m",
         "nuitka",
         "--module",
-        test_file,
+        shlex.quote(test_file),
     ]
     if remove_output:
         cmd.append("--remove-output")
