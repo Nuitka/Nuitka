@@ -363,8 +363,10 @@ conditions are missing, or this version of the module needs treatment added."""
                     reason="needed by uuid package",
                 )
         elif full_name == "iptc" and isLinux():
+            # spell-checker: ignore iptc
             import iptc.util  # pylint: disable=I0021,import-error
 
+            # spell-checker: ignore xtwrapper
             xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
 
@@ -375,7 +377,7 @@ conditions are missing, or this version of the module needs treatment added."""
                 package_name=None,
                 reason="needed by 'iptc'",
             )
-        # TODO: This should be its own plugin.
+        # TODO: This should be its own plugin, spell-checker: ignore pythoncom,win32evtlog,win32wnet
         elif (
             full_name
             in (
@@ -413,6 +415,7 @@ conditions are missing, or this version of the module needs treatment added."""
             pywin_dir = getPyWin32Dir()
 
             if pywin_dir is not None:
+                # spell-checker: ignore pywintypes
                 for dll_name in "pythoncom", "pywintypes":
                     pythoncom_filename = "%s%d%d.dll" % (
                         dll_name,
