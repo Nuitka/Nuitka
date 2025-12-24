@@ -1,9 +1,6 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
-
-
 """Automatic formatting of JSON files."""
 
 import os
@@ -21,8 +18,13 @@ _biome_path = None
 
 
 def _getBiomeBinaryPath(assume_yes_for_downloads):
-    """
-    Downloads and returns the path to the biome executable.
+    """Downloads and returns the path to the biome executable.
+
+    Args:
+        assume_yes_for_downloads: bool - if tools should be downloaded automatically
+
+    Returns:
+        str or None: path to the biome executable or None if not supported
     """
     # Many branches used to map OS and arch, pylint: disable=too-many-branches
 
@@ -93,6 +95,12 @@ def _getBiomeBinaryPath(assume_yes_for_downloads):
 
 
 def formatJsonFile(filename, assume_yes_for_downloads):
+    """Format a JSON file using the biome formatter.
+
+    Args:
+        filename: str - path to the JSON file
+        assume_yes_for_downloads: bool - if tools should be downloaded automatically
+    """
     # Many tools work on files, and when they do, they need to be told to
     # treat it as a JSON file.
     biome_path = _getBiomeBinaryPath(assume_yes_for_downloads=assume_yes_for_downloads)

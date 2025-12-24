@@ -570,7 +570,7 @@ def getCommonSconsOptions():
 
     if isZig():
         scons_options["zig_exe_path"] = getZigBinaryPath(
-            assume_yes_for_downloads=assumeYesForDownloads()
+            logger=scons_logger, assume_yes_for_downloads=assumeYesForDownloads()
         )
 
     if getMsvcVersion():

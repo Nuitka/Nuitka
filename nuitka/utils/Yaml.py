@@ -26,8 +26,9 @@ from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
 from .Hashing import HashCRC32
-from .Importing import importFromInlineCopy, withTemporarySysPathExtension
+from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
+from .PrivatePipSpace import getPrivatePackage
 
 
 def _isParsable(value):
@@ -231,35 +232,79 @@ if you want no message."""
 
 
 def getJsonschemaPackage(logger, assume_yes_for_downloads):
-    try:
-        import jsonschema.validators
-    except ImportError:
-        # We want to import this function only if necessary, to not have circular
-        # imports for the "tryDownloadPackageName" to be used.
-        from .PrivatePipSpace import tryDownloadPackageName
+    """Get jsonschema package from private pip space or globally."""
+    jsonschema = getPrivatePackage(
+        logger=logger,
+        package_name="jsonschema",
+        module_name="jsonschema",
+        package_version=None,
+        submodule_names=("validators",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
 
-        jsonschema_dir = tryDownloadPackageName(
-            package_name="jsonschema",
-            module_name="jsonschema",
-            package_version=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-        )
-
-        if jsonschema_dir:
-            # Use a temporary sys.path extension to avoid polluting the global path
-            with withTemporarySysPathExtension([jsonschema_dir]):
-                import jsonschema
-
-                # Ensure validators submodule is loaded
-                import jsonschema.validators
-
-            return jsonschema
-
-        logger.sysexit(
-            "Error, cannot validate changes in package configuration due to missing 'jsonschema'."
-        )
-    else:
+    if jsonschema:
         return jsonschema
+
+    return logger.sysexit(
+        "Error, cannot validate changes in package configuration due to missing 'jsonschema'."
+    )
+
+
+def getRuamelYamlPackage(logger, assume_yes_for_downloads):
+    """Get ruamel.yaml package from private pip space or globally."""
+    ruamel_yaml = getPrivatePackage(
+        logger=logger,
+        package_name="ruamel.yaml",
+        module_name="ruamel.yaml",
+        package_version=None,
+        submodule_names=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if ruamel_yaml:
+        return ruamel_yaml
+
+    logger.sysexit(
+        "Error, cannot format package configuration due to missing 'ruamel.yaml'."
+    )
+
+
+def getYamllintPackage(logger, assume_yes_for_downloads):
+    """Get yamllint package from private pip space or globally."""
+    yamllint = getPrivatePackage(
+        logger=logger,
+        package_name="yamllint",
+        module_name="yamllint",
+        package_version=None,
+        submodule_names=("cli",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if yamllint:
+        return yamllint
+
+    logger.sysexit(
+        "Error, cannot check package configuration due to missing 'yamllint'."
+    )
+
+
+def getDeepDiffPackage(logger, assume_yes_for_downloads):
+    """Get deepdiff package from private pip space or globally."""
+    deepdiff = getPrivatePackage(
+        logger=logger,
+        package_name="deepdiff",
+        module_name="deepdiff",
+        package_version=None,
+        submodule_names=("diff",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if deepdiff:
+        return deepdiff
+
+    logger.sysexit(
+        "Error, cannot compare package configuration due to missing 'deepdiff'."
+    )
 
 
 def checkDataChecksums(file_data, data):

@@ -12,6 +12,7 @@ spell-checker: ignore Hallett
 import os
 import re
 
+from nuitka.format.FileFormatting import cleanupWindowsNewlines
 from nuitka.Tracing import my_print
 from nuitka.utils.CStrings import decodeCStringToPython
 from nuitka.utils.Execution import (
@@ -25,6 +26,7 @@ from nuitka.utils.FileOperations import openTextFile
 
 # Parse output from `git diff-index`
 def _parseIndexDiffLine(line):
+    """Parse output from `git diff-index` into a dictionary."""
     pattern = re.compile(
         r"^:(\d+) (\d+) ([a-f0-9]+) ([a-f0-9]+) ([A-Z])(\d+)?\t([^\t]+)(?:\t([^\t]+))?$"
     )
@@ -62,6 +64,12 @@ def _parseIndexDiffLine(line):
 
 
 def getCheckoutFileChangeDesc(staged):
+    """Get descriptions of changed files in the checkout.
+
+    Args:
+        staged: bool - if True, look at staged changes (--cached),
+                       otherwise look at unstaged changes.
+    """
     # Only file additions and modifications
     command = ["git", "diff-index", "--diff-filter=AM", "--no-renames"]
 
@@ -80,6 +88,7 @@ def getCheckoutFileChangeDesc(staged):
 
 
 def getModifiedPaths():
+    """Get a list of all modified paths in the repository."""
     result = set()
 
     output = check_output(["git", "diff", "--name-only"])
@@ -102,6 +111,7 @@ def getModifiedPaths():
 
 
 def getRemoteURL(remote_name):
+    """Get the URL of a git remote."""
     output = check_output(["git", "remote", "get-url", remote_name])
 
     if str is not bytes:
@@ -111,6 +121,7 @@ def getRemoteURL(remote_name):
 
 
 def getCurrentBranchName():
+    """Get the name of the current git branch."""
     try:
         output = check_output(["git", "branch", "--show-current"])
     except NuitkaCalledProcessError:
@@ -123,6 +134,7 @@ def getCurrentBranchName():
 
 
 def getUnPushedPaths():
+    """Get a list of modified paths that have not been pushed to upstream."""
     result = set()
 
     try:
@@ -144,10 +156,12 @@ def getUnPushedPaths():
 
 
 def getFileHashContent(object_hash):
+    """Get the content of a git object from its hash."""
     return check_output(["git", "cat-file", "-p", object_hash])
 
 
 def putFileHashContent(filename):
+    """Add a file's content to the git object database and return its hash."""
     with openTextFile(filename, "r") as input_file:
         new_hash = check_output(
             ["git", "hash-object", "-w", "--stdin"], stdin=input_file
@@ -161,6 +175,7 @@ def putFileHashContent(filename):
 
 
 def updateFileIndex(diff_entry, new_object_hash):
+    """Update the git index with a new hash for a file."""
     # spell-checker: ignore cacheinfo
     check_call(
         [
@@ -174,6 +189,14 @@ def updateFileIndex(diff_entry, new_object_hash):
 
 
 def updateGitFile(path, orig_object_hash, new_object_hash, staged):
+    """Apply a patch to a file in the git repository.
+
+    Args:
+        path: str - path to the file
+        orig_object_hash: str - original hash of the file
+        new_object_hash: str - new hash of the file
+        staged: bool - if True, apply as a staged change
+    """
     patch = check_output(
         ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
     )
@@ -206,10 +229,7 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
         stdin=patch,
     )
 
-    # Windows extra ball, new files have new lines that make the patch fail.
     if exit_code != 0 and os.name == "nt":
-        from .auto_format.AutoFormat import cleanupWindowsNewlines
-
         cleanupWindowsNewlines(path, path)
 
         output, err, exit_code = executeProcess(

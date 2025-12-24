@@ -9,8 +9,8 @@ import re
 import sys
 from optparse import OptionParser
 
+from nuitka.format.FileFormatting import cleanupWindowsNewlines
 from nuitka.tools.Basics import goHome
-from nuitka.tools.quality.auto_format.AutoFormat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import (
