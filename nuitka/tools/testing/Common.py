@@ -37,6 +37,7 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    deleteFile,
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
@@ -405,8 +406,8 @@ def _removeCPythonTestSuiteDir():
                 ignore_errors=False,
                 extra_recommendation=None,
             )
-        elif os.path.isfile("@test"):
-            os.unlink("@test")
+        else:
+            deleteFile("@test", must_exist=False)
     except OSError:
         # TODO: Move this into removeDirectory maybe. Doing an external
         # call as last resort could be a good idea.

@@ -450,7 +450,7 @@ class build(distutils.command.build.build):
             embedded_data_files.update(getEmbeddedDataFilenames(report))
 
             if delete_report:
-                os.unlink(report_filename)
+                deleteFile(report_filename, must_exist=True)
 
         self.build_lib = build_lib
 
@@ -458,11 +458,11 @@ class build(distutils.command.build.build):
         for filename in getFileList(
             build_lib, only_suffixes=(".py", ".pyw", ".pyc", ".pyo")
         ):
-            os.unlink(filename)
+            deleteFile(filename, must_exist=True)
 
         # Remove data files from build folder, that's our job now too
         for filename in embedded_data_files:
-            os.unlink(filename)
+            deleteFile(filename, must_exist=True)
 
         os.chdir(old_dir)
 
