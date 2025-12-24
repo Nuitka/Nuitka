@@ -28,6 +28,7 @@ from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, getExecutablePath
 from nuitka.utils.FileOperations import (
+    deleteFile,
     getFileContentByLine,
     getFileContents,
     getFilenameExtension,
@@ -433,7 +434,7 @@ def autoFormatFile(
                 is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
 
         if not (is_python or is_c or is_cpp or is_txt or is_json or is_png or is_jpeg):
-            os.unlink(tmp_filename)
+            deleteFile(tmp_filename, must_exist=True)
             return False
 
         if is_python:
@@ -496,7 +497,7 @@ def autoFormatFile(
                     else:
                         shutil.copy(tmp_filename, filename)
 
-    os.unlink(tmp_filename)
+    deleteFile(tmp_filename, must_exist=True)
 
     return changed
 
@@ -541,8 +542,7 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             with withPreserveFileMode(filename):
                 shutil.copy(tmp_filename, filename)
     finally:
-        if os.path.exists(tmp_filename):
-            os.unlink(tmp_filename)
+        deleteFile(tmp_filename, must_exist=False)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
