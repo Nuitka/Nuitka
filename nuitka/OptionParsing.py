@@ -18,9 +18,12 @@ import re
 import sys
 from string import Formatter
 
+from nuitka.options.CommandLineOptionsTools import (
+    SUPPRESS_HELP,
+    makeOptionsParser,
+)
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import isPythonWithGil
-from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -974,6 +977,16 @@ debug_group.add_option(
     help="""\
 Executing all self checks possible to find errors in Nuitka, do not use for
 production. Defaults to off.""",
+)
+
+debug_group.add_option(
+    "--debug-self-forking",
+    action="store_true",
+    dest="debug_self_forking",
+    default=False,
+    help="""\
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself.
+Defaults to off.""",
 )
 
 debug_group.add_option(
