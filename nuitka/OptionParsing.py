@@ -1197,13 +1197,13 @@ Enable cProfile based profiling of time spent during compilation. Defaults to of
 )
 
 development_group.add_option(
-    "--devel-generate-indented-c-code",
+    "--devel-generate-readable-code",
     action="store_true",
-    dest="devel_indent_generated_c_code",
+    dest="devel_generate_readable_code",
     default=False,
     github_action=False,
     help="""\
-Produce C code that is properly indented. Defaults to off.""",
+Produce C code that is readable (clang-format). Defaults to off.""",
 )
 
 del development_group
