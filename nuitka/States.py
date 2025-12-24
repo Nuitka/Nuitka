@@ -21,7 +21,6 @@ class GlobalState(object):
         "report_missing_code_helpers",
         "report_missing_trust",
         "is_verbose",
-        "is_unindented_generated_code",
     )
 
     def __init__(self):
@@ -31,7 +30,6 @@ class GlobalState(object):
         self.report_missing_code_helpers = None
         self.report_missing_trust = None
         self.is_verbose = None
-        self.is_unindented_generated_code = None
 
 
 states = GlobalState()

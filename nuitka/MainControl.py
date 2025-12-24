@@ -49,6 +49,7 @@ from nuitka.importing.Recursion import (
 )
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.Options import (
+    assumeYesForDownloads,
     getDebuggerName,
     getExperimentalIndications,
     getFileReferenceMode,
@@ -534,7 +535,12 @@ def makeSourceDirectory():
             ),
         )
 
-        writeSourceCode(filename=c_filename, source_code=source_code)
+        writeSourceCode(
+            filename=c_filename,
+            source_code=source_code,
+            logger=code_generation_logger,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
 
     closeProgressBar()
 
@@ -548,21 +554,29 @@ def makeSourceDirectory():
     writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__helpers.h"),
         source_code=helper_decl_code,
+        logger=code_generation_logger,
+        assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
     writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__helpers.c"),
         source_code=helper_impl_code,
+        logger=code_generation_logger,
+        assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
     writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__constants.h"),
         source_code=constants_header_code,
+        logger=code_generation_logger,
+        assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
     writeSourceCode(
         filename=getNormalizedPathJoin(source_dir, "__constants.c"),
         source_code=constants_body_code,
+        logger=code_generation_logger,
+        assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
 
@@ -985,6 +999,8 @@ def compileTree():
         writeSourceCode(
             filename=getNormalizedPathJoin(source_dir, "__loader.c"),
             source_code=loader_code,
+            logger=code_generation_logger,
+            assume_yes_for_downloads=assumeYesForDownloads(),
         )
 
     else:

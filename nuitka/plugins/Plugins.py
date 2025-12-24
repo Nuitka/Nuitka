@@ -32,6 +32,7 @@ from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Options import (
+    assumeYesForDownloads,
     getForcedRuntimeEnvironmentVariableValues,
     getPluginNameConsideringRenames,
     getPluginsDisabled,
@@ -1440,7 +1441,10 @@ may work too."""
                 makePath(target_dir)
 
             writeSourceCode(
-                filename=os.path.join(target_dir, filename), source_code=source_code
+                filename=os.path.join(target_dir, filename),
+                source_code=source_code,
+                logger=plugins_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
             )
 
     extra_link_libraries = None
