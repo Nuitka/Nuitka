@@ -9,6 +9,7 @@ from nuitka.utils.Yaml import (
     PackageConfigYaml,
     checkSectionValues,
     getYamlDataHash,
+    getYamllintPackage,
     parsePackageYaml,
     parseYaml,
     validateSchema,
@@ -16,7 +17,14 @@ from nuitka.utils.Yaml import (
 
 
 def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
-    """Check the schema of the Nuitka package configuration YAML file."""
+    """Check the schema of the Nuitka package configuration YAML file.
+
+    Args:
+        logger: logger to use
+        document: original path of the YAML file
+        effective_filename: filename to use for errors (user provided name)
+        assume_yes_for_downloads: if tools should be downloaded automatically
+    """
     yaml_data = parseYaml(
         logger=logger,
         data=getFileContents(document, mode="rb"),
@@ -37,7 +45,15 @@ module_allow_list = ("mozilla-ca",)
 
 
 def checkYamlModuleName(logger, module_name):
-    """Check if the module name is valid."""
+    """Check if the module name is valid.
+
+    Args:
+        logger: logger to use
+        module_name: module name to check
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
     if module_name in module_allow_list:
         return True
 
@@ -59,7 +75,14 @@ def checkYamlModuleName(logger, module_name):
 
 
 def checkValues(logger, filename):
-    """Check validness of values in the Nuitka package configuration YAML file."""
+    """Check validness of values in the Nuitka package configuration YAML file.
+
+    Mainly checks the module names and sections within the configuration.
+
+    Args:
+        logger: logger to use
+        filename: path to the YAML file
+    """
     yaml = PackageConfigYaml(
         logger=logger,
         name=filename,
@@ -86,8 +109,13 @@ def checkValues(logger, filename):
 
 
 def checkYamllint(logger, document):
-    """Run yamllint on the file."""
-    import yamllint.cli  # pylint: disable=I0021,import-error
+    """Run yamllint on the file.
+
+    Args:
+        logger: logger to use
+        document: path to the YAML file
+    """
+    yamllint = getYamllintPackage(logger=logger, assume_yes_for_downloads=True)
 
     try:
         yamllint.cli.run(["--strict", document])
@@ -103,7 +131,13 @@ def checkYamllint(logger, document):
 
 
 def checkOrUpdateChecksum(filename, update, logger):
-    """Check or update module checksums."""
+    """Check or update module checksums.
+
+    Args:
+        filename: path to the YAML file
+        update: bool - if the checksums should be updated in the file
+        logger: logger to use
+    """
     yaml_file_text = getFileContents(filename, encoding="utf8")
 
     yaml_data = parsePackageYaml(
@@ -146,7 +180,16 @@ def checkOrUpdateChecksum(filename, update, logger):
 
 
 def checkYamlSchema(logger, filename, effective_filename, update):
-    """Check the YAML schema and values, and update checksums."""
+    """Check the YAML schema and values, and update checksums.
+
+    This is the main entry point for YAML checking of package configs.
+
+    Args:
+        logger: logger to use
+        filename: current path to the YAML file
+        effective_filename: name to use for reports (e.g. repo path)
+        update: if checksums should be updated in the file
+    """
     logger.info("Checking '%s' for proper contents:" % effective_filename, style="blue")
 
     checkSchema(

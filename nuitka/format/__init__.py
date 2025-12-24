@@ -1,27 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-# Other than "orderedset" and "zstandard", these are not nearly required
-# for installation, but nice to have updated in comparison to the inline
-# copies in Nuitka.
-# spell-checker: ignore tqdm,orderedset,pyyaml
 
-# Folders to use for cache files.
-appdirs
+"""The "nuitka.format" package.
 
-# For the progress bar to look nicely.
-tqdm; python_version == '2.7' or python_version >= '3.4'
+This package contains tools for automatic source code formatting of Nuitka.
 
-
-# More capable subprocess.
-subprocess32; python_version == '2.7'
-
-# Onefile compression
-zstandard >= 0.15; python_version >= '3.5'
-
-# Plugins need that, but there is an inline copy for old versions too.
-pyyaml; python_version == '2.7' or python_version >= '3.6'
-
-Jinja2 >= 2.10.2
+This is a package that is empty on purpose and not supposed to contain any
+code.
+"""
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
