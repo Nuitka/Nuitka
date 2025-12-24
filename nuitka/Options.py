@@ -2293,7 +2293,11 @@ def getExperimentalIndications():
 def getDebugModeIndications():
     result = []
 
-    for debug_option_value_name in ("debug_immortal", "debug_c_warnings"):
+    for debug_option_value_name in (
+        "debug_immortal",
+        "debug_c_warnings",
+        "debug_self_forking",
+    ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
             continue

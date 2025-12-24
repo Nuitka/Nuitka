@@ -1151,10 +1151,9 @@ When this fork bomb happens easily all memory, all CPU of the system
 that is available to the user is being used, and even the most powerful
 build system will go down in flames sometimes needing a hard reboot.
 
-For fork bombs, we can use ``--experimental=debug-self-forking`` and see
-what it does, and we have a trick, that prevents fork bombs from having
-any actual success in their bombing. Put this at the start of your
-program.
+For fork bombs, we can use ``--debug-self-forking`` and see what it
+does, and we have a trick, that prevents fork bombs from having any
+actual success in their bombing. Put this at the start of your program.
 
 .. code:: python
 

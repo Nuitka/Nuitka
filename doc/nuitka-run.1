@@ -204,6 +204,9 @@ Debug features:
 \fB\-\-debug\fR
 Executing all self checks possible to find errors in Nuitka, do not use for production. Defaults to off.
 .TP
+\fB\-\-debug\-self\-forking\fR
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself. Defaults to off.
+.TP
 \fB\-\-no\-debug\-immortal\-assumptions\fR
 Disable check normally done with "\-\-debug". With Python3.12+ do not check known immortal object assumptions. Some C libraries corrupt them. Defaults to check being made if "\-\-debug" is on.
 .TP

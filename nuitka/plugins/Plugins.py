@@ -44,12 +44,12 @@ from nuitka.Options import (
     shallDetectMissingPlugins,
     shallRecompileExtensionModules,
 )
+from nuitka.options.CommandLineOptionsTools import OurOptionGroup
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.tree.SourceHandling import writeSourceCode
-from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
     getNormalizedPathJoin,
