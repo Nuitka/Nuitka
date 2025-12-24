@@ -13,7 +13,6 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
-import importlib
 import inspect
 import os
 import sys
@@ -47,6 +46,7 @@ from nuitka.options.Options import (
     shallDetectMissingPlugins,
     shallRecompileExtensionModules,
 )
+from nuitka.options.CommandLineOptionsTools import OurOptionGroup
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
@@ -313,7 +313,7 @@ def _addPluginClass(plugin_class, detector):
 def _loadPluginClassesFromPackage(scan_package_name):
     # We check many things here, pylint: disable=too-many-branches
     try:
-        scan_package = importlib.import_module(scan_package_name)
+        scan_package = __import__(scan_package_name, fromlist=["*"])
     except ImportError:
         if "commercial" not in scan_package_name:
             return
@@ -345,7 +345,7 @@ def _loadPluginClassesFromPackage(scan_package_name):
         full_name = scan_package_name + "." + item.name
 
         try:
-            plugin_module = importlib.import_module(full_name)
+            plugin_module = __import__(full_name, fromlist=["*"])
         except Exception:
             if states.is_non_debug:
                 plugins_logger.warning(
