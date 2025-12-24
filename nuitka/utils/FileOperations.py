@@ -1163,12 +1163,14 @@ def withPreserveFileMode(filenames):
 
     old_modes = {}
     for filename in filenames:
-        old_modes[filename] = os.stat(filename).st_mode
+        if os.path.exists(filename):
+            old_modes[filename] = os.stat(filename).st_mode
 
     yield
 
     for filename in filenames:
-        os.chmod(filename, old_modes[filename])
+        if filename in old_modes and os.path.exists(filename):
+            os.chmod(filename, old_modes[filename])
 
 
 @contextmanager
