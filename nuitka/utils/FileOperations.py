@@ -138,7 +138,13 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    if os.path.exists(path1) and os.path.exists(path2):
+    exists1 = os.path.exists(path1)
+    exists2 = os.path.exists(path2)
+
+    if exists1 != exists2:
+        return False
+
+    if exists1 and exists2:
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
 
