@@ -166,7 +166,7 @@ static void prepareStandaloneEnvironment(void) {
 
 #if defined(_WIN32)
 #if _NUITKA_EXE_MODE
-    SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+    SetDllDirectoryW(L"");
 #else
     SetDllDirectoryW(getDllDirectory());
 #endif
