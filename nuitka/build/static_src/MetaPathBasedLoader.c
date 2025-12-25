@@ -735,7 +735,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     HINSTANCE hDLL;
 #if PYTHON_VERSION >= 0x380
     Py_BEGIN_ALLOW_THREADS;
-    hDLL = LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    hDLL = LoadLibraryExW(filename, NULL,
+// Where the onefile bootstrap is ran, we don't have anything to load from.
+#if !_NUITKA_ONEFILE_DLL_MODE
+                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+#endif
+                              LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
+                              LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
     Py_END_ALLOW_THREADS;
 #else
     hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
