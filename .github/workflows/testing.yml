@@ -171,12 +171,12 @@ jobs:
       - name: ⚙️ Verbose scons output in compilation
         run: |
           set -x
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
           ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
@@ -275,12 +275,12 @@ jobs:
         run: |
           set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
           # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Archive compilation reports for empty modules
@@ -293,20 +293,20 @@ jobs:
       - name: 🐞 Check all modes for debug output
         run: |
           set -x
-          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
           # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Run Nuitka test suite
         run: |
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
     needs: linux
