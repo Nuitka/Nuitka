@@ -6,14 +6,24 @@ ENV container docker
 VOLUME [ "/sys/fs/cgroup" ]
 
 ## Install what we use for CI generally
-COPY requirements-devel.txt /etc/requirements-devel.txt
 RUN mkdir /src
-RUN apt-get update && apt-get install -y apt-utils gcc python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
+RUN apt-get update && apt-get install -y \
+    apt-utils \
+    ccache \
+    chrpath \
+    dput \
+    gcc \
+    gdb \
+    git \
+    help2man \
+    lintian \
+    python3 \
+    python3-dev \
+    python3-pip \
+    rst2pdf \
+    strace \
+    wget
 
-## Install pbuilder extra stuff along with Nuitka build dependencies.
-RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
-
-RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
 ## Clean up APT when done.
 RUN apt-get clean && rm -rf "/var/lib/apt/lists/*" "/tmp/*" "/var/tmp/*"
