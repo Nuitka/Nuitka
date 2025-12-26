@@ -497,7 +497,8 @@
     "debian",
     "rpm/*.spec",
     "tests/scratch",
-    "doc/*.1"
+    "doc/*.1",
+    "*.containerfile"
   ],
   "yaml.schemas": {
     "misc/nuitka-package-config-schema.json": [
