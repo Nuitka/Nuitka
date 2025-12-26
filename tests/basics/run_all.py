@@ -83,18 +83,20 @@ def main():
         if filename == "BuiltinOverloadTest.py":
             extra_flags.append("ignore_warnings")
 
-        if python_version >= (3, 13, 1):
-            if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
-                reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
-                continue
-
-        if "Wip" in filename:
-            reportSkip("Test not for automatic execution.", ".", filename)
-            continue
-
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
+            if python_version >= (3, 13, 1):
+                if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
+                    reportSkip(
+                        "Regression of CPython 3.13.1 not followed", ".", filename
+                    )
+                    continue
+
+            if "Wip" in filename:
+                reportSkip("Test not for automatic execution.", ".", filename)
+                continue
+
             compareWithCPython(
                 dirname=None,
                 filename=filename,
