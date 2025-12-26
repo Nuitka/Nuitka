@@ -1206,6 +1206,16 @@ development_group.add_option(
 Produce C code that is readable (clang-format). Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-data-composer-verbose",
+    action="store_true",
+    dest="data_composer_verbose",
+    default=False,
+    github_action=False,
+    help="""\
+Enable verbose mode for the data composer. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And

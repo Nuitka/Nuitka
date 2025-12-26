@@ -8,8 +8,8 @@ import subprocess
 import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import isExperimental
 from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
+from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
@@ -51,7 +51,7 @@ def _runDataComposer(source_dir):
         )
     }
 
-    if isExperimental("debug-constants"):
+    if states.data_composer_verbose:
         mapping["NUITKA_DATA_COMPOSER_VERBOSE"] = "1"
 
     blob_filename = getConstantBlobFilename(source_dir)
