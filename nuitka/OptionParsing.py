@@ -74,7 +74,7 @@ if not plugin_help_mode:
     command line options too), consider the output of
     '--help-plugins'."""
 
-parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
+parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name, epilog=None)
 
 parser.add_option(
     "--version",
