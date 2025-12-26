@@ -21,6 +21,7 @@ class GlobalState(object):
         "report_missing_code_helpers",
         "report_missing_trust",
         "is_verbose",
+        "data_composer_verbose",
     )
 
     def __init__(self):
@@ -30,6 +31,7 @@ class GlobalState(object):
         self.report_missing_code_helpers = None
         self.report_missing_trust = None
         self.is_verbose = None
+        self.data_composer_verbose = None
 
 
 states = GlobalState()

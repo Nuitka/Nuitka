@@ -585,6 +585,7 @@ def parseArgs():
         options.verbose = True
 
     states.is_verbose = options.verbose
+    states.data_composer_verbose = options.data_composer_verbose
 
     optimization_logger.is_quiet = not options.verbose
 
