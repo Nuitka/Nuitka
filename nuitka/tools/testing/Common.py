@@ -13,12 +13,11 @@ import tempfile
 import threading
 import time
 from contextlib import contextmanager
-from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import getCommercialVersion
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
     getTestExecutionPythonVersions,
@@ -52,14 +51,9 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
+from nuitka.Version import getCommercialVersion
 
-from .SearchModes import (
-    SearchModeByPattern,
-    SearchModeCoverage,
-    SearchModeImmediate,
-    SearchModeOnly,
-    SearchModeResume,
-)
+from .SearchModes import SearchMode
 
 # spell-checker: ignore popenargs,pathsep,killpg
 
@@ -821,9 +815,27 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
 
 def createSearchMode():
     # Dealing with many options, pylint: disable=too-many-branches
-    # Return driven, pylint: disable=too-many-return-statements
 
-    parser = OptionParser()
+    parser = makeOptionsParser(
+        usage="%prog [options]",
+        epilog="""\
+The following shortcuts are available for the default "search" mode:
+
+resume [pattern]    : Same as "search --resume [pattern]"
+skip [pattern]      : Same as "search --skip [pattern]" (resumes, skips current)
+only [pattern]      : Same as "search --only-one [pattern]"
+all [pattern]       : Same as "search --all [pattern]"
+coverage [pattern]  : Same as "search --coverage [pattern]"
+
+Examples:
+  ./run_all.py                    # Run all tests, abort on first error
+  ./run_all.py --all              # Run all tests, continue on error
+  ./run_all.py --all --pattern=A* # Run all tests starting with A
+  ./run_all.py resume             # Resume from last failed test
+  ./run_all.py skip               # Skip failure and resume from next
+  ./run_all.py only MyTest        # Run only MyTest.py
+""",
+    )
 
     select_group = parser.add_option_group("Select Tests")
 
@@ -842,6 +854,15 @@ Execute only tests matching the pattern. Defaults to all tests.""",
         default=False,
         help="""\
 Execute all tests, continue execution even after failure of one.""",
+    )
+    select_group.add_option(
+        "--max-failures",
+        action="store",
+        dest="max_failures",
+        default=None,
+        type="int",
+        help="""\
+Stop after this many failures. Default is to not stop. Only valid with --all.""",
     )
     select_group.add_option(
         "--jobs",
@@ -875,6 +896,31 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
+    debug_group.add_option(
+        "--resume",
+        action="store_true",
+        dest="resume",
+        default=False,
+        help="""Resume from last run.""",
+    )
+
+    debug_group.add_option(
+        "--only-one",
+        action="store_true",
+        dest="only",
+        default=False,
+        help="""Execute only the first matching test.""",
+    )
+
+    debug_group.add_option(
+        "--coverage",
+        action="store_true",
+        dest="coverage",
+        default=False,
+        help="""\
+Run tests with coverage enabled.""",
+    )
+
     del debug_group
 
     options, positional_args = parser.parse_args()
@@ -896,33 +942,38 @@ Defaults to off.""",
         if len(positional_args) >= 2 and not options.pattern:
             options.pattern = positional_args[1]
 
-    if mode == "search":
-        if options.all:
-            return SearchModeByPattern(start_at=None)
-        elif options.pattern:
-            return SearchModeByPattern(
-                start_at=options.pattern.replace("/", os.path.sep)
-            )
-        else:
-            return SearchModeImmediate()
-    elif mode == "resume":
-        return SearchModeResume(sys.modules["__main__"].__file__, skip=False)
+    if mode == "resume":
+        options.resume = True
     elif mode == "skip":
-        return SearchModeResume(sys.modules["__main__"].__file__, skip=True)
+        options.resume = True
+        options.skip = True
     elif mode == "only":
-        if options.pattern:
-            pattern = options.pattern.replace("/", os.path.sep)
-            return SearchModeOnly(pattern)
-        else:
-            assert False
+        options.only = True
+    elif mode == "all":
+        options.all = True
     elif mode == "coverage":
-        return SearchModeCoverage(
-            start_at=(
-                options.pattern.replace("/", os.path.sep) if options.pattern else None
-            )
-        )
+        options.coverage = True
+    elif mode == "search":
+        pass
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)
+
+    if options.max_failures is not None and not options.all:
+        test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+
+    start_at = options.pattern.replace("/", os.path.sep) if options.pattern else None
+
+    return SearchMode(
+        logger=test_logger,
+        start_at=start_at,
+        start_dir=getStartDir(),
+        resume=options.resume,
+        only=options.only,
+        abort_on_error=not options.all,
+        skip=getattr(options, "skip", False),
+        coverage=options.coverage,
+        max_failures=options.max_failures,
+    )
 
 
 def reportSkip(reason, dirname, filename):
