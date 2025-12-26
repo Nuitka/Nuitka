@@ -40,7 +40,7 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getCompanyName,
     getFileVersion,
     getMacOSTargetArch,

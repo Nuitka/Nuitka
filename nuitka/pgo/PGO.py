@@ -7,7 +7,7 @@ import os
 import struct
 
 from nuitka.__past__ import xrange
-from nuitka.Options import getPythonPgoUnseenModulePolicy
+from nuitka.options.Options import getPythonPgoUnseenModulePolicy
 from nuitka.Tracing import pgo_logger
 
 _pgo_active = False

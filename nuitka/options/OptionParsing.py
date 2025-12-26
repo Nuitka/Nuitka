@@ -18,10 +18,6 @@ import re
 import sys
 from string import Formatter
 
-from nuitka.options.CommandLineOptionsTools import (
-    SUPPRESS_HELP,
-    makeOptionsParser,
-)
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import isPythonWithGil
 from nuitka.utils.FileOperations import getFileContentByLine
@@ -37,6 +33,8 @@ from nuitka.utils.Utils import (
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+
+from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -253,7 +251,7 @@ def getBuildConfigurationOptions(logger):
 
             # Check if it is a Poetry project
             if "poetry" in tool_data:
-                from nuitka.options.Poetry import getPoetryBuildConfiguration
+                from .Poetry import getPoetryBuildConfiguration
 
                 return getPoetryBuildConfiguration(logger)
 
@@ -262,9 +260,7 @@ def getBuildConfigurationOptions(logger):
 
             # Check if it is a "setuptools" project
             if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
-                from nuitka.options.BuildPackage import (
-                    getBuildBackendConfiguration,
-                )
+                from .BuildPackage import getBuildBackendConfiguration
 
                 return getBuildBackendConfiguration(logger)
 
@@ -275,7 +271,7 @@ def getBuildConfigurationOptions(logger):
 
     # Check if it is old-style "setuptools".
     if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
-        from nuitka.options.BuildPackage import getBuildBackendConfiguration
+        from .BuildPackage import getBuildBackendConfiguration
 
         return getBuildBackendConfiguration(logger)
 

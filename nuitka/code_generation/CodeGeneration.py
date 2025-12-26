@@ -19,7 +19,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.Options import isCompileTimeProfile
+from nuitka.options.Options import isCompileTimeProfile
 from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC

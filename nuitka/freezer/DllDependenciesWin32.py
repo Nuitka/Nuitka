@@ -12,7 +12,7 @@ import sys
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isExperimental, isShowProgress
+from nuitka.options.Options import isExperimental, isShowProgress
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath

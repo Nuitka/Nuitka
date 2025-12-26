@@ -48,7 +48,7 @@ from nuitka.importing.Recursion import (
     scanPluginSinglePath,
 )
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
-from nuitka.Options import (
+from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebuggerName,
     getExperimentalIndications,

@@ -16,7 +16,7 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename

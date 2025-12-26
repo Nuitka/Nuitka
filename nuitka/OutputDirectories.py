@@ -12,7 +12,7 @@ this.
 
 import os
 
-from nuitka.Options import (
+from nuitka.options.Options import (
     getOutputFilename,
     getOutputFolderName,
     getOutputPath,

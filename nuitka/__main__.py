@@ -152,7 +152,7 @@ def main():
 
     setupHooks()
 
-    from nuitka import Options  # isort:skip
+    from nuitka.options import Options  # isort:skip
 
     Options.parseArgs()
 

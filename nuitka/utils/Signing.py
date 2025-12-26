@@ -3,7 +3,7 @@
 
 """Signing of executables."""
 
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMacOSSignedAppName,
     getMacOSSigningCertificateFilename,
     getMacOSSigningCertificatePassword,

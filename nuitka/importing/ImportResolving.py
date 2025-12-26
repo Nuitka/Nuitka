@@ -4,7 +4,7 @@
 """This cares about resolving module names at compile time compensating meta path based importers."""
 
 from nuitka.__past__ import unicode
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 

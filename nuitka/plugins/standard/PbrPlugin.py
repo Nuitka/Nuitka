@@ -7,7 +7,7 @@ The pbr module needs to find a version number in compiled mode. The value
 itself seems less important than the fact that some value does exist.
 """
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

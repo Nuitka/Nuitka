@@ -11,7 +11,7 @@ This is going to expanded with time.
 
 """
 
-from nuitka.Options import isShowMemory
+from nuitka.options.Options import isShowMemory
 from nuitka.Tracing import printIndented, printLine
 
 counted_inits = {}

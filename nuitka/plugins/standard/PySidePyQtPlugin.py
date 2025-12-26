@@ -10,7 +10,7 @@ own dependencies.
 import os
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import (
+from nuitka.options.Options import (
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
     isStandaloneMode,

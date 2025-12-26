@@ -258,7 +258,7 @@ def getCppPath():
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and cpp_path is None:
-        from nuitka.Options import assumeYesForDownloads
+        from nuitka.options.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),

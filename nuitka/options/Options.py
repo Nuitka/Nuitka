@@ -21,11 +21,6 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.OptionParsing import (
-    parseOptions,
-    run_time_variable_names,
-    runSpecialCommandsFromOptions,
-)
 from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
@@ -103,6 +98,12 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+
+from .OptionParsing import (
+    parseOptions,
+    run_time_variable_names,
+    runSpecialCommandsFromOptions,
+)
 
 options = None
 positional_args = None

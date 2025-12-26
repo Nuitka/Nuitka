@@ -4,7 +4,7 @@
 """Global constant values."""
 
 from nuitka.__past__ import long
-from nuitka.Options import isDeploymentMode, shallMakeModule
+from nuitka.options.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
 from nuitka.States import states

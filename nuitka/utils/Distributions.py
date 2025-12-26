@@ -15,7 +15,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,

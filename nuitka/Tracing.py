@@ -376,7 +376,7 @@ class OurLogger(object):
         self, message, style="yellow", mnemonic=None, keep_format=False, leader=None
     ):
         if mnemonic is not None:
-            from .Options import shallDisplayWarningMnemonic
+            from .options.Options import shallDisplayWarningMnemonic
 
             if not shallDisplayWarningMnemonic(mnemonic):
                 return

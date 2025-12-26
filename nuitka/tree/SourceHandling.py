@@ -14,7 +14,7 @@ import sys
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.format.FileFormatting import formatC
-from nuitka.Options import (
+from nuitka.options.Options import (
     shallGenerateReadableCode,
     shallShowSourceModifications,
 )

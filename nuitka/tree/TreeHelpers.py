@@ -29,7 +29,7 @@ from nuitka.nodes.KeyValuePairNodes import (
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.Options import hasPythonFlagNoDocStrings
+from nuitka.options.Options import hasPythonFlagNoDocStrings
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine

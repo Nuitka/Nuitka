@@ -17,7 +17,7 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import (
+from nuitka.options.Options import (
     isShowProgress,
     shallCreateAppBundle,
     shallNotStoreDependsExeCachedResults,
