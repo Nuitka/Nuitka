@@ -18,7 +18,7 @@ from nuitka.importing.StandardLibrary import (
     isStandardLibraryPath,
     scanStandardLibraryPath,
 )
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, printError
 from nuitka.utils.Execution import executeProcess

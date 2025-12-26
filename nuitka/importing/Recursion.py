@@ -17,7 +17,7 @@ from nuitka.ModuleRegistry import (
     addUsedModule,
     getRootTopModule,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getShallFollowInNoCase,
     getShallFollowModules,
     hasPythonFlagPackageMode,

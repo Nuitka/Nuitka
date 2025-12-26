@@ -11,7 +11,7 @@ typical support functions to building parts.
 from contextlib import contextmanager
 
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
-from nuitka.Options import shallTraceExecution
+from nuitka.options.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 

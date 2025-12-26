@@ -13,7 +13,7 @@ from nuitka.build.SconsInterface import (
     getCommonSconsOptions,
     runScons,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getJobLimit,
     getOnefileTempDirSpec,
     getProgressBar,

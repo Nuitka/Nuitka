@@ -16,7 +16,7 @@ from nuitka.nodes.ExceptionNodes import (
     makeBuiltinMakeExceptionNode,
 )
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
-from nuitka.Options import hasPythonFlagNoAsserts
+from nuitka.options.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode

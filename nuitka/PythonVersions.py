@@ -225,7 +225,7 @@ def getRunningPythonDLLPath():
 def getTargetPythonDLLPath():
     dll_path = getRunningPythonDLLPath()
 
-    from nuitka.Options import shallUsePythonDebug
+    from nuitka.options.Options import shallUsePythonDebug
 
     if dll_path.endswith("_d.dll"):
         if not shallUsePythonDebug():
@@ -266,7 +266,7 @@ def getPythonABI():
         abiflags = sys.abiflags
 
         # Cyclic dependency here.
-        from nuitka.Options import shallUsePythonDebug
+        from nuitka.options.Options import shallUsePythonDebug
 
         # spell-checker: ignore getobjects
         if shallUsePythonDebug() or hasattr(sys, "getobjects"):

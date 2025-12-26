@@ -6,7 +6,7 @@
 import os
 import sys
 
-from nuitka.Options import isStandaloneMode, shallCreateAppBundle
+from nuitka.options.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion

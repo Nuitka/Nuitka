@@ -12,7 +12,7 @@ import os
 # pylint: disable=I0021,import-error,redefined-builtin
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import assumeYesForDownloads
+from nuitka.options.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden

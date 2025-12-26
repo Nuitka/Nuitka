@@ -16,7 +16,7 @@ from nuitka.utils.FileOperations import removeDirectory
 
 
 def _cleanCacheDirectory(cache_name, cache_dir):
-    from nuitka.Options import shallCleanCache
+    from nuitka.options.Options import shallCleanCache
 
     if shallCleanCache(cache_name) and os.path.exists(cache_dir):
         cache_logger.info(

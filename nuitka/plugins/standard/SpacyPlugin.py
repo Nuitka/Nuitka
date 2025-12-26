@@ -8,7 +8,7 @@ spell-checker: ignore spacy
 
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Distributions import getEntryPointGroup
 from nuitka.utils.ModuleNames import ModuleName

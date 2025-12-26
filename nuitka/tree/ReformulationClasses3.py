@@ -83,7 +83,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec

@@ -8,7 +8,7 @@ spell-checker: ignore Playwright
 
 import os
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import hasDirectoryContents
 from nuitka.utils.Utils import isMacOS, isWin32Windows

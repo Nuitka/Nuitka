@@ -13,7 +13,7 @@ import sys
 from nuitka.Constants import isConstant
 from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
     getImportlibSubPackages,

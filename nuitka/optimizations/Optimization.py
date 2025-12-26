@@ -13,7 +13,11 @@ import inspect
 from nuitka import ModuleRegistry
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
-from nuitka.Options import isCompileTimeProfile, isShowMemory, isShowProgress
+from nuitka.options.Options import (
+    isCompileTimeProfile,
+    isShowMemory,
+    isShowProgress,
+)
 from nuitka.plugins.Hooks import (
     considerImplicitImports,
     getModuleSysPathAdditions,

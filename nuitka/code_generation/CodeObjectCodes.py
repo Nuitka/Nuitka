@@ -9,7 +9,7 @@ Right now only the creation is done here. But more should be added later on.
 import os
 
 from nuitka.__past__ import unicode
-from nuitka.Options import getFileReferenceMode, isExperimental
+from nuitka.options.Options import getFileReferenceMode, isExperimental
 from nuitka.PythonVersions import python_version
 
 

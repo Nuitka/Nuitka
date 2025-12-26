@@ -14,7 +14,7 @@ from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
-from nuitka.Options import (
+from nuitka.options.Options import (
     getFileReferenceMode,
     hasPythonFlagIsolated,
     hasPythonFlagPackageMode,

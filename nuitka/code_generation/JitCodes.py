@@ -3,7 +3,7 @@
 
 """Code generation for JIT specific stuff, preserving source code for runtime."""
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 
 
 def addUncompiledFunctionSourceDict(func_value, context):

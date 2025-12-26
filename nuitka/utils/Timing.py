@@ -148,7 +148,7 @@ def withProfiling(name, logger, enabled):
         import cProfile
         import pstats
 
-        from nuitka.Options import getOutputPath
+        from nuitka.options.Options import getOutputPath
 
         pr = cProfile.Profile(timer=process_time)
         pr.enable()

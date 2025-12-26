@@ -31,7 +31,8 @@ from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Options import (
+from nuitka.options.CommandLineOptionsTools import OurOptionGroup
+from nuitka.options.Options import (
     assumeYesForDownloads,
     getForcedRuntimeEnvironmentVariableValues,
     getPluginNameConsideringRenames,
@@ -45,7 +46,6 @@ from nuitka.Options import (
     shallDetectMissingPlugins,
     shallRecompileExtensionModules,
 )
-from nuitka.options.CommandLineOptionsTools import OurOptionGroup
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.States import states

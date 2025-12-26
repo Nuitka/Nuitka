@@ -11,7 +11,7 @@ from nuitka.code_generation.c_types.CTypeNuitkaInts import (
 )
 from nuitka.code_generation.Reports import onMissingOperation
 from nuitka.Constants import the_empty_unicode
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowDescriptions import (

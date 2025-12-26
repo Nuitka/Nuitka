@@ -17,7 +17,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names,
 )
-from nuitka.Options import hasPythonFlagNoAsserts
+from nuitka.options.Options import hasPythonFlagNoAsserts
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode

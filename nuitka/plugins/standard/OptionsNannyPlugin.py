@@ -8,7 +8,7 @@ the user wants, or even be required, as e.g. "wx" on macOS will crash unless the
 console is disabled. This reads Yaml configuration.
 """
 
-from nuitka.Options import (
+from nuitka.options.Options import (
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,

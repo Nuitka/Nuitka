@@ -6,7 +6,7 @@
 import os
 import re
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython

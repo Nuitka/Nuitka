@@ -5,7 +5,7 @@
 
 import os
 
-from nuitka.Options import getMainEntryPointFilenames
+from nuitka.options.Options import getMainEntryPointFilenames
 from nuitka.utils.ModuleNames import makeMultidistModuleName
 
 

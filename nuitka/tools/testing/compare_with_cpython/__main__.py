@@ -11,7 +11,7 @@ import sys
 import time
 
 from nuitka.__past__ import md5
-from nuitka.OptionParsing import getNuitkaProjectOptions
+from nuitka.options.OptionParsing import getNuitkaProjectOptions
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     decryptOutput,

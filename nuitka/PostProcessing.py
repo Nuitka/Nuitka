@@ -9,7 +9,7 @@ import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.ModuleRegistry import getImportedModuleNames
-from nuitka.Options import (
+from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
     getProductVersionTuple,

@@ -11,7 +11,11 @@ from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-buil
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
+from nuitka.options.Options import (
+    getMacOSTargetArch,
+    isShowInclusion,
+    isUnstripped,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 

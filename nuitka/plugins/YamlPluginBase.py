@@ -8,7 +8,7 @@ This is to provide the base class for all Yaml plugins. These deal with the
 configuration files of Nuitka.
 """
 
-from nuitka.Options import assumeYesForDownloads
+from nuitka.options.Options import assumeYesForDownloads
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 from .PluginBase import NuitkaPluginBase

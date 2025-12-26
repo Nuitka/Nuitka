@@ -5,7 +5,7 @@
 
 import os
 
-from nuitka.Options import isOnefileMode, shallNotCompressOnefile
+from nuitka.options.Options import isOnefileMode, shallNotCompressOnefile
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath

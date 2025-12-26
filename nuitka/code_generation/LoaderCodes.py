@@ -25,7 +25,7 @@ from nuitka.ModuleRegistry import (
     getUncompiledModules,
     getUncompiledTechnicalModules,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getFileReferenceMode,
     hasNonDeploymentIndicator,
     isShowInclusion,

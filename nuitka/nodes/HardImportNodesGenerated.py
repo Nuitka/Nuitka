@@ -33,7 +33,7 @@ spell-checker: ignore winmode zfill
 import os
 from abc import abstractmethod
 
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (

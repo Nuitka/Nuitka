@@ -21,7 +21,7 @@ import re
 from posixpath import normpath
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import getUserProvidedYamlFiles
+from nuitka.options.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
