@@ -183,6 +183,7 @@ package_data = {
     "nuitka.reports": ["*.j2"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
     "nuitka.utils": ["requirements-private.txt"],
+    "nuitka.format": ["biome.json"],
 }
 
 
