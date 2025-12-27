@@ -160,7 +160,7 @@ def createEntitlementsInfoFile():
 
     if entitlements_dict:
         entitlements_filename = os.path.join(
-            getSourceDirectoryPath(), "entitlements.plist"
+            getSourceDirectoryPath(onefile=False, create=False), "entitlements.plist"
         )
 
         _writePlist(entitlements_filename, entitlements_dict)
