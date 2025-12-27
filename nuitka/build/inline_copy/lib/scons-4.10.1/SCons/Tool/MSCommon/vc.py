@@ -2108,15 +2108,21 @@ def _check_cl_exists_in_script_env(data):
 # not the entire output of running the batch file - saves a bit
 # of time not parsing every time.
 
-script_env_cache = None
+script_env_cache = {}
 
-def script_env(env, script, args=None):
+def script_env(env, script, version, args=None):
     global script_env_cache
 
-    if script_env_cache is None:
-        script_env_cache = common.read_script_env_cache()
+    if version not in script_env_cache:
+        script_env_cache[version] = common.read_script_env_cache(version=version)
+    current_env_cache = script_env_cache[version]
+
     cache_key = (script, args if args else None)
-    cache_data = script_env_cache.get(cache_key, None)
+    cache_data = current_env_cache.get(cache_key, None)
+    if cache_data is None:
+        miss_reason = "No cache entry for this script/args"
+    else:
+        miss_reason = None
 
     # Brief sanity check: if we got a value for the key,
     # see if it has a VCToolsInstallDir entry that is not empty.
@@ -2133,11 +2139,110 @@ def script_env(env, script, args=None):
                 toolpath = Path(toolsdir[0])
                 if not toolpath.exists():
                     cache_data = None
+                    miss_reason = "VCToolsInstallDir %s does not exist" % toolpath
+
+    # Nuitka: We use a very much enhanced algorithm here for checking that the
+    # cache is still valid.
+    if cache_data is not None:
+        if "script_mtime" not in cache_data:
+             cache_data = None
+             miss_reason = "script_mtime missing in cache"
+        else:
+            try:
+                if int(os.path.getmtime(script)) != int(cache_data["script_mtime"]):
+                     cache_data = None
+                     miss_reason = "Script modified (mtime mismatch)"
+                elif isinstance(cache_data["script_mtime"], float):
+                     cache_data = None
+                     miss_reason = "Script mtime is float (legacy checking)"
+            except (OSError, ValueError):
+                 cache_data = None
+                 miss_reason = "Error checking script mtime"
+
+    if cache_data is not None:
+        # Check that all the INCLUDE and LIB paths still exist.
+        for env_var in ("INCLUDE", "LIB"):
+            if env_var not in cache_data:
+                continue
+
+            for path in cache_data[env_var]:
+                if not os.path.exists(path):
+                    cache_data = None
+                    miss_reason = "Path %s in %s does not exist" % (path, env_var)
+                    break
+
+            if cache_data is None:
+                break
+
+    if cache_data is not None:
+         # Check if there is a newer SDK version
+        if "WindowsSdkDir" in cache_data and "WindowsSDKVersion" in cache_data:
+            windows_sdk_dir = None
+            for candidate in cache_data["WindowsSdkDir"]:
+                 if os.path.isdir(os.path.join(candidate, "Include")):
+                      windows_sdk_dir = candidate
+                      break
+
+            windows_sdk_version = None
+            for candidate in cache_data["WindowsSDKVersion"]:
+                 if candidate.startswith("10.0."):
+                      windows_sdk_version = candidate
+                      break
+
+            if windows_sdk_dir and windows_sdk_version:
+                windows_sdk_dir = windows_sdk_dir.rstrip("\\/")
+                windows_sdk_version = windows_sdk_version.rstrip("\\/")
+                windows_sdk_include_dir = os.path.join(windows_sdk_dir, "Include")
+
+                if os.path.isdir(windows_sdk_include_dir):
+                     found_newer_version = False
+
+                     try:
+                         cached_tuple = tuple(int(d) for d in windows_sdk_version.split("."))
+                     except ValueError:
+                         # If cached version is invalid (e.g. contains chars), we can't reliably compare.
+                         # Fallback or assume valid? Assuming valid or skip logic.
+                         # However, we filtered earlier for "10.0.", so likely valid.
+                         cached_tuple = None
+
+                     if cached_tuple:
+                         for entry in os.listdir(windows_sdk_include_dir):
+                              if entry == windows_sdk_version:
+                                  continue
+
+                              if not entry.startswith("10.0."):
+                                  continue
+
+                              # Compare versions as tuples of integers to handle "10.0.10.0" > "10.0.9.0" correctly.
+                              try:
+                                   entry_tuple = tuple(int(d) for d in entry.split("."))
+                              except ValueError:
+                                   continue
+
+                              if entry_tuple > cached_tuple:
+                                   found_newer_version = True
+                                   break
+
+                     if found_newer_version:
+                          cache_data = None
+                          miss_reason = "Newer SDK version found"
+
+    if cache_data is not None:
+         if os.environ.get("NUITKA_SCONS_CHECK_MSVC_CACHE"):
+              print("Nuitka-Scons: MSVC Environment Cache Hit (version %s)" % version)
 
     if cache_data is None:
+        if os.environ.get("NUITKA_SCONS_CHECK_MSVC_CACHE"):
+             print("Nuitka-Scons: MSVC Environment Cache Miss (version %s): %s" % (version, miss_reason))
+
         skip_sendtelemetry = _skip_sendtelemetry(env)
         stdout = common.get_output(script, args, skip_sendtelemetry=skip_sendtelemetry)
         cache_data = common.parse_output(stdout)
+
+        try:
+             cache_data["script_mtime"] = int(os.path.getmtime(script))
+        except OSError:
+             pass
 
         # debug(stdout)
         olines = stdout.splitlines()
@@ -2166,8 +2271,9 @@ def script_env(env, script, args=None):
                 raise BatchFileExecutionError(script_errmsg)
 
         # once we updated cache, give a chance to write out if user wanted
-        script_env_cache[cache_key] = cache_data
-        common.write_script_env_cache(script_env_cache)
+        # once we updated cache, give a chance to write out if user wanted
+        current_env_cache[cache_key] = cache_data
+        common.write_script_env_cache(current_env_cache, version=version)
 
     return cache_data
 
@@ -2293,7 +2399,7 @@ def msvc_find_valid_batch_script(env, version):
             arg = MSVC.ScriptArguments.msvc_script_arguments(env, version, vc_dir, arg)
             debug('trying vc_script:%s, vc_script_args:%s', repr(vc_script), arg)
             try:
-                d = script_env(env, vc_script, args=arg)
+                d = script_env(env, vc_script, args=arg, version=version)
             except BatchFileExecutionError as e:
                 debug('failed vc_script:%s, vc_script_args:%s, error:%s', repr(vc_script), arg, e)
                 vc_script = None
@@ -2319,7 +2425,7 @@ def msvc_find_valid_batch_script(env, version):
                 # Try to use the sdk batch file for this (host, target, sdk_pdir) combo
                 debug('trying sdk_script:%s', repr(sdk_script))
                 try:
-                    d = script_env(env, sdk_script)
+                    d = script_env(env, sdk_script, version=version)
                     version_installed = True
                 except BatchFileExecutionError as e:
                     debug('failed sdk_script:%s, error=%s', repr(sdk_script), e)
