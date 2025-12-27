@@ -159,7 +159,7 @@ def main():
     from nuitka.OutputDirectories import getSourceDirectoryPath
 
     for binary_name, module_name, function_name in Options.getMainEntryPointSpecs():
-        source_dir = getSourceDirectoryPath(create=True)
+        source_dir = getSourceDirectoryPath(onefile=False, create=True)
         runner_filename = os.path.join(source_dir, binary_name + ".py")
 
         code = """\

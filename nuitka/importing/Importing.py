@@ -101,7 +101,7 @@ def setupImportingFromOptions():
         _checkRaisingBuiltinComplete()
 
     if getOutputFolderName() is not None:
-        source_dir = getSourceDirectoryPath(create=False)
+        source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
         source_dir = None
 

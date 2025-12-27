@@ -8,6 +8,8 @@ issue when output.
 
 """
 
+from nuitka.code_generation.Indentation import indented
+
 
 class NuitkaErrorBase(Exception):
     pass
@@ -17,8 +19,6 @@ class NuitkaNodeError(NuitkaErrorBase):
     # Try to output more information about nodes passed.
     def __str__(self):
         try:
-            from nuitka.code_generation.Indentation import indented
-
             parts = [""]
 
             for arg in self.args:  # false alarm, pylint: disable=I0021,not-an-iterable
