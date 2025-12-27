@@ -168,7 +168,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         emit(
             template_make_empty_generator
             % {
-                "closure_copy": indented(closure_copy, 0, True),
+                "closure_copy": indented(closure_copy),
                 "to_name": to_name,
                 "generator_module": getModuleAccessCode(context),
                 "generator_name_obj": context.getConstantCode(
@@ -193,7 +193,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 ),
                 "to_name": to_name,
                 "args": ", ".join(str(arg) for arg in args),
-                "closure_copy": indented(closure_copy, 0, True),
+                "closure_copy": indented(closure_copy),
             }
         )
 

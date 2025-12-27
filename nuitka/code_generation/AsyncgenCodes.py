@@ -161,7 +161,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
                 asyncgen_object_body.getCodeName()
             ),
             "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy, 0, True),
+            "closure_copy": indented(closure_copy),
         }
     )
 

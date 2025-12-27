@@ -369,7 +369,7 @@ def getFunctionCreationCode(
             "to_name": to_name,
             "function_maker_identifier": function_maker_identifier,
             "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy, 0, True),
+            "closure_copy": indented(closure_copy),
         }
     )
 

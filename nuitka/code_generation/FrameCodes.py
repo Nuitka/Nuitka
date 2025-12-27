@@ -308,7 +308,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
             template_frame_guard_normal_main_block,
             frame_identifier=frame_identifier,
             frame_cache_identifier=frame_cache_identifier,
-            codes=indented(codes, 0),
+            codes=indented(codes),
             no_exception_exit=no_exception_exit,
             needs_preserve=needs_preserve,
             make_frame_code=make_frame_code,
@@ -406,7 +406,7 @@ def getFrameGuardGeneratorCode(
             frame_identifier=frame_identifier,
             frame_cache_identifier=frame_cache_identifier,
             context_identifier=context_identifier,
-            codes=indented(codes, 0),
+            codes=indented(codes),
             no_exception_exit=no_exception_exit,
             needs_preserve=False,  # TODO: Clears stuff
             make_frame_code=make_frame_code,

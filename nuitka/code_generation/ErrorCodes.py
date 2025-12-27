@@ -113,8 +113,7 @@ def getErrorExitBoolCode(
                         getFrameVariableTypeDescriptionCode(context)
                     ),
                     "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-                },
-                0,
+                }
             )
         )
     else:
@@ -130,8 +129,7 @@ def getErrorExitBoolCode(
                         getFrameVariableTypeDescriptionCode(context)
                     ),
                     "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-                },
-                0,
+                }
             )
         )
 
