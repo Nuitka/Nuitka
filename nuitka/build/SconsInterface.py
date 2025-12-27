@@ -71,7 +71,10 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
-from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
+from nuitka.utils.AppDirs import (
+    getCacheDir,
+    getCacheDirEnvironmentVariableName,
+)
 from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
     getExecutablePath,
@@ -216,6 +219,10 @@ def _setupSconsEnvironment2():
         os.environ[getCacheDirEnvironmentVariableName(getDownloadCacheName())] = (
             getExternalUsePath(download_cache_dir)
         )
+
+        msvc_config_cache_dir = getCacheDir("scons-msvc-config")
+        makePath(msvc_config_cache_dir)
+        os.environ["SCONS_CACHE_MSVC_CONFIG"] = getNormalizedPath(msvc_config_cache_dir)
 
     yield
 
@@ -413,6 +420,9 @@ def runScons(scons_options, env_values, scons_filename):
 
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
+
+        if isShowScons():
+            env_values["NUITKA_SCONS_CHECK_MSVC_CACHE"] = "1"
 
         scons_command = _buildSconsCommand(
             options=scons_options, scons_filename=scons_filename

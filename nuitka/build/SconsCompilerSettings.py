@@ -12,7 +12,7 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, scons_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
@@ -1061,13 +1061,15 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     scons_details_logger.info("Told to run compilation on %d CPUs." % env.job_count)
 
     if show_scons_mode:
-        my_print("Scons: Compiler used", end=" ")
-        my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
+        compiler_path = getExecutablePath(env.the_compiler, env=env)
 
-        if os.name == "nt" and env.msvc_mode:
-            my_print("(MSVC %s)" % getMsvcVersionString(env))
-
-        my_print()
+        if env.msvc_mode:
+            scons_logger.info(
+                "Scons: Compiler used '%s' (MSVC %s)."
+                % (compiler_path, getMsvcVersionString(env))
+            )
+        else:
+            scons_logger.info("Scons: Compiler used '%s'." % compiler_path)
 
     # Set build directory and scons general settings.
     if needs_source_dir:
