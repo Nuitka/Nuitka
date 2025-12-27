@@ -8,9 +8,7 @@ to be the same as in templates.
 """
 
 
-def indented(codes, level=4, vert_block=False):
-    # This is not used, pylint: disable=unused-argument
-
+def indented(codes):
     if type(codes) is not str:
         codes = "\n".join(codes)
 

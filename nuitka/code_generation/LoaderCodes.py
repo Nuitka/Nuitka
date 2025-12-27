@@ -209,7 +209,7 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
             )
 
     return template_metapath_loader_body % {
-        "metapath_module_decls": indented(metapath_module_decls, 0),
+        "metapath_module_decls": indented(metapath_module_decls),
         "metapath_loader_inittab": indented(metapath_loader_inittab),
         "bytecode_count": bytecode_accessor.getConstantsCount(),
         "frozen_modules": indented(frozen_defs),
