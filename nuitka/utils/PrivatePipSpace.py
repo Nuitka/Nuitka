@@ -20,6 +20,7 @@ from .Execution import (
     withEnvironmentPathAdded,
 )
 from .FileOperations import getFileContentByLine, getNormalizedPathJoin
+from .Utils import getArchitecture, getOS
 
 
 def _getCandidateBinPaths(site_packages):
@@ -110,7 +111,10 @@ def _getPrivatePipBinaryPath(
 
 def getPrivatePipBaseFolder():
     """Get the inline copy folder for a given name."""
-    return os.path.join(getDownloadCacheDir(), "pip-private-%s" % python_version_str)
+    return os.path.join(
+        getDownloadCacheDir(),
+        "pip-private-%s-%s-%s" % (python_version_str, getOS(), getArchitecture()),
+    )
 
 
 _private_pip_site_packages_dir = None
