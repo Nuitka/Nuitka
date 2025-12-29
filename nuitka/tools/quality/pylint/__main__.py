@@ -10,8 +10,8 @@ spell-checker: ignore unpushed
 from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
-from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
-from nuitka.tools.quality.Git import getModifiedPaths, getUnPushedPaths
+from nuitka.tools.Basics import addPYTHONPATH, getHomePath, setupPATH
+from nuitka.tools.quality.Git import addGitArguments, getGitPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
@@ -41,23 +41,7 @@ def main():
 
     parser = OptionParser()
 
-    parser.add_option(
-        "--diff",
-        action="store_true",
-        dest="diff",
-        default=False,
-        help="""\
-Analyze the changed files in git checkout. Default is %default.""",
-    )
-
-    parser.add_option(
-        "--unpushed",
-        action="store_true",
-        dest="unpushed",
-        default=False,
-        help="""\
-Analyze the changed files in git not yet pushed. Default is %default.""",
-    )
+    addGitArguments(parser)
 
     parser.add_option(
         "--show-todo",
@@ -105,32 +89,18 @@ Insist on PyLint to be installed. Default is %default.""",
         )
         tools_logger.sysexit(exit_code=0)
 
-    if positional_args:
-        if options.diff or options.unpushed:
-            tools_logger.sysexit(
-                "Error, no filenames argument allowed in git diff mode."
-            )
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
+            "bin",
+            "nuitka",
+            "setup.py",
+            "tests/*/run_all.py",
+        ),
+    )
 
-    else:
-        goHome()
-
-        if options.diff:
-            positional_args = [
-                filename
-                for filename in getModifiedPaths()
-                if isPythonFile(filename)
-                if not isIgnoredFile(filename)
-            ]
-        elif options.unpushed:
-            positional_args = [
-                filename
-                for filename in getUnPushedPaths()
-                if isPythonFile(filename)
-                if not isIgnoredFile(filename)
-            ]
-
-        if not positional_args:
-            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
+    my_print("Working on: %s" % " ".join(positional_args))
 
     positional_args = sum(
         (
@@ -139,11 +109,6 @@ Insist on PyLint to be installed. Default is %default.""",
         ),
         [],
     )
-
-    if not positional_args:
-        tools_logger.sysexit("No files found.")
-
-    my_print("Working on: %s" % " ".join(positional_args))
 
     ignore_list = []
 
@@ -156,6 +121,18 @@ Insist on PyLint to be installed. Default is %default.""",
             positional_args, suffixes=(".py", ".scons"), ignore_list=ignore_list
         )
     )
+
+    # TODO: Filter this during scanTargets and during getGitPaths already
+    filenames = [
+        filename
+        for filename in filenames
+        if isPythonFile(filename)
+        if not isIgnoredFile(filename)
+    ]
+
+    if not filenames:
+        tools_logger.sysexit("No files found.")
+
     PyLint.executePyLint(
         filenames=filenames,
         show_todo=options.todo,
