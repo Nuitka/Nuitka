@@ -8,15 +8,17 @@ from optparse import OptionParser
 
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
-from nuitka.tools.quality.Git import getCheckoutFileChangeDesc
+from nuitka.tools.quality.Git import (
+    addGitArguments,
+    getCheckoutFileChangeDesc,
+    getGitPaths,
+)
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
-def main():
-    parser = OptionParser()
-
+def _addOptions(parser):
     parser.add_option(
         "--verbose",
         action="store_true",
@@ -24,6 +26,8 @@ def main():
         default=False,
         help="""Default is %default.""",
     )
+
+    addGitArguments(parser, verb="Auto-format")
 
     parser.add_option(
         "--from-commit",
@@ -112,10 +116,30 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
+
+def _parseArgs():
+    parser = OptionParser()
+
+    _addOptions(parser)
+
     options, positional_args = parser.parse_args()
 
+    if options.diff or options.unpushed:
+        if options.from_commit:
+            tools_logger.sysexit(
+                "Error, no --from-commit argument allowed in git diff mode."
+            )
+
+    if options.progress_bar:
+        enableProgressBar(progress_bar="auto")
+
+    return options, positional_args
+
+
+def main():
+    options, positional_args = _parseArgs()
+
     if options.from_commit:
-        assert not positional_args
         for git_stage in getCheckoutFileChangeDesc(staged=True):
             autoFormatFile(
                 git_stage["src_path"],
@@ -123,8 +147,10 @@ Defaults to off.""",
                 assume_yes_for_downloads=options.assume_yes_for_downloads,
             )
     else:
-        if not positional_args:
-            positional_args = [
+        positional_args = getGitPaths(
+            options=options,
+            positional_args=positional_args,
+            default_positional_args=(
                 "bin",
                 "lib",
                 "misc",
@@ -133,7 +159,11 @@ Defaults to off.""",
                 "setup.py",
                 "tests",
                 ".github",
-            ]
+            ),
+        )
+
+        if not positional_args:
+            tools_logger.sysexit("No files found.")
 
         my_print("Working on:", ", ".join(positional_args))
 
@@ -170,9 +200,6 @@ Defaults to off.""",
             tools_logger.sysexit("No files found.")
 
         result = 0
-
-        if options.progress_bar:
-            enableProgressBar(progress_bar="auto")
 
         for filename in wrapWithProgressBar(
             filenames, stage="Auto format", unit="file"
