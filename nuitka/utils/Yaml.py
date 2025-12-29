@@ -234,6 +234,7 @@ if you want no message."""
 def getJsonschemaPackage(logger, assume_yes_for_downloads):
     """Get jsonschema package from private pip space or globally."""
     jsonschema = getPrivatePackage(
+        logger=logger,
         package_name="jsonschema",
         module_name="jsonschema",
         package_version=None,
@@ -252,6 +253,7 @@ def getJsonschemaPackage(logger, assume_yes_for_downloads):
 def getRuamelYamlPackage(logger, assume_yes_for_downloads):
     """Get ruamel.yaml package from private pip space or globally."""
     ruamel_yaml = getPrivatePackage(
+        logger=logger,
         package_name="ruamel.yaml",
         module_name="ruamel.yaml",
         package_version=None,
@@ -270,6 +272,7 @@ def getRuamelYamlPackage(logger, assume_yes_for_downloads):
 def getYamllintPackage(logger, assume_yes_for_downloads):
     """Get yamllint package from private pip space or globally."""
     yamllint = getPrivatePackage(
+        logger=logger,
         package_name="yamllint",
         module_name="yamllint",
         package_version=None,
@@ -288,6 +291,7 @@ def getYamllintPackage(logger, assume_yes_for_downloads):
 def getDeepDiffPackage(logger, assume_yes_for_downloads):
     """Get deepdiff package from private pip space or globally."""
     deepdiff = getPrivatePackage(
+        logger=logger,
         package_name="deepdiff",
         module_name="deepdiff",
         package_version=None,
