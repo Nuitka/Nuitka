@@ -390,7 +390,7 @@ def getPythonFlavorName():
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
 
     if isNuitkaPython():
-        return "Nuitka Python"
+        return "MonolithPy"
     elif isAnacondaPython():
         return "Anaconda Python"
     elif isWinPython():
