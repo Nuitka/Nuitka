@@ -882,7 +882,7 @@ def _enableOutputSettings(env):
         # For onefile bootstrap, we have to force static runtime as we don't
         # want to bring a second file and MonolithPy requires it.
         force_static = (
-            env.onefile_compile and env.include_windows_runtime_dlls
+            env.onefile_compile and env.onefile_windows_static_runtime
         ) or env.nuitka_python
 
         if force_static:
@@ -998,8 +998,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     frozen_modules = getArgumentInt("frozen_modules", 0)
 
     # Windows runtime DLL inclusion.
-    include_windows_runtime_dlls = getArgumentBool(
-        "include_windows_runtime_dlls", False
+    onefile_windows_static_runtime = getArgumentBool(
+        "onefile_windows_static_runtime", False
     )
 
     progress_bar = getArgumentDefaulted("progress_bar", "auto")
@@ -1060,7 +1060,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.job_count = job_count
     env.frozen_modules = frozen_modules
     env.uninstalled_python = uninstalled_python
-    env.include_windows_runtime_dlls = include_windows_runtime_dlls
+    env.onefile_windows_static_runtime = onefile_windows_static_runtime
     env.cf_protection = cf_protection
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
@@ -1444,6 +1444,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         # No incremental linking.
         env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
+        # Remember MSVC installation directory to find redist DLLs, spell-checker: ignore VCINSTALLDIR
+        if "VCINSTALLDIR" in env["ENV"]:
+            env["MSVC_InstallDirectory"] = getNormalizedPathJoin(
+                env["ENV"]["VCINSTALLDIR"], ".."
+            )
+
     # Use compiler/linker flags provided via environment variables, these
     # are always added and consider_environment_variables does not apply
     # since that's about selecting the compiler, not configuring it.
@@ -1642,24 +1648,24 @@ def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
     # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
 
-    env.cpp_flags = os.environ.get("CPPFLAGS")
+    env.cpp_flags = os.getenv("CPPFLAGS")
     if env.cpp_flags:
         scons_logger.info("Scons: Inherited CPPFLAGS='%s' variable." % env.cpp_flags)
         env.Append(CPPFLAGS=env.cpp_flags.split())
-    env.c_flags = os.environ.get("CFLAGS")
+    env.c_flags = os.getenv("CFLAGS")
     if env.c_flags:
         scons_logger.info("Inherited CFLAGS='%s' variable." % env.c_flags)
         env.Append(CCFLAGS=env.c_flags.split())
-    env.cc_flags = os.environ.get("CCFLAGS")
+    env.cc_flags = os.getenv("CCFLAGS")
     if env.cc_flags:
         scons_logger.info("Inherited CCFLAGS='%s' variable." % env.cc_flags)
         env.Append(CCFLAGS=env.cc_flags.split())
-    env.cxx_flags = os.environ.get("CXXFLAGS")
+    env.cxx_flags = os.getenv("CXXFLAGS")
     if env.cxx_flags:
         scons_logger.info("Scons: Inherited CXXFLAGS='%s' variable." % env.cxx_flags)
         env.Append(CXXFLAGS=env.cxx_flags.split())
 
-    env.ld_flags = os.environ.get("LDFLAGS")
+    env.ld_flags = os.getenv("LDFLAGS")
     if env.ld_flags:
         scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % env.ld_flags)
         env.Append(LINKFLAGS=env.ld_flags.split())
