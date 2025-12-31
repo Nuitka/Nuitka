@@ -12,18 +12,24 @@ import sys
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import isExperimental, isShowProgress
+from nuitka.options.Options import (
+    getWindowsRuntimeDllsInclusionOption,
+    isExperimental,
+    isShowProgress,
+)
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getDirectoryRealPath,
     getFileContentByLine,
     getNormalizedPathJoin,
     getSubDirectoriesWithDlls,
+    isFilenameBelowPath,
     isFilenameSameAsOrBelowPath,
     listDllFilesFromDirectory,
     makePath,
@@ -32,16 +38,147 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.SharedLibraries import getPEFileUsedDllNames, getPyWin32Dir
-from nuitka.utils.Utils import getArchitecture, getMSVCRedistPath
+from nuitka.utils.Utils import getArchitecture, isWin32Windows
 from nuitka.Version import version_string
 
 from .DependsExe import detectDLLsWithDependencyWalker
 from .DllDependenciesCommon import getPackageSpecificDLLDirectories
 
+_msvc_redist_path = None
+
+
+def _getMSVCRedistPath(logger):
+    """Determine the path to the MSVC redistributable directory.
+
+    Args:
+        logger: Tracer for logging actions.
+
+    Returns:
+        str: Path to the MSVC redistributable directory specific to the architecture and version, or None if not found.
+    """
+    # The detection is return driven with many cases to look at
+    # pylint: disable=too-many-return-statements
+
+    # TODO: We could try and export the vswhere information from what Scons
+    # found out, to avoid the (then duplicated) vswhere call entirely.
+
+    # The program name is from the installer, spell-checker: ignore vswhere
+    vswhere_path = None
+    for candidate in ("ProgramFiles(x86)", "ProgramFiles"):
+        program_files_dir = os.getenv(candidate)
+
+        if program_files_dir is not None:
+            candidate = os.path.join(
+                program_files_dir,
+                "Microsoft Visual Studio",
+                "Installer",
+                "vswhere.exe",
+            )
+
+            if os.path.exists(candidate):
+                vswhere_path = candidate
+                break
+
+    if vswhere_path is None:
+        return None
+
+    command = (
+        vswhere_path,
+        "-latest",
+        "-property",
+        "installationPath",
+        "-products",
+        "*",
+        "-prerelease",
+    )
+
+    vs_path = executeToolChecked(
+        logger=logger,
+        command=command,
+        absence_message="requiring vswhere for redist discovery",
+        decoding=True,
+    ).strip()
+
+    redist_base_path = os.path.join(vs_path, "VC", "Redist", "MSVC")
+
+    if not os.path.exists(redist_base_path):
+        return None
+
+    try:
+        all_folders = [
+            d
+            for d in os.listdir(redist_base_path)
+            if os.path.isdir(os.path.join(redist_base_path, d))
+        ]
+        if not all_folders:
+            return None
+
+        version_folders = [v for v in all_folders if v[0].isdigit()]
+
+        if not version_folders:
+            return None
+
+        latest_version = sorted(
+            version_folders, key=lambda v: list(map(int, v.split(".")))
+        )[-1]
+
+    except (IOError, ValueError):
+        return None
+
+    arch_folder_map = {
+        "x86_64": "x64",
+        "arm64": "arm64",
+        "x86": "x86",
+    }
+    arch_folder = arch_folder_map.get(getArchitecture())
+
+    final_path = getNormalizedPathJoin(redist_base_path, latest_version, arch_folder)
+
+    if os.path.exists(final_path):
+        return final_path
+
+    return None
+
+
+def getMSVCRedistPath(logger):
+    """Get the MSVC redistributable path with caching.
+
+    Args:
+        logger: Tracer for logging actions.
+
+    Returns:
+        str | None: Path to the MSVC redistributable directory or None.
+    """
+    global _msvc_redist_path  # singleton, pylint: disable=global-statement
+
+    if _msvc_redist_path is False:
+        # Cached error path, didn't find it.
+        return None
+    elif _msvc_redist_path is None:
+        if isWin32Windows():
+            _msvc_redist_path = _getMSVCRedistPath(logger=logger)
+
+            # Don't retry if it fails.
+            if _msvc_redist_path is None:
+                _msvc_redist_path = False
+                return None
+
+    return _msvc_redist_path
+
+
 _scan_dir_cache = {}
 
 
 def detectDLLsWithPEFile(binary_filename, scan_dirs):
+    """Detect DLLs used by a binary using pefile.
+
+    Args:
+        binary_filename: The binary to check.
+        scan_dirs: Directories to search for DLLs.
+
+    Returns:
+        OrderedSet: Set of found DLL filenames.
+    """
     pe_dll_names = getPEFileUsedDllNames(binary_filename)
 
     result = OrderedSet()
@@ -91,6 +228,21 @@ def detectBinaryPathDLLsWin32(
     use_cache,
     update_cache,
 ):
+    """Detect DLLs used by a binary on Windows.
+
+    Args:
+        is_main_executable: Whether this is the main executable (e.g. for caching).
+        source_dir: The source directory (for caching context).
+        original_dir: The directory of the binary.
+        binary_filename: The binary filename.
+        package_name: The package name if applicable.
+        use_path: Whether to use PATH.
+        use_cache: Whether to use caching.
+        update_cache: Whether to update the cache.
+
+    Returns:
+        OrderedSet: Set of found DLL filenames.
+    """
     # Caching and tracing cause too many branches, pylint: disable=too-many-branches
 
     # For ARM64 and on user request, we can use "pefile" for dependency detection.
@@ -220,7 +372,94 @@ def _getPathContribution(use_path):
     return _path_contributions[use_path]
 
 
+_include_windows_runtime_dlls = None
+
+
+def shallIncludeVCRedistDLL(dll_filename):
+    """Check if a DLL from the VC redistributable should be included.
+
+    Args:
+        dll_filename (str): The filename of the DLL to check.
+
+    Returns:
+        bool: True if it is a VC redist DLL and inclusion is enabled, False otherwise.
+    """
+    vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
+    if vc_redist_path is None:
+        return False
+
+    if isFilenameBelowPath(path=vc_redist_path, filename=dll_filename):
+        return shallIncludeWindowsRuntimeDLLs()
+
+    return True
+
+
+def shallIncludeWindowsRuntimeDLLs():
+    """Check if Windows Runtime DLLs should be included based on configuration.
+
+    Returns:
+        bool: True if they should be included, False otherwise.
+
+    Notes:
+        This makes the decision based on the command line option ``--include-windows-runtime-dlls``
+        and the presence of the files.
+    """
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=global-statement
+    global _include_windows_runtime_dlls
+
+    if _include_windows_runtime_dlls is not None:
+        return _include_windows_runtime_dlls
+
+    option_value = getWindowsRuntimeDllsInclusionOption()
+
+    if option_value == "no":
+        result = False
+    elif option_value == "yes":
+        msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
+
+        if msvc_redist_path is None:
+            inclusion_logger.sysexit(
+                """\
+Error, cannot find Windows Runtime DLLs to include, but '--include-windows-runtime-dlls=yes' \
+make sure to install Visual Studio as that is the only provider of those DLLs with license \
+terms that allow redistribution."""
+            )
+        result = True
+    else:
+        msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
+
+        if msvc_redist_path is None:
+            inclusion_logger.warning(
+                """\
+Cannot find Windows Runtime DLLs to include, requiring them \
+to be installed on target systems."""
+            )
+            result = False
+        else:
+            inclusion_logger.info(
+                """\
+Included Windows Runtime DLLs, which increases distribution  \
+size. Use '--include-windows-runtime-dlls=no' to disable, or \
+make explicit with '--include-windows-runtime-dlls=yes'."""
+            )
+            result = True
+
+    _include_windows_runtime_dlls = result
+    return result
+
+
 def _getScanDirectories(package_name, original_dir, use_path):
+    """Get directories to scan for DLLs.
+
+    Args:
+        package_name: The package name if applicable.
+        original_dir: The directory of the binary.
+        use_path: Whether to included PATH directories.
+
+    Returns:
+        list: List of directory paths to scan.
+    """
     # TODO: Move PyWin32 specific stuff to yaml dll section
 
     cache_key = package_name, original_dir

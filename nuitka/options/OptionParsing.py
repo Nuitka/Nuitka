@@ -668,6 +668,19 @@ the package 'package_name' it should be matched as 'package_name/someDLL.*'.
 Default empty.""",
 )
 
+dll_group.add_option(
+    "--include-windows-runtime-dlls",
+    action="store",
+    dest="include_windows_runtime_dlls",
+    metavar="choice",
+    choices=("auto", "yes", "no"),
+    default="auto",
+    help="""\
+Include the Windows C runtime DLLs in the distribution. For onefile, this also
+enables static linking of the bootstrap binary. Defaults to 'auto', which
+includes them if found.""",
+)
+
 
 dll_group.add_option(
     "--list-package-dlls",

@@ -121,6 +121,9 @@ DLL files:
 \fB\-\-noinclude\-dlls\fR=\fI\,PATTERN\/\fR
 Do not include DLL files matching the filename pattern given. This is against the target filename, not source paths. So ignore a DLL 'someDLL' contained in the package 'package_name' it should be matched as 'package_name/someDLL.*'. Default empty.
 .TP
+\fB\-\-include\-windows\-runtime\-dlls\fR=\fI\,choice\/\fR
+Include the Windows C runtime DLLs in the distribution. For onefile, this also enables static linking of the bootstrap binary. Defaults to 'auto', which includes them if found.
+.TP
 \fB\-\-list\-package\-dlls\fR=\fI\,LIST_PACKAGE_DLLS\/\fR
 Output the DLLs found for a given package name. Default not done.
 .TP
