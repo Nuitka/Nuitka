@@ -46,18 +46,13 @@ class TagSet(set):
         for tag in signal:
             self.add(tag)
 
-    def check(self, tags):
-        for tag in tags.split():
-            assert tag in allowed_tags, tag
-
-            if tag in self:
-                return True
-        return False
-
     def add(self, tag):
         assert tag in allowed_tags, tag
 
         set.add(self, tag)
+
+    def asString(self):
+        return ",".join(sorted(self))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
