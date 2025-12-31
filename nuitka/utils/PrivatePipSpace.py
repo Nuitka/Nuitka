@@ -24,10 +24,11 @@ from .Execution import (
 )
 from .FileOperations import getFileContentByLine, getNormalizedPathJoin
 from .Hashing import HashCRC32
-from .Utils import getArchitecture, getOS
+from .Utils import getArchitecture, getOS, isWin32Windows
 
 
 def _getCandidateBinPaths(logger, site_packages):
+    """Get the candidate binary paths for the private pip space."""
     download_folder = getPrivatePipBaseFolder()
 
     candidate_bin_paths = [
@@ -36,14 +37,14 @@ def _getCandidateBinPaths(logger, site_packages):
         os.path.join(download_folder, "usr", "local", "bin"),
     ]
 
-    if os.name == "nt":
+    if isWin32Windows():
         candidate_bin_paths.insert(0, os.path.join(download_folder, "Scripts"))
 
     if site_packages is None:
         site_packages = getPrivatePipSitePackagesDir(logger=logger)
 
     if site_packages:
-        if os.name == "nt":
+        if isWin32Windows():
             candidate_bin_paths.insert(
                 0,
                 os.path.join(
@@ -65,6 +66,7 @@ def _getCandidateBinPaths(logger, site_packages):
 def _getPrivatePipBinaryPath(
     logger, binary_name, package_name, module_name, version, assume_yes_for_downloads
 ):
+    """Get the path of a binary from the private pip space."""
     candidate_bin_paths = _getCandidateBinPaths(logger=logger, site_packages=None)
 
     # Construct an extra_dir for search
@@ -99,7 +101,7 @@ def _getPrivatePipBinaryPath(
             logger=logger, site_packages=site_packages_folder
         ):
             possible = os.path.join(candidate, binary_name)
-            if os.name == "nt":
+            if isWin32Windows():
                 possible += ".exe"
 
             if os.path.exists(possible):
@@ -129,6 +131,7 @@ _private_pip_site_packages_dir = None
 
 
 def getPrivatePipSitePackagesDir(logger):
+    """Get the site-packages directory of the private pip space."""
     # We use the global statement to cache the result across calls.
     # pylint: disable=global-statement
     global _private_pip_site_packages_dir
@@ -158,12 +161,14 @@ def getPrivatePipSitePackagesDir(logger):
 
 
 def withPrivatePipSitePackagesPathAdded(logger):
+    """Context manager to add private pip site-packages to PYTHONPATH."""
     return withEnvironmentPathAdded(
         "PYTHONPATH", getPrivatePipSitePackagesDir(logger=logger), prefix=True
     )
 
 
 def _isPackageInstalled(site_packages_folder, package_name, package_version):
+    """Check if a package is installed in the given site-packages folder."""
     if package_version is None:
         return True
 
@@ -202,6 +207,7 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
 def tryDownloadPackageName(
     logger, package_name, module_name, package_version, assume_yes_for_downloads
 ):
+    """Try to download a package from the private pip space."""
     download_folder = getPrivatePipBaseFolder()
 
     site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
@@ -216,10 +222,12 @@ def tryDownloadPackageName(
                 package_name=package_name,
                 package_version=package_version,
             ):
-                return site_packages_folder, assume_yes_for_downloads
+                return (
+                    site_packages_folder,
+                    assume_yes_for_downloads,
+                )
 
     if not _checkPackageConstraint(logger, package_name):
-        assert False
         return None, assume_yes_for_downloads
 
     if shouldDownload(
@@ -256,7 +264,6 @@ def tryDownloadPackageName(
         )
 
         if exit_code != 0:
-            assert False
             return None, assume_yes_for_downloads
 
         if site_packages_folder is None:
@@ -275,7 +282,7 @@ def tryDownloadPackageName(
 
     if site_packages_folder is not None:
         return (
-            getNormalizedPathJoin(site_packages_folder, module_name),
+            site_packages_folder,
             assume_yes_for_downloads,
         )
 
@@ -283,6 +290,7 @@ def tryDownloadPackageName(
 
 
 def _evaluateConstraint(logger, constraint, package_name):
+    """Evaluate a package constraint."""
     try:
         # We trust the file content, pylint: disable=eval-used
         return eval(
@@ -301,6 +309,7 @@ def _evaluateConstraint(logger, constraint, package_name):
 
 
 def _checkPackageConstraint(logger, package_name):
+    """Check if a package constraint is met."""
     # Make sure we have the constraints loaded.
     _parseRequirements(logger)
 
@@ -369,26 +378,24 @@ def getPrivatePackage(
 
 
 def getZigBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the Zig binary from the private pip space."""
     # spell-checker: ignore ziglang
 
-    zig_exe_path, site_packages_folder, _assume_yes_for_downloads = (
-        _getPrivatePipBinaryPath(
-            logger=logger,
-            binary_name="zig",
-            package_name="ziglang",
-            module_name="ziglang",
-            version=None,
-            assume_yes_for_downloads=assume_yes_for_downloads,
-        )
+    site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+        logger=logger,
+        package_name="ziglang",
+        module_name="ziglang",
+        package_version=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
-    if zig_exe_path:
-        return zig_exe_path
-
+    # The "ziglang" package puts a "python-zig.exe" in the scripts folder, and
+    # not found due to mismatch, but the actual "zig.exe" is in the site-packages
+    # folder.
     if site_packages_folder:
         zig_exe_path = getNormalizedPathJoin(site_packages_folder, "ziglang", "zig")
 
-        if os.name == "nt":
+        if isWin32Windows():
             zig_exe_path += ".exe"
 
         if os.path.exists(zig_exe_path):
@@ -398,39 +405,52 @@ def getZigBinaryPath(logger, assume_yes_for_downloads):
 
 
 def getClangFormatBinaryPath(logger, assume_yes_for_downloads):
-    return _getPrivatePipBinaryPath(
-        logger=logger,
-        binary_name="clang-format",
-        package_name="clang-format",
-        module_name="clang_format",
-        version=_getRequiredVersion(logger, "clang-format"),
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )[0]
+    """Get the path of the clang-format binary from the private pip space."""
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="clang-format",
+            package_name="clang-format",
+            module_name="clang_format",
+            version=_getRequiredVersion(logger, "clang-format"),
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
+    )
+    return binary_path
 
 
 def getBlackBinaryPath(logger, assume_yes_for_downloads):
-    return _getPrivatePipBinaryPath(
-        logger=logger,
-        binary_name="black",
-        package_name="black",
-        module_name="black",
-        version=_getRequiredVersion(logger, "black"),
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )[0]
+    """Get the path of the black binary from the private pip space."""
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="black",
+            package_name="black",
+            module_name="black",
+            version=_getRequiredVersion(logger, "black"),
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
+    )
+    return binary_path
 
 
 def getIsortBinaryPath(logger, assume_yes_for_downloads):
-    return _getPrivatePipBinaryPath(
-        logger=logger,
-        binary_name="isort",
-        package_name="isort",
-        module_name="isort",
-        version=_getRequiredVersion(logger, "isort"),
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )[0]
+    """Get the path of the isort binary from the private pip space."""
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="isort",
+            package_name="isort",
+            module_name="isort",
+            version=_getRequiredVersion(logger, "isort"),
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
+    )
+    return binary_path
 
 
 def getMdformatBinaryPath(logger, assume_yes_for_downloads):
+    """Get the path of the mdformat binary from the private pip space."""
     mdformat_path, site_packages_folder, assume_yes_for_downloads = (
         _getPrivatePipBinaryPath(
             logger=logger,
@@ -469,14 +489,18 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
 
 
 def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
-    return _getPrivatePipBinaryPath(
-        logger=logger,
-        binary_name="rstfmt",
-        package_name="rstfmt",
-        module_name="rstfmt",
-        version=_getRequiredVersion(logger, "rstfmt"),
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )[0]
+    """Get the path of the rstfmt binary from the private pip space."""
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="rstfmt",
+            package_name="rstfmt",
+            module_name="rstfmt",
+            version=_getRequiredVersion(logger, "rstfmt"),
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
+    )
+    return binary_path
 
 
 @functools.total_ordering
@@ -502,6 +526,7 @@ _private_pip_constraints = None
 
 
 def _parseRequirements(logger):
+    """Parse the requirements-private.txt file."""
     # We use the global statement to cache the result across calls.
     # pylint: disable=global-statement
     global _private_pip_requirements, _private_pip_constraints
@@ -554,6 +579,7 @@ Error, invalid requirement format in 'requirements-private.txt' line %r, only '=
 
 
 def _getPrivatePipHash():
+    """Calculate the hash of the private pip space."""
     private_pip_hash = HashCRC32()
     private_pip_hash.updateFromValues(
         python_version_str,
@@ -595,6 +621,7 @@ def _getRequiredVersion(logger, tool):
 
 
 def _checkRequiredVersion(logger, tool, tool_call):
+    """Check if the version of a tool matches the requirement."""
     required_version = _getRequiredVersion(logger=logger, tool=tool)
 
     tool_call = list(tool_call) + ["--version"]
