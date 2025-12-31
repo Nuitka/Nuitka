@@ -302,6 +302,7 @@ _python311_min_msvc_version = (14, 3)
 def checkWindowsCompilerFound(
     env,
     target_arch,
+    mingw_mode,
     clang_mode,
     msvc_version,
     download_ok,
@@ -462,7 +463,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 download_ok=download_ok,
                 experimental="winlibs-new" in experimental_flags,
             )
-        elif target_arch != "x86":
+        elif target_arch != "x86" and not mingw_mode:
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
 
             # This will download "zig.exe" when all others have been rejected
@@ -521,17 +522,18 @@ def createEnvironmentAndCheckCompiler(
         source_dir=source_dir,
     )
 
+    env.assume_yes_for_downloads = assume_yes_for_downloads
+
     env = checkWindowsCompilerFound(
         env=env,
         target_arch=target_arch,
+        mingw_mode=mingw_mode,
         clang_mode=clang_mode,
         msvc_version=msvc_version,
         download_ok=download_ok,
         assume_yes_for_downloads=assume_yes_for_downloads,
         experimental_flags=experimental_flags,
     )
-
-    env.assume_yes_for_downloads = assume_yes_for_downloads
 
     env.the_compiler = env["CC"] or env["CXX"]
     env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
