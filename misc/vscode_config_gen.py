@@ -48,7 +48,7 @@ def getMSVCInfo():
     vswhere_path = None
 
     for candidate in ("ProgramFiles(x86)", "ProgramFiles"):
-        program_files_dir = os.environ.get(candidate)
+        program_files_dir = os.getenv(candidate)
         if program_files_dir:
             candidate_path = os.path.join(
                 program_files_dir,
@@ -117,7 +117,7 @@ def getMSVCInfo():
     # Determine architecture, spell-checker: ignore Hostx64, Hostx86
     arch = "x64" if sys.maxsize > 2**32 else "x86"
     host_arch = (
-        "Hostx64" if os.environ.get("PROCESSOR_ARCHITECTURE") == "AMD64" else "Hostx86"
+        "Hostx64" if os.getenv("PROCESSOR_ARCHITECTURE") == "AMD64" else "Hostx86"
     )
 
     compiler_path = os.path.join(
@@ -137,7 +137,7 @@ def getMSVCInfo():
     sdk_version = "10.0.19041.0"  # Default fallback
 
     kits_root = os.path.join(
-        os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"),
+        os.getenv("ProgramFiles(x86)", "C:\\Program Files (x86)"),
         "Windows Kits",
         "10",
         "Include",

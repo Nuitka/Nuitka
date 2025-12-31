@@ -61,7 +61,7 @@ to exclude all browsers.""",
     def _getPlaywrightRegistryDirectory(self):
         # this is a port of playwright's JS script which determines where the browsers are installed
 
-        env_defined = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+        env_defined = os.getenv("PLAYWRIGHT_BROWSERS_PATH")
         path_home = os.path.expanduser("~")
         playwright_module_path = self._getPlaywrightPath()
 
@@ -78,20 +78,20 @@ to exclude all browsers.""",
         else:
             if isWin32Windows():
                 # spell-checker: ignore LOCALAPPDATA
-                cache_directory = os.environ.get(
+                cache_directory = os.getenv(
                     "LOCALAPPDATA", os.path.join(path_home, "AppData", "Local")
                 )
             elif isMacOS():
                 cache_directory = os.path.join(path_home, "Library", "Caches")
             else:
-                cache_directory = os.environ.get(
+                cache_directory = os.getenv(
                     "XDG_CACHE_HOME", os.path.join(path_home, ".cache")
                 )
 
             result = os.path.join(cache_directory, "ms-playwright")
 
         if not os.path.isabs(result):
-            init_cwd = os.environ.get("INIT_CWD") or os.getcwd()
+            init_cwd = os.getenv("INIT_CWD") or os.getcwd()
             result = os.path.join(os.path.abspath(init_cwd), result)
 
         return result
