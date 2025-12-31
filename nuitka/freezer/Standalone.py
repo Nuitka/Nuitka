@@ -446,7 +446,9 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
             assert finding == "absolute", standalone_entry_point.module_name
 
             if not allow_outside_dependencies:
-                used_dll_paths, removed_dll_paths = _reduceToPythonPath(used_dll_paths)
+                used_dll_paths, removed_dll_paths = _reduceToPythonPath(
+                    used_dll_paths=used_dll_paths
+                )
 
                 if removed_dll_paths:
                     _removed_dll_usages[standalone_entry_point] = (

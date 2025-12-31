@@ -10,13 +10,14 @@ import os
 import sys
 
 from nuitka.__past__ import iterItems
-from nuitka.build.SconsUtils import readSconsReport
+from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
     getWindowsRuntimeDllsInclusionOption,
     isExperimental,
     isShowProgress,
 )
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -31,6 +32,7 @@ from nuitka.utils.FileOperations import (
     getSubDirectoriesWithDlls,
     isFilenameBelowPath,
     isFilenameSameAsOrBelowPath,
+    listDir,
     listDllFilesFromDirectory,
     makePath,
     putTextFileContents,
@@ -46,24 +48,15 @@ from .DllDependenciesCommon import getPackageSpecificDLLDirectories
 
 _msvc_redist_path = None
 
+_arch_redist_folder_map = {
+    "x86_64": "x64",
+    "arm64": "arm64",
+    "x86": "x86",
+}
 
-def _getMSVCRedistPath(logger):
-    """Determine the path to the MSVC redistributable directory.
 
-    Args:
-        logger: Tracer for logging actions.
-
-    Returns:
-        str: Path to the MSVC redistributable directory specific to the architecture and version, or None if not found.
-    """
-    # The detection is return driven with many cases to look at
-    # pylint: disable=too-many-return-statements
-
-    # TODO: We could try and export the vswhere information from what Scons
-    # found out, to avoid the (then duplicated) vswhere call entirely.
-
+def _getVswherePath():
     # The program name is from the installer, spell-checker: ignore vswhere
-    vswhere_path = None
     for candidate in ("ProgramFiles(x86)", "ProgramFiles"):
         program_files_dir = os.getenv(candidate)
 
@@ -76,61 +69,75 @@ def _getMSVCRedistPath(logger):
             )
 
             if os.path.exists(candidate):
-                vswhere_path = candidate
-                break
+                return candidate
 
-    if vswhere_path is None:
-        return None
+    return None
 
-    command = (
-        vswhere_path,
-        "-latest",
-        "-property",
-        "installationPath",
-        "-products",
-        "*",
-        "-prerelease",
+
+def _getMSVCRedistPath(logger):
+    """Determine the path to the MSVC redistributable directory.
+
+    Args:
+        logger: Tracer for logging actions.
+
+    Returns:
+        str: Path to the MSVC redistributable directory specific to the architecture and version, or None if not found.
+    """
+    # Try to get the path from Scons, which will have it if it used a MSVC to
+    # compile.
+    vs_path = getSconsReportValue(
+        source_dir=getSourceDirectoryPath(onefile=False, create=False),
+        key="MSVC_InstallDirectory",
     )
 
-    vs_path = executeToolChecked(
-        logger=logger,
-        command=command,
-        absence_message="requiring vswhere for redist discovery",
-        decoding=True,
-    ).strip()
+    # Otherwise ask for a MSVC installation path.
+    if vs_path is None:
+        vswhere_path = _getVswherePath()
+
+        if vswhere_path is None:
+            return None
+
+        command = (
+            vswhere_path,
+            "-latest",
+            "-property",
+            "installationPath",
+            "-products",
+            "*",
+            "-prerelease",
+        )
+
+        vs_path = executeToolChecked(
+            logger=logger,
+            command=command,
+            absence_message="requiring vswhere for redist discovery",
+            decoding=True,
+        ).strip()
 
     redist_base_path = os.path.join(vs_path, "VC", "Redist", "MSVC")
 
     if not os.path.exists(redist_base_path):
         return None
 
-    try:
-        all_folders = [
-            d
-            for d in os.listdir(redist_base_path)
-            if os.path.isdir(os.path.join(redist_base_path, d))
-        ]
-        if not all_folders:
-            return None
+    version_folders = []
 
-        version_folders = [v for v in all_folders if v[0].isdigit()]
+    for fullpath, filename in listDir(redist_base_path):
+        if not os.path.isdir(fullpath):
+            continue
 
-        if not version_folders:
-            return None
+        try:
+            version_tuple = tuple(int(x) for x in filename.split("."))
+        except ValueError:
+            continue
 
-        latest_version = sorted(
-            version_folders, key=lambda v: list(map(int, v.split(".")))
-        )[-1]
+        version_folders.append((version_tuple, filename))
 
-    except (IOError, ValueError):
+    if not version_folders:
         return None
 
-    arch_folder_map = {
-        "x86_64": "x64",
-        "arm64": "arm64",
-        "x86": "x86",
-    }
-    arch_folder = arch_folder_map.get(getArchitecture())
+    _latest_version_tuple, latest_version = max(version_folders)
+
+    arch_folder = _arch_redist_folder_map.get(getArchitecture())
 
     final_path = getNormalizedPathJoin(redist_base_path, latest_version, arch_folder)
 
@@ -300,7 +307,9 @@ def detectBinaryPathDLLsWin32(
         inclusion_logger.info("Analyzing dependencies of '%s'." % binary_filename)
 
     scan_dirs = _getScanDirectories(
-        package_name=package_name, original_dir=original_dir, use_path=use_path
+        package_name=package_name,
+        original_dir=original_dir,
+        use_path=use_path,
     )
 
     if dependency_tool == "depends.exe":

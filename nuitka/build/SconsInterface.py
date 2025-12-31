@@ -16,7 +16,6 @@ import sys
 
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.freezer.DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
@@ -601,9 +600,6 @@ def getCommonSconsOptions():
 
     if isUnstripped():
         scons_options["unstripped_mode"] = asBoolStr(True)
-
-    if isWin32Windows() and shallIncludeWindowsRuntimeDLLs():
-        scons_options["include_windows_runtime_dlls"] = asBoolStr(True)
 
     if isAnacondaPython():
         scons_options["anaconda_python"] = asBoolStr(True)
