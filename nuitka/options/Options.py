@@ -1794,6 +1794,12 @@ def getShallNotIncludeDllFilePatterns():
     return options.dll_files_inhibited
 
 
+def getWindowsRuntimeDllsInclusionOption():
+    """*str*, value of ``--include-windows-runtime-dlls=``"""
+
+    return options.include_windows_runtime_dlls
+
+
 def shallWarnImplicitRaises():
     """:returns: bool derived from ``--warn-implicit-exceptions``"""
     return options.warn_implicit_exceptions

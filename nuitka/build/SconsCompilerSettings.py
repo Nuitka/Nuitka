@@ -879,9 +879,13 @@ def enableWindowsStackSize(env, target_arch):
 
 def _enableOutputSettings(env):
     if env.msvc_mode:
-        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
-        # for Nuitka-Python there is of course none.
-        if env.nuitka_python:
+        # For onefile bootstrap, we have to force static runtime as we don't
+        # want to bring a second file and MonolithPy requires it.
+        force_static = (
+            env.onefile_compile and env.include_windows_runtime_dlls
+        ) or env.nuitka_python
+
+        if force_static:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
         else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
@@ -993,6 +997,11 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Amount of frozen modules.
     frozen_modules = getArgumentInt("frozen_modules", 0)
 
+    # Windows runtime DLL inclusion.
+    include_windows_runtime_dlls = getArgumentBool(
+        "include_windows_runtime_dlls", False
+    )
+
     progress_bar = getArgumentDefaulted("progress_bar", "auto")
     enableSconsProgressBar(progress_bar)
 
@@ -1051,8 +1060,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.job_count = job_count
     env.frozen_modules = frozen_modules
     env.uninstalled_python = uninstalled_python
-
-    # gcc compiler cf_protection option
+    env.include_windows_runtime_dlls = include_windows_runtime_dlls
     env.cf_protection = cf_protection
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
@@ -1083,6 +1091,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
 
     env.exe_target = exe_target
+    env.onefile_compile = onefile_compile
 
     # Enable LTO for compiler.
     _enableLtoSettings(
@@ -1092,6 +1101,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     )
 
     _enableC11Settings(env)
+    _enableOutputSettings(env)
 
     # Some things are supposed to be only for use with zig, so we inject a
     # define that allows us to test for it.
@@ -1389,8 +1399,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 aix_dll_addr_inline_copy_dir,
             ],
         )
-
-    _enableOutputSettings(env)
 
     # Avoid them as appearing to be different files.
     if (
