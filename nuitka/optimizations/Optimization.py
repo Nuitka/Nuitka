@@ -109,8 +109,8 @@ def optimizeCompiledPythonModule(module):
                 """\
 Changes made after there were already no changes for module '%s' \
 in the extra micro pass that checks for that to not happen \
-that is done in debug mode."""
-                % module_name,
+that is done in debug mode: '%s'"""
+                % (module_name, tag_set.asString()),
             )
 
         # Search for local change tags.
@@ -134,7 +134,7 @@ that is done in debug mode."""
 
         optimization_logger.info_if_file(
             "Not finished with the module due to following change kinds: %s"
-            % ",".join(sorted(tag_set)),
+            % tag_set.asString(),
             other_logger=progress_logger,
         )
 
