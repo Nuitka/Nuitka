@@ -234,7 +234,7 @@ def executePASS1():
                     "--no-pyi-file",
                     path,
                 ]
-                command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+                command += os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
                 my_print("Command: ", " ".join(command))
 
@@ -258,7 +258,7 @@ def executePASS1():
         "--python-flag=no_site",
         "nuitka-runner.py",
     ]
-    command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+    command += os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
     my_print("Command: ", " ".join(command))
     result = subprocess.call(command)
@@ -353,7 +353,7 @@ def compileAndCompareWith(nuitka, pass_number):
                     "--nofollow-imports",
                     path,
                 ]
-                command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+                command += os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
                 my_print("Command: ", " ".join(command))
                 exit_nuitka = subprocess.call(command)
