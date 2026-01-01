@@ -1131,7 +1131,8 @@ def _main(parser):
         global sconscript_time
         sconscript_time = time.time() - start_time
 
-    progress_display("scons: done reading SConscript files.")
+    # Nuitka: Disable useless output
+    # progress_display("scons: done reading SConscript files.")
 
     memory_stats.append('after reading SConscript files:')
     count_stats.append(('post-', 'read'))
@@ -1404,13 +1405,16 @@ def _build_targets(fs, options, targets, target_top):
         if this_build_status:
             progress_display("scons: " + failure_message)
         else:
-            progress_display("scons: " + closing_message)
+            # Nuitka: Disable useless output
+            # progress_display("scons: " + closing_message)
+            pass
         if not options.no_exec:
             if jobs.were_interrupted():
                 progress_display("scons: writing .sconsign file.")
             SCons.SConsign.write()
 
-    progress_display("scons: " + opening_message)
+    # Nuitka: Disable useless output
+    # progress_display("scons: " + opening_message)
     jobs.run(postfunc = jobs_postfunc)
 
     memory_stats.append('after building targets:')
