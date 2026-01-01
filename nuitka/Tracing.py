@@ -298,6 +298,11 @@ def my_print(*args, **kwargs):
     """
 
     file_output = kwargs.get("file", sys.stdout)
+
+    # Unwrap our own redirection for Scons.
+    if hasattr(file_output, "original_stream"):
+        file_output = file_output.original_stream
+
     is_atty = file_output.isatty()
 
     if progress and is_atty:
@@ -628,6 +633,55 @@ def doNotBreakSpaces(*args):
         return doNotBreakSpaces(*tuple(args[0]))
 
     return tuple(element.replace(" ", _non_breaking_space) for element in args)
+
+
+class LineBufferedStreamRedirector(object):
+    def __init__(self, stream):
+        self.original_stream = stream
+        self.buffer = ""
+
+    def write(self, message):
+        if not message:
+            return
+
+        self.buffer += message
+
+        if "\n" in self.buffer:
+            lines = self.buffer.split("\n")
+            # All lines except the last one are complete.
+            # The last one is the start of the new line (remainder).
+            if lines[-1] == "":
+                # Ends with a newline
+                to_print = self.buffer
+                self.buffer = ""
+            else:
+                to_print = "\n".join(lines[:-1]) + "\n"
+                self.buffer = lines[-1]
+
+            if progress and self.original_stream.isatty():
+                with progress.withExternalWritingPause():
+                    self.original_stream.write(to_print)
+                    self.original_stream.flush()
+            else:
+                self.original_stream.write(to_print)
+                self.original_stream.flush()
+
+    def flush(self):
+        # We don't flush the buffer, as that would cause partial lines to be
+        # printed, which then get overwritten by the progress bar. We wait
+        # for the newline to print it.
+        self.original_stream.flush()
+
+    def __del__(self):
+        if self.buffer:
+            try:
+                self.original_stream.write(self.buffer)
+                self.original_stream.flush()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+    def isatty(self):
+        return self.original_stream.isatty()
 
 
 def _removeNotBreakingSpaces(message):

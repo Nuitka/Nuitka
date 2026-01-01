@@ -13,7 +13,6 @@ import sys
 from contextlib import contextmanager
 
 from nuitka import Tracing
-from nuitka.PythonVersions import isPythonWithGil
 from nuitka.Tracing import general, getDisableStylesCode
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
@@ -46,7 +45,17 @@ def enableThreading():
     # Singleton, pylint: disable=global-statement
     global _uses_threading
 
-    _uses_threading = True
+    if not _uses_threading:
+        # Install the redirection for stdout/stderr to ensure that partial lines
+        # which are common for threaded tools do not get mixed with progress bar.
+
+        if not hasattr(sys.stdout, "original_stream"):
+            sys.stdout = Tracing.LineBufferedStreamRedirector(sys.stdout)
+
+        if not hasattr(sys.stderr, "original_stream"):
+            sys.stderr = Tracing.LineBufferedStreamRedirector(sys.stderr)
+
+        _uses_threading = True
 
 
 class NuitkaProgressBarTqdm(object):
@@ -69,6 +78,12 @@ class NuitkaProgressBarTqdm(object):
             getDisableStylesCode(),
         )
 
+        # Ensure we use the original stream for tqdm, so it doesn't trigger our redirection
+        # which would cause infinite recursion.
+        tqdm_file = sys.stderr
+        if hasattr(tqdm_file, "original_stream"):
+            tqdm_file = tqdm_file.original_stream
+
         # Render immediately with 0 progress, and setting disable=None enables tty detection.
         self.tqdm = _tqdm(
             iterable=iterable,
@@ -81,6 +96,7 @@ class NuitkaProgressBarTqdm(object):
             leave=False,
             dynamic_ncols=True,
             bar_format=bar_format,
+            file=tqdm_file,
         )
 
         self.tqdm.set_description(stage)
@@ -115,11 +131,21 @@ class NuitkaProgressBarTqdm(object):
 
     @contextmanager
     def withExternalWritingPause(self):
+        # We perform what "external_write_mode" does manually, so we can force the
+        # refresh to happen, which it seemingly doesn't do reliably.
+
         # spell-checker: ignore nolock
-        with self.tqdm.external_write_mode(
-            nolock=not _uses_threading or isPythonWithGil()
-        ):
+        if _uses_threading:
+            lock = self.tqdm.get_lock()
+            lock.acquire()
+
+        try:
+            self.tqdm.clear(nolock=True)
             yield
+            self.tqdm.refresh(nolock=True)
+        finally:
+            if _uses_threading:
+                lock.release()
 
 
 class NuitkaProgressBarRich(object):
@@ -169,6 +195,15 @@ class NuitkaProgressBarRich(object):
                     self.highlighter.highlight(text)
                 return text
 
+        # Unwrap our own redirection for Scons.
+        rich_file = sys.stdout
+        if hasattr(rich_file, "original_stream"):
+            rich_file = rich_file.original_stream
+
+        # This is for "rich" to not use the "SconsStreamRedirector" that we install
+        # for Scons, but instead use the one that really goes to the terminal.
+        console = _rich_console.Console(file=rich_file)
+
         self.rich_progress = _rich_progress.Progress(
             _rich_progress.TextColumn(
                 wrapWithStyles("{task.description}", styles=_progress_info_style),
@@ -194,6 +229,7 @@ class NuitkaProgressBarRich(object):
             transient=True,
             redirect_stdout=False,
             redirect_stderr=False,
+            console=console,
         )
         self.rich_progress.start()
 
@@ -271,14 +307,16 @@ class NuitkaProgressBarRich(object):
     def withExternalWritingPause(self):
         # Temporarily stop (and clear due to transient=True) the Rich progress display
         # to allow external printing, then restart it.
-        if self.rich_progress.live.is_started:
+        was_started = self.rich_progress.live.is_started
+
+        if was_started:
             self.rich_progress.stop()
-            try:
-                yield
-            finally:
-                self.rich_progress.start()
-        else:
+
+        try:
             yield
+        finally:
+            if was_started:
+                self.rich_progress.start()
 
 
 def _getTqdmModule():
@@ -317,11 +355,13 @@ def _getTqdmModule():
 
 # Global variable to cache the rich module instance or import failure
 _rich_progress = None
+_rich_console = None
 
 
 def _getRichModule():
     """Get the rich module if possible, might return None."""
-    global _rich_progress  # singleton, pylint: disable=global-statement
+    # Singleton, pylint: disable=global-statement
+    global _rich_progress, _rich_console
 
     if _rich_progress:
         return _rich_progress
@@ -331,19 +371,24 @@ def _getRichModule():
     if _rich_progress is None:
         try:
             # Try importing from pip's vendored packages first
+            import pip._vendor.rich.console as vendored_rich_console
             import pip._vendor.rich.progress as vendored_rich_progress
 
             _rich_progress = vendored_rich_progress
+            _rich_console = vendored_rich_console
         except ImportError:
             try:
+                import rich.console as standard_rich_console
                 import rich.progress as standard_rich_progress
 
                 _rich_progress = standard_rich_progress
+                _rich_console = standard_rich_console
             except ImportError:
                 _rich_progress = False
 
-        if not hasattr(_rich_progress, "Progress"):
-            _rich_progress = False
+        if _rich_progress:
+            if not hasattr(_rich_progress, "Progress"):
+                _rich_progress = False
 
     if _rich_progress is False:
         return None
@@ -500,6 +545,13 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
         description = kwargs.get("desc", "Downloading")
         total_size_bytes = kwargs.get("total", 0)
 
+        # Unwrap our own redirection if we are active during SCons or similar.
+        rich_file = sys.stdout
+        if hasattr(rich_file, "original_stream"):
+            rich_file = rich_file.original_stream
+
+        console = _rich_console.Console(file=rich_file)
+
         _rich_progress_cm = _rich_progress.Progress(
             _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
             _rich_progress.BarColumn(bar_width=None),
@@ -512,6 +564,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             _rich_progress.TimeRemainingColumn(),
             transient=True,
             disable=not is_tty,
+            console=console,
         )
 
         with _rich_progress_cm as rich_p_instance:
