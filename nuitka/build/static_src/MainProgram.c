@@ -19,11 +19,9 @@
 #if defined(__APPLE__)
 #include <errno.h>
 #include <limits.h>
-#include <spawn.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #include "nuitka/prelude.h"
@@ -1474,9 +1472,9 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
                     while (*src && remaining > 1) {
                         // Check if character needs escaping
-                        if (*src == '"' || *src == '\\' || *src == '\'' ||
-                            *src == '$' || *src == '`' || *src == '!') {
-                            if (remaining < 2) break; // Need space for \ + char
+                        if (*src == '"' || *src == '\\' || *src == '\'' || *src == '$' || *src == '`' || *src == '!') {
+                            if (remaining < 2)
+                                break; // Need space for \ + char
                             *dst++ = '\\';
                             remaining--;
                         }
@@ -1506,8 +1504,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                     escapeForAppleScript(escaped_arg, sizeof(escaped_arg), argv[i]);
 
                     int prev_len = cmd_len;
-                    cmd_len += snprintf(full_command + cmd_len, sizeof(full_command) - cmd_len,
-                                       " \\\"%s\\\"", escaped_arg);
+                    cmd_len +=
+                        snprintf(full_command + cmd_len, sizeof(full_command) - cmd_len, " \\\"%s\\\"", escaped_arg);
 
                     // Check for buffer overflow
                     if (cmd_len < 0 || cmd_len >= (int)sizeof(full_command)) {
@@ -1517,7 +1515,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                 }
 
                 // Build AppleScript command arguments
-                // Use posix_spawn instead of system() to avoid shell and be more secure
                 char tell_app[64];
                 char activate_cmd[32];
                 char do_script[PATH_MAX * 7];
@@ -1535,35 +1532,16 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
                 }
 
                 // Build argv for osascript
-                char *osascript_argv[] = {
-                    "osascript",
-                    "-e", tell_app,
-                    "-e", activate_cmd,
-                    "-e", do_script,
-                    "-e", end_tell,
-                    NULL
-                };
+                char *osascript_argv[] = {"osascript", "-e",      tell_app, "-e",     activate_cmd,
+                                          "-e",        do_script, "-e",     end_tell, NULL};
 
-                // Use posix_spawn to execute osascript without invoking a shell
-                pid_t pid;
+                // Replace this process with osascript to launch Terminal
                 extern char **environ;
-                int spawn_result = posix_spawn(&pid, "/usr/bin/osascript", NULL, NULL,
-                                              osascript_argv, environ);
+                execve("/usr/bin/osascript", osascript_argv, environ);
 
-                if (spawn_result != 0) {
-                    fprintf(stderr, "Error: Failed to spawn osascript: %s\n", strerror(spawn_result));
-                    exit(1);
-                }
-
-                // Wait for osascript to complete
-                int status;
-                if (waitpid(pid, &status, 0) == -1) {
-                    fprintf(stderr, "Error: Failed to wait for osascript: %s\n", strerror(errno));
-                    exit(1);
-                }
-
-                // Exit this instance since we're relaunching in Terminal
-                exit(WIFEXITED(status) ? WEXITSTATUS(status) : 1);
+                // Only reached if execve fails
+                fprintf(stderr, "Error: Failed to exec osascript: %s\n", strerror(errno));
+                exit(1);
             }
         }
     }
