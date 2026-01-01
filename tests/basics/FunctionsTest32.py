@@ -182,12 +182,21 @@ print("Using deleted non-local variable:", deletingClosureVariable())
 
 def has_generic[T]():
     print('hello', T)
+
 has_generic()
+
 try:
     print(T)
 except NameError:
     print("not found")
 
+T = 1
+
+def overwrites_generic[T]():
+    print(T)
+
+overwrites_generic()
+print(T)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
