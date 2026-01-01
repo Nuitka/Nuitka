@@ -693,6 +693,8 @@ class ExpressionBase(NodeBase):
 
     def computeExpressionDrop(self, statement, trace_collection):
         if not self.mayHaveSideEffects():
+            self.undoComputeExpressionRaw(trace_collection)
+
             return (
                 None,
                 "new_statements",
