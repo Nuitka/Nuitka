@@ -12,27 +12,149 @@ on:
       - release/**
       - hotfix/**
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    name: Checks
+    env:
+      CLANG_FORMAT_VERSION: "21"
+    steps:
+      - name: 🛎️ Checkout (Attempt 1)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
+
+      - name: 🐍 Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install patchelf gdb ccache libfuse2
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔎 PyLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-pylint
+
+      - name: 🔎 RestLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-restlint
+
+      - name: 🔎 YamlLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-yamllint
+
+      - name: 🔎 Codespell on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-codespell
+
+      - name: 🔎 Auto-format check on Nuitka source code
+        run: |
+          # Install clang-format that matches what we use in VS code.
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get install software-properties-common
+          CODENAME=$(lsb_release -cs)
+          sudo add-apt-repository "deb http://apt.llvm.org/${CODENAME}/ llvm-toolchain-${CODENAME}-${CLANG_FORMAT_VERSION} main"
+          sudo apt-get update
+          sudo apt-get install clang-format-${CLANG_FORMAT_VERSION}
+
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
+
   linux:
+    needs: checks
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         python_version:
-            - '3.8'
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
@@ -46,18 +168,18 @@ jobs:
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
-      - name: Verbose scons output in compilation
+      - name: ⚙️ Verbose scons output in compilation
         run: |
           set -x
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
           ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
-      - name: Archive compilation reports for empty modules
+      - name: 📤 Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -74,67 +196,69 @@ jobs:
       #     ## limits ssh access and adds the ssh public keys of the listed GitHub users
       #     limit-access-to-users: kayhayen
 
-      - name: Run Nuitka test suite
+      - name: 🧪 Run Nuitka test suite
         run: |
           python -m nuitka --version
           env | sort
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
-      - name: PyLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-pylint
-        if: matrix.python_version == '3.9'
-
-      - name: RestLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-restlint
-        if: matrix.python_version == '3.9'
-
-      - name: YamlLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-yamllint
-        if: matrix.python_version == '3.9'
-
-      - name: Codespell on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-codespell
-        if: matrix.python_version == '3.9'
-
-      - name: Auto-format check on Nuitka source code
-        run: |
-          # Install clang-format that matches what we use in VS code.
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-get install software-properties-common
-          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main'
-          sudo apt-get update
-          sudo apt-get install clang-format-21
-
-          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
-        if: matrix.python_version == '3.9'
-
   mac-python3:
+    needs: linux
     runs-on: macos-latest
     strategy:
       matrix:
         python_version:
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Verbose installation output for Python
+      - name: ⚙️ Verbose installation output for Python
         run: |
           set -x
           which python
@@ -151,12 +275,12 @@ jobs:
         run: |
           set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
           # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Archive compilation reports for empty modules
@@ -166,42 +290,76 @@ jobs:
           path: |
             *.xml
 
-      - name: Check all modes for debug output
+      - name: 🐞 Check all modes for debug output
         run: |
           set -x
-          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
           # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Run Nuitka test suite
         run: |
           python -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
+    needs: linux
     runs-on: windows-latest
     strategy:
       matrix:
         python_version:
-            - '3.7'
-            - '3.8'
-            - '3.9'
-            - '3.10'
-            - '3.11'
-            - '3.12'
-            - '3.13'
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5

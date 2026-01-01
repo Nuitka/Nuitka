@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes related to raising and making exceptions.
-
-"""
+"""Nodes related to raising and making exceptions."""
 
 from nuitka.PythonVersions import python_version
 

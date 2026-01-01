@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for yamllint checker tool.
-
-"""
+"""Main program for yamllint checker tool."""
 
 import os
 import sys
@@ -19,12 +17,11 @@ sys.path.insert(
 
 from optparse import OptionParser
 
+from nuitka.format.YamlChecker import checkYamlSchema
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
-
-from .YamlChecker import checkYamlSchema
 
 
 def main():

@@ -60,10 +60,17 @@ compiler for C++03 [#]_.
 
 Currently, this means, you need to use one of these compilers:
 
--  The MinGW64 C11 compiler, on Windows, must be based on gcc 11.2 or
-   higher. It will be *automatically* downloaded if no usable C compiler
-   is found, which is the recommended way of installing it, as Nuitka
-   will also upgrade it for you.
+-  The ``zig`` compiler (used with ``--zig``). On Windows, this is
+   currently limited to compiling for **x64** (AMD64) Python. On other
+   platforms, it can be used for all architectures it supports.
+
+-  The MinGW64 C11 compiler, on Windows. It must be the one Nuitka
+   downloads (specify with ``--mingw64``), and it enforces that because
+   there were frequent breakage with the complete tooling used. It will
+   be *automatically* downloaded if no usable C compiler is found, which
+   is the recommended way of installing it, as Nuitka will also upgrade
+   it for you. But note that MinGW64 does not work with Python 3.13 or
+   higher.
 
 -  Visual Studio 2022 or higher on Windows [#]_. English language pack
    for best results (Nuitka filters away garbage outputs, but only for
@@ -133,7 +140,8 @@ list, rest assured it is being worked on and will be added.
 .. admonition:: Moving binaries to other machines
 
    The created binaries can be made executable independent of the Python
-   installation, with ``--standalone`` and ``--onefile`` options.
+   installation, with ``--mode=standalone`` and ``--mode=onefile``
+   options.
 
 .. admonition:: Binary filename suffix
 
@@ -186,7 +194,7 @@ Other architectures are expected to also work, out of the box, as Nuitka
 is generally not using any hardware specifics. These are just the ones
 tested and known to be good. Feedback is welcome. Generally, the
 architectures that Debian supports can be considered good and tested,
-too.
+too; for example, **RISC-V** won't pose any issues.
 
 *******
  Usage
@@ -263,9 +271,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-*************************************
- Tutorial Setup and build on Windows
-*************************************
+**************************
+ Tutorial Setup and Build
+**************************
 
 This is basic steps if you have nothing installed, of course if you have
 any of the parts, just skip it.
@@ -287,7 +295,7 @@ Install Python
 Install Nuitka
 --------------
 
--  ``python -m pip install nuitka``
+-  ``python -m pip install Nuitka``
 
 -  Verify using command ``python -m nuitka --version``
 
@@ -348,13 +356,15 @@ Execute the ``hello.exe`` created near ``hello.py``.
 Distribute
 ----------
 
-To distribute, build with ``--standalone`` option, which will not output
-a single executable, but a whole folder. Copy the resulting
+To distribute, build with ``--mode=standalone`` option, which will not
+output a single executable, but a whole folder. Copy the resulting
 ``hello.dist`` folder to the other machine and run it.
 
-You may also try ``--onefile`` which does create a single file, but make
-sure that the mere standalone is working, before turning to it, as it
-will make the debugging only harder, e.g. in case of missing data files.
+You may also try ``--mode=onefile`` which creates a single executable
+file. However, we recommend first ensuring your program works correctly
+with ``--mode=standalone`` before using ``--mode=onefile``, as any
+issues (such as missing data files) are easier to diagnose and fix in
+standalone mode.
 
 ***********
  Use Cases
@@ -409,8 +419,8 @@ executable:
    modules being installed.
 
    If you want to be able to copy it to another machine, use
-   ``--standalone`` and copy the created ``program.dist`` directory and
-   execute the ``program.exe`` (Windows) or ``program`` (other
+   ``--mode=standalone`` and copy the created ``program.dist`` directory
+   and execute the ``program.exe`` (Windows) or ``program`` (other
    platforms) put inside.
 
 Use Case 2 — Extension Module compilation
@@ -582,7 +592,7 @@ When that is working, you can use the onefile mode if you so desire.
 
 .. code:: bash
 
-   python -m nuitka --onefile program.py
+   python -m nuitka --mode=onefile program.py
 
 This will create a single binary, that extracts itself on the target,
 before running the program. But notice, that accessing files relative to
@@ -592,7 +602,7 @@ Finding files`_ as well.
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
-   python -m nuitka --onefile program.py
+   python -m nuitka --mode=onefile program.py
 
 .. note::
 
@@ -877,7 +887,7 @@ This is an example workflow that builds on all 3 OSes
             # many more Nuitka options available, see action doc, but it's best
             # to use nuitka-project: options in your code, so e.g. you can make
             # a difference for macOS and create an app bundle there.
-            mode: onefile
+            mode: app
 
          - name: Upload Artifacts
          uses: actions/upload-artifact@v4
@@ -887,6 +897,7 @@ This is an example workflow that builds on all 3 OSes
                build/*.exe
                build/*.bin
                build/*.app/**/*
+            include-hidden-files: true
 
 If you app is a GUI, e.g. ``your_main_program.py`` should contain these
 comments as explained in `Nuitka Options in the code`_ since on macOS
@@ -896,15 +907,15 @@ this should then be a bundle.
 
    # Compilation mode, standalone everywhere, except on macOS there app bundle
    # nuitka-project-if: {OS} in ("Windows", "Linux", "FreeBSD"):
-   #    nuitka-project: --onefile
+   #    nuitka-project: --mode=onefile
    # nuitka-project-if: {OS} == "Darwin":
-   #    nuitka-project: --standalone
+   #    nuitka-project: --mode=standalone
    #    nuitka-project: --macos-create-app-bundle
    #
 
 .. note::
 
-   This is best expression with ``nuitka-project: --mode=app`` which
+   This is best expressed with ``nuitka-project: --mode=app`` which
    encapsulates these options.
 
 ********
@@ -921,13 +932,13 @@ and may even be combined:
 .. code:: bash
 
    # These create binaries with icons on Windows
-   python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
-   python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
-   python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+   python -m nuitka --mode=onefile --windows-icon-from-ico=your-icon.png program.py
+   python -m nuitka --mode=onefile --windows-icon-from-ico=your-icon.ico program.py
+   python -m nuitka --mode=onefile --windows-icon-template-exe=your-icon.ico program.py
 
    # These create application bundles with icons on macOS
-   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.png program.py
-   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.icns program.py
+   python -m nuitka --mode=app --macos-app-icon=your-icon.png program.py
+   python -m nuitka --mode=app --macos-app-icon=your-icon.icns program.py
 
 .. note::
 
@@ -1151,10 +1162,9 @@ When this fork bomb happens easily all memory, all CPU of the system
 that is available to the user is being used, and even the most powerful
 build system will go down in flames sometimes needing a hard reboot.
 
-For fork bombs, we can use ``--experimental=debug-self-forking`` and see
-what it does, and we have a trick, that prevents fork bombs from having
-any actual success in their bombing. Put this at the start of your
-program.
+For fork bombs, we can use ``--debug-self-forking`` and see what it
+does, and we have a trick, that prevents fork bombs from having any
+actual success in their bombing. Put this at the start of your program.
 
 .. code:: python
 
@@ -1546,6 +1556,8 @@ Table with supported variables:
 | {MAIN_DIRECTORY} | Directory of the compiled file | some_dir/maybe_relative                  |
 +------------------+--------------------------------+------------------------------------------+
 | {Flavor}         | Variant of Python              | e.g. Debian Python, Anaconda Python      |
++------------------+--------------------------------+------------------------------------------+
+| {GIL}            | Python with or without GIL     | boolean                                  |
 +------------------+--------------------------------+------------------------------------------+
 
 The use of ``{MAIN_DIRECTORY}`` is recommended when you want to specify

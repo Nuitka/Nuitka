@@ -1,17 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helper functions for the Python build related scons files.
-
-"""
+"""Helper functions for the Python build related scons files."""
 
 import os
 
 from nuitka.Tracing import scons_logger
 from nuitka.utils.Utils import isLinux, isMacOS
 
-# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,
-# spell-checker: ignore linkflags,libpath,libflags
+# spell-checker: ignore cppdefines,cpppath,linkflags,libpath
 
 
 def _detectPythonHeaderPath(env):
@@ -111,14 +108,37 @@ def applyPythonBuildSettings(env):
     if env.static_libpython:
         env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
+    if env.msvc_mode and (env.module_mode or env.dll_mode):
+        # Make sure we handle import library on our own and put it into the
+        # build directory, spell-checker: ignore IMPLIB
+        env.no_import_lib = True
+        env.Append(
+            LINKFLAGS=[
+                "/IMPLIB:%s" % os.path.join(env.source_dir, "import.lib"),
+            ]
+        )
+    else:
+        env.no_import_lib = False
+
+    if env.deployment_mode:
+        env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
+
+    if env.frozen_modules:
+        env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % env.frozen_modules])
+
 
 def addWin32PythonLib(env):
     # Make sure to locate the Python link library from multiple potential
     # locations (installed vs. self-built).
-    if env.python_debug:
+    if env.msys2_mingw_python:
+        win_lib_name = "libpython" + env.python_abi_version + ".dll.a"
+        win_lib_filename = win_lib_name
+    elif env.python_debug:
         win_lib_name = "python" + env.python_abi_version.replace(".", "") + "_d"
+        win_lib_filename = win_lib_name + ".lib"
     else:
         win_lib_name = "python" + env.python_abi_version.replace(".", "")
+        win_lib_filename = win_lib_name + ".lib"
 
     if env.python_version >= (3,):
         pc_build_dir = (
@@ -127,13 +147,13 @@ def addWin32PythonLib(env):
     else:
         pc_build_dir = "PCBuild"
 
-    for candidate in ("libs", pc_build_dir):
+    for candidate in ("libs", "lib", pc_build_dir):
         win_lib_path = os.path.join(env.python_prefix_external, candidate)
 
-        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+        if os.path.exists(os.path.join(win_lib_path, win_lib_filename)):
             break
     else:
-        scons_logger.sysexit("Error, cannot find '%s.lib' file." % win_lib_name)
+        scons_logger.sysexit("Error, cannot find '%s' file." % win_lib_filename)
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])
@@ -180,6 +200,8 @@ def addPythonHaclLib(env, link_module_libs):
             for link_module_lib in link_module_libs
             if "libHacl_Hash_SHA2" not in link_module_lib
         ]
+
+    return link_module_libs
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

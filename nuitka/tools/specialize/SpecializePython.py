@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This tool is generating node variants from Jinja templates.
-
-"""
+"""This tool is generating node variants from Jinja templates."""
 
 import sys
 
@@ -63,7 +61,7 @@ from .Common import (
     python3_list_methods,
     python3_str_methods,
     python3_type_methods,
-    withFileOpenedAndAutoFormatted,
+    withFileOpenedAndAutoFormattedWithClaim,
     writeLine,
 )
 
@@ -358,7 +356,7 @@ def makeAttributeNodes():
         template_name="AttributeNodeFixed.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
         claim=getLicenseTextStandard(),
@@ -431,7 +429,7 @@ def makeBuiltinOperationNodes():
         template_name="BuiltinOperationNodeBases.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
         claim=getLicenseTextStandard(),
@@ -791,15 +789,15 @@ def makeChildrenHavingMixinNodes():
 
     mixins_done = set()
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
         claim=getLicenseTextStandard(),
-    ) as output_python, withFileOpenedAndAutoFormatted(
+    ) as output_python, withFileOpenedAndAutoFormattedWithClaim(
         filename_python2,
         ignore_errors=True,
         claim=getLicenseTextStandard(),
-    ) as output_python2, withFileOpenedAndAutoFormatted(
+    ) as output_python2, withFileOpenedAndAutoFormattedWithClaim(
         filename_python3,
         ignore_errors=True,
         claim=getLicenseTextStandard(),
@@ -1018,7 +1016,7 @@ def makeHardImportNodes():
         template_name="HardImportCallNode.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
         claim=getLicenseTextStandard(),

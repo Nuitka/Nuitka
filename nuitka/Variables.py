@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Variables link the storage and use of a Python variable together.
+"""Variables link the storage and use of a Python variable together.
 
 Different kinds of variables represent different scopes and owners types,
 and their links between each other, i.e. references as in closure or
@@ -60,7 +60,6 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         __del__ = counted_del()
 
     def finalize(self):
-        del self.users
         del self.writers
         del self.traces
         del self.owner
@@ -456,6 +455,14 @@ class LocalsDictVariable(Variable):
         else:
             return trace_collection.initVariableUnknown(self, None)
 
+    def inhibitsClassScopeForwardPropagation(self):
+        for traces in self.traces.values():
+            for trace in traces.values():
+                if trace.inhibitsClassScopeForwardPropagation():
+                    return True
+
+        return False
+
 
 def _updateVariablesFromCollectionFirst(new_collection):
     for variable, variable_traces in iterItems(new_collection.getVariableTracesAll()):
@@ -484,7 +491,9 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
         variable.setTracesForUserUpdate(owner, variable_traces)
 
     for variable in old_traces:
-        if variable not in new_traces:
+        # Remove traces for variables that are not in the new collection unless
+        # they are finalized, then we don't need to update them.
+        if variable not in new_traces and hasattr(variable, "users"):
             variable.removeTracesForUser(owner)
 
     if old_collection.loop_variables != new_collection.loop_variables:

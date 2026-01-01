@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main module code templates
+"""Main module code templates
 
 This for the main program in case of executables, the module templates and
 stuff related to importing, and of course the generated code license.
@@ -34,6 +34,8 @@ template_module_body_template = r"""
 #include "nuitka/unfreezing.h"
 
 #include "__helpers.h"
+
+%(module_includes)s
 
 /* The "module_%(module_identifier)s" is a Python object pointer of module type.
  *

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Program execution related stuff.
+"""Program execution related stuff.
 
 Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.
@@ -28,7 +28,9 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if isWin32OrPosixWindows() and not filename.lower().endswith((".exe", ".cmd")):
+    if isWin32OrPosixWindows() and not filename.lower().endswith(
+        (".exe", ".cmd", ".bat")
+    ):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
@@ -152,7 +154,7 @@ def check_call(*popenargs, **kwargs):
     try:
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
-        general.sysexit(
+        return general.sysexit(
             "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
         )
 
@@ -165,6 +167,40 @@ def callProcess(*popenargs, **kwargs):
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     return subprocess.call(*popenargs, **kwargs)
+
+
+def callProcessChunked(command, chunks, **kwargs):
+    """Call a process with arguments chunked to avoid Windows command line limits."""
+
+    # Chunking to avoid command line length limit on Windows.
+    # Windows limit is 32767 characters. We stay safely below.
+    MAX_CMD_LEN = 20000
+
+    chunk = []
+    current_len = sum(len(arg) + 1 for arg in command)
+
+    result = 0
+
+    for filename in chunks:
+        arg_len = len(filename) + 1
+
+        if current_len + arg_len > MAX_CMD_LEN:
+            chunk_result = callProcess(command + chunk, **kwargs)
+            if chunk_result != 0:
+                result = chunk_result
+
+            chunk = []
+            current_len = sum(len(arg) + 1 for arg in command)
+
+        chunk.append(filename)
+        current_len += arg_len
+
+    if chunk:
+        chunk_result = callProcess(command + chunk, **kwargs)
+        if chunk_result != 0:
+            result = chunk_result
+
+    return result
 
 
 @contextmanager
@@ -289,7 +325,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, the selected debugger '%s' was not found in path."
                 % debugger_name
             )
@@ -297,7 +333,10 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.Options import assumeYesForDownloads, isExperimental
+        from nuitka.options.Options import (
+            assumeYesForDownloads,
+            isExperimental,
+        )
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
@@ -311,7 +350,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
             )
 
@@ -348,7 +387,9 @@ def wrapCommandForDebuggerForExec(command, debugger):
             #            "--leak-check=full",
         ) + command
     else:
-        general.sysexit("Error, the selected debugger '%s' was not found in path.")
+        return general.sysexit(
+            "Error, the selected debugger '%s' was not found in path."
+        )
 
     return args
 
@@ -394,6 +435,19 @@ def getNullInput():
         r.close()
 
 
+def filterOutputByLine(output, filter_func):
+    """For use by stderr filters of executeToolChecked."""
+    non_errors = []
+
+    for line in output.splitlines():
+        if line and not filter_func(line):
+            non_errors.append(line)
+
+    output = b"\n".join(non_errors)
+
+    return (0 if non_errors else None), output
+
+
 def executeToolChecked(
     logger,
     command,
@@ -405,6 +459,10 @@ def executeToolChecked(
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
+    # We are doing many returns, because for logger.sysexit() we need to
+    # return from the function, for proper pylint support.
+    # pylint: disable=too-many-return-statements
+
     command = list(command)
     tool = command[0]
 
@@ -413,13 +471,13 @@ def executeToolChecked(
             logger.warning(absence_message)
             return b"" if decoding else ""
         else:
-            logger.sysexit(absence_message)
+            return logger.sysexit(absence_message)
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
 
     if None in command:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed due to 'None' value: %s index %d."
             % (tool, command, command.index(None))
         )
@@ -441,7 +499,7 @@ def executeToolChecked(
         if e.errno != errno.E2BIG:
             raise
 
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed, command line was too long: %r"
             % (tool, command)
         )
@@ -453,11 +511,11 @@ def executeToolChecked(
             result = new_result
 
     if result != 0:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
     elif stderr:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
 
@@ -471,8 +529,8 @@ def createProcess(
     command,
     env=None,
     stdin=False,
-    stdout=None,
-    stderr=None,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
     shell=False,
     external_cwd=False,
     new_group=False,
@@ -493,8 +551,8 @@ def createProcess(
             # Note: Empty string should also be allowed for stdin, therefore check
             # for default "False" and "None" precisely.
             stdin=subprocess.PIPE if stdin not in (False, None) else null_input,
-            stdout=subprocess.PIPE if stdout is None else stdout,
-            stderr=subprocess.PIPE if stderr is None else stderr,
+            stdout=stdout,
+            stderr=stderr,
             shell=shell,
             # On Windows, closing file descriptions is not working with capturing outputs.
             close_fds=not isWin32Windows(),
@@ -511,6 +569,8 @@ def executeProcess(
     command,
     env=None,
     stdin=False,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
     shell=False,
     external_cwd=False,
     rusage=False,
@@ -521,6 +581,8 @@ def executeProcess(
         command=command,
         env=env,
         stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
         shell=shell,
         external_cwd=external_cwd,
         rusage=rusage,
@@ -537,8 +599,8 @@ class Process(object):
         command,
         env=None,
         stdin=False,
-        stdout=None,
-        stderr=None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         shell=False,
         external_cwd=False,
         rusage=False,

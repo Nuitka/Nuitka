@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in type nodes tuple/list/set/float/str/unicode etc.
+"""Built-in type nodes tuple/list/set/float/str/unicode etc.
 
 These are all very simple and have predictable properties, because we know their type and
 that should allow some important optimizations.

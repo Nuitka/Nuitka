@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" These tests contain all forms of closure absuse.
-
-"""
+"""These tests contain all forms of closure absuse."""
 
 from __future__ import print_function
 

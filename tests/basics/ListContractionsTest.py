@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Cover list contractions and a few special things in them.
-
-"""
+"""Cover list contractions and a few special things in them."""
 
 from __future__ import print_function
 

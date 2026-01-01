@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to handle pkg_resource special needs.
+"""Standard plug-in to handle pkg_resource special needs.
 
 Nuitka can detect some things that "pkg_resources" may not even be able to during
 runtime, but that is done by nodes and optimization. But there are other things,
@@ -18,7 +18,7 @@ from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
 
 class NuitkaPluginResources(NuitkaPluginBase):
     plugin_name = "pkg-resources"
-    plugin_desc = "Workarounds for 'pkg_resources'."
+    plugin_desc = "Required by 'pkg_resources' package."
     plugin_category = "package-support"
 
     def __init__(self):

@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for PyPI release tool.
-
-"""
+"""Launcher for PyPI release tool."""
 
 import os
 import sys

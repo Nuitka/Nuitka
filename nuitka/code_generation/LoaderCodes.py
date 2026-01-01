@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with module loaders.
+"""Code to generate and interact with module loaders.
 
 This is for generating the look-up table for the modules included in a binary
 or distribution folder.
@@ -19,12 +19,13 @@ needed except for technical reasons.
 
 import sys
 
+from nuitka.importing.Recursion import getExcludedModuleNames
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getUncompiledModules,
     getUncompiledTechnicalModules,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getFileReferenceMode,
     hasNonDeploymentIndicator,
     isShowInclusion,
@@ -42,6 +43,7 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
+    template_metapath_loader_excluded_module_entry,
     template_metapath_loader_extension_module_entry,
 )
 
@@ -185,6 +187,26 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
 
         if isShowInclusion():
             inclusion_logger.info("Embedded as frozen module '%s'." % module_name)
+
+    if isStandaloneMode() and hasNonDeploymentIndicator("excluded-module-usage"):
+        for module_name, reason in getExcludedModuleNames():
+            module_c_name = encodePythonStringToC(
+                encodeDataComposerName(module_name.asString())
+            )
+            reason_c_string = encodePythonStringToC(reason.encode("utf8"))
+
+            # Check for "excluded by user" or similar reason if necessary,
+            # but for now we include all rejected modules that have a reason.
+            # We might want to filter this better, e.g. only if it starts with "Module ... instructed by user"
+            # For now, let's include all explicit 'False' decisions where we have a module name.
+            metapath_loader_inittab.append(
+                template_metapath_loader_excluded_module_entry
+                % {
+                    "module_name": module_c_name,
+                    "flags": "NUITKA_EXCLUDED_MODULE_FLAG",
+                    "exclusion_reason": reason_c_string,
+                }
+            )
 
     return template_metapath_loader_body % {
         "metapath_module_decls": indented(metapath_module_decls, 0),

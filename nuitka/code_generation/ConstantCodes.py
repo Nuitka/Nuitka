@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Low level constant code generation.
+"""Low level constant code generation.
 
 This deals with constants, there creation, there access, and some checks about
 them. Even mutable constants should not change during the course of the
@@ -19,7 +19,7 @@ import sys
 from nuitka.__past__ import unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.ModuleRegistry import getRootTopModule, hasDoneModule
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC

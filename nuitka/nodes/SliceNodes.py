@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Slice nodes.
+"""Slice nodes.
 
 Slices are important when working with lists. Tracking them can allow to
 achieve more compact code, or predict results at compile time.

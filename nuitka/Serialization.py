@@ -1,11 +1,8 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Write and read constants data files and provide identifiers.
+"""Write and read constants data files and provide identifiers."""
 
-"""
-
-import os
 import pickle
 import sys
 
@@ -29,7 +26,7 @@ from nuitka.code_generation.Namify import namifyConstant
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import openPickleFile
+from nuitka.utils.FileOperations import getNormalizedPathJoin, openPickleFile
 
 
 class BuiltinAnonValue(object):
@@ -125,10 +122,11 @@ class ConstantStreamWriter(object):
     def __init__(self, filename):
         self.count = 0
 
-        filename = os.path.join(
+        filename = getNormalizedPathJoin(
             getSourceDirectoryPath(onefile=False, create=False),
             filename,
         )
+
         self.file, self.pickle = openPickleFile(filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues

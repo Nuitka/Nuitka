@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Outputs to the user.
+"""Outputs to the user.
 
 Printing with intends or plain, mostly a compensation for the print strangeness.
 
@@ -234,6 +234,8 @@ def _aliasStyle(style):
 
     if style == "test-prepare":
         return "pink"
+    if style == "test-execution":
+        return "green"
     if style == "test-progress":
         return "blue"
     if style == "test-debug":
@@ -374,7 +376,7 @@ class OurLogger(object):
         self, message, style="yellow", mnemonic=None, keep_format=False, leader=None
     ):
         if mnemonic is not None:
-            from .Options import shallDisplayWarningMnemonic
+            from .options.Options import shallDisplayWarningMnemonic
 
             if not shallDisplayWarningMnemonic(mnemonic):
                 return
@@ -531,6 +533,42 @@ class FileLogger(OurLogger):
             other_logger.info(message, style=style)
 
 
+class OurSconsLogger(OurLogger):
+    def sysexit(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        exit_code=1,
+        reporting=False,
+        env=None,
+    ):
+        if env is not None:
+            from nuitka.utils.FileOperations import getNormalizedPathJoin
+            from nuitka.utils.Json import writeJsonToFilename
+
+            writeJsonToFilename(
+                getNormalizedPathJoin(env.source_dir, "scons-error.json"),
+                {
+                    "message": message,
+                    "mnemonic": mnemonic,
+                    "exit_code": exit_code,
+                    "reporting": reporting,
+                },
+            )
+
+            sys.exit(27)
+        else:
+            OurLogger.sysexit(
+                self,
+                message,
+                style=style,
+                mnemonic=mnemonic,
+                exit_code=exit_code,
+                reporting=reporting,
+            )
+
+
 general = OurLogger("Nuitka")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Inclusion")
@@ -541,7 +579,7 @@ optimization_logger = FileLogger("Nuitka-Optimization")
 pgo_logger = FileLogger("Nuitka-PGO")
 code_generation_logger = OurLogger("Nuitka-CodeGen")
 inclusion_logger = FileLogger("Nuitka-Inclusion")
-scons_logger = OurLogger("Nuitka-Scons")
+scons_logger = OurSconsLogger("Nuitka-Scons")
 scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")

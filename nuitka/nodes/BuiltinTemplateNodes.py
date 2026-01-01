@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes related to t-strings
+"""Nodes related to t-strings
 
 These will most often be used for outputs, and not optimizable and
 generally these should not be that much about performance critical.

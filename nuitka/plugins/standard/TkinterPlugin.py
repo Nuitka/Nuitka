@@ -1,19 +1,18 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Details see below in class definition.
-"""
+"""Details see below in class definition."""
 
 import os
 import sys
 
-from nuitka.Options import isStandaloneMode, shallCreateAppBundle
+from nuitka.options.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
-# spell-checker: ignore tkinterdnd,tkdnd,tcltk,tcltest
+# spell-checker: ignore tcltk,tcltest
 
 
 def _isTkInterModule(module):
@@ -55,7 +54,7 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
     """
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
-    plugin_desc = "Required by Python's Tk modules."
+    plugin_desc = "Required by 'tkinter' package."
     plugin_category = "package-support"
 
     # Automatically suppress detectors for any other toolkit

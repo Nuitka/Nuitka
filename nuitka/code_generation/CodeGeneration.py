@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The code generation.
+"""The code generation.
 
 No language specifics at all are supposed to be present here. Instead it is
 using primitives from the given generator to build code sequences (list of
@@ -19,7 +19,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.Options import isCompileTimeProfile
+from nuitka.options.Options import isCompileTimeProfile
 from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -201,7 +201,6 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode,
 )
-from .InjectCCodes import generateInjectCCode
 from .IntegerCodes import (
     generateBuiltinInt1Code,
     generateBuiltinInt2Code,
@@ -1003,6 +1002,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
+        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarCode,
+        "EXPRESSION_PARAMETER_SPECIFICATION": generateTypeVarCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
@@ -1099,7 +1100,6 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
-        "STATEMENT_INJECT_C_CODE": generateInjectCCode,
     }
 )
 

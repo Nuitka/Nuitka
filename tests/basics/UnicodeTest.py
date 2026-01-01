@@ -21,7 +21,7 @@ print("favicon.ico (32\xd732)")
 # TODO: Python3 has a problem here, hard to find, disabled for now.
 if False:
     encoding = "utf-16-be"
-    print("[\uDC80]".encode(encoding))
+    print("[\udc80]".encode(encoding))
     print("[\\udc80]")
 
 #     Python tests originally created or extracted from other peoples work. The

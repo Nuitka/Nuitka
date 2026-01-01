@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Profiling for Nuitka and CPython.
+"""Profiling for Nuitka and CPython.
 
 This provides the capability of comparing performance results of Nuitka and
 CPython relatively to one another.

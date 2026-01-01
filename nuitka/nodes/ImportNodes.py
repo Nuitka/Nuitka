@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes related to importing modules or names.
+"""Nodes related to importing modules or names.
 
 Normally imports are mostly relatively static, but Nuitka also attempts to
 cover the uses of "__import__" built-in and other import techniques, that
@@ -43,7 +43,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import (
+from nuitka.options.Options import (
     isExperimental,
     isStandaloneMode,
     shallMakeModule,

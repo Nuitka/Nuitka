@@ -120,6 +120,7 @@
     "__firstlineno__",
     "__getitem__",
     "__newobj__",
+    "__pycache__",
     "__warningregistry__",
     "_get_soname",
     "_NUITKA_WINMAIN_ENTRY_POINT",
@@ -198,9 +199,11 @@
     "curexc_traceback",
     "curexc_type",
     "curexc_value",
+    "cursorrules",
     "Cython",
     "dask",
     "deepcopy",
+    "deepdiff",
     "Dejong",
     "delattr",
     "descrgetfunc",
@@ -226,6 +229,7 @@
     "finalizer",
     "FLUFL",
     "fromlist",
+    "frontmatter",
     "frozenset",
     "fstrings",
     "genericalias",
@@ -273,6 +277,7 @@
     "iternext",
     "iternextfunc",
     "itervalues",
+    "joblib",
     "joinpath",
     "jsonschema",
     "kcachegrind",
@@ -290,12 +295,14 @@
     "lintian",
     "listdir",
     "lldb",
+    "loky",
     "longlong",
     "LPWSTR",
     "lxml",
     "manylinux",
     "Matmult",
     "mdef",
+    "mdformat",
     "memcpy",
     "metaclass",
     "metaclasses",
@@ -400,7 +407,9 @@
     "rpartition",
     "RPATH",
     "rpaths",
+    "rstfmt",
     "RT_RCDATA",
+    "ruamel",
     "rusage",
     "Scons",
     "sendfunc",
@@ -427,6 +436,7 @@
     "ternaryfunc",
     "Themida",
     "Tkinter",
+    "tomli",
     "tp_alloc",
     "tp_basicsize",
     "tp_dealloc",
@@ -470,6 +480,7 @@
     "wcsicmp",
     "weakrefs",
     "winlibs",
+    "WinLicense",
     "wmain",
     "xrange",
     "zstandard",
@@ -484,7 +495,10 @@
     "devcontainer.json",
     "nuitka/build/inline_copy",
     "debian",
-    "rpm/*.spec"
+    "rpm/*.spec",
+    "tests/scratch",
+    "doc/*.1",
+    "*.containerfile"
   ],
   "yaml.schemas": {
     "misc/nuitka-package-config-schema.json": [
@@ -492,8 +506,5 @@
       "*.nuitka-package.config.yaml"
     ]
   },
-  "yaml.maxItemsComputed": 10000,
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  }
+  "yaml.maxItemsComputed": 10000
 }

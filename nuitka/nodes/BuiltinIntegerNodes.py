@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for the calls to the 'int' and 'long' (Python2) built-ins.
+"""Node for the calls to the 'int' and 'long' (Python2) built-ins.
 
 These are divided into variants for one and two arguments and they have a
 common base class, because most of the behavior is the same there. The ones

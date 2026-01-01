@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Valgrind tool usage.
+"""Valgrind tool usage.
 
 We are using it for benchmarking purposes, as it's an analysis tool at the
 same time and gives deterministic results.

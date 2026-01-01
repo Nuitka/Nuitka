@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for unary and binary operations.
+"""Nodes for unary and binary operations.
 
 No short-circuit involved, boolean 'not' is an unary operation like '-' is,
 no real difference.

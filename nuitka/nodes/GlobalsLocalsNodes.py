@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Globals/locals/single arg dir nodes
+"""Globals/locals/single arg dir nodes
 
 These nodes give access to variables, highly problematic, because using them,
 the code may change or access anything about them, so nothing can be trusted
@@ -90,8 +90,8 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     def isFinalUseOfLocals(self):
         return self.parent.isStatementReturn()
 
-    def computeExpressionRaw(self, trace_collection):
-        if self.locals_scope.isMarkedForPropagation():
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
             result = makeExpressionMakeDict(
                 pairs=makeKeyValuePairExpressionsFromKwArgs(
                     pairs=(
@@ -110,14 +110,11 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
                 source_ref=self.source_ref,
             )
 
-            new_result = result.computeExpressionRaw(trace_collection)
-
-            assert new_result[0] is result
-
-            self.finalize()
-
             return result, "new_expression", "Propagated locals dictionary reference."
 
+        return self, None, None
+
+    def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped unless it is aborting or for
         # a locals dict.
         if not self.isFinalUseOfLocals():

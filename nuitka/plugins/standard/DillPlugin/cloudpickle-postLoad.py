@@ -3,7 +3,6 @@
 
 # pylint: disable=missing-module-docstring,protected-access,used-before-assignment
 
-# spell-checker: ignore kwdefaults,globalvars
 
 # Nuitka will optimize this away, but VS code will warn about them otherwise.
 from typing import TYPE_CHECKING

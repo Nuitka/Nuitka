@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Python version specifics.
+"""Python version specifics.
 
 This abstracts the Python version decisions. This makes decisions based on
 the numbers, and attempts to give them meaningful names. Where possible it
@@ -225,7 +225,7 @@ def getRunningPythonDLLPath():
 def getTargetPythonDLLPath():
     dll_path = getRunningPythonDLLPath()
 
-    from nuitka.Options import shallUsePythonDebug
+    from nuitka.options.Options import shallUsePythonDebug
 
     if dll_path.endswith("_d.dll"):
         if not shallUsePythonDebug():
@@ -266,7 +266,7 @@ def getPythonABI():
         abiflags = sys.abiflags
 
         # Cyclic dependency here.
-        from nuitka.Options import shallUsePythonDebug
+        from nuitka.options.Options import shallUsePythonDebug
 
         # spell-checker: ignore getobjects
         if shallUsePythonDebug() or hasattr(sys, "getobjects"):
@@ -505,6 +505,11 @@ def getModuleLinkerLibs():
 
 def isPythonWithGil():
     return python_version < 0x3D0 or sys.flags.gil
+
+
+def getSitePackageCandidateNames():
+    """Get the list of site package candidate names."""
+    return ("site-packages", "dist-packages", "vendor-packages")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

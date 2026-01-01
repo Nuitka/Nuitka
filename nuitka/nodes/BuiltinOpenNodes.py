@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node the calls to the 'open' built-in.
+"""Node the calls to the 'open' built-in.
 
 This is a rather two sided beast, as it may be read or write. And we would like to be able
 to track it, so we can include files into the executable, or write more efficiently.

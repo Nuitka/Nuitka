@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare find SxS using modules.
-
-"""
+"""Tool to compare find SxS using modules."""
 
 import os
 import sys

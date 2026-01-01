@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reference counting tests.
+"""Reference counting tests.
 
 These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and

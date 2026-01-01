@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Directories and paths to for output of Nuitka.
+"""Directories and paths to for output of Nuitka.
 
 There are two major outputs, the build directory *.build and for
 standalone mode, the *.dist folder.
@@ -12,7 +12,7 @@ this.
 
 import os
 
-from nuitka.Options import (
+from nuitka.options.Options import (
     getOutputFilename,
     getOutputFolderName,
     getOutputPath,
@@ -28,6 +28,7 @@ from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
     getNormalizedPath,
+    getNormalizedPathJoin,
     hasFilenameExtension,
     isFilesystemEncodable,
     makePath,
@@ -40,6 +41,15 @@ from nuitka.utils.SharedLibraries import getDllSuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
 _main_module = None
+
+
+def _getResultBaseName(suffix):
+    # If the user specified a build basename, we use that.
+    build_basename = getOutputFolderName()
+    if build_basename:
+        return build_basename + suffix
+
+    return os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
 
 
 def setMainModule(main_module):
@@ -72,7 +82,7 @@ def getSourceDirectoryPath(onefile=False, create=False):
     else:
         suffix = ".build"
 
-    filename = os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
+    filename = _getResultBaseName(suffix)
 
     if isWin32Windows() and not isFilesystemEncodable(filename):
         filename = "_nuitka_temp" + suffix
@@ -82,7 +92,7 @@ def getSourceDirectoryPath(onefile=False, create=False):
     if create:
         makePath(result)
 
-        git_ignore_filename = os.path.join(result, ".gitignore")
+        git_ignore_filename = getNormalizedPathJoin(result, ".gitignore")
 
         if not os.path.exists(git_ignore_filename):
             putTextFileContents(filename=git_ignore_filename, contents="*")
@@ -103,9 +113,7 @@ def _getActualOutputFolderName(bundle):
     dist_folder_name = getOutputFolderName()
 
     if dist_folder_name is None:
-        dist_folder_name = os.path.basename(
-            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
-        )
+        dist_folder_name = _getResultBaseName(_getStandaloneDistSuffix(bundle))
     else:
         # Add the suffix if not provided by the user
         standalone_dist_suffix = _getStandaloneDistSuffix(bundle)
@@ -135,7 +143,7 @@ def getStandaloneDirectoryPath(bundle, real):
     result = getOutputPath(path=dist_folder_name)
 
     if bundle and shallCreateAppBundle() and not isOnefileMode():
-        result = os.path.join(result, "Contents", "MacOS")
+        result = getNormalizedPathJoin(result, "Contents", "MacOS")
 
     return result
 
@@ -180,15 +188,17 @@ def renameStandaloneDirectory(dist_dir):
 
 
 def getResultBasePath(onefile=False, real=False):
-    file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+    file_path = _getResultBaseName("")
 
     if isOnefileMode() and onefile:
         if shallCreateAppBundle():
-            file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
+            file_path = getNormalizedPathJoin(
+                file_path + ".app", "Contents", "MacOS", file_path
+            )
 
         return getOutputPath(path=file_path)
     elif isStandaloneMode() and not onefile:
-        return os.path.join(
+        return getNormalizedPathJoin(
             getStandaloneDirectoryPath(bundle=True, real=real),
             file_path,
         )
@@ -214,12 +224,12 @@ def getResultFullpath(onefile, real):
             if onefile:
                 result = getOutputPath(output_filename)
             else:
-                result = os.path.join(
+                result = getNormalizedPathJoin(
                     getStandaloneDirectoryPath(bundle=True, real=real),
                     os.path.basename(output_filename),
                 )
         elif isStandaloneMode() and output_filename is not None:
-            result = os.path.join(
+            result = getNormalizedPathJoin(
                 getStandaloneDirectoryPath(bundle=True, real=real),
                 os.path.basename(output_filename),
             )

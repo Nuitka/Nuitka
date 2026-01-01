@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of Python3 class statements.
+"""Reformulation of Python3 class statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -83,7 +83,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -197,30 +197,6 @@ def buildClassNode3(provider, node, source_ref):
 
     class_locals_scope.registerProvidedVariable(class_variable)
 
-    if python_version >= 0x3C0:
-        type_param_nodes = node.type_params
-    else:
-        type_param_nodes = None
-
-    if type_param_nodes is not None:
-        type_params_expressions = buildNodeTuple(
-            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
-        )
-    else:
-        type_params_expressions = ()
-
-    type_variables = []
-
-    for type_params_expression in type_params_expressions:
-        type_variable = class_locals_scope.getLocalVariable(
-            owner=class_creation_function,
-            variable_name=type_params_expression.name,
-        )
-
-        class_locals_scope.registerProvidedVariable(type_variable)
-
-        type_variables.append(type_variable)
-
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
     )
@@ -277,17 +253,6 @@ def buildClassNode3(provider, node, source_ref):
         ),
     ]
 
-    for type_variable, type_params_expression in zip(
-        type_variables, type_params_expressions
-    ):
-        statements.append(
-            makeStatementAssignmentVariable(
-                variable=type_variable,
-                source=type_params_expression.makeClone(),
-                source_ref=source_ref,
-            )
-        )
-
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
@@ -316,6 +281,27 @@ def buildClassNode3(provider, node, source_ref):
 
     if python_version >= 0x300:
         qualname_assign = statements[-1]
+
+    if python_version >= 0x3C0:
+        type_param_nodes = node.type_params
+    else:
+        type_param_nodes = None
+
+    if type_param_nodes is not None:
+        type_params_expressions = buildNodeTuple(
+            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
+        )
+    else:
+        type_params_expressions = ()
+
+    for type_params_expression in type_params_expressions:
+        assign = StatementAssignmentVariableName(
+            provider=class_creation_function,
+            variable_name=type_params_expression.name,
+            source=type_params_expression.makeClone(),
+            source_ref=source_ref,
+        )
+        statements.append(assign)
 
     if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
@@ -348,38 +334,38 @@ def buildClassNode3(provider, node, source_ref):
         def makeBasesRef():
             return ExpressionTempVariableRef(variable=tmp_bases, source_ref=source_ref)
 
+        if needs_orig_bases:
+            statements.append(
+                makeStatementConditional(
+                    condition=makeComparisonExpression(
+                        comparator="NotEq",
+                        left=ExpressionTempVariableRef(
+                            variable=tmp_bases, source_ref=source_ref
+                        ),
+                        right=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementLocalsDictOperationSet(
+                        locals_scope=locals_scope,
+                        variable_name="__orig_bases__",
+                        source=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
+
     else:
 
         def makeBasesRef():
             return makeConstantRefNode(constant=(), source_ref=source_ref)
 
         needs_orig_bases = False
-
-    if has_bases and needs_orig_bases:
-        statements.append(
-            makeStatementConditional(
-                condition=makeComparisonExpression(
-                    comparator="NotEq",
-                    left=ExpressionTempVariableRef(
-                        variable=tmp_bases, source_ref=source_ref
-                    ),
-                    right=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                yes_branch=StatementLocalsDictOperationSet(
-                    locals_scope=locals_scope,
-                    variable_name="__orig_bases__",
-                    source=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                no_branch=None,
-                source_ref=source_ref,
-            )
-        )
 
     statements += (
         makeStatementAssignmentVariable(

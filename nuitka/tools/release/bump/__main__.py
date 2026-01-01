@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Make version bump for Nuitka. """
+"""Make version bump for Nuitka."""
 
 import sys
 from optparse import OptionParser

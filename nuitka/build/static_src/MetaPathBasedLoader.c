@@ -618,7 +618,7 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 
         CHECK_OBJECT(name_punycode);
 
-        snprintf(buffer, buffer_size, "PyInitU_%s", PyBytes_AsString(name_punycode));
+        snprintf(buffer, buffer_size, "PyInitU_%s", Nuitka_Bytes_AsString(name_punycode));
 
         Py_DECREF(name_punycode);
     } else {
@@ -735,7 +735,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     HINSTANCE hDLL;
 #if PYTHON_VERSION >= 0x380
     Py_BEGIN_ALLOW_THREADS;
-    hDLL = LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    hDLL = LoadLibraryExW(filename, NULL,
+// Where the onefile bootstrap is ran, we don't have anything to load from.
+#if !_NUITKA_ONEFILE_DLL_MODE
+                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+#endif
+                              LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
+                              LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
     Py_END_ALLOW_THREADS;
 #else
     hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
@@ -1207,6 +1213,17 @@ static char **_bytecode_data = NULL;
 
 static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *module_name,
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+#if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
+    !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
+    if ((entry->flags & NUITKA_EXCLUDED_MODULE_FLAG) != 0) {
+        PyErr_Format(PyExc_ImportError,
+                     "Module '%s' was actively excluded from Nuitka compilation. Disable with "
+                     "'--no-deployment-flag=excluded-module-usage': %s",
+                     entry->name, (char const *)entry->python_init_func);
+        return NULL;
+    }
+#endif
+
 #if _NUITKA_STANDALONE_MODE
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
         bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;

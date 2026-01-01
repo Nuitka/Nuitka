@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helper functions for parsing the AST nodes and building the Nuitka node tree.
-
-"""
+"""Helper functions for parsing the AST nodes and building the Nuitka node tree."""
 
 import __future__
 
@@ -31,7 +29,7 @@ from nuitka.nodes.KeyValuePairNodes import (
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.Options import hasPythonFlagNoDocStrings
+from nuitka.options.Options import hasPythonFlagNoDocStrings
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printLine

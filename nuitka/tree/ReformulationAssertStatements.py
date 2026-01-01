@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of assert statements.
+"""Reformulation of assert statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -16,7 +16,7 @@ from nuitka.nodes.ExceptionNodes import (
     makeBuiltinMakeExceptionNode,
 )
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
-from nuitka.Options import hasPythonFlagNoAsserts
+from nuitka.options.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Extracting visitors.
+"""Extracting visitors.
 
 This is used for lookahead supporting abstract execution. We need to e.g.
 know the variables written by a piece of code ahead of abstractly executing a

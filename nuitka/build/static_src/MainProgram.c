@@ -172,7 +172,7 @@ static void prepareStandaloneEnvironment(void) {
 
 #if defined(_WIN32)
 #if _NUITKA_EXE_MODE
-    SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+    SetDllDirectoryW(L"");
 #else
     SetDllDirectoryW(getDllDirectory());
 #endif
@@ -459,7 +459,7 @@ static void setCommandLineParameters(int argc, char **argv) {
 #else
 static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
+#ifdef _NUITKA_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     printf("Command line: ");
     for (int i = 0; i < argc; i++) {
@@ -2277,6 +2277,12 @@ int Py_Main(int argc, char **argv) { return 0; }
 #ifdef __cplusplus
 }
 #endif
+#endif
+
+// For cases of gcc used to compile with Nuitka vs. the one used to compile
+// libpython.
+#if defined(__linux__) && defined(__GNUC__)
+__attribute__((weak)) void __warn_memset_zero_len(void) {}
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

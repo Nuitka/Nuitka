@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Collection of information for reports and their writing.
+"""Collection of information for reports and their writing.
 
 These reports are in XML form, and with Jinja2 templates in any form you like.
 
@@ -32,7 +32,7 @@ from nuitka.ModuleRegistry import (
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getCompilationMode,
     getCompilationReportFilename,
     getCompilationReportTemplates,
@@ -898,10 +898,12 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     python_xml_node = appendTreeElement(
         root,
         "output",
-        run_filename=_getCompilationReportPath(
-            report_input_data["output_run_filename"]
-        ),
     )
+
+    if report_input_data["output_run_filename"] != "failed too early":
+        python_xml_node.attrib["run_filename"] = _getCompilationReportPath(
+            report_input_data["output_run_filename"]
+        )
 
     contents = convertXmlToString(root)
 

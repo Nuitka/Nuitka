@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Access to standard library distinction.
+"""Access to standard library distinction.
 
 For code to be in the standard library means that it's not written by the
 user for sure. We treat code differently based on that information, by e.g.
@@ -14,7 +14,7 @@ module.
 
 import os
 
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
 from nuitka.utils.FileOperations import (
     getFileContents,
     getNormalizedPath,
@@ -33,6 +33,9 @@ from nuitka.utils.Utils import (
 def getStandardLibraryPaths():
     """Get the standard library paths."""
 
+    # Many cases to deal with, to make detection of standard library paths
+    # for different OSes and flavors, pylint: disable=too-many-branches
+
     # Using the function object to cache its result, avoiding global variable
     # usage.
     if not hasattr(getStandardLibraryPaths, "result"):
@@ -40,7 +43,7 @@ def getStandardLibraryPaths():
         if os_filename.endswith(".pyc"):
             os_filename = os_filename[:-1]
 
-        os_path = os.path.normcase(os.path.dirname(os_filename))
+        os_path = os.path.normcase(getNormalizedPath(os.path.dirname(os_filename)))
 
         stdlib_paths = set([os_path])
 
@@ -95,28 +98,25 @@ def getStandardLibraryPaths():
                 stdlib_paths.add(candidate)
 
         if isWin32OrPosixWindows():
-            from nuitka.Options import shallUseStaticLibPython
-
-            if not shallUseStaticLibPython():
+            try:
                 import _ctypes
+            except ImportError:
+                pass
+            else:
+                if _ctypes.__file__ is not None:
+                    stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
-                stdlib_paths.add(os.path.dirname(_ctypes.__file__))
-
-        getStandardLibraryPaths.result = [
-            os.path.normcase(os.path.normpath(stdlib_path))
+        getStandardLibraryPaths.result = tuple(
+            os.path.normcase(getNormalizedPath(stdlib_path))
             for stdlib_path in stdlib_paths
-        ]
+        )
 
     return getStandardLibraryPaths.result
 
 
 def _isStandardLibraryPath(filename):
     # These never are in standard library paths.
-    if (
-        "dist-packages" in filename
-        or "site-packages" in filename
-        or "vendor-packages" in filename
-    ):
+    if any(candidate in filename for candidate in getSitePackageCandidateNames()):
         return False
 
     for candidate in getStandardLibraryPaths():
@@ -157,6 +157,10 @@ def scanStandardLibraryPath(stdlib_dir):
         def _removeDirsIfPresent(*remove_dirs):
             # pylint: intended for loop usage, pylint: disable=cell-var-from-loop
             for remove_dir in remove_dirs:
+                if type(remove_dir) in (tuple, list):
+                    _removeDirsIfPresent(*remove_dir)
+                    continue
+
                 if remove_dir in dirs:
                     dirs.remove(remove_dir)
 
@@ -175,9 +179,7 @@ def scanStandardLibraryPath(stdlib_dir):
             ]
 
             _removeDirsIfPresent(
-                "site-packages",
-                "dist-packages",
-                "vendor-packages",
+                getSitePackageCandidateNames(),
                 "test",
                 "ensurepip",
                 "turtledemo",

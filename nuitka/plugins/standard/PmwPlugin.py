@@ -1,15 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Plugin to pre-process PMW for inclusion.
-
-"""
+"""Plugin to pre-process PMW for inclusion."""
 
 import os
 import re
 
 from nuitka.__past__ import StringIO
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContents, listDir
 
@@ -58,7 +56,7 @@ files = [
 
 class NuitkaPluginPmw(NuitkaPluginBase):
     plugin_name = "pmw-freezer"
-    plugin_desc = "Required by the 'Pmw' package."
+    plugin_desc = "Required by 'Pmw' package."
     plugin_category = "package-support"
 
     def __init__(self, need_blt, need_color):

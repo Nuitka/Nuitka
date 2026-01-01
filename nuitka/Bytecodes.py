@@ -1,11 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Handle bytecode and compile source code to bytecode. """
+"""Handle bytecode and compile source code to bytecode."""
 
 import ast
 
-from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocStrings
+from nuitka.options.Options import (
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
+)
 from nuitka.tree.TreeHelpers import getKind
 from nuitka.utils.Utils import withNoSyntaxWarning
 

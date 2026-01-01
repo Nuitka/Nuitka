@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Progress bar for Scons compilation part.
+"""Progress bar for Scons compilation part.
 
 This does only the interfacing with tracing and collection of information.
 

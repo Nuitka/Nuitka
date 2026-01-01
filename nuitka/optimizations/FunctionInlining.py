@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" In-lining of functions.
+"""In-lining of functions.
 
 Done by assigning the argument values to variables, and producing an outline
 from the in-lined function.

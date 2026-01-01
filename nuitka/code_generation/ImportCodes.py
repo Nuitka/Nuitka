@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Import related codes.
+"""Import related codes.
 
 That is import as expression, and star import.
 """

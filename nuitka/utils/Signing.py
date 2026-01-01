@@ -1,11 +1,9 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Signing of executables.
+"""Signing of executables."""
 
-"""
-
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMacOSSignedAppName,
     getMacOSSigningCertificateFilename,
     getMacOSSigningCertificatePassword,
@@ -37,7 +35,7 @@ def _filterCodesignErrorOutput(stderr):
     )
 
     if b"errSecInternalComponent" in stderr:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             """\
 Access to the specified codesign certificate was not allowed. Please \
 'allow all items' or when compiling with GUI available, enable prompting \
@@ -68,7 +66,7 @@ def detectMacIdentity():
         line = line.strip()
 
         if line.startswith("2)"):
-            postprocessing_logger.sysexit(
+            return postprocessing_logger.sysexit(
                 "More than one signing identity, auto mode cannot be used."
             )
 
@@ -79,7 +77,7 @@ def detectMacIdentity():
             signing_name = parts[2]
 
     if result is None:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Failed to detect any signing identity, auto mode cannot be used."
         )
     else:

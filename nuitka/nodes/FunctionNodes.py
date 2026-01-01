@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for functions and their creations.
+"""Nodes for functions and their creations.
 
 Lambdas are functions too. The functions are at the core of the language and
 have their complexities.
@@ -82,7 +82,7 @@ class ExpressionFunctionBodyBase(
         "name",
         "code_prefix",
         "code_name",
-        "uids",
+        "uuids",
         "temp_variables",
         "temp_scopes",
         "preserver_id",
@@ -504,6 +504,8 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
             if result is not statements_sequence:
                 self.setChildBody(result)
+
+        self.trace_collection.performDelayedWork()
 
     def removeVariableReleases(self, variable):
         assert variable in self.locals_scope.providing.values(), (self, variable)

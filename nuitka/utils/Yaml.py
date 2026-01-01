@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka yaml utility functions.
+"""Nuitka yaml utility functions.
 
 Because we want to work with Python2.6 or higher, we play a few tricks with
 what library to use for what Python. We have an 2 inline copy of PyYAML, one
@@ -14,67 +14,442 @@ with these config files.
 # Otherwise "Yaml" and "yaml" collide on case insensitive setups
 from __future__ import absolute_import
 
+import ast
 import os
 import pkgutil
+import re
+from posixpath import normpath
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import getUserProvidedYamlFiles
+from nuitka.options.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
 from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
+from .PrivatePipSpace import getPrivatePackage
+
+
+def _isParsable(value):
+    """Check if a value is parsable python code."""
+    try:
+        ast.parse(value)
+    except (SyntaxError, IndentationError):
+        return False
+    else:
+        return True
+
+
+def _isNormalizedPosixPath(path):
+    """Check if a path is a normalized POSIX path."""
+    if "\\" in path:
+        return False
+
+    return path == normpath(path)
+
+
+def _checkNotEmptyString(logger, filename, module_name, section, k, value):
+    """Check if a string value is not empty and log error if it is."""
+    if value == "":
+        logger.info(
+            """\
+%s: %s config value of %s %s cannot be empty."""
+            % (filename, module_name, section, k),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
+def _checkParsable(logger, filename, module_name, section, k, value):
+    """Check if a value is parsable python code and log error if not."""
+    if not _checkNotEmptyString(logger, filename, module_name, section, k, value):
+        return False
+
+    if not _isParsable(value):
+        logger.info(
+            """\
+%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
+            % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
+def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement):
+    """Check if a regexp value is valid and log error if not."""
+    if not _checkNotEmptyString(logger, filename, module_name, section, k, regexp):
+        return False
+
+    try:
+        re.sub(regexp, replacement, "", re.S)
+    except re.error as e:
+        logger.info(
+            """\
+%s: %s config value of '%s' '%s' contains invalid regexp \
+syntax in value '%s' leading to error '%s'"""
+            % (filename, module_name, section, regexp, replacement, e),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
+def _checkNormalizedPosixPath(logger, filename, module_name, section, k, value):
+    """Check if a value is a normalized POSIX path and log error if not."""
+    if not _isNormalizedPosixPath(value):
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be normalized posix \
+path, with '/' style slashes not '%s'."""
+            % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
+def checkSectionValues(logger, filename, module_name, section, value):
+    """Check values of the YAML file."""
+    # many checks of course, pylint: disable=too-many-branches,too-many-statements
+
+    result = True
+
+    if type(value) is dict:
+        for k, v in value.items():
+            if k == "description" and v != v.strip():
+                logger.info(
+                    """\
+%s: %s config value of %s %s should not contain trailing or leading spaces"""
+                    % (filename, module_name, section, k),
+                    keep_format=True,
+                )
+                result = False
+
+            if k in ("when", "append_result"):
+                if not _checkParsable(logger, filename, module_name, section, k, v):
+                    result = False
+
+            if k in ("replacements", "global_replacements"):
+                for m, d in v.items():
+                    if not _checkNotEmptyString(
+                        logger, filename, module_name, section, k, m
+                    ):
+                        result = False
+                    elif not _checkParsable(
+                        logger, filename, module_name, section, k, d
+                    ):
+                        result = False
+
+            if k in ("replacements_re", "global_replacements_re"):
+                for m, d in v.items():
+                    if not _checkRegexp(
+                        logger, filename, module_name, section, k, m, d
+                    ):
+                        result = False
+
+            if k == "replacements_plain":
+                for m, d in v.items():
+                    if not _checkNotEmptyString(
+                        logger, filename, module_name, section, k, m
+                    ):
+                        result = False
+
+            if k in ("dest_path", "relative_path") and not _checkNormalizedPosixPath(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
+
+            if k in ("dirs", "raw_dirs", "empty_dirs"):
+                for e in v:
+                    if not _checkNormalizedPosixPath(
+                        logger, filename, module_name, section, k, e
+                    ):
+                        result = False
+
+            if k == "parameters":
+                for item in v:
+                    if "values" in item:
+                        if not _checkParsable(
+                            logger, filename, module_name, section, k, item["values"]
+                        ):
+                            result = False
+
+            if k == "no-auto-follow":
+                for m, d in v.items():
+                    if d == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
+if you want no message."""
+                            % (filename, module_name, section, k, m),
+                            keep_format=True,
+                        )
+                        result = False
+
+            if k == "declarations":
+                for m, d in v.items():
+                    if not _checkNotEmptyString(
+                        logger, filename, module_name, section, k, m
+                    ):
+                        result = False
+
+                    if not _checkParsable(logger, filename, module_name, section, k, d):
+                        result = False
+
+            if k == "append_plain":
+                if not _checkParsable(logger, filename, module_name, section, k, v):
+                    result = False
+
+            if k == "setup_code":
+                if type(v) is list:
+                    if not _checkParsable(
+                        logger, filename, module_name, section, k, "\n".join(v)
+                    ):
+                        result = False
+                elif not _checkParsable(logger, filename, module_name, section, k, v):
+                    result = False
+
+            if k == "environment":
+                for m, d in v.items():
+                    if not _checkParsable(logger, filename, module_name, section, k, d):
+                        result = False
+
+            if not checkSectionValues(logger, filename, module_name, section, v):
+                result = False
+    elif type(value) in (list, tuple):
+        for item in value:
+            if not checkSectionValues(logger, filename, module_name, section, item):
+                result = False
+
+    return result
+
+
+def getJsonschemaPackage(logger, assume_yes_for_downloads):
+    """Get jsonschema package from private pip space or globally."""
+    jsonschema = getPrivatePackage(
+        package_name="jsonschema",
+        module_name="jsonschema",
+        package_version=None,
+        submodule_names=("validators",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if jsonschema:
+        return jsonschema
+
+    return logger.sysexit(
+        "Error, cannot validate changes in package configuration due to missing 'jsonschema'."
+    )
+
+
+def getRuamelYamlPackage(logger, assume_yes_for_downloads):
+    """Get ruamel.yaml package from private pip space or globally."""
+    ruamel_yaml = getPrivatePackage(
+        package_name="ruamel.yaml",
+        module_name="ruamel.yaml",
+        package_version=None,
+        submodule_names=None,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if ruamel_yaml:
+        return ruamel_yaml
+
+    logger.sysexit(
+        "Error, cannot format package configuration due to missing 'ruamel.yaml'."
+    )
+
+
+def getYamllintPackage(logger, assume_yes_for_downloads):
+    """Get yamllint package from private pip space or globally."""
+    yamllint = getPrivatePackage(
+        package_name="yamllint",
+        module_name="yamllint",
+        package_version=None,
+        submodule_names=("cli",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if yamllint:
+        return yamllint
+
+    logger.sysexit(
+        "Error, cannot check package configuration due to missing 'yamllint'."
+    )
+
+
+def getDeepDiffPackage(logger, assume_yes_for_downloads):
+    """Get deepdiff package from private pip space or globally."""
+    deepdiff = getPrivatePackage(
+        package_name="deepdiff",
+        module_name="deepdiff",
+        package_version=None,
+        submodule_names=("diff",),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    if deepdiff:
+        return deepdiff
+
+    logger.sysexit(
+        "Error, cannot compare package configuration due to missing 'deepdiff'."
+    )
+
+
+def checkDataChecksums(file_data, data):
+    # Checksum is valid, if the file contains a line with the checksum of the
+    # file content without that line.
+
+    result = []
+
+    # We are parsing the file manually here, which is not great, but strict
+    # enough for the auto-formatted files we have.
+    for line in file_data.decode("utf8").splitlines():
+        if not line.startswith("- module-name:"):
+            continue
+
+        parts = line.split(":", 2)
+
+        module_name = parts[1]
+        module_name = module_name.split("#", 2)[0]
+        module_name = module_name.strip()
+        module_name = module_name.strip("'")
+
+        if "# checksum: " not in line:
+            result.append(module_name)
+            continue
+
+        expected_checksum = line.split("# checksum: ")[1].strip()
+
+        yaml_module_data = data.get(module_name)
+
+        if getYamlDataHash(yaml_module_data) != expected_checksum:
+            result.append(module_name)
+            continue
+
+    return result
+
+
+def validateSchema(logger, name, data, assume_yes_for_downloads):
+    # This will exit if not found.
+    getJsonschemaPackage(logger, assume_yes_for_downloads=assume_yes_for_downloads)
+
+    # pylint: disable=I0021,import-error
+    from jsonschema import validators
+
+    schema_filename = getYamlPackageConfigurationSchemaFilename()
+
+    if not os.path.exists(schema_filename):
+        # This is not expected to happen, but we should not crash.
+        return
+
+    import json
+
+    schema = json.loads(getFileContents(schema_filename))
+
+    validator = validators.Draft202012Validator(schema=schema)
+
+    error_messages = []
+
+    for error in validator.iter_errors(instance=data):
+        try:
+            module_name = repr(data[error.path[0]]["module-name"])
+        except Exception:  # pylint: disable=broad-except
+            module_name = "some"
+
+        error_messages.append("For %s module: %s" % (module_name, error.message))
+
+    if error_messages:
+        logger.sysexit(
+            "Error, invalid package configuration in '%s':\n%s"
+            % (name, "\n".join(error_messages))
+        )
 
 
 class PackageConfigYaml(object):
     __slots__ = (
         "name",
         "data",
+        "logger",
+        "checked_sections",
     )
 
-    def __init__(self, name, file_data):
+    def __init__(
+        self, logger, name, file_data, assume_yes_for_downloads, check_checksums
+    ):
+        self.logger = logger
         self.name = name
 
         assert type(file_data) is bytes
-        data = parseYaml(file_data)
-
-        if not data:
-            general.sysexit(
-                """\
+        data = parseYaml(
+            logger=logger,
+            data=file_data,
+            error_message="""\
 Error, empty (or malformed?) user package configuration '%s' used."""
-                % name
-            )
+            % name,
+        )
 
         assert type(data) is list, type(data)
 
+        self._init(logger, data)
+
+        if check_checksums:
+            bad_checksum_modules = checkDataChecksums(file_data, self.data)
+
+            if bad_checksum_modules:
+                logger.info(
+                    "Detected %d module(s) with wrong checksum in '%s': %s"
+                    % (len(bad_checksum_modules), name, ",".join(bad_checksum_modules))
+                )
+
+                validateSchema(
+                    logger=logger,
+                    name=name,
+                    data=data,
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                )
+
+    def _init(self, logger, data):
         self.data = OrderedDict()
 
         for item in data:
-            module_name = item.pop("module-name")
+            module_name = item.get("module-name")
 
             if not module_name:
-                general.sysexit(
+                return logger.sysexit(
                     "Error, invalid config in '%s' looks like an empty module name was given."
                     % (self.name)
                 )
 
             if "/" in module_name:
-                general.sysexit(
+                return logger.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
                     % (self.name, module_name)
                 )
 
             if not checkModuleName(module_name):
-                general.sysexit(
+                return logger.sysexit(
                     "Error, invalid module name in '%s' not valid '%s'."
                     % (self.name, module_name)
                 )
 
             if module_name in self.data:
-                general.sysexit("Duplicate module name '%s' encountered." % module_name)
+                return logger.sysexit(
+                    "Duplicate module name '%s' encountered." % module_name
+                )
 
-            self.data[module_name] = item
+            # Do not replicate module name in data.
+            self.data[module_name] = item.copy()
+            del self.data[module_name]["module-name"]
+
+        self.checked_sections = set()
 
     def __repr__(self):
         return "<PackageConfigYaml %s>" % self.name
@@ -88,10 +463,22 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         else:
             result = ()
 
-        # TODO: Ought to become a list universally, but data-files currently
-        # are not, and options-nanny too.
-        if type(result) in (dict, OrderedDict):
+        if section == "options" and type(result) in (dict, OrderedDict):
             result = (result,)
+
+        if type(result) is list:
+            result = tuple(result)
+
+        # Ensure result is a tuple; otherwise exit with an error
+        if not isinstance(result, tuple):
+            self.logger.sysexit(
+                "Error, unexpected result type %s for %s module %s section %s."
+                % (type(result), self.name, name, section)
+            )
+
+        if result and (name, section) not in self.checked_sections:
+            checkSectionValues(self.logger, self.name, name, section, result)
+            self.checked_sections.add((name, section))
 
         return result
 
@@ -124,7 +511,7 @@ def getYamlPackage():
     return getYamlPackage.yaml
 
 
-def parseYaml(data):
+def parseYaml(logger, data, error_message):
     yaml = getYamlPackage()
 
     # Make sure dictionaries are ordered even before 3.6 in the result. We use
@@ -141,7 +528,12 @@ def parseYaml(data):
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
     )
 
-    return yaml.load(data, OrderedLoader)
+    result = yaml.load(data, OrderedLoader)
+
+    if not result:
+        return logger.sysexit(error_message)
+
+    return result
 
 
 _yaml_cache = {}
@@ -154,7 +546,9 @@ def getYamlDataHash(data):
     return result.asHexDigest()
 
 
-def parsePackageYaml(package_name, filename):
+def parsePackageYaml(
+    logger, package_name, filename, assume_yes_for_downloads, check_checksums
+):
     key = package_name, filename
 
     if key not in _yaml_cache:
@@ -166,7 +560,13 @@ def parsePackageYaml(package_name, filename):
         if file_data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
 
-        _yaml_cache[key] = PackageConfigYaml(name=filename, file_data=file_data)
+        _yaml_cache[key] = PackageConfigYaml(
+            logger=logger,
+            name=filename,
+            file_data=file_data,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            check_checksums=check_checksums,
+        )
 
     return _yaml_cache[key]
 
@@ -174,33 +574,49 @@ def parsePackageYaml(package_name, filename):
 _package_config = None
 
 
-def getYamlPackageConfiguration():
+def getYamlPackageConfiguration(logger, assume_yes_for_downloads, check_checksums):
     """Get Nuitka package configuration. Merged from multiple sources."""
     # Singleton, pylint: disable=global-statement
     global _package_config
 
+    if logger is None:
+        logger = general
+
     if _package_config is None:
         _package_config = parsePackageYaml(
-            "nuitka.plugins.standard",
-            "standard.nuitka-package.config.yml",
+            logger=logger,
+            package_name="nuitka.plugins.standard",
+            filename="standard.nuitka-package.config.yml",
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            check_checksums=check_checksums,
         )
         _package_config.update(
             parsePackageYaml(
-                "nuitka.plugins.standard",
-                "stdlib2.nuitka-package.config.yml",
+                logger=logger,
+                package_name="nuitka.plugins.standard",
+                filename="stdlib2.nuitka-package.config.yml",
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                check_checksums=check_checksums,
             )
         )
         _package_config.update(
             parsePackageYaml(
-                "nuitka.plugins.standard",
-                "stdlib3.nuitka-package.config.yml",
+                logger=logger,
+                package_name="nuitka.plugins.standard",
+                filename="stdlib3.nuitka-package.config.yml",
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                check_checksums=check_checksums,
             )
         )
 
         try:
             _package_config.update(
                 parsePackageYaml(
-                    "nuitka.plugins.commercial", "commercial.nuitka-package.config.yml"
+                    logger=logger,
+                    package_name="nuitka.plugins.commercial",
+                    filename="commercial.nuitka-package.config.yml",
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                    check_checksums=check_checksums,
                 )
             )
         except IOError:
@@ -212,8 +628,11 @@ def getYamlPackageConfiguration():
         for user_yaml_filename in getUserProvidedYamlFiles():
             _package_config.update(
                 PackageConfigYaml(
+                    logger=logger,
                     name=user_yaml_filename,
                     file_data=getFileContents(user_yaml_filename, mode="rb"),
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                    check_checksums=check_checksums,
                 )
             )
 

@@ -11,6 +11,9 @@ extern PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t siz
 #define Nuitka_Bytes_FromStringAndSize PyBytes_FromStringAndSize
 #endif
 
+extern void Nuitka_Bytes_AsStringAndSize(PyObject *obj, char **s, Py_ssize_t *len);
+extern char *Nuitka_Bytes_AsString(PyObject *obj);
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

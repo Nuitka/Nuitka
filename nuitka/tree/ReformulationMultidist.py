@@ -1,11 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Multidist re-formulation. """
+"""Multidist re-formulation."""
 
 import os
 
-from nuitka.Options import getMainEntryPointFilenames
+from nuitka.options.Options import getMainEntryPointFilenames
 from nuitka.utils.ModuleNames import makeMultidistModuleName
 
 

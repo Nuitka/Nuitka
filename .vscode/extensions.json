@@ -1,28 +1,26 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
-    // Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
+  // See https://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
+  // Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
 
-    // List of extensions which should be recommended for users of this workspace.
-    "recommendations": [
-        "ms-python.python",
-        "lextudio.restructuredtext",
-        "foxundermoon.shell-format",
-        "troelsdamgaard.reflow-paragraph",
-        "ms-vscode.cpptools",
-        "mervin.markdown-formatter",
-        "trond-snekvik.simple-rst",
-        "redhat.vscode-yaml",
-        "dawidd6.debian-vscode",
-        "streetsidesoftware.code-spell-checker",
-        "samuelcolvin.jinjahtml",
-        "tamasfe.even-better-toml",
-        "swyddfa.esbonio",
-        "ms-python.vscode-pylance",
-        "dnut.rewrap-revived"
-
-    ],
-    // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
-    "unwantedRecommendations": [
-
-    ]
+  // List of extensions which should be recommended for users of this workspace.
+  "recommendations": [
+    "ms-python.python",
+    "lextudio.restructuredtext",
+    "foxundermoon.shell-format",
+    "troelsdamgaard.reflow-paragraph",
+    "ms-vscode.cpptools",
+    "mervin.markdown-formatter",
+    "trond-snekvik.simple-rst",
+    "redhat.vscode-yaml",
+    "dawidd6.debian-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "samuelcolvin.jinjahtml",
+    "tamasfe.even-better-toml",
+    "swyddfa.esbonio",
+    "ms-python.vscode-pylance",
+    "dnut.rewrap-revived",
+    "github.vscode-github-actions"
+  ],
+  // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
+  "unwantedRecommendations": []
 }

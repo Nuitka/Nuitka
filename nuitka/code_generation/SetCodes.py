@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for sets.
+"""Code generation for sets.
 
 Right now only the creation, and set add code is done here. But more should be
 added later on.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Codes for operations.
+"""Codes for operations.
 
 There are unary and binary operations. Many of them have specializations and
 of course types could play into it. Then there is also the added difficulty of

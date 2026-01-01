@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Loop codes.
+"""Loop codes.
 
 Code generation for loops, breaking them, or continuing them. In Nuitka, there
 are no for-loops or while-loops at this point. They have been re-formulated in

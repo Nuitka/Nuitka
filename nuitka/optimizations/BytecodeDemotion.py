@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Demotion of compiled modules to bytecode modules.
-
-"""
+"""Demotion of compiled modules to bytecode modules."""
 
 import marshal
 
@@ -16,7 +14,7 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
-from nuitka.Options import isShowProgress, isStandaloneMode
+from nuitka.options.Options import isShowProgress, isStandaloneMode
 from nuitka.plugins.Hooks import onFrozenModuleBytecode
 from nuitka.plugins.Plugins import isTriggerModule, replaceTriggerModule
 from nuitka.Tracing import inclusion_logger

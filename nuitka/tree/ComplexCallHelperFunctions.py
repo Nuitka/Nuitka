@@ -1,9 +1,9 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module is providing helper functions for complex call re-formulations.
+"""This module is providing helper functions for complex call re-formulations.
 
-One for each type of call. """
+One for each type of call."""
 
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,

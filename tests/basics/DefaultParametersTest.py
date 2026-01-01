@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tests to cover default parameter behaviors.
-
-"""
+"""Tests to cover default parameter behaviors."""
 
 from __future__ import print_function
 

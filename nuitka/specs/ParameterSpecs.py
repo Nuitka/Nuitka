@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module maintains the parameter specification classes.
+"""This module maintains the parameter specification classes.
 
 These are used for function, lambdas, generators. They are also a factory
 for the respective variable objects. One of the difficulty of Python and

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that build and operate on lists."""
+"""Nodes that build and operate on lists."""
 
 # from .ExpressionBasesGenerated import ChildrenExpressionListOperationExtendMixin
 from .ChildrenHavingMixins import (

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" State of a stack of future specs during parsing. """
+"""State of a stack of future specs during parsing."""
 
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.plugins.Hooks import decideAnnotations

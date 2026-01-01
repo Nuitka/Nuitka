@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The hints module should contain functions to call in your code.
+"""The hints module should contain functions to call in your code.
 
 In reality, right now it does only contain an import tracing mechanism
 that helps us with debugging.

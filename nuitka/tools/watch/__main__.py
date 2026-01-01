@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka watch main part.
+"""Nuitka watch main part.
 
 This tool is used to monitor effect of PyPI changes on Nuitka and effect
 of Nuitka changes on PyPI packages.
@@ -286,6 +286,8 @@ def _updateCaseLock(
                 installed_python=installed_python,
                 case_data=case_data,
             )
+        else:
+            assert False, preferred_package_type
 
         lock_filename = os.path.abspath(lock_filename)
 
@@ -448,7 +450,11 @@ def updateCase(
 
 
 def updateCases(case_dir, reset_pipenv, no_pipenv_update, nuitka_update_mode, jobs):
-    for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
+    for case_data in parseYaml(
+        logger=watch_logger,
+        data=getFileContents("case.yml", mode="rb"),
+        error_message="Error, empty (or malformed?) case.yml used.",
+    ):
         updateCase(
             case_dir=case_dir,
             case_data=case_data,

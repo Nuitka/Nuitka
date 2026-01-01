@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of "exec" statements
+"""Reformulation of "exec" statements
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -40,7 +40,7 @@ from .TreeHelpers import (
 
 
 def wrapEvalGlobalsAndLocals(
-    provider, globals_node, locals_node, temp_scope, source_ref
+    provider, locals_scope, globals_node, locals_node, temp_scope, source_ref
 ):
     """Wrap the locals and globals arguments for "eval".
 
@@ -48,14 +48,12 @@ def wrapEvalGlobalsAndLocals(
     already exists.
     """
 
-    locals_scope = provider.getLocalsScope()
-
     globals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="globals", temp_type="object"
+        temp_scope=temp_scope, name="globals", temp_type="object", late=True
     )
 
     locals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="locals", temp_type="object"
+        temp_scope=temp_scope, name="locals", temp_type="object", late=True
     )
 
     if locals_node is None:

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Try statement and related code generation.
+"""Try statement and related code generation.
 
 For Nuitka, all try/except and try/finally are dealt with this, where the
 finally block gets duplicated into handlers. So this is a common low level
@@ -78,13 +78,13 @@ def generateTryCode(statement, emit, context):
     if tried_block_may_raise:
         context.setExceptionEscape(old_exception_escape)
 
-    if continue_handler:
+    if continue_handler is not None:
         context.setLoopContinueTarget(old_continue_target)
 
-    if break_handler:
+    if break_handler is not None:
         context.setLoopBreakTarget(old_break_target)
 
-    if return_handler:
+    if return_handler is not None:
         context.setReturnTarget(old_return_target)
 
     post_label = None

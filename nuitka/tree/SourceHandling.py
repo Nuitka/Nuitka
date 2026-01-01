@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Read/write source code from files.
+"""Read/write source code from files.
 
 Reading is tremendously more complex than one might think, due to encoding
 issues and version differences of Python versions.
@@ -13,12 +13,20 @@ import sys
 
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import shallShowSourceModifications
+from nuitka.format.FileFormatting import formatC
+from nuitka.options.Options import (
+    shallGenerateReadableCode,
+    shallShowSourceModifications,
+)
 from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
-from nuitka.utils.FileOperations import getReportPath, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getReportPath,
+    hasFilenameExtension,
+    putTextFileContents,
+)
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import isWin32OrPosixWindows
@@ -304,12 +312,21 @@ def readSourceLines(source_ref):
     return linecache.getlines(source_ref.filename)
 
 
-def writeSourceCode(filename, source_code):
+def writeSourceCode(filename, source_code, logger, assume_yes_for_downloads):
     # Prevent accidental overwriting. When this happens the collision detection
     # or something else has failed.
     assert not os.path.isfile(filename), filename
 
     putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
+
+    if hasFilenameExtension(filename, (".c", ".h")) and shallGenerateReadableCode():
+        formatC(
+            logger=logger,
+            filename=filename,
+            effective_filename=filename,
+            check_only=False,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
 
 
 def _checkAndAddModuleName(pyi_deps, pyi_filename, line_number, candidate):

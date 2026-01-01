@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Registry for hard import data.
+"""Registry for hard import data.
 
 Part of it is static, but modules can get at during scan by plugins that
 know how to handle these.
@@ -13,7 +13,7 @@ import sys
 from nuitka.Constants import isConstant
 from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
     getImportlibSubPackages,

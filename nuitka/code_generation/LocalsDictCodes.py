@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for locals dict handling.
+"""Code generation for locals dict handling.
 
 These are variable handling for classes and partially also Python2 exec
 statements.

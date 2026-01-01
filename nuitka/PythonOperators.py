@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Python operator tables
+"""Python operator tables
 
 These are mostly used to resolve the operator in the module operator and to know the list
 of operations allowed.

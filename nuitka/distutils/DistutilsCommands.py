@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka distutils integration.
-
-"""
+"""Nuitka distutils integration."""
 
 import distutils.command.build  # pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # pylint: disable=I0021,import-error,no-name-in-module
@@ -21,15 +19,16 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.plugins.Plugins import setupHooks
-from nuitka.PythonVersions import python_version
 from nuitka.reports.CompilationReportReader import (
     getEmbeddedDataFilenames,
     parseCompilationReport,
 )
 from nuitka.Tracing import wheel_logger
-from nuitka.utils.Execution import check_call
+from nuitka.utils.Execution import check_call, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
+from nuitka.utils.Json import writeJsonToFile, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Toml import loadToml
 
 
 def setupNuitkaDistutilsCommands(dist, keyword, value):
@@ -47,30 +46,13 @@ def setupNuitkaDistutilsCommands(dist, keyword, value):
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
-# TODO: Duplicated from test code, should be in utils probably.
-def addToPythonPath(python_path, in_front=False):
-    if type(python_path) in (tuple, list):
-        python_path = os.pathsep.join(python_path)
-
-    if python_path:
-        if "PYTHONPATH" in os.environ:
-            if in_front:
-                os.environ["PYTHONPATH"] = (
-                    python_path + os.pathsep + os.environ["PYTHONPATH"]
-                )
-            else:
-                os.environ["PYTHONPATH"] += os.pathsep + python_path
-        else:
-            os.environ["PYTHONPATH"] = python_path
-
-
 # Class name enforced by distutils, must match the command name.
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
     # pylint: disable=attribute-defined-outside-init
     def run(self):
-        # Plugins are considered during location of modules, so
-        # we need that setup done.
+        # Plugins are considered during location of modules, so we need that
+        # setup done.
         setupHooks()
 
         wheel_logger.info("Specified packages: %s." % self.distribution.packages)
@@ -99,14 +81,111 @@ class build(distutils.command.build.build):
                     self.script_module_names.add(ModuleName(script_module_name))
 
         if not self.compile_packages and not self.py_modules:
-            wheel_logger.sysexit(
+            return wheel_logger.sysexit(
                 "No modules or packages specified, aborting. Did you provide packages in 'setup.cfg' or 'setup.py'?"
             )
 
-        # Python2 does not allow super on this old style class.
+        # Allow to dump what we found, so it can be used for other purposes.
+        dump_filename = os.getenv("NUITKA_DUMP_BUILD_CONFIG")
+        if dump_filename:
+            self._dumpBuildConfiguration(dump_filename)
+            return
+
+        # Python2 does not allow super on this old style class, so hard code the
+        # name.
         distutils.command.build.build.run(self)
 
         self._build(os.path.abspath(self.build_lib))
+
+    def _dumpBuildConfiguration(self, dump_filename):
+        # pylint: disable=too-many-branches,too-many-locals
+        # We need to search in the build directory preferably, because that is where
+        # the modification of sources happens.
+        project_dir = os.getenv("NUITKA_PROJECT_DIR")
+        if not project_dir:
+            project_dir = os.getcwd()
+
+        if self.distribution.package_dir and "" in self.distribution.package_dir:
+            main_package_dir = os.path.join(
+                project_dir, self.distribution.package_dir.get("")
+            )
+        else:
+            main_package_dir = project_dir
+
+        addMainScriptDirectory(main_package_dir)
+
+        nuitka_command = []
+
+        package_name_names = []
+
+        for is_package, module_name in self._findBuildTasks():
+            if is_package:
+                nuitka_command.append("--include-package=%s" % module_name.asString())
+                package_name_names.append(module_name.asString())
+            else:
+                nuitka_command.append("--include-module=%s" % module_name.asString())
+
+        if self.distribution.entry_points:
+            for script_spec in self.distribution.entry_points.get(
+                "console_scripts", []
+            ):
+                nuitka_command.append("--main-entry-point=%s" % script_spec)
+
+        if self.distribution.scripts:
+            for script in self.distribution.scripts:
+                nuitka_command.append("--main=%s" % os.path.join(project_dir, script))
+
+        if self.distribution.package_data:
+            for package_name, patterns in self.distribution.package_data.items():
+                # These apply to all packages.
+                if package_name in ("", "*"):
+                    for package_name in package_name_names:
+                        for pattern in patterns:
+                            nuitka_command.append(
+                                "--include-package-data=%s:%s"
+                                % (
+                                    package_name,
+                                    pattern,
+                                )
+                            )
+                else:
+                    for pattern in patterns:
+                        nuitka_command.append(
+                            "--include-package-data=%s:%s" % (package_name, pattern)
+                        )
+
+        if self.distribution.data_files:
+            for dest_dir, src_files in self.distribution.data_files:
+                for src_file in src_files:
+                    # Make source absolute if it isn't
+                    if not os.path.isabs(src_file):
+                        src_file_abs = os.path.join(project_dir, src_file)
+                    else:
+                        src_file_abs = src_file
+
+                    # Destination is relative to the output directory structure
+                    target = os.path.join(dest_dir, os.path.basename(src_file))
+                    nuitka_command.append(
+                        "--include-data-file=%s=%s" % (src_file_abs, target)
+                    )
+
+        nuitka_command.append("--output-folder-name=%s" % self.distribution.get_name())
+
+        if self.distribution.install_requires:
+            for req in self.distribution.install_requires:
+                nuitka_command.append("--pyproject-requires=%s" % req)
+
+        result = {
+            "package_dir": self.distribution.package_dir,
+            "arguments": nuitka_command,
+        }
+
+        if dump_filename == "-":
+            writeJsonToFile(sys.stdout, result, indent=4)
+        else:
+            writeJsonToFilename(dump_filename, result)
+
+        sys.exit(0)
 
     def _findBuildTasks2(self):
         """
@@ -135,7 +214,7 @@ class build(distutils.command.build.build):
             )[1]
 
             if script_module_filename is None:
-                wheel_logger.sysexit(
+                return wheel_logger.sysexit(
                     "Error, failed to locate script containing module '%s'"
                     % script_module_name
                 )
@@ -287,31 +366,17 @@ class build(distutils.command.build.build):
                 # runtime is then loaded more locally.
                 package_part, _include_package_name = module_name.splitModuleBasename()
 
-                addToPythonPath(
-                    os.path.join(main_package_dir, package_part.asPath()), in_front=True
-                )
+                python_path = os.path.join(main_package_dir, package_part.asPath())
             else:
                 output_dir = build_lib
+                python_path = None
 
             options = []
 
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
-                # Import toml parser like "build" module does.
-                if python_version >= 0x3B0:
-                    # stdlib only for 3.11+, pylint: disable=I0021,import-error
-                    from tomllib import loads as toml_loads
-                else:
-                    try:
-                        from tomli import loads as toml_loads
-                    except ImportError:
-                        from toml import loads as toml_loads
 
-                # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
-                # pylint: disable=unspecified-encoding
-
-                with open(toml_filename) as toml_file:
-                    toml_options = toml_loads(toml_file.read())
+                toml_options = loadToml(toml_filename)
 
                 for option, value in toml_options.get("nuitka", {}).items():
                     options.extend(self._parseOptionsEntry(option, value))
@@ -331,7 +396,7 @@ class build(distutils.command.build.build):
 
             for option in options:
                 if option.startswith(("--standalone", "--onefile", "--mode=")):
-                    wheel_logger.sysexit(
+                    return wheel_logger.sysexit(
                         "Cannot specify mode in options when building wheels."
                     )
 
@@ -372,7 +437,10 @@ class build(distutils.command.build.build):
             wheel_logger.info(
                 "Building: '%s' with command '%s'" % (module_name.asString(), command)
             )
-            check_call(command, cwd=build_lib)
+
+            with withEnvironmentPathAdded("PYTHONPATH", python_path, prefix=True):
+                check_call(command, cwd=build_lib)
+
             wheel_logger.info(
                 "Finished compilation of '%s'." % module_name.asString(), style="green"
             )
@@ -382,7 +450,7 @@ class build(distutils.command.build.build):
             embedded_data_files.update(getEmbeddedDataFilenames(report))
 
             if delete_report:
-                os.unlink(report_filename)
+                deleteFile(report_filename, must_exist=True)
 
         self.build_lib = build_lib
 
@@ -390,11 +458,11 @@ class build(distutils.command.build.build):
         for filename in getFileList(
             build_lib, only_suffixes=(".py", ".pyw", ".pyc", ".pyo")
         ):
-            os.unlink(filename)
+            deleteFile(filename, must_exist=True)
 
         # Remove data files from build folder, that's our job now too
         for filename in embedded_data_files:
-            os.unlink(filename)
+            deleteFile(filename, must_exist=True)
 
         os.chdir(old_dir)
 

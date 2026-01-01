@@ -211,10 +211,25 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
 #endif
 #endif
 #if !defined(Py_GIL_DISABLED)
+
+#if PYTHON_VERSION < 0x3e0
     op->ob_refcnt = 1;
 #else
+#if SIZEOF_VOID_P > 4
+    op->ob_refcnt_full = 1;
+    assert(op->ob_refcnt == 1);
+    assert(op->ob_flags == 0);
+#else
+    op->ob_refcnt = 1;
+#endif
+#endif
+#else
     op->ob_tid = _Py_ThreadId();
+#if PYTHON_VERSION >= 0x3e0
+    op->ob_flags = 0;
+#else
     op->_padding = 0;
+#endif
     op->ob_mutex = (PyMutex){0};
     op->ob_gc_bits = 0;
     op->ob_ref_local = 1;
@@ -377,8 +392,19 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
     object->ob_tid = _Py_UNOWNED_TID;
     object->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
     object->ob_ref_shared = 0;
+#if PYTHON_VERSION >= 0x3e0
+    _Py_atomic_or_uint8(&op->ob_gc_bits, _PyGC_BITS_DEFERRED);
+#endif
+
+#else
+
+#if (PYTHON_VERSION >= 0x3e0) && (SIZEOF_VOID_P > 4)
+    object->ob_flags = _Py_IMMORTAL_FLAGS;
+    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #else
     object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
+#endif
+
 #endif
 }
 #else

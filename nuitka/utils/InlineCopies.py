@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Policies for locating inline copies."""
+"""Policies for locating inline copies."""
 
 import os
 
@@ -29,11 +29,6 @@ def getInlineCopyFolder(module_name):
         folder_name = candidate_35
 
     return folder_name
-
-
-def getDownloadCopyFolder():
-    """Get the inline copy folder for a given name."""
-    return os.path.join(_getInlineCopyBaseFolder(), "downloads", "pip")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

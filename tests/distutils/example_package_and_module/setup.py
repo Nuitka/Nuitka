@@ -7,16 +7,16 @@ from setuptools import setup
 # (relative to the 'root' dir, where setup.py is)
 # You could be more specific.
 setup(
-    name="package-and-module-example",
-    version="101",
+    name="example-package-and-module",
+    version="1.0",
+    author="Nuitka Contributors",
+    author_email="contributors@nuitka.invalid",
+    description="Nuitka distutils test case: example_package_and_module",
+    url="https://nuitka.net",
     packages=["some_package"],
     py_modules=["some_module"],
     scripts=["runner"],
-    description="Nuitka example with package and module both",
-    author="Nobody really",
-    author_email="email@someplace.com",
-    url="whatever",
-    long_description="""Really long text here.""",
+    long_description="Nuitka distutils test case: example_package_and_module",
 )
 
 #     Python test originally created or extracted from other peoples work. The

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module deals with finding and information about shared libraries.
-
-"""
+"""This module deals with finding and information about shared libraries."""
 
 import os
 import re
@@ -13,11 +11,15 @@ from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-buil
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
+from nuitka.options.Options import (
+    getMacOSTargetArch,
+    isShowInclusion,
+    isUnstripped,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked
+from .Execution import executeToolChecked, filterOutputByLine
 from .FileOperations import (
     addFileExecutablePermission,
     changeFilenameExtension,
@@ -310,19 +312,6 @@ def _getMacOSArchOption():
         return ()
 
 
-# TODO: Use this for more output filters.
-def _filterOutputByLine(output, filter_func):
-    non_errors = []
-
-    for line in output.splitlines():
-        if line and not filter_func(line):
-            non_errors.append(line)
-
-    output = b"\n".join(non_errors)
-
-    return (0 if non_errors else None), output
-
-
 def _filterOtoolErrorOutput(stderr):
     def isNonErrorExit(line):
         if b"missing from root that overrides" in line:
@@ -330,7 +319,7 @@ def _filterOtoolErrorOutput(stderr):
 
         return False
 
-    return _filterOutputByLine(stderr, isNonErrorExit)
+    return filterOutputByLine(stderr, isNonErrorExit)
 
 
 def _getOToolCommandOutput(otool_option, filename, cached):
@@ -485,7 +474,7 @@ installed. Use 'apt/dnf/yum install patchelf' first."""
     )
 
     if output.split() == b"0.18.0":
-        logger.sysexit(
+        return logger.sysexit(
             "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
         )
 
@@ -551,7 +540,7 @@ def setSharedLibraryRPATH(filename, rpath):
     expected_rpaths = [rpath]
 
     if updated_rpaths != expected_rpaths and isStaticallyLinked(filename) is not True:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Error, failed to update rpath for '%s' (%r != %r). Please report the bug."
             % (filename, updated_rpaths, expected_rpaths)
         )
@@ -772,7 +761,7 @@ def makeMacOSThinBinary(dest_path, original_path):
             os.unlink(dest_path)
             os.rename(dest_path + ".tmp", dest_path)
     elif macos_target_arch not in file_output:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Error, cannot use file '%s' (%s) to build arch '%s' result"
             % (original_path, file_output, macos_target_arch)
         )

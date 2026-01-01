@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Utility module.
+"""Utility module.
 
 Here the small things that fit nowhere else and don't deserve their own module.
 
@@ -470,7 +470,7 @@ Retrying after a second of delay."""
 
                     return result
 
-            logger.sysexit("Failed to %s, %s." % (purpose, consequence))
+            return logger.sysexit("Failed to %s, %s." % (purpose, consequence))
 
         return retryingFunction
 
@@ -590,7 +590,10 @@ def _getMSVCRedistPath(logger):
         "x86": "x86",
     }
     arch_folder = arch_folder_map.get(getArchitecture())
-    final_path = os.path.join(redist_base_path, latest_version, arch_folder)
+
+    from .FileOperations import getNormalizedPathJoin
+
+    final_path = getNormalizedPathJoin(redist_base_path, latest_version, arch_folder)
 
     if os.path.exists(final_path):
         return final_path
@@ -611,6 +614,7 @@ def getMSVCRedistPath(logger):
             # Don't retry if it fails.
             if _msvc_redist_path is None:
                 _msvc_redist_path = False
+                return None
 
     return _msvc_redist_path
 

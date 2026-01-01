@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Finalizations. Last steps directly before code creation is called.
+"""Finalizations. Last steps directly before code creation is called.
 
 Here the final tasks are executed. Things normally volatile during optimization
 can be computed here, so the code generation can be quick and doesn't have to

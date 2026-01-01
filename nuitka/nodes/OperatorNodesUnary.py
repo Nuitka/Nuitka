@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for unary operations.
+"""Nodes for unary operations.
 
 Some of these come from built-ins, e.g. abs, some from syntax, and repr from both.
 """

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Namify constants.
+"""Namify constants.
 
 This determines the identifier names of constants in the generated code. We
 try to have readable names where possible, and resort to hash codes only when

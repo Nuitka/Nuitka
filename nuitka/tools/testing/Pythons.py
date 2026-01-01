@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test tool to run a program with various Pythons. """
+"""Test tool to run a program with various Pythons."""
 
 from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.utils.Execution import check_output

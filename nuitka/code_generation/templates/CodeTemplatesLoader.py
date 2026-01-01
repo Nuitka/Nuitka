@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Templates for the loading of embedded modules.
-
-"""
+"""Templates for the loading of embedded modules."""
 
 template_metapath_loader_compiled_module_entry = """\
 {%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
@@ -23,6 +21,13 @@ template_metapath_loader_bytecode_module_entry = """\
 {%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
+#endif
+},"""
+
+template_metapath_loader_excluded_module_entry = """\
+{%(module_name)s, (module_init_func)%(exclusion_reason)s, 0, 0, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, NULL
 #endif
 },"""
 
@@ -76,7 +81,6 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
         init_done = true;
     }
 }
-
 
 void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for match statement for Python3.10+ """
+"""Nodes for match statement for Python3.10+"""
 
 from .ChildrenHavingMixins import ChildrenHavingExpressionMatchTypeMixin
 from .ExpressionBases import ExpressionBase

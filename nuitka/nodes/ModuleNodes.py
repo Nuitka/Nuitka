@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module/Package nodes
+"""Module/Package nodes
 
 The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
@@ -14,7 +14,7 @@ from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
-from nuitka.Options import (
+from nuitka.options.Options import (
     getFileReferenceMode,
     hasPythonFlagIsolated,
     hasPythonFlagPackageMode,
@@ -37,6 +37,7 @@ from .ChildrenHavingMixins import (
 )
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
+from .LocalsDictNodes import LocalsScopePropagationVisitor
 from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ClosureGiverNodeMixin,
@@ -237,7 +238,7 @@ class CompiledPythonModule(
         "name",
         "code_prefix",
         "code_name",
-        "uids",
+        "uuids",
         "temp_variables",
         "temp_scopes",
         "preserver_id",
@@ -585,6 +586,8 @@ class CompiledPythonModule(
             if result is not module_body:
                 self.setChildBody(result)
 
+            self.trace_collection.performDelayedWork()
+
         self.attemptRecursion()
 
         # We determine the trusted module variable for use on next turnaround to provide functions with traces for them.
@@ -609,7 +612,6 @@ class CompiledPythonModule(
                 source_ref=self.source_ref,
             )
 
-        # Finalize locals scopes previously determined for removal in last pass.
         updateVariablesFromCollection(
             old_collection, self.trace_collection, self.source_ref
         )
@@ -617,13 +619,19 @@ class CompiledPythonModule(
         # Indicate if this is pass 1 for the module as return value.
         was_complete = not self.locals_scope.complete
 
+        propagated_scopes = OrderedSet()
+
+        # Finalize locals scopes previously determined for removal in last pass.
         def markAsComplete(body, trace_collection):
             if body.locals_scope is not None:
                 # Make sure the propagated stuff releases memory.
                 if body.locals_scope.isMarkedForPropagation():
                     body.locals_scope.onPropagationComplete()
 
-                body.locals_scope.markAsComplete(trace_collection)
+                propagated_scope = body.locals_scope.markAsComplete(trace_collection)
+
+                if propagated_scope is not None:
+                    propagated_scopes.add(propagated_scope)
 
         def markEntryPointAsComplete(body):
             markAsComplete(body, body.trace_collection)
@@ -643,6 +651,13 @@ class CompiledPythonModule(
 
             function_body.optimizeUnusedClosureVariables()
             function_body.optimizeVariableReleases()
+
+        if propagated_scopes:
+            visitor = LocalsScopePropagationVisitor(
+                trace_collection=self.trace_collection,
+                propagated_scopes=propagated_scopes,
+            )
+            visitor.onNode(self)
 
         return was_complete
 

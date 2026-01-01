@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Objects use to describe control flow escapes.
+"""Objects use to describe control flow escapes.
 
 Typically returned by shape operations to indicate what can and can not
 have happened.

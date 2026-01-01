@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test Nuitka compiling itself and compiling itself in compiled form again.
+"""Test Nuitka compiling itself and compiling itself in compiled form again.
 
 This should not only give no errors, but the same source for modules being
 compiled when Nuitka is running compiled and uncompiled, so we can discover
@@ -58,24 +58,25 @@ tmp_dir = getTempDir()
 # the ones not needed.
 PACKAGE_LIST = [
     "nuitka",
-    "nuitka/nodes",
-    "nuitka/specs",
-    "nuitka/nodes/shapes",
-    "nuitka/tree",
-    "nuitka/importing",
     "nuitka/build",
-    "nuitka/freezer",
     "nuitka/code_generation",
-    "nuitka/code_generation/templates",
     "nuitka/code_generation/c_types",
-    "nuitka/optimizations",
-    "nuitka/finalizations",
-    "nuitka/plugins",
-    "nuitka/plugins/standard",
-    "nuitka/plugins/commercial",
-    "nuitka/reports",
-    "nuitka/pgo",
+    "nuitka/code_generation/templates",
     "nuitka/containers",
+    "nuitka/finalizations",
+    "nuitka/freezer",
+    "nuitka/importing",
+    "nuitka/nodes",
+    "nuitka/nodes/shapes",
+    "nuitka/optimizations",
+    "nuitka/options",
+    "nuitka/pgo",
+    "nuitka/plugins",
+    "nuitka/plugins/commercial",
+    "nuitka/plugins/standard",
+    "nuitka/reports",
+    "nuitka/specs",
+    "nuitka/tree",
     "nuitka/utils",
 ]
 
@@ -110,6 +111,7 @@ def diffRecursive(dir1, dir2):
         # Skip these binary files and scons build database of course.
         # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
         # differently in compiled Nuitka:
+        # spell-checker: ignore dblite,sconsign
         if filename.endswith(
             (
                 ".o",
@@ -139,16 +141,17 @@ def diffRecursive(dir1, dir2):
             if r:
                 result = True
         elif os.path.isfile(path1):
-            fromdate = time.ctime(os.stat(path1).st_mtime)
-            todate = time.ctime(os.stat(path2).st_mtime)
+            from_date = time.ctime(os.stat(path1).st_mtime)
+            to_date = time.ctime(os.stat(path2).st_mtime)
 
+            # spell-checker: ignore tofile,fromfiledate,tofiledate
             diff = difflib.unified_diff(
                 a=readSource(path1).splitlines(),
                 b=readSource(path2).splitlines(),
                 fromfile=path1,
                 tofile=path2,
-                fromfiledate=fromdate,
-                tofiledate=todate,
+                fromfiledate=from_date,
+                tofiledate=to_date,
                 n=3,
             )
 

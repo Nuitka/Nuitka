@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that should cover sporadic usages of built-ins that we implemented.
-
-"""
+"""Test that should cover sporadic usages of built-ins that we implemented."""
 
 # pylint: disable=broad-except,global-variable-not-assigned,redefined-outer-name
 # pylint: disable=comparison-with-itself,use-dict-literal,use-list-literal

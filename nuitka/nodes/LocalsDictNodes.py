@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that deal with locals, as dict or mapping.
+"""Nodes that deal with locals, as dict or mapping.
 
 The mapping types can be optimized into dict types, and the ones with
 fallback can be optimized to no fallback variants.
@@ -266,32 +266,26 @@ class ExpressionLocalsVariableRef(ExpressionBase):
     def getLocalsDictScope(self):
         return self.locals_scope
 
-    def computeExpressionRaw(self, trace_collection):
-        if self.locals_scope.isMarkedForPropagation():
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
             variable_name = self.getVariableName()
 
-            variable = self.locals_scope.allocateTempReplacementVariable(
-                trace_collection=trace_collection, variable_name=variable_name
-            )
+            variable = self.locals_scope.allocateTempReplacementVariable(variable_name)
 
             result = ExpressionTempVariableRef(
                 variable=variable, source_ref=self.source_ref
             )
-            result.parent = self.parent
-
-            self.finalize()
-
-            new_result = result.computeExpressionRaw(trace_collection)
-
-            if new_result[0] is not result:
-                assert False, (new_result, result)
 
             return (
                 result,
                 "new_expression",
-                "Replaced dictionary ref with temporary variable.",
+                "Replaced dictionary reference of '%s' with temporary variable."
+                % variable_name,
             )
 
+        return self, None, None
+
+    def computeExpressionRaw(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable=self.variable
         )
@@ -401,32 +395,29 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     def getTypeShape(self):
         return self.locals_scope.getMappingValueShape(self.variable)
 
-    # TODO: This is ugly to overload, to be sure we work on not-yet visited expressions.
-    def computeStatement(self, trace_collection):
-        if self.locals_scope.isMarkedForPropagation():
-            variable = self.locals_scope.allocateTempReplacementVariable(
-                trace_collection=trace_collection, variable_name=self.variable_name
-            )
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
+            variable_name = self.getVariableName()
+
+            variable = self.locals_scope.allocateTempReplacementVariable(variable_name)
 
             result = makeStatementAssignmentVariable(
                 source=self.subnode_source,
                 variable=variable,
                 source_ref=self.source_ref,
             )
-            result.parent = self.parent
 
-            new_result = result.computeStatement(trace_collection)
-            result = new_result[0]
-
-            assert result.isStatementAssignmentVariable(), new_result
-
-            self.finalize()
             return (
                 result,
                 "new_statements",
-                "Replaced dictionary assignment with temporary variable assignment.",
+                "Replaced dictionary assignment of '%s' with temporary variable assignment."
+                % variable_name,
             )
 
+        return self, None, None
+
+    # TODO: This is ugly to overload, to be sure we work on not-yet visited expressions.
+    def computeStatement(self, trace_collection):
         return StatementLocalsDictOperationSetBase.computeStatement(
             self, trace_collection
         )
@@ -520,31 +511,27 @@ class StatementLocalsDictOperationDel(StatementBase):
     def getLocalsDictScope(self):
         return self.locals_scope
 
-    def computeStatement(self, trace_collection):
-        # Conversion from dictionary to normal nodes is done here.
-        if self.locals_scope.isMarkedForPropagation():
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
             variable_name = self.getVariableName()
 
-            variable = self.locals_scope.allocateTempReplacementVariable(
-                trace_collection=trace_collection, variable_name=variable_name
-            )
+            variable = self.locals_scope.allocateTempReplacementVariable(variable_name)
 
             result = makeStatementDelVariable(
                 variable=variable, tolerant=False, source_ref=self.source_ref
             )
-            result.parent = self.parent
-
-            new_result = result.computeStatement(trace_collection)
-            result = new_result[0]
-
-            assert result.isStatementDelVariable(), new_result
 
             return (
-                new_result,
+                result,
                 "new_statements",
-                "Replaced dictionary del with temporary variable.",
+                "Replaced dictionary del of '%s' with temporary variable."
+                % variable_name,
             )
 
+        return self, None, None
+
+    def computeStatement(self, trace_collection):
+        # Conversion from dictionary to normal nodes is done here.
         self.previous_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         # Deleting is usage of the value, and may call code on it. This is to inhibit
@@ -602,18 +589,14 @@ class StatementSetLocals(StatementSetLocalsMixin, StatementSetLocalsBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_new_locals.mayRaiseException(exception_type)
 
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
+            return None, "new_statements", "Forward propagating locals."
+
+        return self, None, None
+
     def computeStatementOperation(self, trace_collection):
         self.locals_scope.setTypeShape(self.subnode_new_locals.getTypeShape())
-
-        if self.locals_scope.isMarkedForPropagation():
-            self.finalize()
-
-            return (
-                None,
-                "new_statements",
-                """\
-Forward propagating locals.""",
-            )
 
         if self.subnode_new_locals.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -633,16 +616,6 @@ class StatementSetLocalsDictionary(
     node_attributes = ("locals_scope",)
 
     def computeStatement(self, trace_collection):
-        if self.locals_scope.isMarkedForPropagation():
-            self.finalize()
-
-            return (
-                None,
-                "new_statements",
-                """\
-Forward propagating locals.""",
-            )
-
         return self, None, None
 
     @staticmethod
@@ -652,6 +625,12 @@ Forward propagating locals.""",
     @staticmethod
     def getStatementNiceName():
         return "locals dictionary init statement"
+
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
+            return None, "new_statements", "Forward propagating locals."
+
+        return self, None, None
 
 
 class ExpressionLocalsDictRef(ExpressionBuiltinLocalsRef):
@@ -677,8 +656,8 @@ class StatementReleaseLocals(StatementBase):
         del self.parent
         del self.locals_scope
 
-    def computeStatement(self, trace_collection):
-        if self.locals_scope.isMarkedForPropagation():
+    def onForwardPropagation(self, propagated_scopes):
+        if self.locals_scope in propagated_scopes:
             statements = [
                 makeStatementReleaseVariable(
                     variable=variable, source_ref=self.source_ref
@@ -690,14 +669,15 @@ class StatementReleaseLocals(StatementBase):
                 statements=statements, allow_none=False, source_ref=self.source_ref
             )
 
-            self.finalize()
-
             return (
                 result,
                 "new_statements",
                 "Releasing temp variables instead of locals dict.",
             )
 
+        return self, None, None
+
+    def computeStatement(self, trace_collection):
         return self, None, None
 
     def getDetails(self):
@@ -718,6 +698,43 @@ class StatementReleaseLocals(StatementBase):
     @staticmethod
     def getStatementNiceName():
         return "locals dictionary release statement"
+
+
+class LocalsScopePropagationVisitor(object):
+    def __init__(self, trace_collection, propagated_scopes):
+        self.trace_collection = trace_collection
+        self.propagated_scopes = propagated_scopes
+
+        assert propagated_scopes is not None
+
+    def onNode(self, node):
+        new_node, change_desc, reason = node.onForwardPropagation(
+            self.propagated_scopes
+        )
+
+        if change_desc is not None:
+            self.trace_collection.signalChange(
+                change_desc,
+                node.source_ref,
+                reason,
+            )
+
+        if new_node is None:
+            return None
+
+        if new_node is not node:
+            if new_node.isStatementsSequence():
+                node.getParent().replaceStatement(node, new_node.subnode_statements)
+            else:
+                node.getParent().replaceChild(node, new_node)
+
+            node.finalize()
+
+            node = new_node
+
+        # Recurse
+        for child in node.getVisitableNodes():
+            self.onNode(child)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for variable deletion
+"""Nodes for variable deletion
 
 These refer to resolved variable objects.
 
@@ -10,7 +10,7 @@ These refer to resolved variable objects.
 from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
 
 from .NodeBases import StatementBase

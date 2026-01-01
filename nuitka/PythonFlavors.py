@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Python flavors specifics.
+"""Python flavors specifics.
 
 This abstracts the Python variants from different people. There is not just
 CPython, but Anaconda, Debian, pyenv, Apple, lots of people who make Python

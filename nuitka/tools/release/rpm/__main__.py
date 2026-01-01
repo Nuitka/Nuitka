@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" OpenSUSE Build Service (OSC) upload release tool.
+"""OpenSUSE Build Service (OSC) upload release tool.
 
 Uploads Nuitka branches adapting the RPM configuration to the different
 projects on OSC.
@@ -33,7 +33,7 @@ def main():
     shutil.rmtree("build", ignore_errors=True)
     makePath("build")
 
-    # Used by rpmbuild
+    # Used by rpmbuild, spell-checker: ignore rpmbuild
     makePath(os.path.expanduser("~/rpmbuild/SOURCES"))
 
     # Upload stable releases to OpenSUSE Build Service:
@@ -51,13 +51,14 @@ def main():
         rpm_project_name = "Nuitka-Factory"
         spec_suffix = "-factory"
     else:
-        tools_logger.sysexit("Skipping RPM build for branch '%s'" % branch_name)
+        return tools_logger.sysexit("Skipping RPM build for branch '%s'" % branch_name)
 
     with withDirectoryChange("build"):
         tools_logger.info(
             "Building source distribution for %s %s"
             % (rpm_project_name, nuitka_version)
         )
+        # spell-checker: ignore gztar
         assert os.system("%s ../setup.py sdist --formats=gztar" % sys.executable) == 0
         nuitka_dist_filename = "Nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
         renameFile(

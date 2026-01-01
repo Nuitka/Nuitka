@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Mixins to use for composing type shapes.
-
-"""
+"""Mixins to use for composing type shapes."""
 
 from .ControlFlowDescriptions import (
     ControlFlowDescriptionAddUnsupported,

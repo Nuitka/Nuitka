@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Instance counter primitives
+"""Instance counter primitives
 
 We don't use a meta class as it's unnecessary complex, and portable meta classes
 have their difficulties, and want to count classes, who already have a meta
@@ -11,7 +11,7 @@ This is going to expanded with time.
 
 """
 
-from nuitka.Options import isShowMemory
+from nuitka.options.Options import isShowMemory
 from nuitka.Tracing import printIndented, printLine
 
 counted_inits = {}

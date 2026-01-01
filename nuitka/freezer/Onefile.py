@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack distribution folders into a single file.
-
-"""
+"""Pack distribution folders into a single file."""
 
 import os
 import subprocess
@@ -15,7 +13,8 @@ from nuitka.build.SconsInterface import (
     getCommonSconsOptions,
     runScons,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
+    getJobLimit,
     getOnefileTempDirSpec,
     getProgressBar,
     getWindowsSplashScreen,
@@ -165,6 +164,7 @@ def runOnefileCompressor(
             file_checksums=file_checksums,
             win_path_sep=win_path_sep,
             low_memory=isLowMemory(),
+            job_limit=getJobLimit(),
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -197,6 +197,7 @@ def runOnefileCompressor(
                     str(isLowMemory()),
                     str(shallOnefileAsArchive()),
                     str(not shallDisableCompressionCacheUsage()),
+                    str(getJobLimit()),
                 ],
                 shell=False,
             )

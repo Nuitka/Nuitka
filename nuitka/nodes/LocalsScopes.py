@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module maintains the locals dict handles. """
+"""This module maintains the locals dict handles."""
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaOptimizationError
@@ -233,17 +233,16 @@ class LocalsDictHandleBase(object):
     def isMarkedForPropagation(self):
         return self.mark_for_propagation
 
-    def allocateTempReplacementVariable(self, trace_collection, variable_name):
+    def allocateTempReplacementVariable(self, variable_name):
         if self.propagation is None:
             self.propagation = OrderedDict()
 
         if variable_name not in self.propagation:
-            provider = trace_collection.getOwner()
-
-            self.propagation[variable_name] = provider.allocateTempVariable(
+            self.propagation[variable_name] = self.owner.allocateTempVariable(
                 temp_scope=None,
                 name=self.getCodeName() + "_key_" + variable_name,
                 temp_type="object",
+                late=True,
             )
 
         return self.propagation[variable_name]
@@ -275,13 +274,18 @@ class LocalsDictHandleBase(object):
         self.complete = True
 
         self._considerUnusedUserLocalVariables(trace_collection)
-        self._considerPropagation(trace_collection)
+        return self._considerPropagation(trace_collection)
 
     # TODO: Limited to Python2 classes for now, more overloads need to be added, this
     # ought to be abstract and have variants with TODOs for each of them.
     @staticmethod
     def _considerPropagation(trace_collection):
-        """For overload by scope type. Check if this can be replaced."""
+        """For overload by scope type. Check if this can be replaced.
+
+        Returns:
+            Scope to propagate or None.
+        """
+        return None
 
     def onPropagationComplete(self):
         self.variables = {}
@@ -331,12 +335,11 @@ class LocalsDictHandle(LocalsDictHandleBase):
 
     def _considerPropagation(self, trace_collection):
         if not self.variables:
-            return
+            return None
 
         for variable in self.variables.values():
-            for variable_trace in variable.traces:
-                if variable_trace.inhibitsClassScopeForwardPropagation():
-                    return
+            if variable.inhibitsClassScopeForwardPropagation():
+                return None
 
         trace_collection.signalChange(
             "var_usage",
@@ -345,6 +348,8 @@ class LocalsDictHandle(LocalsDictHandleBase):
         )
 
         self.markForLocalsDictPropagation()
+
+        return self
 
     @staticmethod
     def setTypeShape(type_shape):
@@ -378,7 +383,7 @@ class LocalsMappingHandle(LocalsDictHandle):
         if self.prevented_propagation:
             # False alarm, this is available.
             self.prevented_propagation = False
-            return
+            return None
 
         self.complete = True
 
@@ -393,12 +398,12 @@ class LocalsMappingHandle(LocalsDictHandle):
             return
 
         if self.type_shape is not tshape_dict:
-            return
+            return None
 
         for variable in self.variables.values():
             for variable_trace in variable.traces:
                 if variable_trace.inhibitsClassScopeForwardPropagation():
-                    return
+                    return None
 
         trace_collection.signalChange(
             "var_usage",
@@ -407,6 +412,8 @@ class LocalsMappingHandle(LocalsDictHandle):
         )
 
         self.markForLocalsDictPropagation()
+
+        return self
 
     @staticmethod
     def isClassScope():

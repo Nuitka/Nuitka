@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare output of CPython and Nuitka.
-
-"""
+"""Tool to compare output of CPython and Nuitka."""
 
 import os
 import pickle
@@ -13,7 +11,7 @@ import sys
 import time
 
 from nuitka.__past__ import md5
-from nuitka.OptionParsing import getNuitkaProjectOptions
+from nuitka.options.OptionParsing import getNuitkaProjectOptions
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     decryptOutput,
@@ -287,10 +285,8 @@ def main():
     if args:
         sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
 
-    project_options = tuple(
-        getNuitkaProjectOptions(
-            logger=test_logger, filename_arg=filename, module_mode=module_mode
-        )
+    project_options = getNuitkaProjectOptions(
+        logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
 
     if "--standalone" in project_options or "--mode=standalone" in project_options:
@@ -613,6 +609,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if trace_command:
         traceExecutedCommand("CPython command", cpython_cmd)
+
+    cpython_time = None
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(

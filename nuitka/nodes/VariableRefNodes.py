@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for variable references.
+"""Node for variable references.
 
 These represent all variable references in the node tree. Can be in assignments
 and its expressions, changing the meaning of course dramatically.
@@ -556,6 +556,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             )
 
         return self, None, None
+
+    def undoComputeExpressionRaw(self, trace_collection):
+        self.variable_trace.removeUsage()
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         if self.variable_trace is not None:

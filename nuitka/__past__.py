@@ -82,7 +82,7 @@ except ImportError:
 
 
 if str is bytes:
-    # Python2 only code, pylint: disable=deprecated-class,no-name-in-module
+    # Python2 only code, pylint: disable=I0021,deprecated-class,no-name-in-module
     from collections import Iterable, MutableSet
 else:
     from collections.abc import Iterable, MutableSet

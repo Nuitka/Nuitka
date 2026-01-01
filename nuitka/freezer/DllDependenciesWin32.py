@@ -12,7 +12,7 @@ import sys
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isExperimental, isShowProgress
+from nuitka.options.Options import isExperimental, isShowProgress
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -22,7 +22,7 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getDirectoryRealPath,
     getFileContentByLine,
-    getNormalizedPath,
+    getNormalizedPathJoin,
     getSubDirectoriesWithDlls,
     isFilenameSameAsOrBelowPath,
     listDllFilesFromDirectory,
@@ -53,7 +53,7 @@ def detectDLLsWithPEFile(binary_filename, scan_dirs):
         # Search DLL path from scan dirs
         for scan_dir in scan_dirs:
             dll_filename = os.path.normcase(
-                os.path.abspath(os.path.join(scan_dir, dll_name))
+                os.path.abspath(getNormalizedPathJoin(scan_dir, dll_name))
             )
 
             if os.path.isfile(dll_filename):
@@ -193,14 +193,14 @@ def _getPathContribution(use_path):
                 continue
 
             # spell-checker: ignore SYSTEMROOT
-            if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
+            if areSamePaths(path_dir, getNormalizedPathJoin(os.environ["SYSTEMROOT"])):
                 continue
             if areSamePaths(
-                path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")
+                path_dir, getNormalizedPathJoin(os.environ["SYSTEMROOT"], "System32")
             ):
                 continue
             if areSamePaths(
-                path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
+                path_dir, getNormalizedPathJoin(os.environ["SYSTEMROOT"], "SysWOW64")
             ):
                 continue
 
@@ -285,8 +285,9 @@ def _getCacheFilename(
     package_name,
     use_path,
 ):
-    original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
-    original_filename = getNormalizedPath(original_filename)
+    original_filename = getNormalizedPathJoin(
+        original_dir, os.path.basename(binary_filename)
+    )
 
     hash_value = Hash()
 
@@ -319,10 +320,12 @@ def _getCacheFilename(
     if use_path:
         hash_value.updateFromValues(os.getenv("PATH"))
 
-    cache_dir = os.path.join(getCacheDir("library_dependencies"), dependency_tool)
+    cache_dir = getNormalizedPathJoin(
+        getCacheDir("library_dependencies"), dependency_tool
+    )
     makePath(cache_dir)
 
-    return os.path.join(cache_dir, hash_value.asHexDigest())
+    return getNormalizedPathJoin(cache_dir, hash_value.asHexDigest())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

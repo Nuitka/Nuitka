@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Postprocessing tasks for create binaries or modules.
-
-"""
+"""Postprocessing tasks for create binaries or modules."""
 
 import ctypes
 import os
@@ -11,7 +9,7 @@ import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.ModuleRegistry import getImportedModuleNames
-from nuitka.Options import (
+from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
     getProductVersionTuple,
@@ -45,6 +43,7 @@ from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    deleteFile,
     getFileContents,
     getFileSize,
     hasFilenameExtension,
@@ -150,7 +149,7 @@ def _addWindowsIconFromIcons(onefile):
             )
 
             if icon_index is not None:
-                postprocessing_logger.sysexit(
+                return postprocessing_logger.sysexit(
                     "Cannot specify indexes with non-ico format files in '%s'."
                     % icon_spec
                 )
@@ -183,7 +182,7 @@ def _addWindowsIconFromIcons(onefile):
 
             if icon_index is not None:
                 if icon_index > len(icons):
-                    postprocessing_logger.sysexit(
+                    return postprocessing_logger.sysexit(
                         "Error, referenced icon index %d in file '%s' with only %d icons."
                         % (icon_index, icon_path, len(icons))
                     )
@@ -526,7 +525,7 @@ def executePostProcessing(result_filename):
                 python_dll_filename = dependency
                 break
         else:
-            postprocessing_logger.sysexit(
+            return postprocessing_logger.sysexit(
                 """
 Error, expected 'libpython dependency not found. Please report the bug."""
             )
@@ -569,8 +568,7 @@ Error, expected 'libpython dependency not found. Please report the bug."""
             "lib" + os.path.basename(result_filename)[:-4] + ".a",
         )
 
-        if os.path.exists(candidate):
-            os.unlink(candidate)
+        deleteFile(candidate, must_exist=False)
 
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(result_filename)

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Base class for all C types.
+"""Base class for all C types.
 
 Defines the interface to use by code generation on C types. Different
 types then have to overload the class methods.

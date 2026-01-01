@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module gets setup by the plugins and provides hooks for use in Nuitka.
+"""This module gets setup by the plugins and provides hooks for use in Nuitka.
 
 It does not contain much of any business logic, but only functions that will
 be calling members "nuitka.plugins.Plugins" that is updated.
@@ -332,6 +332,15 @@ def getPackageExtraScanPaths(package_name, package_dir):
     return Plugins.getPackageExtraScanPaths(
         package_name=package_name, package_dir=package_dir
     )
+
+
+def getUncompiledDecoratorNames():
+    """Return a tuple of decorator names that should cause the function to be uncompiled.
+
+    Returns:
+        tuple of strings
+    """
+    return Plugins.getUncompiledDecoratorNames()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

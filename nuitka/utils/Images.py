@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Handling of images, esp. format conversions for icons.
-
-"""
+"""Handling of images, esp. format conversions for icons."""
 
 from nuitka.States import states
 
@@ -15,12 +13,13 @@ def checkIconUsage(logger, icon_path):
     icon_format = getFilenameExtension(icon_path)
 
     if icon_format == "":
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Cannot detect the icon format from filename extension of '%s'."""
             % (icon_path)
         )
-    elif icon_format != ".icns" and isMacOS():
+
+    if icon_format != ".icns" and isMacOS():
         needs_conversion = True
     elif icon_format != ".ico" and isWin32Windows():
         needs_conversion = True
@@ -34,7 +33,7 @@ Cannot detect the icon format from filename extension of '%s'."""
             if states.is_debug:
                 logger.info("Exception importing 'imageio' is %s" % repr(e))
 
-            logger.sysexit(
+            return logger.sysexit(
                 """\
 Need to install 'imageio' to automatically convert the non native \
 icon image (%s) in file in '%s'."""
@@ -55,7 +54,7 @@ def convertImageToIconFormat(logger, image_filename, converted_icon_filename):
     try:
         image = imageio.imread(image_filename)
     except ValueError:
-        logger.sysexit(
+        return logger.sysexit(
             "Unsupported file format for 'imageio' in '%s', use e.g. PNG or other supported file formats instead."
             % image_filename
         )

@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This test runner compiles all extension modules for standalone mode.
+"""This test runner compiles all extension modules for standalone mode.
 
 This is a test to reveal hidden dependencies on a system.
 

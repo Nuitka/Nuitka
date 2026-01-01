@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to avoid bloat at compile time.
+"""Standard plug-in to avoid bloat at compile time.
 
 Nuitka hard codes stupid monkey patching normally not needed here and avoids
 that to be done and causing massive degradations.
@@ -15,7 +15,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
 from nuitka.utils.ModuleNames import ModuleName
@@ -34,7 +34,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
     plugin_desc = (
         "Patch stupid imports out of widely used library modules source codes."
     )
-    plugin_category = "core"
+    plugin_category = "core,feature,package-support"
 
     @staticmethod
     def isAlwaysEnabled():

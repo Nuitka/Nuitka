@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Assignment tests, cover most forms of them. """
+"""Assignment tests, cover most forms of them."""
 
 # nuitka-project: --nofollow-imports
 
@@ -215,7 +215,7 @@ def multiTargetInterrupt():
         print("having attribute error", c, d, e)
 
 
-def optimizeableTargets():
+def optimizableTargets():
     a = [1, 2]
 
     a[int(1)] = 3
@@ -264,7 +264,7 @@ anotherFunction()
 swapVariables()
 InterruptedUnpack()
 multiTargetInterrupt()
-optimizeableTargets()
+optimizableTargets()
 complexDel()
 sliceDel()
 globalErrors()

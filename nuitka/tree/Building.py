@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Build the internal node tree from source code.
+"""Build the internal node tree from source code.
 
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
@@ -114,7 +114,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMainEntryPointFilenames,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
@@ -148,7 +148,9 @@ from .ReformulationAssignmentStatements import (
     buildInplaceAssignNode,
     buildNamedExprNode,
     buildTypeAliasNode,
+    buildTypeParamSpec,
     buildTypeVarNode,
+    buildTypeVarTupleNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -822,6 +824,8 @@ setBuildingDispatchers(
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
         "TypeVar": buildTypeVarNode,
+        "TypeVarTuple": buildTypeVarTupleNode,
+        "ParamSpec": buildTypeParamSpec,
     },
     path_args1={"Ellipsis": buildEllipsisNode},
 )

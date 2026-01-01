@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Time taking.
+"""Time taking.
 
 Mostly for measurements of Nuitka of itself, e.g. how long did it take to
 call an external tool.
@@ -148,7 +148,7 @@ def withProfiling(name, logger, enabled):
         import cProfile
         import pstats
 
-        from nuitka.Options import getOutputPath
+        from nuitka.options.Options import getOutputPath
 
         pr = cProfile.Profile(timer=process_time)
         pr.enable()

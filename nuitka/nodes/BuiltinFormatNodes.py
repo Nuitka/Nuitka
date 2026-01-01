@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Format related nodes format/bin/oct/hex/ascii.
+"""Format related nodes format/bin/oct/hex/ascii.
 
 These will most often be used for outputs, and the hope is, the type prediction or the
 result prediction will help to be smarter, but generally these should not be that much

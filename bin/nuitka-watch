@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Launcher for Nuitka watch tool.
+"""Launcher for Nuitka watch tool.
 
 For the "Nuitka-Watch" repository, this is intended to scan it and execute
 test cases for detecting PyPI updates that cause regressions, or changes in

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For creating virtual environments.
+"""For creating virtual environments.
 
 This can create empty virtualenv, but also populate them with packages from
 the reports.

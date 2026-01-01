@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" OpenSUSE Build Service (OSC) status check.
+"""OpenSUSE Build Service (OSC) status check.
 
 Confirms that all relevant packages are successfully built. For use in
 Buildbot on a timer basis.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for coroutine objects and their creations.
+"""Nodes for coroutine objects and their creations.
 
 Coroutines are turned into normal functions that create generator objects,
 whose implementation lives here. The creation itself also lives here.

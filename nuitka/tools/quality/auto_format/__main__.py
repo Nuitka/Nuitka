@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for auto format tool.
-
-"""
+"""Main program for auto format tool."""
 
 from optparse import OptionParser
 
@@ -161,6 +159,7 @@ Defaults to off.""",
                     ".h",
                     ".yml",
                     ".json",
+                    ".cursorrules",
                 ),
             )
         )

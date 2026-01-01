@@ -1,19 +1,18 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Support for delvewheel, details in below class definitions.
-
-"""
+"""Support for delvewheel, details in below class definitions."""
 
 import os
 import re
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonVersions import getSitePackageCandidateNames
 from nuitka.utils.FileOperations import (
-    getNormalizedPath,
+    getNormalizedPathJoin,
     listDllFilesFromDirectory,
 )
 
@@ -29,9 +28,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
     """
 
     plugin_name = "delvewheel"  # Nuitka knows us by this name
-    plugin_desc = (
-        "Required for support of 'delvewheel' using packages in standalone mode."
-    )
+    plugin_desc = "Required by 'delvewheel' using packages."
     plugin_category = "core"
 
     def __init__(self):
@@ -100,11 +97,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         if self.dll_directory is not None:
             self.dll_directory = os.path.normpath(self.dll_directory)
 
-            if os.path.basename(self.dll_directory) in (
-                "site-packages",
-                "dist-packages",
-                "vendor-packages",
-            ):
+            if os.path.basename(self.dll_directory) in getSitePackageCandidateNames():
                 self.dll_directory = None
 
         self.dll_directories[module_name] = self.dll_directory
@@ -134,9 +127,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
             for dll_filename, dll_basename in listDllFilesFromDirectory(dll_directory):
                 yield self.makeDllEntryPoint(
                     source_path=dll_filename,
-                    dest_path=getNormalizedPath(
-                        os.path.join(target_directory, dll_basename)
-                    ),
+                    dest_path=getNormalizedPathJoin(target_directory, dll_basename),
                     module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),

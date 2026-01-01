@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of function statements.
+"""Reformulation of function statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -50,8 +50,10 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.plugins.Hooks import onFunctionBodyParsing
-from nuitka.plugins.Plugins import hasActivePlugin
+from nuitka.plugins.Hooks import (
+    getUncompiledDecoratorNames,
+    onFunctionBodyParsing,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -75,6 +77,7 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mangleName,
 )
 
@@ -126,31 +129,33 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-_has_pyqt_plugin = None
+def _isUncompiledDecorator(decorator):
+    if decorator.isExpressionVariableNameRef():
+        decorator_name = decorator.getVariableName()
+    elif decorator.isExpressionCall():
+        if decorator.subnode_called.isExpressionVariableNameRef():
+            decorator_name = decorator.subnode_called.getVariableName()
+        else:
+            return False
+    else:
+        return False
+
+    # Hard coded name.
+    if decorator_name == "nuitka_ignore":
+        return True
+
+    # False alarm, pylint: disable=unsupported-membership-test
+    if decorator_name in getUncompiledDecoratorNames():
+        return True
+
+    return False
 
 
 def decideFunctionCompilationMode(decorators):
     """Decide how to compile a function based on decorator names."""
-
-    global _has_pyqt_plugin  # singleton, pylint: disable=global-statement
-
-    if _has_pyqt_plugin is None:
-        _has_pyqt_plugin = hasActivePlugin("pyqt5") or hasActivePlugin("pyqt6")
-
-    # TODO: Expose the interface to plugins, so we don't hardcode stuff for
-    # specific plugins here, but for performance I guess, we would have to add a
-    # registry for the plugins to use, so not every decorator name is being
-    # called for every plugin.
-
-    # TODO: This can only work with 3.9 or higher so far.
-    if _has_pyqt_plugin and python_version >= 0x390:
-        for decorator in decorators:
-            if (
-                decorator.isExpressionCall()
-                and decorator.subnode_called.isExpressionVariableNameRef()
-            ):
-                if decorator.subnode_called.variable_name in ("pyqtSlot", "asyncSlot"):
-                    return "bytecode"
+    for decorator in decorators:
+        if _isUncompiledDecorator(decorator):
+            return "bytecode"
 
     return "compiled"
 
@@ -188,6 +193,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
     globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider=provider,
+        locals_scope=provider.getLocalsScope(),
         globals_node=None,
         locals_node=None,
         temp_scope=temp_scope,
@@ -223,6 +229,34 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
         final=final,
         source_ref=source_ref,
     )
+
+
+def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
+    helper_name = "create_type_annotations"
+
+    outline_body = ExpressionOutlineFunction(
+        provider=provider, name=helper_name, source_ref=source_ref
+    )
+
+    assignments = []
+    for type_param in type_params:
+        type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
+
+        assign = StatementAssignmentVariableName(
+            provider=outline_body,
+            variable_name=type_param.name,
+            source=type_var,
+            source_ref=source_ref,
+        )
+        assignments.append(assign)
+
+    outline_body.setChildBody(
+        makeStatementsSequenceFromStatements(
+            assignments, StatementReturn(expression=body, source_ref=source_ref)
+        )
+    )
+
+    return outline_body
 
 
 def buildFunctionNode(provider, node, source_ref):
@@ -350,6 +384,13 @@ def buildFunctionNode(provider, node, source_ref):
         annotations=annotations,
         source_ref=source_ref,
     )
+
+    # Add wrapping for function with generic types to be provided to the
+    # function body.
+    if python_version >= 0x3C0 and node.type_params:
+        function_creation = _wrapWithTypeAnnotations(
+            provider, node.type_params, function_creation, source_ref
+        )
 
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 
@@ -758,7 +799,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 tried=statements,
                 variables=tuple(
                     sorted(
-                        outer_body.getTempVariables(),
+                        outer_body.getTempVariables(None),
                         key=lambda variable: variable.getName(),
                     )
                 ),

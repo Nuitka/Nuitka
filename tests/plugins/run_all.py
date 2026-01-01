@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for plugins tests of Nuitka.
+"""Runner for plugins tests of Nuitka.
 
 Plugin tests are typically aiming at covering plugin interfaces and their
 correctness, not concrete standard plugins.

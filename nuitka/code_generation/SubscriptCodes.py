@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Subscript related code generation.
+"""Subscript related code generation.
 
 There is special handling for integer indexes, which can be dealt with
 much faster than general subscript lookups.

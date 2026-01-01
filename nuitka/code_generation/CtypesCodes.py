@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for ctypes module stuff. """
+"""Code generation for ctypes module stuff."""
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .ImportCodes import getImportModuleNameHardCode

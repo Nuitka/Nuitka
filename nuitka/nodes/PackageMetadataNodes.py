@@ -1,12 +1,10 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes the represent ways to access metadata pkg_resources, importlib.resources etc.
-
-"""
+"""Nodes the represent ways to access metadata pkg_resources, importlib.resources etc."""
 
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
@@ -94,7 +92,7 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
 
             return self, None, None
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find requirements '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (
                     ",".join(repr(s) for s in args),
@@ -145,7 +143,7 @@ class ExpressionPkgResourcesGetDistributionCall(
 
             return self, None, None
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
@@ -188,7 +186,7 @@ class ImportlibMetadataVersionCallMixin(object):
 
             return self, None, None
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
@@ -379,7 +377,7 @@ class ExpressionPkgResourcesIterEntryPointsCall(
 
             return self, None, None
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (name, self.source_ref.getAsString(), repr(e))
             )
@@ -504,7 +502,7 @@ class ImportlibMetadataDistributionCallMixin(object):
                 % self.importlib_metadata_name,
             )
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
@@ -836,7 +834,7 @@ class ExpressionImportlibMetadataEntryPointsCallMixin(object):
         try:
             entry_points_result = metadata_importlib.entry_points(**constant_args)
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error, failed to find entrypoints at '%s' due to unhandled %s. Please report this bug."
                 % (self.source_ref.getAsString(), repr(e))
             )

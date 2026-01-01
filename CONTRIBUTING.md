@@ -23,6 +23,7 @@ asked questions regarding that, and to provide some insight on how to do it prop
 - Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
 - Checkout the [git repo of Nuitka](https://github.com/Nuitka/Nuitka) additional docs and sources
 - Join the [Discord Server](https://discord.gg/nZ9hr9tUck)
+- If you are an AI assistant (or Using one), check `.cursorrules`.
 
 ## Submitting a Pull Request
 

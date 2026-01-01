@@ -27,6 +27,9 @@ When compiling with Python 3.4 provide the path of a Python binary to use for Sc
 .TP
 \fB\-\-main\fR=\fI\,PATH\/\fR
 If specified once, this takes the place of the positional argument, i.e. the filename to compile. When given multiple times, it enables "multidist" (see User Manual) it allows you to create binaries that depending on file name or invocation name.
+.TP
+\fB\-\-project\fR
+Compile the project in the current directory by extracting configuration from it. Default is not to use it.
 .IP
 Control the inclusion of modules and packages in result:
 .TP
@@ -201,6 +204,9 @@ Debug features:
 \fB\-\-debug\fR
 Executing all self checks possible to find errors in Nuitka, do not use for production. Defaults to off.
 .TP
+\fB\-\-debug\-self\-forking\fR
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself. Defaults to off.
+.TP
 \fB\-\-no\-debug\-immortal\-assumptions\fR
 Disable check normally done with "\-\-debug". With Python3.12+ do not check known immortal object assumptions. Some C libraries corrupt them. Defaults to check being made if "\-\-debug" is on.
 .TP
@@ -248,8 +254,11 @@ Create graph of optimization process internals, do not use for whole programs, b
 \fB\-\-devel\-profile\-compilation\fR
 Enable cProfile based profiling of time spent during compilation. Defaults to off.
 .TP
-\fB\-\-devel\-generate\-indented\-c\-code\fR
-Produce C code that is properly indented. Defaults to off.
+\fB\-\-devel\-generate\-readable\-code\fR
+Produce C code that is readable (clang\-format). Defaults to off.
+.TP
+\fB\-\-devel\-data\-composer\-verbose\fR
+Enable verbose mode for the data composer. Defaults to off.
 .IP
 Backend C compiler choice:
 .TP
@@ -258,6 +267,9 @@ Enforce the use of clang. On Windows this requires a working Visual Studio versi
 .TP
 \fB\-\-mingw64\fR
 Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW Python is used.
+.TP
+\fB\-\-zig\fR
+Enforce usage of Zig on for C compilation. Defaults to off.
 .TP
 \fB\-\-msvc\fR=\fI\,MSVC_VERSION\/\fR
 Enforce the use of specific MSVC version on Windows. Allowed values are e.g. "14.3" (MSVC 2022) and other MSVC version numbers, specify "list" for a list of installed compilers, or use "latest".  Defaults to latest MSVC being used if installed, otherwise MinGW64 is used.
@@ -373,6 +385,9 @@ What architectures is this to supposed to run on. Default and limit is what the 
 \fB\-\-macos\-app\-icon\fR=\fI\,ICON_PATH\/\fR
 Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.
 .TP
+\fB\-\-macos\-app\-create\-dmg\fR
+When compiling for macOS, create a DMG file for the application bundle. Defaults to off.
+.TP
 \fB\-\-macos\-signed\-app\-name\fR=\fI\,MACOS_SIGNED_APP_NAME\/\fR
 Name of the application to use for macOS signing. Follow "com.YourCompany.AppName" naming results for best results, as these have to be globally unique, and will potentially grant protected API accesses.
 .TP
@@ -459,37 +474,153 @@ Cross compilation:
 \fB\-\-target\fR=\fI\,TARGET_DESC\/\fR
 Cross compilation target. Highly experimental and in development, not supposed to work yet. We are working on '\-\-target=wasi' and nothing else yet.
 .IP
-Plugin options of 'anti\-bloat' (categories: core):
+Plugin options of 'automatic\-updates' (categories: commercial, feature):
 .TP
-\fB\-\-show\-anti\-bloat\-changes\fR
-Annotate what changes are done by the plugin.
+\fB\-\-auto\-update\-url\-spec\fR=\fI\,AUTO_UPDATING_URL_SPEC\/\fR
+URL to check for automatic updates. Default empty, i.e. not updates.
 .TP
-\fB\-\-noinclude\-setuptools\-mode\fR=\fI\,NOINCLUDE_SETUPTOOLS_MODE\/\fR
-What to do if a 'setuptools' or import is encountered. This package can be big with dependencies, and should definitely be avoided. Also handles 'setuptools_scm'.
+\fB\-\-auto\-update\-debug\fR
+Debug automatic updates at runtime printing messages. Default False.
+.IP
+Plugin options of 'windows\-service' (categories: commercial, feature):
 .TP
-\fB\-\-noinclude\-pytest\-mode\fR=\fI\,NOINCLUDE_PYTEST_MODE\/\fR
-What to do if a 'pytest' import is encountered. This package can be big with dependencies, and should definitely be avoided. Also handles 'nose' imports.
+\fB\-\-windows\-service\-name\fR=\fI\,WINDOWS_SERVICE_NAME\/\fR
+[REQUIRED] The Windows service name.
 .TP
-\fB\-\-noinclude\-unittest\-mode\fR=\fI\,NOINCLUDE_UNITTEST_MODE\/\fR
-What to do if a unittest import is encountered. This package can be big with dependencies, and should definitely be avoided.
+\fB\-\-windows\-service\-grace\-time\fR=\fI\,WINDOWS_SERVICE_GRACE_TIME_MS\/\fR
+For shutdown, wait this extra time before killing. Unit is ms, and default is 2000, i.e. it waits 2 seconds to allow cleanup. Increase if you need more time, decrease if you want faster service shutdown.
 .TP
-\fB\-\-noinclude\-pydoc\-mode\fR=\fI\,NOINCLUDE_PYDOC_MODE\/\fR
-What to do if a pydoc import is encountered. This package use is mark of useless code for deployments and should be avoided.
+\fB\-\-windows\-service\-start\-mode\fR=\fI\,WINDOWS_SERVICE_START_MODE\/\fR
+Pick the service start mode, value "auto" starts automatically at reboot without login, "demand" (default) must be started manually, and "disabled" cannot be started, requires further action to change it.
 .TP
-\fB\-\-noinclude\-IPython\-mode\fR=\fI\,NOINCLUDE_IPYTHON_MODE\/\fR
-What to do if a IPython import is encountered. This package can be big with dependencies, and should definitely be avoided.
+\fB\-\-windows\-service\-cli\fR
+Should the program allow to be ran from the command line. By default it does not and only outputs a message it is disallowed.
+.IP
+Plugin options of 'esigner' (categories: commercial, integration, signing):
 .TP
-\fB\-\-noinclude\-dask\-mode\fR=\fI\,NOINCLUDE_DASK_MODE\/\fR
-What to do if a 'dask' import is encountered. This package can be big with dependencies, and should definitely be avoided.
+\fB\-\-esigner\-sign\-deep\fR
+Also sign included DLLs (shared libraries) and extension modules in the distribution. Use with care, as this may break some things.
 .TP
-\fB\-\-noinclude\-numba\-mode\fR=\fI\,NOINCLUDE_NUMBA_MODE\/\fR
-What to do if a 'numba' import is encountered. This package can be big with dependencies, and is currently not working for standalone. This package is big with dependencies, and should definitely be avoided.
+\fB\-\-esigner\-disable\-signing\-cache\fR
+Disable usage of the hashing based signing cache. This will make deep signing much slower.
 .TP
-\fB\-\-noinclude\-default\-mode\fR=\fI\,NOINCLUDE_DEFAULT_MODE\/\fR
-This actually provides the default "warning" value for above options, and can be used to turn all of these on.
+\fB\-\-esigner\-tool\-path\fR=\fI\,ESIGNER_TOOL_PATH\/\fR
+Path to the 'CodeSignTool' executable/batch file provided by SSL.com.
 .TP
-\fB\-\-noinclude\-custom\-mode\fR=\fI\,CUSTOM_CHOICES\/\fR
-What to do if a specific import is encountered. Format is module name, which can and should be a top level package and then one choice, "error", "warning", "nofollow", e.g. PyQt5:error.
+\fB\-\-esigner\-username\fR=\fI\,ESIGNER_USERNAME\/\fR
+SSL.com username.
+.TP
+\fB\-\-esigner\-password\fR=\fI\,ESIGNER_PASSWORD\/\fR
+SSL.com password.
+.TP
+\fB\-\-esigner\-credential\-id\fR=\fI\,ESIGNER_CREDENTIAL_ID\/\fR
+Credential ID for the signing certificate.
+.TP
+\fB\-\-esigner\-totp\-secret\fR=\fI\,ESIGNER_TOTP_SECRET\/\fR
+TOTP secret for the signing account (static secret).
+.IP
+Plugin options of 'signtool' (categories: commercial, integration, signing):
+.TP
+\fB\-\-windows\-sign\-deep\fR
+Also sign included DLLs (shared libraries) and extension modules in the distribution. Use with care, as this may break some things.
+.TP
+\fB\-\-windows\-disable\-signing\-cache\fR
+Disable usage of the hashing based signing cache. This will make deep signing much slower.
+.TP
+\fB\-\-windows\-signing\-tool\-path\fR=\fI\,WINDOWS_SIGNTOOL_PATH\/\fR
+The 'signtool' executable. You may make this a wrapper script should you want very specific options, by default `signtool` from PATH or used MSVC used is used.
+.TP
+\fB\-\-windows\-certificate\-name\fR=\fI\,WINDOWS_CERTIFICATE_NAME\/\fR
+Name of the certificate to use. This will be used to sign the binary.
+.TP
+\fB\-\-windows\-certificate\-sha1\fR=\fI\,WINDOWS_CERTIFICATE_SHA1\/\fR
+Checksum of the certificate to use. This will be used to sign the binary.
+.TP
+\fB\-\-windows\-certificate\-filename\fR=\fI\,WINDOWS_CERTIFICATE_FILENAME\/\fR
+Filename of the certificate, typically a ".pfx" file. This will be used to sign the binary.
+.TP
+\fB\-\-windows\-certificate\-password\fR=\fI\,WINDOWS_CERTIFICATE_PASSWORD\/\fR
+Password of the certificate filename used. Defaults to empty, must be provided to successfully sign if certificate the file has one.
+.TP
+\fB\-\-windows\-signed\-content\-comment\fR=\fI\,WINDOWS_CONTENT_COMMENT\/\fR
+Comment to be used for the signed comments. Optional, defaults to not given.
+.IP
+Plugin options of 'pelock' (categories: commercial, integration, vm):
+.TP
+\fB\-\-pelock\-path\fR=\fI\,PELOCK_PATH\/\fR
+The location of the PELock software, by default it's searched in PATH and home directories.
+.TP
+\fB\-\-pelock\-unbundled\-files\fR=\fI\,PELOCK_UNBUNDLED\/\fR
+Patterns of files to not be bundled inside the binary, i.e. that shall be user visible.
+.IP
+Plugin options of 'themida' (categories: commercial, integration, vm):
+.TP
+\fB\-\-themida\-path\fR=\fI\,THEMIDA_PATH\/\fR
+The location of the Themida or WinLicense software, by default it's searched in PATH and user directory "Themida", "WinLicense".
+.TP
+\fB\-\-themida\-unbundled\-files\fR=\fI\,THEMIDA_UNBUNDLED\/\fR
+Patterns of files to not be bundled inside the binary by Themida, i.e. that shall be user visible.
+.TP
+\fB\-\-themida\-bundled\-files\fR=\fI\,THEMIDA_FORCE_BUNDLED\/\fR
+Patterns of files to be bundled inside the binary, despite matching unbundled file patterns. By default all files are bundled except if they match patterns given to the '\-\-themida\-unbundled\-files' option.
+.TP
+\fB\-\-themida\-keep\-unprotected\-binary\fR
+Keep the unprotected version of the Nuitka compiled binary.
+.TP
+\fB\-\-themida\-debug\-run\-manually\fR
+Run the themida call manually, useful for debugging.
+.TP
+\fB\-\-themida\-debug\-force\-duplicates\-mode\fR
+Force duplicates mode, even if not needed, useful for debugging.
+.IP
+Plugin options of 'anti\-debugger' (categories: commercial, protection):
+.TP
+\fB\-\-anti\-debugger\-debugging\fR
+Enables debug outputs for the debugger plugin, so that it e.g. says why it rejects something.
+.IP
+Plugin options of 'data\-hiding' (categories: commercial, protection):
+.TP
+\fB\-\-data\-hiding\-salt\-value\fR=\fI\,SALT_VALUE\/\fR
+Salt value to make encryption result unique.
+.IP
+Plugin options of 'datafile\-inclusion\-ng' (categories: commercial, protection):
+.TP
+\fB\-\-embed\-data\-files\-compile\-time\-pattern\fR=\fI\,EMBED_COMPILE_TIME_PATTERN\/\fR
+Pattern of data files to embed for use during compile time. These should match target filenames.
+.TP
+\fB\-\-embed\-data\-files\-run\-time\-pattern\fR=\fI\,EMBED_RUN_TIME_PATTERN\/\fR
+Pattern of data files to embed for use during run time. These should match target filenames.
+.TP
+\fB\-\-embed\-data\-files\-qt\-resource\-pattern\fR=\fI\,EMBED_QT_RESOURCE_PATTERN\/\fR
+Pattern of data files to embed for use with Qt at run time. These should match target filenames.
+.TP
+\fB\-\-embed\-debug\-qt\-resources\fR
+For debugging purposes, print out information for Qt resources not found.
+.IP
+Plugin options of 'traceback\-encryption' (categories: commercial, protection):
+.TP
+\fB\-\-encryption\-key\fR=\fI\,KEY\/\fR
+The encryption key to use.
+.TP
+\fB\-\-encrypt\-stdout\fR
+Apply encryption to standard output.
+.TP
+\fB\-\-encrypt\-stderr\fR
+Apply encryption to standard error.
+.TP
+\fB\-\-encrypt\-debug\-init\fR
+In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.
+.TP
+\fB\-\-encrypt\-crypto\-package\fR=\fI\,CRYPTO_PACKAGE\/\fR
+These are two very similar packages that can both do the encryption, and to avoid duplication in case one of your packages requires the other, you get to select which one to use by the plugin code. By default "pycryptodomex" is used and only legacy code uses that. However it will fallback to "pycryptodome" if that's the only one installed, and you can enforce Nuitka choice if both are for some reason.
+.IP
+Plugin options of 'upx' (categories: integration):
+.TP
+\fB\-\-upx\-binary\fR=\fI\,UPX_PATH\/\fR
+The UPX binary to use or the directory it lives in, by default `upx` from PATH is used.
+.TP
+\fB\-\-upx\-disable\-cache\fR
+Do not cache UPX compression result, by default DLLs are cached, exe files are not.
 .IP
 Plugin options of 'dill\-compat' (categories: package\-support):
 .TP
@@ -522,125 +653,6 @@ Which Qt plugins to not include. This removes things, so you can ask to include 
 .TP
 \fB\-\-noinclude\-qt\-translations\fR
 Include Qt translations with QtWebEngine if used. These can be a lot of files that you may not want to be included.
-.IP
-Plugin options of 'upx' (categories: integration):
-.TP
-\fB\-\-upx\-binary\fR=\fI\,UPX_PATH\/\fR
-The UPX binary to use or the directory it lives in, by default `upx` from PATH is used.
-.TP
-\fB\-\-upx\-disable\-cache\fR
-Do not cache UPX compression result, by default DLLs are cached, exe files are not.
-.IP
-Plugin options of 'anti\-debugger' (categories: commercial, protection):
-.TP
-\fB\-\-anti\-debugger\-debugging\fR
-Enables debug outputs for the debugger plugin, so that it e.g. says why it rejects something.
-.IP
-Plugin options of 'automatic\-updates' (categories: commercial, feature):
-.TP
-\fB\-\-auto\-update\-url\-spec\fR=\fI\,AUTO_UPDATING_URL_SPEC\/\fR
-URL to check for automatic updates. Default empty, i.e. not updates.
-.TP
-\fB\-\-auto\-update\-debug\fR
-Debug automatic updates at runtime printing messages. Default False.
-.IP
-Plugin options of 'data\-hiding' (categories: commercial, protection):
-.TP
-\fB\-\-data\-hiding\-salt\-value\fR=\fI\,SALT_VALUE\/\fR
-Salt value to make encryption result unique.
-.IP
-Plugin options of 'datafile\-inclusion\-ng' (categories: commercial, protection):
-.TP
-\fB\-\-embed\-data\-files\-compile\-time\-pattern\fR=\fI\,EMBED_COMPILE_TIME_PATTERN\/\fR
-Pattern of data files to embed for use during compile time. These should match target filenames.
-.TP
-\fB\-\-embed\-data\-files\-run\-time\-pattern\fR=\fI\,EMBED_RUN_TIME_PATTERN\/\fR
-Pattern of data files to embed for use during run time. These should match target filenames.
-.TP
-\fB\-\-embed\-data\-files\-qt\-resource\-pattern\fR=\fI\,EMBED_QT_RESOURCE_PATTERN\/\fR
-Pattern of data files to embed for use with Qt at run time. These should match target filenames.
-.TP
-\fB\-\-embed\-debug\-qt\-resources\fR
-For debugging purposes, print out information for Qt resources not found.
-.IP
-Plugin options of 'pelock' (categories: commercial, integration):
-.TP
-\fB\-\-pelock\-path\fR=\fI\,PELOCK_PATH\/\fR
-The location of the PELock software, by default it's searched in PATH and home directories.
-.TP
-\fB\-\-pelock\-unbundled\-files\fR=\fI\,PELOCK_UNBUNDLED\/\fR
-Patterns of files to not be bundled inside the binary, i.e. that shall be user visible.
-.IP
-Plugin options of 'signing' (categories: commercial, integration):
-.TP
-\fB\-\-windows\-signing\-tool\fR=\fI\,WINDOWS_SIGNTOOL\/\fR
-The 'signtool' executable. You may make this a wrapper script should you want very specific options, by default `signtool` from PATH or used MSVC used is used.
-.TP
-\fB\-\-windows\-certificate\-name\fR=\fI\,WINDOWS_CERTIFICATE_NAME\/\fR
-Name of the certificate to use. This will be used to sign the binary.
-.TP
-\fB\-\-windows\-certificate\-sha1\fR=\fI\,WINDOWS_CERTIFICATE_SHA1\/\fR
-Checksum of the certificate to use. This will be used to sign the binary.
-.TP
-\fB\-\-windows\-certificate\-filename\fR=\fI\,WINDOWS_CERTIFICATE_FILENAME\/\fR
-Filename of the certificate, typically a ".pfx" file. This will be used to sign the binary.
-.TP
-\fB\-\-windows\-certificate\-password\fR=\fI\,WINDOWS_CERTIFICATE_PASSWORD\/\fR
-Password of the certificate filename used. Defaults to empty, must be provided to successfully sign if certificate the file has one.
-.TP
-\fB\-\-windows\-signed\-content\-comment\fR=\fI\,WINDOWS_CONTENT_COMMENT\/\fR
-Comment to be used for the signed comments. Optional, defaults to not given.
-.IP
-Plugin options of 'themida' (categories: commercial, integration):
-.TP
-\fB\-\-themida\-path\fR=\fI\,THEMIDA_PATH\/\fR
-The location of the Themida or WinLicense software, by default it's searched in PATH and user directory "Themida", "WinLicense".
-.TP
-\fB\-\-themida\-unbundled\-files\fR=\fI\,THEMIDA_UNBUNDLED\/\fR
-Patterns of files to not be bundled inside the binary by Themida, i.e. that shall be user visible.
-.TP
-\fB\-\-themida\-bundled\-files\fR=\fI\,THEMIDA_FORCE_BUNDLED\/\fR
-Patterns of files to be bundled inside the binary, despite matching unbundled file patterns. By default all files are bundled except if they match patterns given to the '\-\-themida\-unbundled\-files' option.
-.TP
-\fB\-\-themida\-keep\-unprotected\-binary\fR
-Keep the unprotected version of the Nuitka compiled binary.
-.TP
-\fB\-\-themida\-debug\-run\-manually\fR
-Run the themida call manually, useful for debugging.
-.TP
-\fB\-\-themida\-debug\-force\-duplicates\-mode\fR
-Force duplicates mode, even if not needed, useful for debugging.
-.IP
-Plugin options of 'traceback\-encryption' (categories: commercial, protection):
-.TP
-\fB\-\-encryption\-key\fR=\fI\,KEY\/\fR
-The encryption key to use.
-.TP
-\fB\-\-encrypt\-stdout\fR
-Apply encryption to standard output.
-.TP
-\fB\-\-encrypt\-stderr\fR
-Apply encryption to standard error.
-.TP
-\fB\-\-encrypt\-debug\-init\fR
-In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.
-.TP
-\fB\-\-encrypt\-crypto\-package\fR=\fI\,CRYPTO_PACKAGE\/\fR
-These are two very similar packages that can both do the encryption, and to avoid duplication in case one of your packages requires the other, you get to select which one to use by the plugin code. By default "pycryptodomex" is used and only legacy code uses that. However it will fallback to "pycryptodome" if that's the only one installed, and you can enforce Nuitka choice if both are for some reason.
-.IP
-Plugin options of 'windows\-service' (categories: commercial, feature):
-.TP
-\fB\-\-windows\-service\-name\fR=\fI\,WINDOWS_SERVICE_NAME\/\fR
-[REQUIRED] The Windows service name.
-.TP
-\fB\-\-windows\-service\-grace\-time\fR=\fI\,WINDOWS_SERVICE_GRACE_TIME_MS\/\fR
-For shutdown, wait this extra time before killing. Unit is ms, and default is 2000, i.e. it waits 2 seconds to allow cleanup. Increase if you need more time, decrease if you want faster service shutdown.
-.TP
-\fB\-\-windows\-service\-start\-mode\fR=\fI\,WINDOWS_SERVICE_START_MODE\/\fR
-Pick the service start mode, value "auto" starts automatically at reboot without login, "demand" (default) must be started manually, and "disabled" cannot be started, requires further action to change it.
-.TP
-\fB\-\-windows\-service\-cli\fR
-Should the program allow to be ran from the command line. By default it does not and only outputs a message it is disallowed.
 .PP
 .SH EXAMPLES
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for constants in Nuitka.
+"""Module for constants in Nuitka.
 
 This contains tools to compare, classify and test constants.
 """

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helper to import a file as a module.
+"""Helper to import a file as a module.
 
 Used for Nuitka plugins and for test code.
 """
@@ -150,7 +150,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         if message is not None:
             exit_message += "\n" + message
 
-        logger.sysexit(exit_message)
+        return logger.sysexit(exit_message)
     finally:
         # Do not forget to remove it from sys.path again.
         del sys.path[0]

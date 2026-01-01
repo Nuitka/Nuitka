@@ -1,10 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module is only an abstraction of OrderedSet which is not present in
+"""This module is only an abstraction of OrderedSet which is not present in
 Python at all.
 
 It was originally downloaded from http://code.activestate.com/recipes/576694/
+
+spell-checker: ignore Hettinger
 """
 
 # Copyright 2009 Raymond Hettinger
@@ -38,8 +40,6 @@ from nuitka.__past__ import MutableSet
 
 
 class OrderedSet(MutableSet):
-    is_fallback = True
-
     def __init__(self, iterable=()):
         self.end = end = []
         end += (None, end, end)  # sentinel node for doubly linked list
@@ -53,19 +53,19 @@ class OrderedSet(MutableSet):
     def __contains__(self, key):
         return key in self.map
 
-    def add(self, key):
-        if key not in self.map:
+    def add(self, value):
+        if value not in self.map:
             end = self.end
             curr = end[1]
-            curr[2] = end[1] = self.map[key] = [key, curr, end]
+            curr[2] = end[1] = self.map[value] = [value, curr, end]
 
     def update(self, keys):
         for key in keys:
             self.add(key)
 
-    def discard(self, key):
-        if key in self.map:
-            key, prev, next = self.map.pop(key)
+    def discard(self, value):
+        if value in self.map:
+            _key, prev, next = self.map.pop(value)
             prev[2] = next
             next[1] = prev
 

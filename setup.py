@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Setup file for Nuitka.
+"""Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
 the source code. Second, the packages are scanned from the filesystem,
@@ -75,7 +75,7 @@ inline_copy_files = []
 no_byte_compile = []
 
 
-def addDataFiles(data_files, base_path, do_byte_compile=True):
+def addDataFiles(files_list, base_path, do_byte_compile=True):
     patterns = (
         "%s/*.py" % base_path,
         "%s/*/*.py" % base_path,
@@ -88,7 +88,7 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
         "%s/READ*" % base_path,
     )
 
-    data_files.extend(patterns)
+    files_list.extend(patterns)
 
     if not do_byte_compile:
         no_byte_compile.extend(patterns)
@@ -182,9 +182,12 @@ package_data = {
     "nuitka.code_generation": ["templates_c/*.j2"],
     "nuitka.reports": ["*.j2"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
+    "nuitka.utils": ["requirements-private.txt"],
+    "nuitka.format": ["biome.json"],
 }
 
 
+data_files = []
 try:
     import distutils.util
 except ImportError:
@@ -368,14 +371,8 @@ with open("README.rst", "rb") as input_file:
     )
 
 install_requires = []
-if sys.version_info >= (3, 7):
-    install_requires.append("ordered-set >= 4.1.0")
 if sys.version_info[:2] == (2, 7) and os.name == "nt":
     install_requires.append("subprocess32")
-if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
-if sys.platform == "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
 
 build_requires = ["setuptools>=42", "toml"]
 standalone_requires = []
@@ -458,17 +455,18 @@ Python compiler with full language support and CPython compatibility""",
     },
     zip_safe=False,
     scripts=scripts,
+    data_files=data_files,
     entry_points={
         "distutils.commands": [
             "bdist_nuitka = \
-             nuitka.distutils.DistutilCommands:bdist_nuitka",
+             nuitka.distutils.DistutilsCommands:bdist_nuitka",
             "build_nuitka = \
-             nuitka.distutils.DistutilCommands:build",
+             nuitka.distutils.DistutilsCommands:build",
             "install_nuitka = \
-             nuitka.distutils.DistutilCommands:install",
+             nuitka.distutils.DistutilsCommands:install",
         ],
         "distutils.setup_keywords": [
-            "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
+            "build_with_nuitka = nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsCommands"
         ],
         "console_scripts": console_scripts,
     },

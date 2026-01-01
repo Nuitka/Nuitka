@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of while loop statements.
+"""Reformulation of while loop statements.
 
 Loops in Nuitka have no condition attached anymore, so while loops are
 re-formulated like this:

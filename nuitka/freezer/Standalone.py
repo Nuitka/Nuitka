@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack and copy files for standalone mode.
+"""Pack and copy files for standalone mode.
 
 This is expected to work for macOS, Windows, and Linux. Other things like
 FreeBSD are also very welcome, but might break with time and need your
@@ -17,7 +17,7 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import (
+from nuitka.options.Options import (
     isShowProgress,
     shallCreateAppBundle,
     shallNotStoreDependsExeCachedResults,
@@ -47,7 +47,7 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
-    getNormalizedPath,
+    getNormalizedPathJoin,
     isFilenameBelowPath,
     makePath,
     relpath,
@@ -199,7 +199,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     if isMacOS():
         fixupBinaryDLLPathsMacOS(
-            binary_filename=os.path.join(
+            binary_filename=getNormalizedPathJoin(
                 dist_dir, main_standalone_entry_point.dest_path
             ),
             package_name=main_standalone_entry_point.package_name,
@@ -210,7 +210,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     # After dependency detection, we can change the RPATH for main binary.
     if isRPathUsingPlatform():
         setSharedLibraryRPATH(
-            os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
+            getNormalizedPathJoin(dist_dir, standalone_entry_points[0].dest_path),
+            "$ORIGIN",
         )
 
     setupProgressBar(
@@ -232,7 +233,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
         if isMacOS():
             fixupBinaryDLLPathsMacOS(
-                binary_filename=os.path.join(
+                binary_filename=getNormalizedPathJoin(
                     dist_dir, standalone_entry_point.dest_path
                 ),
                 package_name=standalone_entry_point.package_name,
@@ -274,8 +275,8 @@ def signDistributionMacOS(
         return path
 
     if shallCreateAppBundle():
-        app_path = getNormalizedPath(os.path.join(dist_dir, "..", ".."))
-        resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
+        app_path = getNormalizedPathJoin(dist_dir, "..", "..")
+        resources_dir = getNormalizedPathJoin(dist_dir, "..", "Resources")
 
         def getNotSignableDirectoryPart(filename):
             result = []
@@ -300,8 +301,8 @@ def signDistributionMacOS(
                 continue
 
             filename = not_signable_part[len("Contents/MacOS/") :]
-            not_signable_path = os.path.join(app_path, not_signable_part)
-            resources_path = os.path.join(resources_dir, filename)
+            not_signable_path = getNormalizedPathJoin(app_path, not_signable_part)
+            resources_path = getNormalizedPathJoin(resources_dir, filename)
 
             if resources_path in symlinks:
                 continue
@@ -309,9 +310,9 @@ def signDistributionMacOS(
             makePath(os.path.dirname(resources_path))
             os.rename(not_signable_path, resources_path)
 
-            symlink_target = os.path.join("..", "Resources", filename)
+            symlink_target = getNormalizedPathJoin("..", "Resources", filename)
             for _i in range(filename.count("/")):
-                symlink_target = os.path.join("..", symlink_target)
+                symlink_target = getNormalizedPathJoin("..", symlink_target)
 
             os.symlink(symlink_target, not_signable_path)
 
@@ -322,7 +323,7 @@ def signDistributionMacOS(
         filenames=[
             _translatePath(filename)
             for filename in [
-                os.path.join(dist_dir, standalone_entry_point.dest_path)
+                getNormalizedPathJoin(dist_dir, standalone_entry_point.dest_path)
                 for standalone_entry_point in [main_standalone_entry_point]
                 + copy_standalone_entry_points
             ]
@@ -349,7 +350,7 @@ def _reduceToPythonPath(used_dll_paths):
         inside_paths.insert(0, getHomebrewInstallPath())
 
     if isMSYS2MingwPython():
-        inside_paths.insert(0, os.path.join(getSystemPrefixPath(), "bin"))
+        inside_paths.insert(0, getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
 
     def decideInside(dll_filename):
         return any(
@@ -487,11 +488,9 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                 # where required that way (openvino) or known to be good only (av),
                 # because it broke other things. spell-checker: ignore openvino
 
-                dest_path = getNormalizedPath(
-                    os.path.join(
-                        os.path.dirname(standalone_entry_point.dest_path),
-                        os.path.basename(used_dll_path),
-                    )
+                dest_path = getNormalizedPathJoin(
+                    os.path.dirname(standalone_entry_point.dest_path),
+                    os.path.basename(used_dll_path),
                 )
             else:
                 existing_entry_point = getStandaloneEntryPointForSourceFile(

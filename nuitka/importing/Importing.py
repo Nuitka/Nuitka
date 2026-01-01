@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Locating modules and package source on disk.
+"""Locating modules and package source on disk.
 
 The actual import of a module would already execute code that changes things.
 Imagine a module that does ``os.system()``, it would be done during
@@ -30,11 +30,13 @@ from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaCodeDeficit
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMainEntryPointFilenames,
+    getOutputFolderName,
     hasPythonFlagNoCurrentDirectoryInPath,
     shallExplainImports,
 )
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import (
     decideRecompileExtensionModules,
     getPackageExtraScanPaths,
@@ -48,8 +50,10 @@ from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     getFileContentsHash,
     getNormalizedPath,
+    getNormalizedPathJoin,
     listDir,
     removeDirectory,
 )
@@ -96,11 +100,21 @@ def setupImportingFromOptions():
     if states.is_debug and not isNuitkaPython():
         _checkRaisingBuiltinComplete()
 
-    main_filenames = getMainEntryPointFilenames()
-    for filename in main_filenames:
+    if getOutputFolderName() is not None:
+        source_dir = getSourceDirectoryPath(create=False)
+    else:
+        source_dir = None
+
+    for filename in getMainEntryPointFilenames():
         # Inform the importing layer about the main script directory, so it can use
         # it when attempting to follow imports.
-        addMainScriptDirectory(main_dir=os.path.dirname(os.path.abspath(filename)))
+
+        main_dir = os.path.dirname(os.path.abspath(filename))
+
+        if source_dir is not None and areSamePaths(source_dir, main_dir):
+            continue
+
+        addMainScriptDirectory(main_dir)
 
 
 def _checkRaisingBuiltinComplete():
@@ -556,7 +570,7 @@ def _findModuleInPath3(
         for suffix, module_type in getModuleFilenameSuffixes():
             package_file_name = "__init__" + suffix
 
-            file_path = os.path.join(package_directory, package_file_name)
+            file_path = getNormalizedPathJoin(package_directory, package_file_name)
 
             if os.path.isfile(file_path):
                 yield (
@@ -595,7 +609,7 @@ def _findModuleInPath3(
             if module_type == last_module_type:
                 continue
 
-            full_path = os.path.join(search_path_entry, module_name + suffix)
+            full_path = getNormalizedPathJoin(search_path_entry, module_name + suffix)
 
             if os.path.isfile(full_path):
                 yield (
@@ -619,7 +633,9 @@ def _getSetuptoolsDistutilsPackageDir():
     )[1]
 
     if setuptools_package_dir is not None:
-        setuptools_package_dir = os.path.join(setuptools_package_dir, "_distutils")
+        setuptools_package_dir = getNormalizedPathJoin(
+            setuptools_package_dir, "_distutils"
+        )
 
     return setuptools_package_dir
 
@@ -654,7 +670,9 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
             continue
         considered.add(os.path.normcase(search_path_entry))
 
-        package_directory = os.path.join(search_path_entry, module_name.asPath())
+        package_directory = getNormalizedPathJoin(
+            search_path_entry, module_name.asPath()
+        )
 
         for candidate in _findModuleInPath3(
             module_name=module_name,
@@ -763,7 +781,7 @@ def _unpackPathElement(path_entry):
             if path_entry not in _egg_files:
                 checksum = getFileContentsHash(path_entry)
 
-                target_dir = os.path.join(getCacheDir("egg-content"), checksum)
+                target_dir = getNormalizedPathJoin(getCacheDir("egg-content"), checksum)
 
                 if not os.path.exists(target_dir):
                     try:
@@ -813,7 +831,7 @@ def getPackageSearchPath(package_name):
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = os.path.join(element, child_package_name.asPath())
+            package_dir = getNormalizedPathJoin(element, child_package_name.asPath())
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
@@ -832,7 +850,7 @@ def getPackageSearchPath(package_name):
             return preloaded_path
 
         def getPackageDirCandidates(element):
-            yield os.path.join(element, package_name.asPath()), False
+            yield getNormalizedPathJoin(element, package_name.asPath()), False
 
             for extra_path in getPackageExtraScanPaths(package_name, element):
                 yield extra_path, True
@@ -1061,7 +1079,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     is_package = False
 
     if is_main and os.path.isdir(filename):
-        source_filename = getNormalizedPath(os.path.join(filename, "__main__.py"))
+        source_filename = getNormalizedPathJoin(filename, "__main__.py")
 
         if not os.path.isfile(source_filename):
             sys.stderr.write(
@@ -1091,7 +1109,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getNormalizedPath(os.path.join(filename, "__init__.py"))
+        source_filename = getNormalizedPathJoin(filename, "__init__.py")
 
         if not os.path.isfile(source_filename):
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()
@@ -1102,7 +1120,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
             )
 
     else:
-        logger.sysexit(
+        return logger.sysexit(
             "%s: can't open file '%s'." % (os.path.basename(sys.argv[0]), filename),
             exit_code=2,
         )

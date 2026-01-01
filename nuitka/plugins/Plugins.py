@@ -31,7 +31,9 @@ from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Options import (
+from nuitka.options.CommandLineOptionsTools import OurOptionGroup
+from nuitka.options.Options import (
+    assumeYesForDownloads,
     getForcedRuntimeEnvironmentVariableValues,
     getPluginNameConsideringRenames,
     getPluginsDisabled,
@@ -49,10 +51,9 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.tree.SourceHandling import writeSourceCode
-from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
-    getNormalizedPath,
+    getNormalizedPathJoin,
     makePath,
     putTextFileContents,
 )
@@ -268,13 +269,15 @@ def getPluginClass(plugin_name):
     if plugin_name not in plugin_name2plugin_classes:
         for plugin_name2 in plugin_name2plugin_classes:
             if plugin_name.lower() == plugin_name2.lower():
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     """\
 Error, unknown plug-in '%s' in wrong case referenced, use '%s' instead."""
                     % (plugin_name, plugin_name2)
                 )
 
-        plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
+        return plugins_logger.sysexit(
+            "Error, unknown plug-in '%s' referenced." % plugin_name
+        )
 
     return plugin_name2plugin_classes[plugin_name][0]
 
@@ -293,7 +296,7 @@ def _addPluginClass(plugin_class, detector):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name in plugin_name2plugin_classes:
-        plugins_logger.sysexit(
+        return plugins_logger.sysexit(
             "Error, plugins collide by name %s: %s <-> %s"
             % (plugin_name, plugin_class, plugin_name2plugin_classes[plugin_name])
         )
@@ -358,7 +361,7 @@ def _loadPluginClassesFromPackage(scan_package):
         # First the ones with detectors.
         for detector in detectors:
             if detector.detector_for is None:
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     """Error, detector plugin %s without detector_for pointing to a plugin."""
                     % detector
                 )
@@ -377,7 +380,7 @@ def _loadPluginClassesFromPackage(scan_package):
             detector.plugin_name = plugin_class.plugin_name
 
             if plugin_class not in plugin_classes:
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     "Plugin detector %r references unknown plugin %r"
                     % (detector, plugin_class)
                 )
@@ -428,9 +431,12 @@ class Plugins(object):
         result = []
 
         def iterateModuleNames(value):
+            def sysexit(message):
+                return plugin.sysexit(message)
+
             for v in value:
                 if type(v) in (tuple, list):
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' needs to be change to only return modules names, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -442,7 +448,7 @@ class Plugins(object):
                     return
 
                 if not checkModuleName(v):
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' returned an invalid module name, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -450,7 +456,7 @@ class Plugins(object):
                 v = ModuleName(v)
 
                 if v.getTopLevelPackageName() == "":
-                    plugin.sysexit(
+                    sysexit(
                         "Plugin '%s' returned an invalid relative module name, not %r (for module '%s')"
                         % (plugin.plugin_name, v, module.getFullName())
                     )
@@ -524,7 +530,7 @@ class Plugins(object):
                         using_module_name=module.module_name,
                     )
                 except NuitkaForbiddenImportEncounter as e:
-                    plugins_logger.sysexit(
+                    plugin.sysexit(
                         """\
 Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' \
 through implicit import by '%s' plugin encountered."""
@@ -723,6 +729,26 @@ through implicit import by '%s' plugin encountered."""
 
         return result
 
+    _uncompiled_decorator_names = None
+
+    @classmethod
+    def getUncompiledDecoratorNames(cls):
+        """Provide a list of decorators that should cause a function to be uncompiled.
+
+        Returns:
+            set of strings
+        """
+
+        if cls._uncompiled_decorator_names is None:
+            cls._uncompiled_decorator_names = set()
+
+            for plugin in getActivePlugins():
+                for decorator_name in plugin.getUncompiledDecoratorNames():
+                    assert type(decorator_name) is str, decorator_name
+                    cls._uncompiled_decorator_names.add(decorator_name)
+
+        return cls._uncompiled_decorator_names
+
     sys_path_additions_cache = {}
 
     @classmethod
@@ -839,11 +865,9 @@ through implicit import by '%s' plugin encountered."""
 
         try:
             trigger_module = buildModule(
-                module_filename=getNormalizedPath(
-                    os.path.join(
-                        os.path.dirname(module.getCompileTimeFilename()),
-                        module_name.asPath() + ".py",
-                    )
+                module_filename=getNormalizedPathJoin(
+                    os.path.dirname(module.getCompileTimeFilename()),
+                    module_name.asPath() + ".py",
                 ),
                 module_name=module_name,
                 reason="trigger",
@@ -1018,6 +1042,9 @@ through implicit import by '%s' plugin encountered."""
                     fake_module.setSourceCode(source_code)
 
                 fake_modules[full_name].append((fake_module, plugin, reason))
+
+                # Main modules do not get added to the import cache, but plugins get to see it.
+                cls.onModuleDiscovered(fake_module)
 
     @staticmethod
     def onModuleSourceCode(module_name, source_filename, source_code):
@@ -1414,7 +1441,10 @@ may work too."""
                 makePath(target_dir)
 
             writeSourceCode(
-                filename=os.path.join(target_dir, filename), source_code=source_code
+                filename=os.path.join(target_dir, filename),
+                source_code=source_code,
+                logger=plugins_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
             )
 
     extra_link_libraries = None
@@ -1708,26 +1738,42 @@ def listPlugins():
 
     plist = []
     max_name_length = 0
-    for plugin_name, detector_info in sorted(plugin_name2plugin_classes.items()):
-        plugin = plugin_name2plugin_classes[plugin_name][0]
-
-        if plugin.isDeprecated():
+    for plugin_name, (plugin_class, plugin_detector) in sorted(
+        plugin_name2plugin_classes.items(), key=_keyPluginForSort2
+    ):
+        if plugin_class.isDeprecated():
             continue
 
-        plugin_desc = getattr(plugin, "plugin_desc", None)
+        plugin_desc = getattr(plugin_class, "plugin_desc", None)
 
-        plist.append(
-            (
-                plugin_name,
-                plugin_desc,
-                "" if detector_info[1] is None else "Has detector.",
-            )
-        )
+        categories = ", ".join(plugin_class.getCategories())
+        if categories:
+            categories = "(%s)" % categories
+        else:
+            categories = ""
+
+        status = []
+        if plugin_class.isAlwaysEnabled() and plugin_class.isRelevant():
+            status.append("auto-enabled")
+        if plugin_detector is not None:
+            status.append("has detector")
+
+        if status:
+            status_str = "[%s]" % ", ".join(status)
+        else:
+            status_str = ""
+
+        plist.append((plugin_name, plugin_desc, categories, status_str))
 
         max_name_length = max(len(plugin_name), max_name_length)
 
     for line in plist:
-        printLine(" " + line[0].ljust(max_name_length + 1), line[1], line[2])
+        printLine(
+            " " + line[0].ljust(max_name_length + 1),
+            line[1],
+            line[2],
+            line[3],
+        )
 
 
 def isObjectAUserPluginBaseClass(obj):
@@ -1808,7 +1854,7 @@ def loadPlugins():
 
 # TODO: Use in more places.
 def _keyPluginForSort(plugin_class):
-    return plugin_class.getCategories(), plugin_class.plugin_name
+    return tuple(plugin_class.getCategories()), plugin_class.plugin_name
 
 
 def _keyPluginForSort2(item):

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Display the Distributions installed. """
+"""Display the Distributions installed."""
 
 import os
 
