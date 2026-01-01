@@ -508,15 +508,15 @@ def parseArgs():
     if options.zig:
         if isWin32Windows() and getArchitecture() == "x86":
             return options_logger.sysexit(
-                "Error, cannot use '--zig' on Windows and x86."
+                "Error, cannot use '--zig' on Windows and x86, only x86_64 is supported."
             )
 
-        if options.mingw64:
+        if isWin32Windows() and options.mingw64:
             return options_logger.sysexit(
                 "Error, conflicting options '--zig' and '--mingw64'."
             )
 
-        if options.msvc_version:
+        if isWin32Windows() and options.msvc_version:
             return options_logger.sysexit(
                 "Error, conflicting options '--zig' and '--msvc'."
             )
@@ -525,6 +525,11 @@ def parseArgs():
             return options_logger.sysexit(
                 "Error, conflicting options '--zig' and '--clang'."
             )
+
+    if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
+        return options_logger.sysexit(
+            "Error, cannot use '--mingw64' on Python version 3.13 or higher."
+        )
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         setQuiet()
