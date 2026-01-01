@@ -180,6 +180,15 @@ def deletingClosureVariable():
 
 print("Using deleted non-local variable:", deletingClosureVariable())
 
+def has_generic[T]():
+    print('hello', T)
+has_generic()
+try:
+    print(T)
+except NameError:
+    print("not found")
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
