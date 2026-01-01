@@ -5,7 +5,10 @@
 
 import ast
 
-from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocStrings
+from nuitka.options.Options import (
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
+)
 from nuitka.tree.TreeHelpers import getKind
 from nuitka.utils.Utils import withNoSyntaxWarning
 

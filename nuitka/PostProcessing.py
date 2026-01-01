@@ -9,7 +9,7 @@ import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.ModuleRegistry import getImportedModuleNames
-from nuitka.Options import (
+from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
     getProductVersionTuple,
@@ -43,6 +43,7 @@ from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    deleteFile,
     getFileContents,
     getFileSize,
     hasFilenameExtension,
@@ -567,8 +568,7 @@ Error, expected 'libpython dependency not found. Please report the bug."""
             "lib" + os.path.basename(result_filename)[:-4] + ".a",
         )
 
-        if os.path.exists(candidate):
-            os.unlink(candidate)
+        deleteFile(candidate, must_exist=False)
 
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(result_filename)

@@ -7,7 +7,7 @@ import os
 
 from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
-from nuitka.Options import (
+from nuitka.options.Options import (
     getFileReferenceMode,
     isExperimental,
     shallMakeModule,

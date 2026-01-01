@@ -204,6 +204,9 @@ Debug features:
 \fB\-\-debug\fR
 Executing all self checks possible to find errors in Nuitka, do not use for production. Defaults to off.
 .TP
+\fB\-\-debug\-self\-forking\fR
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself. Defaults to off.
+.TP
 \fB\-\-no\-debug\-immortal\-assumptions\fR
 Disable check normally done with "\-\-debug". With Python3.12+ do not check known immortal object assumptions. Some C libraries corrupt them. Defaults to check being made if "\-\-debug" is on.
 .TP
@@ -251,8 +254,11 @@ Create graph of optimization process internals, do not use for whole programs, b
 \fB\-\-devel\-profile\-compilation\fR
 Enable cProfile based profiling of time spent during compilation. Defaults to off.
 .TP
-\fB\-\-devel\-generate\-indented\-c\-code\fR
-Produce C code that is properly indented. Defaults to off.
+\fB\-\-devel\-generate\-readable\-code\fR
+Produce C code that is readable (clang\-format). Defaults to off.
+.TP
+\fB\-\-devel\-data\-composer\-verbose\fR
+Enable verbose mode for the data composer. Defaults to off.
 .IP
 Backend C compiler choice:
 .TP

@@ -114,7 +114,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMainEntryPointFilenames,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,

@@ -15,7 +15,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
 from nuitka.utils.ModuleNames import ModuleName

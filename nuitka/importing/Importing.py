@@ -30,7 +30,7 @@ from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaCodeDeficit
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMainEntryPointFilenames,
     getOutputFolderName,
     hasPythonFlagNoCurrentDirectoryInPath,

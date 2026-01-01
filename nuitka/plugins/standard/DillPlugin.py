@@ -3,7 +3,7 @@
 
 """Standard plug-in to make dill module work for compiled stuff."""
 
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 from nuitka.plugins.PluginBase import (
     NuitkaNamespaceDetectorPluginBase,
     NuitkaPluginBase,

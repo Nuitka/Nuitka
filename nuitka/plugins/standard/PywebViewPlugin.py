@@ -3,7 +3,7 @@
 
 """Details see below in class definition."""
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
@@ -37,6 +37,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
         # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
+                # spell-checker: ignore winforms,edgechromium,edgehtml
                 result = module_name in (
                     "webview.platforms.winforms",
                     "webview.platforms.edgechromium",

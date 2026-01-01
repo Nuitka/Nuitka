@@ -3,7 +3,7 @@
 
 """Details see below in class definition."""
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

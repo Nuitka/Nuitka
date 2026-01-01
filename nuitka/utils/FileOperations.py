@@ -138,7 +138,13 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    if os.path.exists(path1) and os.path.exists(path2):
+    exists1 = os.path.exists(path1)
+    exists2 = os.path.exists(path2)
+
+    if exists1 != exists2:
+        return False
+
+    if exists1 and exists2:
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
 
@@ -1163,12 +1169,14 @@ def withPreserveFileMode(filenames):
 
     old_modes = {}
     for filename in filenames:
-        old_modes[filename] = os.stat(filename).st_mode
+        if os.path.exists(filename):
+            old_modes[filename] = os.stat(filename).st_mode
 
     yield
 
     for filename in filenames:
-        os.chmod(filename, old_modes[filename])
+        if filename in old_modes and os.path.exists(filename):
+            os.chmod(filename, old_modes[filename])
 
 
 @contextmanager

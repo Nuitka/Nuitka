@@ -468,11 +468,12 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             # This will download "zig.exe" when all others have been rejected
             # and MSVC is not enforced.
             compiler_path = getZigBinaryPath(
+                logger=scons_logger,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
             )
 
         if compiler_path is not None:
-            addToPATH(env, os.path.dirname(compiler_path), prefix=True)
+            addToPATH(env=env, dirname=os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
                 mingw_mode=True,

@@ -6,7 +6,7 @@
 import os
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import (
+from nuitka.options.Options import (
     getLegalInformation,
     getMacOSAppName,
     getMacOSAppProtectedResourcesAccesses,

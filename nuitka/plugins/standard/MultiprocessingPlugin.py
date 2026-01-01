@@ -16,7 +16,7 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -51,6 +51,27 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     @staticmethod
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
+
+        if full_name == "__parents_main__":
+            yield (
+                """\
+import sys
+# If the multiprocessing fork flag is present, scrub the arguments so that the
+# user code (which might use argparse) doesn't see them. Save them in builtins
+# so we can restore them later when calling multiprocessing.spawn.spawn_main.
+if "--multiprocessing-fork" in sys.argv:
+    # Use builtins to store the args so they are available globally even in functions
+    # without needing to pass them around or use global keyword everywhere.
+    if str is bytes:
+        import __builtin__ as builtins
+    else:
+        import builtins
+
+    builtins.__nuitka_original_args = sys.argv[:]
+    sys.argv = [sys.argv[0]]
+""",
+                "Scrubbing multiprocessing fork arguments from sys.argv.",
+            )
 
         if full_name in ("multiprocessing", "anyio"):
             yield (
@@ -124,6 +145,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
             source_code += """
 def __nuitka_freeze_support():
     import sys
+    import builtins
 
     # Not needed, and can crash from minor "__file__" differences, depending on invocation
     import multiprocessing.spawn
@@ -133,6 +155,11 @@ def __nuitka_freeze_support():
     # joblib equally well.
     kwds = {}
     args = []
+
+    if hasattr(builtins, "__nuitka_original_args"):
+        sys.argv = builtins.__nuitka_original_args
+        del builtins.__nuitka_original_args
+
     for arg in sys.argv[2:]:
         try:
             name, value = arg.split('=')
@@ -153,8 +180,16 @@ __nuitka_freeze_support()
 """
         else:
             source_code += """
-__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
-__import__("multiprocessing.forking").forking.freeze_support()"""
+def __nuitka_freeze_support():
+    import __builtin__, sys
+    if hasattr(__builtin__, "__nuitka_original_args"):
+        sys.argv = __builtin__.__nuitka_original_args
+        del __builtin__.__nuitka_original_args
+
+    sys.modules["__main__"] = sys.modules[__name__]
+    __import__("multiprocessing.forking").forking.freeze_support()
+__nuitka_freeze_support()
+"""
 
         yield (
             module_name,

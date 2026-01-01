@@ -21,11 +21,6 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.OptionParsing import (
-    parseOptions,
-    run_time_variable_names,
-    runSpecialCommandsFromOptions,
-)
 from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
@@ -103,6 +98,12 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+
+from .OptionParsing import (
+    parseOptions,
+    run_time_variable_names,
+    runSpecialCommandsFromOptions,
+)
 
 options = None
 positional_args = None
@@ -585,8 +586,7 @@ def parseArgs():
         options.verbose = True
 
     states.is_verbose = options.verbose
-
-    states.is_unindented_generated_code = not shallIndentGeneratedCode()
+    states.data_composer_verbose = options.data_composer_verbose
 
     optimization_logger.is_quiet = not options.verbose
 
@@ -1849,9 +1849,9 @@ def isCompileTimeProfile():
     return options.devel_profile_compilation
 
 
-def shallIndentGeneratedCode():
-    """:returns: bool derived from ``--devel-generate-indented-c-code``"""
-    return options.devel_indent_generated_c_code or _isDebug()
+def shallGenerateReadableCode():
+    """:returns: bool derived from ``--devel-generate-readable-code``"""
+    return options.devel_generate_readable_code or _isDebug()
 
 
 def shallCreateGraph():
@@ -2293,7 +2293,11 @@ def getExperimentalIndications():
 def getDebugModeIndications():
     result = []
 
-    for debug_option_value_name in ("debug_immortal", "debug_c_warnings"):
+    for debug_option_value_name in (
+        "debug_immortal",
+        "debug_c_warnings",
+        "debug_self_forking",
+    ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
             continue

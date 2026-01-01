@@ -1,35 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-FROM debian:12-slim
-ENV container docker
 
-VOLUME [ "/sys/fs/cgroup" ]
+"""The "nuitka.format" package.
 
-## Install what we use for CI generally
-RUN mkdir /src
-RUN apt-get update && apt-get install -y \
-    apt-utils \
-    ccache \
-    chrpath \
-    dput \
-    gcc \
-    gdb \
-    git \
-    help2man \
-    lintian \
-    python3 \
-    python3-dev \
-    python3-pip \
-    rst2pdf \
-    strace \
-    wget
+This package contains tools for automatic source code formatting of Nuitka.
 
-
-## Clean up APT when done.
-RUN apt-get clean && rm -rf "/var/lib/apt/lists/*" "/tmp/*" "/var/tmp/*"
-
-## Do what git asks us to do, for working with git checkouts.
-RUN git config --global --add safe.directory /src
+This is a package that is empty on purpose and not supposed to contain any
+code.
+"""
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

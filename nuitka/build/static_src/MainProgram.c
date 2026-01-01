@@ -166,7 +166,7 @@ static void prepareStandaloneEnvironment(void) {
 
 #if defined(_WIN32)
 #if _NUITKA_EXE_MODE
-    SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+    SetDllDirectoryW(L"");
 #else
     SetDllDirectoryW(getDllDirectory());
 #endif
@@ -453,7 +453,7 @@ static void setCommandLineParameters(int argc, char **argv) {
 #else
 static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
+#ifdef _NUITKA_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     printf("Command line: ");
     for (int i = 0; i < argc; i++) {

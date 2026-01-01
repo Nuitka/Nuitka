@@ -13,7 +13,10 @@ import collections
 import fnmatch
 import os
 
-from nuitka.Options import getShallNotIncludeDllFilePatterns, isShowInclusion
+from nuitka.options.Options import (
+    getShallNotIncludeDllFilePatterns,
+    isShowInclusion,
+)
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,

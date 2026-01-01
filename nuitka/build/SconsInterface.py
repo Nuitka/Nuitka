@@ -16,7 +16,7 @@ import sys
 
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import (
+from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
     getExperimentalIndications,
@@ -570,7 +570,7 @@ def getCommonSconsOptions():
 
     if isZig():
         scons_options["zig_exe_path"] = getZigBinaryPath(
-            assume_yes_for_downloads=assumeYesForDownloads()
+            logger=scons_logger, assume_yes_for_downloads=assumeYesForDownloads()
         )
 
     if getMsvcVersion():

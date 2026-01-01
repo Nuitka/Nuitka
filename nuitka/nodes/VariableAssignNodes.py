@@ -19,7 +19,7 @@ the traces.
 from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 
 from .ConstantRefNodes import makeConstantRefNode
 from .NodeMakingHelpers import (

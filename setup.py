@@ -182,6 +182,8 @@ package_data = {
     "nuitka.code_generation": ["templates_c/*.j2"],
     "nuitka.reports": ["*.j2"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
+    "nuitka.utils": ["requirements-private.txt"],
+    "nuitka.format": ["biome.json"],
 }
 
 
@@ -369,14 +371,8 @@ with open("README.rst", "rb") as input_file:
     )
 
 install_requires = []
-if sys.version_info >= (3, 7):
-    install_requires.append("ordered-set >= 4.1.0")
 if sys.version_info[:2] == (2, 7) and os.name == "nt":
     install_requires.append("subprocess32")
-if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
-if sys.platform == "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
 
 build_requires = ["setuptools>=42", "toml"]
 standalone_requires = []

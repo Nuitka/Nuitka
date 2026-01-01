@@ -8,7 +8,7 @@ import pkgutil
 
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.Distributions import getDistribution

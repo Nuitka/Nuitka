@@ -1,12 +1,9 @@
 #!/bin/sh
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-# An example hook script to verify what is about to be committed.
-# Called by "git commit" with no arguments.  The hook should
-# exit with non-zero status after issuing an appropriate message if
-# it wants to stop the commit.
-#
-# To enable this hook, rename this file to "pre-commit".
+# To enable this hook, execute "python misc/install-git-hook.py". It
+# makes sure changed code is auto-formatted. It is good enough to
+# work on staged contents rather than on the working directory.
 
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
     against=HEAD

@@ -950,7 +950,9 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     DLL_DIRECTORY_COOKIE dll_dir_cookie = AddDllDirectory(payload_path);
     assert(dll_dir_cookie != 0);
 
-    HINSTANCE hGetProcIDDLL = LoadLibraryExW(dll_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    HINSTANCE hGetProcIDDLL =
+        LoadLibraryExW(dll_filename, NULL,
+                       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS);
 
     if (!hGetProcIDDLL) {
         fatalIOError("Error, load DLL.", getLastErrorCode());
@@ -1016,6 +1018,15 @@ int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
+#endif
+
+#if defined(_WIN32)
+    // We want to force the loading of the DLLs from the payload directory only
+    // ideally, but Windows is not good at allowing %PATH% changes to be
+    // followed if we do that. So we remove only the CWD, but that is the best
+    // we can do while allowing os.environ["PATH"] updates to be still used and
+    // updated by Python.
+    SetDllDirectoryW(L"");
 #endif
 
 #if defined(NEEDS_ORIGINAL_ARGV0)

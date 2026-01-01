@@ -12,10 +12,10 @@ the local imports instead, as these local imports look ugly everywhere else,
 making it more difficult to use.
 """
 
-from nuitka import Options
 from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
+from nuitka.options import Options
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import my_print, unusual_logger

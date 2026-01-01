@@ -25,7 +25,10 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    getFileContents,
+    makePath,
     putTextFileContents,
+    withTemporaryDirectory,
 )
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 
@@ -164,15 +167,57 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
             "Error, cannot find expected requirements-devel.txt file."
         )
 
-    containers_logger.info("Updating container '%s'..." % container_tag_name)
-
-    requirements_tmp_file = os.path.join(
-        os.path.dirname(container_file_path), "requirements-devel.txt"
+    requirements_private_file = os.path.join(
+        os.path.dirname(requirements_file),
+        "nuitka",
+        "utils",
+        "requirements-private.txt",
     )
 
-    shutil.copy(requirements_file, requirements_tmp_file)
+    containers_logger.info("Updating container '%s'..." % container_tag_name)
 
-    try:
+    # Use a temporary directory for the build context.
+    with withTemporaryDirectory(containers_logger) as build_context_dir:
+        # Copy requirements-devel.txt
+        shutil.copy(
+            requirements_file, os.path.join(build_context_dir, "requirements-devel.txt")
+        )
+
+        # Copy nuitka/utils/requirements-private.txt
+        requirements_private_dest = os.path.join(build_context_dir, "nuitka", "utils")
+        makePath(requirements_private_dest)
+        shutil.copy(
+            requirements_private_file,
+            os.path.join(requirements_private_dest, "requirements-private.txt"),
+        )
+
+        # Read original container file
+        container_content = getFileContents(container_file_path)
+
+        # Append new instructions
+        container_content += "\n# Automatic requirements caching\n"
+        container_content += "COPY requirements-devel.txt /etc/requirements-devel.txt\n"
+        container_content += "COPY nuitka/utils/requirements-private.txt /etc/nuitka/utils/requirements-private.txt\n"
+
+        # Install requirements
+        # We try both python3 and python2.
+        container_content += (
+            "RUN if command -v python3; "
+            "then python3 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
+            "fi\n"
+        )
+        container_content += (
+            "RUN if command -v python2; "
+            "then wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O /var/tmp/get-pip.py && "
+            "python2 /var/tmp/get-pip.py && "
+            "python2 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
+            "fi\n"
+        )
+
+        # Write modified content to temporary containerfile in context
+        temp_container_file = os.path.join(build_context_dir, "Containerfile")
+        putTextFileContents(temp_container_file, container_content)
+
         command = [
             podman_path,
             "build",
@@ -180,7 +225,7 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
             "--tag",
             container_tag_name,
             "-f",
-            container_file_path,
+            temp_container_file,
             "--network=host",
         ]
 
@@ -190,9 +235,9 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
         if isPodman(podman_path):
             # Podman only.
             command.append("--pull=newer")
-        else:
-            # Context directory needed for Docker.
-            command.append(".")
+
+        # Always append context
+        command.append(build_context_dir)
 
         exit_code = callProcess(command)
 
@@ -207,16 +252,13 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
             "Updated container '%s' successfully." % container_tag_name
         )
 
-    finally:
-        os.unlink(requirements_tmp_file)
-
 
 def getCppPath():
     cpp_path = getExecutablePath("cpp_path")
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and cpp_path is None:
-        from nuitka.Options import assumeYesForDownloads
+        from nuitka.options.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
@@ -351,7 +393,7 @@ def main():
             quiet=options.quiet,
         )
 
-    command = [options.podman_path, "run"]
+    command = [options.podman_path, "run", "--rm"]
 
     command.extend(
         (

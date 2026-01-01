@@ -32,7 +32,7 @@ from nuitka.ModuleRegistry import (
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getCompilationMode,
     getCompilationReportFilename,
     getCompilationReportTemplates,

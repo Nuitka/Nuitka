@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
 from nuitka.States import states

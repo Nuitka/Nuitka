@@ -31,7 +31,9 @@ from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.Options import (
+from nuitka.options.CommandLineOptionsTools import OurOptionGroup
+from nuitka.options.Options import (
+    assumeYesForDownloads,
     getForcedRuntimeEnvironmentVariableValues,
     getPluginNameConsideringRenames,
     getPluginsDisabled,
@@ -49,7 +51,6 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.tree.SourceHandling import writeSourceCode
-from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
     getNormalizedPathJoin,
@@ -1440,7 +1441,10 @@ may work too."""
                 makePath(target_dir)
 
             writeSourceCode(
-                filename=os.path.join(target_dir, filename), source_code=source_code
+                filename=os.path.join(target_dir, filename),
+                source_code=source_code,
+                logger=plugins_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
             )
 
     extra_link_libraries = None

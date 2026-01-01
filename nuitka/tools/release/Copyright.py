@@ -137,7 +137,7 @@ def _formatComments(filename, comments):
         comments = [
             (b"// %s" % comment if comment != b"" else b"//") for comment in comments
         ]
-    elif filename.endswith(".cmd"):
+    elif filename.endswith((".cmd", ".bat")):
         comments = [
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]

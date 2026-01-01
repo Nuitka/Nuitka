@@ -20,7 +20,6 @@ from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import isPythonWithGil
-from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -34,6 +33,8 @@ from nuitka.utils.Utils import (
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+
+from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -71,7 +72,7 @@ if not plugin_help_mode:
     command line options too), consider the output of
     '--help-plugins'."""
 
-parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
+parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name, epilog=None)
 
 parser.add_option(
     "--version",
@@ -250,7 +251,7 @@ def getBuildConfigurationOptions(logger):
 
             # Check if it is a Poetry project
             if "poetry" in tool_data:
-                from nuitka.options.Poetry import getPoetryBuildConfiguration
+                from .Poetry import getPoetryBuildConfiguration
 
                 return getPoetryBuildConfiguration(logger)
 
@@ -259,9 +260,7 @@ def getBuildConfigurationOptions(logger):
 
             # Check if it is a "setuptools" project
             if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
-                from nuitka.options.BuildPackage import (
-                    getBuildBackendConfiguration,
-                )
+                from .BuildPackage import getBuildBackendConfiguration
 
                 return getBuildBackendConfiguration(logger)
 
@@ -272,7 +271,7 @@ def getBuildConfigurationOptions(logger):
 
     # Check if it is old-style "setuptools".
     if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
-        from nuitka.options.BuildPackage import getBuildBackendConfiguration
+        from .BuildPackage import getBuildBackendConfiguration
 
         return getBuildBackendConfiguration(logger)
 
@@ -977,6 +976,16 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-self-forking",
+    action="store_true",
+    dest="debug_self_forking",
+    default=False,
+    help="""\
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself.
+Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",
@@ -1184,13 +1193,23 @@ Enable cProfile based profiling of time spent during compilation. Defaults to of
 )
 
 development_group.add_option(
-    "--devel-generate-indented-c-code",
+    "--devel-generate-readable-code",
     action="store_true",
-    dest="devel_indent_generated_c_code",
+    dest="devel_generate_readable_code",
     default=False,
     github_action=False,
     help="""\
-Produce C code that is properly indented. Defaults to off.""",
+Produce C code that is readable (clang-format). Defaults to off.""",
+)
+
+development_group.add_option(
+    "--devel-data-composer-verbose",
+    action="store_true",
+    dest="data_composer_verbose",
+    default=False,
+    github_action=False,
+    help="""\
+Enable verbose mode for the data composer. Defaults to off.""",
 )
 
 del development_group

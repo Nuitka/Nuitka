@@ -13,7 +13,7 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
-from nuitka.Options import getFileReferenceMode, getModuleNameMode
+from nuitka.options.Options import getFileReferenceMode, getModuleNameMode
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase

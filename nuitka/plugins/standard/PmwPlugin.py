@@ -7,7 +7,7 @@ import os
 import re
 
 from nuitka.__past__ import StringIO
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContents, listDir
 

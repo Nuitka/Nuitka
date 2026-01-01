@@ -3,7 +3,7 @@
 
 """Code generation for package resources access."""
 
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .CallCodes import (

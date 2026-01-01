@@ -43,7 +43,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import (
+from nuitka.options.Options import (
     isExperimental,
     isStandaloneMode,
     shallMakeModule,

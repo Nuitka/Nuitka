@@ -1,28 +1,26 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
-
-
 """Automatic formatting of JSON files."""
 
 import os
 
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import check_call, getNullOutput
-from nuitka.utils.FileOperations import (
-    addFileExecutablePermission,
-    deleteFile,
-    withTemporaryFile,
-)
+from nuitka.utils.FileOperations import addFileExecutablePermission
 from nuitka.utils.Utils import getArchitecture, getOS
 
 _biome_path = None
 
 
 def _getBiomeBinaryPath(assume_yes_for_downloads):
-    """
-    Downloads and returns the path to the biome executable.
+    """Downloads and returns the path to the biome executable.
+
+    Args:
+        assume_yes_for_downloads: bool - if tools should be downloaded automatically
+
+    Returns:
+        str or None: path to the biome executable or None if not supported
     """
     # Many branches used to map OS and arch, pylint: disable=too-many-branches
 
@@ -93,31 +91,31 @@ def _getBiomeBinaryPath(assume_yes_for_downloads):
 
 
 def formatJsonFile(filename, assume_yes_for_downloads):
+    """Format a JSON file using the biome formatter.
+
+    Args:
+        filename: str - path to the JSON file
+        assume_yes_for_downloads: bool - if tools should be downloaded automatically
+    """
     # Many tools work on files, and when they do, they need to be told to
     # treat it as a JSON file.
     biome_path = _getBiomeBinaryPath(assume_yes_for_downloads=assume_yes_for_downloads)
 
     if biome_path:
-        with withTemporaryFile(suffix=".json", delete=False) as config_temp_file:
-            config_temp_file.write("{}")
-            config_temp_file.close()
+        command = (
+            biome_path,
+            "format",
+            "--write",
+            "--json-formatter-expand=always",
+            "--json-formatter-indent-style=space",
+            "--log-level=warn",
+            "--config-path=%s" % os.path.join(os.path.dirname(__file__), "biome.json"),
+            "--",
+            filename,
+        )
 
-            command = (
-                biome_path,
-                "format",
-                "--write",
-                "--json-formatter-expand=always",
-                "--json-formatter-indent-style=space",
-                "--log-level=warn",
-                "--config-path=%s" % config_temp_file.name,
-                "--",
-                filename,
-            )
-
-            with getNullOutput() as null_output:
-                check_call(command, stdout=null_output)
-
-        deleteFile(config_temp_file.name, must_exist=True)
+        with getNullOutput() as null_output:
+            check_call(command, stdout=null_output)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

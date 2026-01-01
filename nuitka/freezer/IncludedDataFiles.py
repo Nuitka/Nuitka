@@ -15,7 +15,7 @@ from nuitka import ModuleRegistry
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
-from nuitka.Options import (
+from nuitka.options.Options import (
     getOutputPath,
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
