@@ -336,6 +336,8 @@ def executePyLint(filenames, show_todo, verbose, one_by_one):
     else:
         _executePylint(filenames, pylint_options, extra_options)
 
+    return our_exit_code
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

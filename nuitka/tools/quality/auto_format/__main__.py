@@ -124,7 +124,7 @@ def _parseArgs():
 
     options, positional_args = parser.parse_args()
 
-    if options.diff or options.unpushed:
+    if options.diff or options.un_pushed:
         if options.from_commit:
             tools_logger.sysexit(
                 "Error, no --from-commit argument allowed in git diff mode."

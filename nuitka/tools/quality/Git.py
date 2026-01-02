@@ -6,7 +6,7 @@
 Inspired from https://raw.githubusercontent.com/hallettj/git-format-staged/master/git-format-staged
 Original author: Jesse Hallett <jesse@sitr.us>
 
-spell-checker: ignore Hallett
+spell-checker: ignore Hallett,unpushed
 """
 
 import os
@@ -264,9 +264,10 @@ def addGitArguments(parser, verb="Analyze"):
     )
 
     parser.add_option(
+        "--un-pushed",
         "--unpushed",
         action="store_true",
-        dest="unpushed",
+        dest="un_pushed",
         default=False,
         help="""\
 %s the changed files in git not yet pushed. Default is %%default."""
@@ -275,7 +276,7 @@ def addGitArguments(parser, verb="Analyze"):
 
 
 def getGitPaths(options, positional_args, default_positional_args):
-    if options.diff or options.unpushed:
+    if options.diff or options.un_pushed:
         if positional_args:
             tools_logger.sysexit(
                 "Error, no filenames argument allowed in git diff mode."
@@ -287,7 +288,7 @@ def getGitPaths(options, positional_args, default_positional_args):
         if options.diff:
             result.update(getModifiedPaths())
 
-        if options.unpushed:
+        if options.un_pushed:
             result.update(getNotPushedPaths())
     else:
         result = positional_args
