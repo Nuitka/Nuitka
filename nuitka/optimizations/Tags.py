@@ -24,7 +24,7 @@ allowed_tags = (
     # TODO: A bit unclear what this it, potentially a changed variable.
     "var_usage",
     # Detected module variable to be read only.
-    "read_only_mvar",
+    "read_only_module_variable",
     # Trusting module variables in functions.
     "trusted_module_variables",
     # New built-in reference detected.
