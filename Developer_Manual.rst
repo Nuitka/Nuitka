@@ -390,10 +390,6 @@ block.
    ``develop`` branch for that, unless of course, it's about factory
    code itself.
 
--  Personal branches (jorj, orsiris, others as well)
-
-   We are currently not using this, but it's an option.
-
 -  Feature Branches
 
    We are not currently using these. They could be used for long lived
@@ -3268,7 +3264,7 @@ Goals/Allowances to the task
 
    .. note::
 
-      The "cffi" interface maybe won't have the issue, but it's not
+      The ``cffi`` interface maybe won't have the issue, but it's not
       something we need to write or test the code for.
 
 #. Allowance: May use ``ctypes`` module at compile time to ask things
@@ -4597,23 +4593,6 @@ issues created, etc.
 In this chapter, we keep track of prongs of action currently ongoing.
 This can get detailed and shows things we strive for.
 
-Builtin optimization
-====================
-
-Definitely want to get built-in names under full control, so that
-variable references to module variables do not have a twofold role.
-Currently they reference the module variable and also the potential
-built-in as a fallback.
-
-In terms of generated code size and complexity for modules with many
-variables and uses of them that is horrible. But ``some_var`` (normally)
-cannot be a built-in and therefore needs no code to check for that each
-time.
-
-This is also critical to getting to whole program optimization. Being
-certain what is what there on module level, will enable more definitely
-knowledge about data flows and module interfaces.
-
 Class Creation Overhead Reduction
 =================================
 
@@ -4626,18 +4605,6 @@ In the end, empty classes should be able to be statically converted to
 calls to ``type`` with static dictionaries. The inlining of class
 creation function is also needed for this, but on Python3 cannot happen
 yet.
-
-Memory Usage at Compile Time
-============================
-
-We will need to store more and more information in the future. Getting
-the tree to be tight shaped is therefore an effort, where we will be
-spending time too.
-
-The mix-ins prevent slots usage, so lets try and get rid of those. The
-"children having" should become more simple and faster code. I am even
-thinking of even generating code in the meta class, so it's both optimal
-and doesn't need that mix-in any more. This is going to be ugly then.
 
 Coverage Testing
 ================
