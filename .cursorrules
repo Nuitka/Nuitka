@@ -84,14 +84,14 @@ Before marking a task as complete, you must verify the changes using the project
 
 - **Linting:** You must run the project's pylint script on any modified files.
 
-  - Command: `./bin/check-nuitka-with-pylint --unpushed`
+  - Command: `./bin/check-nuitka-with-pylint --un-pushed`
   - Can be run on the entire project with `./bin/check-nuitka-with-pylint`
   - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
     without a very strong reason.
 
 - **Auto-Formatting:** Apply auto-formatting to any file you touch (Python or C).
 
-  - Command: `./bin/autoformat-nuitka-source --unpushed`
+  - Command: `./bin/autoformat-nuitka-source --un-pushed`
   - Can be run on the entire project with `./bin/autoformat-nuitka-source`
   - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
     tools.
