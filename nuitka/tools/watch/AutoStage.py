@@ -21,6 +21,36 @@ from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 options = None
 
 
+def _findMatchingChild(current, node):
+    node_tag = node.tag
+
+    if node_tag == "module":
+        attrib_name = "name"
+    elif node_tag == "optimization-time":
+        attrib_name = "pass"
+    elif node_tag == "code-generation-time":
+        attrib_name = None
+    else:
+        assert False, (node, current)
+
+    if attrib_name is not None:
+        attrib_value = node.attrib[attrib_name]
+
+    for candidate in current.findall(node_tag):
+        if attrib_name is not None:
+            try:
+                candidate_value = candidate.attrib[attrib_name]
+            except KeyError:
+                assert False, current
+
+            if candidate_value == attrib_value:
+                return candidate
+        else:
+            return candidate
+
+    return None
+
+
 def findMatchingNode(root, search_node):
     """Find a node matching the given one in a XML root."""
     nodes = []
@@ -36,27 +66,9 @@ def findMatchingNode(root, search_node):
     del nodes[0]
 
     for node in nodes:
-        node_tag = node.tag
+        current = _findMatchingChild(current, node)
 
-        if node_tag == "module":
-            attrib_name = "name"
-        elif node_tag == "optimization-time":
-            attrib_name = "pass"
-        else:
-            assert False, (node, current)
-
-        attrib_value = node.attrib[attrib_name]
-
-        for candidate in current.findall(node_tag):
-            try:
-                candidate_value = candidate.attrib[attrib_name]
-            except KeyError:
-                assert False, current
-
-            if candidate_value == attrib_value:
-                current = candidate
-                break
-        else:
+        if current is None:
             return None
 
     return current
@@ -84,6 +96,27 @@ def onCompilationReportChange(filename, git_stage):
             if old_node is not None:
                 old_node.getparent().replace(old_node, new_node)
                 changed = True
+
+        for new_node in new_report.xpath("//module/code-generation-time"):
+            old_node = findMatchingNode(old_report, new_node)
+
+            if old_node is not None:
+                old_node.getparent().replace(old_node, new_node)
+                changed = True
+            else:
+                parent_module = findMatchingNode(old_report, new_node.getparent())
+
+                if parent_module is not None:
+                    optimization_times = parent_module.findall("optimization-time")
+
+                    if optimization_times:
+                        parent_module.insert(
+                            parent_module.index(optimization_times[-1]) + 1, new_node
+                        )
+                    else:
+                        parent_module.append(new_node)
+
+                    changed = True
 
     if changed:
         new_git_contents = convertXmlToString(old_report)
