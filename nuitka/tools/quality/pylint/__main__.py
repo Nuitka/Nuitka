@@ -2,17 +2,16 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Main program for PyLint checker tool.
+"""Main program for PyLint checker tool."""
 
-spell-checker: ignore unpushed
-"""
-
+import os
+import time
 from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, setupPATH
 from nuitka.tools.quality.Git import addGitArguments, getGitPaths
-from nuitka.tools.quality.pylint import PyLint
+from nuitka.tools.quality.pylint.PyLint import executePyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
 from nuitka.Tracing import my_print, tools_logger
@@ -32,13 +31,53 @@ def isIgnoredFile(filename):
     return False
 
 
-def main():
-    setup(go_main=False)
+def _resolveFilenames(options, positional_args):
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
+            "bin",
+            "nuitka",
+            "setup.py",
+            "tests/*/run_all.py",
+        ),
+    )
 
-    # So PyLint finds nuitka package.
-    addPYTHONPATH(getHomePath())
-    setupPATH()
+    if options.verbose:
+        my_print("Working on: %s" % " ".join(positional_args))
 
+    positional_args = sum(
+        (
+            resolveShellPatternToFilenames(positional_arg)
+            for positional_arg in positional_args
+        ),
+        [],
+    )
+
+    ignore_list = []
+
+    # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
+    if python_version >= 0x300:
+        ignore_list.append("nuitka")
+
+    filenames = list(
+        scanTargets(
+            positional_args, suffixes=(".py", ".scons"), ignore_list=ignore_list
+        )
+    )
+
+    # TODO: Filter this during scanTargets and during getGitPaths already
+    filenames = [
+        filename
+        for filename in filenames
+        if isPythonFile(filename)
+        if not isIgnoredFile(filename)
+    ]
+
+    return filenames
+
+
+def _parseArguments():
     parser = OptionParser()
 
     addGitArguments(parser)
@@ -80,70 +119,106 @@ Check files one by one. Default is %default.""",
 Insist on PyLint to be installed. Default is %default.""",
     )
 
+    parser.add_option(
+        "--watch",
+        action="store_true",
+        dest="watch",
+        default=False,
+        help="""\
+Watch files for changes. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
+
+    return options, positional_args
+
+
+def main():
+    setup()
+
+    # So PyLint finds nuitka package.
+    addPYTHONPATH(getHomePath())
+    setupPATH()
+
+    options, positional_args = _parseArguments()
 
     if options.not_installed_is_no_error and not hasModule("pylint"):
         tools_logger.warning(
             "PyLint is not installed for this interpreter version: SKIPPED",
             style="yellow",
         )
-        tools_logger.sysexit(exit_code=0)
 
-    positional_args = getGitPaths(
-        options=options,
-        positional_args=positional_args,
-        default_positional_args=(
-            "bin",
-            "nuitka",
-            "setup.py",
-            "tests/*/run_all.py",
-        ),
-    )
+        return tools_logger.sysexit(exit_code=0)
 
-    my_print("Working on: %s" % " ".join(positional_args))
+    # Scan files for changes periodically, for use in Visual Code task to
+    # present errors.
+    if options.watch:
+        prev_filenames = set()
+        prev_modification_times = {}
 
-    positional_args = sum(
-        (
-            resolveShellPatternToFilenames(positional_arg)
-            for positional_arg in positional_args
-        ),
-        [],
-    )
+        while True:
+            try:
+                filenames = _resolveFilenames(
+                    options=options, positional_args=positional_args
+                )
 
-    ignore_list = []
+                # Check for changes
+                new_filenames = set(filenames)
+                new_modification_times = {}
 
-    # Avoid checking the Python2 runner along with the one for Python3, it has name collisions.
-    if python_version >= 0x300:
-        ignore_list.append("nuitka")
+                for filename in filenames:
+                    try:
+                        new_modification_times[filename] = os.stat(filename).st_mtime
+                    except OSError:
+                        pass
 
-    filenames = list(
-        scanTargets(
-            positional_args, suffixes=(".py", ".scons"), ignore_list=ignore_list
-        )
-    )
+                changed = new_filenames != prev_filenames
+                if not changed:
+                    for f, mtime in new_modification_times.items():
+                        if (
+                            f not in prev_modification_times
+                            or prev_modification_times[f] != mtime
+                        ):
+                            changed = True
+                            break
 
-    # TODO: Filter this during scanTargets and during getGitPaths already
-    filenames = [
-        filename
-        for filename in filenames
-        if isPythonFile(filename)
-        if not isIgnoredFile(filename)
-    ]
+                if changed:
+                    my_print(">>> Pylint Start")
+                    try:
+                        executePyLint(
+                            filenames=filenames,
+                            show_todo=options.todo,
+                            verbose=options.verbose,
+                            one_by_one=options.one_by_one,
+                        )
+                    except SystemExit:
+                        pass
+
+                    my_print(">>> Pylint End")
+
+                    prev_filenames = new_filenames
+                    prev_modification_times = new_modification_times
+
+                time.sleep(0.5)
+
+            except KeyboardInterrupt:
+                break
+
+        return tools_logger.sysexit(exit_code=0)
+
+    filenames = _resolveFilenames(options=options, positional_args=positional_args)
 
     if not filenames:
-        tools_logger.sysexit("No files found.")
+        return tools_logger.sysexit("No matching files found.")
 
-    PyLint.executePyLint(
+    exit_code = executePyLint(
         filenames=filenames,
         show_todo=options.todo,
         verbose=options.verbose,
         one_by_one=options.one_by_one,
     )
 
-    if not filenames:
-        tools_logger.sysexit("No matching files found.")
-
-    tools_logger.sysexit(exit_code=PyLint.our_exit_code)
+    return tools_logger.sysexit(exit_code=exit_code)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
