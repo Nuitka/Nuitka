@@ -23,8 +23,6 @@ jobs:
   checks:
     runs-on: ubuntu-24.04
     name: Checks
-    env:
-      CLANG_FORMAT_VERSION: "21"
     steps:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
@@ -94,14 +92,6 @@ jobs:
 
       - name: 🔎 Auto-format check on Nuitka source code
         run: |
-          # Install clang-format that matches what we use in VS code.
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-get install software-properties-common
-          CODENAME=$(lsb_release -cs)
-          sudo add-apt-repository "deb http://apt.llvm.org/${CODENAME}/ llvm-toolchain-${CODENAME}-${CLANG_FORMAT_VERSION} main"
-          sudo apt-get update
-          sudo apt-get install clang-format-${CLANG_FORMAT_VERSION}
-
           python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
 
   linux:
