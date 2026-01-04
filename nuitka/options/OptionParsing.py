@@ -1797,19 +1797,6 @@ off.""",
 )
 
 macos_group.add_option(
-    "--macos-app-console-mode",
-    action="store",
-    dest="macos_app_console_mode",
-    choices=("force", "disable"),
-    metavar="MACOS_APP_CONSOLE_MODE",
-    default=None,
-    help="""\
-Select console mode to use. Default mode is 'disable' and creates no
-console window. With 'force' it will create a console window when
-launched from Finder. Default is 'disable'.""",
-)
-
-macos_group.add_option(
     "--macos-target-arch",
     action="store",
     dest="macos_target_arch",
