@@ -141,6 +141,8 @@ def getConstantDefaultPopulation():
     if python_version >= 0x300:
         # Modules have that attribute starting with Python3
         result.append("__loader__")
+        # Also very unavoidable with Python3
+        result.append("__annotations__")
 
         # YIELD_FROM uses this
         result.append("send")

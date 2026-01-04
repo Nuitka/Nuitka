@@ -924,6 +924,9 @@ class PythonModuleContext(
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()
 
+    def getConstantNames(self):
+        return self.constant_accessor.getConstantNames()
+
     def getModuleInitCodes(self):
         return self.module_init_codes
 
