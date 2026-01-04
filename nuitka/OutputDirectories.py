@@ -155,14 +155,22 @@ def getStandaloneDirectoryPath(bundle, real):
 def initStandaloneDirectory(logger):
     """Reset the standalone directory, if it exists from a previous run."""
     standalone_dir = getStandaloneDirectoryPath(bundle=False, real=False)
+    standalone_dir_real = getStandaloneDirectoryPath(bundle=False, real=True)
+
+    if shallCreateAppBundle():
+        resetDirectory(
+            path=changeFilenameExtension(standalone_dir_real, ".app"),
+            logger=logger,
+            ignore_errors=True,
+            extra_recommendation=None,
+        )
+
     resetDirectory(
         path=standalone_dir,
         logger=logger,
         ignore_errors=True,
         extra_recommendation="Stop previous binary.",
     )
-
-    standalone_dir_real = getStandaloneDirectoryPath(bundle=False, real=True)
 
     if standalone_dir != standalone_dir_real:
         removeDirectory(
@@ -171,14 +179,6 @@ def initStandaloneDirectory(logger):
             ignore_errors=True,
             extra_recommendation="Stop previous binary.",
         )
-
-        if shallCreateAppBundle():
-            resetDirectory(
-                path=changeFilenameExtension(standalone_dir_real, ".app"),
-                logger=logger,
-                ignore_errors=True,
-                extra_recommendation=None,
-            )
 
 
 def renameStandaloneDirectory(dist_dir):
