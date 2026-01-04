@@ -7,8 +7,7 @@ This aims at recognizing unimportant changes automatically and is used
 for larger report format migrations in the future potentially.
 """
 
-from optparse import OptionParser
-
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.quality.Git import (
     getCheckoutFileChangeDesc,
     getFileHashContent,
@@ -143,7 +142,7 @@ def main():
     # pylint: disable=global-statement
     global options
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--accept-optimization-time",

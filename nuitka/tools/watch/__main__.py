@@ -8,9 +8,9 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
-from optparse import OptionParser
 
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.reports.CompilationReportReader import (
@@ -484,7 +484,7 @@ def main():
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka")
     )
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--python-version",

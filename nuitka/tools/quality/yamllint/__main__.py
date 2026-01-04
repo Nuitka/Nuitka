@@ -15,9 +15,8 @@ sys.path.insert(
 
 # isort:start
 
-from optparse import OptionParser
-
 from nuitka.format.YamlChecker import checkYamlSchema
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
@@ -25,7 +24,7 @@ from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage="%prog [options]", epilog=None)
 
     parser.add_option(
         "--update-checksum",

@@ -10,8 +10,8 @@ Has many options, read --help output.
 import os
 import subprocess
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
@@ -36,7 +36,7 @@ def parseOptions():
     # There are freaking many options to honor,
     # pylint: disable=too-many-branches,too-many-statements
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--skip-basic-tests",

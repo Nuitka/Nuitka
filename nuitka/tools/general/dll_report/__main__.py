@@ -7,16 +7,16 @@
 import os
 import sys
 import tempfile
-from optparse import OptionParser
 
 from nuitka.freezer.DllDependenciesWin32 import detectBinaryPathDLLsWin32
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--no-use-path",

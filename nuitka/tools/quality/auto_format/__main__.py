@@ -4,8 +4,7 @@
 
 """Main program for auto format tool."""
 
-from optparse import OptionParser
-
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
 from nuitka.tools.quality.Git import (
@@ -118,7 +117,7 @@ Defaults to off.""",
 
 
 def _parseArgs():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     _addOptions(parser)
 

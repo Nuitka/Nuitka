@@ -5,8 +5,8 @@
 import os
 import shutil
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.release.Debian import (
     checkChangeLog,
     cleanupTarfileForDebian,
@@ -27,7 +27,7 @@ from nuitka.Version import getNuitkaVersion
 
 
 def parseArgs():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--no-pbuilder-update",
