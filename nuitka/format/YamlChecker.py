@@ -36,6 +36,7 @@ def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
         name=effective_filename or document,
         data=yaml_data,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message="Checking YAML schema requires 'jsonschema'.",
     )
 
     logger.info("OK, schema validated.", style="blue")
@@ -115,7 +116,11 @@ def checkYamllint(logger, document):
         logger: logger to use
         document: path to the YAML file
     """
-    yamllint = getYamllintPackage(logger=logger, assume_yes_for_downloads=True)
+    yamllint = getYamllintPackage(
+        logger=logger,
+        assume_yes_for_downloads=True,
+        reject_message="Checking YAML requires 'yamllint'.",
+    )
 
     try:
         yamllint.cli.run(["--strict", document])
