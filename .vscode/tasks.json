@@ -30,7 +30,23 @@
     {
       "label": "Nuitka: Monitor Unpushed (PyLint)",
       "type": "shell",
-      "command": "bin/check-nuitka-with-pylint --un-pushed --watch",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/bin/check-nuitka-with-pylint",
+        "--un-pushed",
+        "--watch"
+      ],
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "python",

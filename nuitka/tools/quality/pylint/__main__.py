@@ -4,7 +4,6 @@
 
 """Main program for PyLint checker tool."""
 
-import os
 import time
 from optparse import OptionParser
 
@@ -15,7 +14,10 @@ from nuitka.tools.quality.pylint.PyLint import executePyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
 from nuitka.Tracing import my_print, tools_logger
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    getFileModificationTime,
+    resolveShellPatternToFilenames,
+)
 
 
 def isIgnoredFile(filename):
@@ -168,16 +170,18 @@ def main():
 
                 for filename in filenames:
                     try:
-                        new_modification_times[filename] = os.stat(filename).st_mtime
+                        new_modification_times[filename] = getFileModificationTime(
+                            filename
+                        )
                     except OSError:
-                        pass
+                        new_modification_times[filename] = None
 
                 changed = new_filenames != prev_filenames
                 if not changed:
-                    for f, mtime in new_modification_times.items():
+                    for filename, modification_time in new_modification_times.items():
                         if (
-                            f not in prev_modification_times
-                            or prev_modification_times[f] != mtime
+                            filename not in prev_modification_times
+                            or prev_modification_times[filename] != modification_time
                         ):
                             changed = True
                             break

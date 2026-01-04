@@ -195,6 +195,18 @@ def getFileSize(path):
     return os.path.getsize(path)
 
 
+def getFileModificationTime(path):
+    """Get the modification time of a file.
+
+    Args:
+        path: File path
+
+    Returns:
+        float: File modification time.
+    """
+    return os.stat(path).st_mtime
+
+
 def relpath(path, start="."):
     """Make it a relative path, if possible.
 
