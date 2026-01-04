@@ -352,7 +352,7 @@ def createEnvironment(
             env["CCVERSION"] = None
 
     # Various flavors could influence builds.
-    env.nuitka_python = getArgumentBool("nuitka_python", False)
+    env.monolithpy = getArgumentBool("monolithpy", False)
     env.debian_python = getArgumentBool("debian_python", False)
     env.fedora_python = getArgumentBool("fedora_python", False)
     env.arch_python = getArgumentBool("arch_python", False)
@@ -1047,12 +1047,17 @@ Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed (check above trace
    outputs for rejection messages), it will be located automatically via
-   registry. But not if you activate the wrong prompt.
+   registry. But not if you activate the wrong prompt, so don't do that
+   unless you know what you are doing.
 
-b) Using "--mingw64" forces Nuitka download MinGW64 for you. Note: MinGW64
+b) Using "--mingw64" forces Nuitka download MinGW64 for you, but only for
+   Python version 3.12 and below, newer versions cannot use it. Note: MinGW64
    is the project name, it does *not* mean 64 bits, just a gcc with better
    Windows compatibility, it is available for 32 and 64 bits. Cygwin based
    gcc e.g. do not work.
+
+c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
+   this only works with 64 bit Python versions.
 """
         )
     else:

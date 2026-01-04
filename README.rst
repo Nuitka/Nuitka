@@ -108,7 +108,7 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.13) are supported. If
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 - 3.13) are supported. If
 at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
@@ -370,7 +370,7 @@ standalone mode.
  Use Cases
 ***********
 
-Use Case 1 — Program compilation with all modules embedded
+Use Case 1 - Program compilation with all modules embedded
 ==========================================================
 
 If you want to compile a whole program recursively, and not only the
@@ -423,7 +423,7 @@ executable:
    and execute the ``program.exe`` (Windows) or ``program`` (other
    platforms) put inside.
 
-Use Case 2 — Extension Module compilation
+Use Case 2 - Extension Module compilation
 =========================================
 
 If you want to compile a single extension module, all you have to do is
@@ -469,7 +469,7 @@ The resulting file ``some_module.so`` can then be used instead of
    The resulting extension module can only be loaded into a CPython of
    the same version and doesn't include other extension modules.
 
-Use Case 3 — Package compilation
+Use Case 3 - Package compilation
 ================================
 
 If you need to compile a whole package and embed all modules, that is
@@ -492,7 +492,7 @@ also feasible, use Nuitka like this:
    Alternatively, you can use the `file embedding of Nuitka commercial
    <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
-Use Case 4 — Program Distribution
+Use Case 4 - Program Distribution
 =================================
 
 For distribution to other systems, there is the standalone mode, which
@@ -683,7 +683,7 @@ Currently, these expanded tokens are available:
    mechanism, and on Windows this is how you are compatible with
    ``pythonw.exe`` which is behaving like ``{NONE}``.
 
-Use Case 5 — Setuptools Wheels
+Use Case 5 - Setuptools Wheels
 ==============================
 
 If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
@@ -810,7 +810,7 @@ value:
    actually would embed the files inside the extension module itself,
    and not as a file in the wheel.
 
-Use Case 6 — Multidist
+Use Case 6 - Multidist
 ======================
 
 If you have multiple programs, that each should be executable, in the
@@ -842,7 +842,7 @@ This allows to combine very different programs into one.
 This mode works with standalone, onefile, and mere acceleration. It does
 not work with module mode.
 
-Use Case 7 — Building with GitHub Workflows
+Use Case 7 - Building with GitHub Workflows
 ===========================================
 
 For integration with GitHub workflows there is this `Nuitka-Action
@@ -1729,21 +1729,21 @@ versions on the target machines. However, notice that compilation using
 the 14.3 based version is always recommended, working and best
 supported, unless you want to target Windows 7.
 
-+------------------+-------------+----------+
-| Visual C version | Redist Year | CPython  |
-+==================+=============+==========+
-| 14.3             | 2022        | 3.11     |
-+------------------+-------------+----------+
-| 14.2             | 2019        | 3.5-3.10 |
-+------------------+-------------+----------+
-| 14.1             | 2017        | 3.5-3.8  |
-+------------------+-------------+----------+
-| 14.0             | 2015        | 3.5-3.8  |
-+------------------+-------------+----------+
-| 10.0             | 2010        | 3.4      |
-+------------------+-------------+----------+
-| 9.0              | 2008        | 2.6, 2.7 |
-+------------------+-------------+----------+
++------------------+-------------+-----------+
+| Visual C version | Redist Year | CPython   |
++==================+=============+===========+
+| 14.3             | 2022        | 3.11-3.14 |
++------------------+-------------+-----------+
+| 14.2             | 2019        | 3.5-3.10  |
++------------------+-------------+-----------+
+| 14.1             | 2017        | 3.5-3.8   |
++------------------+-------------+-----------+
+| 14.0             | 2015        | 3.5-3.8   |
++------------------+-------------+-----------+
+| 10.0             | 2010        | 3.4       |
++------------------+-------------+-----------+
+| 9.0              | 2008        | 2.6, 2.7  |
++------------------+-------------+-----------+
 
 When using MingGW64 as downloaded by Nuitka, you'll need the following
 redist versions:

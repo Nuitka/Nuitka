@@ -2057,7 +2057,7 @@ def extractNuitkaVersionFromFilePath(version_filename):
 
 def decryptOutput(project_options, output):
     nuitka_decrypt_call = [
-        os.environ.get("PYTHON", sys.executable),
+        os.getenv("PYTHON", sys.executable),
         "-m",
         "nuitka.tools.commercial.decrypt",  # Note: Needed for Python2.6
     ]

@@ -13,8 +13,8 @@ from nuitka.format.FileFormatting import (
     cleanupTrailingWhitespace,
     cleanupWindowsNewlines,
     formatC,
-    formatPython,
 )
+from nuitka.format.PythonFormatting import formatPython
 from nuitka.format.YamlChecker import checkYamlSchema
 from nuitka.format.YamlFormatter import formatYaml
 from nuitka.tools.quality.Git import (
@@ -110,7 +110,7 @@ def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
             logger.warning("Need to accept mdformat download to format markdown files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded():
+    with withPrivatePipSitePackagesPathAdded(logger=logger):
         check_call([mdformat_path, "--number", "--wrap=100", filename])
 
 
@@ -143,7 +143,7 @@ def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads
             logger.warning("Need to accept rstfmt download to format RST files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded():
+    with withPrivatePipSitePackagesPathAdded(logger=logger):
         check_call([rstfmt_path, filename])
 
     cleanupWindowsNewlines(filename, effective_filename)
@@ -458,6 +458,7 @@ def autoFormatFile(
                     effective_filename=effective_filename,
                     check_only=check_only,
                     assume_yes_for_downloads=assume_yes_for_downloads,
+                    reject_message="Formatting C files needs 'clang-format'.",
                 )
         elif is_txt:
             if not _shouldNotFormatCode(

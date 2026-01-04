@@ -42,7 +42,7 @@ from nuitka.plugins.Hooks import (
     getPackageExtraScanPaths,
     suppressUnknownImportWarning,
 )
-from nuitka.PythonFlavors import isNuitkaPython
+from nuitka.PythonFlavors import isMonolithPy
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.States import states
@@ -97,11 +97,11 @@ def setupImportingFromOptions():
     _safe_path = hasPythonFlagNoCurrentDirectoryInPath()
 
     # Lets try and have this complete, please report failures.
-    if states.is_debug and not isNuitkaPython():
+    if states.is_debug and not isMonolithPy():
         _checkRaisingBuiltinComplete()
 
     if getOutputFolderName() is not None:
-        source_dir = getSourceDirectoryPath(create=False)
+        source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
         source_dir = None
 
@@ -318,7 +318,7 @@ def getModuleNameAndKindFromFilename(module_filename):
 
 
 def isIgnoreListedImportMaker(source_ref):
-    if isNuitkaPython():
+    if isMonolithPy():
         return True
 
     return isStandardLibraryPath(source_ref.getFilename())

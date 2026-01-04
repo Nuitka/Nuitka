@@ -6,8 +6,8 @@
 
 import os
 import shutil
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import (
@@ -55,7 +55,7 @@ def main():
 
     branch_name = checkBranchName()
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--token",

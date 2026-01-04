@@ -9,8 +9,8 @@ Podman and Docker should both work, but the first one is recommended.
 import os
 import shutil
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.release.Release import (
     getBranchName,
     getBranchRemoteIdentifier,
@@ -38,7 +38,7 @@ containers_logger = OurLogger("Nuitka-Containers", base_style="blue")
 
 
 def parseOptions():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--container-id",

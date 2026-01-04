@@ -48,7 +48,9 @@ PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
-static PyObject *mod_consts[%(constants_count)d];
+static struct ModuleConstants {
+%(module_constants_decl)s
+} mod_consts;
 #ifndef __NUITKA_NO_ASSERT__
 static Py_hash_t mod_consts_hash[%(constants_count)d];
 #endif
@@ -61,13 +63,11 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, &mod_consts[0], UN_TRANSLATE(%(module_const_blob_name)s));
+        loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
-        for (int i = 0; i < %(constants_count)d; i++) {
-            mod_consts_hash[i] = DEEP_HASH(tstate, mod_consts[i]);
-        }
+%(module_constants_check_hash)s
 #endif
     }
 }
@@ -85,10 +85,7 @@ void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    for (int i = 0; i < %(constants_count)d; i++) {
-        assert(mod_consts_hash[i] == DEEP_HASH(tstate, mod_consts[i]));
-        CHECK_OBJECT_DEEP(mod_consts[i]);
-    }
+%(module_constants_check_object)s
 }
 #endif
 

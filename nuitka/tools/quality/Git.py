@@ -6,14 +6,16 @@
 Inspired from https://raw.githubusercontent.com/hallettj/git-format-staged/master/git-format-staged
 Original author: Jesse Hallett <jesse@sitr.us>
 
-spell-checker: ignore Hallett
+spell-checker: ignore Hallett,unpushed
 """
 
 import os
 import re
 
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.format.FileFormatting import cleanupWindowsNewlines
-from nuitka.Tracing import my_print
+from nuitka.tools.Basics import goHome
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.CStrings import decodeCStringToPython
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
@@ -133,7 +135,7 @@ def getCurrentBranchName():
     return output.strip()
 
 
-def getUnPushedPaths():
+def getNotPushedPaths():
     """Get a list of modified paths that have not been pushed to upstream."""
     result = set()
 
@@ -248,6 +250,54 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
             my_print(err, style="yellow")
 
     return success
+
+
+def addGitArguments(parser, verb="Analyze"):
+    parser.add_option(
+        "--diff",
+        action="store_true",
+        dest="diff",
+        default=False,
+        help="""\
+%s the changed files in git checkout. Default is %%default."""
+        % verb,
+    )
+
+    parser.add_option(
+        "--un-pushed",
+        "--unpushed",
+        action="store_true",
+        dest="un_pushed",
+        default=False,
+        help="""\
+%s the changed files in git not yet pushed. Default is %%default."""
+        % verb,
+    )
+
+
+def getGitPaths(options, positional_args, default_positional_args):
+    if options.diff or options.un_pushed:
+        if positional_args:
+            tools_logger.sysexit(
+                "Error, no filenames argument allowed in git diff mode."
+            )
+
+        goHome()
+
+        result = OrderedSet()
+        if options.diff:
+            result.update(getModifiedPaths())
+
+        if options.un_pushed:
+            result.update(getNotPushedPaths())
+    else:
+        result = positional_args
+
+        if not result:
+            goHome()
+            result = default_positional_args
+
+    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

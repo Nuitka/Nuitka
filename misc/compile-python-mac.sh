@@ -1,0 +1,126 @@
+#!/bin/bash
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+set -e # Exit immediately if a command exits with a non-zero status.
+
+# --- Configuration ---
+# Set the Python version you want to build.
+# Using a specific, stable patch release is recommended.
+PY_VER="3.11.9"
+
+# Set the desired installation path.
+INSTALL_PREFIX="/opt/python-for-nuitka-${PY_VER}"
+
+PY_MAJOR_MINOR=$(echo "$PY_VER" | cut -d. -f1-2) # e.g., 3.11
+TARBALL="Python-$PY_VER.tar.xz"
+SOURCE_DIR="Python-$PY_VER"
+
+echo "--- Starting static Python $PY_VER build for Nuitka ---"
+
+if [[ "$(uname)" == "Darwin" ]]; then
+    # --- macOS Dependencies ---
+    echo "Installing macOS dependencies via Homebrew..."
+    eval $(/opt/homebrew/bin/brew shellenv)
+    brew install pkg-config openssl@3 xz gdbm tcl-tk mpdecimal zstd ccache
+
+    # Set flags for macOS to find Homebrew-installed libraries
+    export LDFLAGS="-L$(brew --prefix openssl@3)/lib -L$(brew --prefix xz)/lib -L$(brew --prefix gdbm)/lib"
+    export CPPFLAGS="-I$(brew --prefix openssl@3)/include -I$(brew --prefix xz)/include -I$(brew --prefix gdbm)/include"
+    # Point configure to the correct openssl
+    export CONFIGURE_OPTS="--with-openssl=$(brew --prefix openssl@3)"
+    export MAKE_JOBS=$(sysctl -n hw.ncpu)
+
+    export PYTHON_BINARY=./$SOURCE_DIR/python.exe
+
+    export MACOSX_DEPLOYMENT_TARGET=10.9
+else
+    echo "Unsupported OS: $(uname)"
+    exit 1
+fi
+
+# --- 2. Download and Extract Source ---
+if [ ! -f "$TARBALL" ]; then
+    echo "Downloading $TARBALL..."
+    URL="https://www.python.org/ftp/python/$PY_VER/$TARBALL"
+
+    if command -v wget >/dev/null 2>&1; then
+        echo "Using wget to download..."
+        # Use wget. -O specifies the output file.
+        wget -O "$TARBALL" "$URL"
+
+    # If wget is not found, check if curl is available
+    elif command -v curl >/dev/null 2>&1; then
+        echo "wget not found. Using curl to download..."
+        # Use curl. -o specifies the output file, -L follows redirects.
+        curl -L -o "$TARBALL" "$URL"
+
+    # If neither is found, exit with an error
+    else
+        echo "Error: Neither wget nor curl is available on this system." >&2
+        echo "Please install one of them to proceed." >&2
+        exit 1
+    fi
+else
+    echo "Using existing $TARBALL..."
+fi
+
+if [ -d "$SOURCE_DIR" ]; then
+    echo "Removing existing source directory $SOURCE_DIR..."
+    rm -rf "$SOURCE_DIR"
+fi
+echo "Extracting $TARBALL..."
+tar -xf "$TARBALL"
+
+# --- 3. Configure Build ---
+cd "$SOURCE_DIR"
+echo "Configuring build with optimizations and static linking..."
+
+# --prefix:         Install location
+# --disable-shared: CRITICAL. This prevents building libpython.so/dylib
+#                   and builds only libpythonX.Y.a
+# --enable-optimizations: Enables PGO. This runs the build, runs tests,
+#                         and then re-builds using profile data.
+# --with-lto:       Enables Link Time Optimization.
+./configure \
+    --prefix="$INSTALL_PREFIX" \
+    --disable-shared \
+    --enable-optimizations \
+    --with-lto \
+    $CONFIGURE_OPTS
+
+# --- 4. Build and Install ---
+echo "Building Python... This will take a long time due to PGO."
+make -j$MAKE_JOBS
+cd -
+
+$PYTHON_BINARY -m ensurepip
+$PYTHON_BINARY -m pip install -r /dev/stdin <<EOF
+# Generic
+ordered-set == 4.1.0; python_version >= '3.7'
+orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
+orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.6' and python_version < '3.7'
+orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
+
+# Onefile compression
+zstandard >= 0.15; python_version >= '3.5'
+
+# Wheels
+wheel
+EOF
+
+echo "--- Build Complete ---"
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

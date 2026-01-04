@@ -224,13 +224,24 @@ if CONFIG_CACHE:
     if os.environ.get('SCONS_CACHE_MSVC_FORCE_DEFAULTS') in ('1', 'true', 'True'):
         CONFIG_CACHE_FORCE_DEFAULT_ARGUMENTS = True
 
-def read_script_env_cache():
+def read_script_env_cache(version):
     """ fetch cached msvc env vars if requested, else return empty dict """
     envcache = {}
-    p = Path(CONFIG_CACHE)
-    if not CONFIG_CACHE or not p.is_file():
+    if not CONFIG_CACHE:
         return envcache
-    with SCons.Util.FileLock(CONFIG_CACHE, timeout=5, writer=False), p.open('r') as f:
+
+    p = Path(CONFIG_CACHE)
+    if p.is_dir():
+        p = p.joinpath("content-%s.json" % version)
+    else:
+        return envcache
+
+    if not p.is_file():
+        return envcache
+
+    config_cache_filename = str(p)
+
+    with SCons.Util.FileLock(config_cache_filename, timeout=5, writer=False), p.open('r') as f:
         # Convert the list of cache entry dictionaries read from
         # json to the cache dictionary. Reconstruct the cache key
         # tuple from the key list written to json.
@@ -243,28 +254,35 @@ def read_script_env_cache():
             with suppress(FileNotFoundError):
                 p.unlink()
             warn_msg = "Could not decode msvc cache file %s: dropping."
-            SCons.Warnings.warn(MSVCCacheInvalidWarning, warn_msg % CONFIG_CACHE)
-            debug(warn_msg, CONFIG_CACHE)
+            SCons.Warnings.warn(MSVCCacheInvalidWarning, warn_msg % config_cache_filename)
+            debug(warn_msg, config_cache_filename)
         else:
             if isinstance(envcache_list, list):
                 envcache = {tuple(d['key']): d['data'] for d in envcache_list}
             else:
                 # don't fail if incompatible format, just proceed without it
                 warn_msg = "Incompatible format for msvc cache file %s: file may be overwritten."
-                SCons.Warnings.warn(MSVCCacheInvalidWarning, warn_msg % CONFIG_CACHE)
-                debug(warn_msg, CONFIG_CACHE)
+                SCons.Warnings.warn(MSVCCacheInvalidWarning, warn_msg % config_cache_filename)
+                debug(warn_msg, config_cache_filename)
 
     return envcache
 
 
-def write_script_env_cache(cache):
+def write_script_env_cache(cache, version):
     """ write out cache of msvc env vars if requested """
     if not CONFIG_CACHE:
         return
 
     p = Path(CONFIG_CACHE)
+    if p.is_dir():
+        p = p.joinpath("content-%s.json" % version)
+    else:
+        return
+
+    config_cache_filename = str(p)
+
     try:
-        with SCons.Util.FileLock(CONFIG_CACHE, timeout=5, writer=True), p.open('w') as f:
+        with SCons.Util.FileLock(config_cache_filename, timeout=5, writer=True), p.open('w') as f:
             # Convert the cache dictionary to a list of cache entry
             # dictionaries. The cache key is converted from a tuple to
             # a list for compatibility with json.
@@ -573,8 +591,8 @@ KEEPLIST = (
     "VCINSTALLDIR",  # needed by clang -VS 2017 and newer
     "VCToolsInstallDir",  # needed by clang - VS 2015 and older
 )
-# Nuitka: Keep the Windows SDK version too
-KEEPLIST += ("WindowsSDKVersion",)
+# Nuitka: Keep the Windows SDK information too
+KEEPLIST += ("WindowsSDKVersion", "WindowsSdkDir")
 
 
 

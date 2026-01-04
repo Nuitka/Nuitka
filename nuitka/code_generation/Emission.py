@@ -22,12 +22,11 @@ class SourceCodeCollector(object):
         self.emit(code)
 
     def emit(self, code):
-        for line in code.split("\n"):
-            self.codes.append(line)
+        self.codes.extend(code.split("\n"))
 
-    def emitTo(self, emit, level):
+    def emitTo(self, emit):
         for code in self.codes:
-            emit(indented(code, level))
+            emit(indented(code))
 
         self.codes = None
 
@@ -50,11 +49,11 @@ def withSubCollector(emit, context):
             for local_declaration in local_declarations:
                 emit(indented(local_declaration))
 
-            sub_emit.emitTo(emit, level=4)
+            sub_emit.emitTo(emit)
 
             emit("}")
         else:
-            sub_emit.emitTo(emit, level=0)
+            sub_emit.emitTo(emit)
 
         context.popCleanupScope()
 

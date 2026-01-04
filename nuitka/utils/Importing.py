@@ -94,7 +94,7 @@ def getExtensionModuleSuffixes():
         else:
             _extension_module_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
 
-        # Nuitka-Python on Windows has that
+        # MonolithPy on Windows has that
         if "" in _extension_module_suffixes:
             _extension_module_suffixes.remove("")
 
@@ -316,9 +316,13 @@ def getPackageDirFilename(path):
 
 
 @contextmanager
-def withTemporarySysPathExtension(extra_paths):
+def withTemporarySysPathExtension(extra_paths, prepend=False):
     old_path = sys.path[:]
-    sys.path.extend(extra_paths)
+
+    if prepend:
+        sys.path = list(extra_paths) + sys.path
+    else:
+        sys.path.extend(extra_paths)
 
     yield
 

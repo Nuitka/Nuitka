@@ -8,11 +8,12 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
+from nuitka.freezer.MacOSApp import createPlistInfoFile, createTerminalLauncherScript
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
-    getMacOSConsoleMode,
+    getMacOSAppConsoleMode,
     getProductVersionTuple,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
@@ -56,10 +57,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.MacOSApp import (
-    createPlistInfoFile,
-    createTerminalLauncherScript,
-)
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,
@@ -560,7 +557,11 @@ Error, expected 'libpython dependency not found. Please report the bug."""
         )
 
     if shallCreateAppBundle():
-        createPlistInfoFile(logger=postprocessing_logger, onefile=False)
+        createPlistInfoFile(
+            logger=postprocessing_logger,
+            onefile=False,
+            force_console=getMacOSAppConsoleMode() == "force",
+        )
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
@@ -604,7 +605,7 @@ def executePostProcessingMacOSAppConsoleMode(result_filename):
     Args:
         result_filename: Path to the main binary in the app bundle.
     """
-    macos_console_mode = getMacOSConsoleMode()
+    macos_console_mode = getMacOSAppConsoleMode()
     if macos_console_mode in ("force", "detect"):
         binary_name = os.path.basename(result_filename)
         macos_dir = os.path.dirname(result_filename)

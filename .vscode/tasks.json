@@ -26,6 +26,54 @@
       "presentation": {
         "reveal": "silent"
       }
+    },
+    {
+      "label": "Nuitka: Monitor Unpushed (PyLint)",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "${workspaceFolder}/bin/check-nuitka-with-pylint",
+        "--un-pushed",
+        "--watch"
+      ],
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "python",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^([^:]+):(\\d+) ([A-Z]\\d+) \\S+\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "code": 3,
+          "message": 4
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^>>> Pylint Start",
+          "endsPattern": "^>>> Pylint End"
+        }
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
     }
   ]
 }

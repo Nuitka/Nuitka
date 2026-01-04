@@ -99,11 +99,11 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
             "to_name": to_name,
             "break_indicator_code": break_indicator_code,
             "break_target": break_target,
-            "release_temps": indented(getErrorExitReleaseCode(context), 8),
+            "release_temps": indented(getErrorExitReleaseCode(context)),
             "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context), 8
+                getFrameVariableTypeDescriptionCode(context)
             ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context), 8),
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
             "exception_target": context.getExceptionEscape(),
             "exception_state_name": exception_state_name,
         }

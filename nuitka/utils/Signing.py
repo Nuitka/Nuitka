@@ -14,7 +14,6 @@ from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
 from .FileOperations import getExternalUsePath, withMadeWritableFileMode
-from .MacOSApp import createEntitlementsInfoFile
 
 _macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
@@ -88,11 +87,12 @@ def detectMacIdentity():
     return result
 
 
-def addMacOSCodeSignature(filenames):
+def addMacOSCodeSignature(filenames, entitlements_filename):
     """Add the code signature to filenames.
 
     Args:
         filenames - The filenames to be signed.
+        entitlements_filename - The entitlements file to use, optional.
 
     Returns:
         None
@@ -140,8 +140,6 @@ def addMacOSCodeSignature(filenames):
             "-i",
             macos_signed_app_name,
         ]
-
-    entitlements_filename = createEntitlementsInfoFile()
 
     if entitlements_filename is not None:
         command += [

@@ -40,15 +40,15 @@ from .PythonVersions import (
 )
 
 
-def isNuitkaPython():
-    """Is this our own fork of CPython named Nuitka-Python."""
+def isMonolithPy():
+    """Is this our own fork of CPython named MonolithPy."""
 
-    # spell-checker: ignore nuitkapython
+    # spell-checker: ignore monolithpy
 
     if python_version >= 0x300:
-        return sys.implementation.name == "nuitkapython"
+        return sys.implementation.name == "monolithpy"
     else:
-        return sys.subversion[0] == "nuitkapython"
+        return sys.subversion[0] == "monolithpy"
 
 
 _is_anaconda = None
@@ -389,8 +389,8 @@ def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
 
-    if isNuitkaPython():
-        return "Nuitka Python"
+    if isMonolithPy():
+        return "MonolithPy"
     elif isAnacondaPython():
         return "Anaconda Python"
     elif isWinPython():

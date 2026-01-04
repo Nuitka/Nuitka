@@ -184,6 +184,32 @@ def getModuleCode(
             }
         )
 
+    constants_count = context.getConstantsCount()
+
+    # If no constants are present.
+    if constants_count > 0:
+        module_constants_decl = indented(
+            "PyObject *%s;" % name for name in context.getConstantNames()
+        )
+
+        module_constants_check_hash = indented(
+            "mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"
+            % {"index": count, "name": name}
+            for count, name in enumerate(context.getConstantNames())
+        )
+
+        module_constants_check_object = indented(
+            """\
+assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s));
+CHECK_OBJECT_DEEP(mod_consts.%(name)s);"""
+            % {"index": count, "name": name}
+            for count, name in enumerate(context.getConstantNames())
+        )
+    else:
+        module_constants_decl = "    PyObject *empty;"
+        module_constants_check_hash = ""
+        module_constants_check_object = ""
+
     return template % {
         "module_name_cstr": encodePythonStringToC(
             module_name.asString().encode("utf8")
@@ -199,14 +225,17 @@ def getModuleCode(
         "module_functions_code": function_body_codes,
         "module_function_table_entries": indented(function_table_entries_decl),
         "temps_decl": indented(local_var_inits),
-        "module_variable_accessors": indented(module_variable_accessor_codes, 0),
+        "module_variable_accessors": indented(module_variable_accessor_codes),
         "module_variable_accessors_count": len(module_variable_accessor_codes),
         "module_init_codes": indented(module_init_codes),
         "module_codes": indented(module_codes.codes),
         "module_exit": module_exit,
-        "module_code_objects_decl": indented(module_code_objects_decl, 0),
+        "module_code_objects_decl": indented(module_code_objects_decl),
         "module_code_objects_init": indented(module_code_objects_init),
-        "constants_count": context.getConstantsCount(),
+        "constants_count": constants_count,
+        "module_constants_decl": module_constants_decl,
+        "module_constants_check_hash": module_constants_check_hash,
+        "module_constants_check_object": module_constants_check_object,
         "module_const_blob_name": module_const_blob_name,
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,

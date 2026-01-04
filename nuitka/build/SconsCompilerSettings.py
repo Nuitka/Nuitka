@@ -12,7 +12,7 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, scons_logger
+from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
@@ -167,9 +167,9 @@ def _enableLtoSettings(
     elif env.msvc_mode and getMsvcVersion(env) >= (14,):
         lto_mode = True
         reason = "known to be supported"
-    elif env.nuitka_python:
+    elif env.monolithpy:
         lto_mode = True
-        reason = "known to be supported (Nuitka-Python)"
+        reason = "known to be supported (MonolithPy)"
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
@@ -213,7 +213,7 @@ def _enableLtoSettings(
         orig_lto_mode == "auto"
         and lto_mode
         and env.compiled_module_count > compiled_module_count_threshold
-        and not env.nuitka_python
+        and not env.monolithpy
     ):
         lto_mode = False
         reason = (
@@ -302,6 +302,7 @@ _python311_min_msvc_version = (14, 3)
 def checkWindowsCompilerFound(
     env,
     target_arch,
+    mingw_mode,
     clang_mode,
     msvc_version,
     download_ok,
@@ -462,7 +463,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 download_ok=download_ok,
                 experimental="winlibs-new" in experimental_flags,
             )
-        elif target_arch != "x86":
+        elif target_arch != "x86" and not mingw_mode:
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
 
             # This will download "zig.exe" when all others have been rejected
@@ -470,6 +471,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             compiler_path = getZigBinaryPath(
                 logger=scons_logger,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
+                reject_message=None,
             )
 
         if compiler_path is not None:
@@ -521,17 +523,18 @@ def createEnvironmentAndCheckCompiler(
         source_dir=source_dir,
     )
 
+    env.assume_yes_for_downloads = assume_yes_for_downloads
+
     env = checkWindowsCompilerFound(
         env=env,
         target_arch=target_arch,
+        mingw_mode=mingw_mode,
         clang_mode=clang_mode,
         msvc_version=msvc_version,
         download_ok=download_ok,
         assume_yes_for_downloads=assume_yes_for_downloads,
         experimental_flags=experimental_flags,
     )
-
-    env.assume_yes_for_downloads = assume_yes_for_downloads
 
     env.the_compiler = env["CC"] or env["CXX"]
     env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
@@ -879,9 +882,13 @@ def enableWindowsStackSize(env, target_arch):
 
 def _enableOutputSettings(env):
     if env.msvc_mode:
-        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
-        # for Nuitka-Python there is of course none.
-        if env.nuitka_python:
+        # For onefile bootstrap, we have to force static runtime as we don't
+        # want to bring a second file and MonolithPy requires it.
+        force_static = (
+            env.onefile_compile and env.onefile_windows_static_runtime
+        ) or env.monolithpy
+
+        if force_static:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
         else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
@@ -993,6 +1000,11 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Amount of frozen modules.
     frozen_modules = getArgumentInt("frozen_modules", 0)
 
+    # Windows runtime DLL inclusion.
+    onefile_windows_static_runtime = getArgumentBool(
+        "onefile_windows_static_runtime", False
+    )
+
     progress_bar = getArgumentDefaulted("progress_bar", "auto")
     enableSconsProgressBar(progress_bar)
 
@@ -1051,8 +1063,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.job_count = job_count
     env.frozen_modules = frozen_modules
     env.uninstalled_python = uninstalled_python
-
-    # gcc compiler cf_protection option
+    env.onefile_windows_static_runtime = onefile_windows_static_runtime
     env.cf_protection = cf_protection
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
@@ -1061,13 +1072,15 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     scons_details_logger.info("Told to run compilation on %d CPUs." % env.job_count)
 
     if show_scons_mode:
-        my_print("Scons: Compiler used", end=" ")
-        my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
+        compiler_path = getExecutablePath(env.the_compiler, env=env)
 
-        if os.name == "nt" and env.msvc_mode:
-            my_print("(MSVC %s)" % getMsvcVersionString(env))
-
-        my_print()
+        if env.msvc_mode:
+            scons_logger.info(
+                "Scons: Compiler used '%s' (MSVC %s)."
+                % (compiler_path, getMsvcVersionString(env))
+            )
+        else:
+            scons_logger.info("Scons: Compiler used '%s'." % compiler_path)
 
     # Set build directory and scons general settings.
     if needs_source_dir:
@@ -1081,6 +1094,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
 
     env.exe_target = exe_target
+    env.onefile_compile = onefile_compile
 
     # Enable LTO for compiler.
     _enableLtoSettings(
@@ -1090,6 +1104,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     )
 
     _enableC11Settings(env)
+    _enableOutputSettings(env)
 
     # Some things are supposed to be only for use with zig, so we inject a
     # define that allows us to test for it.
@@ -1254,14 +1269,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         else:
             # For LTO with static libpython combined, there are crashes with Python core
             # being inlined, so we must refrain from that. On Windows there is no such
-            # thing, and Nuitka-Python is not affected.
+            # thing, and MonolithPy is not affected.
             env.Append(
                 LINKFLAGS=[
                     (
                         "-O3"
-                        if env.nuitka_python
-                        or os.name == "nt"
-                        or not env.static_libpython
+                        if env.monolithpy or os.name == "nt" or not env.static_libpython
                         else "-O2"
                     )
                 ]
@@ -1285,9 +1298,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 CCFLAGS=[
                     (
                         "-O3"
-                        if env.nuitka_python
-                        or os.name == "nt"
-                        or not env.static_libpython
+                        if env.monolithpy or os.name == "nt" or not env.static_libpython
                         else "-O2"
                     )
                 ]
@@ -1388,8 +1399,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
             ],
         )
 
-    _enableOutputSettings(env)
-
     # Avoid them as appearing to be different files.
     if (
         env.gcc_mode
@@ -1433,6 +1442,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
         # No incremental linking.
         env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
+
+        # Remember MSVC installation directory to find redist DLLs, spell-checker: ignore VCINSTALLDIR
+        if "VCINSTALLDIR" in env["ENV"]:
+            env["MSVC_InstallDirectory"] = getNormalizedPathJoin(
+                env["ENV"]["VCINSTALLDIR"], ".."
+            )
 
     # Use compiler/linker flags provided via environment variables, these
     # are always added and consider_environment_variables does not apply
@@ -1632,24 +1647,24 @@ def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
     # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
 
-    env.cpp_flags = os.environ.get("CPPFLAGS")
+    env.cpp_flags = os.getenv("CPPFLAGS")
     if env.cpp_flags:
         scons_logger.info("Scons: Inherited CPPFLAGS='%s' variable." % env.cpp_flags)
         env.Append(CPPFLAGS=env.cpp_flags.split())
-    env.c_flags = os.environ.get("CFLAGS")
+    env.c_flags = os.getenv("CFLAGS")
     if env.c_flags:
         scons_logger.info("Inherited CFLAGS='%s' variable." % env.c_flags)
         env.Append(CCFLAGS=env.c_flags.split())
-    env.cc_flags = os.environ.get("CCFLAGS")
+    env.cc_flags = os.getenv("CCFLAGS")
     if env.cc_flags:
         scons_logger.info("Inherited CCFLAGS='%s' variable." % env.cc_flags)
         env.Append(CCFLAGS=env.cc_flags.split())
-    env.cxx_flags = os.environ.get("CXXFLAGS")
+    env.cxx_flags = os.getenv("CXXFLAGS")
     if env.cxx_flags:
         scons_logger.info("Scons: Inherited CXXFLAGS='%s' variable." % env.cxx_flags)
         env.Append(CXXFLAGS=env.cxx_flags.split())
 
-    env.ld_flags = os.environ.get("LDFLAGS")
+    env.ld_flags = os.getenv("LDFLAGS")
     if env.ld_flags:
         scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % env.ld_flags)
         env.Append(LINKFLAGS=env.ld_flags.split())

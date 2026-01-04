@@ -58,6 +58,8 @@ from nuitka.utils.Utils import (
 )
 from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
+from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
+
 
 def packDistFolderToOnefile(dist_dir):
     """Pack distribution to onefile, i.e. a single file that is directly executable."""
@@ -89,6 +91,8 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     scons_options["onefile_splash_screen"] = asBoolStr(
         getWindowsSplashScreen() is not None
     )
+    if isWin32Windows() and shallIncludeWindowsRuntimeDLLs():
+        scons_options["onefile_windows_static_runtime"] = asBoolStr(True)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
@@ -247,7 +251,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     onBootstrapBinary(onefile_output_filename)
 
     if isMacOS():
-        addMacOSCodeSignature(filenames=[onefile_output_filename])
+        addMacOSCodeSignature(
+            filenames=[onefile_output_filename], entitlements_filename=None
+        )
         assert payload_used_in_build
 
     if not payload_used_in_build:

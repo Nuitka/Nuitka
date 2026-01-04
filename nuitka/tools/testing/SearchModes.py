@@ -166,14 +166,14 @@ class SearchMode(object):
         return True
 
     def onErrorDetected(self, message):
-        self.finish()
+        self.finish(success=False)
         return self.exit(message)
 
-    def finish(self):
+    def finish(self, success=True):
         if not self.active and not self.had_match:
             return self.exit("Error, became never active.")
 
-        if os.path.exists(self.cache_filename):
+        if success and os.path.exists(self.cache_filename):
             os.unlink(self.cache_filename)
 
         print(

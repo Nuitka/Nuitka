@@ -12,9 +12,9 @@ in comparisons.
 
 import os
 import sys
-from optparse import OptionParser
 
 from nuitka.__past__ import md5
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.testing.Common import (
     check_output,
     getPythonSysPath,
@@ -43,7 +43,7 @@ def main():
     # Complex stuff, not broken down yet
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--nuitka", action="store", dest="nuitka", default=os.getenv("NUITKA", "")

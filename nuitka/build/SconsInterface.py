@@ -59,8 +59,8 @@ from nuitka.plugins.Hooks import (
 )
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
@@ -71,7 +71,10 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
-from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
+from nuitka.utils.AppDirs import (
+    getCacheDir,
+    getCacheDirEnvironmentVariableName,
+)
 from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
     getExecutablePath,
@@ -216,6 +219,10 @@ def _setupSconsEnvironment2():
         os.environ[getCacheDirEnvironmentVariableName(getDownloadCacheName())] = (
             getExternalUsePath(download_cache_dir)
         )
+
+        msvc_config_cache_dir = getCacheDir("scons-msvc-config")
+        makePath(msvc_config_cache_dir)
+        os.environ["SCONS_CACHE_MSVC_CONFIG"] = getNormalizedPath(msvc_config_cache_dir)
 
     yield
 
@@ -414,6 +421,9 @@ def runScons(scons_options, env_values, scons_filename):
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
 
+        if isShowScons():
+            env_values["NUITKA_SCONS_CHECK_MSVC_CACHE"] = "1"
+
         scons_command = _buildSconsCommand(
             options=scons_options, scons_filename=scons_filename
         )
@@ -570,7 +580,9 @@ def getCommonSconsOptions():
 
     if isZig():
         scons_options["zig_exe_path"] = getZigBinaryPath(
-            logger=scons_logger, assume_yes_for_downloads=assumeYesForDownloads()
+            logger=scons_logger,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+            reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
         )
 
     if getMsvcVersion():
@@ -665,7 +677,7 @@ def getCommonSconsOptions():
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
-    if isNuitkaPython() and not isWin32OrPosixWindows():
+    if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig
 

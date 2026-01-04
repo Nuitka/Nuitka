@@ -231,12 +231,12 @@
     - depends:
         - 'arcade.gl.backends.opengl.provider'
 
-- module-name: 'aspose' # checksum: 1ffc48f1
+- module-name: 'aspose' # checksum: e9831d48
   data-files:
     - patterns:
         - '"**/*"+extension_std_suffix'
         - '**/*.dll'
-      when: 'not nuitka_python'
+      when: 'not monolithpy'
   anti-bloat:
     - no-follow:
         'aspose.*': 'workaround for aspose needing to load its submodules'
@@ -960,7 +960,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 743289ea
+- module-name: 'cv2' # checksum: 12151595
   variables:
     setup_code:
       - 'import cv2'
@@ -996,11 +996,11 @@
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
       # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
-      when: 'standalone and before_python312 and not nuitka_python'
+      when: 'standalone and before_python312 and not monolithpy'
     - description: 'workaround for colliding native module import'
       replacements:
         'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
-      when: 'standalone and python312_or_higher and not nuitka_python'
+      when: 'standalone and python312_or_higher and not monolithpy'
     - description: 'remove error hiding code'
       replacements_plain:
         "print('OpenCV bindings requires \"numpy\" package.')": 'raise'
@@ -3115,11 +3115,11 @@
       no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
 
-- module-name: 'networkx.classes.backends' # checksum: 29bf8c92
+- module-name: 'networkx.classes.backends' # checksum: d0e705ae
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
-        'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
+        'os.getenv("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
 - module-name: 'nicegui' # checksum: 438c71c
@@ -4255,11 +4255,11 @@
     - depends:
         - '.*.locale'
 
-- module-name: 'persistent._compat' # checksum: 74566d77
+- module-name: 'persistent._compat' # checksum: 652e5c4a
   anti-bloat:
     - description: 'use own compilation for compatibility'
       replacements_plain:
-        "os.environ.get('PURE_PYTHON')": '"1"'
+        "os.getenv('PURE_PYTHON')": '"1"'
 
 - module-name: 'persistent.ring' # checksum: ff2e6560
   implicit-imports:
@@ -7415,7 +7415,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 7bd997cd
+- module-name: 'tensorflow' # checksum: 9368cad9
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -7437,7 +7437,7 @@
         'from ._api.v2 import test': 'test = None'
         'from tensorflow._api.v2 import test': 'test = None'
       replacements:
-        '_os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
+        '_os.getenv("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -7866,13 +7866,13 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: b554bf0
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: 6a52973c
   anti-bloat:
     - description: 'reduce keras usage'
       replacements_re:
         '(package_name = "(.*?)")': '\1; import \2'
       replacements:
-        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
+        'os.getenv("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
 
 - module-name: 'tensorflow.python.util.tf_inspect' # checksum: 8e3a3cbf

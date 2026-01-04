@@ -40,6 +40,7 @@ from nuitka.freezer.IncludedEntryPoints import (
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
+from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import locateModule, setupImportingFromOptions
 from nuitka.importing.Recursion import (
     scanIncludedPackage,
@@ -133,7 +134,7 @@ from nuitka.PythonFlavors import (
     isArchPackagePython,
     isDebianPackagePython,
     isFedoraPackagePython,
-    isNuitkaPython,
+    isMonolithPy,
     isPyenvPython,
 )
 from nuitka.PythonVersions import (
@@ -172,7 +173,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
-from nuitka.utils.MacOSDmg import createDmgFile
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -708,7 +708,7 @@ def runSconsBackend():
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
         onefile=False, create=False
     )
-    scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
+    scons_options["monolithpy"] = asBoolStr(isMonolithPy())
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(shallUsePythonDebug())
