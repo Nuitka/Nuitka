@@ -1415,8 +1415,9 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
 #if _NUITKA_MACOS_BUNDLE_MODE
-    // TODO: This is only derived from start directory, checking the parent
-    // to be finder or launchctl might be more reliable.
+    // When launched from Finder, the current directory is "/". Track this
+    // for later use (e.g., setting LANG locale) and change to the bundle
+    // root directory instead.
     bool terminal_launch = true;
 
     {
@@ -1431,121 +1432,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         free(current_dir);
     }
-
-#if defined(_NUITKA_MACOS_CONSOLE_MODE_FORCE) || defined(_NUITKA_MACOS_CONSOLE_MODE_DETECT)
-    // Check if we should relaunch in Terminal
-    if (!terminal_launch) {
-        // Check if we already relaunched (using PID-based environment variable)
-        char env_var_name[128];
-        snprintf(env_var_name, sizeof(env_var_name), "NUITKA_TERMINAL_RELAUNCH_%d", getpid());
-
-        char const *already_relaunched = getenv(env_var_name);
-
-        if (already_relaunched == NULL) {
-            // Check if stdin is connected to a terminal
-            bool has_terminal = isatty(STDIN_FILENO);
-
-            bool should_relaunch = false;
-
-#if defined(_NUITKA_MACOS_CONSOLE_MODE_FORCE)
-            // Force mode: always relaunch if no terminal
-            should_relaunch = !has_terminal;
-#elif defined(_NUITKA_MACOS_CONSOLE_MODE_DETECT)
-            // Detect mode: intelligently decide (for now, same as force)
-            // TODO: Add more intelligent detection based on whether app uses console I/O
-            should_relaunch = !has_terminal;
-#endif
-
-            if (should_relaunch) {
-                // Set environment variable with our PID to prevent re-execution loop
-                char env_var_value[32];
-                snprintf(env_var_value, sizeof(env_var_value), "%d", getpid());
-                setenv(env_var_name, env_var_value, 1);
-
-                // Build the command to execute in Terminal
-                char const *binary_path = getBinaryFilenameHostEncoded(false);
-
-                // Helper function to escape strings for AppleScript + shell context
-                // Must escape: ", \, ', $, `, and ! to prevent injection
-                auto void escapeForAppleScript(char *dst, size_t dst_size, char const *src) {
-                    size_t remaining = dst_size - 1; // Reserve space for null terminator
-
-                    while (*src && remaining > 1) {
-                        // Check if character needs escaping
-                        if (*src == '"' || *src == '\\' || *src == '\'' || *src == '$' || *src == '`' || *src == '!') {
-                            if (remaining < 2)
-                                break; // Need space for \ + char
-                            *dst++ = '\\';
-                            remaining--;
-                        }
-                        *dst++ = *src++;
-                        remaining--;
-                    }
-                    *dst = '\0';
-                }
-
-                // Escape the binary path for AppleScript
-                char escaped_path[PATH_MAX * 3]; // Increased for more escaping
-                escapeForAppleScript(escaped_path, sizeof(escaped_path), binary_path);
-
-                // Build the full command with arguments
-                char full_command[PATH_MAX * 6]; // Increased buffer for safety
-                int cmd_len = snprintf(full_command, sizeof(full_command), "\\\"%s\\\"", escaped_path);
-
-                // Check for buffer overflow
-                if (cmd_len < 0 || cmd_len >= (int)sizeof(full_command)) {
-                    fprintf(stderr, "Error: Command path too long for Terminal relaunch\n");
-                    exit(1);
-                }
-
-                // Add command line arguments
-                for (int i = 1; i < argc; i++) {
-                    char escaped_arg[PATH_MAX * 3]; // Increased for more escaping
-                    escapeForAppleScript(escaped_arg, sizeof(escaped_arg), argv[i]);
-
-                    int prev_len = cmd_len;
-                    cmd_len +=
-                        snprintf(full_command + cmd_len, sizeof(full_command) - cmd_len, " \\\"%s\\\"", escaped_arg);
-
-                    // Check for buffer overflow
-                    if (cmd_len < 0 || cmd_len >= (int)sizeof(full_command)) {
-                        fprintf(stderr, "Error: Command with arguments too long for Terminal relaunch\n");
-                        exit(1);
-                    }
-                }
-
-                // Build AppleScript command arguments
-                char tell_app[64];
-                char activate_cmd[32];
-                char do_script[PATH_MAX * 7];
-                char end_tell[32];
-
-                snprintf(tell_app, sizeof(tell_app), "tell application \"Terminal\"");
-                snprintf(activate_cmd, sizeof(activate_cmd), "activate");
-                int do_script_len = snprintf(do_script, sizeof(do_script), "do script \"%s\"", full_command);
-                snprintf(end_tell, sizeof(end_tell), "end tell");
-
-                // Check for buffer overflow
-                if (do_script_len < 0 || do_script_len >= (int)sizeof(do_script)) {
-                    fprintf(stderr, "Error: AppleScript do script command too long\n");
-                    exit(1);
-                }
-
-                // Build argv for osascript
-                char *osascript_argv[] = {"osascript", "-e",      tell_app, "-e",     activate_cmd,
-                                          "-e",        do_script, "-e",     end_tell, NULL};
-
-                // Replace this process with osascript to launch Terminal
-                extern char **environ;
-                execve("/usr/bin/osascript", osascript_argv, environ);
-
-                // Only reached if execve fails
-                fprintf(stderr, "Error: Failed to exec osascript: %s\n", strerror(errno));
-                exit(1);
-            }
-        }
-    }
-#endif
 #endif
 
     // Set up stdout/stderr according to user specification.

@@ -11,6 +11,7 @@ from nuitka.options.Options import (
     getMacOSAppName,
     getMacOSAppProtectedResourcesAccesses,
     getMacOSAppVersion,
+    getMacOSConsoleMode,
     getMacOSIconPaths,
     getMacOSSignedAppName,
     isMacOSBackgroundApp,
@@ -144,6 +145,45 @@ def createPlistInfoFile(logger, onefile):
     filename = os.path.join(bundle_dir, "Info.plist")
 
     _writePlist(filename, infos)
+
+
+_terminal_launcher_script_template = """\
+#!/bin/bash
+NUITKA_BINARY='%s'
+
+# Check if stdout is associated with a terminal
+if [ ! -t 1 ]; then
+    # Launched via GUI (Finder/Dock) - relaunch in Terminal
+    exec open -a Terminal "$0"
+fi
+
+# Running in Terminal - change to bundle directory and exec binary
+DIR=$(cd "$(dirname "$0")"; pwd)
+cd "$DIR"
+exec "./${NUITKA_BINARY}_bin"
+"""
+
+
+def createTerminalLauncherScript(macos_dir, binary_name):
+    """Create a shell script that launches the binary in Terminal if needed.
+
+    When a macOS app bundle is launched from Finder (not from Terminal), stdin/stdout
+    are not connected to a terminal. This script detects that and relaunches the app
+    in Terminal.app, then execs the actual binary.
+
+    Args:
+        macos_dir: Path to the Contents/MacOS directory in the app bundle.
+        binary_name: The original name of the binary (will be used for launcher).
+    """
+    script_content = _terminal_launcher_script_template % binary_name
+
+    script_path = os.path.join(macos_dir, binary_name)
+
+    with openTextFile(filename=script_path, mode="w") as script_file:
+        script_file.write(script_content)
+
+    # Make the script executable
+    os.chmod(script_path, 0o755)
 
 
 def createEntitlementsInfoFile():

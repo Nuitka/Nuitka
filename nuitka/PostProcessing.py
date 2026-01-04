@@ -12,6 +12,7 @@ from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
+    getMacOSConsoleMode,
     getProductVersionTuple,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
@@ -51,10 +52,14 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     removeFileExecutablePermission,
+    renameFile,
 )
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.MacOSApp import createPlistInfoFile
+from nuitka.utils.MacOSApp import (
+    createPlistInfoFile,
+    createTerminalLauncherScript,
+)
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,
@@ -586,6 +591,33 @@ Error, expected 'libpython dependency not found. Please report the bug."""
             """\
 The created compiled binary is larger than 1.8GB and therefore may not be
 executable by Windows due to its limitations."""
+        )
+
+
+def executePostProcessingMacOSAppConsoleMode(result_filename):
+    """Create terminal launcher script for macOS app bundles.
+
+    This must be called AFTER standalone DLL processing is complete, since
+    the launcher script is not a Mach-O binary and install_name_tool cannot
+    operate on it.
+
+    Args:
+        result_filename: Path to the main binary in the app bundle.
+    """
+    macos_console_mode = getMacOSConsoleMode()
+    if macos_console_mode in ("force", "detect"):
+        binary_name = os.path.basename(result_filename)
+        macos_dir = os.path.dirname(result_filename)
+
+        # Rename the binary to {name}_bin
+        renamed_binary = os.path.join(macos_dir, binary_name + "_bin")
+        renameFile(result_filename, renamed_binary)
+
+        # Create the launcher script with the original binary name
+        createTerminalLauncherScript(macos_dir, binary_name)
+
+        postprocessing_logger.info(
+            "Created terminal launcher script for macOS app bundle."
         )
 
 

@@ -456,16 +456,6 @@ def createEnvironment(
         env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE_MODE"])
         env.Append(LINKFLAGS=["-framework", "CoreFoundation"])
 
-        # MacOS console mode: Control terminal launching behavior
-        macos_app_console_mode = getArgumentDefaulted(
-            "macos_app_console_mode", "disable"
-        )
-        if macos_app_console_mode == "force":
-            env.Append(CPPDEFINES=["_NUITKA_MACOS_CONSOLE_MODE_FORCE"])
-        elif macos_app_console_mode == "detect":
-            env.Append(CPPDEFINES=["_NUITKA_MACOS_CONSOLE_MODE_DETECT"])
-        # "disable" mode doesn't need a define - it's the default behavior
-
     # Announce combination of DLL mode and onefile mode.
     env.onefile_dll_mode = env.onefile_mode and env.dll_mode
     if env.onefile_dll_mode:

@@ -92,6 +92,7 @@ from nuitka.options.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
+    shallCreateAppBundle,
     shallCreateDmgFile,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
@@ -117,7 +118,10 @@ from nuitka.plugins.Hooks import (
     onStandaloneDistributionFinished,
     writeExtraCodeFiles,
 )
-from nuitka.PostProcessing import executePostProcessing
+from nuitka.PostProcessing import (
+    executePostProcessing,
+    executePostProcessingMacOSAppConsoleMode,
+)
 from nuitka.Progress import (
     closeProgressBar,
     reportProgressBar,
@@ -1197,6 +1201,14 @@ def _main():
                     main_standalone_entry_point=main_standalone_entry_point,
                     copy_standalone_entry_points=copy_standalone_entry_points,
                 )
+
+                # Create terminal launcher script for macOS app bundles (must be
+                # after DLL processing and signing to avoid install_name_tool errors)
+                if shallCreateAppBundle():
+                    binary_filename = getNormalizedPathJoin(
+                        dist_dir, main_standalone_entry_point.dest_path
+                    )
+                    executePostProcessingMacOSAppConsoleMode(binary_filename)
 
             dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
 
