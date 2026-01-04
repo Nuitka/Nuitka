@@ -429,6 +429,19 @@ Using OS specific option '%s' has no effect on %s."""
             )
 
 
+def _warnMacOSSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Darwin")
+
+
+def _warnWindowsSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Windows")
+
+
+def _warnMacOSBundleSpecificOption(option_name):
+    _warnAppBundleOnlyOption(option_name)
+    _warnMacOSSpecificOption(option_name)
+
+
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
         return options_logger.sysexit(
@@ -1201,50 +1214,48 @@ library. Please upgrade/downgrade to a supported micro version."""
             % default_mode_name_mode
         )
 
-    # TODO: This could be done via a generic option attribute and iterating over
-    # them all, but maybe that's too inflexible long term.
     if getWindowsIconExecutablePath():
-        _warnOSSpecificOption("--windows-icon-from-exe", "Windows")
+        _warnWindowsSpecificOption("--windows-icon-from-exe")
     if shallAskForWindowsAdminRights():
-        _warnOSSpecificOption("--windows-uac-admin", "Windows")
+        _warnWindowsSpecificOption("--windows-uac-admin")
     if shallAskForWindowsUIAccessRights():
-        _warnOSSpecificOption("--windows-uac-uiaccess", "Windows")
+        _warnWindowsSpecificOption("--windows-uac-uiaccess")
     if getWindowsSplashScreen():
-        _warnOSSpecificOption("--onefile-windows-splash-screen-image", "Windows")
+        _warnWindowsSpecificOption("--onefile-windows-splash-screen-image")
     if options.mingw64 is not None:
-        _warnOSSpecificOption("--mingw64", "Windows")
+        _warnWindowsSpecificOption("--mingw64")
     if options.msvc_version is not None:
-        _warnOSSpecificOption("--msvc", "Windows")
+        _warnWindowsSpecificOption("--msvc")
     if options.macos_target_arch is not None:
-        _warnOSSpecificOption("--macos-target-arch", "Darwin")
+        _warnMacOSSpecificOption("--macos-target-arch")
     if options.macos_create_bundle is not None:
-        _warnOSSpecificOption("--macos-create-app-bundle", "Darwin")
+        _warnMacOSSpecificOption("--macos-create-app-bundle")
     if options.macos_sign_identity is not None:
-        _warnOSSpecificOption("--macos-sign-identity", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-identity")
     if options.macos_sign_notarization is not None:
-        _warnOSSpecificOption("--macos-sign-notarization", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-notarization")
     if getMacOSAppName():
-        _warnOSSpecificOption("--macos-app-name", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-name")
     if getMacOSSignedAppName():
-        _warnOSSpecificOption("--macos-signed-app-name", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-signed-app-name")
     if getMacOSAppVersion():
-        _warnOSSpecificOption("--macos-app-version", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-version")
     if getMacOSAppProtectedResourcesAccesses():
-        _warnOSSpecificOption("--macos-app-protected-resource", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
-        _warnOSSpecificOption("--macos-app-mode", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-mode")
     if options.macos_create_dmg:
-        # TODO: These are not all, do it for all app only options.
-        _warnAppBundleOnlyOption("--macos-app-create-dmg")
-        _warnOSSpecificOption("--macos-app-create-dmg", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
     if options.macos_prohibit_multiple_instances:
-        _warnOSSpecificOption("--macos-prohibit-multiple-instances", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
+    if options.macos_app_console_mode is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-console-mode")
     if getMacOSSigningCertificatePassword():
-        _warnOSSpecificOption("--macos-sign-keyring-password", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-sign-keyring-password")
 
     cert_filename = getMacOSSigningCertificateFilename()
     if cert_filename is not None:
-        _warnOSSpecificOption("--macos-sign-keyring-filename", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-keyring-filename")
 
         if not os.path.exists(cert_filename):
             return options_logger.sysexit(
@@ -2735,6 +2746,9 @@ _macos_protected_resource_entitlements = {
 
 def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
+    if not shallCreateAppBundle():
+        return ()
+
     result = []
 
     for macos_protected_resource in options.macos_protected_resources:
@@ -2776,7 +2790,7 @@ either contain 'read-only' or 'read-write' as part of the description."""
 
         result.append((resource_description_name, description, entitlement))
 
-    return result
+    return tuple(result)
 
 
 def isMacOSBackgroundApp():

@@ -8,6 +8,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
+from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
@@ -55,7 +56,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,

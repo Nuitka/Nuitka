@@ -251,7 +251,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     onBootstrapBinary(onefile_output_filename)
 
     if isMacOS():
-        addMacOSCodeSignature(filenames=[onefile_output_filename])
+        addMacOSCodeSignature(
+            filenames=[onefile_output_filename], entitlements_filename=None
+        )
         assert payload_used_in_build
 
     if not payload_used_in_build:

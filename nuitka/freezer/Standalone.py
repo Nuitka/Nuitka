@@ -79,6 +79,7 @@ from .IncludedEntryPoints import (
     getStandaloneEntryPointForSourceFile,
     makeDllEntryPoint,
 )
+from .MacOSApp import createEntitlementsInfoFile
 
 
 def checkFreezingModuleSet():
@@ -330,7 +331,8 @@ def signDistributionMacOS(
                 + copy_standalone_entry_points
             ]
             + data_file_paths
-        ]
+        ],
+        entitlements_filename=createEntitlementsInfoFile(),
     )
 
 
