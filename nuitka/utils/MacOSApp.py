@@ -26,7 +26,13 @@ from nuitka.OutputDirectories import (
     getStandaloneDirectoryPath,
 )
 
-from .FileOperations import copyFile, makePath, openTextFile
+from .FileOperations import (
+    addFileExecutablePermission,
+    copyFile,
+    makePath,
+    openTextFile,
+    putTextFileContents,
+)
 from .Images import convertImageToIconFormat
 
 
@@ -44,7 +50,41 @@ def _writePlist(filename, data):
         plist_file.write(plist_contents)
 
 
-def createPlistInfoFile(logger, onefile):
+_macos_app_console_script = """
+#!/bin/bash
+
+# 1. Derive the binary name from this script's name
+#    basename "$0" gets the filename (e.g., "MyApp" or "MyApp.sh")
+SCRIPT_NAME=$(basename "$0")
+
+# 2. Check execution context (GUI vs Terminal)
+if [ ! -t 1 ]; then
+    # CASE A: GUI Launch (Finder/Dock)
+    # We are invisible. Re-launch THIS script inside Terminal.app.
+    # "$0" ensures we re-run this exact script file.
+    exec open -a Terminal "$0"
+fi
+
+# 3. CASE B: Terminal Launch
+# We are now visible. Fix the environment.
+
+#    Get the bundle directory (Contents/MacOS)
+DIR=$(cd "$(dirname "$0")"; pwd)
+
+#    Change Directory to the bundle so relative paths work
+cd "$DIR"
+
+#    "${variable%.sh}" strips the .sh suffix (if any exists)
+#    So "MyApp.sh" becomes "MyApp", and "MyApp" stays "MyApp"
+TARGET_BINARY="${SCRIPT_NAME%.sh}"
+
+#    Execute the actual binary, passing along any arguments ("$@")
+#    We use 'exec' so the binary takes over this process ID.
+exec "./$TARGET_BINARY" "$@"
+"""
+
+
+def createPlistInfoFile(logger, onefile, force_console):
     # Many details, pylint: disable=too-many-locals
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
@@ -56,9 +96,20 @@ def createPlistInfoFile(logger, onefile):
     result_filename = getResultFullpath(onefile=onefile, real=True)
     app_name = getMacOSAppName() or os.path.basename(result_filename)
 
-    executable_name = os.path.basename(
-        getResultFullpath(onefile=isOnefileMode(), real=True)
-    )
+    if force_console:
+        script_filename = result_filename + ".sh"
+
+        putTextFileContents(
+            filename=script_filename,
+            contents=_macos_app_console_script,
+        )
+        addFileExecutablePermission(script_filename)
+
+        executable_name = os.path.basename(script_filename)
+    else:
+        executable_name = os.path.basename(
+            getResultFullpath(onefile=isOnefileMode(), real=True)
+        )
 
     signed_app_name = getMacOSSignedAppName() or app_name
     app_version = getMacOSAppVersion() or "1.0"
