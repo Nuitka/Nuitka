@@ -231,79 +231,55 @@ if you want no message."""
     return result
 
 
-def getJsonschemaPackage(logger, assume_yes_for_downloads):
+def getJsonschemaPackage(logger, assume_yes_for_downloads, reject_message):
     """Get jsonschema package from private pip space or globally."""
-    jsonschema = getPrivatePackage(
+    return getPrivatePackage(
         logger=logger,
         package_name="jsonschema",
         module_name="jsonschema",
         package_version=None,
         submodule_names=("validators",),
         assume_yes_for_downloads=assume_yes_for_downloads,
-    )
-
-    if jsonschema:
-        return jsonschema
-
-    return logger.sysexit(
-        "Error, cannot validate changes in package configuration due to missing 'jsonschema'."
+        reject_message=reject_message,
     )
 
 
 def getRuamelYamlPackage(logger, assume_yes_for_downloads):
     """Get ruamel.yaml package from private pip space or globally."""
-    ruamel_yaml = getPrivatePackage(
+    return getPrivatePackage(
         logger=logger,
         package_name="ruamel.yaml",
         module_name="ruamel.yaml",
         package_version=None,
         submodule_names=None,
         assume_yes_for_downloads=assume_yes_for_downloads,
-    )
-
-    if ruamel_yaml:
-        return ruamel_yaml
-
-    logger.sysexit(
-        "Error, cannot format package configuration due to missing 'ruamel.yaml'."
+        reject_message="Autoformat YAML needs ruamel.yaml.",
     )
 
 
-def getYamllintPackage(logger, assume_yes_for_downloads):
+def getYamllintPackage(logger, assume_yes_for_downloads, reject_message):
     """Get yamllint package from private pip space or globally."""
-    yamllint = getPrivatePackage(
+    return getPrivatePackage(
         logger=logger,
         package_name="yamllint",
         module_name="yamllint",
         package_version=None,
         submodule_names=("cli",),
         assume_yes_for_downloads=assume_yes_for_downloads,
-    )
-
-    if yamllint:
-        return yamllint
-
-    logger.sysexit(
-        "Error, cannot check package configuration due to missing 'yamllint'."
+        reject_message=reject_message,
     )
 
 
 def getDeepDiffPackage(logger, assume_yes_for_downloads):
     """Get deepdiff package from private pip space or globally."""
-    deepdiff = getPrivatePackage(
+    return getPrivatePackage(
         logger=logger,
         package_name="deepdiff",
         module_name="deepdiff",
         package_version=None,
         submodule_names=("diff",),
         assume_yes_for_downloads=assume_yes_for_downloads,
-    )
-
-    if deepdiff:
-        return deepdiff
-
-    logger.sysexit(
-        "Error, cannot compare package configuration due to missing 'deepdiff'."
+        reject_message="Autoformat YAML needs deepdiff.",
     )
 
 
@@ -341,9 +317,14 @@ def checkDataChecksums(file_data, data):
     return result
 
 
-def validateSchema(logger, name, data, assume_yes_for_downloads):
-    # This will exit if not found.
-    getJsonschemaPackage(logger, assume_yes_for_downloads=assume_yes_for_downloads)
+def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message):
+    if not getJsonschemaPackage(
+        logger,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
+    ):
+        logger.warning("Cannot validate schema due to lack of 'jsonschema' package.")
+        return
 
     # pylint: disable=I0021,import-error
     from jsonschema import validators
@@ -351,8 +332,7 @@ def validateSchema(logger, name, data, assume_yes_for_downloads):
     schema_filename = getYamlPackageConfigurationSchemaFilename()
 
     if not os.path.exists(schema_filename):
-        # This is not expected to happen, but we should not crash.
-        return
+        logger.sysexit("Cannot validate schema due to missing schema file.")
 
     import json
 
@@ -418,6 +398,7 @@ Error, empty (or malformed?) user package configuration '%s' used."""
                     name=name,
                     data=data,
                     assume_yes_for_downloads=assume_yes_for_downloads,
+                    reject_message=None,
                 )
 
     def _init(self, logger, data):

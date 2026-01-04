@@ -24,6 +24,7 @@ from .Execution import (
 )
 from .FileOperations import getFileContentByLine, getNormalizedPathJoin
 from .Hashing import HashCRC32
+from .Importing import withTemporarySysPathExtension
 from .Utils import getArchitecture, getOS, isWin32Windows
 
 
@@ -64,7 +65,13 @@ def _getCandidateBinPaths(logger, site_packages):
 
 
 def _getPrivatePipBinaryPath(
-    logger, binary_name, package_name, module_name, version, assume_yes_for_downloads
+    logger,
+    binary_name,
+    package_name,
+    module_name,
+    version,
+    assume_yes_for_downloads,
+    reject_message,
 ):
     """Get the path of a binary from the private pip space."""
     candidate_bin_paths = _getCandidateBinPaths(logger=logger, site_packages=None)
@@ -93,6 +100,7 @@ def _getPrivatePipBinaryPath(
         module_name=module_name,
         package_version=version,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
 
     if site_packages_folder:
@@ -205,7 +213,12 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
 
 
 def tryDownloadPackageName(
-    logger, package_name, module_name, package_version, assume_yes_for_downloads
+    logger,
+    package_name,
+    module_name,
+    package_version,
+    assume_yes_for_downloads,
+    reject_message,
 ):
     """Try to download a package from the private pip space."""
     download_folder = getPrivatePipBaseFolder()
@@ -233,7 +246,7 @@ def tryDownloadPackageName(
     if shouldDownload(
         message="Nuitka depends on '%s' to compile code, it is recommended."
         % package_name,
-        reject="Nuitka needs to use '%s'." % package_name,
+        reject_message=reject_message,
         assume_yes_for_downloads=assume_yes_for_downloads,
         download_ok=True,
     ):
@@ -331,6 +344,7 @@ def getPrivatePackage(
     package_version,
     submodule_names,
     assume_yes_for_downloads,
+    reject_message,
 ):
     """Get a package from the private pip space or globally.
 
@@ -359,11 +373,10 @@ def getPrivatePackage(
             module_name=module_name.split(".")[0],
             package_version=package_version,
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message=reject_message,
         )
 
         if site_packages_folder:
-            from .Importing import withTemporarySysPathExtension
-
             with withTemporarySysPathExtension([site_packages_folder]):
                 module = __import__(module_name, fromlist=["*"])
 
@@ -376,7 +389,7 @@ def getPrivatePackage(
         return None
 
 
-def getZigBinaryPath(logger, assume_yes_for_downloads):
+def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
     """Get the path of the Zig binary from the private pip space."""
     # spell-checker: ignore ziglang
 
@@ -386,6 +399,7 @@ def getZigBinaryPath(logger, assume_yes_for_downloads):
         module_name="ziglang",
         package_version=None,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
 
     # The "ziglang" package puts a "python-zig.exe" in the scripts folder, and
@@ -403,7 +417,7 @@ def getZigBinaryPath(logger, assume_yes_for_downloads):
     return None
 
 
-def getClangFormatBinaryPath(logger, assume_yes_for_downloads):
+def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
     """Get the path of the clang-format binary from the private pip space."""
     binary_path, _site_packages_folder, _assume_yes_for_downloads = (
         _getPrivatePipBinaryPath(
@@ -413,6 +427,7 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads):
             module_name="clang_format",
             version=_getRequiredVersion(logger, "clang-format"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message=reject_message,
         )
     )
     return binary_path
@@ -428,6 +443,7 @@ def getBlackBinaryPath(logger, assume_yes_for_downloads):
             module_name="black",
             version=_getRequiredVersion(logger, "black"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Python formatting needs to use 'black'.",
         )
     )
     return binary_path
@@ -443,6 +459,7 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
             module_name="isort",
             version=_getRequiredVersion(logger, "isort"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Python formatting needs to use 'isort'.",
         )
     )
     return binary_path
@@ -458,6 +475,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             module_name="mdformat",
             version=_getRequiredVersion(logger, "mdformat"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Markdown formatting needs to use 'mdformat'.",
         )
     )
 
@@ -468,6 +486,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             module_name="mdformat_gfm",
             package_version=_getRequiredVersion(logger, "mdformat-gfm"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Markdown formatting needs to use 'mdformat-gfm'.",
         )
         tryDownloadPackageName(
             logger=logger,
@@ -475,6 +494,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             module_name="mdformat_frontmatter",
             package_version=_getRequiredVersion(logger, "mdformat-frontmatter"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Markdown formatting needs to use 'mdformat-frontmatter'.",
         )
         tryDownloadPackageName(
             logger=logger,
@@ -482,6 +502,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             module_name="mdformat_footnote",
             package_version=_getRequiredVersion(logger, "mdformat-footnote"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Markdown formatting needs to use 'mdformat-footnote'.",
         )
 
     return mdformat_path
@@ -497,6 +518,7 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
             module_name="rstfmt",
             version=_getRequiredVersion(logger, "rstfmt"),
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
         )
     )
     return binary_path

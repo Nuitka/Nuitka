@@ -580,7 +580,9 @@ def getCommonSconsOptions():
 
     if isZig():
         scons_options["zig_exe_path"] = getZigBinaryPath(
-            logger=scons_logger, assume_yes_for_downloads=assumeYesForDownloads()
+            logger=scons_logger,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+            reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
         )
 
     if getMsvcVersion():

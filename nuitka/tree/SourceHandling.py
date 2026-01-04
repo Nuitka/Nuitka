@@ -326,6 +326,7 @@ def writeSourceCode(filename, source_code, logger, assume_yes_for_downloads):
             effective_filename=filename,
             check_only=False,
             assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message=None,
         )
 
 

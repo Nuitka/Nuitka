@@ -458,6 +458,7 @@ def autoFormatFile(
                     effective_filename=effective_filename,
                     check_only=check_only,
                     assume_yes_for_downloads=assume_yes_for_downloads,
+                    reject_message="Formatting C files needs 'clang-format'.",
                 )
         elif is_txt:
             if not _shouldNotFormatCode(

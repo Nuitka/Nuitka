@@ -65,7 +65,7 @@ _warned_clang_format = False
 _clang_format_path = False
 
 
-def _getClangFormatPath(logger, assume_yes_for_downloads):
+def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
     """Get the path to the clang-format executable.
 
     Args:
@@ -82,7 +82,9 @@ def _getClangFormatPath(logger, assume_yes_for_downloads):
         return _clang_format_path
 
     _clang_format_path = getClangFormatBinaryPath(
-        logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
+        logger=logger,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
 
     if _clang_format_path is None and not _warned_clang_format:
@@ -93,7 +95,7 @@ def _getClangFormatPath(logger, assume_yes_for_downloads):
     return _clang_format_path
 
 
-def _cleanupClangFormat(logger, filename, assume_yes_for_downloads=False):
+def _cleanupClangFormat(logger, filename, assume_yes_for_downloads, reject_message):
     """Call clang-format on a given filename to format C code.
 
     Args:
@@ -103,7 +105,9 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads=False):
     """
 
     clang_format_path = _getClangFormatPath(
-        logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
+        logger=logger,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
 
     if clang_format_path:
@@ -119,7 +123,12 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads=False):
 
 
 def formatC(
-    logger, filename, effective_filename, check_only, assume_yes_for_downloads=False
+    logger,
+    filename,
+    effective_filename,
+    check_only,
+    assume_yes_for_downloads,
+    reject_message,
 ):
     """Format C/C++ source code.
 
@@ -145,6 +154,7 @@ def formatC(
         logger=logger,
         filename=filename,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        reject_message=reject_message,
     )
     cleanupWindowsNewlines(filename, effective_filename)
 

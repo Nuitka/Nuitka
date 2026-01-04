@@ -38,7 +38,7 @@ def getCertifiModule():
     return certifi
 
 
-def shouldDownload(message, reject, assume_yes_for_downloads, download_ok):
+def shouldDownload(message, reject_message, assume_yes_for_downloads, download_ok):
     """Check if we should download"""
 
     if not download_ok:
@@ -60,11 +60,11 @@ Fully automatic, cached. Proceed and download"""
         )
 
     if reply != "yes":
-        if reject is not None:
+        if reject_message is not None:
             if not download_ok:
-                reject += " Make sure to allow downloading it when prompted."
+                reject_message += " Make sure to allow downloading it when prompted."
 
-            return general.sysexit(reject)
+            return general.sysexit(reject_message)
 
         return False
 
@@ -201,7 +201,7 @@ def getCachedDownload(
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
         if not shouldDownload(
             message=message,
-            reject=reject,
+            reject_message=reject,
             assume_yes_for_downloads=assume_yes_for_downloads,
             download_ok=download_ok,
         ):

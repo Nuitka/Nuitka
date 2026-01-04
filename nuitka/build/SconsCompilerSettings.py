@@ -471,6 +471,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             compiler_path = getZigBinaryPath(
                 logger=scons_logger,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
+                reject_message=None,
             )
 
         if compiler_path is not None:

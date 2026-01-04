@@ -316,9 +316,13 @@ def getPackageDirFilename(path):
 
 
 @contextmanager
-def withTemporarySysPathExtension(extra_paths):
+def withTemporarySysPathExtension(extra_paths, prepend=False):
     old_path = sys.path[:]
-    sys.path.extend(extra_paths)
+
+    if prepend:
+        sys.path = list(extra_paths) + sys.path
+    else:
+        sys.path.extend(extra_paths)
 
     yield
 
