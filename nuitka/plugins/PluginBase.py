@@ -60,7 +60,7 @@ from nuitka.options.Options import (
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
-    isNuitkaPython,
+    isMonolithPy,
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
@@ -162,7 +162,7 @@ def _getEvaluationContext():
             "anaconda": isAnacondaPython(),
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
-            "nuitka_python": isNuitkaPython(),
+            "monolithpy": isMonolithPy(),
             "standalone": isStandaloneMode(),
             "onefile": isOnefileMode(),
             "onefile_cached": not isOnefileTempDirMode(),
@@ -239,7 +239,7 @@ def _getEvaluationContext():
         _context_dict["before_python3"] = python_version < 0x300
         _context_dict["python3_or_higher"] = python_version >= 0x300
 
-        if not isNuitkaPython():
+        if not isMonolithPy():
             _context_dict["extension_std_suffix"] = getExtensionModuleSuffix(
                 preferred=True
             )

@@ -314,6 +314,7 @@
     "metapath",
     "METH_NOARGS",
     "METH_VARARGS",
+    "MonolithPy",
     "MSCRT",
     "MSVC",
     "msys",

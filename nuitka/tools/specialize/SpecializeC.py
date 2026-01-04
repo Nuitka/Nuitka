@@ -1137,7 +1137,7 @@ generate_builtin_type_operations = [
     # TODO: For these, we would need an implementation for adding/deleting dictionary values. That
     # has turned out to be too hard so far and these are very good friends, not doing hashing
     # multiple times when reading and writing, so can't do it unless we add something for the
-    # Nuitka-Python eventually.
+    # MonolithPy eventually.
     (
         "tshape_dict",
         dict_desc,

@@ -94,7 +94,7 @@ def getExtensionModuleSuffixes():
         else:
             _extension_module_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
 
-        # Nuitka-Python on Windows has that
+        # MonolithPy on Windows has that
         if "" in _extension_module_suffixes:
             _extension_module_suffixes.remove("")
 

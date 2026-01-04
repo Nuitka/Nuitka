@@ -167,9 +167,9 @@ def _enableLtoSettings(
     elif env.msvc_mode and getMsvcVersion(env) >= (14,):
         lto_mode = True
         reason = "known to be supported"
-    elif env.nuitka_python:
+    elif env.monolithpy:
         lto_mode = True
-        reason = "known to be supported (Nuitka-Python)"
+        reason = "known to be supported (MonolithPy)"
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
@@ -213,7 +213,7 @@ def _enableLtoSettings(
         orig_lto_mode == "auto"
         and lto_mode
         and env.compiled_module_count > compiled_module_count_threshold
-        and not env.nuitka_python
+        and not env.monolithpy
     ):
         lto_mode = False
         reason = (
@@ -885,7 +885,7 @@ def _enableOutputSettings(env):
         # want to bring a second file and MonolithPy requires it.
         force_static = (
             env.onefile_compile and env.onefile_windows_static_runtime
-        ) or env.nuitka_python
+        ) or env.monolithpy
 
         if force_static:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
@@ -1268,14 +1268,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         else:
             # For LTO with static libpython combined, there are crashes with Python core
             # being inlined, so we must refrain from that. On Windows there is no such
-            # thing, and Nuitka-Python is not affected.
+            # thing, and MonolithPy is not affected.
             env.Append(
                 LINKFLAGS=[
                     (
                         "-O3"
-                        if env.nuitka_python
-                        or os.name == "nt"
-                        or not env.static_libpython
+                        if env.monolithpy or os.name == "nt" or not env.static_libpython
                         else "-O2"
                     )
                 ]
@@ -1299,9 +1297,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 CCFLAGS=[
                     (
                         "-O3"
-                        if env.nuitka_python
-                        or os.name == "nt"
-                        or not env.static_libpython
+                        if env.monolithpy or os.name == "nt" or not env.static_libpython
                         else "-O2"
                     )
                 ]

@@ -352,7 +352,7 @@ def createEnvironment(
             env["CCVERSION"] = None
 
     # Various flavors could influence builds.
-    env.nuitka_python = getArgumentBool("nuitka_python", False)
+    env.monolithpy = getArgumentBool("monolithpy", False)
     env.debian_python = getArgumentBool("debian_python", False)
     env.fedora_python = getArgumentBool("fedora_python", False)
     env.arch_python = getArgumentBool("arch_python", False)
