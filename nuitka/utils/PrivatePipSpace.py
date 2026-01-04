@@ -268,7 +268,6 @@ def tryDownloadPackageName(
 
         if site_packages_folder is None:
             site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
-            assert package_name != "black", site_packages_folder
 
         if site_packages_folder is None or not _isPackageInstalled(
             site_packages_folder=site_packages_folder,
