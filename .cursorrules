@@ -17,6 +17,8 @@ and maintain the Nuitka compiler.
   - DO NOT use `return` in a generator function (Python3-only feature).
   - DO NOT use set literals (use `set()` instead) - *required for Python 2.6 compatibility*.
   - Do NOT use bare `except:` (use `except Exception:` or `except BaseException:` if intended).
+  - Do NOT use `re.VERBOSE` (avoid regular expressions that require runtime overhead or large
+    definitions).
 - **Coding Preferences:**
   - **Preferred:** List comprehensions are preferred over `map`, `filter`, and `apply` for
     readability.
