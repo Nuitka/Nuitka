@@ -233,15 +233,13 @@ if env.trace_mode:
 applyPythonBuildSettings(env)
 
 # TODO: This ought to be decided outside of scons and per flavor maybe.
-if env.static_libpython and (
-    (not os.name == "nt" and not isMacOS()) or env.nuitka_python
-):
+if env.static_libpython and ((not os.name == "nt" and not isMacOS()) or env.monolithpy):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 link_module_libs = addPythonHaclLib(env, link_module_libs=link_module_libs)
 
 if os.name == "nt":
-    if env.nuitka_python:
+    if env.monolithpy:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")
         )
@@ -274,7 +272,7 @@ elif env.exe_mode or env.dll_mode:
     # Any module libs that are for self-compiled Python to be static.
     env.Append(_LIBFLAGS=["-l" + lib_desc for lib_desc in link_module_libs])
 
-    if env.nuitka_python:
+    if env.monolithpy:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")
         )

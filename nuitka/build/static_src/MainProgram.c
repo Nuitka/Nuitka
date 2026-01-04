@@ -1527,7 +1527,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-#ifdef NUITKA_PYTHON_STATIC
+#ifdef _MONOLITHPY
     NUITKA_PRINT_TIMING("main(): Preparing static modules.");
     Py_InitStaticModules();
 #endif

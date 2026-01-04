@@ -129,7 +129,7 @@ from nuitka.PythonFlavors import (
     isArchPackagePython,
     isDebianPackagePython,
     isFedoraPackagePython,
-    isNuitkaPython,
+    isMonolithPy,
     isPyenvPython,
 )
 from nuitka.PythonVersions import (
@@ -704,7 +704,7 @@ def runSconsBackend():
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
         onefile=False, create=False
     )
-    scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
+    scons_options["monolithpy"] = asBoolStr(isMonolithPy())
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(shallUsePythonDebug())

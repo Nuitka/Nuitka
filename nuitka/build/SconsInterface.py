@@ -59,8 +59,8 @@ from nuitka.plugins.Hooks import (
 )
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
@@ -675,7 +675,7 @@ def getCommonSconsOptions():
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
-    if isNuitkaPython() and not isWin32OrPosixWindows():
+    if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig
 

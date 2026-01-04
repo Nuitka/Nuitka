@@ -32,8 +32,8 @@ from nuitka.PythonFlavors import (
     isDebianPackagePython,
     isHomebrewPython,
     isManyLinuxPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isPyenvPython,
     isPythonBuildStandalonePython,
     isTermuxPython,
@@ -1962,9 +1962,9 @@ def _couldUseStaticLibPython():
     # many cases and return driven,
     # pylint: disable=too-many-branches,too-many-return-statements
 
-    # Nuitka-Python is good to to static linking.
-    if isNuitkaPython():
-        return True, "Nuitka-Python is unexpectedly broken."
+    # MonolithPy is good to to static linking.
+    if isMonolithPy():
+        return True, "MonolithPy is known to be good."
 
     if isHomebrewPython():
         return True, "Homebrew Python is unexpectedly broken."

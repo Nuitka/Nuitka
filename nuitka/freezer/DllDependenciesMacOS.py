@@ -17,7 +17,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
-    isNuitkaPython,
+    isMonolithPy,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
@@ -244,8 +244,8 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
-        elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
-            # Although Nuitka Python statically links all packages, some of them
+        elif isMonolithPy() and not os.path.isabs(path) and not os.path.exists(path):
+            # Although MonolithPy statically links all packages, some of them
             # have proprietary dependencies that cannot be statically built and
             # must instead be linked to the python executable. Due to how the
             # python executable is linked, we end up with relative paths to

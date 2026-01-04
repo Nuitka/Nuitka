@@ -38,8 +38,8 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -146,7 +146,7 @@ def _detectBinaryDLLs(
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if is_main_executable and isNuitkaPython():
+    if is_main_executable and isMonolithPy():
         return OrderedSet()
     elif (
         getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD", "AIX") or isPosixWindows()
