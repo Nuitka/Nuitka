@@ -12,7 +12,10 @@ import math
 from abc import abstractmethod
 
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.PythonOperators import binary_operator_functions
+from nuitka.PythonOperators import (
+    binary_operator_functions,
+    predictStringFormatSizeRange,
+)
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
@@ -25,6 +28,7 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_int_or_long
 from .shapes.StandardShapes import (
     ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
+    ShapeLargeConstantValueRange,
     tshape_unknown,
     vshape_unknown,
 )
@@ -439,7 +443,61 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryTrueDivShape(right_shape)
 
 
-class ExpressionOperationBinaryMod(ExpressionOperationBinaryBase):
+class ExpressionOperationModMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def getValueShape(self):
+        return self.shape
+
+    def _isTooLarge(self):
+        if not self.subnode_right.isCompileTimeConstant():
+            return False
+
+        if not (
+            self.subnode_left.isExpressionConstantStrRef()
+            or self.subnode_left.isExpressionConstantUnicodeRef()
+            or (
+                self.subnode_left.isExpressionConstantBytesRef()
+                and python_version >= 0x350
+            )
+        ):
+            return False
+
+        format_string = self.subnode_left.getCompileTimeConstant()
+        rhs = self.subnode_right.getCompileTimeConstant()
+
+        if self.subnode_left.isExpressionConstantBytesRef():
+            format_string = format_string.decode("latin1")
+
+        size_range = predictStringFormatSizeRange(format_string, rhs)
+
+        if size_range is None:
+            return False
+
+        min_size, max_size = size_range
+
+        if max_size > 256:
+            if min_size == max_size:
+                self.shape = ShapeLargeConstantValue(
+                    size=max_size,
+                    shape=self.subnode_left.getTypeShape(),
+                )
+            else:
+                self.shape = ShapeLargeConstantValueRange(
+                    min_size=min_size,
+                    max_size=max_size,
+                    shape=self.subnode_left.getTypeShape(),
+                )
+
+            return True
+
+        return False
+
+
+class ExpressionOperationBinaryMod(
+    ExpressionOperationModMixin, ExpressionOperationBinaryBase
+):
     kind = "EXPRESSION_OPERATION_BINARY_MOD"
 
     operator = "Mod"
@@ -799,7 +857,9 @@ class ExpressionOperationInplaceTrueDiv(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryTrueDivShape(right_shape)
 
 
-class ExpressionOperationInplaceMod(ExpressionOperationBinaryInplaceBase):
+class ExpressionOperationInplaceMod(
+    ExpressionOperationModMixin, ExpressionOperationBinaryInplaceBase
+):
     kind = "EXPRESSION_OPERATION_INPLACE_MOD"
 
     operator = "IMod"

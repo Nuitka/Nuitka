@@ -622,6 +622,15 @@ class ShapeLargeConstantValue(object):
         return self.shape.hasShapeSlotLen()
 
 
+class ShapeLargeConstantValueRange(ShapeLargeConstantValue):
+    __slots__ = ("min_size",)
+
+    def __init__(self, min_size, max_size, shape):
+        ShapeLargeConstantValue.__init__(self, max_size, shape)
+
+        self.min_size = min_size
+
+
 class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
     __slots__ = ("predictor",)
 
