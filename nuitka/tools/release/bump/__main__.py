@@ -68,7 +68,7 @@ def main():
         default=None,
         help="""\
 The mode of version number update, "prerelease", "hotfix", "release",
-"auto" (default auto determined from branch name), and "redate" bumps
+"auto" (default auto determined from branch name), and "re-date" bumps
 the changelog date only.""",
     )
 
@@ -102,7 +102,7 @@ the changelog date only.""",
         else:
             sys.exit("Error, cannot detect mode from branch name '%s'." % branch_name)
 
-    if mode != "redate":
+    if mode != "re-date":
         new_version = getBumpedVersion(mode, old_version)
         my_print("Bumped %s '%s' -> '%s'." % (mode, old_version, new_version))
 
