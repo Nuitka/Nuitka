@@ -19,6 +19,10 @@ and maintain the Nuitka compiler.
   - Do NOT use bare `except:` (use `except Exception:` or `except BaseException:` if intended).
   - Do NOT use `re.VERBOSE` (avoid regular expressions that require runtime overhead or large
     definitions).
+  - Do NOT use keyword-only arguments separator `*` (e.g. `def foo(a, *, b)`) - *required for Python
+    2 compatibility*.
+  - Do NOT use positional-only arguments separator `/` (e.g. `def foo(a, /, b)`) - *required for
+    Python \< 3.8 compatibility*.
 - **Coding Preferences:**
   - **Preferred:** List comprehensions are preferred over `map`, `filter`, and `apply` for
     readability.
