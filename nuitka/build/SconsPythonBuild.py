@@ -86,8 +86,8 @@ not satisfied!"""
 def applyPythonBuildSettings(env):
     env.Append(CPPPATH=list(_detectPythonHeaderPath(env)))
 
-    if env.nuitka_python:
-        env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
+    if env.monolithpy:
+        env.Append(CPPDEFINES=["_MONOLITHPY"])
 
     if env.static_libpython:
         env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])

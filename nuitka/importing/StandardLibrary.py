@@ -103,7 +103,8 @@ def getStandardLibraryPaths():
             except ImportError:
                 pass
             else:
-                if _ctypes.__file__ is not None:
+                # Some flavors like MonolithPy, do not have a "__file__" attribute.
+                if getattr(_ctypes, "__file__", None) is not None:
                     stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
         getStandardLibraryPaths.result = tuple(
