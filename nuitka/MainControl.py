@@ -40,6 +40,7 @@ from nuitka.freezer.IncludedEntryPoints import (
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
+from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import locateModule, setupImportingFromOptions
 from nuitka.importing.Recursion import (
     scanIncludedPackage,
@@ -168,7 +169,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
-from nuitka.utils.MacOSDmg import createDmgFile
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka

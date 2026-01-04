@@ -25,15 +25,14 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     getStandaloneDirectoryPath,
 )
-
-from .FileOperations import (
+from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     copyFile,
     makePath,
     openTextFile,
     putTextFileContents,
 )
-from .Images import convertImageToIconFormat
+from nuitka.utils.Images import convertImageToIconFormat
 
 
 def _writePlist(filename, data):
@@ -85,7 +84,7 @@ exec "./$TARGET_BINARY" "$@"
 
 
 def createPlistInfoFile(logger, onefile, force_console):
-    # Many details, pylint: disable=too-many-locals
+    # Many details, pylint: disable=too-many-branches,too-many-locals
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
             getStandaloneDirectoryPath(bundle=True, real=False)

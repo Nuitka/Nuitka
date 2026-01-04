@@ -9,15 +9,15 @@ from nuitka.OutputDirectories import (
     getResultBasePath,
     getStandaloneDirectoryPath,
 )
-
-from .Execution import (
+from nuitka.utils.Execution import (
     executeToolChecked,
     filterOutputByLine,
     getExecutablePath,
 )
-from .FileOperations import changeFilenameExtension, deleteFile
+from nuitka.utils.FileOperations import changeFilenameExtension, deleteFile
+from nuitka.utils.Signing import addMacOSCodeSignature
+
 from .MacOSApp import getMacOSIconPaths
-from .Signing import addMacOSCodeSignature
 
 
 def _filterCreateDmgOutput(stderr):
@@ -48,6 +48,7 @@ def createDmgFile(logger):
     dmg_path = changeFilenameExtension(app_bundle_path, ".dmg")
     deleteFile(dmg_path, must_exist=False)
 
+    # spell-checker: ignore volname,volicon
     command = [
         create_dmg_path,
         "--volname",
@@ -86,7 +87,7 @@ def createDmgFile(logger):
         stderr_filter=_filterCreateDmgOutput,
     )
 
-    addMacOSCodeSignature(filenames=[dmg_path])
+    addMacOSCodeSignature(filenames=[dmg_path], entitlements_filename=None)
 
     if os.path.exists(dmg_path):
         logger.info(
