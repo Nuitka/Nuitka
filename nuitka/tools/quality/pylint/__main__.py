@@ -5,8 +5,8 @@
 """Main program for PyLint checker tool."""
 
 import time
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, setupPATH
 from nuitka.tools.quality.Git import addGitArguments, getGitPaths
@@ -80,7 +80,7 @@ def _resolveFilenames(options, positional_args):
 
 
 def _parseArguments():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     addGitArguments(parser)
 

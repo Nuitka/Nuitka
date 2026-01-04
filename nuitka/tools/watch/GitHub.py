@@ -80,9 +80,9 @@ if __name__ == "__main__":
     # TODO: This runner should be directly used from nuitka-watch binary,
     # but for development purposes, we keep it separately accessible.
 
-    from optparse import OptionParser
+    from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--desc",

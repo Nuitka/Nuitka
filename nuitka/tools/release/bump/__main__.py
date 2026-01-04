@@ -5,8 +5,8 @@
 """Make version bump for Nuitka."""
 
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
@@ -59,7 +59,7 @@ def getBumpedVersion(mode, old_version):
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--mode",
