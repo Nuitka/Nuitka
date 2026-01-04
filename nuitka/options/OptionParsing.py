@@ -1689,7 +1689,7 @@ windows_group.add_option(
     action="store",
     dest="console_mode",
     choices=("force", "disable", "attach", "hide"),
-    metavar="CONSOLE_MODE",
+    metavar="WINDOWS_CONSOLE_MODE",
     default=None,
     help="""\
 Select console mode to use. Default mode is 'force' and creates a
@@ -1794,6 +1794,19 @@ When compiling for macOS, create a bundle rather than a plain binary
 application. This is the only way to unlock the disabling of console,
 get high DPI graphics, etc. and implies standalone mode. Defaults to
 off.""",
+)
+
+macos_group.add_option(
+    "--macos-app-console-mode",
+    action="store",
+    dest="macos_app_console_mode",
+    choices=("force", "disable"),
+    metavar="MACOS_APP_CONSOLE_MODE",
+    default=None,
+    help="""\
+Select console mode to use. Default mode is 'disable' and creates no
+console window. With 'force' it will create a console window when
+launched from Finder. Default is 'disable'.""",
 )
 
 macos_group.add_option(

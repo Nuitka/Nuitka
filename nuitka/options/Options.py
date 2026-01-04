@@ -2231,6 +2231,11 @@ def getWindowsConsoleMode():
     return options.console_mode or "force"
 
 
+def getMacOSAppConsoleMode():
+    """:returns: str from ``--macos-app-console-mode``"""
+    return options.macos_app_console_mode or "disable"
+
+
 def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
