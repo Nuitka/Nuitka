@@ -355,12 +355,12 @@ def buildFunctionNode(provider, node, source_ref):
             function_body=code_body, function_statements_body=function_statements_body
         )
 
-    if python_version >= 0x3c0 and node.type_params:
+    if python_version >= 0x3C0 and node.type_params:
         function_statements_body = _wrapWithTypeAnnotations(
             provider=code_body,
             type_params=node.type_params,
             body=function_statements_body,
-            source_ref=source_ref
+            source_ref=source_ref,
         )
 
     if function_statements_body.isStatementsFrame():
