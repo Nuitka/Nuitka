@@ -4,6 +4,7 @@
 """For macOS application bundle creation"""
 
 import os
+import subprocess
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import (
@@ -36,6 +37,17 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Images import convertImageToIconFormat
 
 
+def _getTerminalLauncherStubSourcePath():
+    """Get the path to the terminal launcher stub C source file."""
+    return os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "build",
+        "static_src",
+        "TerminalLauncherStub.c",
+    )
+
+
 def _writePlist(filename, data):
     """Helper to write a plist file for macOS."""
     # Late import, not always used.
@@ -50,40 +62,6 @@ def _writePlist(filename, data):
         plist_file.write(plist_contents)
 
 
-_macos_app_console_script = """
-#!/bin/bash
-
-# 1. Derive the binary name from this script's name
-#    basename "$0" gets the filename (e.g., "MyApp" or "MyApp.sh")
-SCRIPT_NAME=$(basename "$0")
-
-# 2. Check execution context (GUI vs Terminal)
-if [ ! -t 1 ]; then
-    # CASE A: GUI Launch (Finder/Dock)
-    # We are invisible. Re-launch THIS script inside Terminal.app.
-    # "$0" ensures we re-run this exact script file.
-    exec open -a Terminal "$0"
-fi
-
-# 3. CASE B: Terminal Launch
-# We are now visible. Fix the environment.
-
-#    Get the bundle directory (Contents/MacOS)
-DIR=$(cd "$(dirname "$0")"; pwd)
-
-#    Change Directory to the bundle so relative paths work
-cd "$DIR"
-
-#    "${variable%.sh}" strips the .sh suffix (if any exists)
-#    So "MyApp.sh" becomes "MyApp", and "MyApp" stays "MyApp"
-TARGET_BINARY="${SCRIPT_NAME%.sh}"
-
-#    Execute the actual binary, passing along any arguments ("$@")
-#    We use 'exec' so the binary takes over this process ID.
-exec "./$TARGET_BINARY" "$@"
-"""
-
-
 def createPlistInfoFile(logger, onefile, force_console):
     # Many details, pylint: disable=too-many-branches,too-many-locals
     if isStandaloneMode():
@@ -96,20 +74,12 @@ def createPlistInfoFile(logger, onefile, force_console):
     result_filename = getResultFullpath(onefile=onefile, real=True)
     app_name = getMacOSAppName() or os.path.basename(result_filename)
 
-    if force_console:
-        script_filename = result_filename + ".sh"
-
-        putTextFileContents(
-            filename=script_filename,
-            contents=_macos_app_console_script,
-        )
-        addFileExecutablePermission(script_filename)
-
-        executable_name = os.path.basename(script_filename)
-    else:
-        executable_name = os.path.basename(
-            getResultFullpath(onefile=isOnefileMode(), real=True)
-        )
+    # The executable name is always the binary name. When force_console is True,
+    # createTerminalLauncherStub will be called later to replace the binary with
+    # a compiled launcher stub that opens Terminal if needed.
+    executable_name = os.path.basename(
+        getResultFullpath(onefile=isOnefileMode(), real=True)
+    )
 
     signed_app_name = getMacOSSignedAppName() or app_name
     app_version = getMacOSAppVersion() or "1.0"
@@ -197,43 +167,43 @@ def createPlistInfoFile(logger, onefile, force_console):
     _writePlist(filename, infos)
 
 
-_terminal_launcher_script_template = """\
-#!/bin/bash
-NUITKA_BINARY='%s'
-
-# Check if stdout is associated with a terminal
-if [ ! -t 1 ]; then
-    # Launched via GUI (Finder/Dock) - relaunch in Terminal
-    exec open -a Terminal "$0"
-fi
-
-# Running in Terminal - change to bundle directory and exec binary
-DIR=$(cd "$(dirname "$0")"; pwd)
-cd "$DIR"
-exec "./${NUITKA_BINARY}_bin"
-"""
-
-
-def createTerminalLauncherScript(macos_dir, binary_name):
-    """Create a shell script that launches the binary in Terminal if needed.
+def createTerminalLauncherStub(macos_dir, binary_name, target_arch=None):
+    """Create a compiled stub that launches the binary in Terminal if needed.
 
     When a macOS app bundle is launched from Finder (not from Terminal), stdin/stdout
-    are not connected to a terminal. This script detects that and relaunches the app
-    in Terminal.app, then execs the actual binary.
+    are not connected to a terminal. This compiled stub detects that and relaunches
+    the app in Terminal.app, then execs the actual binary.
 
     Args:
         macos_dir: Path to the Contents/MacOS directory in the app bundle.
         binary_name: The original name of the binary (will be used for launcher).
+        target_arch: Target architecture (arm64, x86_64, or None for native).
+
+    Returns:
+        True if successful, False otherwise.
     """
-    script_content = _terminal_launcher_script_template % binary_name
+    stub_source = _getTerminalLauncherStubSourcePath()
+    stub_output = os.path.join(macos_dir, binary_name)
 
-    script_path = os.path.join(macos_dir, binary_name)
+    # Build clang command
+    clang_cmd = ["clang", "-O2", "-o", stub_output, stub_source]
 
-    with openTextFile(filename=script_path, mode="w") as script_file:
-        script_file.write(script_content)
+    # Add architecture flag if specified
+    if target_arch is not None:
+        clang_cmd.extend(["-arch", target_arch])
 
-    # Make the script executable
-    os.chmod(script_path, 0o755)
+    # Add macOS deployment target for compatibility
+    clang_cmd.extend(["-mmacosx-version-min=10.13"])
+
+    try:
+        subprocess.check_call(
+            clang_cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 
 def createEntitlementsInfoFile():

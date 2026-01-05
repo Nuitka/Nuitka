@@ -8,7 +8,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
-from nuitka.freezer.MacOSApp import createPlistInfoFile, createTerminalLauncherScript
+from nuitka.freezer.MacOSApp import createPlistInfoFile, createTerminalLauncherStub
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
@@ -596,11 +596,15 @@ executable by Windows due to its limitations."""
 
 
 def executePostProcessingMacOSAppConsoleMode(result_filename):
-    """Create terminal launcher script for macOS app bundles.
+    """Create terminal launcher stub for macOS app bundles.
 
     This must be called AFTER standalone DLL processing is complete, since
-    the launcher script is not a Mach-O binary and install_name_tool cannot
-    operate on it.
+    the launcher stub compilation happens after the main binary is built.
+
+    The stub is a compiled Mach-O binary (not a shell script) that:
+    1. Detects if running in a terminal (via isatty)
+    2. If not, launches Terminal.app with itself
+    3. If yes, execs the actual binary (with _bin suffix)
 
     Args:
         result_filename: Path to the main binary in the app bundle.
@@ -614,12 +618,18 @@ def executePostProcessingMacOSAppConsoleMode(result_filename):
         renamed_binary = os.path.join(macos_dir, binary_name + "_bin")
         renameFile(result_filename, renamed_binary)
 
-        # Create the launcher script with the original binary name
-        createTerminalLauncherScript(macos_dir, binary_name)
-
-        postprocessing_logger.info(
-            "Created terminal launcher script for macOS app bundle."
-        )
+        # Create the compiled launcher stub with the original binary name
+        if createTerminalLauncherStub(macos_dir, binary_name):
+            postprocessing_logger.info(
+                "Created terminal launcher stub for macOS app bundle."
+            )
+        else:
+            postprocessing_logger.warning(
+                "Failed to compile terminal launcher stub. "
+                "Restoring original binary."
+            )
+            # Restore the original binary name on failure
+            renameFile(renamed_binary, result_filename)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
