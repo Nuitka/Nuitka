@@ -17,8 +17,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <limits.h>
 #include <mach-o/dyld.h>
 #include <sys/param.h>
+
+/* Use MAXPATHLEN if available, otherwise fall back to PATH_MAX or a default */
+#ifndef MAXPATHLEN
+#ifdef PATH_MAX
+#define MAXPATHLEN PATH_MAX
+#else
+#define MAXPATHLEN 4096
+#endif
+#endif
 
 /* Get the path to this executable */
 static char *get_executable_path(void) {
@@ -62,14 +72,24 @@ int main(int argc, char *argv[]) {
     if (!isatty(STDOUT_FILENO)) {
         /*
          * Not running in a terminal (launched from Finder/Dock).
-         * Relaunch this executable in Terminal.app.
+         * Relaunch this executable in Terminal.app using execv to avoid
+         * shell injection vulnerabilities.
          */
-        char open_cmd[MAXPATHLEN + 64];
-        snprintf(open_cmd, sizeof(open_cmd), "open -a Terminal \"%s\"", exe_path);
+        char *open_args[] = {
+            "open",
+            "-a",
+            "Terminal",
+            exe_path,
+            NULL
+        };
 
-        /* Use system() to launch Terminal with this executable */
-        int result = system(open_cmd);
-        return (result == 0) ? 0 : 1;
+        /* Use execvp to launch Terminal with this executable directly,
+         * bypassing the shell entirely for security. */
+        execvp("open", open_args);
+
+        /* If execvp returns, it failed */
+        fprintf(stderr, "Error: Could not launch Terminal\n");
+        return 1;
     }
 
     /*
