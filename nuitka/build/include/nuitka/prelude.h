@@ -392,8 +392,52 @@ typedef long Py_hash_t;
  * The Python 3.7.0 release on at Linux doesn't work this way either, was
  * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
  * become runtime incompatible.
+ *
  */
-#if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
+
+static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
+    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
+        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+    }
+}
+
+static inline void Nuitka_Py_TriggerGC(struct _gc_runtime_state *gcstate) {
+    PyThreadState *tstate = _PyThreadState_GET();
+    if (gcstate->enabled && gcstate->young.threshold != 0 && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+        !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+}
+#undef Nuitka_GC_Track
+static inline void Nuitka_GC_Track(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    assert(!_PyObject_GC_IS_TRACKED(op));
+#ifdef Py_GIL_DISABLED
+    _PyObject_SET_GC_BITS(op, _PyGC_BITS_TRACKED);
+#else
+    PyGC_Head *gc = _Py_AS_GC(op);
+    assert((gc->_gc_prev & _PyGC_PREV_MASK_COLLECTING) == 0);
+
+    struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+    PyGC_Head *generation0 = &gcstate->young.head;
+    PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+    _PyGCHead_SET_NEXT(last, gc);
+    _PyGCHead_SET_PREV(gc, last);
+    uintptr_t not_visited = 1 ^ gcstate->visited_space;
+    gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+    generation0->_gc_prev = (uintptr_t)gc;
+    gcstate->young.count++; /* number of tracked GC objects */
+    gcstate->heap_size++;
+    if (gcstate->young.count > gcstate->young.threshold) {
+        Nuitka_Py_TriggerGC(gcstate);
+    }
+#endif
+}
+
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
+#undef _PyObject_GC_TRACK
+#elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK

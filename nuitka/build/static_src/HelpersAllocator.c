@@ -642,7 +642,7 @@ static Py_ssize_t Nuitka_gc_collect_generations(PyThreadState *tstate) {
     return n;
 }
 
-#else
+#elif PYTHON_VERSION < 0x3e0
 
 static void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
     if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
