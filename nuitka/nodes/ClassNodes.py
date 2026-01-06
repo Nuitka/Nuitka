@@ -8,6 +8,7 @@ The classes are are at the core of the language and have their complexities.
 """
 
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import (
@@ -149,7 +150,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         return tuple(self.static_attributes)
 
     def addStaticAttribute(self, static_attribute):
-        self.static_attributes.append(static_attribute)
+        self.static_attributes.add(static_attribute)
 
     def getStaticAttributes(self):
         return tuple(self.static_attributes)
