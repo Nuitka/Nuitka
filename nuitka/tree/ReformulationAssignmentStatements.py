@@ -131,6 +131,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
+
         # Handle "__static_attributes__" for Python 3.13+
         if (
             python_version >= 0x3D0
@@ -138,7 +139,8 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             and (lookup_source.variable_name == "self")
         ):
             class_creation = provider.getContainingClassDictCreation()
-            class_creation.addStaticAttribute(attribute_name)
+            if class_creation is not None:
+                class_creation.addStaticAttribute(attribute_name)
 
         return StatementAssignmentAttribute(
             expression=lookup_source,
