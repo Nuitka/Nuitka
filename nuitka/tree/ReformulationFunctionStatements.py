@@ -232,6 +232,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
 def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
     assignments = []
+
     for type_param in type_params:
         type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
 
@@ -243,7 +244,6 @@ def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
         )
         assignments.append(assign)
 
-    assert body is not None
     body.setChildStatements(tuple(assignments) + body.subnode_statements)
     return body
 
