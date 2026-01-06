@@ -77,7 +77,6 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements,
     mangleName,
 )
 
@@ -232,13 +231,8 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
 
 def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
-    helper_name = "create_type_annotations"
-
-    outline_body = ExpressionOutlineFunction(
-        provider=provider, name=helper_name, source_ref=source_ref
-    )
-
     assignments = []
+
     for type_param in type_params:
         type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
 
@@ -250,13 +244,8 @@ def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
         )
         assignments.append(assign)
 
-    outline_body.setChildBody(
-        makeStatementsSequenceFromStatements(
-            assignments, StatementReturn(expression=body, source_ref=source_ref)
-        )
-    )
-
-    return outline_body
+    body.setChildStatements(tuple(assignments) + body.subnode_statements)
+    return body
 
 
 def buildFunctionNode(provider, node, source_ref):
@@ -366,6 +355,14 @@ def buildFunctionNode(provider, node, source_ref):
             function_body=code_body, function_statements_body=function_statements_body
         )
 
+    if python_version >= 0x3C0 and node.type_params:
+        function_statements_body = _wrapWithTypeAnnotations(
+            provider=code_body,
+            type_params=node.type_params,
+            body=function_statements_body,
+            source_ref=source_ref,
+        )
+
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
             statement=function_statements_body
@@ -386,12 +383,6 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     # Add wrapping for function with generic types to be provided to the
-    # function body.
-    if python_version >= 0x3C0 and node.type_params:
-        function_creation = _wrapWithTypeAnnotations(
-            provider, node.type_params, function_creation, source_ref
-        )
-
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 
     # CPython 2.x made these optional, but secretly applies them when it does
