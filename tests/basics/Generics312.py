@@ -1,9 +1,10 @@
-def has_generic[T]():
+def someGenericFunction[T]():
     print("hello", T)
 
 
-has_generic()
+someGenericFunction()
 
+# Verify the name didn't leak.
 try:
     print(T)
 except NameError:
@@ -12,9 +13,9 @@ except NameError:
 T = 1
 
 
-def overwrites_generic[T]():
+def someGenericFunctionShadowingGlobal[T]():
     print(T)
 
 
-overwrites_generic()
+someGenericFunctionShadowingGlobal()
 print(T)
