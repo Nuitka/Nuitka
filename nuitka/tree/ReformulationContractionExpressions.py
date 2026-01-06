@@ -76,6 +76,9 @@ from .TreeHelpers import (
 
 
 def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
+    if python_version > 0x3C0:
+        source_ref = source_ref.atLineNumber(qual.iter.lineno)
+
     if getattr(qual, "is_async", 0):
         result = ExpressionAsyncIter(
             value=buildNode(provider=provider, node=qual.iter, source_ref=source_ref),
@@ -517,7 +520,8 @@ def _buildContractionBodyNode(
                 source=ExpressionTempVariableRef(
                     variable=tmp_value_variable, source_ref=source_ref
                 ),
-                source_ref=source_ref,
+                # TODO: It might be most correct to use only this one inside of the loop iteration.
+                source_ref=source_ref.atLineNumber(qual.target.lineno),
             ),
         ]
 
