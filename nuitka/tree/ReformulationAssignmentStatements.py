@@ -142,6 +142,16 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if class_creation is not None:
                 class_creation.addStaticAttribute(attribute_name)
 
+        # Handle "__static_attributes__" for Python 3.13+
+        if (
+            python_version >= 0x3D0
+            and lookup_source.isExpressionVariableNameRef()
+            and (lookup_source.variable_name == "self")
+        ):
+            class_creation = provider.getContainingClassDictCreation()
+            if class_creation is not None:
+                class_creation.addStaticAttribute(attribute_name)
+
         return StatementAssignmentAttribute(
             expression=lookup_source,
             attribute_name=mangleName(attribute_name, provider),

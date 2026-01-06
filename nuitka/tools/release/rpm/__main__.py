@@ -59,7 +59,7 @@ def main():
             "Building source distribution for %s %s"
             % (rpm_project_name, nuitka_version)
         )
-        # spell-checker: ignore gztar
+        # spell-checker: ignore gztar,rpmlintrc
         assert os.system("%s ../setup.py sdist --formats=gztar" % sys.executable) == 0
         nuitka_dist_filename = "Nuitka%s-%s.tar.gz" % (spec_suffix, nuitka_version)
         renameFile(
