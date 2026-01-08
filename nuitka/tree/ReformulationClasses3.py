@@ -186,6 +186,15 @@ def buildClassNode3(provider, node, source_ref):
         temp_scope=temp_scope, name="prepared", temp_type="object"
     )
 
+    type_variables = []
+    if python_version >= 0x3C0 and node.type_params:
+        for type_param in node.type_params:
+            temp_var = outline_body.allocateTempVariable(
+                temp_scope=temp_scope, name="type_variable", temp_type="object"
+            )
+            data = (type_param, temp_var)
+            type_variables.append(data)
+
     # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
@@ -322,16 +331,18 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if python_version >= 0x3C0 and node.type_params:
-        for type_param in node.type_params:
-            statements.append(
-                StatementAssignmentVariableName(
-                    provider=class_creation_function,
-                    source=buildNode(class_creation_function, type_param, source_ref),
-                    variable_name=type_param.name,
+    for type_param, type_param_var in type_variables:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                source=ExpressionTempVariableRef(
+                    variable=type_param_var,
                     source_ref=source_ref,
-                )
+                ),
+                variable_name=type_param.name,
+                source_ref=source_ref,
             )
+        )
 
     statements.append(body)
 
@@ -493,22 +504,19 @@ def buildClassNode3(provider, node, source_ref):
     statements = new_statements
 
     if has_bases:
-        if python_version >= 0x3C0 and node.type_params:
+        if type_variables:
             annotation_outline = ExpressionOutlineFunction(
                 provider=provider, name="class_annotations", source_ref=source_ref
             )
             outline_statements = []
-            # TODO: Deduplicate this code
-            for type_param in node.type_params:
-                # FIXME: This creates multiple type variable objects for the
-                # same type variable, which has two problems:
-                # 1. It's incompatible with CPython (T in a base should be the
-                # same object as T in the body).
-                # 2. It's slower and takes up more memory.
+            for type_param, temp_type_var in type_variables:
                 outline_statements.append(
                     StatementAssignmentVariableName(
                         provider=annotation_outline,
-                        source=buildNode(annotation_outline, type_param, source_ref),
+                        source=ExpressionTempVariableRef(
+                            variable=temp_type_var,
+                            source_ref=source_ref,
+                        ),
                         variable_name=type_param.name,
                         source_ref=source_ref,
                     )
@@ -810,7 +818,18 @@ def buildClassNode3(provider, node, source_ref):
     if type_params_expressions:
         tmp_variables.append(tmp_type_params)
 
+    type_variable_assignments = []
+    for type_param, type_param_var in type_variables:
+        type_variable_assignments.append(
+            makeStatementAssignmentVariable(
+                variable=type_param_var,
+                source=buildNode(provider, type_param, source_ref),
+                source_ref=source_ref,
+            )
+        )
+
     body = makeStatementsSequenceFromStatements(
+        *type_variable_assignments,
         makeTryFinallyReleaseStatement(
             provider=outline_body,
             tried=statements,
