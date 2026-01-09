@@ -3,6 +3,11 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
+#ifdef _MONOLITHPY
+// MonolithPy VFS support needs to be included as early as possible.
+#include "mp_embed.h"
+#endif
+
 #ifdef __NUITKA_NO_ASSERT__
 #undef NDEBUG
 #define NDEBUG

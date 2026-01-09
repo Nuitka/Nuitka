@@ -102,6 +102,18 @@ def setupImportingFromOptions():
     if states.is_debug and not isMonolithPy():
         _checkRaisingBuiltinComplete()
 
+    if isMonolithPy():
+        from nuitka.HardImportRegistry import (
+            addModuleDynamicBuiltinHard,
+            isHardModule,
+        )
+
+        for builtin_module_name in sorted(builtin_module_names):
+            builtin_module_name = ModuleName(builtin_module_name)
+
+            if not isHardModule(builtin_module_name):
+                addModuleDynamicBuiltinHard(builtin_module_name)
+
     if getOutputFolderName() is not None:
         source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
@@ -949,6 +961,12 @@ def _findModuleInPath(module_name, logger):
     if package_name is None and isBuiltinModuleName(module_name):
         return module_name, None, "built-in"
 
+    if package_name is not None:
+        candidate = package_name.getChildNamed(module_name)
+
+        if isBuiltinModuleName(candidate):
+            return candidate, None, "built-in"
+
     # These are existing in the standard library but are effectively inline
     # already and should be avoided to look at.
     if package_name == "importlib" and module_name in (
@@ -1071,7 +1089,9 @@ def locateModule(module_name, parent_package, level, logger=None):
         type(module_package) is ModuleName and module_package != ""
     ), ("Must not attempt to locate %r" % module_name)
 
-    if module_filename is not None:
+    if module_kind == "built-in":
+        module_name = found_module_name
+    elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
         module_name = found_module_name
 
