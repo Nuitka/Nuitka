@@ -23,6 +23,11 @@
 #include <windows.h>
 #endif
 
+// Toggle to control the extension module preservation hack.
+#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#define _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK 1
+#endif
+
 extern PyTypeObject Nuitka_Loader_Type;
 
 struct Nuitka_LoaderObject {
@@ -825,7 +830,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
     char const *old_context = NuitkaImport_SwapPackageContext(package);
 
-#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#if _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK
     char const *base_name = strrchr(full_name, '.');
     PyObject *base_name_obj = NULL;
     PyObject *prefix_name_obj = NULL;
@@ -1060,18 +1065,23 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
 // See above, we need to correct modules imported if we don't successfully swap
 // the package context.
-#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#if _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK
     if (preserved_basename_module != NULL) {
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-        PRINT_STRING("Handling for preservation: ");
+        PRINT_STRING("Module Preservation: Handling preservation for extension module ");
         PRINT_ITEM_LINE(full_name_obj);
-        PRINT_STRING("Restoring preserved module: ");
+        PRINT_STRING("Module Preservation: Restoring preserved module ");
         PRINT_ITEM(base_name_obj);
-        if (Nuitka_HasModule(tstate, base_name_obj)) {
-            PRINT_STRING(" changes ");
-            PRINT_ITEM(Nuitka_GetModule(tstate, base_name_obj));
+
+        PyObject *current = Nuitka_GetModule(tstate, base_name_obj);
+        if (current == preserved_basename_module) {
+            PRINT_STRING(" (unchanged, identical object)");
+        } else if (current != NULL) {
+            PRINT_STRING(" (overwriting current value ");
+            PRINT_ITEM(current);
+            PRINT_STRING(")");
         }
-        PRINT_STRING(" -> ");
+        PRINT_STRING(" with preserved value ");
         PRINT_ITEM_LINE(preserved_basename_module);
 #endif
         Nuitka_SetModule(base_name_obj, preserved_basename_module);
@@ -1089,15 +1099,12 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
             PyObject *base_name_prefix = BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(base_name_obj, const_str_dot);
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-            PRINT_STRING("Scanning for modules needing correction: ");
-            PRINT_ITEM_LINE(base_name_prefix);
+            PRINT_STRING("Module Preservation: Scanning for modules needing correction (renaming) under '");
+            PRINT_ITEM(base_name_prefix);
+            PRINT_STRING("'\n");
 #endif
             while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
                 // TODO: Should have nuitka_bool return values for these as well maybe.
-                if (preserved_sub_modules != NULL && DICT_HAS_ITEM(tstate, preserved_sub_modules, key) == 1) {
-                    continue;
-                }
-
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
 
                 if (CHECK_IF_TRUE(starts_with_result) == 1) {
@@ -1106,12 +1113,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
                 Py_DECREF(starts_with_result);
             }
-
-            Py_XDECREF(preserved_sub_modules);
         }
 
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-        PRINT_STRING("Correction needed:");
+        PRINT_STRING("Module Preservation: The following modules need correction: ");
         PRINT_ITEM_LINE(need_correction);
 #endif
 
@@ -1126,16 +1131,44 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             PyObject *module_to_correct = Nuitka_GetModule(tstate, module_to_correct_name);
 
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_STRING("Module Preservation: Relocating (moving) ");
             PRINT_ITEM(module_to_correct_name);
-            PRINT_STRING(" -> ");
+            PRINT_STRING(" to ");
             PRINT_ITEM(correct_module_name);
-            PRINT_STRING(" changes ");
-            PRINT_ITEM_LINE(module_to_correct);
+            PRINT_STRING(" (Module object: ");
+            PRINT_ITEM(module_to_correct);
+            PRINT_STRING(")\n");
 #endif
             Nuitka_SetModule(correct_module_name, module_to_correct);
 
             Nuitka_DelModule(tstate, module_to_correct_name);
         }
+
+        if (preserved_sub_modules != NULL) {
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            while (Nuitka_DictNext(preserved_sub_modules, &pos, &key, &value)) {
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+                PRINT_STRING("Module Preservation: Restoring preserved submodule: ");
+                PRINT_ITEM(key);
+
+                PyObject *current = Nuitka_GetModule(tstate, key);
+                if (current == value) {
+                    PRINT_STRING(" (unchanged, identical object)\n");
+                } else if (current != NULL) {
+                    PRINT_STRING(" (changed from ");
+                    PRINT_ITEM(current);
+                    PRINT_STRING(")\n");
+                } else {
+                    PRINT_STRING(" (new)\n");
+                }
+#endif
+                Nuitka_SetModule(key, value);
+            }
+        }
+
+        Py_XDECREF(preserved_sub_modules);
 
         Py_DECREF(base_name_obj);
         Py_DECREF(prefix_name_obj);
