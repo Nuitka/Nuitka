@@ -71,7 +71,7 @@
         "runOn": "folderOpen"
       },
       "presentation": {
-        "reveal": "silent",
+        "reveal": "never",
         "panel": "dedicated"
       }
     }
