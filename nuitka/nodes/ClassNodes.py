@@ -246,6 +246,7 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
         # Need to use private CPython API unless we want to re-implement it, pylint: disable=protected-access
         import ctypes
 
+        # spell-checker: ignore pythonapi
         ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = (
             ctypes.py_object,
             ctypes.py_object,
@@ -265,7 +266,7 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
     def computeExpression(self, trace_collection):
         # TODO: Can use this to specialize to the correct metaclass at compile
         # time.
-        # metacls = self._calculateMetaClass()
+        # meta_class = self._calculateMetaClass()
 
         # TODO: Should be compile time computable if bases and dict are
         # allowing that to happen into a dedicated class creation node,
