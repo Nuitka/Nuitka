@@ -13,7 +13,6 @@ from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
-    getMacOSAppConsoleMode,
     getProductVersionTuple,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
@@ -557,11 +556,7 @@ Error, expected 'libpython dependency not found. Please report the bug."""
         )
 
     if shallCreateAppBundle():
-        createPlistInfoFile(
-            logger=postprocessing_logger,
-            onefile=False,
-            force_console=getMacOSAppConsoleMode() == "force",
-        )
+        createPlistInfoFile(logger=postprocessing_logger)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.

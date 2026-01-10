@@ -117,9 +117,10 @@ def buildExtSliceNode(provider, node, source_ref):
 
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_ref):
     # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, and has many branches due to the many cases
-    # dealt with and it is return driven.
-    # pylint: disable=too-many-branches,too-many-locals
+    # unpacked detail values, and has many branches due to the many cases dealt
+    # with and it is return driven.
+
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
         return StatementAssignmentVariableName(
@@ -130,6 +131,16 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
+
+        # Handle "__static_attributes__" for Python 3.13+
+        if (
+            python_version >= 0x3D0
+            and lookup_source.isExpressionVariableNameRef()
+            and (lookup_source.variable_name == "self")
+        ):
+            class_creation = provider.getContainingClassDictCreation()
+            if class_creation is not None:
+                class_creation.addStaticAttribute(attribute_name)
 
         return StatementAssignmentAttribute(
             expression=lookup_source,

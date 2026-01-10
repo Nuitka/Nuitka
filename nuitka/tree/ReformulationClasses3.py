@@ -29,7 +29,11 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    ExpressionConstantTupleRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
@@ -303,6 +307,19 @@ def buildClassNode3(provider, node, source_ref):
         )
         statements.append(assign)
 
+    if python_version >= 0x3D0:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__firstlineno__",
+                source=ExpressionConstantIntRef(
+                    constant=node.lineno,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
             StatementLocalsDictOperationSet(
@@ -316,6 +333,20 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements.append(body)
+
+    if python_version >= 0x3D0:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__static_attributes__",
+                source=ExpressionConstantTupleRef(
+                    constant=class_creation_function.getStaticAttributes(),
+                    user_provided=False,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
 
     needs_orig_bases = _needsOrigBases(static_qualname)
 

@@ -36,6 +36,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
     areSamePaths,
     containsPathElements,
     copyFileWithPermissions,
@@ -824,6 +825,10 @@ def _handleDataFile(included_datafile, standalone_entry_points):
 
         with openTextFile(filename=dest_path, mode="wb") as output_file:
             output_file.write(included_datafile.data)
+
+        if "script" in included_datafile.tags:
+            addFileExecutablePermission(dest_path)
+
     elif included_datafile.kind == "data_file":
         makePath(os.path.dirname(dest_path))
 

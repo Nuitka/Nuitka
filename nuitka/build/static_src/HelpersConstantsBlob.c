@@ -493,7 +493,7 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
     PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
 
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3d0 || (PYTHON_VERSION >= 0x3c7 && _NUITKA_EXE_MODE)
     _PyUnicode_InternImmortal(tstate->interp, &u);
 #elif PYTHON_VERSION >= 0x3c0
     if (is_ascii) {

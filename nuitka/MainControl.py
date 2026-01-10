@@ -40,6 +40,7 @@ from nuitka.freezer.IncludedEntryPoints import (
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
+from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import locateModule, setupImportingFromOptions
 from nuitka.importing.Recursion import (
@@ -1134,6 +1135,7 @@ def _main():
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
+    addIncludedDataFilesFromMacOSAppOptions()
     addIncludedDataFilesFromPlugins()
 
     dumpTreeXML()

@@ -162,7 +162,7 @@ def initStandaloneDirectory(logger):
             path=changeFilenameExtension(standalone_dir_real, ".app"),
             logger=logger,
             ignore_errors=True,
-            extra_recommendation=None,
+            extra_recommendation="Stop previous binary.",
         )
 
     resetDirectory(
