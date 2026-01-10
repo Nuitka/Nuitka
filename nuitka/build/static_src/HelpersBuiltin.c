@@ -261,8 +261,6 @@ PyObject *BUILTIN_INPUT(PyThreadState *tstate, PyObject *prompt) {
     if (stdin_obj == Py_None) {
         return Nuitka_Win32_InputDialog(tstate, prompt);
     }
-
-    assert(false);
 #endif
 
     NUITKA_ASSIGN_BUILTIN(input);
