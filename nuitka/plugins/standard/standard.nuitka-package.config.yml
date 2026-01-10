@@ -4883,6 +4883,11 @@
         - 'pyglet.text'
         - 'pyglet.window'
 
+- module-name: 'pygments.lexers' # checksum: 1851bf53
+  implicit-imports:
+    - depends:
+        - '.*'
+
 - module-name: 'pygments.styles' # checksum: 1851bf53
   implicit-imports:
     - depends:
