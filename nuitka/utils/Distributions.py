@@ -254,8 +254,20 @@ def _getDistributionInstallerFileContents(distribution):
     return installer_name
 
 
-def getDistributionTopLevelPackageNames(distribution):
+_distribution_top_level_cache = {}
+
+
+def getDistributionTopLevelPackageNames(distribution, deep):
     """Returns the top level package names for a distribution."""
+
+    # Many cases to deal with, pylint: disable=too-many-branches
+
+    # Using caching per distribution to avoid reading the same files over and
+    # over.
+    key = (distribution, deep)
+
+    if key in _distribution_top_level_cache:
+        return _distribution_top_level_cache[key]
 
     result = OrderedSet()
 
@@ -274,7 +286,17 @@ def getDistributionTopLevelPackageNames(distribution):
             if hasModule(module_name)
         )
 
-    if not result:
+        if result:
+            result = tuple(result)
+
+            # If we found it via top level text, it applies to deep or not deep,
+            # so cache it for both.
+            _distribution_top_level_cache[distribution, False] = result
+            _distribution_top_level_cache[distribution, True] = result
+
+            return result
+
+    if deep:
         # If the file is not present or not satisfactory, fall back to scanning
         # all files in the distribution.
 
@@ -313,10 +335,14 @@ def getDistributionTopLevelPackageNames(distribution):
             )
         )
 
-    if not result:
-        result = (getDistributionName(distribution),)
+    # In case we found nothing, fall back to distribution name, which
+    # often is a mirror of the package name.
+    if not result and deep:
+        result.add(getDistributionName(distribution))
 
-    return tuple(result)
+    _distribution_top_level_cache[key] = tuple(result)
+
+    return _distribution_top_level_cache[key]
 
 
 def _get_pkg_resources_module():
@@ -386,7 +412,9 @@ is typically caused by corruption of its installation."""
             _getDistributionPath(distribution),
         )
 
-        for package_name in getDistributionTopLevelPackageNames(distribution):
+        for package_name in getDistributionTopLevelPackageNames(
+            distribution, deep=True
+        ):
             # Protect against buggy packages.
             if not checkModuleName(package_name):
                 continue

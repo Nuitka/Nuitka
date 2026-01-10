@@ -16,7 +16,11 @@ from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Distributions import (
+    getDistributionsFromModuleName,
+    getDistributionTopLevelPackageNames,
+)
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
@@ -306,6 +310,21 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
         if module.isPythonExtensionModule():
             for used_module_name in module.getPyIModuleImportedNames():
                 yield used_module_name
+
+            for distribution in getDistributionsFromModuleName(full_name):
+                for module_name in getDistributionTopLevelPackageNames(
+                    distribution=distribution, deep=False
+                ):
+                    # Protect against buggy packages.
+                    if not checkModuleName(module_name):
+                        continue
+
+                    module_name = ModuleName(module_name)
+
+                    if module_name.matchesToShellPattern(
+                        "*__mypyc"
+                    ):  # spell-checker: ignore mypyc
+                        yield module_name
 
         if full_name == "pkg_resources.extern":
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could
