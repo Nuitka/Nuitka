@@ -536,15 +536,12 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: 521dcf47
+- module-name: 'black' # checksum: 1742469
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
-  implicit-imports:
-    - depends:
-        - '30fcd23745efe32ce681__mypyc'
 
   import-hacks:
     - recompile-extensions: 'no'
@@ -870,18 +867,12 @@
     - depends:
         - '_cffi_backend'
 
-- module-name: 'comm' # checksum: db60cdd5
+- module-name: 'comm' # checksum: 7d07a2d1
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
-
-  # TODO: This is probably untrue, maybe IPython used to pull in black, and this
-  # could well be removed.
-  implicit-imports:
-    - depends:
-        - '30fcd23745efe32ce681__mypyc'
 
 - module-name: 'connexion' # checksum: ae5ca038
   data-files:
@@ -8294,11 +8285,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'tomli' # checksum: 2592e110
-  implicit-imports:
-    - depends:
-        - 'ddc459050edb75a05942__mypyc'
-
+- module-name: 'tomli' # checksum: 339a370b
   import-hacks:
     - recompile-extensions: 'no'
 
