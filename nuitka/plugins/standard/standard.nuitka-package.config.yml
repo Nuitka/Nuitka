@@ -4662,6 +4662,11 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'puremagic' # checksum: 8e1484eb
+  data-files:
+    - patterns:
+        - 'magic_data.json'
+
 - module-name: 'py_mini_racer' # checksum: d45d7bdb
   data-files:
     - patterns:
@@ -8284,7 +8289,11 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'tomli' # checksum: 339a370b
+- module-name: 'tomli' # checksum: 2592e110
+  implicit-imports:
+    - depends:
+        - 'ddc459050edb75a05942__mypyc'
+
   import-hacks:
     - recompile-extensions: 'no'
 
