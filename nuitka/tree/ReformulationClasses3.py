@@ -201,6 +201,30 @@ def buildClassNode3(provider, node, source_ref):
 
     class_locals_scope.registerProvidedVariable(class_variable)
 
+    if python_version >= 0x3C0:
+        type_param_nodes = node.type_params
+    else:
+        type_param_nodes = None
+
+    if type_param_nodes is not None:
+        type_params_expressions = buildNodeTuple(
+            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
+        )
+    else:
+        type_params_expressions = ()
+
+    type_variables = []
+
+    for type_params_expression in type_params_expressions:
+        type_variable = class_locals_scope.getLocalVariable(
+            owner=class_creation_function,
+            variable_name=type_params_expression.name,
+        )
+
+        class_locals_scope.registerProvidedVariable(type_variable)
+
+        type_variables.append(type_variable)
+
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
     )
@@ -257,6 +281,17 @@ def buildClassNode3(provider, node, source_ref):
         ),
     ]
 
+    for type_variable, type_params_expression in zip(
+        type_variables, type_params_expressions
+    ):
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=type_variable,
+                source=type_params_expression.makeClone(),
+                source_ref=source_ref,
+            )
+        )
+
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
@@ -285,27 +320,6 @@ def buildClassNode3(provider, node, source_ref):
 
     if python_version >= 0x300:
         qualname_assign = statements[-1]
-
-    if python_version >= 0x3C0:
-        type_param_nodes = node.type_params
-    else:
-        type_param_nodes = None
-
-    if type_param_nodes is not None:
-        type_params_expressions = buildNodeTuple(
-            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
-        )
-    else:
-        type_params_expressions = ()
-
-    for type_params_expression in type_params_expressions:
-        assign = StatementAssignmentVariableName(
-            provider=class_creation_function,
-            variable_name=type_params_expression.name,
-            source=type_params_expression.makeClone(),
-            source_ref=source_ref,
-        )
-        statements.append(assign)
 
     if python_version >= 0x3D0:
         statements.append(
