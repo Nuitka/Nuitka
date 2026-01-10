@@ -9,6 +9,7 @@ that is the child of the dictionary creation.
 """
 
 from nuitka import Constants
+from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinDictOperationSpecs import dict_fromkeys_spec
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
@@ -227,21 +228,42 @@ class ExpressionMakeDict(
                 side_effects = []
 
                 for pair2 in pairs:
-                    side_effects.extend(pair2.extractSideEffects())
-
                     if pair2 is pair:
+                        side_effects.extend(pair2.subnode_value.extractSideEffects())
                         break
 
-                result = makeRaiseExceptionExpressionFromTemplate(
-                    exception_type="TypeError",
-                    template="unhashable type: '%s'",
-                    template_args=makeExpressionAttributeLookup(
-                        expression=key.extractUnhashableNodeType(),
-                        attribute_name="__name__",
+                    side_effects.extend(pair2.extractSideEffects())
+
+                if python_version >= 0x3E0:
+                    result = makeRaiseExceptionExpressionFromTemplate(
+                        exception_type="TypeError",
+                        template="cannot use '%s' as a dict key (unhashable type: '%s')",
+                        template_args=(
+                            makeExpressionAttributeLookup(
+                                expression=key.getTypeValue(),
+                                attribute_name="__name__",
+                                source_ref=key.source_ref,
+                            ),
+                            makeExpressionAttributeLookup(
+                                expression=key.extractUnhashableNodeType(),
+                                attribute_name="__name__",
+                                source_ref=key.source_ref,
+                            ),
+                        ),
                         source_ref=key.source_ref,
-                    ),
-                    source_ref=key.source_ref,
-                )
+                    )
+                else:
+                    result = makeRaiseExceptionExpressionFromTemplate(
+                        exception_type="TypeError",
+                        template="unhashable type: '%s'",
+                        template_args=makeExpressionAttributeLookup(
+                            expression=key.extractUnhashableNodeType(),
+                            attribute_name="__name__",
+                            source_ref=key.source_ref,
+                        ),
+                        source_ref=key.source_ref,
+                    )
+
                 result = wrapExpressionWithSideEffects(
                     side_effects=side_effects,
                     old_node=key,

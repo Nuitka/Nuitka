@@ -1,6 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Generic tests, cover most important forms of them."""
+
+# Tests are dirty on purpose.
+#
+# pylint: disable=redefined-outer-name,used-before-assignment
+
+
 def someGenericFunction[T]():
     print("hello", T)
 

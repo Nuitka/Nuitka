@@ -190,7 +190,7 @@ def buildSetContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider=provider,
         node=node,
-        name="<setcontraction>",
+        name="<setcontraction>",  # spell-checker: ignore setcontraction
         emit_class=StatementSetOperationAdd,
         start_value=set(),
         source_ref=source_ref,
@@ -203,7 +203,7 @@ def buildDictContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider=provider,
         node=node,
-        name="<dictcontraction>",
+        name="<dictcontraction>",  # spell-checker: ignore dictcontraction
         emit_class=(
             StatementDictOperationSet
             if python_version < 0x380
