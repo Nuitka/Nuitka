@@ -13,6 +13,7 @@ from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
     getFileVersionTuple,
+    getMacOSAppConsoleMode,
     getProductVersionTuple,
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
