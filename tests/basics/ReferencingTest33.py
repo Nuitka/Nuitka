@@ -128,17 +128,17 @@ range_step = 13
 
 
 def simpleFunction7():
-    # Make sure xranges work nicely
+    # Make sure xrange work nicely
     return range(range_low, range_high, range_step)
 
 
 def simpleFunction8():
-    # Make sure xranges work nicely
+    # Make sure xrange work nicely
     return range(range_low, range_high)
 
 
 def simpleFunction9():
-    # Make sure xranges work nicely
+    # Make sure xrange work nicely
     return range(range_high)
 
 
@@ -151,9 +151,9 @@ def simpleFunction10():
 
 def simpleFunction11():
     try:
-        raise ImportError(path="lala", name="lele")
+        raise ImportError(path="lala", name="lola")
     except ImportError as e:
-        assert e.name == "lele"
+        assert e.name == "lola"
         assert e.path == "lala"
 
 
