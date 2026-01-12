@@ -383,9 +383,6 @@ package_requires = []
 if sys.version_info >= (3, 7):
     onefile_requires.append("zstandard >= 0.15")
 
-    # TODO: Keep backward compatible until 2.8 at least
-    install_requires.append("zstandard >= 0.15")
-
 setup(
     name="Nuitka",
     license="GNU Affero General Public License v3",
