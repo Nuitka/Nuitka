@@ -4935,11 +4935,17 @@
         - 'hashlib'
         - 'decimal'
 
-- module-name: 'pyparsing' # checksum: 8caa976e
+- module-name: 'pyparsing' # checksum: cf2c5e7f
   anti-bloat:
     - description: 'remove pdb usage'
       change_function:
         'setBreak': "'(lambda self: None)'"
+    - replacements_plain:
+        'from .testing import pyparsing_test as testing': 'testing = None'
+      when: 'not use_unittest'
+    - no-auto-follow:
+        'pyparsing.testing': 'ignore'
+      when: 'not use_unittest'
 
 - module-name: 'pyparsing.core' # checksum: d71d2c07
   anti-bloat:
