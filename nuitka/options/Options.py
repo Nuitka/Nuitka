@@ -63,9 +63,9 @@ from nuitka.Tracing import (
 )
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
-    getNormalizedPath,
     getNormalizedPathJoin,
     getReportPath,
+    getUserInputNormalizedPath,
     isLegalPath,
     isNonLocalPath,
     isPathExecutable,
@@ -146,7 +146,7 @@ def checkPathSpec(value, arg_name, allow_disable):
         )
 
     # This changes the '/' to '\' on Windows at least.
-    value = getNormalizedPath(value)
+    value = getUserInputNormalizedPath(value)
 
     if "\n" in value or "\r" in value:
         return options_logger.sysexit(
@@ -850,7 +850,7 @@ mandatory."""
 
         output_filename_dir = os.path.dirname(output_filename) or "."
 
-        output_dir = getNormalizedPathJoin(getOutputDir(), output_filename_dir)
+        output_dir = getOutputPath(output_filename_dir)
 
         if output_filename_dir != "." and not os.path.isdir(output_dir):
             return options_logger.sysexit(
@@ -1096,7 +1096,7 @@ use 'pkg install termux-elf-cleaner' to use it."""
         if not os.path.exists(user_yaml_filename):
             return options_logger.sysexit(
                 """\
-Error, cannot find user provider yaml file '%s'."""
+Error, cannot find user provided yaml file '%s'."""
                 % user_yaml_filename
             )
 
@@ -1779,16 +1779,25 @@ def getShallIncludeDataFiles():
             src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
-                pattern = os.path.expanduser(pattern)
-
-                yield pattern, None, dest, data_file_desc
+                yield (
+                    getUserInputNormalizedPath(pattern),
+                    None,
+                    dest,
+                    data_file_desc,
+                )
         else:
             src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
-                pattern = os.path.expanduser(pattern)
-
-                yield getNormalizedPathJoin(src, pattern), src, dest, data_file_desc
+                yield (
+                    getNormalizedPathJoin(
+                        getUserInputNormalizedPath(src),
+                        getUserInputNormalizedPath(pattern),
+                    ),
+                    src,
+                    dest,
+                    data_file_desc,
+                )
 
 
 def getShallIncludeDataDirs():
@@ -1796,7 +1805,7 @@ def getShallIncludeDataDirs():
     for data_file in options.data_dirs:
         src, dest = data_file.split("=", 1)
 
-        yield src, dest
+        yield getUserInputNormalizedPath(src), dest
 
 
 def getShallIncludeRawDirs():
@@ -1804,7 +1813,7 @@ def getShallIncludeRawDirs():
     for data_file in options.raw_dirs:
         src, dest = data_file.split("=", 1)
 
-        yield src, dest
+        yield getUserInputNormalizedPath(src), dest
 
 
 def getShallNotIncludeDataFilePatterns():
@@ -1898,20 +1907,21 @@ def shallCreateGraph():
 
 def getOutputFilename():
     """*str*, value of "-o" """
-    return options.output_filename
+    return (
+        getUserInputNormalizedPath(options.output_filename)
+        if options.output_filename is not None
+        else None
+    )
 
 
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
-    if options.output_dir:
-        return getNormalizedPathJoin(options.output_dir, path)
-    else:
-        return path
+    return getNormalizedPathJoin(getOutputDir(), path)
 
 
 def getOutputDir():
     """*str*, value of ``--output-dir`` or "." """
-    return options.output_dir if options.output_dir else "."
+    return getUserInputNormalizedPath(options.output_dir) if options.output_dir else "."
 
 
 def getPositionalArgs():
@@ -1963,7 +1973,7 @@ def getMainEntryPointFilenames():
     else:
         result = (positional_args[0],)
 
-    return tuple(getNormalizedPath(r) for r in result)
+    return tuple(getUserInputNormalizedPath(r) for r in result)
 
 
 def addMainEntryPointFilename(filename):
@@ -2458,7 +2468,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = getNormalizedPathJoin(".", options.pgo_executable)
+            options.pgo_executable = getUserInputNormalizedPath(options.pgo_executable)
 
     return options.pgo_executable
 
@@ -2498,8 +2508,8 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
-def _checkIconPaths(icon_paths):
-    icon_paths = tuple(icon_paths)
+def _checkedIconPaths(icon_paths):
+    icon_paths = tuple(getUserInputNormalizedPath(x) for x in icon_paths)
 
     for icon_path in icon_paths:
         if not os.path.exists(icon_path):
@@ -2515,7 +2525,7 @@ def getWindowsIconPaths():
     if not isWin32Windows():
         return ()
 
-    return _checkIconPaths(options.windows_icon_path)
+    return _checkedIconPaths(options.windows_icon_path)
 
 
 def getLinuxIconPaths():
@@ -2536,12 +2546,12 @@ def getLinuxIconPaths():
                 result.append(icon)
                 break
 
-    return _checkIconPaths(result)
+    return _checkedIconPaths(result)
 
 
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
-    return _checkIconPaths(
+    return _checkedIconPaths(
         icon_path for icon_path in options.macos_icon_path if icon_path != "none"
     )
 
@@ -2660,7 +2670,11 @@ def getProductFileVersion():
 
 def getWindowsSplashScreen():
     """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
-    return options.splash_screen_image
+    return (
+        getUserInputNormalizedPath(options.splash_screen_image)
+        if options.splash_screen_image
+        else None
+    )
 
 
 def getCompanyName():
@@ -3182,7 +3196,11 @@ def shallCreateDiffableCompilationReport():
 
 def getOutputFolderName():
     """*str* or *None*, value of ``--output-folder-name``"""
-    return options.output_folder_name
+    return (
+        getUserInputNormalizedPath(options.output_folder_name)
+        if options.output_folder_name
+        else None
+    )
 
 
 def getUserProvidedYamlFiles():
