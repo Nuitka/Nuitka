@@ -13,7 +13,7 @@ import difflib
 import os
 import re
 
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, wrapWithStyles
 
 # spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
@@ -298,20 +298,36 @@ exceeded while calling a Python object' in \
     return result
 
 
+def colorize_diff(lines):
+    for line in lines:
+        if line.startswith("+++") or line.startswith("---"):
+            yield wrapWithStyles(line, ("yellow", "bold"))
+        elif line.startswith("+"):
+            yield wrapWithStyles(line, ("green",))
+        elif line.startswith("-"):
+            yield wrapWithStyles(line, ("red",))
+        elif line.startswith("@@"):
+            yield wrapWithStyles(line, ("blue", "bold"))
+        else:
+            yield line
+
+
 def compareOutput(
     kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
 ):
     from_date = ""
     to_date = ""
 
-    diff = difflib.unified_diff(
-        makeDiffable(out_cpython, ignore_warnings, syntax_errors),
-        makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
-        "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
-        "{program} ({detail})".format(program="nuitka", detail=kind),
-        from_date,
-        to_date,
-        n=3,
+    diff = colorize_diff(
+        difflib.unified_diff(
+            makeDiffable(out_cpython, ignore_warnings, syntax_errors),
+            makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
+            "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
+            "{program} ({detail})".format(program="nuitka", detail=kind),
+            from_date,
+            to_date,
+            n=3,
+        )
     )
 
     result = list(diff)
