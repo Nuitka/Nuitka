@@ -1944,10 +1944,16 @@ def getNormalizedPath(path):
     if isWin32Windows():
         path = path.replace("/", "\\")
 
-    if isMacOS():
-        path = os.path.expanduser(path)
-
     return path
+
+
+def getUserInputNormalizedPath(path):
+    result = getNormalizedPath(path)
+
+    if isMacOS():
+        result = os.path.expanduser(result)
+
+    return result
 
 
 def getNormalizedPathJoin(*paths):
