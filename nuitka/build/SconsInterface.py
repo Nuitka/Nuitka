@@ -579,11 +579,12 @@ def getCommonSconsOptions():
         scons_options["mingw_mode"] = asBoolStr(True)
 
     if isZig():
-        scons_options["zig_exe_path"] = getZigBinaryPath(
-            logger=scons_logger,
-            assume_yes_for_downloads=assumeYesForDownloads(),
-            reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
-        )
+        if "CC" not in os.environ:
+            scons_options["zig_exe_path"] = getZigBinaryPath(
+                logger=scons_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
+                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+            )
 
     if getMsvcVersion():
         scons_options["msvc_version"] = getMsvcVersion()

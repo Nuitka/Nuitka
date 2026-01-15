@@ -519,6 +519,11 @@ def parseArgs():
     states.report_missing_trust = options.report_missing_trust
 
     if options.zig:
+        if options.clang:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--clang'."
+            )
+
         if isWin32Windows() and getArchitecture() == "x86":
             return options_logger.sysexit(
                 "Error, cannot use '--zig' on Windows and x86, only x86_64 is supported."
@@ -534,10 +539,20 @@ def parseArgs():
                 "Error, conflicting options '--zig' and '--msvc'."
             )
 
-        if options.clang:
-            return options_logger.sysexit(
-                "Error, conflicting options '--zig' and '--clang'."
-            )
+        if isMacOS():
+            # TODO: Keep an eye on macOS, it might become available via ziglang
+            # too, and keep this synchronized with the options check.
+            if "CC" not in os.environ:
+                zig_path = getExecutablePath("zig")
+
+                if zig_path is not None:
+                    os.environ["CC"] = getExecutablePath("zig")
+                else:
+                    return options_logger.sysexit(
+                        """\
+Error, for macOS there is not automatic download of zig (the 'ziglang' PyPI doesn't yet \
+offer it), set the 'CC' environment variable or add it to PATH."""
+                    )
 
     if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
         return options_logger.sysexit(
