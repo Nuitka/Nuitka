@@ -581,18 +581,7 @@ as described in the documentation.""",
 
     # Detect versions, ensuring they are always set to a tuple, so comparisons
     # do not fail with TypeError.
-    if env.clang_mode:
-        env.clang_version = myDetectVersion(env, env.the_compiler)
-
-        if env.clang_version is None:
-            scons_logger.sysexit(
-                "Error, failed to detect Clang version of backend compiler '%s'."
-                % env.the_compiler
-            )
-
-        env.zig_version = None
-        env.gcc_version = None
-    elif env.zig_mode:
+    if env.zig_mode:
         env.zig_version = myDetectVersion(env, env.the_compiler)
 
         if env.zig_version is None:
@@ -602,6 +591,17 @@ as described in the documentation.""",
             )
 
         env.clang_version = None
+        env.gcc_version = None
+    elif env.clang_mode:
+        env.clang_version = myDetectVersion(env, env.the_compiler)
+
+        if env.clang_version is None:
+            scons_logger.sysexit(
+                "Error, failed to detect Clang version of backend compiler '%s'."
+                % env.the_compiler
+            )
+
+        env.zig_version = None
         env.gcc_version = None
     elif env.gcc_mode:
         env.gcc_version = myDetectVersion(env, env.the_compiler)
