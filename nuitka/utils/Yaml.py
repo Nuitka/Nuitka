@@ -389,7 +389,7 @@ Error, empty (or malformed?) user package configuration '%s' used."""
 
             if bad_checksum_modules:
                 logger.info(
-                    "Detected %d module(s) with wrong checksum in '%s': %s"
+                    "Detected %d module(s) with mismatching checksum in '%s': %s"
                     % (len(bad_checksum_modules), name, ",".join(bad_checksum_modules))
                 )
 
