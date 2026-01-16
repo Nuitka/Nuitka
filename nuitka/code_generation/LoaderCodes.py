@@ -190,6 +190,10 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
 
     if isStandaloneMode() and hasNonDeploymentIndicator("excluded-module-usage"):
         for module_name, reason in getExcludedModuleNames():
+            # This one does it on purpose, spell-checker: ignore aspose
+            if module_name.hasNamespace("aspose"):
+                continue
+
             module_c_name = encodePythonStringToC(
                 encodeDataComposerName(module_name.asString())
             )
