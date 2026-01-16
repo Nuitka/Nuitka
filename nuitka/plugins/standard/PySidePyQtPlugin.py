@@ -52,7 +52,13 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
     warned_about = set()
 
-    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+    def __init__(
+        self,
+        include_qt_plugins,
+        noinclude_qt_plugins,
+        no_qt_translations,
+        qt_debug_plugins,
+    ):
         self.binding_package_name = ModuleName(self.binding_name)
 
         self.include_qt_plugins = include_qt_plugins
@@ -61,6 +67,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
+
+        # Runtime debug traces for plugins.
+        self.qt_debug_plugins = qt_debug_plugins
 
         # Selected Qt plugins.
         self.qt_plugins = None
@@ -165,6 +174,17 @@ from the default sensible list.""",
             help="""\
 Include Qt translations with QtWebEngine if used. These can be a lot
 of files that you may not want to be included.""",
+        )
+
+        group.add_option(
+            "--qt-debug-plugins",
+            action="store_true",
+            dest="qt_debug_plugins",
+            default=False,
+            help="""\
+Sets the "QT_DEBUG_PLUGINS" environment variable to "1" in the
+created standalone, so you can debug what plugin loading issues
+there might be.""",
         )
 
     def _getQmlTargetDir(self):
@@ -831,6 +851,15 @@ system Qt plugins, which may be from another Qt version.""",
 
         full_name = module.getFullName()
 
+        if full_name == self.binding_name and self.qt_debug_plugins:
+            yield (
+                """\
+import os
+os.environ["QT_DEBUG_PLUGINS"] = "1"
+""",
+                "Enabling Qt plugin debugging as requested.",
+            )
+
         if full_name == self.binding_name and isWin32Windows():
             code = """\
 import os
@@ -1347,12 +1376,19 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
         else:
             return ()
 
-    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+    def __init__(
+        self,
+        include_qt_plugins,
+        noinclude_qt_plugins,
+        no_qt_translations,
+        qt_debug_plugins,
+    ):
         NuitkaPluginQtBindingsPluginBase.__init__(
             self,
             include_qt_plugins=include_qt_plugins,
             noinclude_qt_plugins=noinclude_qt_plugins,
             no_qt_translations=no_qt_translations,
+            qt_debug_plugins=qt_debug_plugins,
         )
 
         # TODO: make this into yaml instead, so we do not pollute this constructor.
@@ -1431,7 +1467,13 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide2"
 
-    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+    def __init__(
+        self,
+        include_qt_plugins,
+        noinclude_qt_plugins,
+        no_qt_translations,
+        qt_debug_plugins,
+    ):
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
@@ -1451,6 +1493,7 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
             include_qt_plugins=include_qt_plugins,
             noinclude_qt_plugins=noinclude_qt_plugins,
             no_qt_translations=no_qt_translations,
+            qt_debug_plugins=qt_debug_plugins,
         )
 
     def onModuleEncounter(
@@ -1632,12 +1675,19 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
         else:
             return ()
 
-    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+    def __init__(
+        self,
+        include_qt_plugins,
+        noinclude_qt_plugins,
+        no_qt_translations,
+        qt_debug_plugins,
+    ):
         NuitkaPluginQtBindingsPluginBase.__init__(
             self,
             include_qt_plugins=include_qt_plugins,
             noinclude_qt_plugins=noinclude_qt_plugins,
             no_qt_translations=no_qt_translations,
+            qt_debug_plugins=qt_debug_plugins,
         )
 
         self.info(
