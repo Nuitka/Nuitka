@@ -296,6 +296,16 @@ def _my_print2(is_atty, args, kwargs):
         print(*args, **kwargs)
 
 
+def canUseColor(file_output):
+    """Can use color with the given file handle.
+
+    This function is intended for globally disabling the feature
+    potentially, but for that we would need to use it everywhere
+    first.
+    """
+    return file_output.isatty()
+
+
 def my_print(*args, **kwargs):
     """Make sure we flush after every print.
 
