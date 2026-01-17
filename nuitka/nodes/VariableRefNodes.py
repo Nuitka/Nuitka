@@ -297,10 +297,13 @@ Subscript del to dictionary lowered to dictionary del."""
             else:
                 return result, change_tags, change_desc
 
-        # By default, an subscript may change everything about the lookup
-        # source.
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
+
+        # By default, an subscript may change everything about the lookup
+        # source and even the subscript.
+        trace_collection.removeKnowledge(self)
+        trace_collection.removeKnowledge(subscript)
 
         # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
