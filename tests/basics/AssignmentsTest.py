@@ -257,6 +257,14 @@ def globalErrors():
         print("Del on unassigned global gives", repr(e))
 
 
+def testLenEscapeDel():
+    lst = [0, 0]
+    del lst[0]
+    assert len(lst) == 1
+    assert lst == [0]
+    assert repr(lst) == "[0]"
+
+
 someFunction()
 varargsFunction(1, 2, 3, 4)
 otherFunction()
@@ -268,6 +276,7 @@ optimizableTargets()
 complexDel()
 sliceDel()
 globalErrors()
+testLenEscapeDel()
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
