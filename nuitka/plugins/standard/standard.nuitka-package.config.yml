@@ -410,10 +410,11 @@
         - 'av.sidedata.sidedata'
         - 'av.opaque'
 
-- module-name: 'av.sidedata.sidedata' # checksum: 6adb0fe2
+- module-name: 'av.sidedata.sidedata' # checksum: 30e383d1
   implicit-imports:
     - depends:
         - 'av.container.streams'
+        - 'av.sidedata.encparams'
         - 'av.sidedata.motionvectors'
 
 - module-name: 'av.utils' # checksum: 8fbe7302
