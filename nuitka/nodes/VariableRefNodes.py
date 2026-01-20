@@ -430,19 +430,19 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         if replacement is not None:
             return self._applyReplacement(trace_collection, replacement)
 
-        if not self.variable_trace.mustHaveValue():
-            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
-            # could be decided from context.
-            trace_collection.onExceptionRaiseExit(BaseException)
-
         very_trusted_node = self.variable_trace.getAttributeNodeVeryTrusted()
         if very_trusted_node is not None:
             return (
                 very_trusted_node.makeClone(),
                 "new_expression",
-                lambda: "Forward propagating value of %s from very trusted %s value."
+                lambda: "Forward propagating value of '%s' from very trusted '%s' value."
                 % (self.getVariableName(), very_trusted_node.kind),
             )
+
+        if not self.variable_trace.mustHaveValue():
+            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
+            # could be decided from context.
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         if variable.isModuleVariable() and (
             variable.hasDefiniteWrites() is False or variable.getName() == "super"
