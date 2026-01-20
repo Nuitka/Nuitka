@@ -95,7 +95,7 @@ def main():
             "case_imports3",
             "import_variants",
             "package_init_import",
-            "pkgutil_itermodules",
+            "pkgutil_iter_modules",
         ):
             extra_flags.append("ignore_warnings")
 
