@@ -48,7 +48,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    provideStaticSourceFile,
     scanSourceDir,
     writeSconsReport,
 )
@@ -187,24 +186,13 @@ def discoverSourceFiles():
             plugins=True,
         )
     )
-
-    # Main onefile bootstrap program
-    result.append(
-        provideStaticSourceFile(
+    result.extend(
+        scanSourceDir(
             env=env,
-            sub_path="OnefileBootstrap.c",
-            c11_mode=env.c11_mode,
+            dirname=os.path.join(env.source_dir, "static_src"),
+            plugins=False,
         )
     )
-
-    if onefile_splash_screen:
-        result.append(
-            provideStaticSourceFile(
-                env=env,
-                sub_path="OnefileSplashScreen.cpp",
-                c11_mode=False,
-            )
-        )
 
     return result
 

@@ -197,6 +197,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         standalone_entry_point
         for standalone_entry_point in standalone_entry_points[1:]
         if not standalone_entry_point.kind.endswith("_ignored")
+        if "copy" in standalone_entry_point.tags
     ]
     main_standalone_entry_point = standalone_entry_points[0]
 

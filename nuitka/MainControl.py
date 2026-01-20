@@ -14,6 +14,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
+from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
     getSconsReportValue,
     readSconsErrorReport,
@@ -37,8 +38,8 @@ from nuitka.freezer.IncludedDataFiles import (
 from nuitka.freezer.IncludedEntryPoints import (
     addExtensionModuleEntryPoint,
     addIncludedEntryPoints,
+    addMainEntryPoint,
     getStandaloneEntryPoints,
-    setMainEntryPoint,
 )
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.freezer.MacOSDmg import createDmgFile
@@ -114,6 +115,7 @@ from nuitka.plugins.Hooks import (
     onBeforeCodeParsing,
     onCompilationStartChecks,
     onFinalResult,
+    onGeneratedSourceCode,
     onModuleCompleteSet,
     onModuleInitialSet,
     onStandaloneDistributionFinished,
@@ -492,8 +494,6 @@ def makeSourceDirectory():
                     "Included compiled module '%s'." % current_module.getFullName()
                 )
         elif current_module.isPythonExtensionModule():
-            addExtensionModuleEntryPoint(current_module)
-
             if isShowInclusion():
                 inclusion_logger.info(
                     "Included extension module '%s'." % current_module.getFullName()
@@ -1035,6 +1035,10 @@ def compileTree():
 
     writeExtraCodeFiles(onefile=False)
 
+    provideStaticSourceFilesBackend(source_dir=source_dir)
+
+    onGeneratedSourceCode(source_dir, onefile=False)
+
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
@@ -1067,6 +1071,42 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
     sys.exit(error_message)
 
 
+def _considerPgoInput():
+    pgo_filename = getPythonPgoInput()
+    if pgo_filename is not None:
+        readPGOInputFile(pgo_filename)
+
+
+def _detectEarlyDLLs():
+    assert isStandaloneMode()
+    modules = ModuleRegistry.getDoneModules()
+
+    for module in modules:
+        if module.isPythonExtensionModule():
+            addExtensionModuleEntryPoint(module)
+
+        addIncludedEntryPoints(considerExtraDlls(module))
+
+    detectUsedDLLs(
+        standalone_entry_points=getStandaloneEntryPoints(),
+        source_dir=OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=False
+        ),
+    )
+
+
+def _detectLateDLLs(scons_options):
+    assert isStandaloneMode()
+    binary_filename = scons_options["result_exe"]
+
+    detectUsedDLLs(
+        standalone_entry_points=(addMainEntryPoint(binary_filename),),
+        source_dir=OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=False
+        ),
+    )
+
+
 def _main():
     """Main program flow of Nuitka
 
@@ -1080,12 +1120,6 @@ def _main():
 
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches,too-many-statements
-
-    # In case we are in a PGO run, we read its information first, so it becomes
-    # available for later parts.
-    pgo_filename = getPythonPgoInput()
-    if pgo_filename is not None:
-        readPGOInputFile(pgo_filename)
 
     general.info(
         leader="Starting Python compilation with:",
@@ -1101,6 +1135,10 @@ def _main():
             "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
         ),
     )
+
+    # In case we are in a PGO run, we read its information first, so it becomes
+    # available for later parts.
+    _considerPgoInput()
 
     reportMemoryUsage(
         "after_launch",
@@ -1129,14 +1167,18 @@ def _main():
     try:
         main_module = _createMainModule()
     except (SyntaxError, IndentationError) as e:
-        handleSyntaxError(e)
+        return handleSyntaxError(e)
 
     addIncludedDataFilesFromMacOSAppOptions()
     addIncludedDataFilesFromPlugins()
 
     dumpTreeXML()
 
-    # Make the actual compilation.
+    # Detect DLLs used so far.
+    if isStandaloneMode():
+        _detectEarlyDLLs()
+
+    # Make the actual C compilation.
     result, scons_options = compileTree()
 
     # Exit if compilation failed.
@@ -1166,19 +1208,7 @@ def _main():
     executePostProcessing(scons_options["result_exe"])
 
     if isStandaloneMode():
-        binary_filename = scons_options["result_exe"]
-
-        setMainEntryPoint(binary_filename)
-
-        for module in ModuleRegistry.getDoneModules():
-            addIncludedEntryPoints(considerExtraDlls(module))
-
-        detectUsedDLLs(
-            standalone_entry_points=getStandaloneEntryPoints(),
-            source_dir=OutputDirectories.getSourceDirectoryPath(
-                onefile=False, create=False
-            ),
-        )
+        _detectLateDLLs(scons_options)
 
         dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 

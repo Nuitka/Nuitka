@@ -55,6 +55,7 @@ from nuitka.utils.FileOperations import (
     getDllBasename,
     getNormalizedPathJoin,
     makePath,
+    putBinaryFileContents,
     putTextFileContents,
 )
 from nuitka.utils.Importing import importFileAsModule
@@ -65,6 +66,7 @@ from nuitka.utils.ModuleNames import (
     post_module_load_trigger_name,
     pre_module_load_trigger_name,
 )
+from nuitka.Version import getCommercialVersion
 
 from .PluginBase import NuitkaPluginBase, control_tags
 
@@ -307,13 +309,22 @@ def _addPluginClass(plugin_class, detector):
     )
 
 
-def _loadPluginClassesFromPackage(scan_package):
+def _loadPluginClassesFromPackage(scan_package_name):
     # We check many things here, pylint: disable=too-many-branches
+    try:
+        scan_package = __import__(scan_package_name, fromlist=["*"])
+    except ImportError:
+        if "commercial" not in scan_package_name:
+            return
+        raise
 
     scan_path = scan_package.__path__
 
     for item in iter_modules(scan_path):
         if item.ispkg:  # spell-checker: ignore ispkg
+            continue
+
+        if item.name.endswith("Base"):
             continue
 
         if python_version < 0x3C0:
@@ -330,21 +341,19 @@ def _loadPluginClassesFromPackage(scan_package):
             # it was compiled with Nuitka.
             pass
 
+        full_name = scan_package_name + "." + item.name
+
         try:
-            plugin_module = module_loader.load_module(item.name)
+            plugin_module = __import__(full_name, fromlist=["*"])
         except Exception:
             if states.is_non_debug:
                 plugins_logger.warning(
                     "Problem loading plugin %r ('%s'), ignored. Use '--debug' to make it visible."
-                    % (item.name, module_loader.get_filename())
+                    % (full_name, module_loader.get_filename())
                 )
                 continue
 
             raise
-
-        # At least for Python2, this is not set properly, but we use it for package
-        # data loading.
-        plugin_module.__package__ = scan_package.__name__
 
         plugin_classes = set(
             obj
@@ -407,19 +416,10 @@ def loadStandardPluginClasses():
     Returns:
         None
     """
-    # We want the imports to be local though
-    # pylint: disable=redefined-outer-name
 
-    import nuitka.plugins.standard
-
-    _loadPluginClassesFromPackage(nuitka.plugins.standard)
-
-    try:
-        import nuitka.plugins.commercial
-    except ImportError:
-        pass
-    else:
-        _loadPluginClassesFromPackage(nuitka.plugins.commercial)
+    _loadPluginClassesFromPackage("nuitka.plugins.standard")
+    if getCommercialVersion() is not None:
+        _loadPluginClassesFromPackage("nuitka.plugins.commercial")
 
 
 class Plugins(object):
@@ -660,6 +660,12 @@ through implicit import by '%s' plugin encountered."""
             plugin.onStandaloneBinary(standalone_binary)
 
     @staticmethod
+    def onGeneratedSourceCode(source_dir, onefile):
+        """Let plugins modify the generated source code"""
+        for plugin in getActivePlugins():
+            plugin.onGeneratedSourceCode(source_dir, onefile)
+
+    @staticmethod
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
@@ -832,6 +838,11 @@ through implicit import by '%s' plugin encountered."""
     def onDataFileTags(included_datafile):
         for plugin in getActivePlugins():
             plugin.onDataFileTags(included_datafile)
+
+    @staticmethod
+    def onDllTags(included_entry_point):
+        for plugin in getActivePlugins():
+            plugin.onDllTags(included_entry_point)
 
     @classmethod
     def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):
@@ -1434,18 +1445,25 @@ may work too."""
     def writeExtraCodeFiles(cls, onefile):
         source_dir = getSourceDirectoryPath(onefile=onefile, create=True)
 
-        for filename, source_code in cls._getExtraCodeFiles(onefile).items():
+        for filename, source_code in cls._getExtraCodeFiles(
+            for_onefile=onefile
+        ).items():
             target_dir = os.path.join(source_dir, "plugins")
 
             if not os.path.isdir(target_dir):
                 makePath(target_dir)
 
-            writeSourceCode(
-                filename=os.path.join(target_dir, filename),
-                source_code=source_code,
-                logger=plugins_logger,
-                assume_yes_for_downloads=assumeYesForDownloads(),
-            )
+            target_filename = os.path.join(target_dir, filename)
+
+            if type(source_code) is bytes:
+                putBinaryFileContents(filename=target_filename, contents=source_code)
+            else:
+                writeSourceCode(
+                    filename=target_filename,
+                    source_code=source_code,
+                    logger=plugins_logger,
+                    assume_yes_for_downloads=assumeYesForDownloads(),
+                )
 
     extra_link_libraries = None
 

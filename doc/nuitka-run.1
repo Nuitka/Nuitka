@@ -603,6 +603,11 @@ Pattern of data files to embed for use with Qt at run time. These should match t
 \fB\-\-embed\-debug\-qt\-resources\fR
 For debugging purposes, print out information for Qt resources not found.
 .IP
+Plugin options of 'dll\-embedding' (categories: commercial, protection):
+.TP
+\fB\-\-embed\-dll\-pattern\fR=\fI\,EMBED_DLL_PATTERN\/\fR
+Pattern of DLLs to embed (glob style). Matches against the destination path (e.g. package/ext.pyd or library.dll).
+.IP
 Plugin options of 'traceback\-encryption' (categories: commercial, protection):
 .TP
 \fB\-\-encryption\-key\fR=\fI\,KEY\/\fR

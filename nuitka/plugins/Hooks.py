@@ -77,6 +77,10 @@ def writeExtraCodeFiles(onefile):
     return Plugins.writeExtraCodeFiles(onefile=onefile)
 
 
+def onGeneratedSourceCode(source_dir, onefile):
+    return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
+
+
 def getPreprocessorSymbols():
     """Let plugins provide C defines to be used in compilation.
 
@@ -88,6 +92,7 @@ def getPreprocessorSymbols():
         OrderedDict(), where None value indicates no define value,
         i.e. "-Dkey=value" vs. "-Dkey"
     """
+    # spell-checker: ignore Dkey
     return Plugins.getPreprocessorSymbols()
 
 
@@ -257,6 +262,10 @@ def considerDataFiles(module):
 
 def onDataFileTags(included_datafile):
     return Plugins.onDataFileTags(included_datafile=included_datafile)
+
+
+def onDllTags(included_entry_point):
+    return Plugins.onDllTags(included_entry_point=included_entry_point)
 
 
 def deriveModuleConstantsBlobName(data_filename):
