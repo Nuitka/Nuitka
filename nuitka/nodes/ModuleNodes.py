@@ -649,6 +649,10 @@ class CompiledPythonModule(
         for function_body in self.getUsedFunctions():
             markEntryPointAsComplete(function_body)
 
+            if old_collection is not None:
+                function_body.optimizeVeryHardHardModuleVariables(
+                    old_collection.getVeryTrustedModuleVariables()
+                )
             function_body.optimizeUnusedClosureVariables()
             function_body.optimizeVariableReleases()
 

@@ -229,6 +229,11 @@ class ExpressionFunctionBodyBase(
 
         self.code_object.removeFreeVarname(variable.getName())
 
+    def removeModuleVariable(self, variable):
+        assert variable.isModuleVariable()
+
+        self.taken.remove(variable)
+
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -386,7 +391,8 @@ class ExpressionFunctionBodyBase(
     def optimizeUnusedClosureVariables(self):
         """Gets called once module is complete, to consider giving up on closure variables."""
 
-        changed = False
+        # TODO: Use "self" in the future avoiding this uncertainty
+        assert self.trace_collection.owner is self
 
         for closure_variable in self.getClosureVariables():
             # Need to take closure of those either way
@@ -396,11 +402,7 @@ class ExpressionFunctionBodyBase(
             ):
                 continue
 
-            empty = closure_variable.hasEmptyTracesFor(self.trace_collection.owner)
-
-            if empty:
-                changed = True
-
+            if closure_variable.hasEmptyTracesFor(self.trace_collection.owner):
                 self.trace_collection.signalChange(
                     "var_usage",
                     self.source_ref,
@@ -410,7 +412,21 @@ class ExpressionFunctionBodyBase(
 
                 self.removeClosureVariable(closure_variable)
 
-        return changed
+    def optimizeVeryHardHardModuleVariables(self, very_trusted_module_variables):
+        """Optimize module variables that are very trusted."""
+
+        for module_variable in very_trusted_module_variables:
+            if module_variable not in self.taken:
+                continue
+
+            self.trace_collection.signalChange(
+                "var_usage",
+                self.source_ref,
+                message="Remove unused module variable '%s'."
+                % module_variable.getName(),
+            )
+
+            self.removeModuleVariable(module_variable)
 
     def optimizeVariableReleases(self):
         for parameter_variable in self.getParameterVariablesWithManualRelease():
