@@ -253,6 +253,41 @@ def isRelativePath(path):
     return True
 
 
+def cheapCopyFile(source_path, dest_path):
+    makeContainingPath(dest_path)
+
+    if isWin32Windows():
+        # Windows has symlinks these days, but they do not integrate well
+        # with Python2 at least. So make a copy in any case.
+        deleteFile(dest_path, must_exist=False)
+        copyFile(source_path, dest_path)
+    else:
+        # Relative paths work badly for links. Creating them relative is
+        # not worth the effort.
+        src = os.path.abspath(source_path)
+
+        try:
+            link_target = os.readlink(dest_path)
+
+            # If it's already a proper link, do nothing then.
+            if link_target == src:
+                return
+
+            deleteFile(dest_path, must_exist=True)
+        except OSError as _e:
+            # Broken links work like that, remove them, so we can replace
+            # them.
+            try:
+                deleteFile(dest_path, must_exist=False)
+            except OSError:
+                pass
+
+        try:
+            os.symlink(src, dest_path)
+        except OSError:
+            copyFile(src, dest_path)
+
+
 def makePath(path):
     """Create a directory if it doesn't exist.
 
@@ -1095,7 +1130,6 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if "w" in mode:
         is_legal, illegal_reason = isLegalPath(filename)
         if not is_legal:
-            assert False, filename
             raise NuitkaFilenameError(illegal_reason)
 
     # Doesn't exist anymore for Python3.7 or later.

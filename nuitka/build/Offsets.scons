@@ -52,7 +52,7 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    provideStaticSourceFile,
+    scanSourceDir,
     writeSconsReport,
 )
 
@@ -211,16 +211,13 @@ env.Append(
 def discoverSourceFiles():
     result = []
 
-    static_src_filenames = ["GenerateHeadersMain.c"]
-
-    result += [
-        provideStaticSourceFile(
+    result.extend(
+        scanSourceDir(
             env=env,
-            sub_path=filename,
-            c11_mode=env.c11_mode,
+            dirname=os.path.join(env.source_dir, "static_src"),
+            plugins=False,
         )
-        for filename in static_src_filenames
-    ]
+    )
 
     return result
 

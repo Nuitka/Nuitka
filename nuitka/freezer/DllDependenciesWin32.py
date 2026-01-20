@@ -10,14 +10,14 @@ import os
 import sys
 
 from nuitka.__past__ import iterItems
-from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
+from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
+    getMsvcVersion,
     getWindowsRuntimeDllsInclusionOption,
     isExperimental,
     isShowProgress,
 )
-from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -36,9 +36,11 @@ from nuitka.utils.FileOperations import (
     listDllFilesFromDirectory,
     makePath,
     putTextFileContents,
+    resolveShellPatternToFilenames,
     withFileLock,
 )
 from nuitka.utils.Hashing import Hash
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import getPEFileUsedDllNames, getPyWin32Dir
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 from nuitka.Version import version_string
@@ -74,6 +76,65 @@ def _getVswherePath():
     return None
 
 
+def _getSconsMsvcCacheValue(key):
+    msvc_config_cache_dir = getCacheDir("scons-msvc-config")
+
+    if not os.path.isdir(msvc_config_cache_dir):
+        return None
+
+    # We might have multiple versions, we want the one that was used or the latest.
+    msvc_version = getMsvcVersion()
+
+    config_files = resolveShellPatternToFilenames(
+        os.path.join(msvc_config_cache_dir, "content-*.json")
+    )
+
+    def _getMsvcVersionFromFilename(filename):
+        # filename is .../content-14.3.json
+        return os.path.basename(filename)[8:-5]
+
+    config_files = [
+        filename
+        for filename in config_files
+        if all(
+            part.isdigit() for part in _getMsvcVersionFromFilename(filename).split(".")
+        )
+    ]
+
+    if not config_files:
+        return None
+
+    # Filter for specific version if provided and valid, otherwise use what is found.
+    if msvc_version is not None:
+        preferred_config_files = [
+            filename
+            for filename in config_files
+            if _getMsvcVersionFromFilename(filename) == msvc_version
+        ]
+
+        if preferred_config_files:
+            config_files = preferred_config_files
+
+    def _getSortKey(filename):
+        return tuple(
+            int(part) for part in _getMsvcVersionFromFilename(filename).split(".")
+        )
+
+    config_files.sort(key=_getSortKey, reverse=True)
+
+    # Iterate and look for key
+    for filename in config_files:
+        data = loadJsonFromFilename(filename)
+
+        if data:
+            for entry in data:
+                # The value is in the data dictionary of the cache entry.
+                if key in entry["data"]:
+                    return entry["data"][key]
+
+    return None
+
+
 def _getMSVCRedistPath(logger):
     """Determine the path to the MSVC redistributable directory.
 
@@ -84,11 +145,16 @@ def _getMSVCRedistPath(logger):
         str: Path to the MSVC redistributable directory specific to the architecture and version, or None if not found.
     """
     # Try to get the path from Scons, which will have it if it used a MSVC to
-    # compile.
-    vs_path = getSconsReportValue(
-        source_dir=getSourceDirectoryPath(onefile=False, create=False),
-        key="MSVC_InstallDirectory",
-    )
+    # compile previously.
+    vs_path = None
+
+    # spell-checker: ignore VCINSTALLDIR
+    vc_install_dir = _getSconsMsvcCacheValue("VCINSTALLDIR")
+    if vc_install_dir:
+        if type(vc_install_dir) is list and vc_install_dir:
+            vc_install_dir = vc_install_dir[0]
+
+        vs_path = getNormalizedPathJoin(vc_install_dir, "..")
 
     # Otherwise ask for a MSVC installation path.
     if vs_path is None:

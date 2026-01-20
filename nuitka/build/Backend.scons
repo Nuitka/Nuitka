@@ -69,7 +69,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
-    provideStaticSourceFile,
     scanSourceDir,
     writeSconsReport,
 )
@@ -422,28 +421,13 @@ def discoverSourceFiles():
         )
     )
 
-    static_src_filenames = []
-
-    # Main program, unless of course it's a Python module/package we build.
-    if env.exe_mode:
-        static_src_filenames.append("MainProgram.c")
-
-    # TODO: Should have its dedicated file rather, since DLLs must not do
-    # a lot of things.
-    if env.dll_mode:
-        static_src_filenames.append("MainProgram.c")
-
-    # Compiled types.
-    static_src_filenames.append("CompiledFunctionType.c")
-
-    result += [
-        provideStaticSourceFile(
+    result.extend(
+        scanSourceDir(
             env=env,
-            sub_path=filename,
-            c11_mode=env.c11_mode,
+            dirname=os.path.join(env.source_dir, "static_src"),
+            plugins=False,
         )
-        for filename in static_src_filenames
-    ]
+    )
 
     return result
 

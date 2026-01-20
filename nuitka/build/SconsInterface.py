@@ -32,6 +32,7 @@ from nuitka.options.Options import (
     getProgressBar,
     getPythonPathForScons,
     getWindowsConsoleMode,
+    getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
     isClang,
     isDeploymentMode,
@@ -83,6 +84,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     areSamePaths,
     changeFilenameExtension,
+    cheapCopyFile,
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
@@ -116,6 +118,45 @@ def getSconsDataPath():
     """Return path to where data for scons lives, e.g. static C source files."""
 
     return os.path.dirname(__file__)
+
+
+def _provideStaticSourceFiles(source_dir, filenames):
+    scons_data_path = getSconsDataPath()
+    static_src_dir = os.path.join(scons_data_path, "static_src")
+    target_static_dir = os.path.join(source_dir, "static_src")
+
+    for filename in filenames:
+        src = os.path.join(static_src_dir, filename)
+        dst = os.path.join(target_static_dir, filename)
+
+        cheapCopyFile(src, dst)
+
+
+def provideStaticSourceFilesBackend(source_dir):
+    """Provide static source files for the backend build."""
+    filenames = ["CompiledFunctionType.c"]
+
+    if shallMakeExe() or shallMakeDll():
+        filenames.append("MainProgram.c")
+
+    _provideStaticSourceFiles(source_dir, filenames)
+
+
+def provideStaticSourceFilesOnefile(source_dir):
+    """Provide static source files for the onefile build."""
+    filenames = ["OnefileBootstrap.c"]
+
+    if getWindowsSplashScreen():
+        filenames.append("OnefileSplashScreen.cpp")
+
+    _provideStaticSourceFiles(source_dir, filenames)
+
+
+def provideStaticSourceFilesOffsets(source_dir):
+    """Provide static source files for the offsets calculation."""
+    filenames = ["GenerateHeadersMain.c"]
+
+    _provideStaticSourceFiles(source_dir, filenames)
 
 
 def _getSconsInlinePath():

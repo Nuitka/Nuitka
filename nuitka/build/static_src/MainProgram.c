@@ -361,7 +361,7 @@ included by default",
             raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
         }
 #endif
-        NUITKA_FINALIZE_PROGRAM(tstate);
+        // NUITKA_FINALIZE_PROGRAM(tstate);
 
         PyErr_PrintEx(0);
 
@@ -374,7 +374,7 @@ included by default",
 }
 
 static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_name, bool is_package) {
-    NUITKA_INIT_PROGRAM_LATE(module_name);
+    // NUITKA_INIT_PROGRAM_LATE(module_name);
 
     if (is_package) {
         char const *w = module_name;
@@ -495,7 +495,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
             if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                 NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
-                SvcInstall();
+                SvcInstall(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING);
                 NUITKA_CANNOT_GET_HERE("main(): SvcInstall must not return");
             }
 #endif
@@ -1468,7 +1468,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     NUITKA_PRINT_TIMING("main(): Entered.");
-    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
+
+    // NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #ifdef __FreeBSD__
     // FP exceptions run in "no stop" mode by default
@@ -2010,7 +2011,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
-        SvcLaunchService();
+        SvcLaunchService(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING, _NUITKA_WINDOWS_SERVICE_GRACE_TIME_INT,
+                         _NUITKA_WINDOWS_SERVICE_CLI_BOOL == 1);
 #else
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");

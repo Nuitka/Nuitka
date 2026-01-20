@@ -16,6 +16,7 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.Utils import isLinux
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionTuple
 
 
@@ -232,6 +233,12 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     tools_logger.info("Created source distribution as '%s'." % filenames[0])
     return filenames
+
+
+def syncTime():
+    """Update WSL clock just in case, it can be skewed."""
+    if isLinux() and "Microsoft" in getFileContents("/proc/version"):
+        os.system("sudo hwclock -s")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

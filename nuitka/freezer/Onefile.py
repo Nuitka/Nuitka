@@ -11,6 +11,7 @@ from nuitka.build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
+    provideStaticSourceFilesOnefile,
     runScons,
 )
 from nuitka.options.Options import (
@@ -30,6 +31,7 @@ from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
 from nuitka.plugins.Hooks import (
     getBuildDefinitions,
     onBootstrapBinary,
+    onGeneratedSourceCode,
     onOnefileFinished,
     writeExtraCodeFiles,
 )
@@ -83,6 +85,8 @@ def _runOnefileScons(onefile_compression, onefile_archive):
 
     # Let plugins do their thing for onefile mode too.
     writeExtraCodeFiles(onefile=True)
+    provideStaticSourceFilesOnefile(source_dir=source_dir)
+    onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
     scons_options["source_dir"] = source_dir

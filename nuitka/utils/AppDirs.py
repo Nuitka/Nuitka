@@ -86,8 +86,8 @@ def getCacheDir(cache_basename):
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
-    else:
-        cache_dir = getNormalizedPath(cache_dir)
+
+    cache_dir = getNormalizedPath(cache_dir)
 
     return cache_dir
 
