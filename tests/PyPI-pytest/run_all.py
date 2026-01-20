@@ -8,7 +8,7 @@ This script automates the comparing of pytest results of a nuitka compiled wheel
 using `python setup.py bdist_nuitka` to the pytest results of an uncompiled wheel
 built using `python setup.py bdist_wheel` for the most popular PyPI packages.
 Testing is done to ensure that nuitka is building the wheel correctly. If the
-pytests pass/fail in the same way, that means Nuitka built the wheel properly.
+pytest run passes/fails in the same way, that means Nuitka built the wheel properly.
 Else if the tests differ, then something is wrong.
 Virtualenv is used to create a clean environment with no outside pollution.
 

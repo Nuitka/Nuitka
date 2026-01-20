@@ -15,6 +15,7 @@ import re
 
 from nuitka.Tracing import my_print
 
+# spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 instance_re_truncated = re.compile(r"\[[0-9]+ chars\][0-9a-fA-F]+")
@@ -29,32 +30,10 @@ non_ascii_error_rt = re.compile(r"(SyntaxError: Non-ASCII character.*? on line) 
 python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
 local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
-
 traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
-
-
-def traceback_re_callback(match):
-    return r'%sile "%s", line %s' % (
-        match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
-        match.group(3),
-    )
-
-
 importerror_re = re.compile(
     r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
-
-
-def import_re_callback(match):
-    #    print (match.groups(), os.path.abspath(match.group(2)))
-
-    return r"%s( >> %s)" % (
-        match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
-    )
-
-
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
@@ -66,6 +45,25 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
 did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
+# spell-checker:enable
+
+
+def traceback_re_callback(match):
+    # spell-checker: disable-next-line
+    return r'%sile "%s", line %s' % (
+        match.group(1),
+        os.path.realpath(os.path.abspath(match.group(2))),
+        match.group(3),
+    )
+
+
+def import_re_callback(match):
+    #    print (match.groups(), os.path.abspath(match.group(2)))
+
+    return r"%s( >> %s)" % (
+        match.group(1),
+        os.path.realpath(os.path.abspath(match.group(2))),
+    )
 
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
@@ -152,6 +150,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = module_repr_re.sub(r"\1xxxxx\2", line)
 
         # Frozen modules of 3.11, _imp._frozen_module_names
+        # spell-checker: ignore sitebuiltins
         for module_name in (
             "zipimport",
             "abc",
@@ -185,12 +184,14 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             "http://python.org/dev/peps/pep-0263/",
         )
 
+        # spell-checker: disable-next-line
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
         line = traceback_re.sub(traceback_re_callback, line)
 
         line = importerror_re.sub(import_re_callback, line)
 
+        # spell-checker: disable-next-line
         line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
 
         line = did_you_mean_re.sub("", line)
@@ -237,6 +238,7 @@ exceeded while calling a Python object' in \
 
         # This is for self compiled Python with default options, gives this
         # harmless option for every time we link to "libpython".
+        # spell-checker: ignore tempnam,tmpnam
         if (
             "is dangerous, better use `mkstemp'" in line
             or "In function `posix_tempnam'" in line
