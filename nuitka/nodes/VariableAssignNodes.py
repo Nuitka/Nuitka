@@ -237,7 +237,7 @@ class StatementAssignmentVariableMixin(object):
             return (
                 result,
                 "new_statements",
-                "Assignment source is now known to be hard import.",
+                "Assignment source is now known to be hard value.",
             )
 
         return self, None, None

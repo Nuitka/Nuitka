@@ -158,6 +158,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isUnknownStartTrace():
+        return False
+
+    @staticmethod
     def isAssignTraceVeryTrusted():
         return False
 
@@ -568,6 +572,10 @@ class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
         self.merge_usage_count = 0
 
     __slots__ = ()
+
+    @staticmethod
+    def isUnknownStartTrace():
+        return True
 
 
 class ValueTraceEscaped(ValueTraceUnknown):
