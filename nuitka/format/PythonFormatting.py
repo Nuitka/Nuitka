@@ -254,7 +254,7 @@ def _cleanupClassTrailingCommas(filename):
 
 
 def formatPython(
-    logger, filename, effective_filename, ignore_errors, assume_yes_for_downloads=False
+    logger, filename, effective_filename, ignore_errors, assume_yes_for_downloads
 ):
     """Format Python source code.
 
@@ -293,13 +293,14 @@ def formatPython(
         if black_path is None:
             return logger.sysexit("Error, cannot find 'black' binary.")
 
-        black_call = [black_path]
+        black_call = [black_path, "-q", "--fast", filename]
+        # logger.info("Executing: %s" % " ".join(black_call))
 
         old_contents = getFileContents(filename, "rb")
 
         try:
             with withPrivatePipSitePackagesPathAdded(logger=logger):
-                check_call(black_call + ["-q", "--fast", filename])
+                check_call(black_call)
         except Exception:  # pylint: disable=broad-except
             logger.warning("Problem formatting for '%s'." % effective_filename)
 
