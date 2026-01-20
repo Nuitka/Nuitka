@@ -478,6 +478,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
+    def onGeneratedSourceCode(self, source_dir, onefile):
+        """Called after all C code has been generated.
+
+        Args:
+            source_dir: (str) directory where the C code is
+            onefile: (bool) true if this is onefile bootstrap
+
+        Returns:
+            None
+        """
+
     @staticmethod
     def isAlwaysEnabled():
         """Request to be always enabled.
@@ -1079,6 +1090,9 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
     def onDataFileTags(self, included_datafile):
         """Action on data file tags."""
+
+    def onDllTags(self, included_entry_point):
+        """Action on DLL tags."""
 
     def onBeforeCodeParsing(self):
         """Prepare for code parsing, normally not needed."""

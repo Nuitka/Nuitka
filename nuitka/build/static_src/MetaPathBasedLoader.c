@@ -724,19 +724,15 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 #endif
 }
 
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
-                                         bool is_package) {
-    // Determine the package name and basename of the module to load.
+static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
+                                                    const filename_char_t *filename) {
+    // Determine the basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
-    char const *package;
 
     if (dot == NULL) {
-        package = NULL;
         name = full_name;
     } else {
-        // The extension modules do expect it to be full name in context.
-        package = (char *)full_name;
         name = dot + 1;
     }
 
@@ -843,6 +839,29 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     entrypoint_t entrypoint = (entrypoint_t)dlsym(handle, entry_function_name);
 #endif // __wasi__
 #endif
+
+    return entrypoint;
+}
+
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
+                                         bool is_package) {
+    // Determine the package name and basename of the module to load.
+    char const *dot = strrchr(full_name, '.');
+    char const *package;
+
+    if (dot == NULL) {
+        package = NULL;
+    } else {
+        // The extension modules do expect it to be full name in context.
+        package = (char *)full_name;
+    }
+
+    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename);
+
+    if (entrypoint == NULL) {
+        return NULL;
+    }
+
     assert(entrypoint);
 
     char const *old_context = NuitkaImport_SwapPackageContext(package);
@@ -923,7 +942,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     PyObject *module = Nuitka_GetModuleString(tstate, full_name);
 #endif
 
-    PGO_onModuleExit(name, module == NULL);
+    PGO_onModuleExit(full_name, module == NULL);
 
     if (unlikely(module == NULL)) {
         if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {

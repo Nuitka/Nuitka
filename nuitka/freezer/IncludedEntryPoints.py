@@ -9,14 +9,15 @@ plugins in their getExtraDlls implementation, where they provide DLLs to be
 added, and whose dependencies will also be included.
 """
 
-import collections
 import fnmatch
 import os
 
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
     getShallNotIncludeDllFilePatterns,
     isShowInclusion,
 )
+from nuitka.plugins.Hooks import onDllTags
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -30,9 +31,45 @@ from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
-IncludedEntryPoint = collections.namedtuple(
-    "IncludedEntryPoint",
-    (
+dll_tags = []
+
+
+def addDllTags(pattern):
+    """Add a DLL tag pattern.
+
+    Args:
+        pattern: The pattern and tags in "pattern:tags" format.
+    """
+    assert ":" in pattern, pattern
+    dll_tags.append(pattern)
+
+
+def getDllTags(dest_path):
+    """Get the DLL tags for a specific destination path.
+
+    Args:
+        dest_path: The destination path to check.
+
+    Returns:
+        OrderedSet of tags applicable to the path.
+    """
+    result = OrderedSet()
+    result.add("copy")
+
+    for value in dll_tags:
+        pattern, tags = value.rsplit(":", 1)
+
+        if fnmatch.fnmatch(dest_path, pattern):
+            result.update(tags.split(","))
+
+    return result
+
+
+class IncludedEntryPoint(object):
+    # We need all these attributes to track the entry point details.
+    # pylint: disable=too-many-instance-attributes
+
+    __slots__ = (
         "logger",
         "kind",
         "source_path",
@@ -41,13 +78,65 @@ IncludedEntryPoint = collections.namedtuple(
         "package_name",
         "executable",
         "reason",
-    ),
-)
+        "tags",
+    )
+
+    def __init__(
+        self,
+        logger,
+        kind,
+        source_path,
+        dest_path,
+        module_name,
+        package_name,
+        executable,
+        reason,
+        tags,
+    ):
+        self.logger = logger
+        self.kind = kind
+        self.source_path = source_path
+        self.dest_path = dest_path
+        self.module_name = module_name
+        self.package_name = package_name
+        self.executable = executable
+        self.reason = reason
+        self.tags = OrderedSet(tags) if tags else OrderedSet()
+
+        self.tags.update(getDllTags(dest_path))
+
+    def __repr__(self):
+        return """\
+<IncludedEntryPoint \
+kind=%s \
+source_path=%s \
+dest_path=%s \
+module_name=%s \
+package_name=%s \
+executable=%s \
+reason=%s \
+tags=%s>""" % (
+            self.kind,
+            self.source_path,
+            self.dest_path,
+            self.module_name,
+            self.package_name,
+            self.executable,
+            self.reason,
+            self.tags,
+        )
 
 
-# Since inheritance is not a thing with namedtuple, have factory functions
 def _makeIncludedEntryPoint(
-    logger, kind, source_path, dest_path, module_name, package_name, reason, executable
+    logger,
+    kind,
+    source_path,
+    dest_path,
+    module_name,
+    package_name,
+    reason,
+    executable,
+    tags,
 ):
     if package_name is not None:
         package_name = ModuleName(package_name)
@@ -69,11 +158,20 @@ def _makeIncludedEntryPoint(
         package_name=package_name,
         executable=executable,
         reason=reason,
+        tags=tags,
     )
 
 
 def _makeDllOrExeEntryPoint(
-    logger, kind, source_path, dest_path, module_name, package_name, reason, executable
+    logger,
+    kind,
+    source_path,
+    dest_path,
+    module_name,
+    package_name,
+    reason,
+    executable,
+    tags,
 ):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
@@ -101,11 +199,12 @@ def _makeDllOrExeEntryPoint(
         package_name=package_name,
         reason=reason,
         executable=executable,
+        tags=tags,
     )
 
 
 def makeExtensionModuleEntryPoint(
-    logger, source_path, dest_path, module_name, package_name, reason
+    logger, source_path, dest_path, module_name, package_name, reason, tags=None
 ):
     return _makeDllOrExeEntryPoint(
         logger=logger,
@@ -116,11 +215,12 @@ def makeExtensionModuleEntryPoint(
         package_name=package_name,
         reason=reason,
         executable=False,
+        tags=tags,
     )
 
 
 def makeDllEntryPoint(
-    logger, source_path, dest_path, module_name, package_name, reason
+    logger, source_path, dest_path, module_name, package_name, reason, tags=None
 ):
     return _makeDllOrExeEntryPoint(
         logger=logger,
@@ -131,11 +231,12 @@ def makeDllEntryPoint(
         package_name=package_name,
         reason=reason,
         executable=False,
+        tags=tags,
     )
 
 
 def makeExeEntryPoint(
-    logger, source_path, dest_path, module_name, package_name, reason
+    logger, source_path, dest_path, module_name, package_name, reason, tags=None
 ):
     return _makeDllOrExeEntryPoint(
         logger=logger,
@@ -146,6 +247,7 @@ def makeExeEntryPoint(
         package_name=package_name,
         reason=reason,
         executable=True,
+        tags=tags,
     )
 
 
@@ -159,6 +261,7 @@ def makeMainExecutableEntryPoint(dest_path):
         package_name=None,
         reason="main binary",
         executable=True,
+        tags=None,
     )
 
 
@@ -172,6 +275,7 @@ def _makeIgnoredEntryPoint(entry_point):
         package_name=entry_point.package_name,
         reason=entry_point.reason,
         executable=entry_point.executable,
+        tags=entry_point.tags,
     )
 
 
@@ -224,6 +328,12 @@ Ignoring non-identical DLLs for %s, %s different from %s. Using first one and ho
 def addIncludedEntryPoint(entry_point):
     # Checking here if user or DLL version conflicts require it to be ignored,
     # which has a couple of decisions to make, pylint: disable=too-many-branches
+
+    # Allow configured tags to be applied to it
+    entry_point.tags.update(getDllTags(entry_point.dest_path))
+
+    # Allow plugins to tag it
+    onDllTags(entry_point)
 
     for count, standalone_entry_point in enumerate(standalone_entry_points):
         if standalone_entry_point.kind.endswith("_ignored"):
@@ -312,10 +422,12 @@ def addIncludedEntryPoints(entry_points):
         addIncludedEntryPoint(entry_point)
 
 
-def setMainEntryPoint(binary_filename):
+def addMainEntryPoint(binary_filename):
     entry_point = makeMainExecutableEntryPoint(binary_filename)
 
     standalone_entry_points.insert(0, entry_point)
+
+    return entry_point
 
 
 def addExtensionModuleEntryPoint(module):
@@ -326,20 +438,22 @@ def addExtensionModuleEntryPoint(module):
 
     dest_path += getExtensionModuleSuffix(preferred=False)
 
-    standalone_entry_points.append(
-        makeExtensionModuleEntryPoint(
-            logger=general,
-            source_path=module.getFilename(),
-            dest_path=dest_path,
-            module_name=module.getFullName(),
-            package_name=module.getFullName().getPackageName(),
-            reason=(
-                "required extension module for CPython library startup"
-                if module.isTechnical()
-                else "used extension module"
-            ),
-        )
+    entry_point = makeExtensionModuleEntryPoint(
+        logger=general,
+        source_path=module.getFilename(),
+        dest_path=dest_path,
+        module_name=module.getFullName(),
+        package_name=module.getFullName().getPackageName(),
+        reason=(
+            "required extension module for CPython library startup"
+            if module.isTechnical()
+            else "used extension module"
+        ),
     )
+
+    onDllTags(entry_point)
+
+    standalone_entry_points.append(entry_point)
 
 
 def getIncludedExtensionModule(source_path):

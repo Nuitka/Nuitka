@@ -32,6 +32,9 @@ def main():
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
+        if not os.path.exists(filename):
+            sys.exit("Error, file '%s' not found." % filename)
+
         my_print("Filename: %s" % filename)
         my_print("Version Information: %s" % (getDLLVersion(filename),))
 

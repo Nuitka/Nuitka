@@ -395,7 +395,7 @@ typedef long Py_hash_t;
  *
  */
 #if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
-
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
 static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
     if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
         _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
@@ -643,19 +643,6 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #endif
 
-#if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
-#include "nuitka_init_program.h"
-#else
-#define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
-#define NUITKA_INIT_PROGRAM_LATE(module_name)
-#endif
-
-#if _NUITKA_EXPERIMENTAL_EXIT_PROGRAM
-#include "nuitka_exit_program.h"
-#else
-#define NUITKA_FINALIZE_PROGRAM(tstate)
-#endif
-
 // Only Python3.9+ has a more precise check, while making the old one slow.
 #ifndef PyCFunction_CheckExact
 #define PyCFunction_CheckExact PyCFunction_Check
@@ -668,6 +655,10 @@ extern void DUMP_C_BACKTRACE(void);
 // For signal handlers, we can do this.
 #include <ucontext.h>
 extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
+#endif
+
+#if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
+#include "extra_includes.h"
 #endif
 
 #endif
