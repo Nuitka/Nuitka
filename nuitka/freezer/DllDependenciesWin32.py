@@ -447,9 +447,6 @@ def _getPathContribution(use_path):
     return _path_contributions[use_path]
 
 
-_include_windows_runtime_dlls = None
-
-
 def shallIncludeVCRedistDLL(dll_filename):
     """Check if a DLL from the VC redistributable should be included.
 
@@ -459,6 +456,7 @@ def shallIncludeVCRedistDLL(dll_filename):
     Returns:
         bool: True if it is a VC redist DLL and inclusion is enabled, False otherwise.
     """
+
     vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if vc_redist_path is None:
         return False
@@ -467,6 +465,9 @@ def shallIncludeVCRedistDLL(dll_filename):
         return shallIncludeWindowsRuntimeDLLs()
 
     return True
+
+
+_include_windows_runtime_dlls = None
 
 
 def shallIncludeWindowsRuntimeDLLs():
@@ -514,7 +515,7 @@ to be installed on target systems."""
         else:
             inclusion_logger.info(
                 """\
-Included Windows Runtime DLLs, which increases distribution  \
+Including Windows Runtime DLLs, which increases distribution  \
 size. Use '--include-windows-runtime-dlls=no' to disable, or \
 make explicit with '--include-windows-runtime-dlls=yes'."""
             )
