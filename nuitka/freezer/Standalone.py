@@ -362,13 +362,14 @@ def _reduceToPythonPath(used_dll_paths):
             for inside_path in inside_paths
         )
 
+    def decideMsvcRedistDll(dll_filename):
+        return isWin32Windows() and shallIncludeVCRedistDLL(dll_filename)
+
     kept_used_dll_paths = OrderedSet()
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        if decideInside(dll_filename) and (
-            not isWin32Windows() or shallIncludeVCRedistDLL(dll_filename)
-        ):
+        if decideInside(dll_filename) or decideMsvcRedistDll(dll_filename):
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
