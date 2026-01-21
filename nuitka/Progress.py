@@ -415,7 +415,29 @@ def _checkTqdmModule():
                     "colorama", must_exist=True, delete_module=True
                 )
 
+            # Check for our redirection, and temporarily disable it, so colorama
+            # finds the real handles.
+            if hasattr(sys.stdout, "original_stream"):
+                stdout_redirector = sys.stdout
+                sys.stdout = stdout_redirector.original_stream
+            else:
+                stdout_redirector = None
+
+            if hasattr(sys.stderr, "original_stream"):
+                stderr_redirector = sys.stderr
+                sys.stderr = stderr_redirector.original_stream
+            else:
+                stderr_redirector = None
+
             _colorama.init()
+
+            if stdout_redirector:
+                stdout_redirector.original_stream = sys.stdout
+                sys.stdout = stdout_redirector
+
+            if stderr_redirector:
+                stderr_redirector.original_stream = sys.stderr
+                sys.stderr = stderr_redirector
 
         return "tqdm"
     else:
