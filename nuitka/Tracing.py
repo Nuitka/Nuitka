@@ -252,41 +252,48 @@ def _aliasStyle(style):
         return style
 
 
-def _my_print(file_output, is_atty, args, kwargs):
+def _my_print(is_atty, args, kwargs):
+    file_output = kwargs.get("file", sys.stdout)
+
     try:
-        if "style" in kwargs:
-            style = kwargs["style"]
-            del kwargs["style"]
-
-            if "end" in kwargs:
-                end = kwargs["end"]
-                del kwargs["end"]
-            else:
-                end = "\n"
-
-            if style is not None and is_atty:
-                enable_style = getEnableStyleCode(style)
-
-                if enable_style is None:
-                    raise ValueError(
-                        "%r is an invalid value for keyword argument style" % style
-                    )
-
-                _enableAnsi()
-
-                print(enable_style, end="", **kwargs)
-
-            print(*args, end=end, **kwargs)
-
-            if style is not None and is_atty:
-                print(getDisableStylesCode(), end="", **kwargs)
-        else:
-            print(*args, **kwargs)
+        _my_print2(is_atty, args, kwargs)
 
         # Flush the output.
         file_output.flush()
     except BrokenPipeError:
         pass
+
+
+def _my_print2(is_atty, args, kwargs):
+    if "style" in kwargs:
+        style = kwargs["style"]
+        del kwargs["style"]
+
+        if "end" in kwargs:
+            end = kwargs["end"]
+            del kwargs["end"]
+        else:
+            end = "\n"
+
+        if style is not None and is_atty:
+            enable_style = getEnableStyleCode(style)
+
+            if enable_style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style" % style
+                )
+
+            _enableAnsi()
+
+            print(enable_style, end="", **kwargs)
+
+        if style is not None and is_atty:
+            print(*args, end="", **kwargs)
+            print(getDisableStylesCode(), end=end, **kwargs)
+        else:
+            print(*args, end=end, **kwargs)
+    else:
+        print(*args, **kwargs)
 
 
 def my_print(*args, **kwargs):
@@ -299,17 +306,13 @@ def my_print(*args, **kwargs):
 
     file_output = kwargs.get("file", sys.stdout)
 
-    # Unwrap our own redirection for Scons.
-    if hasattr(file_output, "original_stream"):
-        file_output = file_output.original_stream
-
     is_atty = file_output.isatty()
 
     if progress and is_atty:
         with progress.withExternalWritingPause():
-            _my_print(file_output, is_atty, args, kwargs)
+            _my_print(is_atty, args, kwargs)
     else:
-        _my_print(file_output, is_atty, args, kwargs)
+        _my_print(is_atty, args, kwargs)
 
 
 class ReportingSystemExit(SystemExit):
