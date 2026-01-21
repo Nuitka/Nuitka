@@ -42,8 +42,9 @@ def initScons(arguments):
     # Set the arguments.
     _setArguments(arguments)
 
-    # Avoid localized outputs.
+    # Avoid localized outputs, spell-checker: ignore VSLANG
     os.environ["LC_ALL"] = "C"
+    os.environ["VSLANG"] = "1033"
 
     def no_sync(self):
         # That's a noop, pylint: disable=unused-argument
@@ -595,7 +596,28 @@ def writeSconsReport(env, target):
         print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
 
 
+_checked_msvc_language_pack = False
+
+
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
+    # Singleton, pylint: disable=global-statement
+    global _checked_msvc_language_pack
+
+    if not _checked_msvc_language_pack and env.msvc_mode and (stderr or stdout):
+        _checked_msvc_language_pack = True
+
+        cl_path = getExecutablePath(env.the_compiler, env=env)
+        bin_dir = os.path.dirname(cl_path)
+        eng_dir = os.path.join(bin_dir, "1033")
+
+        if not os.path.exists(eng_dir):
+            scons_logger.warning(
+                """\
+Support language of Nuitka is English. Please install the English \
+language pack for Visual Studio in the installer. There is a \
+section for that."""
+            )
+
     if env.warn_error_mode and stderr is not None:
 
         if (
