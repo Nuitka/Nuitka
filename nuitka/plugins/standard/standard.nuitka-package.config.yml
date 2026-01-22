@@ -2242,7 +2242,7 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'jedi' # checksum: 6c1b0c4c
+- module-name: 'jedi' # checksum: d24aa6ba
   data-files:
     - patterns:
         - 'third_party/typeshed/**/*.pyi'
