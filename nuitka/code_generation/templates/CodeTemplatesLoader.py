@@ -25,7 +25,7 @@ template_metapath_loader_bytecode_module_entry = """\
 },"""
 
 template_metapath_loader_excluded_module_entry = """\
-{%(module_name)s, (module_init_func)%(exclusion_reason)s, 0, 0, %(flags)s
+{%(module_name)s, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , NULL
 #endif
@@ -58,6 +58,13 @@ template_metapath_loader_body = r"""
 static unsigned char *bytecode_data[%(bytecode_count)d];
 #else
 static unsigned char **bytecode_data = NULL;
+#endif
+
+/* Helper for portable cast, to use string literals as module_init_func */
+#ifdef __cplusplus
+#define NUITKA_CAST_INIT_REASON(x) reinterpret_cast<module_init_func>((void*)(x))
+#else
+#define NUITKA_CAST_INIT_REASON(x) (module_init_func)(x)
 #endif
 
 /* Table for lookup to find compiled or bytecode modules included in this
