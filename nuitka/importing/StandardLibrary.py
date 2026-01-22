@@ -257,6 +257,10 @@ _stdlib_no_auto_inclusion_list = (
     # spell-checker: ignore _pydecimal,_posixsubprocess,pyexpat,sitecustomize
     "multiprocessing",
     "_multiprocessing",
+    # These are embedded as frozen modules in the Python binary, so avoid
+    # keeping the originals too.
+    "importlib._bootstrap",
+    "importlib._bootstrap_external",
     # Implicit usages of these will be rare, but it can have that costly extension module
     "curses",
     "_curses",
