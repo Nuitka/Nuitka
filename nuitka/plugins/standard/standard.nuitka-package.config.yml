@@ -2246,10 +2246,8 @@
   data-files:
     - patterns:
         - 'third_party/typeshed/**/*.pyi'
-        - 'third_party/typeshed/**/VERSIONS'
-        - 'third_party/**/*.txt'
-        - 'third_party/**/LICENSE*'
-        - 'third_party/**/*.md'
+    - dirs:
+        - 'third_party'
 
   anti-bloat:
     - description: 'allow pydoc inside jedi, too dependent to remove'
