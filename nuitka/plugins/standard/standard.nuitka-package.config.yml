@@ -2242,11 +2242,7 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'jedi' # checksum: 6be45546
-  anti-bloat:
-    - description: 'allow pydoc inside jedi, too dependent to remove'
-      bloat-mode-overrides:
-        'pydoc': 'allow'
+- module-name: 'jedi' # checksum: 6c1b0c4c
   data-files:
     - patterns:
         - 'third_party/typeshed/**/*.pyi'
@@ -2254,6 +2250,11 @@
         - 'third_party/**/*.txt'
         - 'third_party/**/LICENSE*'
         - 'third_party/**/*.md'
+
+  anti-bloat:
+    - description: 'allow pydoc inside jedi, too dependent to remove'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
 
 - module-name: 'jenn.core' # checksum: bddd1843
   data-files:
@@ -2544,18 +2545,6 @@
     - dirs:
         - 'data'
 
-- module-name: 'line_profiler'
-  dlls:
-    - from_filenames:
-        prefixes:
-          - '_line_profiler'
-  data-files:
-    - patterns:
-        - 'rc/*.toml'
-  implicit-imports:
-    - depends:
-        - 'line_profiler.rc'
-
 - module-name: 'lightgbm' # checksum: 5f44354a
   data-files:
     - dirs:
@@ -2600,6 +2589,18 @@
   data-files:
     - patterns:
         - 'version.info'
+
+- module-name: 'line_profiler' # checksum: af5226e0
+  data-files:
+    - patterns:
+        - 'rc/*.toml'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_line_profiler'
+  implicit-imports:
+    - depends:
+        - 'line_profiler.rc'
 
 - module-name: 'litellm' # checksum: c104ffe5
   data-files:
@@ -4105,7 +4106,7 @@
         - 'pango'
         - 'cairo'
 
-- module-name: 'parso'
+- module-name: 'parso' # checksum: 202c5781
   data-files:
     - dirs:
         - 'python'
@@ -6111,7 +6112,7 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'sentry_sdk'
+- module-name: 'sentry_sdk' # checksum: 758a715a
   implicit-imports:
     - depends:
         - 'sentry_sdk.integrations.*'
