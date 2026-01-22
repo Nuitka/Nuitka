@@ -2247,6 +2247,13 @@
     - description: 'allow pydoc inside jedi, too dependent to remove'
       bloat-mode-overrides:
         'pydoc': 'allow'
+  data-files:
+    - patterns:
+        - 'third_party/typeshed/**/*.pyi'
+        - 'third_party/typeshed/**/VERSIONS'
+        - 'third_party/**/*.txt'
+        - 'third_party/**/LICENSE*'
+        - 'third_party/**/*.md'
 
 - module-name: 'jenn.core' # checksum: bddd1843
   data-files:
@@ -2536,6 +2543,18 @@
   data-files:
     - dirs:
         - 'data'
+
+- module-name: 'line_profiler'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_line_profiler'
+  data-files:
+    - patterns:
+        - 'rc/*.toml'
+  implicit-imports:
+    - depends:
+        - 'line_profiler.rc'
 
 - module-name: 'lightgbm' # checksum: 5f44354a
   data-files:
@@ -4085,6 +4104,11 @@
     - depends:
         - 'pango'
         - 'cairo'
+
+- module-name: 'parso'
+  data-files:
+    - dirs:
+        - 'python'
 
 - module-name: 'passlib.apache' # checksum: 4e9f8101
   implicit-imports:
@@ -6086,6 +6110,11 @@
   implicit-imports:
     - depends:
         - 'huggingface_hub.repository'
+
+- module-name: 'sentry_sdk'
+  implicit-imports:
+    - depends:
+        - 'sentry_sdk.integrations.*'
 
 - module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
