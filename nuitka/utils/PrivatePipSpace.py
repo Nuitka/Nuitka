@@ -12,6 +12,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
+    getSystemPrefixPath,
     python_version_str,
 )
 
@@ -22,10 +23,55 @@ from .Execution import (
     getExecutablePath,
     withEnvironmentPathAdded,
 )
-from .FileOperations import getFileContentByLine, getNormalizedPathJoin
+from .FileOperations import (
+    areSamePaths,
+    getFileContentByLine,
+    getNormalizedPathJoin,
+)
 from .Hashing import HashCRC32
 from .Importing import withTemporarySysPathExtension
 from .Utils import getArchitecture, getOS, isWin32Windows
+
+
+def getSystemPrefixExecutable():
+    """Return the sys.executable of the system prefix, i.e. breaking out of virtualenv.
+
+    See getSystemPrefixPath() for details.
+
+    Returns:
+        str - path to system executable
+    """
+    # Yes, we want and need it here, pylint: disable=protected-access
+    if hasattr(sys, "_base_executable"):
+        return sys._base_executable
+
+    sys_prefix = getSystemPrefixPath()
+    if sys_prefix == sys.prefix:
+        return sys.executable
+
+    if areSamePaths(sys_prefix, sys.prefix):
+        return sys.executable
+
+    # The "sys.executable" is a good guess for the name, but we might have to
+    # look for "python" effectively.
+    candidate_names = (
+        os.path.basename(sys.executable),
+        "python.exe" if os.name == "nt" else "python",
+        "python%s" % python_version_str,
+    )
+
+    for candidate_name in candidate_names:
+        if os.name == "nt":
+            candidate = os.path.join(sys_prefix, candidate_name)
+        else:
+            candidate = os.path.join(sys_prefix, "bin", candidate_name)
+
+        if os.path.exists(candidate):
+            return candidate
+
+    # Fallback to sys.executable, which is not correct if we are in a virtualenv
+    # but the best we can do if we didn't find the system prefix one.
+    return sys.executable
 
 
 def _getCandidateBinPaths(logger, site_packages):
@@ -259,7 +305,7 @@ def tryDownloadPackageName(
 
         exit_code = subprocess.call(
             [
-                sys.executable,
+                getSystemPrefixExecutable(),
                 "-m",
                 "pip",
                 "install",
