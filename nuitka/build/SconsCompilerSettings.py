@@ -484,6 +484,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 clangcl_mode=False,
                 target_arch=target_arch,
                 consider_environ_variables=False,
+                assume_yes_for_downloads=env.assume_yes_for_downloads,
                 source_dir=env.source_dir,
             )
 
@@ -520,10 +521,9 @@ def createEnvironmentAndCheckCompiler(
         clangcl_mode=clangcl_mode,
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
+        assume_yes_for_downloads=assume_yes_for_downloads,
         source_dir=source_dir,
     )
-
-    env.assume_yes_for_downloads = assume_yes_for_downloads
 
     env = checkWindowsCompilerFound(
         env=env,
