@@ -21,7 +21,7 @@ instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 instance_re_truncated = re.compile(r"\[[0-9]+ chars\][0-9a-fA-F]+")
 thread_re = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
 compiled_types_re = re.compile(
-    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)"
+    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)(?!\.h)"
 )
 module_repr_re = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
