@@ -140,7 +140,16 @@ def getNotPushedPaths():
     result = set()
 
     try:
-        output = check_output(["git", "diff", "--stat", "--name-only", "@{upstream}"])
+        output = check_output(
+            [
+                "git",
+                "diff",
+                "--stat",
+                "--name-only",
+                "--ignore-submodules=all",
+                "@{upstream}",
+            ]
+        )
     except NuitkaCalledProcessError:
         return result
 
