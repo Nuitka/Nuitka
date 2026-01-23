@@ -324,8 +324,19 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
     // by simply pretending there's a null reference on the top of the interpreter
     // stack, which tricks the GC into skipping this frame (which is fine, since
     // Nuitka will clean up its own variables).
+#if defined(_MSC_VER)
+    static _PyStackRef null_stack_ref;
+    static bool is_null_stack_ref_initialized = false;
+
+    if (unlikely(!is_null_stack_ref_initialized)) {
+        null_stack_ref = PyStackRef_NULL;
+        is_null_stack_ref_initialized = true;
+    }
+    interpreter_frame->stackpointer = &null_stack_ref;
+#else
     static _PyStackRef null_stack_ref = PyStackRef_NULL;
     interpreter_frame->stackpointer = &null_stack_ref;
+#endif
 #endif
 }
 #else
