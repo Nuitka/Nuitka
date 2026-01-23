@@ -164,6 +164,9 @@ class ExpressionOperationBinaryBase(
     def computeExpression(self, trace_collection):
         # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
+            exception_raise_exit = self.escape_desc.getExceptionExit()
+            if exception_raise_exit is not None:
+                trace_collection.onExceptionRaiseExit(exception_raise_exit)
             return self, None, None
 
         left = self.subnode_left
@@ -718,6 +721,10 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
     def computeExpression(self, trace_collection):
         # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
+            exception_raise_exit = self.escape_desc.getExceptionExit()
+            if exception_raise_exit is not None:
+                trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
             return self, None, None
 
         left = self.subnode_left

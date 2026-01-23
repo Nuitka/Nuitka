@@ -229,8 +229,12 @@ def _getFormatSpecSize(match, args, arg_idx, mapping_mode):
     elif type_char in "eEfFgG":
         precision = target_precision if target_precision is not None else 6
         # Heuristic for float formatting.
-        val_str = "{:.{p}f}".format(current_arg, p=precision)
-        arg_len = len(val_str)
+        try:
+            val_str = "{:.{p}f}".format(current_arg, p=precision)
+        except ValueError:
+            return None, None
+        else:
+            arg_len = len(val_str)
 
     elif type_char == "c":
         arg_len = 1
