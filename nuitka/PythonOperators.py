@@ -164,7 +164,7 @@ def _getFormatSpecSize(match, args, arg_idx, mapping_mode):
             args_consumed (int or None): The number of arguments consumed by this specifier.
     """
     # Result size or None for checks that say to not optimize.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
 
     mapping_key, _flags, width, precision, type_char = match.groups()
 
