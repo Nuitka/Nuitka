@@ -213,6 +213,7 @@ def createEnvironment(
     clangcl_mode,
     target_arch,
     consider_environ_variables,
+    assume_yes_for_downloads,
     source_dir,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
@@ -289,6 +290,7 @@ def createEnvironment(
     )
 
     env.source_dir = source_dir
+    env.assume_yes_for_downloads = assume_yes_for_downloads
 
     if zig_exe_path:
         env["CC"] = zig_exe_path
