@@ -129,6 +129,7 @@ fi
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
+rm -rf nuitka/build/inline_copy/pefile
 
 if [ "$python2" != "" ]
 then
@@ -191,7 +192,7 @@ then
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
-    $python2 ./tests/run-tests --skip-reflection-test
+    $python2 ./tests/run-tests --skip-reflection-test --assume-yes-for-downloads
 else
     echo "Nuitka Version information"
     python3 -m nuitka --version
@@ -200,7 +201,7 @@ else
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
-    python3 ./tests/run-tests --skip-reflection-test
+    python3 ./tests/run-tests --skip-reflection-test --assume-yes-for-downloads
 fi
 
 %install

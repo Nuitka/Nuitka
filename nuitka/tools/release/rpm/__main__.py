@@ -15,6 +15,7 @@ from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import (
+    copyFile,
     getFileContents,
     makePath,
     putTextFileContents,
@@ -64,6 +65,11 @@ def main():
         renameFile(
             source_filename=os.path.join("..", "dist", nuitka_dist_filename),
             dest_filename=os.path.join("/root/rpmbuild/SOURCES", nuitka_dist_filename),
+        )
+
+        copyFile(
+            source_path=os.path.join(os.path.dirname(__file__), "nuitka-rpmlintrc"),
+            dest_path="/root/rpmbuild/SOURCES/nuitka-rpmlintrc",
         )
 
         # Adapt the spec file dynamically to version and project name of Nuitka being built.
