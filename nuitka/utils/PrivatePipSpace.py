@@ -21,6 +21,7 @@ from .Execution import (
     NuitkaCalledProcessError,
     check_output,
     getExecutablePath,
+    getNullOutput,
     withEnvironmentPathAdded,
 )
 from .FileOperations import (
@@ -303,24 +304,31 @@ def tryDownloadPackageName(
         else:
             package_spec = package_name
 
-        exit_code = subprocess.call(
-            [
-                getSystemPrefixExecutable(),
-                "-m",
-                "pip",
-                "install",
-                "--no-warn-script-location",
-                "--disable-pip-version-check",
-                "--ignore-installed",
-                "--upgrade",
-                "--root",
-                download_folder,
-                "--prefix",
-                ".",
-                package_spec,
-            ],
-            shell=False,
+        command = (
+            getSystemPrefixExecutable(),
+            "-m",
+            "pip",
+            "install",
+            "--no-warn-script-location",
+            "--disable-pip-version-check",
+            "--ignore-installed",
+            "--upgrade",
+            "--root",
+            download_folder,
+            "--prefix",
+            ".",
+            package_spec,
         )
+
+        interactive = sys.stdout.isatty()
+
+        with getNullOutput() as null_output:
+            exit_code = subprocess.call(
+                command,
+                shell=False,
+                stdout=None if interactive else null_output,
+                stderr=None if interactive else null_output,
+            )
 
         if exit_code != 0:
             return None, assume_yes_for_downloads
