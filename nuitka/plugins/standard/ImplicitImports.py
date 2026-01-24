@@ -783,6 +783,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "tensorflow.*test",  # Not performance relevant.
         "tensorflow.**.test_util",  # Not performance relevant.
         "google.protobuf.*_pb2",  #  Too large generated code
+        "sqlfluff.dialects.*",  #  Too large generated code
     )
 
     def decideCompilation(self, module_name):
