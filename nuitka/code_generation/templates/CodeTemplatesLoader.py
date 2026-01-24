@@ -4,7 +4,7 @@
 """Templates for the loading of embedded modules."""
 
 template_metapath_loader_compiled_module_entry = """\
-{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
+{%(module_name)s, module_code_%(module_identifier)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
 #endif
