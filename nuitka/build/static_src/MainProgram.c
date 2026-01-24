@@ -2142,7 +2142,7 @@ int Py_Main(int argc, char **argv) { return 0; }
 
 // For cases of gcc used to compile with Nuitka vs. the one used to compile
 // libpython.
-#if defined(__linux__) && defined(__GNUC__) && !defined(__ZIG__)
+#if defined(__linux__) && defined(__GNUC__) && !defined(__ZIG__) && !defined(__clang__)
 __attribute__((weak)) void __warn_memset_zero_len(void) {}
 #endif
 
