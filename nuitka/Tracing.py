@@ -621,11 +621,14 @@ def queryUser(question, choices, default, default_non_interactive):
         reply = raw_input() or default
     except EOFError:
         reply = default_non_interactive
+        printLine("%s (default non-interactive)" % (reply))
+
+    reply = reply.lower()
 
     if reply == "y":
         reply = "yes"
 
-    return reply.lower()
+    return reply
 
 
 _non_breaking_space = chr(1)
