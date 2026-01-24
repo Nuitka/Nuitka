@@ -286,9 +286,9 @@ def getDistributionTopLevelPackageNames(distribution, deep):
             if hasModule(module_name)
         )
 
-        result = tuple(result)
-
         if result:
+            result = tuple(result)
+
             # If we found it via top level text, it applies to deep or not deep,
             # so cache it for both.
             _distribution_top_level_cache[distribution, False] = result
