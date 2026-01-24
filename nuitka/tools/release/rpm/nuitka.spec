@@ -33,6 +33,7 @@ BuildRequires:  python-debug
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 BuildRequires:  python3
 BuildRequires:  python3-devel
+BuildRequires:  python3-pip
 %endif
 %if 0%{?rhel} == 8
 BuildRequires:  python36
