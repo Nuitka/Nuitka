@@ -985,10 +985,12 @@ class TraceCollectionBase(object):
         )
 
     def initVariableUnknown(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][-1]
-        else:
-            trace = ValueTraceStartUnknown(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][-1]
+        # else:
+        trace = ValueTraceStartUnknown(self.owner)
 
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
@@ -997,10 +999,12 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableModule(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][-1]
-        else:
-            trace = ValueTraceStartUnknown(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][-1]
+        # else:
+        trace = ValueTraceStartUnknown(self.owner)
 
         # Unknown traces are div 3 rem 2.
         self.variable_traces[variable][-1] = trace
@@ -1009,10 +1013,12 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableInit(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][0]
-        else:
-            trace = ValueTraceStartInit(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][0]
+        # else:
+        trace = ValueTraceStartInit(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
@@ -1020,10 +1026,12 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableInitStarArgs(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][0]
-        else:
-            trace = ValueTraceStartInitStarArgs(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][0]
+        # else:
+        trace = ValueTraceStartInitStarArgs(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
@@ -1031,10 +1039,12 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableInitStarDict(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][0]
-        else:
-            trace = ValueTraceStartInitStarDict(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][0]
+        # else:
+        trace = ValueTraceStartInitStarDict(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
@@ -1042,10 +1052,12 @@ class TraceCollectionBase(object):
         return trace
 
     def initVariableUninitialized(self, variable, old_collection):
-        if old_collection is not None:
-            trace = old_collection.variable_traces[variable][0]
-        else:
-            trace = ValueTraceStartUninitialized(self.owner)
+        # TODO: Making these really reusable by removing their state for each of
+        # these cases. pylint: disable=unused-argument
+        # if old_collection is not None:
+        #     trace = old_collection.variable_traces[variable][0]
+        # else:
+        trace = ValueTraceStartUninitialized(self.owner)
 
         self.variable_traces[variable][0] = trace
         self.variable_actives[variable] = 0
