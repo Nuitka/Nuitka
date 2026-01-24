@@ -358,7 +358,8 @@ class ValueTraceStartUninitialized(ValueTraceStartMixin, ValueTraceUnassignedBas
     def isTraceThatNeedsEscape():
         return False
 
-    def inhibitsClassScopeForwardPropagation(self):
+    @staticmethod
+    def inhibitsClassScopeForwardPropagation():
         return False
 
 
