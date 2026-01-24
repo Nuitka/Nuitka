@@ -3,12 +3,12 @@
 
 """Utilities for private pip space to download packages into."""
 
-import functools
 import os
 import re
 import subprocess
 import sys
 
+from nuitka.__past__ import total_ordering
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import (
     getSitePackageCandidateNames,
@@ -570,7 +570,7 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
     return binary_path
 
 
-@functools.total_ordering
+@total_ordering
 class _PythonVersion(object):
     def __init__(self, version_str):
         self.version = tuple(int(x) for x in version_str.split("."))
