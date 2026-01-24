@@ -5,6 +5,8 @@
 
 import os
 
+import os
+
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     addMainScriptDirectory,
