@@ -120,16 +120,16 @@ if os.name == "nt" or sdist_mode:
     addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
-    addInlineCopy("yaml_27")
+    addInlineCopy("yaml_27", do_byte_compile=sys.version_info < (3,))
 if (3,) < sys.version_info < (3, 6) or sdist_mode:
-    addInlineCopy("yaml_35")
+    addInlineCopy("yaml_35", do_byte_compile=(3,) < sys.version_info < (3, 6))
 if sys.version_info >= (3, 6) or sdist_mode:
-    addInlineCopy("yaml")
+    addInlineCopy("yaml", do_byte_compile=sys.version_info >= (3, 6))
 
 if sys.version_info < (3, 6) or sdist_mode:
-    addInlineCopy("jinja2_35")
+    addInlineCopy("jinja2_35", do_byte_compile=sys.version_info < (3, 6))
 if sys.version_info >= (3, 6) or sdist_mode:
-    addInlineCopy("jinja2")
+    addInlineCopy("jinja2", do_byte_compile=sys.version_info >= (3, 6))
 
 addInlineCopy("pkg_resources")
 
@@ -142,9 +142,9 @@ if (os.name == "nt" and sys.version_info < (3, 7)) or sdist_mode:
 if (os.name == "nt" and sys.version_info >= (3, 7)) or sdist_mode:
     addInlineCopy("lib/scons-4.10.1", do_byte_compile=sys.version_info >= (3, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-2.3.2")
+    addInlineCopy("lib/scons-2.3.2", do_byte_compile=sys.version_info < (2, 7))
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-3.1.2")
+    addInlineCopy("lib/scons-3.1.2", do_byte_compile=sys.version_info >= (2, 7))
 
 nuitka_packages = findNuitkaPackages()
 
