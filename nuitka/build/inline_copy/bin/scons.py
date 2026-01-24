@@ -25,6 +25,10 @@ if __name__ == "__main__":
     elif os.name == "nt" and sys.version_info >= (3, 5):
         # Windows can use latest, supported MSVC 2022 this way
         scons_version = "scons-4.3.0"
+
+        # The caching of MSVC is not supported for the older Scons,
+        # so remove that.
+        del os.environ["SCONS_CACHE_MSVC_CONFIG"]
     else:
         # Everything else 2.7 or higher works with this.
         scons_version = "scons-3.1.2"
