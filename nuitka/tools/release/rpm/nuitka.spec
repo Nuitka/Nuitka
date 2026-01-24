@@ -1,5 +1,5 @@
 %if 0%{?rhel} < 8
-# detect python site-packages path, use get_python_lib(0) as nuitka using
+# detect python site-packages path, spell-checker: disable
 %if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
@@ -33,6 +33,7 @@ BuildRequires:  python-debug
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 BuildRequires:  python3
 BuildRequires:  python3-devel
+BuildRequires:  python3-pip
 %endif
 %if 0%{?rhel} == 8
 BuildRequires:  python36
