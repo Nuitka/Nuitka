@@ -227,7 +227,7 @@ static char const *module_full_name = %(module_name_cstr)s;
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
     PGO_onModuleEntered("%(module_identifier)s");
 
@@ -556,7 +556,7 @@ extern struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *
 static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *result = modulecode_%(module_identifier)s(tstate, module, getLoaderEntry(%(module_name_cstr)s));
+    PyObject *result = module_code_%(module_identifier)s(tstate, module, getLoaderEntry(%(module_name_cstr)s));
 
 #if PYTHON_VERSION < 0x300
     // Our "__file__" value will not be respected by CPython and one
