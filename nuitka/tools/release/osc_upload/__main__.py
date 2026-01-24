@@ -67,10 +67,11 @@ rm -rf osc && mkdir osc && cd osc && \
 osc checkout home:kayhayen {osc_project_name} && \
 rm home:kayhayen/{osc_project_name}/* && \
 cp ../dist/Nuitka-*.tar.gz home:kayhayen/{osc_project_name}/ && \
-sed -e s/VERSION/{nuitka_version}/ ../rpm/nuitka.spec >home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec && \
+sed -e s/VERSION/{nuitka_version}/ ../nuitka/tools/release/rpm/nuitka.spec \
+    >home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec && \
 sed -i home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec -e \
     's/Name: *nuitka/Name:           nuitka{spec_suffix}/' && \
-cp ../rpm/nuitka-rpmlintrc home:kayhayen/{osc_project_name}/ && \
+cp ../nuitka/tools/release/rpm/nuitka-rpmlintrc home:kayhayen/{osc_project_name}/ && \
 cd home:kayhayen/{osc_project_name}/ && \
 osc addremove -r && \
 echo 'New release' >ci_message && \
