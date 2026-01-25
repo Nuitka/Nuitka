@@ -591,7 +591,12 @@ class StatementSetLocals(StatementSetLocalsMixin, StatementSetLocalsBase):
 
     def onForwardPropagation(self, propagated_scopes):
         if self.locals_scope in propagated_scopes:
-            return None, "new_statements", "Forward propagating locals."
+            return (
+                None,
+                "new_statements",
+                "Forward propagating locals of %s."
+                % self.locals_scope.owner.getCodeName(),
+            )
 
         return self, None, None
 
@@ -628,7 +633,12 @@ class StatementSetLocalsDictionary(
 
     def onForwardPropagation(self, propagated_scopes):
         if self.locals_scope in propagated_scopes:
-            return None, "new_statements", "Forward propagating locals."
+            return (
+                None,
+                "new_statements",
+                "Forward propagating locals of %s."
+                % self.locals_scope.owner.getCodeName(),
+            )
 
         return self, None, None
 
@@ -719,16 +729,16 @@ class LocalsScopePropagationVisitor(object):
                 reason,
             )
 
-        if new_node is None:
-            return None
-
         if new_node is not node:
-            if new_node.isStatementsSequence():
+            if new_node is not None and new_node.isStatementsSequence():
                 node.getParent().replaceStatement(node, new_node.subnode_statements)
             else:
                 node.getParent().replaceChild(node, new_node)
 
             node.finalize()
+
+            if new_node is None:
+                return
 
             node = new_node
 
