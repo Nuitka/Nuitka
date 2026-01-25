@@ -1064,6 +1064,7 @@ class ExpressionFunctionCreationOld(
     # code generation to detect which one is used. bugs.python.org/issue16967
     kw_defaults_before_defaults = True
 
+    # TODO: Actually annotations are not used and should be removed.
     named_children = (
         "kw_defaults|optional",
         "defaults|tuple",

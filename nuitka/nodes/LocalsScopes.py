@@ -344,7 +344,8 @@ class LocalsDictHandle(LocalsDictHandleBase):
         trace_collection.signalChange(
             "var_usage",
             self.owner.getSourceReference(),
-            message="Forward propagate locals dictionary.",
+            message="Forward propagate locals dictionary of '%s'."
+            % self.owner.getName(),
         )
 
         self.markForLocalsDictPropagation()
@@ -408,7 +409,8 @@ class LocalsMappingHandle(LocalsDictHandle):
         trace_collection.signalChange(
             "var_usage",
             self.owner.getSourceReference(),
-            message="Forward propagate locals dictionary.",
+            message="Forward propagate locals dictionary of '%s'."
+            % self.owner.getName(),
         )
 
         self.markForLocalsDictPropagation()
