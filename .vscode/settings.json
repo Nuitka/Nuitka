@@ -510,7 +510,7 @@
     "*.containerfile"
   ],
   "yaml.schemas": {
-    "misc/nuitka-package-config-schema.json": [
+    "nuitka/package_config/nuitka-package-config-schema.json": [
       "*.nuitka-package.config.yml",
       "*.nuitka-package.config.yaml"
     ]
