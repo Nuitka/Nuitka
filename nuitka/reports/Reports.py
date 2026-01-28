@@ -737,7 +737,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 reason=". ".join(reasons),
             )
 
-    for standalone_entry_point in getStandaloneEntryPoints():
+    for standalone_entry_point in sorted(
+        getStandaloneEntryPoints(), key=lambda entry: entry.dest_path
+    ):
         if standalone_entry_point.kind == "executable":
             continue
 
