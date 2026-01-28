@@ -1583,17 +1583,34 @@ version (>= 5.3)."""
             )
 
             # Switch to g++ from gcc then if possible, when C11 mode is false.
-            the_gpp_compiler = os.path.join(
-                os.path.dirname(env.the_compiler),
-                os.path.basename(env.the_compiler).replace("gcc", "g++"),
+            the_gpp_compiler_name = os.path.basename(env.the_compiler).replace(
+                "gcc", "g++"
             )
 
-            if getExecutablePath(the_gpp_compiler, env=env):
-                env.the_compiler = the_gpp_compiler
+            the_gpp_compiler = os.path.join(
+                os.path.dirname(env.the_compiler),
+                the_gpp_compiler_name,
+            )
+
+            the_gpp_compiler_path = getExecutablePath(the_gpp_compiler, env=env)
+
+            if the_gpp_compiler_path is None:
+                the_gpp_compiler_path = getExecutablePath(
+                    the_gpp_compiler_name, env=env
+                )
+
+            if the_gpp_compiler_path:
+                env.the_compiler = the_gpp_compiler_path
                 env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
+
+                env["CC"] = env.the_compiler
+                env["CXX"] = env.the_compiler
             else:
                 scons_logger.sysexit(
-                    "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+                    """\
+Error, your gcc is too old for C11 support, and no g++ ('%s') to
+workaround that was found."""
+                    % the_gpp_compiler_name
                 )
         else:
             scons_logger.sysexit(
