@@ -40,9 +40,9 @@ from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
+    ChildrenHavingDefaultsTupleFunctionRefMixin,
     ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
     ChildrenHavingFunctionValuesTupleMixin,
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
 )
 from .CodeObjectSpecs import CodeObjectSpec
 from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
@@ -883,13 +883,20 @@ def makeExpressionFunctionCreation(
 
     assert function_ref.isExpressionFunctionRef()
 
-    return ExpressionFunctionCreation(
-        function_ref=function_ref,
-        defaults=defaults,
-        kw_defaults=kw_defaults,
-        annotations=annotations,
-        source_ref=source_ref,
-    )
+    if python_version < 0x300:
+        return ExpressionFunctionCreationOld(
+            function_ref=function_ref,
+            defaults=defaults,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionFunctionCreation(
+            function_ref=function_ref,
+            defaults=defaults,
+            kw_defaults=kw_defaults,
+            annotations=annotations,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
@@ -1050,7 +1057,7 @@ error"""
 
 class ExpressionFunctionCreationOld(
     ExpressionFunctionCreationMixin,
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
+    ChildrenHavingDefaultsTupleFunctionRefMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_FUNCTION_CREATION_OLD"
@@ -1064,22 +1071,21 @@ class ExpressionFunctionCreationOld(
     # code generation to detect which one is used. bugs.python.org/issue16967
     kw_defaults_before_defaults = True
 
-    # TODO: Actually annotations are not used and should be removed.
+    # So the can share code generation with the new version.
+    subnode_annotations = None
+    subnode_kw_defaults = None
+
     named_children = (
-        "kw_defaults|optional",
         "defaults|tuple",
-        "annotations|optional",
         "function_ref",
     )
 
     __slots__ = ("variable_closure_traces",)
 
-    def __init__(self, kw_defaults, defaults, annotations, function_ref, source_ref):
-        ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin.__init__(
+    def __init__(self, defaults, function_ref, source_ref):
+        ChildrenHavingDefaultsTupleFunctionRefMixin.__init__(
             self,
-            kw_defaults=kw_defaults,
             defaults=defaults,
-            annotations=annotations,
             function_ref=function_ref,
         )
 
@@ -1122,10 +1128,6 @@ class ExpressionFunctionCreation(
         ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = None
-
-
-if python_version < 0x300:
-    ExpressionFunctionCreation = ExpressionFunctionCreationOld
 
 
 class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
