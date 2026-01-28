@@ -77,6 +77,8 @@ PACKAGE_LIST = [
     "nuitka/reports",
     "nuitka/specs",
     "nuitka/tree",
+    "nuitka/format",
+    "nuitka/package_config",
     "nuitka/utils",
 ]
 
