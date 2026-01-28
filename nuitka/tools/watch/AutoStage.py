@@ -211,6 +211,7 @@ def main():
         help="""Accept module optimization-time and code-generation-time changes.""",
     )
 
+    # TODO: Once the sorting in reports is done, remove this option again.
     parser.add_option(
         "--accept-dll-order",
         action="store_true",
