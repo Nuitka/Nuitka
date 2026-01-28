@@ -389,7 +389,7 @@ if sys.version_info >= (3, 7):
 
 setup(
     name="Nuitka",
-    license="Apache License, Version 2.0",
+    license="GNU Affero General Public License v3",
     version=version,
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -434,7 +434,7 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: Android",
         # License
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     ],
     packages=nuitka_packages,
     package_data=package_data,
@@ -496,11 +496,11 @@ Python compiler with full language support and CPython compatibility""",
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
