@@ -1255,7 +1255,7 @@ library. Please upgrade/downgrade to a supported micro version."""
         _warnMacOSBundleSpecificOption("--macos-signed-app-name")
     if getMacOSAppVersion():
         _warnMacOSBundleSpecificOption("--macos-app-version")
-    if getMacOSAppProtectedResourcesAccesses():
+    if options.macos_protected_resources:
         _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
         _warnMacOSBundleSpecificOption("--macos-app-mode")
@@ -2755,14 +2755,14 @@ _macos_protected_resource_entitlements = {
     "NSContactsUsageDescription": "com.apple.security.personal-information.addressbook",
     "NSCalendarsUsageDescription": "com.apple.security.personal-information.calendars",
     "NSRemindersUsageDescription": "com.apple.security.personal-information.reminders",
-    # Siri
+    # Siri, spell-checker: ignore Siri
     "NSSiriUsageDescription": "com.apple.developer.siri",
     # Bluetooth peripheral access
     "NSBluetoothAlwaysUsageDescription": "com.apple.security.device.bluetooth",
     "NSBluetoothPeripheralUsageDescription": "com.apple.security.device.bluetooth",
     # Apple Events
     "NSAppleEventsUsageDescription": "com.apple.security.automation.apple-events",
-    # HomeKit
+    # HomeKit, spell-checker: ignore HomeKit
     "NSHomeKitUsageDescription": "com.apple.developer.homekit",
     # Downloads Folder Usage
     "NSDownloadsFolderUsageDescription": (
