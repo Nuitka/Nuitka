@@ -154,7 +154,13 @@ def createEntitlementsInfoFile():
         _description,
         entitlement_name,
     ) in getMacOSAppProtectedResourcesAccesses():
-        entitlements_dict[entitlement_name] = True
+        if type(entitlement_name) is tuple:
+            for entitlement in entitlement_name:
+                entitlements_dict[entitlement] = True
+        elif type(entitlement_name) is str:
+            entitlements_dict[entitlement_name] = True
+        else:
+            assert False, entitlement_name
 
     if not entitlements_dict:
         return None
