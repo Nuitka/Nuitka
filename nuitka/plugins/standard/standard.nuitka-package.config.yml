@@ -9696,3 +9696,19 @@
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'
+
+- module-name: 'roboflow.core.version'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'roboflow.models.object_detection'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import ipywidgets.widgets as widgets': 'raise ImportError'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
