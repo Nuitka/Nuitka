@@ -32,6 +32,10 @@ replacements = [
 ]
 
 
+def _isSpellcheckerIgnoringFile(filename):
+    return "spell-checker: disable" in getFileContents(filename)
+
+
 def _isGeneratedFile(contents):
     for line in contents.splitlines()[:20]:
         if "WARNING, this code is GENERATED" in line:
@@ -194,6 +198,10 @@ def main():
             ignore_list=("get-pip-2.6.py",),
         )
     )
+
+    filenames = [
+        filename for filename in filenames if not _isSpellcheckerIgnoringFile(filename)
+    ]
     if not filenames:
         sys.exit("No files found.")
 
