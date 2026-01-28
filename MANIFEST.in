@@ -1,6 +1,7 @@
 # Spell checking makes no sense, spell-checker: disable
 
 include LICENSE.txt
+include LICENSE-RUNTIME.txt
 include MANIFEST.in
 include README.rst
 include Changelog.rst

@@ -56,9 +56,8 @@ Pull requests are great. Here's a quick guide:
    items can be met after the pull request has been opened by adding more commits to the branch.
    Indicate work in progress with a `WIP:` prefix in your PR title.
 
-All the submitted pieces including potential data must be compatible with the
-license of Nuitka and subject to CLA which will make it possible to re-license
-the code.
+All the submitted pieces including potential data must be compatible with the license of Nuitka and
+subject to CLA which will make it possible to re-license the code.
 
 ## Submitting a Question
 
