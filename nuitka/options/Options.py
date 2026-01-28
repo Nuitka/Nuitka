@@ -2755,21 +2755,61 @@ _macos_protected_resource_entitlements = {
     "NSContactsUsageDescription": "com.apple.security.personal-information.addressbook",
     "NSCalendarsUsageDescription": "com.apple.security.personal-information.calendars",
     "NSRemindersUsageDescription": "com.apple.security.personal-information.reminders",
-    # Both full access and add-only map to the same top-level entitlement.
-    "NSPhotoLibraryUsageDescription": "com.apple.security.personal-information.photos-library",
-    "NSPhotoLibraryAddUsageDescription": "com.apple.security.personal-information.photos-library",
+    # Siri
+    "NSSiriUsageDescription": "com.apple.developer.siri",
+    # Bluetooth peripheral access
     "NSBluetoothAlwaysUsageDescription": "com.apple.security.device.bluetooth",
+    "NSBluetoothPeripheralUsageDescription": "com.apple.security.device.bluetooth",
+    # Apple Events
     "NSAppleEventsUsageDescription": "com.apple.security.automation.apple-events",
-    # For folder access, the entitlement depends on read-only vs read-write, which
-    # Nuitka will need to determine from its options.
+    # HomeKit
+    "NSHomeKitUsageDescription": "com.apple.developer.homekit",
+    # Downloads Folder Usage
     "NSDownloadsFolderUsageDescription": (
         "com.apple.security.files.downloads.read-only",
         "com.apple.security.files.downloads.read-write",
     ),
+    # Desktop Folder Usage
     "NSDesktopFolderUsageDescription": (
         "com.apple.security.files.desktop.read-only",
         "com.apple.security.files.desktop.read-write",
     ),
+    # User selected files
+    "NSUserSelectedFilesUsageDescription": (
+        "com.apple.security.files.user-selected.read-only",
+        "com.apple.security.files.user-selected.read-write",
+    ),
+    # Network volumes
+    "NSNetworkVolumesUsageDescription": (
+        "com.apple.security.files.network-volumes.read-only",
+        "com.apple.security.files.network-volumes.read-write",
+    ),
+    # Removable volumes
+    "NSRemovableVolumesUsageDescription": (
+        "com.apple.security.files.removable-disks.read-only",
+        "com.apple.security.files.removable-disks.read-write",
+    ),
+    # Local network access
+    "NSLocalNetworkUsageDescription": (
+        "com.apple.security.network.client",
+        "com.apple.security.network.server",
+    ),
+    # Access to music library
+    "NSAppleMusicUsageDescription": (
+        "com.apple.security.assets.music.read-only",
+        "com.apple.security.assets.music.read-write",
+    ),
+    # Both full access and add-only map to the same top-level entitlement.
+    "NSPhotoLibraryUsageDescription": (
+        "com.apple.security.assets.photos.read-only",
+        "com.apple.security.assets.photos.read-write",
+    ),
+    "NSPhotoLibraryAddUsageDescription": (
+        "com.apple.security.assets.photos.read-only",
+        "com.apple.security.assets.photos.read-write",
+    ),
+    # Speech recognition
+    # TODO: "NSSpeechRecognitionUsageDescription":
 }
 
 
@@ -2805,17 +2845,15 @@ needs to be one of the following: %s."""
         entitlement = _macos_protected_resource_entitlements[resource_description_name]
 
         if type(entitlement) is tuple:
-            if "read-only" in description:
-                entitlement = entitlement[0]
-            elif "read-write" in description:
-                entitlement = entitlement[1]
-            else:
-                options_logger.sysexit(
-                    """\
-Wrong value for '--macos-app-protected-resource' value '%s' needs to
-either contain 'read-only' or 'read-write' as part of the description."""
-                    % macos_protected_resource
-                )
+            # If we have a tuple of size 2, checking for "read-only" and "read-write"
+            # in description allows to select one.
+            if len(entitlement) == 2:
+                for entitlement_name in entitlement:
+                    if entitlement_name.rsplit(".")[-1] in description.lower():
+                        entitlement = entitlement_name
+                        break
+
+            # We still can put all values, that's fine, we support that now.
 
         result.append((resource_description_name, description, entitlement))
 
