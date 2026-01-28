@@ -5089,6 +5089,153 @@ class ChildHavingCoroutineRefMixin(object):
 ChildrenExpressionMakeCoroutineObjectMixin = ChildHavingCoroutineRefMixin
 
 
+class ChildrenHavingDefaultsTupleFunctionRefMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionFunctionCreationOld
+
+    def __init__(
+        self,
+        defaults,
+        function_ref,
+    ):
+        assert type(defaults) is tuple
+
+        for val in defaults:
+            val.parent = self
+
+        self.subnode_defaults = defaults
+
+        function_ref.parent = self
+
+        self.subnode_function_ref = function_ref
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_defaults)
+        result.append(self.subnode_function_ref)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("defaults", self.subnode_defaults),
+            ("function_ref", self.subnode_function_ref),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_defaults
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_defaults = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_defaults = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_function_ref
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_function_ref = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
+            "function_ref": self.subnode_function_ref.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_defaults:
+            c.finalize()
+        del self.subnode_defaults
+        self.subnode_function_ref.finalize()
+        del self.subnode_function_ref
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_defaults:
+            element.collectVariableAccesses(emit_variable)
+        self.subnode_function_ref.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionFunctionCreationOldMixin = ChildrenHavingDefaultsTupleFunctionRefMixin
+
+
 class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin(
     object
 ):
@@ -10337,223 +10484,6 @@ class ChildrenHavingKeyValueMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionKeyValuePairNewMixin = ChildrenHavingKeyValueMixin
-
-
-class ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin(
-    object
-):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionFunctionCreationOld
-
-    def __init__(
-        self,
-        kw_defaults,
-        defaults,
-        annotations,
-        function_ref,
-    ):
-        if kw_defaults is not None:
-            kw_defaults.parent = self
-
-        self.subnode_kw_defaults = kw_defaults
-
-        assert type(defaults) is tuple
-
-        for val in defaults:
-            val.parent = self
-
-        self.subnode_defaults = defaults
-
-        if annotations is not None:
-            annotations.parent = self
-
-        self.subnode_annotations = annotations
-
-        function_ref.parent = self
-
-        self.subnode_function_ref = function_ref
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        result = []
-        value = self.subnode_kw_defaults
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        result.extend(self.subnode_defaults)
-        value = self.subnode_annotations
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        result.append(self.subnode_function_ref)
-        return tuple(result)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (
-            ("kw_defaults", self.subnode_kw_defaults),
-            ("defaults", self.subnode_defaults),
-            ("annotations", self.subnode_annotations),
-            ("function_ref", self.subnode_function_ref),
-        )
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_kw_defaults
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_kw_defaults = new_node
-
-            return
-
-        value = self.subnode_defaults
-        if old_node in value:
-            if new_node is not None:
-                new_node.parent = self
-
-                self.subnode_defaults = tuple(
-                    (val if val is not old_node else new_node) for val in value
-                )
-            else:
-                self.subnode_defaults = tuple(
-                    val for val in value if val is not old_node
-                )
-
-            return
-
-        value = self.subnode_annotations
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_annotations = new_node
-
-            return
-
-        value = self.subnode_function_ref
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_function_ref = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "kw_defaults": (
-                self.subnode_kw_defaults.makeClone()
-                if self.subnode_kw_defaults is not None
-                else None
-            ),
-            "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "annotations": (
-                self.subnode_annotations.makeClone()
-                if self.subnode_annotations is not None
-                else None
-            ),
-            "function_ref": self.subnode_function_ref.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        if self.subnode_kw_defaults is not None:
-            self.subnode_kw_defaults.finalize()
-        del self.subnode_kw_defaults
-        for c in self.subnode_defaults:
-            c.finalize()
-        del self.subnode_defaults
-        if self.subnode_annotations is not None:
-            self.subnode_annotations.finalize()
-        del self.subnode_annotations
-        self.subnode_function_ref.finalize()
-        del self.subnode_function_ref
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
-        subnode_kw_defaults = self.subnode_kw_defaults
-
-        if subnode_kw_defaults is not None:
-            self.subnode_kw_defaults.collectVariableAccesses(emit_variable)
-        for element in self.subnode_defaults:
-            element.collectVariableAccesses(emit_variable)
-        subnode_annotations = self.subnode_annotations
-
-        if subnode_annotations is not None:
-            self.subnode_annotations.collectVariableAccesses(emit_variable)
-        self.subnode_function_ref.collectVariableAccesses(emit_variable)
-
-
-# Assign the names that are easier to import with a stable name.
-ChildrenExpressionFunctionCreationOldMixin = (
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin
-)
 
 
 class ChildrenHavingLeftRightMixin(object):
