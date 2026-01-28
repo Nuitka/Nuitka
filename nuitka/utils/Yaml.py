@@ -629,8 +629,7 @@ def getYamlPackageConfigurationSchemaFilename():
     return os.path.join(
         os.path.dirname(__file__),
         "..",
-        "..",
-        "misc",
+        "package_config",
         "nuitka-package-config-schema.json",
     )
 

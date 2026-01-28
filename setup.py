@@ -184,6 +184,7 @@ package_data = {
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
     "nuitka.utils": ["requirements-private.txt"],
     "nuitka.format": ["biome.json"],
+    "nuitka.package_config": ["nuitka-package-config-schema.json"],
 }
 
 
