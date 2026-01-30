@@ -905,7 +905,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
 
     def getTypeShape(self):
-        type_shape_found = None
+        shapes = set()
 
         for trace in self.previous:
             type_shape = trace.getTypeShape()
@@ -913,13 +913,18 @@ class ValueTraceMerge(ValueTraceMergeBase):
             if type_shape is tshape_unknown:
                 return tshape_unknown
 
-            if type_shape_found is None:
-                type_shape_found = type_shape
-            elif type_shape is not type_shape_found:
-                # TODO: Find the lowest common denominator.
-                return tshape_unknown
+            # Extract all underlying shapes with emitAlternatives
+            type_shape.emitAlternatives(shapes.add)
 
-        return type_shape_found
+        if not shapes:
+            return tshape_unknown
+
+        if len(shapes) == 1:
+            # All branches have the same type
+            return next(iter(shapes))
+
+        # Multiple different types - return a shape that preserves all of them
+        return ShapeLoopCompleteAlternative(shapes)
 
     def getReleaseEscape(self):
         release_escape_found = None

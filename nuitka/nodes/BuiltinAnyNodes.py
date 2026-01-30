@@ -30,7 +30,7 @@ class ExpressionBuiltinAny(
     def computeExpression(self, trace_collection):
         value = self.subnode_value
         shape = value.getTypeShape()
-        if shape.hasShapeSlotIter() is False:
+        if shape.hasShapeSlotIter() is False and not value.shouldDeferTypeBasedOptimization():
             # An exception is raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 

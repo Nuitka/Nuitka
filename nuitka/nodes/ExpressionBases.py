@@ -373,12 +373,52 @@ class ExpressionBase(NodeBase):
 
         return call_node, None, None
 
+    def shouldDeferTypeBasedOptimization(self):
+        """Check if type-based optimization should be deferred due to uncertain types.
+
+        This handles the case where a variable has uncertain type due to:
+        - Being in a loop where the type may change between iterations
+        - Being a merge of multiple traces with different types
+        - Being an escape trace following a loop or merge
+
+        Returns True if optimization should be deferred, False otherwise.
+        """
+        # Check if we have a variable trace to examine
+        if not hasattr(self, "variable_trace") or self.variable_trace is None:
+            return False
+
+        trace = self.variable_trace
+
+        # Defer optimization for loop traces - type may change between iterations
+        if hasattr(trace, "isLoopTrace") and trace.isLoopTrace():
+            return True
+
+        # Defer optimization for merge traces - type is uncertain
+        if hasattr(trace, "isMergeTrace") and trace.isMergeTrace():
+            return True
+
+        # Check for escape traces that follow loop or merge traces
+        if hasattr(trace, "isEscapeTrace") and trace.isEscapeTrace():
+            if hasattr(trace, "previous"):
+                prev = trace.previous
+                if hasattr(prev, "isLoopTrace") and prev.isLoopTrace():
+                    return True
+                if hasattr(prev, "isMergeTrace") and prev.isMergeTrace():
+                    return True
+
+        # Defer for shapes that represent multiple possible types
+        shape = self.getTypeShape()
+        if hasattr(shape, "type_shapes"):
+            return True
+
+        return False
+
     def computeExpressionLen(self, len_node, trace_collection):
         shape = self.getValueShape()
 
         has_len = shape.hasShapeSlotLen()
 
-        if has_len is False:
+        if has_len is False and not self.shouldDeferTypeBasedOptimization():
             # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -422,7 +462,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAbs(self, abs_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotAbs() is False:
+        if shape.hasShapeSlotAbs() is False and not self.shouldDeferTypeBasedOptimization():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -446,7 +486,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotInt() is False:
+        if shape.hasShapeSlotInt() is False and not self.shouldDeferTypeBasedOptimization():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -474,7 +514,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionLong(self, long_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotLong() is False:
+        if shape.hasShapeSlotLong() is False and not self.shouldDeferTypeBasedOptimization():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -498,7 +538,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionFloat(self, float_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotFloat() is False:
+        if shape.hasShapeSlotFloat() is False and not self.shouldDeferTypeBasedOptimization():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -530,6 +570,7 @@ class ExpressionBase(NodeBase):
             shape.hasShapeSlotBytes() is False
             and shape.hasShapeSlotInt() is False
             and shape.hasShapeSlotIter() is False
+            and not self.shouldDeferTypeBasedOptimization()
         ):
             # An exception is raised.
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -554,7 +595,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionComplex(self, complex_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotComplex() is False:
+        if shape.hasShapeSlotComplex() is False and not self.shouldDeferTypeBasedOptimization():
             # Any exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -582,7 +623,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionIter1(self, iter_node, trace_collection):
         shape = self.getTypeShape()
 
-        if shape.hasShapeSlotIter() is False:
+        if shape.hasShapeSlotIter() is False and not self.shouldDeferTypeBasedOptimization():
             # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -672,7 +713,7 @@ class ExpressionBase(NodeBase):
 
         assert shape is not None, self
 
-        if shape.hasShapeSlotContains() is False:
+        if shape.hasShapeSlotContains() is False and not self.shouldDeferTypeBasedOptimization():
             # An exception may be raised.
             trace_collection.onExceptionRaiseExit(BaseException)
 
