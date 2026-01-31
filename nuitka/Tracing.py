@@ -372,6 +372,9 @@ class OurLogger(object):
         else:
             message_prefix = prefix
 
+        if width - len(message_prefix) < 20:
+            width = 80
+
         formatted_message = textwrap.fill(
             message,
             width=width,
