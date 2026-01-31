@@ -479,13 +479,13 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         for key, value in other.items():
             # assert key not in self.data, key
             if key in self.data:
-                new_implicit_imports = value.get('implicit-imports', None)
+                new_implicit_imports = value.get("implicit-imports", None)
                 if new_implicit_imports:
-                    value.pop('implicit-imports')
-                    if self.data[key].get('implicit-imports', None) is None:
-                        self.data[key]['implicit-imports'] = new_implicit_imports
+                    value.pop("implicit-imports")
+                    if self.data[key].get("implicit-imports", None) is None:
+                        self.data[key]["implicit-imports"] = new_implicit_imports
                     else:
-                        self.data[key]['implicit-imports'].extend(new_implicit_imports)
+                        self.data[key]["implicit-imports"].extend(new_implicit_imports)
                 if len(value) > 0:
                     general.sysexit(
                         "Error, duplicate config for module name '%s' encountered in '%s'."
