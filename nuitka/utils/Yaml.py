@@ -474,8 +474,9 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         return self.data.items()
 
     def update(self, other):
-        # TODO: Full blown merging, including respecting an overload flag, where a config
-        # replaces another one entirely, for now we expect to not overlap.
+        # TODO: Full blown merging, including respecting an overload flag, where
+        # a config replaces another one entirely, for now we expect to not
+        # overlap and offer only merging of implicit-imports.
         for key, value in other.items():
             # assert key not in self.data, key
             if key in self.data:
@@ -493,6 +494,8 @@ Error, empty (or malformed?) user package configuration '%s' used."""
                     )
                 else:
                     general.info("Merged implicit-imports for '%s'." % key)
+            else:
+                self.data[key] = value
 
 
 def getYamlPackage():
