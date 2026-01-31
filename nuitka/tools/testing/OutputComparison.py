@@ -12,8 +12,9 @@ an example.
 import difflib
 import os
 import re
+import sys
 
-from nuitka.Tracing import my_print
+from nuitka.Tracing import canUseColor, my_print, wrapWithStyles
 
 # spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
@@ -298,6 +299,20 @@ exceeded while calling a Python object' in \
     return result
 
 
+def colorizeDiff(lines):
+    for line in lines:
+        if line.startswith("+++") or line.startswith("---"):
+            yield wrapWithStyles(line, ("yellow", "bold"))
+        elif line.startswith("+"):
+            yield wrapWithStyles(line, ("green",))
+        elif line.startswith("-"):
+            yield wrapWithStyles(line, ("red",))
+        elif line.startswith("@@"):
+            yield wrapWithStyles(line, ("blue", "bold"))
+        else:
+            yield line
+
+
 def compareOutput(
     kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
 ):
@@ -313,6 +328,9 @@ def compareOutput(
         to_date,
         n=3,
     )
+
+    if canUseColor(sys.stdout):
+        diff = colorizeDiff(diff)
 
     result = list(diff)
 
