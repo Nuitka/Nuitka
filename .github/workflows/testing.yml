@@ -170,6 +170,7 @@ jobs:
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -274,6 +275,7 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -373,6 +375,7 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
