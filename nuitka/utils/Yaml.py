@@ -477,9 +477,22 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         # TODO: Full blown merging, including respecting an overload flag, where a config
         # replaces another one entirely, for now we expect to not overlap.
         for key, value in other.items():
-            assert key not in self.data, key
-
-            self.data[key] = value
+            # assert key not in self.data, key
+            if key in self.data:
+                new_implicit_imports = value.get("implicit-imports", None)
+                if new_implicit_imports:
+                    value.pop("implicit-imports")
+                    if self.data[key].get("implicit-imports", None) is None:
+                        self.data[key]["implicit-imports"] = new_implicit_imports
+                    else:
+                        self.data[key]["implicit-imports"].extend(new_implicit_imports)
+                if len(value) > 0:
+                    general.sysexit(
+                        "Error, duplicate config for module name '%s' encountered in '%s'."
+                        % (key, self.name)
+                    )
+                else:
+                    general.info("Merged implicit-imports for '%s'." % key)
 
 
 def getYamlPackage():
