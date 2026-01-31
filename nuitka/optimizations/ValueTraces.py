@@ -78,6 +78,10 @@ class ValueTraceBase(object):
     def getOwner(self):
         return self.owner
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # Virtual method, pylint: disable=unused-argument
+        self.getTypeShape().emitAlternatives(emit)
+
     @staticmethod
     def isLoopTrace():
         return False
@@ -1195,6 +1199,12 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
 
 
 _is_debug = None

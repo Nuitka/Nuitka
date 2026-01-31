@@ -84,7 +84,7 @@ def loopingFunction(a=1 * 2):
 
     print("Triple or chain")
     if m or l or f:
-        print("Okey")
+        print("Okay")
 
     print("Nested if not chain")
     if not m:
@@ -140,6 +140,17 @@ def loopingFunction(a=1 * 2):
 
 
 loopingFunction()
+
+
+def nestedLoopingVariable():
+    value = None
+    for outer in ([1, 2, 3],):
+        for inner in outer:
+            value = [inner]
+    return iter(value)
+
+
+print("Nested loop variable iteration:", nestedLoopingVariable())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
