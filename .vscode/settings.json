@@ -509,6 +509,15 @@
     "doc/*.1",
     "*.containerfile"
   ],
+  "cSpell.languageSettings": [
+    {
+      "languageId": "restructuredtext",
+      "ignoreRegExpList": [
+        "/``.*?``/g",
+        "/^([ \\t]*)\\.\\. code::.*\\n(?:(?:\\s*\\n)|(?:\\1\\s+.*\\n))+/gm"
+      ]
+    }
+  ],
   "yaml.schemas": {
     "nuitka/package_config/nuitka-package-config-schema.json": [
       "*.nuitka-package.config.yml",
