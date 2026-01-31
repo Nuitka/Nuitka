@@ -18,10 +18,6 @@ import re
 import sys
 from string import Formatter
 
-from nuitka.options.CommandLineOptionsTools import (
-    SUPPRESS_HELP,
-    makeOptionsParser,
-)
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import isPythonWithGil
 from nuitka.utils.FileOperations import getFileContentByLine

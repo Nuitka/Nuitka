@@ -136,7 +136,7 @@ Watch files for changes. Default is %default.""",
 
 
 def main():
-    setup()
+    setup(go_main=False)
 
     # So PyLint finds nuitka package.
     addPYTHONPATH(getHomePath())
