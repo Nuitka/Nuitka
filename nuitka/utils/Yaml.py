@@ -488,10 +488,11 @@ Error, empty (or malformed?) user package configuration '%s' used."""
                         self.data[key]['implicit-imports'].extend(new_implicit_imports)
                 if len(value) > 0:
                     general.sysexit(
-                        f"Error, duplicate config for module name '{key}' encountered in '{self.name}'."
+                        "Error, duplicate config for module name '%s' encountered in '%s'."
+                        % (key, self.name)
                     )
                 else:
-                    general.info(f"merged implicit-imports for '{key}'.")
+                    general.info("Merged implicit-imports for '%s'." % key)
 
 
 def getYamlPackage():
