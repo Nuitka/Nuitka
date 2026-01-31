@@ -3,9 +3,6 @@
 
 """Covers call order of Python3 meta classes."""
 
-# nuitka-project: --nofollow-imports
-
-
 try:
     from collections.abc import OrderedDict
 except ImportError:
