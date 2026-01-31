@@ -458,7 +458,7 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-#if PYTHON_VERSION < 0x3e0
+#if PYTHON_VERSION < 0x3e0 || !defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
 #else
         if (function->m_annotate == NULL) {
