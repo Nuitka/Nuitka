@@ -2242,7 +2242,13 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'jedi' # checksum: 6be45546
+- module-name: 'jedi' # checksum: d24aa6ba
+  data-files:
+    - patterns:
+        - 'third_party/typeshed/**/*.pyi'
+    - dirs:
+        - 'third_party'
+
   anti-bloat:
     - description: 'allow pydoc inside jedi, too dependent to remove'
       bloat-mode-overrides:
@@ -2581,6 +2587,18 @@
   data-files:
     - patterns:
         - 'version.info'
+
+- module-name: 'line_profiler' # checksum: af5226e0
+  data-files:
+    - patterns:
+        - 'rc/*.toml'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_line_profiler'
+  implicit-imports:
+    - depends:
+        - 'line_profiler.rc'
 
 - module-name: 'litellm' # checksum: c104ffe5
   data-files:
@@ -4085,6 +4103,11 @@
     - depends:
         - 'pango'
         - 'cairo'
+
+- module-name: 'parso' # checksum: 202c5781
+  data-files:
+    - dirs:
+        - 'python'
 
 - module-name: 'passlib.apache' # checksum: 4e9f8101
   implicit-imports:
@@ -6086,6 +6109,11 @@
   implicit-imports:
     - depends:
         - 'huggingface_hub.repository'
+
+- module-name: 'sentry_sdk' # checksum: 758a715a
+  implicit-imports:
+    - depends:
+        - 'sentry_sdk.integrations.*'
 
 - module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
