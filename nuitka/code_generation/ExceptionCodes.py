@@ -6,10 +6,12 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
+from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
@@ -169,6 +171,25 @@ def generateExceptionPublishCode(statement, emit, context):
     # TODO: Make this one thing for performance with thread state shared, also for less code,
     # then we should not make it in header anymore. Might be more scalable too.
     emit("PUBLISH_CURRENT_EXCEPTION(tstate, &%s);" % keeper_exception_state_name)
+
+
+def generateExceptionGroupMatchCode(to_name, expression, emit, context):
+    arg_desc = (
+        ("exception", expression.subnode_exception),
+        ("match_type", expression.subnode_match_type),
+    )
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_MATCH",
+        tstate=True,
+        arg_desc=arg_desc,
+        may_raise=True,
+        none_null=True,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def _attachExceptionAttributeCode(

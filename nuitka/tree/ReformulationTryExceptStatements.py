@@ -12,21 +12,32 @@ from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
+    ExpressionComparisonIsNot,
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    ExpressionConstantNoneRef,
+    ExpressionConstantTrueRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
+    ExpressionExceptionGroupMatch,
+    StatementReraiseException,
 )
 from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
     StatementPreserveFrameException,
     StatementPublishException,
     StatementRestoreFrameException,
     StatementsSequence,
 )
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -39,6 +50,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
+    buildNodeList,
     buildStatementsNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
@@ -191,7 +203,7 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
-def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
+def buildTryExceptionNode(provider, node, source_ref):
     # Try/except nodes. Re-formulated as described in the Developer Manual.
     # Exception handlers made the assignment to variables explicit. Same for the
     # "del" as done for Python3. Also catches always work a tuple of exception
@@ -222,8 +234,6 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                 )
             ]
         elif python_version < 0x300:
-            assert not is_star_try
-
             statements = [
                 buildAssignmentStatements(
                     provider=provider,
@@ -398,8 +408,90 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
 
 
 def buildTryStarExceptionNode(provider, node, source_ref):
-    return buildTryExceptionNode(
-        provider=provider, node=node, source_ref=source_ref, is_star_try=True
+    handler_statements = []
+    for handler in node.handlers:
+        scope = provider.allocateTempScope("try_star_handler")
+        match_result = provider.allocateTempVariable(
+            name="match_result", temp_scope=scope, temp_type="object"
+        )
+        matched = provider.allocateTempVariable(
+            name="matched", temp_scope=scope, temp_type="object"
+        )
+        rest = provider.allocateTempVariable(
+            name="rest", temp_scope=scope, temp_type="object"
+        )
+        user_statements = buildNodeList(provider, handler.body, source_ref)
+        if handler.name:
+            user_statements.insert(
+                0,
+                StatementAssignmentVariableName(
+                    provider=provider,
+                    variable_name=handler.name,
+                    source=ExpressionTempVariableRef(matched, source_ref),
+                    source_ref=source_ref,
+                ),
+            )
+        statements = [
+            makeStatementAssignmentVariable(
+                variable=match_result,
+                source=ExpressionExceptionGroupMatch(
+                    ExpressionCaughtExceptionValueRef(source_ref),
+                    buildNode(provider, handler.type, source_ref),
+                    source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            # TODO: Deduplicate this. We need a helper for looking up a subscript.
+            makeStatementAssignmentVariable(
+                variable=matched,
+                source=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(match_result, source_ref),
+                    subscript=ExpressionConstantIntRef(0, source_ref),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            makeStatementAssignmentVariable(
+                variable=rest,
+                source=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(match_result, source_ref),
+                    subscript=ExpressionConstantIntRef(1, source_ref),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            makeStatementConditional(
+                condition=ExpressionComparisonIsNot(
+                    ExpressionTempVariableRef(matched, source_ref),
+                    ExpressionConstantNoneRef(source_ref),
+                    source_ref,
+                ),
+                yes_branch=makeStatementsSequenceFromStatements(user_statements),
+                no_branch=None,  # reraise?
+                source_ref=source_ref,
+            ),
+            makeStatementConditional(
+                condition=ExpressionComparisonIsNot(
+                    ExpressionTempVariableRef(rest, source_ref),
+                    ExpressionConstantNoneRef(source_ref),
+                    source_ref,
+                ),
+                # FIXME: This should raise the exception from rest, but
+                # StatementRaiseException looks incompatible with that.
+                yes_branch=StatementReraiseException(source_ref),
+                no_branch=None,
+                source_ref=source_ref,
+            ),
+        ]
+        handler_statements.append(makeStatementsSequenceFromStatements(statements))
+
+    return StatementTry(
+        tried=buildStatementsNode(provider, node.body, source_ref),
+        except_handler=makeStatementsSequenceFromStatements(handler_statements),
+        break_handler=None,
+        continue_handler=None,
+        return_handler=None,
+        source_ref=source_ref,
     )
 
 
