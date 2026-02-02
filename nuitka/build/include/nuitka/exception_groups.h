@@ -80,8 +80,10 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
     if (Py_IsNone(exc_value)) {
-        Py_INCREF_IMMORTAL(Py_None) *match = Py_None;
-        Py_INCREF_IMMORTAL(Py_None) *rest = Py_None;
+        Py_INCREF_IMMORTAL(Py_None);
+        *match = Py_None;
+        Py_INCREF_IMMORTAL(Py_None);
+        *rest = Py_None;
         return 0;
     }
     assert(PyExceptionInstance_Check(exc_value));
@@ -114,7 +116,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
             }*/
             *match = wrapped;
         }
-        Py_INCREF_IMMORTAL(Py_None) *rest = Py_None;
+        Py_INCREF_IMMORTAL(Py_None);
+        *rest = Py_None;
         return 0;
     }
 
@@ -150,7 +153,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
     /* no match */
-    Py_INCREF_IMMORTAL(Py_None) *match = Py_None;
+    Py_INCREF_IMMORTAL(Py_None);
+    *match = Py_None;
     *rest = Py_NewRef(exc_value);
     return 0;
 }
