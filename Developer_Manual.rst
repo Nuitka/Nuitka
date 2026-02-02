@@ -924,7 +924,7 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
    .. image:: doc/images/Nuitka-Logo-Vertical.png
       :alt: Nuitka Logo
 
-From these logos, PNG images, and "favicons", and are derived.
+From these logos, PNG images, and fav icons, and are derived.
 
 The exact ImageMagick commands are in
 ``nuitka/tools/release/Documentation``, but are not executed each time,
@@ -1822,7 +1822,7 @@ Problems were
    for large programs, especially in standalone mode.
 
 -  The massive amount of constant creation codes gave backend C
-   compilers a much harder time than necessary to analyse it all at
+   compilers a much harder time than necessary to analyze it all at
    once.
 
 The current approach is as follows. Code generation detects constants
@@ -2535,8 +2535,8 @@ function object ever exists.
 
    list_value = _listcontr_helper(range(8))
 
-The difference is that with Python3, the function "_listcontr_helper" is
-really there and named ``<listcontraction>`` (or ``<listcomp>`` as of
+The difference is that with Python3, the function ``_listcontr_helper``
+is really there and named ``<listcontraction>`` (or ``<listcomp>`` as of
 Python3.7 or higher), whereas with Python2 the function is only an
 outline, so it can readily access the containing name space.
 
@@ -3624,7 +3624,7 @@ written traces, are turned into loop merges. Knowledge is not completely
 removed about everything assigned or changed in the loop, but then it's
 not trusted anymore.
 
-From that basis, the ``break`` exits are analysed, and merged, building
+From that basis, the ``break`` exits are analyzed, and merged, building
 up the post loop state, and ``continue`` exits of the loop replacing the
 unknown part of the loop entry state. The loop end is considered a
 ``continue`` for this purpose.
@@ -4523,12 +4523,7 @@ issues created, etc.
 
 -  Tail recursion optimization.
 
-   Functions that return the results of calls, can be optimized. The
-   Stackless Python does it already.
-
--  Integrate with "upx" compression.
-
-   Calling "upx" on the created binaries, would be easy.
+   Functions that return the results of calls, can be optimized.
 
 -  In-lining constant "exec" and "eval".
 
