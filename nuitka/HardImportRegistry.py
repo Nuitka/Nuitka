@@ -49,6 +49,9 @@ hard_modules = set(
         "ctypes",
         "ctypes.wintypes",
         "ctypes.macholib",
+        "ctypes.util",
+        "ctypes._endian",
+        "ctypes._aix",
         # TODO: Once generation of nodes for functions exists.
         # "platform",
         "builtins",
@@ -122,6 +125,7 @@ hard_modules_trust_with_side_effects = set(
         "site",
         "tensorflow",
         "importlib_metadata",
+        "ctypes.util",
         # TODO: Disabled for now, keyword only arguments and star list argument are
         # having ordering issues for call matching and code generation.
         # "networkx.utils.decorators"
@@ -258,6 +262,7 @@ module_ctypes_trust = {
 
 # module_platform_trust = {"python_implementation": trust_function}
 
+# Note: Run ./bin/generate-specialized-c-code after changing this.
 hard_modules_trust = {
     "os": module_os_trust,
     "ntpath": module_os_path_trust if os.path.__name__ == "ntpath" else {},
@@ -313,6 +318,9 @@ hard_modules_trust = {
     "site": {},
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
+    "ctypes.util": {},
+    "ctypes._endian": {},
+    "ctypes._aix": {},
     "builtins": module_builtins_trust,
     "tensorflow": {"function": trust_node},
     # TODO: Disabled for now, keyword only arguments and star list argument are
