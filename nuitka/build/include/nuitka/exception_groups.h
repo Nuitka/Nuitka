@@ -80,8 +80,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
     if (Py_IsNone(exc_value)) {
-        *match = Py_NewRef(Py_None);
-        *rest = Py_NewRef(Py_None);
+        Py_INCREF_IMMORTAL(Py_None) *match = Py_None;
+        Py_INCREF_IMMORTAL(Py_None) *rest = Py_None;
         return 0;
     }
     assert(PyExceptionInstance_Check(exc_value));
@@ -93,7 +93,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
             *match = Py_NewRef(exc_value);
         } else {
             /* naked exception - wrap it */
-            PyObject *excs = PyTuple_Pack(1, exc_value);
+            PyObject *excs = MAKE_TUPLE1(tstate, exc_value);
             if (excs == NULL) {
                 return -1;
             }
@@ -114,7 +114,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
             }*/
             *match = wrapped;
         }
-        *rest = Py_NewRef(Py_None);
+        Py_INCREF_IMMORTAL(Py_None) *rest = Py_None;
         return 0;
     }
 
@@ -128,8 +128,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         }
 
         if (!PyTuple_CheckExact(pair)) {
-            PyErr_Format(PyExc_TypeError, "%.200s.split must return a tuple, not %.200s", Py_TYPE(exc_value)->tp_name,
-                         Py_TYPE(pair)->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "%.200s.split must return a tuple, not %.200s",
+                                                Py_TYPE(exc_value)->tp_name, Py_TYPE(pair)->tp_name);
             Py_DECREF(pair);
             return -1;
         }
@@ -150,7 +150,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return 0;
     }
     /* no match */
-    *match = Py_NewRef(Py_None);
+    Py_INCREF_IMMORTAL(Py_None) *match = Py_None;
     *rest = Py_NewRef(exc_value);
     return 0;
 }
@@ -165,8 +165,9 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH(PyThreadState
         return NULL;
     }
 
-    // TODO: There's probably a Nuitka helper for this
-    return PyTuple_Pack(2, match, rest);
+    CHECK_OBJECT(match);
+    CHECK_OBJECT(rest);
+    return MAKE_TUPLE2_0(tstate, match, rest);
 }
 
 #endif
