@@ -176,6 +176,30 @@ Should you encounter problems with applying the changes to the checked
 out file, you can always execute it with ``COMMIT_UNCHECKED=1``
 environment set.
 
+*********************************
+ Reporting Bugs and Creating MRE
+*********************************
+
+For complex bugs such as compiler crashes, it is often necessary to
+reduce the source code to a Minimal Reproducible Example (MRE) to
+isolate the cause.
+
+Nuitka includes an agent workflow to assist with this process. You can
+refer to the workflow definition at ``.agent/workflows/create-mre.md``
+for the recommended strategy, or if using a compatible agent, trigger it
+directly.
+
+.. important::
+
+   Of course the AI can only do so much, as a human you may need to
+   guide it better or try different strategies, but the AI is there to
+   help us.
+
+The general process involves: 1. Identifying the specific command
+triggering the crash. 2. Iteratively removing code blocks (imports,
+functions, branches) and verifying if the crash persists. 3. Reducing
+the example until it is minimal and self-contained.
+
 *********************
  Coding Rules Python
 *********************
@@ -4507,7 +4531,8 @@ issues created, etc.
       d = next(a)
 
    If we fail to detect the aliasing nature, we will calculate ``d``
-   wrongly. We may incref and decref values to trace it.
+   wrongly. We could have to increase and decrease integer usage counts
+   values to trace it.
 
    Aliasing is automatically traced already in SSA form. The ``b`` is
    assigned to version of ``a``. So, that should allow to replace it

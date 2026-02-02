@@ -152,7 +152,10 @@ def _formatComments(filename, comments):
     elif filename.endswith(".rst"):
         comments = []
     elif filename.endswith(".md"):
-        comments = []
+        comments = [
+            (b"<!-- %s -->" % comment if comment != b"" else b"<!-- -->")
+            for comment in comments
+        ]
     elif filename.endswith(".json"):
         comments = []
     elif filename.endswith(".svg"):
