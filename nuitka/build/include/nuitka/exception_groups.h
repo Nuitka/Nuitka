@@ -76,6 +76,21 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
 }
 
 // This is copied directly from CPython
+NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadState *tstate, const char *msg_str,
+                                                                    PyObject *excs) {
+    CHECK_OBJECT(excs);
+    PyObject *msg = Nuitka_String_FromString(msg_str);
+    if (!msg) {
+        return NULL;
+    }
+    PyObject *args[2] = {msg, excs};
+    PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, PyExc_BaseExceptionGroup, args);
+    Py_DECREF(msg);
+    CHECK_OBJECT(result);
+    return result;
+}
+
+// This is copied directly from CPython
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc_value,
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
@@ -99,7 +114,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
             if (excs == NULL) {
                 return -1;
             }
-            PyObject *wrapped = _PyExc_CreateExceptionGroup("", excs);
+            PyObject *wrapped = CREATE_EXCEPTION_GROUP(tstate, "", excs);
             Py_DECREF(excs);
             if (wrapped == NULL) {
                 return -1;
