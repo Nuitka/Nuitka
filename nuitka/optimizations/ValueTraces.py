@@ -681,6 +681,8 @@ class ValueTraceAssign(ValueTraceBase):
 
     @counted_init
     def __init__(self, owner, assign_node, previous):
+        # assert assign_node.isStatementAssignmentVariable(), assign_node
+
         self.owner = owner
         self.usage_count = 0
         self.name_usage_count = 0

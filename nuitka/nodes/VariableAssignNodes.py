@@ -875,6 +875,38 @@ class StatementAssignmentVariableHardValue(
 Assignment raises exception in assigned value, removed assignment.""",
             )
 
+        # If the variable was already assigned to the same value, we can drop this.
+        if (
+            variable.isModuleVariable()
+            and self.variable_trace.getPrevious().isAssignTraceVeryTrusted()
+        ):
+            prev_assign_node = self.variable_trace.getPrevious().getAssignNode()
+            prev_source = prev_assign_node.subnode_source
+
+            assert (
+                source.isExpressionImportModuleHard()
+                or source.isExpressionImportModuleFixed()
+            ), source
+
+            assert (
+                prev_source.isExpressionImportModuleHard()
+                or prev_source.isExpressionImportModuleFixed()
+            ), prev_source
+
+            if prev_source.getValueName() == source.getValueName():
+                trace_collection.updateVeryTrustedModuleVariable(
+                    variable, source, prev_source
+                )
+
+                return (
+                    makeStatementExpressionOnlyReplacementNode(
+                        expression=source, node=self
+                    ),
+                    "new_statements",
+                    "Removed assignment of %s from itself which is known to be defined."
+                    % variable.getDescription(),
+                )
+
         # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToVeryTrustedValue(
             variable=variable, version=self.variable_version, assign_node=self
