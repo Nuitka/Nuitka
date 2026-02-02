@@ -92,3 +92,30 @@ def test_multiple_handlers_with_remaining():
 
 
 test_multiple_handlers_with_remaining()
+
+
+def test_catch_multiple_types():
+    try:
+        raise ExceptionGroup("test", [ValueError("1"), TypeError("2")])
+    except* (ValueError, TypeError) as error:
+        print(repr(error))
+        print(error.exceptions)
+
+
+test_catch_multiple_types()
+
+
+def test_catch_multiple_types_with_remaining():
+    try:
+        try:
+            raise ExceptionGroup(
+                "test", [ValueError("1"), TypeError("2"), RuntimeError("3")]
+            )
+        except* (ValueError, TypeError) as error:
+            print(repr(error))
+            print(error.exceptions)
+    except Exception as outer:
+        print(outer)
+
+
+test_catch_multiple_types_with_remaining()
