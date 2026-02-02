@@ -405,7 +405,8 @@ def buildTryExceptionNode(provider, node, source_ref):
 
 
 def buildTryStarExceptionNode(provider, node, source_ref):
-    handler_statements = []
+    to_try = buildStatementsNode(provider, node.body, source_ref)
+
     for handler in node.handlers:
         scope = provider.allocateTempScope("try_star_handler")
         match_result = provider.allocateTempVariable(
@@ -428,6 +429,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                     source_ref=source_ref,
                 ),
             )
+
         statements = [
             makeStatementAssignmentVariable(
                 variable=match_result,
@@ -438,7 +440,6 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            # TODO: Deduplicate this. We need a helper for looking up a subscript.
             makeStatementAssignmentVariable(
                 variable=matched,
                 source=ExpressionSubscriptLookup(
@@ -484,16 +485,18 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 source_ref=source_ref,
             ),
         ]
-        handler_statements.append(makeStatementsSequenceFromStatements(statements))
+        to_try = makeStatementsSequenceFromStatement(
+            StatementTry(
+                tried=to_try,
+                except_handler=makeStatementsSequenceFromStatements(statements),
+                break_handler=None,
+                continue_handler=None,
+                return_handler=None,
+                source_ref=source_ref,
+            )
+        )
 
-    return StatementTry(
-        tried=buildStatementsNode(provider, node.body, source_ref),
-        except_handler=makeStatementsSequenceFromStatements(handler_statements),
-        break_handler=None,
-        continue_handler=None,
-        return_handler=None,
-        source_ref=source_ref,
-    )
+    return to_try
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
