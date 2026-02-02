@@ -8,6 +8,7 @@ source code comments with Developer Manual sections.
 
 """
 
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
@@ -18,17 +19,15 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
     ExpressionConstantNoneRef,
-    ExpressionConstantTrueRef,
     makeConstantRefNode,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
     ExpressionExceptionGroupMatch,
-    StatementReraiseException,
+    StatementRaiseException,
 )
 from nuitka.nodes.StatementNodes import (
-    StatementExpressionOnly,
     StatementPreserveFrameException,
     StatementPublishException,
     StatementRestoreFrameException,
@@ -36,6 +35,7 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TryNodes import StatementTry
+from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
@@ -476,9 +476,13 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                     ExpressionConstantNoneRef(source_ref),
                     source_ref,
                 ),
-                # FIXME: This should raise the exception from rest, but
-                # StatementRaiseException looks incompatible with that.
-                yes_branch=StatementReraiseException(source_ref),
+                yes_branch=StatementRaiseException(
+                    exception_type=ExpressionTempVariableRef(rest, source_ref),
+                    exception_value=None,
+                    exception_trace=None,
+                    exception_cause=None,
+                    source_ref=source_ref,
+                ),
                 no_branch=None,
                 source_ref=source_ref,
             ),
