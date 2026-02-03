@@ -1118,6 +1118,14 @@ def commentArgs():
         if not os.path.exists(filename):
             return general.sysexit("Error, file '%s' is not found." % filename)
 
+        if isStandardLibraryPath(filename):
+            return general.sysexit(
+                """\
+Error, '%s' is in the standard library, compiling files from there \
+as main files is not supported."""
+                % filename
+            )
+
         if (shallMakeModule() or isStandaloneMode()) and os.path.normcase(
             os.path.basename(filename)
         ) == "__init__.py":
