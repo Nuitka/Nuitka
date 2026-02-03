@@ -17,6 +17,18 @@ a specific bug (e.g., a compiler crash).
 - **Run the reproduction command** immediately to confirm the issue exists and capture the exact
   error message/output.
 
+### Handling Standalone Optimization Crashes
+
+If the crash happens during optimization in standalone mode (often a Python traceback below
+`nuitka/optimizations`:
+
+1. **Check the output** for lines starting with `Problem with statement at ...`.
+2. **Identify the filename** mentioned in the next line.
+3. **Run Nuitka in module mode** on that specific file (e.g.,
+   `python bin/nuitka --mode=module path/to/ProblematicFile.py`).
+4. **If the crash reproduces**, specific reduction in module mode as described below is the best
+   path forward.
+
 ## 2. Analysis
 
 - Read the target file.
@@ -35,12 +47,27 @@ Repeat this process until the file is minimal:
      removing the branch entirely if possible, replace complex objects with simple ones).
    - *Strategy 4*: Rename long functions/variables to single letters (e.g., `original_name` -> `f`)
      once context is lost.
+   - *Consider Simplification*: Don't assume the entire block must be removed.
+     - Replace complex expressions with constants/literals.
+     - Replace variable usage with direct values.
+     - Replace function bodies with `pass` or a simple valid statement.
+   - *Avoid Confounding Variables*: Ensure you are changing only one thing at a time. (e.g., don't
+     remove an import *and* a global assignment in one step).
 2. **Apply the change**.
 3. **Run the reproduction command**.
 4. **Evaluate result**:
    - **If the exact same error persists**: Great! The removed code was irrelevant.
+
    - **If the error disappears or changes**: The removed code was relevant. **IMMEDIATELY REVERT**
-     the change. Try a different reduction or a smaller subset of that change.
+     the change.
+
+   - **Validation**:
+
+     - *Maximize Reduction*: Even if you think a construct (like a function or loop) is needed, try
+       to remove it or flatten it to verify.
+     - *Renaming*: Always rename functions, variables, and classes to single short letters (e.g.,
+       `f`, `x`, `C`) to remove semantic meaning and ensure no special string-based handling is at
+       play.
 
 ## 4. Final Polish
 
