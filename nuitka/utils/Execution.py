@@ -734,12 +734,13 @@ def _communicateWithRusage(proc, process_input):
                 for key, mask in ready_events:
                     if mask & selectors.EVENT_READ:
                         # key.fileobj is the original file object (e.g., proc.stdout)
-                        chunk = key.fileobj.read(8192)
+                        chunk = key.fileobj.read1(8192)
 
                         if not chunk:
                             # If we read empty bytes, the pipe has closed.
                             # Unregister it so the loop can terminate.
                             selector.unregister(key.fileobj)
+                            key.fileobj.close()
                         elif key.fileobj is proc.stdout:
                             stdout_chunks.append(chunk)
                         else:  # key.fileobj is proc.stderr
