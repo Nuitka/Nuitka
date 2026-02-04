@@ -634,6 +634,9 @@ def getCommonSconsOptions():
                 reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
             )
 
+            if scons_options["zig_exe_path"] is None:
+                scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
+
     if getMsvcVersion():
         scons_options["msvc_version"] = getMsvcVersion()
 
