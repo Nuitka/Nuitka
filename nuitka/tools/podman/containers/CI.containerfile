@@ -1,5 +1,4 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 FROM debian:12-slim
 ENV container docker
@@ -13,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     apt-utils \
     ccache \
     chrpath \
+    devscripts \
     dh-python \
     dput \
     gcc \
