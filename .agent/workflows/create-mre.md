@@ -47,6 +47,11 @@ Repeat this process until the file is minimal:
      removing the branch entirely if possible, replace complex objects with simple ones).
    - *Strategy 4*: Rename long functions/variables to single letters (e.g., `original_name` -> `f`)
      once context is lost.
+   - *Strategy 5*: For optimization issues, prioritize reducing the number of functions and methods.
+     This is often crucial for isolating issues that occur during inter-procedural optimization or
+     complex scope analysis.
+   - *Strategy 6*: Remove default arguments from functions. This simplifies the function signature
+     and can help isolate issues related to default value evaluation or parameter handling.
    - *Consider Simplification*: Don't assume the entire block must be removed.
      - Replace complex expressions with constants/literals.
      - Replace variable usage with direct values.
