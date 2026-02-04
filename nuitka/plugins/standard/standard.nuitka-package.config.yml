@@ -3898,12 +3898,13 @@
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
 
-- module-name: 'pandas._libs' # checksum: 582d52b9
+- module-name: 'pandas._libs' # checksum: 53e16a27
   implicit-imports:
     - depends:
         - 'pandas._libs.tslibs.np_datetime'
         - 'pandas._libs.tslibs.nattype'
         - 'pandas._libs.tslibs.base'
+        - 'pandas._libs._cyutility'
 
 - module-name: 'pandas._libs.testing' # checksum: 9059205
   implicit-imports:
