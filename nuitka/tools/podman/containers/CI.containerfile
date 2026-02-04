@@ -19,14 +19,20 @@ RUN apt-get update && apt-get install -y \
     gdb \
     git \
     help2man \
+    libzstd-dev \
     lintian \
+    patchelf \
     python3 \
+    python3-all-dbg \
     python3-all-dev \
+    python3-appdirs \
     python3-dev \
+    python3-glob2 \
     python3-pip \
     python3-stdeb \
     rst2pdf \
     rsync \
+    scons \
     strace \
     wget
 
