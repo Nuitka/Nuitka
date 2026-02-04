@@ -349,7 +349,9 @@ class SpawnThread(threading.Thread):
         sh, _cmd, args, os_env = args
 
         self.process = Process(
-            command=[sh, "-c", " ".join(args)], env=os_env, rusage=True
+            command=[sh, "-c", " ".join(args)],
+            env=os_env,
+            rusage=True,
         )
         _stdout, stderr, exit_code, self.rusage = self.process.communicate()
 
@@ -424,7 +426,7 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
 
         spawn_result = thread.getSpawnResult()
 
-        if spawn_result == (0, None):
+        if spawn_result[:2] == (0, None):
             updateSconsProgressBar()
 
         return spawn_result
