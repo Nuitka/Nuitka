@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     libzstd-dev \
     lintian \
     patchelf \
+    pbuilder \
     python3 \
     python3-all-dbg \
     python3-all-dev \
