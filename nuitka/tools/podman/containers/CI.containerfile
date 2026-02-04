@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     apt-utils \
     ccache \
     chrpath \
+    dh-python \
     dput \
     gcc \
     gdb \
@@ -19,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     help2man \
     lintian \
     python3 \
+    python3-all-dev \
     python3-dev \
     python3-pip \
     python3-stdeb \
