@@ -2,6 +2,7 @@
 
 FROM debian:12-slim
 ENV container docker
+ENV NUITKA_PIP_FLAGS="--break-system-packages"
 
 VOLUME [ "/sys/fs/cgroup" ]
 
