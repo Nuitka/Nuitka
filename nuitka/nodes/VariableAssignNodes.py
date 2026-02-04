@@ -879,18 +879,18 @@ Assignment raises exception in assigned value, removed assignment.""",
         if (
             variable.isModuleVariable()
             and self.variable_trace.getPrevious().isAssignTraceVeryTrusted()
+            and (
+                source.isExpressionImportModuleHard()
+                or source.isExpressionImportModuleFixed()
+            )
         ):
             prev_assign_node = self.variable_trace.getPrevious().getAssignNode()
             prev_source = prev_assign_node.subnode_source
 
             assert (
-                source.isExpressionImportModuleHard()
-                or source.isExpressionImportModuleFixed()
-            ), source
-
-            assert (
                 prev_source.isExpressionImportModuleHard()
                 or prev_source.isExpressionImportModuleFixed()
+                or prev_source.isExpressionImportModuleNameHard()
             ), prev_source
 
             if prev_source.getValueName() == source.getValueName():
