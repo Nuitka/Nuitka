@@ -12,7 +12,7 @@ import os
 import shlex
 from contextlib import contextmanager
 
-from nuitka.__past__ import subprocess
+from nuitka.__past__ import iterItems, subprocess
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -122,6 +122,9 @@ def check_output(*popenargs, **kwargs):
     if "stderr" not in kwargs:
         kwargs["stderr"] = subprocess.PIPE
 
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
+
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
 
     output, stderr = process.communicate()
@@ -152,6 +155,9 @@ def check_call(*popenargs, **kwargs):
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
+        if "env" in kwargs:
+            _checkEnvironment(kwargs["env"])
+
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
         return general.sysexit(
@@ -165,6 +171,9 @@ def callProcess(*popenargs, **kwargs):
 
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
+
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
 
     return subprocess.call(*popenargs, **kwargs)
 
@@ -525,6 +534,33 @@ def executeToolChecked(
     return stdout
 
 
+def _checkEnvironment(env):
+    if not env:
+        return
+
+    # Make sure environment contains no None values
+    for key, value in iterItems(env):
+        if key is None:
+            # This is probably not possible, but just in case.
+            raise RuntimeError("Environment variable key cannot be None.")
+        if value is None:
+            raise RuntimeError("Environment variable '%s' value is None." % key)
+
+        if not isinstance(key, str) or not isinstance(value, str):
+            general.warning(
+                "Illegal environment variable %r: %r (types %s, %s)"
+                % (key, value, type(key), type(value))
+            )
+
+            # Dump the whole thing.
+            general.warning("Environment was: %r" % env)
+
+            raise TypeError(
+                "Environment variable %r has wrong type %s"
+                % (key, type(key) if not isinstance(key, str) else type(value))
+            )
+
+
 def createProcess(
     command,
     env=None,
@@ -537,6 +573,8 @@ def createProcess(
 ):
     if not env:
         env = os.environ
+
+    _checkEnvironment(env)
 
     kw_args = {}
     if new_group:

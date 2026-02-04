@@ -86,6 +86,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     cheapCopyFile,
     deleteFile,
+    encodeToFilesystemEncoding,
     getDirectoryRealPath,
     getExternalUsePath,
     getNormalizedPath,
@@ -263,7 +264,13 @@ def _setupSconsEnvironment2():
 
         msvc_config_cache_dir = getCacheDir("scons-msvc-config")
         makePath(msvc_config_cache_dir)
-        os.environ["SCONS_CACHE_MSVC_CONFIG"] = getNormalizedPath(msvc_config_cache_dir)
+
+        try:
+            os.environ["SCONS_CACHE_MSVC_CONFIG"] = encodeToFilesystemEncoding(
+                getNormalizedPath(msvc_config_cache_dir)
+            )
+        except UnicodeEncodeError:
+            pass
 
     yield
 
