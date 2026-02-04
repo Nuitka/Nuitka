@@ -201,7 +201,7 @@ except (AttributeError, ImportError):
     import _imp as imp
 
 try:
-    import selectors
+    import selectors  # pylint: disable=unused-import
 except ImportError:
     selectors = None
 
@@ -221,7 +221,6 @@ assert GenericAlias or intern
 assert UnionType or intern
 assert FileNotFoundError
 assert imp
-assert selectors
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
