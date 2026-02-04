@@ -12,7 +12,7 @@ import os
 import shlex
 from contextlib import contextmanager
 
-from nuitka.__past__ import iterItems, subprocess
+from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -702,11 +702,6 @@ def _communicateWithRusage(proc, process_input):
     """
 
     # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
-
-    try:
-        import selectors
-    except ImportError:
-        selectors = None
 
     if selectors is None or not hasattr(os, "wait4"):
         stdout, stderr = proc.communicate(input=process_input)

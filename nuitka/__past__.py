@@ -200,6 +200,10 @@ try:
 except (AttributeError, ImportError):
     import _imp as imp
 
+try:
+    import selectors
+except ImportError:
+    selectors = None
 
 # For PyLint to be happy.
 assert long
@@ -217,6 +221,7 @@ assert GenericAlias or intern
 assert UnionType or intern
 assert FileNotFoundError
 assert imp
+assert selectors
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
