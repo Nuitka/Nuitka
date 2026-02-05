@@ -817,6 +817,8 @@ def buildClassNode3(provider, node, source_ref):
             tmp_variables.insert(0, tmp_bases_orig)
     if type_params_expressions:
         tmp_variables.append(tmp_type_params)
+    for _, type_temp_var in type_variables:
+        tmp_variables.append(type_temp_var)
 
     type_variable_assignments = []
     for type_param, type_param_var in type_variables:
