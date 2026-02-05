@@ -242,26 +242,6 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
-def _wrapWithTypeAnnotations(provider, type_params, node, source_ref):
-    outline = ExpressionOutlineFunction(provider, "create_type_annotations", source_ref)
-    statements = []
-
-    for type_param in type_params:
-        type_var = buildNode(provider=outline, node=type_param, source_ref=source_ref)
-
-        assign = StatementAssignmentVariableName(
-            provider=outline,
-            variable_name=type_param.name,
-            source=type_var,
-            source_ref=source_ref,
-        )
-        statements.append(assign)
-
-    statements.append(StatementReturn(node, source_ref))
-    outline.setChildBody(makeStatementsSequenceFromStatements(statements))
-    return outline
-
-
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
