@@ -83,8 +83,8 @@ def getBranchRemoteIdentifier():
     if branch_remote_host.endswith(".home"):
         branch_remote_host = branch_remote_host.rsplit(".", 1)[0]
 
-    if branch_remote_host == "mastermind":
-        return "private"
+    if branch_remote_host == "git-server":
+        return "internal"
     elif branch_remote_host.endswith("nuitka.net"):
         return "private"
     elif branch_remote_host == "github":
@@ -238,7 +238,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 def syncTime():
     """Update WSL clock just in case, it can be skewed."""
     if isLinux() and "Microsoft" in getFileContents("/proc/version"):
-        os.system("sudo hwclock -s")
+        os.system("sudo hwclock -s")  # spell-checker: ignore hwclock
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
