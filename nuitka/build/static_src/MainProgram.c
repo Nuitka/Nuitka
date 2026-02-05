@@ -20,6 +20,21 @@
 #include <unistd.h>
 #endif
 
+#if defined(__linux__)
+#define _GNU_SOURCE 
+#include <errno.h>
+#include <limits.h>
+#include <spawn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <signal.h>
+#endif
+
 #include "nuitka/prelude.h"
 
 #ifndef __IDE_ONLY__
@@ -1380,6 +1395,55 @@ void setLANGSystemLocaleMacOS(void) {
 #endif
 
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
+
+#if (defined(_NUITKA_LINUX_CONSOLE_MODE_FORCE) || defined(_NUITKA_LINUX_CONSOLE_MODE_DETECT)) && defined(__linux__)
+if (!isatty(STDIN_FILENO)) {
+    const char *already_relaunched = getenv("NUITKA_TERMINAL_RELAUNCH");
+    if (already_relaunched == NULL) {
+        setenv("NUITKA_TERMINAL_RELAUNCH", "1", 1);
+        char const *binary_path = getBinaryFilenameHostEncoded(true);
+
+        const char *terminals[] = {
+            "xdg-terminal-exec",
+            "x-terminal-emulator",
+            "gnome-terminal",
+            "konsole",
+            "xfce4-terminal",
+            NULL
+        };
+        for (int t = 0; terminals[t] != NULL; t++) {
+            int needs_e = (strcmp(terminals[t], "xdg-terminal-exec") != 0); // pre xdg-terminal-exec era
+            int arg_count = argc + (needs_e ? 2 : 1);
+            char **args = malloc(sizeof(char *) * (arg_count + 1));
+            if (!args) {
+                fprintf(stderr, "Memory allocation failed.\n");
+                exit(1);
+            }
+            args[0] = (char *)terminals[t];
+            int offset = 1;
+            if (needs_e) {
+                args[1] = "-e";
+                args[2] = (char *)binary_path;
+                offset = 3;
+            } else {
+                args[1] = (char *)binary_path;
+                offset = 2;
+            }
+            for (int i = 1; i < argc; i++) {
+                args[i + offset - 1] = argv[i];
+            }
+            args[arg_count] = NULL;
+            execvp(args[0], args);
+            free(args);
+        }
+        // All terminals failed
+        fprintf(stderr, "Error: Could not launch a terminal. Tried multiple options.\n");
+        exit(1);
+    }
+}
+#endif
+
+
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
 #endif
