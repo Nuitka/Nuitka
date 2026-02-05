@@ -331,7 +331,7 @@ def buildFunctionNode(provider, node, source_ref):
         )
 
     defaults = buildNodeTuple(
-        provider=function_provider, nodes=node.args.defaults, source_ref=source_ref
+        provider=provider, nodes=node.args.defaults, source_ref=source_ref
     )
 
     kw_defaults = buildParameterKwDefaults(
