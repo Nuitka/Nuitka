@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Caching of compiled code.
+"""Caching of compiled code.
 
 Initially this deals with preserving compiled module state after bytecode demotion
 such that it allows to restore it directly.
@@ -13,9 +13,9 @@ import sys
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import getNormalizedPathJoin, makePath
 from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
@@ -27,7 +27,9 @@ def getBytecodeCacheDir():
 
 
 def _getCacheFilename(module_name, extension):
-    return os.path.join(getBytecodeCacheDir(), "%s.%s" % (module_name, extension))
+    return getNormalizedPathJoin(
+        getBytecodeCacheDir(), "%s.%s" % (module_name, extension)
+    )
 
 
 def makeCacheName(module_name, source_code):
@@ -51,7 +53,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 7
+_cache_format_version = 8
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -121,8 +123,8 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
     # The Json doesn't store integer keys.
     for pass_timing_info in data["timing_infos"]:
-        pass_timing_info[3] = dict(
-            (int(key), value) for (key, value) in pass_timing_info[3].items()
+        pass_timing_info[5] = dict(
+            (int(key), value) for (key, value) in pass_timing_info[5].items()
         )
 
     return result, data["timing_infos"]
@@ -160,7 +162,7 @@ def _getModuleConfigHash(full_name):
     hash_value = Hash()
 
     # Plugins may change their influence.
-    hash_value.updateFromValues(*Plugins.getCacheContributionValues(full_name))
+    hash_value.updateFromValues(*getPluginsCacheContributionValues(full_name))
 
     # Take Nuitka and Python version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string, sys.version)

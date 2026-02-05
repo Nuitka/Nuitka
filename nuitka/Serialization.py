@@ -1,15 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Write and read constants data files and provide identifiers.
+"""Write and read constants data files and provide identifiers."""
 
-"""
-
-import os
 import pickle
 import sys
 
-from nuitka import OutputDirectories
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     BaseExceptionGroup,
     ExceptionGroup,
@@ -26,10 +22,12 @@ from nuitka.Builtins import (
 )
 
 # TODO: Move to constants
+from nuitka.code_generation.GlobalConstants import getConstantDefaultPopulation
 from nuitka.code_generation.Namify import namifyConstant
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import openPickleFile
+from nuitka.utils.FileOperations import getNormalizedPathJoin, openPickleFile
 
 
 class BuiltinAnonValue(object):
@@ -125,10 +123,11 @@ class ConstantStreamWriter(object):
     def __init__(self, filename):
         self.count = 0
 
-        filename = os.path.join(
-            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+        filename = getNormalizedPathJoin(
+            getSourceDirectoryPath(onefile=False, create=False),
             filename,
         )
+
         self.file, self.pickle = openPickleFile(filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues
@@ -171,11 +170,22 @@ class ConstantStreamReader(object):
 class GlobalConstantAccessor(object):
     __slots__ = ("constants", "constants_writer", "top_level_name")
 
+    global_constant_keys = set()
+
     def __init__(self, data_filename, top_level_name):
         self.constants = OrderedSet()
 
         self.constants_writer = ConstantStreamWriter(data_filename)
         self.top_level_name = top_level_name
+
+        # We need to delay this, as getConstantDefaultPopulation() cannot be
+        # called at import time for this module, wants to know e.g. deployment
+        # mode, and other options.
+        if not GlobalConstantAccessor.global_constant_keys:
+            GlobalConstantAccessor.global_constant_keys.update(
+                "const_" + namifyConstant(constant)
+                for constant in getConstantDefaultPopulation()
+            )
 
     def getConstantCode(self, constant):
         # Use in user code, or for constants building code itself, many constant
@@ -267,17 +277,32 @@ class GlobalConstantAccessor(object):
 
         return len(self.constants)
 
+    def getConstantNames(self):
+        return tuple(self.constants)
+
 
 class ConstantAccessor(GlobalConstantAccessor):
-    def _getConstantCode(self, constant):
-        constant_type = type(constant)
+    __slots__ = ()
 
-        if constant_type is tuple and not constant:
-            return "const_tuple_empty"
-        elif constant_type is int and constant in (-1, 0, 1):
-            return "const_" + namifyConstant(constant)
-        else:
-            return GlobalConstantAccessor._getConstantCode(self, constant)
+    def _getConstantCode(self, constant):
+        key = "const_" + namifyConstant(constant)
+        if key in self.global_constant_keys:
+            return key
+
+        if key not in self.constants:
+            self.constants.add(key)
+            self.constants_writer.addConstantValue(constant)
+
+        return "%s.%s" % (self.top_level_name, key)
+
+    def getBlobDataCode(self, data, name):
+        key = "blob_" + namifyConstant(data)
+
+        if key not in self.constants:
+            self.constants.add(key)
+            self.constants_writer.addBlobData(data=data, name=name)
+
+        return "%s[%d]" % (self.top_level_name, self.constants.index(key))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

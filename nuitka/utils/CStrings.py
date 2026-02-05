@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" C string encoding
+"""C string encoding
 
 This contains the code to create string literals for C to represent the given
 values.
@@ -142,14 +142,23 @@ def _decodePythonIdentifierMatch(match):
     return chr(c)
 
 
-# TODO: These may actually be more platforms that are affected.
-_target_allows_dollar_character = not isAIX()
+#: C identifiers that are allowed without encoding.
+# TODO: These may actually be more platforms that are affected by '$' not being allowed.
+_allowed_c_identifier_chars = (
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+)
+if not isAIX():
+    _allowed_c_identifier_chars += "$"
 
-# Duplicated code, because this is called a lot. The encoding that is fully
-# C standards compliant is so much harder to read, we don't want to use that.
-if _target_allows_dollar_character:
+# Prepared regular regression for speed.
+_disallowed_c_identifier_chars_re = re.compile("[^%s]" % _allowed_c_identifier_chars)
+
+
+if "$" in _allowed_c_identifier_chars:
+    _encoded_c_identifier_re = re.compile(r"\$\$\d+\$")
 
     def _encodePythonIdentifierMatch(match):
+        """Match function for identifier encoding."""
         c = match.group()
 
         if c == ".":
@@ -157,20 +166,11 @@ if _target_allows_dollar_character:
         else:
             return "$$%d$" % ord(c)
 
-    def encodePythonIdentifierToC(value):
-        """Encode an identifier from a given Python string."""
-
-        # Python identifiers allow almost of characters except a very
-        # few, much more than C identifiers support. This attempts to
-        # be bi-directional, so we can reverse it.
-        return re.sub("[^a-zA-Z0-9_]", _encodePythonIdentifierMatch, value)
-
-    def decodePythonIdentifierFromC(value):
-        return re.sub(r"\$\$\d+\$", _decodePythonIdentifierMatch, value)
-
 else:
+    _encoded_c_identifier_re = re.compile(r"__\d+_")
 
     def _encodePythonIdentifierMatch(match):
+        """Match function for identifier encoding."""
         c = match.group()
 
         if c == ".":
@@ -178,18 +178,15 @@ else:
         else:
             return "__%d_" % ord(c)
 
-    def encodePythonIdentifierToC(value):
-        """Encode an identifier from a given Python string."""
 
-        # Python identifiers allow almost of characters except a very
-        # few, much more than C identifiers support. This attempts to
-        # be bi-directional, so we can reverse it. In order to escape,
-        # remove the "_" character, that on allowing platforms we can
-        # use "$" instead for.
-        return re.sub("[^a-zA-Z0-9]", _encodePythonIdentifierMatch, value)
+def encodePythonIdentifierToC(value):
+    """Encode an identifier from a given Python string."""
+    return _disallowed_c_identifier_chars_re.sub(_encodePythonIdentifierMatch, value)
 
-    def decodePythonIdentifierFromC(value):
-        return re.sub(r"__\d+_", _decodePythonIdentifierMatch, value)
+
+def decodePythonIdentifierFromC(value):
+    """Decode an identifier from a given C string."""
+    return _encoded_c_identifier_re.sub(_decodePythonIdentifierMatch, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

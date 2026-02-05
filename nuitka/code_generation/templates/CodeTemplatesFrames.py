@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code templates for frames of all kinds.
-
-"""
+"""Code templates for frames of all kinds."""
 
 # This uses STORE_GENERATOR_EXCEPTION,STORE_COROUTINE_EXCEPTION,STORE_ASYNCGEN_EXCEPTION
 

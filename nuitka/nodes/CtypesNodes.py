@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for all things "ctypes" stdlib module.
-
-"""
+"""Nodes for all things "ctypes" stdlib module."""
 
 from .HardImportNodesGenerated import (
     ExpressionCtypesCdllBefore38CallBase,

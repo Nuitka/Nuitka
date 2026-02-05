@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Build the internal node tree from source code.
+"""Build the internal node tree from source code.
 
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
@@ -114,7 +114,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMainEntryPointFilenames,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
@@ -125,7 +125,7 @@ from nuitka.Options import (
     shallWarnUnusualCode,
 )
 from nuitka.pgo.PGO import decideCompilationFromPGO
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import decideCompilation, onModuleDiscovered
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
     general,
@@ -148,7 +148,9 @@ from .ReformulationAssignmentStatements import (
     buildInplaceAssignNode,
     buildNamedExprNode,
     buildTypeAliasNode,
+    buildTypeParamSpec,
     buildTypeVarNode,
+    buildTypeVarTupleNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -822,6 +824,8 @@ setBuildingDispatchers(
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
         "TypeVar": buildTypeVarNode,
+        "TypeVarTuple": buildTypeVarTupleNode,
+        "ParamSpec": buildTypeParamSpec,
     },
     path_args1={"Ellipsis": buildEllipsisNode},
 )
@@ -1009,7 +1013,7 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
     if is_stdlib and module_name in detectEarlyImports():
         return "bytecode"
 
-    result = Plugins.decideCompilation(module_name)
+    result = decideCompilation(module_name)
 
     # Cannot change mode of "__main__" to bytecode, that is not going to work
     # currently, maybe in the future we could allow it.
@@ -1232,7 +1236,7 @@ def buildMainModuleTree(source_code):
 
     # Main modules do not get added to the import cache, but plugins get to see it.
     if module.isMainModule():
-        Plugins.onModuleDiscovered(module)
+        onModuleDiscovered(module)
     else:
         addImportedModule(imported_module=module)
 
@@ -1249,7 +1253,9 @@ Cannot follow import to module '%s' because of '%s'."""
             % (module_name, exc.__class__.__name__)
         )
 
-    source_ref = SourceCodeReferences.fromFilename(filename=module_filename)
+    source_ref = SourceCodeReferences.makeSourceReferenceFromFilename(
+        filename=module_filename
+    )
 
     module = CompiledPythonModule(
         module_name=module_name,

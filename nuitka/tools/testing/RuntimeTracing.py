@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runtime tracing
+"""Runtime tracing
 
 At this time we detect DLLs used by a program with this code, such
 that we can check if it loads things outside of the program, but we

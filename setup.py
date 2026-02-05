@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Setup file for Nuitka.
+"""Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
 the source code. Second, the packages are scanned from the filesystem,
@@ -75,7 +75,7 @@ inline_copy_files = []
 no_byte_compile = []
 
 
-def addDataFiles(data_files, base_path, do_byte_compile=True):
+def addDataFiles(files_list, base_path, do_byte_compile=True):
     patterns = (
         "%s/*.py" % base_path,
         "%s/*/*.py" % base_path,
@@ -88,7 +88,7 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
         "%s/READ*" % base_path,
     )
 
-    data_files.extend(patterns)
+    files_list.extend(patterns)
 
     if not do_byte_compile:
         no_byte_compile.extend(patterns)
@@ -120,16 +120,16 @@ if os.name == "nt" or sdist_mode:
     addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
-    addInlineCopy("yaml_27")
+    addInlineCopy("yaml_27", do_byte_compile=sys.version_info < (3,))
 if (3,) < sys.version_info < (3, 6) or sdist_mode:
-    addInlineCopy("yaml_35")
+    addInlineCopy("yaml_35", do_byte_compile=(3,) < sys.version_info < (3, 6))
 if sys.version_info >= (3, 6) or sdist_mode:
-    addInlineCopy("yaml")
+    addInlineCopy("yaml", do_byte_compile=sys.version_info >= (3, 6))
 
 if sys.version_info < (3, 6) or sdist_mode:
-    addInlineCopy("jinja2_35")
+    addInlineCopy("jinja2_35", do_byte_compile=sys.version_info < (3, 6))
 if sys.version_info >= (3, 6) or sdist_mode:
-    addInlineCopy("jinja2")
+    addInlineCopy("jinja2", do_byte_compile=sys.version_info >= (3, 6))
 
 addInlineCopy("pkg_resources")
 
@@ -142,9 +142,9 @@ if (os.name == "nt" and sys.version_info < (3, 7)) or sdist_mode:
 if (os.name == "nt" and sys.version_info >= (3, 7)) or sdist_mode:
     addInlineCopy("lib/scons-4.10.1", do_byte_compile=sys.version_info >= (3, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-2.3.2")
+    addInlineCopy("lib/scons-2.3.2", do_byte_compile=sys.version_info < (2, 7))
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-3.1.2")
+    addInlineCopy("lib/scons-3.1.2", do_byte_compile=sys.version_info >= (2, 7))
 
 nuitka_packages = findNuitkaPackages()
 
@@ -182,9 +182,13 @@ package_data = {
     "nuitka.code_generation": ["templates_c/*.j2"],
     "nuitka.reports": ["*.j2"],
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
+    "nuitka.utils": ["requirements-private.txt"],
+    "nuitka.format": ["biome.json"],
+    "nuitka.package_config": ["nuitka-package-config-schema.json"],
 }
 
 
+data_files = []
 try:
     import distutils.util
 except ImportError:
@@ -368,14 +372,8 @@ with open("README.rst", "rb") as input_file:
     )
 
 install_requires = []
-if sys.version_info >= (3, 7):
-    install_requires.append("ordered-set >= 4.1.0")
 if sys.version_info[:2] == (2, 7) and os.name == "nt":
     install_requires.append("subprocess32")
-if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
-if sys.platform == "darwin" and sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
 
 build_requires = ["setuptools>=42", "toml"]
 standalone_requires = []
@@ -385,9 +383,6 @@ package_requires = []
 
 if sys.version_info >= (3, 7):
     onefile_requires.append("zstandard >= 0.15")
-
-    # TODO: Keep backward compatible until 2.8 at least
-    install_requires.append("zstandard >= 0.15")
 
 setup(
     name="Nuitka",
@@ -409,6 +404,7 @@ setup(
         # Nuitka standalone mode aims at distribution
         "Topic :: System :: Software Distribution",
         # Python3 supported versions.
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.11",
@@ -458,17 +454,18 @@ Python compiler with full language support and CPython compatibility""",
     },
     zip_safe=False,
     scripts=scripts,
+    data_files=data_files,
     entry_points={
         "distutils.commands": [
             "bdist_nuitka = \
-             nuitka.distutils.DistutilCommands:bdist_nuitka",
+             nuitka.distutils.DistutilsCommands:bdist_nuitka",
             "build_nuitka = \
-             nuitka.distutils.DistutilCommands:build",
+             nuitka.distutils.DistutilsCommands:build",
             "install_nuitka = \
-             nuitka.distutils.DistutilCommands:install",
+             nuitka.distutils.DistutilsCommands:install",
         ],
         "distutils.setup_keywords": [
-            "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
+            "build_with_nuitka = nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsCommands"
         ],
         "console_scripts": console_scripts,
     },

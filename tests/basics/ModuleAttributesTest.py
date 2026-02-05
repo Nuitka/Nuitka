@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Some module documentation.
+"""Some module documentation.
 
 With newline and stuff."""
 

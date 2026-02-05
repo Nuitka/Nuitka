@@ -1,15 +1,15 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for implicit and explicit exception raises.
+"""Code generation for implicit and explicit exception raises.
 
 Exceptions from other operations are consider ErrorCodes domain.
 
 """
 
-from nuitka import Options
 from nuitka.Builtins import isBaseExceptionSimpleExtension
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -251,7 +251,7 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
 
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
-    if Options.is_debug:
+    if states.is_debug:
         # TODO: Need to optimize ExpressionLocalsVariableRefOrFallback once we know
         # it handles cases where the value is not in locals dict properly.
 

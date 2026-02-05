@@ -166,7 +166,7 @@ static void prepareStandaloneEnvironment(void) {
 
 #if defined(_WIN32)
 #if _NUITKA_EXE_MODE
-    SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+    SetDllDirectoryW(L"");
 #else
     SetDllDirectoryW(getDllDirectory());
 #endif
@@ -361,7 +361,7 @@ included by default",
             raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
         }
 #endif
-        NUITKA_FINALIZE_PROGRAM(tstate);
+        // NUITKA_FINALIZE_PROGRAM(tstate);
 
         PyErr_PrintEx(0);
 
@@ -374,7 +374,7 @@ included by default",
 }
 
 static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_name, bool is_package) {
-    NUITKA_INIT_PROGRAM_LATE(module_name);
+    // NUITKA_INIT_PROGRAM_LATE(module_name);
 
     if (is_package) {
         char const *w = module_name;
@@ -458,7 +458,7 @@ static void setCommandLineParameters(int argc, char **argv) {
 #else
 static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
+#ifdef _NUITKA_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     printf("Command line: ");
     for (int i = 0; i < argc; i++) {
@@ -500,7 +500,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
             if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                 NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
-                SvcInstall();
+                SvcInstall(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING);
                 NUITKA_CANNOT_GET_HERE("main(): SvcInstall must not return");
             }
 #endif
@@ -1059,6 +1059,14 @@ static void Nuitka_Py_Initialize(void) {
     initNuitkaAllocators();
 #endif
 
+    // This dead code is a good spot to put this code that is just intended to
+    // for linking this API in.
+#if !defined(_WIN32) && PYTHON_VERSION >= 0x3d0
+    if (orig_argc == -1) {
+        _PyInterpreterConfig_AsDict(NULL);
+    }
+#endif
+
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
@@ -1473,7 +1481,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     NUITKA_PRINT_TIMING("main(): Entered.");
-    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
+
+    // NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #ifdef __FreeBSD__
     // FP exceptions run in "no stop" mode by default
@@ -1532,7 +1541,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     }
 #endif
 
-#ifdef NUITKA_PYTHON_STATIC
+#ifdef _MONOLITHPY
     NUITKA_PRINT_TIMING("main(): Preparing static modules.");
     Py_InitStaticModules();
 #endif
@@ -2034,7 +2043,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
-        SvcLaunchService();
+        SvcLaunchService(_NUITKA_WINDOWS_SERVICE_NAME_WIDE_STRING, _NUITKA_WINDOWS_SERVICE_GRACE_TIME_INT,
+                         _NUITKA_WINDOWS_SERVICE_CLI_BOOL == 1);
 #else
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
@@ -2160,6 +2170,12 @@ int Py_Main(int argc, char **argv) { return 0; }
 #ifdef __cplusplus
 }
 #endif
+#endif
+
+// For cases of gcc used to compile with Nuitka vs. the one used to compile
+// libpython.
+#if defined(__linux__) && defined(__GNUC__) && !defined(__ZIG__) && !defined(__clang__)
+__attribute__((weak)) void __warn_memset_zero_len(void) {}
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

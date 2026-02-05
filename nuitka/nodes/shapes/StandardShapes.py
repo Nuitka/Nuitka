@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard shapes that commonly appear. """
+"""Standard shapes that commonly appear."""
 
 from abc import abstractmethod
 
@@ -620,6 +620,15 @@ class ShapeLargeConstantValue(object):
 
     def hasShapeSlotLen(self):
         return self.shape.hasShapeSlotLen()
+
+
+class ShapeLargeConstantValueRange(ShapeLargeConstantValue):
+    __slots__ = ("min_size",)
+
+    def __init__(self, min_size, max_size, shape):
+        ShapeLargeConstantValue.__init__(self, max_size, shape)
+
+        self.min_size = min_size
 
 
 class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):

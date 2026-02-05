@@ -1,9 +1,7 @@
 #     Copyright 2025, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in> find license text at end of file
 
 
-""" Node for the calls to the 'any' built-in.
-
-"""
+"""Node for the calls to the 'any' built-in."""
 
 from nuitka.specs import BuiltinParameterSpecs
 

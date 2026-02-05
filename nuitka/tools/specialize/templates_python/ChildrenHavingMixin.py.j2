@@ -361,6 +361,17 @@ class {{mixin_name}}({{base_class}}):
         return self.computeExpression(trace_collection)
 {% endif %}
 
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
 {% if raise_mode == "no_raise" %}
     @staticmethod
     def mayRaiseExceptionOperation():
@@ -415,7 +426,7 @@ class {{mixin_name}}({{base_class}}):
         """Must be overloaded for non-final node."""
 {% endif %}
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """ Collect variable reads and writes of child nodes."""
 
 {% for named_child in named_children %}
@@ -423,12 +434,12 @@ class {{mixin_name}}({{base_class}}):
         subnode_{{named_child}} = self.subnode_{{named_child}}
 
         if subnode_{{named_child}} is not None:
-            self.subnode_{{named_child}}.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_{{named_child}}.collectVariableAccesses(emit_variable)
 {% elif named_children_types.get(named_child) == "tuple" %}
         for element in self.subnode_{{named_child}}:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 {% else  %}
-        self.subnode_{{named_child}}.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_{{named_child}}.collectVariableAccesses(emit_variable)
 {% endif %}
 {% endfor %}
 

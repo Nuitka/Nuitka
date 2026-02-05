@@ -1,14 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Ignore listing of modules that are not found, but probably that's acceptable.
-
-"""
+"""Ignore listing of modules that are not found, but probably that's acceptable."""
 
 import sys
 
 from nuitka.Errors import NuitkaOptimizationError
-from nuitka.PythonFlavors import isNuitkaPython
+from nuitka.PythonFlavors import isMonolithPy
 
 
 def getModuleIgnoreList():
@@ -422,7 +420,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
 
 def isIgnoreListedNotExistingModule(module_name):
-    if module_name in sys.builtin_module_names and not isNuitkaPython():
+    if module_name in sys.builtin_module_names and not isMonolithPy():
         raise NuitkaOptimizationError(
             """
 Your CPython version has a built-in module '%s', that is not ignore listed

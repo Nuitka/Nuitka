@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Internal tool, compression standalone distribution files and attach to onefile bootstrap binary.
-
-"""
+"""Internal tool, compression standalone distribution files and attach to onefile bootstrap binary."""
 
 import os
 import shutil
@@ -39,13 +37,15 @@ def getCompressorLevel(low_memory):
     return 3 if low_memory else 22
 
 
-def getCompressorFunction(expect_compression, low_memory):
-    # spell-checker: ignore zstd, closefd
+def getCompressorFunction(expect_compression, low_memory, job_limit):
+    # spell-checker: ignore closefd
 
     if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
 
-        compressor_context = ZstdCompressor(level=getCompressorLevel(low_memory))
+        compressor_context = ZstdCompressor(
+            level=getCompressorLevel(low_memory), threads=job_limit
+        )
 
         @contextmanager
         def useCompressedFile(output_file):
@@ -83,7 +83,7 @@ def _attachOnefilePayloadFile(
     # Somewhat detail rich, at least unless we make more things mandatory, and
     # we also need to pass all modes, since this can be run in a separate process
     # that has no access to options.
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-arguments,too-many-locals,too-many-statements
 
     payload_item_size = 0
 
@@ -156,9 +156,7 @@ def _attachOnefilePayloadFile(
                         ) as compressed_file_tmp2:
                             shutil.copyfileobj(input_file, compressed_file_tmp2)
 
-                        compressed_size = archive_entry_file.tell()
-                else:
-                    compressed_size = getFileSize(compression_cache_filename)
+                compressed_size = getFileSize(compression_cache_filename)
 
                 file_header += struct.pack("I", compressed_size)
 
@@ -235,10 +233,12 @@ def attachOnefilePayload(
     file_checksums,
     win_path_sep,
     low_memory,
+    job_limit,
 ):
     compression_indicator, compressor = getCompressorFunction(
         expect_compression=expect_compression,
         low_memory=low_memory,
+        job_limit=job_limit,
     )
 
     @decoratorRetries(
@@ -310,18 +310,6 @@ def attachOnefilePayload(
                 compressed_file.write(filename_encoded)
                 payload_size += len(filename_encoded)
 
-                compressed_size = compressed_file.tell()
-
-            if compression_indicator == b"Y":
-                onefile_logger.info(
-                    "Onefile payload compression ratio (%.2f%%) size %d to %d."
-                    % (
-                        (float(compressed_size) / payload_size) * 100,
-                        payload_size,
-                        compressed_size,
-                    )
-                )
-
             # TODO: If put into a resource, this is not really needed anymore.
             if isWin32Windows():
                 # add padding to have the start position at a double world boundary
@@ -333,6 +321,18 @@ def attachOnefilePayload(
 
             output_file.seek(0, 2)
             end_pos = output_file.tell()
+
+            compressed_size = end_pos - start_pos
+
+            if compression_indicator == b"Y":
+                onefile_logger.info(
+                    "Onefile payload compression ratio (%.2f%%) size %d to %d."
+                    % (
+                        (float(compressed_size) / payload_size) * 100,
+                        payload_size,
+                        compressed_size,
+                    )
+                )
 
             # Size of the payload data plus the size of that size storage, so C code can
             # jump directly to it.
@@ -354,6 +354,7 @@ def main():
     low_memory = sys.argv[6] == "True"
     as_archive = sys.argv[7] == "True"
     use_compression_cache = sys.argv[8] == "True"
+    job_limit = int(sys.argv[9])
 
     enableProgressBar(os.getenv("NUITKA_PROGRESS_BAR", "none"))
 
@@ -368,6 +369,7 @@ def main():
         file_checksums=file_checksums,
         win_path_sep=win_path_sep,
         low_memory=low_memory,
+        job_limit=job_limit,
     )
 
     sys.exit(0)

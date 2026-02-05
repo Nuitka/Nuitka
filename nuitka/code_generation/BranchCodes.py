@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Branch related codes.
-
-"""
+"""Branch related codes."""
 
 from .CodeHelpers import generateStatementSequenceCode
 from .ConditionalCodes import generateConditionCode

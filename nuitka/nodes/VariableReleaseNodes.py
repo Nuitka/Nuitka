@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for variable release
+"""Nodes for variable release
 
 These refer to resolved variable objects.
 
@@ -68,9 +68,15 @@ class StatementReleaseVariableBase(StatementBase):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
-        self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
+        if trace_collection.hasVariableCurrentTrace(self.variable):
+            self.variable_trace = trace_collection.getVariableCurrentTrace(
+                self.variable
+            )
+            must_not_have_value = self.variable_trace.mustNotHaveValue()
+        else:
+            must_not_have_value = True
 
-        if self.variable_trace.mustNotHaveValue():
+        if must_not_have_value:
             return (
                 None,
                 "new_statements",
@@ -84,9 +90,6 @@ class StatementReleaseVariableBase(StatementBase):
         if escape_desc.isControlFlowEscape():
             # Any code could be run, note that.
             trace_collection.onControlFlowEscape(self)
-
-        # TODO: We might be able to remove ourselves based on the trace
-        # we belong to.
 
         return self, None, None
 

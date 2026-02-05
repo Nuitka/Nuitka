@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Work with ReST documentations.
+"""Work with ReST documentations.
 
 This e.g. creates PDF documentations during release and tables from data
 for the web site, e.g. downloads.

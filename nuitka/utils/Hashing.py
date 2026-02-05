@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for working with hashes in Nuitka.
+"""Module for working with hashes in Nuitka.
 
 Offers support for hashing incrementally and files esp. without having
 to read their contents.
@@ -11,6 +11,7 @@ import struct
 from binascii import crc32
 
 from nuitka.__past__ import md5, unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 
 
 class HashBase(object):
@@ -19,7 +20,7 @@ class HashBase(object):
     def updateFromValues(self, *values):
         for value in values:
             if type(value) is int:
-                value = str(int)
+                value = str(value)
 
             if type(value) in (str, unicode):
                 if str is not bytes:
@@ -28,7 +29,7 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
-            elif type(value) is dict:
+            elif type(value) in (dict, OrderedDict):
                 self.updateFromBytes(b"dict")
                 self.updateFromValues(*list(value.items()))
             elif type(value) is tuple:
@@ -37,6 +38,8 @@ class HashBase(object):
             elif type(value) is list:
                 self.updateFromBytes(b"list")
                 self.updateFromValues(*value)
+            elif value is None:
+                self.updateFromBytes(b"none")
             else:
                 assert False, type(value)
 
@@ -94,12 +97,15 @@ def getHashFromValues(*values):
     return result.asHexDigest()
 
 
-class HashCRC32(HashBase):
-    def __init__(self):
+class HashAlgorithmBase(HashBase):
+    __slots__ = ("hash_func",)
+
+    def __init__(self, hash_func):
         self.hash = 0
+        self.hash_func = hash_func
 
     def updateFromBytes(self, value):
-        self.hash = crc32(value, self.hash)
+        self.hash = self.hash_func(value, self.hash)
 
     def asDigest(self):
         if self.hash < 0:
@@ -107,8 +113,20 @@ class HashCRC32(HashBase):
 
         return self.hash
 
-    def asHexDigest(self):
-        return hex(self.asDigest())[2:]
+    if str is bytes:
+        # For Python2, we need to remove the 'L' suffix.
+        def asHexDigest(self):
+            return hex(self.asDigest())[2:].rstrip("L")
+
+    else:
+
+        def asHexDigest(self):
+            return hex(self.asDigest())[2:]
+
+
+class HashCRC32(HashAlgorithmBase):
+    def __init__(self):
+        HashAlgorithmBase.__init__(self, crc32)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

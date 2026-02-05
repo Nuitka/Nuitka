@@ -1,10 +1,10 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for the calls to the 'next' built-in and unpacking special next.
+"""Node for the calls to the 'next' built-in and unpacking special next.
 
-    The unpacking next has only special that it raises a different exception
-    text, explaining things about its context.
+The unpacking next has only special that it raises a different exception
+text, explaining things about its context.
 """
 
 from .ChildrenHavingMixins import ChildrenHavingIteratorDefaultMixin

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Generator function (with yield) related templates.
-
-"""
+"""Generator function (with yield) related templates."""
 
 template_generator_context_maker_decl = """\
 static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s);
@@ -90,7 +88,7 @@ template_generator_exception_exit = """\
     return NULL;
 """
 
-template_generator_noexception_exit = """\
+template_generator_no_exception_exit = """\
     // Return statement need not be present.
 %(function_cleanup)s
     return NULL;

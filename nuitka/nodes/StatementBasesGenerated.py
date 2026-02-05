@@ -94,7 +94,7 @@ class StatementNoChildHavingLocalsScopeMixin(StatementBase):
 
         del self.locals_scope
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
 
@@ -240,18 +240,18 @@ class StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranchO
             self.subnode_no_branch.finalize()
         del self.subnode_no_branch
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_condition.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_condition.collectVariableAccesses(emit_variable)
         subnode_yes_branch = self.subnode_yes_branch
 
         if subnode_yes_branch is not None:
-            self.subnode_yes_branch.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_yes_branch.collectVariableAccesses(emit_variable)
         subnode_no_branch = self.subnode_no_branch
 
         if subnode_no_branch is not None:
-            self.subnode_no_branch.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_no_branch.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -340,13 +340,13 @@ class StatementChildHavingDestOptionalOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_dest = self.subnode_dest
 
         if subnode_dest is not None:
-            self.subnode_dest.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_dest.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -460,14 +460,14 @@ class StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_dest = self.subnode_dest
 
         if subnode_dest is not None:
-            self.subnode_dest.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_dest.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -567,11 +567,11 @@ class StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -671,11 +671,11 @@ class StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -857,22 +857,22 @@ class StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOp
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_exception_type.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_exception_type.collectVariableAccesses(emit_variable)
         subnode_exception_value = self.subnode_exception_value
 
         if subnode_exception_value is not None:
-            self.subnode_exception_value.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_exception_value.collectVariableAccesses(emit_variable)
         subnode_exception_trace = self.subnode_exception_trace
 
         if subnode_exception_trace is not None:
-            self.subnode_exception_trace.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_exception_trace.collectVariableAccesses(emit_variable)
         subnode_exception_cause = self.subnode_exception_cause
 
         if subnode_exception_cause is not None:
-            self.subnode_exception_cause.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_exception_cause.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -958,10 +958,10 @@ class StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1028,10 +1028,10 @@ class StatementChildHavingExpressionMixin(StatementBase):
         self.subnode_expression.finalize()
         del self.subnode_expression
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1158,18 +1158,18 @@ class StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statement
             self.subnode_upper.finalize()
         del self.subnode_upper
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
         subnode_lower = self.subnode_lower
 
         if subnode_lower is not None:
-            self.subnode_lower.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_lower.collectVariableAccesses(emit_variable)
         subnode_upper = self.subnode_upper
 
         if subnode_upper is not None:
-            self.subnode_upper.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_upper.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1255,10 +1255,10 @@ class StatementChildHavingIteratedLengthOperationCountMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_iterated_length.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_iterated_length.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1346,10 +1346,10 @@ class StatementChildHavingIteratorOperationCountMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_iterator.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_iterator.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1449,11 +1449,11 @@ class StatementChildrenHavingListArgValueOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1547,10 +1547,10 @@ class StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementBa
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_locals_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_locals_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1644,13 +1644,13 @@ class StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Statemen
             self.subnode_loop_body.finalize()
         del self.subnode_loop_body
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_loop_body = self.subnode_loop_body
 
         if subnode_loop_body is not None:
-            self.subnode_loop_body.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_loop_body.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1744,10 +1744,10 @@ class StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase)
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_module.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_module.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1835,10 +1835,10 @@ class StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_new_locals.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_new_locals.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1938,100 +1938,15 @@ class StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_set_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_set_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
 StatementSetOperationAddBase = StatementChildrenHavingSetArgValueOperationMixin
-
-
-class StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   StatementAssignmentVariableName
-
-    def __init__(self, source, provider, variable_name, source_ref):
-        source.parent = self
-
-        self.subnode_source = source
-
-        self.provider = provider
-        self.variable_name = variable_name
-
-        StatementBase.__init__(self, source_ref)
-
-        self.postInitNode()
-
-    @abstractmethod
-    def postInitNode(self):
-        """For overload"""
-
-    def getDetails(self):
-        return {
-            "provider": self.provider,
-            "variable_name": self.variable_name,
-        }
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        return (self.subnode_source,)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (("source", self.subnode_source),)
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_source
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_source = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "source": self.subnode_source.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_source.finalize()
-        del self.subnode_source
-
-    def collectVariableAccesses(self, emit_read, emit_write):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
-
-
-# Assign the names that are easier to import with a stable name.
-StatementAssignmentVariableNameBase = (
-    StatementChildHavingSourcePostInitProviderVariableNameMixin
-)
 
 
 class StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementBase):
@@ -2122,10 +2037,10 @@ class StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementBa
 
         del self.variable
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2249,15 +2164,100 @@ class StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
 StatementLocalsDictOperationSetBase = (
     StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin
+)
+
+
+class StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   StatementAssignmentVariableName
+
+    def __init__(self, source, provider, variable_name, source_ref):
+        source.parent = self
+
+        self.subnode_source = source
+
+        self.provider = provider
+        self.variable_name = variable_name
+
+        StatementBase.__init__(self, source_ref)
+
+        self.postInitNode()
+
+    @abstractmethod
+    def postInitNode(self):
+        """For overload"""
+
+    def getDetails(self):
+        return {
+            "provider": self.provider,
+            "variable_name": self.variable_name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_source,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("source", self.subnode_source),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_source
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_source = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "source": self.subnode_source.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_source.finalize()
+        del self.subnode_source
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_source.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+StatementAssignmentVariableNameBase = (
+    StatementChildHavingSourcePostInitProviderVariableNameMixin
 )
 
 
@@ -2361,11 +2361,11 @@ class StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(Stateme
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2511,19 +2511,19 @@ class StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
             self.subnode_upper.finalize()
         del self.subnode_upper
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
         subnode_lower = self.subnode_lower
 
         if subnode_lower is not None:
-            self.subnode_lower.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_lower.collectVariableAccesses(emit_variable)
         subnode_upper = self.subnode_upper
 
         if subnode_upper is not None:
-            self.subnode_upper.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_upper.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2642,12 +2642,12 @@ class StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementBa
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_subscribed.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_subscript.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
+        self.subnode_subscribed.collectVariableAccesses(emit_variable)
+        self.subnode_subscript.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2794,18 +2794,18 @@ class StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOperat
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source_code.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source_code.collectVariableAccesses(emit_variable)
         subnode_globals_arg = self.subnode_globals_arg
 
         if subnode_globals_arg is not None:
-            self.subnode_globals_arg.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_globals_arg.collectVariableAccesses(emit_variable)
         subnode_locals_arg = self.subnode_locals_arg
 
         if subnode_locals_arg is not None:
-            self.subnode_locals_arg.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_locals_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2897,11 +2897,11 @@ class StatementChildHavingStatementsTupleMixin(StatementBase):
             c.finalize()
         del self.subnode_statements
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_statements:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3007,11 +3007,11 @@ class StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_subscribed.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_subscript.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_subscribed.collectVariableAccesses(emit_variable)
+        self.subnode_subscript.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3252,26 +3252,26 @@ class StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNon
             self.subnode_return_handler.finalize()
         del self.subnode_return_handler
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_tried.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_tried.collectVariableAccesses(emit_variable)
         subnode_except_handler = self.subnode_except_handler
 
         if subnode_except_handler is not None:
-            self.subnode_except_handler.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_except_handler.collectVariableAccesses(emit_variable)
         subnode_break_handler = self.subnode_break_handler
 
         if subnode_break_handler is not None:
-            self.subnode_break_handler.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_break_handler.collectVariableAccesses(emit_variable)
         subnode_continue_handler = self.subnode_continue_handler
 
         if subnode_continue_handler is not None:
-            self.subnode_continue_handler.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_continue_handler.collectVariableAccesses(emit_variable)
         subnode_return_handler = self.subnode_return_handler
 
         if subnode_return_handler is not None:
-            self.subnode_return_handler.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_return_handler.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3389,12 +3389,12 @@ class StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
     def computeStatementOperation(self, trace_collection):
         """Must be overloaded for non-final node."""
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.

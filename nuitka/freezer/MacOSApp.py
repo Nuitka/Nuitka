@@ -1,15 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For macOS application bundle creation
-
-"""
+"""For macOS application bundle creation"""
 
 import os
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import (
+from nuitka.options.Options import (
     getLegalInformation,
+    getMacOSAppConsoleMode,
     getMacOSAppName,
     getMacOSAppProtectedResourcesAccesses,
     getMacOSAppVersion,
@@ -17,7 +16,6 @@ from nuitka.Options import (
     getMacOSSignedAppName,
     isMacOSBackgroundApp,
     isMacOSUiElementApp,
-    isOnefileMode,
     isStandaloneMode,
     shallMacOSProhibitMultipleInstances,
 )
@@ -27,9 +25,14 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     getStandaloneDirectoryPath,
 )
+from nuitka.Tracing import options_logger
+from nuitka.utils.FileOperations import copyFile, makePath, openTextFile
+from nuitka.utils.Images import convertImageToIconFormat
 
-from .FileOperations import copyFile, makePath, openTextFile
-from .Images import convertImageToIconFormat
+from .IncludedDataFiles import (
+    addIncludedDataFile,
+    makeIncludedGeneratedDataFile,
+)
 
 
 def _writePlist(filename, data):
@@ -46,22 +49,18 @@ def _writePlist(filename, data):
         plist_file.write(plist_contents)
 
 
-def createPlistInfoFile(logger, onefile):
+def createPlistInfoFile(logger):
     # Many details, pylint: disable=too-many-locals
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
             getStandaloneDirectoryPath(bundle=True, real=False)
         )
     else:
-        bundle_dir = os.path.dirname(getResultRunFilename(onefile=onefile))
+        bundle_dir = os.path.dirname(getResultRunFilename(onefile=False))
 
-    result_filename = getResultFullpath(onefile=onefile, real=True)
-    app_name = getMacOSAppName() or os.path.basename(result_filename)
-
-    executable_name = os.path.basename(
-        getResultFullpath(onefile=isOnefileMode(), real=True)
-    )
-
+    result_filename = getResultFullpath(onefile=False, real=True)
+    executable_name = os.path.basename(result_filename)
+    app_name = getMacOSAppName() or executable_name
     signed_app_name = getMacOSSignedAppName() or app_name
     app_version = getMacOSAppVersion() or "1.0"
 
@@ -91,7 +90,7 @@ def createPlistInfoFile(logger, onefile):
             )
 
             icon_build_path = os.path.join(
-                getSourceDirectoryPath(onefile=onefile, create=False),
+                getSourceDirectoryPath(onefile=False, create=False),
                 "icons",
             )
             makePath(icon_build_path)
@@ -137,7 +136,9 @@ def createPlistInfoFile(logger, onefile):
         _entitlement_name,
     ) in getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:
-            logger.sysexit("Duplicate value for '%s' is not allowed." % resource_name)
+            return logger.sysexit(
+                "Duplicate value for '%s' is not allowed." % resource_name
+            )
 
         infos[resource_name] = resource_desc
 
@@ -153,19 +154,75 @@ def createEntitlementsInfoFile():
         _description,
         entitlement_name,
     ) in getMacOSAppProtectedResourcesAccesses():
-        entitlements_dict[entitlement_name] = True
+        if type(entitlement_name) is tuple:
+            for entitlement in entitlement_name:
+                entitlements_dict[entitlement] = True
+        elif type(entitlement_name) is str:
+            entitlements_dict[entitlement_name] = True
+        else:
+            assert False, entitlement_name
 
     if not entitlements_dict:
         return None
 
     if entitlements_dict:
         entitlements_filename = os.path.join(
-            getSourceDirectoryPath(), "entitlements.plist"
+            getSourceDirectoryPath(onefile=False, create=False), "entitlements.plist"
         )
 
         _writePlist(entitlements_filename, entitlements_dict)
 
     return entitlements_filename
+
+
+_macos_app_console_script = """
+#!/bin/bash
+
+# 1. Derive the binary name from this script's name
+#    basename "$0" gets the filename (e.g., "MyApp" or "MyApp.sh")
+SCRIPT_NAME=$(basename "$0")
+
+# 2. Check execution context (GUI vs Terminal)
+if [ ! -t 1 ]; then
+    # CASE A: GUI Launch (Finder/Dock)
+    # We are invisible. Re-launch THIS script inside Terminal.app.
+    # "$0" ensures we re-run this exact script file.
+    exec open -a Terminal "$0"
+fi
+
+# 3. CASE B: Terminal Launch
+# We are now visible. Fix the environment.
+
+#    Get the bundle directory (Contents/MacOS)
+DIR=$(cd "$(dirname "$0")"; pwd)
+
+#    Change Directory to the bundle so relative paths work
+cd "$DIR"
+
+#    "${variable%.sh}" strips the .sh suffix (if any exists)
+#    So "MyApp.sh" becomes "MyApp", and "MyApp" stays "MyApp"
+TARGET_BINARY="${SCRIPT_NAME%.sh}"
+
+#    Execute the actual binary, passing along any arguments ("$@")
+#    We use 'exec' so the binary takes over this process ID.
+exec "./$TARGET_BINARY" "$@"
+"""
+
+
+def addIncludedDataFilesFromMacOSAppOptions():
+    if getMacOSAppConsoleMode() == "force":
+        result_filename = getResultFullpath(onefile=False, real=True)
+        script_filename = os.path.basename(result_filename) + ".sh"
+
+        addIncludedDataFile(
+            makeIncludedGeneratedDataFile(
+                data=_macos_app_console_script,
+                dest_path=script_filename,
+                reason="Required for macOS app force console mode.",
+                tracer=options_logger,
+                tags="script",
+            )
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

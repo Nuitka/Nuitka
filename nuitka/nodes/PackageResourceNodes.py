@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes the represent ways to access package data for pkglib, pkg_resources, etc. """
+"""Nodes the represent ways to access package data for pkglib, pkg_resources, etc."""
 
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.ImportResolving import resolveModuleName

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Variable declarations
+"""Variable declarations
 Holds the information necessary to make C code declarations related to a variable.
 
 """

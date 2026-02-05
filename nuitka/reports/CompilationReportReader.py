@@ -1,15 +1,15 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This is for use in testing, but also for user tools too."""
+"""This is for use in testing, but also for user tools too."""
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.TreeXML import fromFile
+from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.ModuleNames import ModuleName
 
 
 def parseCompilationReport(filename):
-    return fromFile(filename)
+    return convertFileToXML(filename)
 
 
 def extractModulesUsedByModule(compilation_report, module_name):

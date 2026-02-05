@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test that shows that __file__ and __spec__ are compatible after import by CPython
+"""Test that shows that __file__ and __spec__ are compatible after import by CPython
 
 What CPython does when loading an extension module, like this is going to be, is
 to update the "__file__" value afterwards, and then to set the "__spec__" to itself,

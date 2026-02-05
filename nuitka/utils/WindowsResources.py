@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for handling Windows resources.
+"""Module for handling Windows resources.
 
 Nuitka needs to do a couple of things with Windows resources, e.g. adding
 and removing manifests amd copying icon image resources into the created
@@ -19,7 +19,7 @@ import ctypes
 import os
 import struct
 
-from nuitka import TreeXML
+from nuitka.TreeXML import convertStringToXML, convertXmlToBytes
 
 from .Utils import decoratorRetries
 
@@ -267,10 +267,10 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, l
 
 class WindowsExecutableManifest(object):
     def __init__(self, template):
-        self.tree = TreeXML.fromString(template)
+        self.tree = convertStringToXML(template)
 
     def addResourceToFile(self, filename, logger):
-        manifest_data = TreeXML.toBytes(self.tree, indent=False)
+        manifest_data = convertXmlToBytes(self.tree, indent=False)
 
         addResourceToFile(
             target_filename=filename,

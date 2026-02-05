@@ -1,11 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for accessing distributions and resolving package names for them. """
+"""Tools for accessing distributions and resolving package names for them."""
 
 import base64
 import hashlib
 import os
+import re
 import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
@@ -14,7 +15,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
@@ -253,8 +254,20 @@ def _getDistributionInstallerFileContents(distribution):
     return installer_name
 
 
-def getDistributionTopLevelPackageNames(distribution):
+_distribution_top_level_cache = {}
+
+
+def getDistributionTopLevelPackageNames(distribution, deep):
     """Returns the top level package names for a distribution."""
+
+    # Many cases to deal with, pylint: disable=too-many-branches
+
+    # Using caching per distribution to avoid reading the same files over and
+    # over.
+    key = (distribution, deep)
+
+    if key in _distribution_top_level_cache:
+        return _distribution_top_level_cache[key]
 
     result = OrderedSet()
 
@@ -273,7 +286,17 @@ def getDistributionTopLevelPackageNames(distribution):
             if hasModule(module_name)
         )
 
-    if not result:
+        if result:
+            result = tuple(result)
+
+            # If we found it via top level text, it applies to deep or not deep,
+            # so cache it for both.
+            _distribution_top_level_cache[distribution, False] = result
+            _distribution_top_level_cache[distribution, True] = result
+
+            return result
+
+    if deep:
         # If the file is not present or not satisfactory, fall back to scanning
         # all files in the distribution.
 
@@ -312,10 +335,14 @@ def getDistributionTopLevelPackageNames(distribution):
             )
         )
 
-    if not result:
-        result = (getDistributionName(distribution),)
+    # In case we found nothing, fall back to distribution name, which
+    # often is a mirror of the package name.
+    if not result and deep:
+        result.add(getDistributionName(distribution))
 
-    return tuple(result)
+    _distribution_top_level_cache[key] = tuple(result)
+
+    return _distribution_top_level_cache[key]
 
 
 def _get_pkg_resources_module():
@@ -385,7 +412,9 @@ is typically caused by corruption of its installation."""
             _getDistributionPath(distribution),
         )
 
-        for package_name in getDistributionTopLevelPackageNames(distribution):
+        for package_name in getDistributionTopLevelPackageNames(
+            distribution, deep=True
+        ):
             # Protect against buggy packages.
             if not checkModuleName(package_name):
                 continue
@@ -618,7 +647,7 @@ def getDistributionInstallerName(distribution_name):
                 _distribution_to_installer[distribution_name] = installer_name
 
                 if installer_name.lower().startswith("poetry") and isAnacondaPython():
-                    metadata_logger.sysexit(
+                    return metadata_logger.sysexit(
                         """\
 Error, cannot use poetry and conda combined in a virtualenv, due \
 to poetry corrupting installer information. Use either pure conda \
@@ -783,6 +812,55 @@ _user_site_directory = None
 def setUserSiteDirectory(user_site_directory):
     global _user_site_directory  # singleton, pylint: disable=global-statement
     _user_site_directory = user_site_directory
+
+
+def isNuitkaInstallRequire(requirement):
+    """Check if a requirement is Nuitka.
+
+    Args:
+        requirement (str): The requirement string.
+
+    Returns:
+        bool: True if the requirement is Nuitka, False otherwise.
+    """
+    # Check if it starts with "nuitka" followed by end of string or a non-name
+    # character, valid name chars: [a-z0-9_.-]
+    if re.match(r"^nuitka(?:[<>=!~;@\s]|$)", requirement.lower()):
+        return True
+
+    # Check for a file URL pointing to Nuitka.
+    match = re.search(r"file://([^;\s]+)", requirement)
+    if match:
+        path = match.group(1)
+
+        if os.path.exists(path) and os.path.isdir(path):
+            if os.path.exists(
+                os.path.join(path, "nuitka", "MainControl.py")
+            ) and os.path.exists(os.path.join(path, "nuitka", "Version.py")):
+                return True
+
+    # Check for GitHub URLs pointing to Nuitka or Nuitka extensions.
+    if re.search(
+        r"github\.com/Nuitka/Nuitka(?:-[a-zA-Z0-9_-]+)?(?:\.git|/|#|@|$)", requirement
+    ):
+        return True
+
+    return False
+
+
+def filterInstallRequires(install_requires):
+    """Filter out Nuitka from install_requires.
+
+    Args:
+        install_requires (list): List of install requirements.
+
+    Returns:
+        list: Filtered list of install requirements.
+    """
+    if install_requires is None:
+        return []
+
+    return [req for req in install_requires if not isNuitkaInstallRequire(req)]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

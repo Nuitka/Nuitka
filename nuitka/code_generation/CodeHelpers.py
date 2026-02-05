@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helpers for code generation.
+"""Helpers for code generation.
 
 This dispatch building of expressions and statements, as well as providing
 typical support functions to building parts.
@@ -11,7 +11,7 @@ typical support functions to building parts.
 from contextlib import contextmanager
 
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
-from nuitka.Options import shallTraceExecution
+from nuitka.options.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
@@ -386,6 +386,7 @@ class HelperCallHandle(object):
             self.target_type is not None
             and self.target_type.helper_code != self.helper_target.helper_code
         ):
+            # spell-checker: ignore NVOID
             if self.target_type.helper_code in ("NBOOL", "NVOID", "CBOOL"):
                 self.target_type.emitAssignConversionCode(
                     to_name=to_name,
@@ -408,6 +409,8 @@ class HelperCallHandle(object):
 
 @contextmanager
 def withCleanupFinally(name, release_name, needs_exception, emit, context):
+    # We do not handle exceptions here, because they abort compilation anyway.
+    # pylint: disable=contextmanager-generator-missing-cleanup
     assert not context.needsCleanup(release_name)
 
     if needs_exception:
@@ -421,8 +424,8 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
     context.addCleanupTempName(release_name)
 
     if needs_exception:
-        noexception_exit = context.allocateLabel("%s_noexception" % name)
-        getGotoCode(noexception_exit, emit)
+        no_exception_exit = context.allocateLabel("%s_no_exception" % name)
+        getGotoCode(no_exception_exit, emit)
 
         context.setExceptionEscape(old_exception_target)
 
@@ -436,7 +439,7 @@ def withCleanupFinally(name, release_name, needs_exception, emit, context):
         getGotoCode(old_exception_target, emit)
 
         emit("// Finished with no exception for %s:" % name)
-        getLabelCode(noexception_exit, emit)
+        getLabelCode(no_exception_exit, emit)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

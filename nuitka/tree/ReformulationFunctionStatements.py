@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of function statements.
+"""Reformulation of function statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -19,13 +19,22 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    makeExpressionBuiltinTypeRef,
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonGt
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
 )
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
@@ -43,6 +52,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
@@ -50,7 +60,11 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.plugins.Plugins import Plugins, hasActivePlugin
+from nuitka.options.Options import isExperimental
+from nuitka.plugins.Hooks import (
+    getUncompiledDecoratorNames,
+    onFunctionBodyParsing,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -125,31 +139,33 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
-_has_pyqt_plugin = None
+def _isUncompiledDecorator(decorator):
+    if decorator.isExpressionVariableNameRef():
+        decorator_name = decorator.getVariableName()
+    elif decorator.isExpressionCall():
+        if decorator.subnode_called.isExpressionVariableNameRef():
+            decorator_name = decorator.subnode_called.getVariableName()
+        else:
+            return False
+    else:
+        return False
+
+    # Hard coded name.
+    if decorator_name == "nuitka_ignore":
+        return True
+
+    # False alarm, pylint: disable=unsupported-membership-test
+    if decorator_name in getUncompiledDecoratorNames():
+        return True
+
+    return False
 
 
 def decideFunctionCompilationMode(decorators):
     """Decide how to compile a function based on decorator names."""
-
-    global _has_pyqt_plugin  # singleton, pylint: disable=global-statement
-
-    if _has_pyqt_plugin is None:
-        _has_pyqt_plugin = hasActivePlugin("pyqt5") or hasActivePlugin("pyqt6")
-
-    # TODO: Expose the interface to plugins, so we don't hardcode stuff for
-    # specific plugins here, but for performance I guess, we would have to add a
-    # registry for the plugins to use, so not every decorator name is being
-    # called for every plugin.
-
-    # TODO: This can only work with 3.9 or higher so far.
-    if _has_pyqt_plugin and python_version >= 0x390:
-        for decorator in decorators:
-            if (
-                decorator.isExpressionCall()
-                and decorator.subnode_called.isExpressionVariableNameRef()
-            ):
-                if decorator.subnode_called.variable_name in ("pyqtSlot", "asyncSlot"):
-                    return "bytecode"
+    for decorator in decorators:
+        if _isUncompiledDecorator(decorator):
+            return "bytecode"
 
     return "compiled"
 
@@ -187,6 +203,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
     globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
         provider=provider,
+        locals_scope=provider.getLocalsScope(),
         globals_node=None,
         locals_node=None,
         temp_scope=temp_scope,
@@ -224,6 +241,24 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
+def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
+    assignments = []
+
+    for type_param in type_params:
+        type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
+
+        assign = StatementAssignmentVariableName(
+            provider=provider,
+            variable_name=type_param.name,
+            source=type_var,
+            source_ref=source_ref,
+        )
+        assignments.append(assign)
+
+    body.setChildStatements(tuple(assignments) + body.subnode_statements)
+    return body
+
+
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
@@ -235,9 +270,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     compilation_mode = decideFunctionCompilationMode(decorators)
 
-    Plugins.onFunctionBodyParsing(
-        provider=provider, function_name=node.name, body=node.body
-    )
+    onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
         node.name = mangleName(node.name, provider)
@@ -333,6 +366,14 @@ def buildFunctionNode(provider, node, source_ref):
             function_body=code_body, function_statements_body=function_statements_body
         )
 
+    if python_version >= 0x3C0 and node.type_params:
+        function_statements_body = _wrapWithTypeAnnotations(
+            provider=code_body,
+            type_params=node.type_params,
+            body=function_statements_body,
+            source_ref=source_ref,
+        )
+
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
             statement=function_statements_body
@@ -352,6 +393,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
+    # Add wrapping for function with generic types to be provided to the
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 
     # CPython 2.x made these optional, but secretly applies them when it does
@@ -410,9 +452,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     compilation_mode = decideFunctionCompilationMode(decorators)
 
-    Plugins.onFunctionBodyParsing(
-        provider=provider, function_name=node.name, body=node.body
-    )
+    onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
         return _buildBytecodeOrSourceFunction(
@@ -574,6 +614,92 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
+def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
+    function_name = "__annotate__"
+    parameters = ParameterSpec(
+        ps_name=function_name,
+        ps_normal_args=("format",),
+        ps_list_star_arg=None,
+        ps_dict_star_arg=None,
+        ps_default_count=0,
+        ps_kw_only_args=(),
+        ps_pos_only_args=(),
+    )
+    parent_module = provider.getParentModule()
+    code_object = CodeObjectSpec(
+        co_name=function_name,
+        co_qualname=function_name,
+        co_kind="Function",
+        co_varnames=parameters.getParameterNames(),
+        co_freevars=(),
+        co_argcount=parameters.getArgumentCount(),
+        co_posonlyargcount=parameters.getPosOnlyParameterCount(),
+        co_kwonlyargcount=parameters.getKwOnlyParameterCount(),
+        co_has_starlist=parameters.getStarListArgumentName() is not None,
+        co_has_stardict=parameters.getStarDictArgumentName() is not None,
+        co_filename=parent_module.getRunTimeFilename(),
+        co_lineno=source_ref.getLineNumber(),
+        future_spec=parent_module.getFutureSpec(),
+    )
+
+    outer_body = ExpressionFunctionBody(
+        provider=provider,
+        name=function_name,
+        code_object=code_object,
+        flags=set(),
+        doc=None,
+        parameters=parameters,
+        auto_release=None,
+        code_prefix="function",
+        source_ref=source_ref,
+    )
+
+    body = makeStatementConditional(
+        condition=ExpressionComparisonGt(
+            ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionConstantIntRef(2, source_ref=source_ref),
+            source_ref,
+        ),
+        yes_branch=StatementRaiseException(
+            exception_type=ExpressionBuiltinExceptionRef(
+                "NotImplementedError", source_ref=source_ref
+            ),
+            exception_value=None,
+            exception_cause=None,
+            exception_trace=None,
+            source_ref=source_ref,
+        ),
+        no_branch=StatementReturn(
+            expression=makeDictCreationOrConstant2(
+                keys=keys, values=values, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
+
+    outer_body.setChildBody(body)
+    return outer_body
+
+
+def makeDeferredAnnotateFunctionObject(provider, keys, values, source_ref):
+    return makeExpressionFunctionCreation(
+        function_ref=ExpressionFunctionRef(
+            function_body=makeDeferredAnnotateFunctionBody(
+                provider=provider,
+                keys=keys,
+                values=values,
+                source_ref=source_ref,
+            ),
+            source_ref=source_ref,
+        ),
+        defaults=(),
+        kw_defaults=None,
+        annotations=None,
+        source_ref=source_ref,
+    )
+
+
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
@@ -643,9 +769,22 @@ def buildParameterAnnotations(provider, node, source_ref):
         )
 
     if keys:
-        return makeDictCreationOrConstant2(
-            keys=keys, values=values, source_ref=source_ref
-        )
+        # On 3.14+, annotations are deferred by default. TODO: But we guard it
+        # with an experimental flag due to the large overhead until we can
+        # generate more compact code for them
+        if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
+            return makeDeferredAnnotateFunctionObject(
+                provider=provider,
+                keys=keys,
+                values=values,
+                source_ref=source_ref,
+            )
+        else:
+            return makeDictCreationOrConstant2(
+                keys=keys,
+                values=values,
+                source_ref=source_ref,
+            )
     else:
         return None
 
@@ -761,7 +900,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 tried=statements,
                 variables=tuple(
                     sorted(
-                        outer_body.getTempVariables(),
+                        outer_body.getTempVariables(None),
                         key=lambda variable: variable.getName(),
                     )
                 ),

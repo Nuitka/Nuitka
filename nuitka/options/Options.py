@@ -9,7 +9,7 @@ some handling of defaults.
 """
 
 # These are for use in option values.
-# spell-checker: ignore uiaccess,noannotations,reexecution,etherium
+# spell-checker: ignore uiaccess,noannotations,etherium
 # spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
 import fnmatch
@@ -18,20 +18,13 @@ import re
 import shlex
 import sys
 
-from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.containers.OrderedSets import (
-    OrderedSet,
-    recommended_orderedset_package_name,
-)
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.OptionParsing import (
-    parseOptions,
-    run_time_variable_names,
-    runSpecialCommandsFromOptions,
-)
+from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
+    hasAcceleratedSupportedFlavor,
     isAnacondaPython,
     isApplePython,
     isArchPackagePython,
@@ -39,8 +32,8 @@ from nuitka.PythonFlavors import (
     isDebianPackagePython,
     isHomebrewPython,
     isManyLinuxPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isPyenvPython,
     isPythonBuildStandalonePython,
     isTermuxPython,
@@ -57,10 +50,22 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.States import states
+from nuitka.Tracing import (
+    doNotBreakSpaces,
+    general,
+    inclusion_logger,
+    onefile_logger,
+    optimization_logger,
+    options_logger,
+    progress_logger,
+    setQuiet,
+)
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
-    getNormalizedPath,
+    getNormalizedPathJoin,
     getReportPath,
+    getUserInputNormalizedPath,
     isLegalPath,
     isNonLocalPath,
     isPathExecutable,
@@ -69,6 +74,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import checkIconUsage
 from nuitka.utils.Importing import getInlineCopyFolder
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -93,16 +99,21 @@ from nuitka.utils.Utils import (
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
+from .OptionParsing import (
+    parseOptions,
+    run_time_variable_names,
+    runSpecialCommandsFromOptions,
+)
+
 options = None
 positional_args = None
 extra_args = []
 is_nuitka_run = None
-is_debug = None
-is_non_debug = None
-is_full_compat = None
-report_missing_code_helpers = None
-report_missing_trust = None
-is_verbose = None
+
+
+def getUserOptions():
+    """Accessor the options, only for use in managing plugin options."""
+    return options
 
 
 def _convertOldStylePathSpecQuotes(value):
@@ -124,70 +135,71 @@ def _convertOldStylePathSpecQuotes(value):
 
 
 def checkPathSpec(value, arg_name, allow_disable):
-    # There are never enough checks here, pylint: disable=too-many-branches
+    # There are never enough checks here and sysexit is returned,
+    # pylint: disable=too-many-branches,too-many-return-statements
     old = value
     value = _convertOldStylePathSpecQuotes(value)
     if old != value:
-        Tracing.options_logger.warning(
+        options_logger.warning(
             "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
             % (arg_name, old, value)
         )
 
     # This changes the '/' to '\' on Windows at least.
-    value = getNormalizedPath(value)
+    value = getUserInputNormalizedPath(value)
 
     if "\n" in value or "\r" in value:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Using a new line in value '%s=%r' value is not allowed."
             % (arg_name, value)
         )
 
     if "{NONE}" in value:
         if not allow_disable:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NONE}' in '%s=%s' value is not allowed."
                 % (arg_name, value)
             )
 
         if value != "{NONE}":
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NONE}' in '%s=%s' value does not allow anything else used too."
                 % (arg_name, value)
             )
 
     if "{NULL}" in value:
         if not allow_disable:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NULL}' in '%s=%s' value is not allowed."
                 % (arg_name, value)
             )
 
         if value != "{NULL}":
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Using value '{NULL}' in '%s=%s' value does not allow anything else used too."
                 % (arg_name, value)
             )
 
     if "{COMPANY}" in value and not getCompanyName():
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{COMPANY}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if "{PRODUCT}" in value and not getProductName():
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{PRODUCT}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Using value '{VERSION}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
     if value.count("{") != value.count("}"):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """Unmatched '{}' is wrong for '%s=%s' and may \
 definitely not do what you want it to do."""
             % (arg_name, value)
@@ -198,18 +210,18 @@ definitely not do what you want it to do."""
     for c in value:
         if c in "{":
             if var_name is not None:
-                Tracing.options_logger.sysexit(
+                return options_logger.sysexit(
                     """Nested '{' is wrong for '%s=%s'.""" % (arg_name, value)
                 )
             var_name = ""
         elif c == "}":
             if var_name is None:
-                Tracing.options_logger.sysexit(
+                return options_logger.sysexit(
                     """Stray '}' is wrong for '%s=%s'.""" % (arg_name, value)
                 )
 
             if var_name not in run_time_variable_names:
-                Tracing.onefile_logger.sysexit(
+                return onefile_logger.sysexit(
                     "Found unknown variable name '%s' in for '%s=%s'."
                     "" % (var_name, arg_name, value)
                 )
@@ -228,7 +240,7 @@ definitely not do what you want it to do."""
         "{TEMP}",
     ):
         if candidate in value[1:]:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Absolute run time paths of '%s' can only be at the start of \
 '%s=%s', using it in the middle of it is not allowed."""
@@ -236,7 +248,7 @@ Absolute run time paths of '%s' can only be at the start of \
             )
 
         if candidate == value:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """Cannot use folder '%s', may only be the \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
@@ -244,7 +256,7 @@ start of '%s=%s', using that alone is not allowed."""
 
         if value.startswith(candidate) and candidate != "{PROGRAM_BASE}":
             if value[len(candidate)] != os.path.sep:
-                Tracing.options_logger.sysexit(
+                return options_logger.sysexit(
                     """Cannot use general system folder %s, without a path \
 separator '%s=%s', just appending to these is not allowed, needs to be \
 below them."""
@@ -253,7 +265,7 @@ below them."""
 
     is_legal, reason = isLegalPath(value)
     if not is_legal:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """Cannot use illegal paths '%s=%s', due to %s."""
             % (arg_name, value, reason)
         )
@@ -269,7 +281,7 @@ def _checkOnefileTargetSpec():
     )
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
 you cannot unpack the onefile payload into the same directory as the binary,
@@ -277,14 +289,14 @@ as that would overwrite it and cause locking issues as well."""
         )
 
     if options.onefile_tempdir_spec.count("{") == 0:
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """Not using any variables for '--onefile-tempdir-spec' should only be \
 done if your program absolutely needs to be in the same path always: '%s'"""
             % options.onefile_tempdir_spec
         )
 
     if os.path.isabs(options.onefile_tempdir_spec):
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """\
 Using an absolute path should be avoided unless you are targeting a \
 very well known environment: anchoring it with e.g. '{TEMP}', \
@@ -294,7 +306,7 @@ very well known environment: anchoring it with e.g. '{TEMP}', \
     elif not options.onefile_tempdir_spec.startswith(
         ("{TEMP}", "{HOME}", "{CACHE_DIR}", "{PROGRAM_DIR}")
     ):
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """\
 Using a path relative to the onefile executable should be avoided \
 unless you are targeting a very well known environment, anchoring \
@@ -352,17 +364,28 @@ def printVersionInformation():
     )
 
 
+def _warnAppBundleOnlyOption(option_name):
+    if isMacOS() and not shallCreateAppBundle():
+        if not options.github_workflow_options:
+            options_logger.warning(
+                """\
+Note: Using app bundle specific option '%s' unless building macOS app bundle \
+need to use --mode=app if you want that."""
+                % option_name
+            )
+
+
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
         if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
-            Tracing.options_logger.info(
+            options_logger.info(
                 """\
 Note: Using onefile mode specific option '%s' has no effect \
 with macOS app bundles."""
                 % option_name
             )
         else:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 """\
 Using onefile mode specific option '%s' has no effect \
 when '--mode=onefile' is not specified."""
@@ -373,7 +396,7 @@ when '--mode=onefile' is not specified."""
 def _warningModuleModeOnlyOption(option_name):
     if options.compilation_mode not in ("module", "package"):
         if options.github_workflow_options:
-            Tracing.options_logger.info(
+            options_logger.info(
                 """\
 Using module mode specific option '%s' has no effect \
 when neither '--mode=module' or --mode='package' is \
@@ -381,7 +404,7 @@ specified."""
                 % option_name
             )
         else:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 """\
 Using module mode specific option '%s' has no effect \
 when neither '--mode=module' or --mode='package' is \
@@ -393,22 +416,35 @@ specified."""
 def _warnOSSpecificOption(option_name, *supported_os):
     if getOS() not in supported_os:
         if options.github_workflow_options:
-            Tracing.options_logger.info(
+            options_logger.info(
                 """\
 Note: Using OS specific option '%s' has no effect on %s."""
                 % (option_name, getOS())
             )
         else:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 """\
 Using OS specific option '%s' has no effect on %s."""
                 % (option_name, getOS())
             )
 
 
+def _warnMacOSSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Darwin")
+
+
+def _warnWindowsSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Windows")
+
+
+def _warnMacOSBundleSpecificOption(option_name):
+    _warnAppBundleOnlyOption(option_name)
+    _warnMacOSSpecificOption(option_name)
+
+
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value '%s' description, must specify a relative target path with '=' separating it."
             % (option_name, data_dir)
         )
@@ -416,13 +452,13 @@ def _checkDataDirOptionValue(data_dir, option_name):
     src, dst = data_dir.split("=", 1)
 
     if os.path.isabs(dst):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value, must specify relative target path for data dir, not '%s' as in '%s'."
             % (option_name, dst, data_dir)
         )
 
     if not os.path.isdir(src):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
             % (option_name, src, data_dir)
         )
@@ -430,7 +466,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
 
 def _checkFilenameOnlyArgument(option_name, filename, extra_message):
     if os.path.basename(filename) != filename:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, '%s' value cannot contain a directory part%s."""
             % (option_name, extra_message)
@@ -438,7 +474,7 @@ Error, '%s' value cannot contain a directory part%s."""
 
     is_legal, reason = isLegalPath(filename)
     if not is_legal:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, '%s' value '%s' is not a legal filename: %s%s."""
             % (option_name, filename, reason, extra_message)
@@ -450,30 +486,17 @@ def parseArgs():
 
     :meta private:
     """
-    # singleton with many cases checking the options right away.
-    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_non_debug
-    global is_full_compat, report_missing_code_helpers, report_missing_trust, is_verbose
-
-    if os.name == "nt":
-        # Windows store Python's don't allow looking at the python, catch that.
-        try:
-            with openTextFile(sys.executable, "rb"):
-                pass
-        except OSError:
-            Tracing.general.sysexit(
-                """\
-Error, the Python from Windows app store is not supported.""",
-                mnemonic="unsupported-windows-app-store-python",
-            )
+    # Singleton with many cases checking the options right away, and sysexit is returned
+    # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
+    global is_nuitka_run, options, positional_args, extra_args
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
-        logger=Tracing.options_logger
+        logger=options_logger
     )
 
-    is_debug = _isDebug()
-    is_non_debug = not is_debug
-    is_full_compat = _isFullCompat()
+    states.is_debug = _isDebug()
+    states.is_non_debug = not states.is_debug
+    states.is_full_compat = _isFullCompat()
 
     if hasattr(options, "experimental"):
         _experimental.update(options.experimental)
@@ -486,18 +509,58 @@ Error, the Python from Windows app store is not supported.""",
     if getattr(options, "disable_dll_dependency_cache", False):
         options.disabled_caches.append("dll-dependencies")
 
-    report_missing_code_helpers = options.report_missing_code_helpers
+    states.report_missing_code_helpers = options.report_missing_code_helpers
 
-    # Add validation for the new option
     if options.output_folder_name is not None:
         _checkFilenameOnlyArgument(
             "--output-folder-name", options.output_folder_name, ""
         )
 
-    report_missing_trust = options.report_missing_trust
+    states.report_missing_trust = options.report_missing_trust
+
+    if options.zig:
+        if options.clang:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--clang'."
+            )
+
+        if isWin32Windows() and getArchitecture() == "x86":
+            return options_logger.sysexit(
+                "Error, cannot use '--zig' on Windows and x86, only x86_64 is supported."
+            )
+
+        if isWin32Windows() and options.mingw64:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--mingw64'."
+            )
+
+        if isWin32Windows() and options.msvc_version:
+            return options_logger.sysexit(
+                "Error, conflicting options '--zig' and '--msvc'."
+            )
+
+        if isMacOS():
+            # TODO: Keep an eye on macOS, it might become available via ziglang
+            # too, and keep this synchronized with the options check.
+            if "CC" not in os.environ:
+                zig_path = getExecutablePath("zig")
+
+                if zig_path is not None:
+                    os.environ["CC"] = getExecutablePath("zig")
+                else:
+                    return options_logger.sysexit(
+                        """\
+Error, for macOS there is not automatic download of zig (the 'ziglang' PyPI doesn't yet \
+offer it), set the 'CC' environment variable or add it to PATH."""
+                    )
+
+    if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
+        return options_logger.sysexit(
+            "Error, cannot use '--mingw64' on Python version 3.13 or higher."
+        )
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
-        Tracing.setQuiet()
+        setQuiet()
 
     def _quoteArg(arg):
         if arg.startswith("--"):
@@ -528,18 +591,16 @@ Error, the Python from Windows app store is not supported.""",
     runSpecialCommandsFromOptions(options)
 
     if not options.version:
-        Tracing.options_logger.info(
+        options_logger.info(
             leader="Used command line options:",
-            message=" ".join(
-                Tracing.doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])
-            ),
+            message=" ".join(doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])),
         )
 
     if (
         getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
         and not isAllowedToReexecute()
     ):
-        Tracing.general.sysexit(
+        return general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )
 
@@ -547,19 +608,20 @@ Error, the Python from Windows app store is not supported.""",
     getLaunchingSystemPrefixPath()
 
     if getProgressBar() != "none":
-        Progress.enableProgressBar(getProgressBar())
+        enableProgressBar(getProgressBar())
 
     if options.verbose_output:
-        Tracing.optimization_logger.setFileHandle(
+        optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.verbose_output, "w", encoding="utf8")
         )
 
         options.verbose = True
 
-    is_verbose = options.verbose
+    states.is_verbose = options.verbose
+    states.data_composer_verbose = options.data_composer_verbose
 
-    Tracing.optimization_logger.is_quiet = not options.verbose
+    optimization_logger.is_quiet = not options.verbose
 
     if options.version:
         printVersionInformation()
@@ -574,14 +636,14 @@ Error, the Python from Windows app store is not supported.""",
             sys.exit(0)
 
     if options.show_inclusion_output:
-        Tracing.inclusion_logger.setFileHandle(
+        inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
             openTextFile(options.show_inclusion_output, "w", encoding="utf8")
         )
 
         options.show_inclusion = True
 
-    Tracing.progress_logger.is_quiet = not options.show_progress
+    progress_logger.is_quiet = not options.show_progress
 
     if options.compilation_mode is not None:
         if (
@@ -590,7 +652,7 @@ Error, the Python from Windows app store is not supported.""",
             or options.module_mode
             or options.macos_create_bundle
         ):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Cannot use both '--mode=' and deprecated options that specify mode."
             )
 
@@ -627,11 +689,17 @@ Error, the Python from Windows app store is not supported.""",
     if shallCreateAppBundle():
         options.is_standalone = True
 
+    if options.is_project_mode:
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
+            )
+
     if isMacOS():
         macos_target_arch = getMacOSTargetArch()
 
         if macos_target_arch == "universal":
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
             )
 
@@ -643,12 +711,19 @@ Error, the Python from Windows app store is not supported.""",
             if not hasUniversalOrMatchingMacOSArchitecture(
                 os.path.realpath(sys.executable)
             ):
-                Tracing.options_logger.sysexit(
+                return options_logger.sysexit(
                     """\
 Cannot cross compile to other arch, using non-universal Python binaries \
 for macOS. Please install the "universal" Python package as offered on \
 the Python download page."""
                 )
+
+        if options.macos_target_arch == "arm64" and getArchitecture() == "x86_64":
+            return options_logger.sysexit(
+                """
+Cannot cross compile from 'x86_64' architecture Python to arm64 target. \
+Please use an 'arm64' Python to create it."""
+            )
 
     # Standalone implies no_site build unless overridden, therefore put it
     # at start of flags, so "site" can override it.
@@ -665,7 +740,7 @@ the Python download page."""
     # Check onefile splash image
     if options.splash_screen_image:
         if not os.path.exists(options.splash_screen_image):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, splash screen image path '%s' does not exist."
                 % options.splash_screen_image
             )
@@ -673,10 +748,13 @@ the Python download page."""
         _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
 
     if options.onefile_child_grace_time is not None:
-        if not options.onefile_child_grace_time.isdigit():
-            Tracing.options_logger.sysexit(
+        if (
+            not options.onefile_child_grace_time.isdigit()
+            and options.onefile_child_grace_time != "infinity"
+        ):
+            return options_logger.sysexit(
                 """\
-Error, the value given for '--onefile-child-grace-time' must be integer."""
+Error, the value given for '--onefile-child-grace-time' must be integer or 'infinity'."""
             )
 
         _warnOnefileOnlyOption("--onefile-child-grace-time")
@@ -705,7 +783,7 @@ Error, the value given for '--onefile-child-grace-time' must be integer."""
     # standard library.
     if options.is_standalone:
         if options.module_mode:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, conflicting options, cannot make standalone module, only executable.
 
@@ -725,7 +803,7 @@ makes no sense to include a Python runtime."""
                 bad = False
 
         if bad:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, '--follow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % any_case_module
@@ -743,7 +821,7 @@ Error, '--follow-import-to' takes only module names or patterns, not directory p
                 bad = False
 
         if bad:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, '--nofollow-import-to' takes only module names or patterns, not directory path '%s'."""
                 % no_case_module
@@ -752,7 +830,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
     scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.isfile(scons_python):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, no such Python binary '%s', should be full path." % scons_python
         )
 
@@ -760,7 +838,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 
     if output_filename is not None:
         if shallMakeModule():
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, may not module mode where filenames and modules matching are
 mandatory."""
@@ -772,49 +850,45 @@ mandatory."""
 
         output_filename_dir = os.path.dirname(output_filename) or "."
 
-        output_dir = os.path.join(getOutputDir(), output_filename_dir)
+        output_dir = getOutputPath(output_filename_dir)
 
         if output_filename_dir != "." and not os.path.isdir(output_dir):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, specified output directory does not exist, you have to create \
 it before using it: '%s' (from --output-filename='%s')."""
                 % (
-                    getNormalizedPath(output_dir),
+                    output_dir,
                     output_filename,
                 )
             )
 
     if isLinux():
         if len(getLinuxIconPaths()) > 1:
-            Tracing.options_logger.sysexit(
-                "Error, can only use one icon file on Linux."
-            )
+            return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
     if isMacOS():
         if len(getMacOSIconPaths()) > 1:
-            Tracing.options_logger.sysexit(
-                "Error, can only use one icon file on macOS."
-            )
+            return options_logger.sysexit("Error, can only use one icon file on macOS.")
 
     for icon_path in getWindowsIconPaths():
         if "#" in icon_path and isWin32Windows():
             icon_path, icon_index = icon_path.rsplit("#", 1)
 
             if not icon_index.isdigit() or int(icon_index) < 0:
-                Tracing.options_logger.sysexit(
+                return options_logger.sysexit(
                     "Error, icon number in '%s#%s' not valid."
                     % (icon_path + "#" + icon_index)
                 )
 
         if getWindowsIconExecutablePath():
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
             )
 
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
@@ -822,7 +896,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
@@ -830,17 +904,17 @@ it before using it: '%s' (from --output-filename='%s')."""
         product_version = getProductVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
 
     if getCompanyName() == "":
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, empty string is not an acceptable company name."""
         )
 
     if getProductName() == "":
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, empty string is not an acceptable product name."""
         )
 
@@ -848,7 +922,7 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     if splash_screen_filename is not None:
         if not os.path.isfile(splash_screen_filename):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, specified splash screen image '%s' does not exist."
                 % splash_screen_filename
             )
@@ -860,25 +934,20 @@ it before using it: '%s' (from --output-filename='%s')."""
         and isWin32Windows()
     ):
         if not (file_version or product_version) and getCompanyName():
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
-    if isOnefileMode() and not hasOnefileSupportedOS():
-        Tracing.options_logger.sysexit(
-            "Error, unsupported OS for onefile '%s'." % getOS()
+    if isAcceleratedMode() and not hasAcceleratedSupportedFlavor():
+        return options_logger.sysexit(
+            "Error, unsupported OS or Python flavor '%s' for accelerated mode."
+            % getPythonFlavorName()
         )
 
-    for module_pattern, _filename_pattern in getShallIncludePackageData():
-        if (
-            module_pattern.startswith("-")
-            or "/" in module_pattern
-            or "\\" in module_pattern
-        ):
-            Tracing.options_logger.sysexit(
-                "Error, '--include-package-data' needs module name or pattern as an argument, not '%s'."
-                % module_pattern
-            )
+    if isOnefileMode() and not hasOnefileSupportedOS():
+        return options_logger.sysexit(
+            "Error, unsupported OS for onefile '%s'." % getOS()
+        )
 
     for module_pattern in getShallFollowModules():
         if (
@@ -886,7 +955,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "/" in module_pattern
             or "\\" in module_pattern
         ):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, '--follow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
@@ -896,14 +965,14 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "/" in module_pattern
             or "\\" in module_pattern
         ):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
     for data_file_desc in options.data_files:
         if "=" not in data_file_desc:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
@@ -919,18 +988,16 @@ it before using it: '%s' (from --output-filename='%s')."""
         filenames = resolveShellPatternToFilenames(src_pattern)
 
         if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
                 % src
             )
 
         if not filenames:
-            Tracing.options_logger.sysexit(
-                "Error, '%s' does not match any files." % src
-            )
+            return options_logger.sysexit("Error, '%s' does not match any files." % src)
 
         if os.path.isabs(dst):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, must specify relative target path for data file, not absolute path '%s'."
                 % data_file_desc
             )
@@ -943,20 +1010,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, pattern '%s' given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
     for directory_name in getShallFollowExtra():
         if not os.path.isdir(directory_name):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, value '%s' given to '--include-plugin-directory' must be a directory name."
                 % directory_name
             )
 
         if isStandardLibraryPath(directory_name):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
@@ -967,7 +1034,7 @@ options instead."""
     if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         usable, reason = _couldUseStaticLibPython()
 
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, a static libpython is either not found or not supported for \
 this Python (%s) installation: %s"""
@@ -978,7 +1045,7 @@ this Python (%s) installation: %s"""
         )
 
     if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
 might be missing required packages. Disable with --static-libpython=no" if you don't \
 want to install it."""
@@ -986,7 +1053,7 @@ want to install it."""
 
     if isApplePython():
         if isStandaloneMode():
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Error, on macOS, for standalone mode, Apple Python is not supported \
 due to being tied to specific OS releases, use e.g. CPython instead \
@@ -995,7 +1062,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
             )
 
         if str is bytes:
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
@@ -1005,11 +1072,11 @@ download. With that, your program will work on macOS 10.9 or higher."""
             checkPatchElfPresenceAndUsability,
         )
 
-        checkPatchElfPresenceAndUsability(Tracing.options_logger)
+        checkPatchElfPresenceAndUsability(options_logger)
 
     pgo_executable = getPgoExecutable()
     if pgo_executable and not isPathExecutable(pgo_executable):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "Error, path '%s' to binary to use for PGO is not executable."
             % pgo_executable
         )
@@ -1019,7 +1086,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
         and isTermuxPython()
         and getExecutablePath("termux-elf-cleaner") is None
     ):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, onefile mode on Termux requires 'termux-elf-cleaner' to be installed, \
 use 'pkg install termux-elf-cleaner' to use it."""
@@ -1027,9 +1094,9 @@ use 'pkg install termux-elf-cleaner' to use it."""
 
     for user_yaml_filename in getUserProvidedYamlFiles():
         if not os.path.exists(user_yaml_filename):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
-Error, cannot find user provider yaml file '%s'."""
+Error, cannot find user provided yaml file '%s'."""
                 % user_yaml_filename
             )
 
@@ -1043,23 +1110,32 @@ def commentArgs():
     :meta private:
 
     """
-    # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
+    # A ton of cases to consider.
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
         if not os.path.exists(filename):
-            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+            return general.sysexit("Error, file '%s' is not found." % filename)
+
+        if isStandardLibraryPath(filename):
+            return general.sysexit(
+                """\
+Error, '%s' is in the standard library, compiling files from there \
+as main files is not supported."""
+                % filename
+            )
 
         if (shallMakeModule() or isStandaloneMode()) and os.path.normcase(
             os.path.basename(filename)
         ) == "__init__.py":
-            Tracing.general.sysexit(
+            return general.sysexit(
                 """\
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
             )
 
         if os.path.normcase(os.path.basename(filename)) == "__main__.py":
-            Tracing.general.warning(
+            general.warning(
                 """\
 To compile a package with a '__main__' module, specify its containing
 directory but, not the '__main__.py' itself, also consider if
@@ -1072,7 +1148,7 @@ directory but, not the '__main__.py' itself, also consider if
         # Do not disturb run of automatic tests with, detected from the presence of
         # that environment variable.
         if "PYTHON" not in os.environ:
-            Tracing.general.warning(
+            general.warning(
                 """\
 The Python version '%s' is only experimentally supported by Nuitka '%s', \
 but an upcoming release will change that. In the mean time use Python \
@@ -1086,7 +1162,7 @@ version '%s' instead or newer Nuitka."""
 
     if python_release_level not in ("final", "candidate"):
         if python_version_str not in getNotYetSupportedPythonVersions():
-            Tracing.general.sysexit(
+            return general.sysexit(
                 """\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \
 final version instead."""
@@ -1097,7 +1173,7 @@ final version instead."""
         if python_release_level != "final" and not isExperimental(
             "python" + python_version_str
         ):
-            Tracing.general.warning(
+            general.warning(
                 """\
 The Python version '%s' level '%s' is only experimentally supported \
 by Nuitka and recommended only for use in Nuitka development and \
@@ -1106,7 +1182,7 @@ testing."""
             )
 
         elif not isExperimental("python" + python_version_str):
-            Tracing.general.sysexit(
+            return general.sysexit(
                 """\
 The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
 release will add it. In the mean time use '%s' instead."""
@@ -1118,14 +1194,14 @@ release will add it. In the mean time use '%s' instead."""
             )
 
     if not isPythonWithGil():
-        Tracing.general.warning(
+        general.warning(
             """\
 The Python without GIL is only experimentally supported by \
 and recommended only for use in Nuitka development and testing."""
         )
 
     if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
-        Tracing.general.sysexit(
+        return general.sysexit(
             """\
 Due to a CPython bug of 3.13.4 precisely (<=3.13.4 is OK and >=3.13.5
 as well) it's not possible to use Nuitka with this Python version, as \
@@ -1141,12 +1217,12 @@ library. Please upgrade/downgrade to a supported micro version."""
         options.file_reference_mode = default_reference_mode
     else:
         if options.file_reference_mode != default_reference_mode:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 "Using non-default file reference mode '%s' rather than '%s' may cause run time issues."
                 % (getFileReferenceMode(), default_reference_mode)
             )
         else:
-            Tracing.options_logger.info(
+            options_logger.info(
                 "Using default file reference mode '%s' need not be specified."
                 % default_reference_mode
             )
@@ -1156,63 +1232,65 @@ library. Please upgrade/downgrade to a supported micro version."""
     if getModuleNameMode() is None:
         options.module_name_mode = default_mode_name_mode
     elif getModuleNameMode() == default_mode_name_mode:
-        Tracing.options_logger.info(
+        options_logger.info(
             "Using module name mode '%s' need not be specified."
             % default_mode_name_mode
         )
 
-    # TODO: This could be done via a generic option attribute and iterating over
-    # them all, but maybe that's too inflexible long term.
     if getWindowsIconExecutablePath():
-        _warnOSSpecificOption("--windows-icon-from-exe", "Windows")
+        _warnWindowsSpecificOption("--windows-icon-from-exe")
     if shallAskForWindowsAdminRights():
-        _warnOSSpecificOption("--windows-uac-admin", "Windows")
+        _warnWindowsSpecificOption("--windows-uac-admin")
     if shallAskForWindowsUIAccessRights():
-        _warnOSSpecificOption("--windows-uac-uiaccess", "Windows")
+        _warnWindowsSpecificOption("--windows-uac-uiaccess")
     if getWindowsSplashScreen():
-        _warnOSSpecificOption("--onefile-windows-splash-screen-image", "Windows")
+        _warnWindowsSpecificOption("--onefile-windows-splash-screen-image")
     if options.mingw64 is not None:
-        _warnOSSpecificOption("--mingw64", "Windows")
+        _warnWindowsSpecificOption("--mingw64")
     if options.msvc_version is not None:
-        _warnOSSpecificOption("--msvc", "Windows")
+        _warnWindowsSpecificOption("--msvc")
     if options.macos_target_arch is not None:
-        _warnOSSpecificOption("--macos-target-arch", "Darwin")
+        _warnMacOSSpecificOption("--macos-target-arch")
     if options.macos_create_bundle is not None:
-        _warnOSSpecificOption("--macos-create-app-bundle", "Darwin")
+        _warnMacOSSpecificOption("--macos-create-app-bundle")
     if options.macos_sign_identity is not None:
-        _warnOSSpecificOption("--macos-sign-identity", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-identity")
     if options.macos_sign_notarization is not None:
-        _warnOSSpecificOption("--macos-sign-notarization", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-notarization")
     if getMacOSAppName():
-        _warnOSSpecificOption("--macos-app-name", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-name")
     if getMacOSSignedAppName():
-        _warnOSSpecificOption("--macos-signed-app-name", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-signed-app-name")
     if getMacOSAppVersion():
-        _warnOSSpecificOption("--macos-app-version", "Darwin")
-    if getMacOSAppProtectedResourcesAccesses():
-        _warnOSSpecificOption("--macos-app-protected-resource", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-version")
+    if options.macos_protected_resources:
+        _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
-        _warnOSSpecificOption("--macos-app-mode", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-app-mode")
+    if options.macos_create_dmg:
+        _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
     if options.macos_prohibit_multiple_instances:
-        _warnOSSpecificOption("--macos-prohibit-multiple-instances", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
+    if options.macos_app_console_mode is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-console-mode")
     if getMacOSSigningCertificatePassword():
-        _warnOSSpecificOption("--macos-sign-keyring-password", "Darwin")
+        _warnMacOSBundleSpecificOption("--macos-sign-keyring-password")
 
     cert_filename = getMacOSSigningCertificateFilename()
     if cert_filename is not None:
-        _warnOSSpecificOption("--macos-sign-keyring-filename", "Darwin")
+        _warnMacOSSpecificOption("--macos-sign-keyring-filename")
 
         if not os.path.exists(cert_filename):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, signing certificate file '%s' does not exist." % cert_filename
             )
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
-            Tracing.options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
+            return options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
 
         if isMingw64():
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "Requesting both Windows specific compilers makes no sense."
             )
 
@@ -1220,7 +1298,7 @@ library. Please upgrade/downgrade to a supported micro version."""
         if getMsvcVersion().count(".") != 1 or not all(
             x.isdigit() for x in getMsvcVersion().split(".")
         ):
-            Tracing.options_logger.sysexit(
+            return options_logger.sysexit(
                 "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
                 % getMsvcVersion()
             )
@@ -1228,7 +1306,7 @@ library. Please upgrade/downgrade to a supported micro version."""
     try:
         getJobLimit()
     except ValueError:
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             "For '--jobs' value, use integer values only, not, but not '%s'."
             % options.jobs
         )
@@ -1241,13 +1319,13 @@ library. Please upgrade/downgrade to a supported micro version."""
         standalone_mode = None
 
     if standalone_mode and not hasStandaloneSupportedOS():
-        Tracing.options_logger.warning(
+        options_logger.warning(
             "Standalone mode on %s is not known to be supported, might fail to work."
             % getOS()
         )
 
     if options.follow_all is True and shallMakeModule():
-        Tracing.optimization_logger.sysexit(
+        return optimization_logger.sysexit(
             """\
 In module mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
@@ -1256,24 +1334,24 @@ to work. You need to instead selectively add them with \
         )
 
     if options.follow_all is True and standalone_mode:
-        Tracing.options_logger.info(
+        options_logger.info(
             "Following all imports is the default for %s mode and need not be specified."
             % standalone_mode
         )
 
     if options.follow_all is False and standalone_mode:
-        Tracing.options_logger.warning(
+        options_logger.warning(
             "Following no imports is unlikely to work for %s mode and should not be specified."
             % standalone_mode
         )
 
     if options.follow_stdlib:
         if standalone_mode:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 "Following imports to stdlib is the default in standalone mode.."
             )
         else:
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 "Following imports to stdlib not well tested and should not be specified."
             )
 
@@ -1289,19 +1367,19 @@ to work. You need to instead selectively add them with \
         and not options.include_extra
         and not options.follow_not_modules
     ):
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """You did not specify to follow or include anything but main %s. Check options and \
 make sure that is intended."""
             % ("module" if shallMakeModule() else "program")
         )
 
     if options.dependency_tool:
-        Tracing.options_logger.warning(
+        options_logger.warning(
             "Using removed option '--windows-dependency-tool' is deprecated and has no impact anymore."
         )
 
     if shallMakeModule() and options.static_libpython == "yes":
-        Tracing.options_logger.warning(
+        options_logger.warning(
             "In module mode, providing '--static-libpython' has no effect, it's not used."
         )
 
@@ -1312,20 +1390,20 @@ make sure that is intended."""
         and not isPythonPgoMode()
         and (getPgoArgs() or getPgoExecutable())
     ):
-        Tracing.optimization_logger.warning(
+        optimization_logger.warning(
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
     if isCPgoMode():
         if isStandaloneMode():
-            Tracing.optimization_logger.warning(
+            optimization_logger.warning(
                 """\
 Using C level PGO with standalone/onefile mode is not \
 currently working. Expect errors."""
             )
 
         if shallMakeModule():
-            Tracing.optimization_logger.warning(
+            optimization_logger.warning(
                 """\
 Using C level PGO with module mode is not currently \
 working. Expect errors."""
@@ -1338,32 +1416,19 @@ working. Expect errors."""
         and getSystemStaticLibPythonPath() is not None
         and not shallUsePythonDebug()
     ):
-        Tracing.options_logger.info(
+        options_logger.info(
             """Detected static libpython to exist, consider '--static-libpython=yes' for better performance, \
 but errors may happen."""
         )
 
     if not shallExecuteImmediately():
         if shallRunInDebugger():
-            Tracing.options_logger.warning(
+            options_logger.warning(
                 "The '--debugger' option has no effect outside of '--debug' without '--run' option."
             )
 
-    # Check if the fallback is used, except for Python2 on Windows, where we cannot
-    # have it.
-    if hasattr(OrderedSet, "is_fallback") and not (
-        isWin32Windows() and python_version < 0x360
-    ):
-        # spell-checker: ignore orderedset
-        Tracing.general.warning(
-            """\
-Using very slow fallback for ordered sets, please install '%s' \
-PyPI package for best Python compile time performance."""
-            % recommended_orderedset_package_name
-        )
-
     if shallUsePythonDebug() and not isDebugPython():
-        Tracing.general.sysexit(
+        return general.sysexit(
             """\
 Error, for using the debug Python version, you need to run it will that version
 and not with the non-debug version.
@@ -1371,7 +1436,7 @@ and not with the non-debug version.
         )
 
     if shallCreateAppBundle() and not options.macos_icon_path:
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """\
 For application bundles, you ought to specify an icon with '--macos-app-icon=...' \
 otherwise a dock icon may not be present. Specify the value as 'none' value \
@@ -1383,7 +1448,7 @@ to disable this warning."""
         and shallUseSigningForNotarization()
         and getMacOSSigningIdentity() == "-"
     ):
-        Tracing.general.sysexit(
+        return general.sysexit(
             """\
 Error, need to provide signing identity with '--macos-sign-identity' for \
 notarization capable signature, the default identify 'ad-hoc' is not going \
@@ -1395,7 +1460,7 @@ to work."""
         and 0x340 <= python_version < 0x380
         and getWindowsConsoleMode() != "disable"
     ):
-        Tracing.general.warning(
+        general.warning(
             """\
 On Windows, support for input/output on the console Windows, does \
 not work on non-UTF8 systems, unless Python 3.8 or higher is used \
@@ -1407,7 +1472,7 @@ console window for deployment.
         )
 
     if shallMakeModule() and (getForcedStderrPath() or getForcedStdoutPath()):
-        Tracing.general.warning(
+        general.warning(
             """\
 Extension modules do not control process outputs, therefore the \
 options '--force-stdout-spec' and '--force-stderr-spec' have no \
@@ -1415,7 +1480,7 @@ impact and should not be specified."""
         )
 
     if shallMakeModule() and options.console_mode is not None:
-        Tracing.general.warning(
+        general.warning(
             """\
 Extension modules are not binaries, and therefore the option \
 '--windows-console-mode' does not have an impact and should \
@@ -1424,7 +1489,7 @@ not be specified."""
 
     if options.disable_console in (True, False):
         if isWin32Windows():
-            Tracing.general.warning(
+            general.warning(
                 """\
 The old console option '%s' should not be given anymore, use '%s' \
 instead. It also has the extra mode 'attach' to consider."""
@@ -1439,7 +1504,7 @@ instead. It also has the extra mode 'attach' to consider."""
                 )
             )
         else:
-            Tracing.general.warning(
+            general.warning(
                 """The old console option '%s' should not be given anymore, and doesn't
 have any effect anymore on non-Windows."""
                 % (
@@ -1454,7 +1519,7 @@ have any effect anymore on non-Windows."""
         and getWindowsVersionInfoStrings()
         and getProductFileVersion() is None
     ):
-        Tracing.options_logger.sysexit(
+        return options_logger.sysexit(
             """\
 Error, when providing version information on Windows, you must also
 provide either '--product-version' or '--file-version' as these can
@@ -1465,11 +1530,11 @@ not have good defaults, but are forced to be present by the OS."""
         options.macos_target_arch not in ("native", "universal", None)
         and getArchitecture() != options.macos_target_arch
     ):
-        Tracing.options_logger.warning(
+        options_logger.warning(
             """\
 Do not cross compile using '--macos-target-arch=%s, instead execute with '%s'."""
             % (
-                Tracing.doNotBreakSpaces(
+                doNotBreakSpaces(
                     options.macos_target_arch,
                     "arch -%s %s" % (options.macos_target_arch, sys.executable),
                 )
@@ -1479,7 +1544,7 @@ Do not cross compile using '--macos-target-arch=%s, instead execute with '%s'.""
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
-    return options is not None and options.verbose
+    return states.is_verbose is True
 
 
 def shallTraceExecution():
@@ -1677,18 +1742,42 @@ def getShallIncludePackageData():
 
     The filename pattern can be None if not given. Empty values give None too.
     """
+    result = []
+
     for package_data_pattern in sum(
         [_splitShellPattern(x) for x in options.package_data], []
     ):
         if ":" in package_data_pattern:
-            module_pattern, filename_pattern = package_data_pattern.split(":", 1)
+            package_name, filename_pattern = package_data_pattern.split(":", 1)
             # Empty equals None.
             filename_pattern = filename_pattern or None
         else:
-            module_pattern = package_data_pattern
+            package_name = package_data_pattern
             filename_pattern = None
 
-        yield module_pattern, filename_pattern
+        if not package_name:
+            options_logger.sysexit(
+                "Error, '--include-package-data' does not accept empty values as in '%s'."
+                % package_data_pattern
+            )
+
+        if (
+            package_name.startswith("-")
+            or "/" in package_name
+            or "\\" in package_name
+            or "=" in package_name
+            or not checkModuleName(package_name)
+        ):
+            return options_logger.sysexit(
+                """\
+Error, '--include-package-data' needs package name (optionally with a pattern \
+separated by ':') as an argument, not '%s'."""
+                % package_name
+            )
+
+        result.append((ModuleName(package_name), filename_pattern))
+
+    return tuple(result)
 
 
 def getShallIncludeDataFiles():
@@ -1698,16 +1787,25 @@ def getShallIncludeDataFiles():
             src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
-                pattern = os.path.expanduser(pattern)
-
-                yield pattern, None, dest, data_file_desc
+                yield (
+                    getUserInputNormalizedPath(pattern),
+                    None,
+                    dest,
+                    data_file_desc,
+                )
         else:
             src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
-                pattern = os.path.expanduser(pattern)
-
-                yield os.path.join(src, pattern), src, dest, data_file_desc
+                yield (
+                    getNormalizedPathJoin(
+                        getUserInputNormalizedPath(src),
+                        getUserInputNormalizedPath(pattern),
+                    ),
+                    src,
+                    dest,
+                    data_file_desc,
+                )
 
 
 def getShallIncludeDataDirs():
@@ -1715,7 +1813,7 @@ def getShallIncludeDataDirs():
     for data_file in options.data_dirs:
         src, dest = data_file.split("=", 1)
 
-        yield src, dest
+        yield getUserInputNormalizedPath(src), dest
 
 
 def getShallIncludeRawDirs():
@@ -1723,7 +1821,7 @@ def getShallIncludeRawDirs():
     for data_file in options.raw_dirs:
         src, dest = data_file.split("=", 1)
 
-        yield src, dest
+        yield getUserInputNormalizedPath(src), dest
 
 
 def getShallNotIncludeDataFilePatterns():
@@ -1742,6 +1840,12 @@ def getShallNotIncludeDllFilePatterns():
     """*list*, items of ``--noinclude-dlls=``"""
 
     return options.dll_files_inhibited
+
+
+def getWindowsRuntimeDllsInclusionOption():
+    """*str*, value of ``--include-windows-runtime-dlls=``"""
+
+    return options.include_windows_runtime_dlls
 
 
 def shallWarnImplicitRaises():
@@ -1786,12 +1890,22 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile or is_debug
+    return options.unstripped or isRuntimeProfile() or states.is_debug
 
 
-def isProfile():
-    """:returns: bool derived from ``--profile``"""
-    return options.profile
+def isRuntimeProfile():
+    """:returns: bool derived from ``--debug-profile-runtime``"""
+    return options.debug_profile_runtime
+
+
+def isCompileTimeProfile():
+    """:returns: bool derived from ``--devel-profile-compilation``"""
+    return options.devel_profile_compilation
+
+
+def shallGenerateReadableCode():
+    """:returns: bool derived from ``--devel-generate-readable-code``"""
+    return options.devel_generate_readable_code or _isDebug()
 
 
 def shallCreateGraph():
@@ -1801,20 +1915,21 @@ def shallCreateGraph():
 
 def getOutputFilename():
     """*str*, value of "-o" """
-    return options.output_filename
+    return (
+        getUserInputNormalizedPath(options.output_filename)
+        if options.output_filename is not None
+        else None
+    )
 
 
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
-    if options.output_dir:
-        return getNormalizedPath(os.path.join(options.output_dir, path))
-    else:
-        return path
+    return getNormalizedPathJoin(getOutputDir(), path)
 
 
 def getOutputDir():
     """*str*, value of ``--output-dir`` or "." """
-    return options.output_dir if options.output_dir else "."
+    return getUserInputNormalizedPath(options.output_dir) if options.output_dir else "."
 
 
 def getPositionalArgs():
@@ -1827,6 +1942,35 @@ def getMainArgs():
     return tuple(extra_args)
 
 
+def getMainEntryPointSpecs():
+    """*tuple*, main entry points, none, one or more"""
+    result = []
+
+    for main_entry_point in options.main_entry_points:
+        if "=" not in main_entry_point:
+            options_logger.sysexit(
+                "Error, invalid value for main entry point '%s', must be 'binary=module:function'"
+                % main_entry_point
+            )
+
+        binary_name, rest = main_entry_point.split("=", 1)
+        binary_name = binary_name.strip()
+
+        if ":" not in rest:
+            options_logger.sysexit(
+                "Error, invalid value for main entry point '%s', must be 'binary=module:function'"
+                % main_entry_point
+            )
+
+        module_name, function_name = rest.split(":", 1)
+        module_name = module_name.strip()
+        function_name = function_name.strip()
+
+        result.append((binary_name, module_name, function_name))
+
+    return tuple(result)
+
+
 def getMainEntryPointFilenames():
     """*tuple*, main programs, none, one or more"""
     if options.mains:
@@ -1837,7 +1981,13 @@ def getMainEntryPointFilenames():
     else:
         result = (positional_args[0],)
 
-    return tuple(getNormalizedPath(r) for r in result)
+    return tuple(getUserInputNormalizedPath(r) for r in result)
+
+
+def addMainEntryPointFilename(filename):
+    if options.mains is None:
+        options.mains = []
+    options.mains.append(filename)
 
 
 def isMultidistMode():
@@ -1856,9 +2006,9 @@ def _couldUseStaticLibPython():
     # many cases and return driven,
     # pylint: disable=too-many-branches,too-many-return-statements
 
-    # Nuitka-Python is good to to static linking.
-    if isNuitkaPython():
-        return True, "Nuitka-Python is unexpectedly broken."
+    # MonolithPy is good to to static linking.
+    if isMonolithPy():
+        return True, "MonolithPy is unexpectedly broken."
 
     if isHomebrewPython():
         return True, "Homebrew Python is unexpectedly broken."
@@ -1974,7 +2124,7 @@ def shallUseStaticLibPython():
             static_libpython = getSystemStaticLibPythonPath()
 
             if not static_libpython:
-                Tracing.options_logger.sysexit(
+                options_logger.sysexit(
                     """\
 Automatic detection of static libpython failed. %s Disable with '--static-libpython=no' if you don't \
 want to install it."""
@@ -2072,6 +2222,10 @@ def isMingw64():
         return None
 
 
+def isZig():
+    return options.zig
+
+
 def getMsvcVersion():
     """:returns: str derived from ``--msvc`` on Windows, otherwise None"""
     if isWin32Windows():
@@ -2083,7 +2237,7 @@ def getMsvcVersion():
 def shallCleanCache(cache_name):
     """:returns: bool derived from ``--clean-cache``"""
 
-    if cache_name == "clcache":
+    if cache_name in ("clcache", "zig"):
         cache_name = "ccache"
 
     return "all" in options.clean_caches or cache_name in options.clean_caches
@@ -2119,6 +2273,11 @@ def getWindowsConsoleMode():
     if options.disable_console is False:
         return "force"
     return options.console_mode or "force"
+
+
+def getMacOSAppConsoleMode():
+    """:returns: str from ``--macos-app-console-mode``"""
+    return (isMacOS() and options.macos_app_console_mode) or "disable"
 
 
 def _isFullCompat():
@@ -2194,7 +2353,11 @@ def getExperimentalIndications():
 def getDebugModeIndications():
     result = []
 
-    for debug_option_value_name in ("debug_immortal", "debug_c_warnings"):
+    for debug_option_value_name in (
+        "debug_immortal",
+        "debug_c_warnings",
+        "debug_self_forking",
+    ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
             continue
@@ -2210,7 +2373,11 @@ def getDebugModeIndications():
 
 
 def requireNoDebugImmortalAssumptions(logger, reason):
-    if is_debug and python_version >= 0x3C0 and options.debug_immortal is not False:
+    if (
+        states.is_debug
+        and python_version >= 0x3C0
+        and options.debug_immortal is not False
+    ):
         logger.sysexit(
             "Error, need to disable debug partially with '--no-debug-immortal-assumptions' due to %s."
             % reason,
@@ -2309,7 +2476,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = os.path.join(".", options.pgo_executable)
+            options.pgo_executable = getUserInputNormalizedPath(options.pgo_executable)
 
     return options.pgo_executable
 
@@ -2330,11 +2497,13 @@ def getOnefileTempDirSpec():
 
 def getOnefileChildGraceTime():
     """*int* = ``--onefile-child-grace-time``"""
-    return (
-        int(options.onefile_child_grace_time)
-        if options.onefile_child_grace_time is not None
-        else 5000
-    )
+    if options.onefile_child_grace_time is None:
+        return 5000
+    elif options.onefile_child_grace_time == "infinity":
+        # Using -1 to represent infinity for the C code.
+        return -1
+    else:
+        return int(options.onefile_child_grace_time)
 
 
 def shallNotCompressOnefile():
@@ -2347,16 +2516,14 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
-def _checkIconPaths(icon_paths):
-    icon_paths = tuple(icon_paths)
+def _checkedIconPaths(icon_paths):
+    icon_paths = tuple(getUserInputNormalizedPath(x) for x in icon_paths)
 
     for icon_path in icon_paths:
         if not os.path.exists(icon_path):
-            Tracing.options_logger.sysexit(
-                "Error, icon path '%s' does not exist." % icon_path
-            )
+            options_logger.sysexit("Error, icon path '%s' does not exist." % icon_path)
 
-        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
+        checkIconUsage(logger=options_logger, icon_path=icon_path)
 
     return icon_paths
 
@@ -2366,7 +2533,7 @@ def getWindowsIconPaths():
     if not isWin32Windows():
         return ()
 
-    return _checkIconPaths(options.windows_icon_path)
+    return _checkedIconPaths(options.windows_icon_path)
 
 
 def getLinuxIconPaths():
@@ -2387,12 +2554,12 @@ def getLinuxIconPaths():
                 result.append(icon)
                 break
 
-    return _checkIconPaths(result)
+    return _checkedIconPaths(result)
 
 
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
-    return _checkIconPaths(
+    return _checkedIconPaths(
         icon_path for icon_path in options.macos_icon_path if icon_path != "none"
     )
 
@@ -2511,7 +2678,11 @@ def getProductFileVersion():
 
 def getWindowsSplashScreen():
     """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
-    return options.splash_screen_image
+    return (
+        getUserInputNormalizedPath(options.splash_screen_image)
+        if options.splash_screen_image
+        else None
+    )
 
 
 def getCompanyName():
@@ -2543,6 +2714,11 @@ def shallCreateAppBundle():
         return False
 
     return options.macos_create_bundle and isMacOS()
+
+
+def shallCreateDmgFile():
+    """*bool* shall create a DMG file, derived from ``--macos-app-create-dmg`` value"""
+    return options.macos_create_dmg and isMacOS()
 
 
 def getMacOSSigningIdentity():
@@ -2587,31 +2763,74 @@ _macos_protected_resource_entitlements = {
     "NSContactsUsageDescription": "com.apple.security.personal-information.addressbook",
     "NSCalendarsUsageDescription": "com.apple.security.personal-information.calendars",
     "NSRemindersUsageDescription": "com.apple.security.personal-information.reminders",
-    # Both full access and add-only map to the same top-level entitlement.
-    "NSPhotoLibraryUsageDescription": "com.apple.security.personal-information.photos-library",
-    "NSPhotoLibraryAddUsageDescription": "com.apple.security.personal-information.photos-library",
+    # Siri, spell-checker: ignore Siri
+    "NSSiriUsageDescription": "com.apple.developer.siri",
+    # Bluetooth peripheral access
     "NSBluetoothAlwaysUsageDescription": "com.apple.security.device.bluetooth",
+    "NSBluetoothPeripheralUsageDescription": "com.apple.security.device.bluetooth",
+    # Apple Events
     "NSAppleEventsUsageDescription": "com.apple.security.automation.apple-events",
-    # For folder access, the entitlement depends on read-only vs read-write, which
-    # Nuitka will need to determine from its options.
+    # HomeKit, spell-checker: ignore HomeKit
+    "NSHomeKitUsageDescription": "com.apple.developer.homekit",
+    # Downloads Folder Usage
     "NSDownloadsFolderUsageDescription": (
         "com.apple.security.files.downloads.read-only",
         "com.apple.security.files.downloads.read-write",
     ),
+    # Desktop Folder Usage
     "NSDesktopFolderUsageDescription": (
         "com.apple.security.files.desktop.read-only",
         "com.apple.security.files.desktop.read-write",
     ),
+    # User selected files
+    "NSUserSelectedFilesUsageDescription": (
+        "com.apple.security.files.user-selected.read-only",
+        "com.apple.security.files.user-selected.read-write",
+    ),
+    # Network volumes
+    "NSNetworkVolumesUsageDescription": (
+        "com.apple.security.files.network-volumes.read-only",
+        "com.apple.security.files.network-volumes.read-write",
+    ),
+    # Removable volumes
+    "NSRemovableVolumesUsageDescription": (
+        "com.apple.security.files.removable-disks.read-only",
+        "com.apple.security.files.removable-disks.read-write",
+    ),
+    # Local network access
+    "NSLocalNetworkUsageDescription": (
+        "com.apple.security.network.client",
+        "com.apple.security.network.server",
+    ),
+    # Access to music library
+    "NSAppleMusicUsageDescription": (
+        "com.apple.security.assets.music.read-only",
+        "com.apple.security.assets.music.read-write",
+    ),
+    # Both full access and add-only map to the same top-level entitlement.
+    "NSPhotoLibraryUsageDescription": (
+        "com.apple.security.assets.photos.read-only",
+        "com.apple.security.assets.photos.read-write",
+    ),
+    "NSPhotoLibraryAddUsageDescription": (
+        "com.apple.security.assets.photos.read-only",
+        "com.apple.security.assets.photos.read-write",
+    ),
+    # Speech recognition
+    # TODO: "NSSpeechRecognitionUsageDescription":
 }
 
 
 def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
+    if not shallCreateAppBundle():
+        return ()
+
     result = []
 
     for macos_protected_resource in options.macos_protected_resources:
         if ":" not in macos_protected_resource:
-            Tracing.options_logger.sysexit(
+            options_logger.sysexit(
                 """\
 Wrong format for '--macos-app-protected-resource' value '%s', it \
 needs to contain separator ':' with a description."""
@@ -2621,7 +2840,7 @@ needs to contain separator ':' with a description."""
         resource_description_name, description = macos_protected_resource.split(":", 1)
 
         if resource_description_name not in _macos_protected_resource_entitlements:
-            Tracing.options_logger.sysexit(
+            options_logger.sysexit(
                 """\
 Wrong key for '--macos-app-protected-resource' value '%s', it \
 needs to be one of the following: %s."""
@@ -2634,21 +2853,19 @@ needs to be one of the following: %s."""
         entitlement = _macos_protected_resource_entitlements[resource_description_name]
 
         if type(entitlement) is tuple:
-            if "read-only" in description:
-                entitlement = entitlement[0]
-            elif "read-write" in description:
-                entitlement = entitlement[1]
-            else:
-                Tracing.options_logger.sysexit(
-                    """\
-Wrong value for '--macos-app-protected-resource' value '%s' needs to
-either contain 'read-only' or 'read-write' as part of the description."""
-                    % macos_protected_resource
-                )
+            # If we have a tuple of size 2, checking for "read-only" and "read-write"
+            # in description allows to select one.
+            if len(entitlement) == 2:
+                for entitlement_name in entitlement:
+                    if entitlement_name.rsplit(".")[-1] in description.lower():
+                        entitlement = entitlement_name
+                        break
+
+            # We still can put all values, that's fine, we support that now.
 
         result.append((resource_description_name, description, entitlement))
 
-    return result
+    return tuple(result)
 
 
 def isMacOSBackgroundApp():
@@ -2736,9 +2953,7 @@ def _getPythonFlags():
                 elif part in ("-P", "safe_path"):
                     _python_flags.add("safe_path")
                 else:
-                    Tracing.options_logger.sysexit(
-                        "Unsupported python flag '%s'." % part
-                    )
+                    options_logger.sysexit("Unsupported python flag '%s'." % part)
 
     return _python_flags
 
@@ -2836,6 +3051,8 @@ def getPluginNameConsideringRenames(plugin_name):
         return "ethereum"
     if plugin_name == "pyzmq":
         return "delvewheel"
+    if plugin_name == "signing":
+        return "signtool"
 
     return plugin_name
 
@@ -2988,14 +3205,14 @@ def getCompilationReportUserData():
 
     for desc in options.compilation_report_user_data:
         if "=" not in desc:
-            Tracing.options_logger.sysexit(
+            options_logger.sysexit(
                 "Error, user report data must be of key=value form not '%s'." % desc
             )
 
         key, value = desc.split("=", 1)
 
         if key in result and value != result[key]:
-            Tracing.options_logger.sysexit(
+            options_logger.sysexit(
                 "Error, user report data key '%s' has been given conflicting values '%s' and '%s'."
                 % (
                     key,
@@ -3008,7 +3225,7 @@ def getCompilationReportUserData():
             r"^([_a-z][\w]?|[a-w_yz][\w]{2,}|[_a-z][a-l_n-z\d][\w]+|[_a-z][\w][a-k_m-z\d][\w]*)$",
             key,
         ):
-            Tracing.options_logger.sysexit(
+            options_logger.sysexit(
                 "Error, user report data key '%s' is not valid as an XML tag, and therefore cannot be used."
                 % key
             )
@@ -3025,7 +3242,11 @@ def shallCreateDiffableCompilationReport():
 
 def getOutputFolderName():
     """*str* or *None*, value of ``--output-folder-name``"""
-    return options.output_folder_name
+    return (
+        getUserInputNormalizedPath(options.output_folder_name)
+        if options.output_folder_name
+        else None
+    )
 
 
 def getUserProvidedYamlFiles():
@@ -3080,7 +3301,7 @@ def getModuleParameter(module_name, parameter_name):
         try:
             module_option_name, module_option_value = module_option.split("=", 1)
         except ValueError:
-            Tracing.optimization_logger.sysexit(
+            optimization_logger.sysexit(
                 """\
 Error, must specify module parameter name and value with a separating \
 '=' and not '%s"."""
@@ -3120,6 +3341,14 @@ def getCompilationMode():
         return "standalone"
     elif shallMakeDll():
         return "dll"
+
+
+def getPyProjectRequiredPackages():
+    """Get the requirements that are not Nuitka from project configuration."""
+    # TODO: Move this to using code to avoid cyclic dependency.
+    from nuitka.utils.Distributions import filterInstallRequires
+
+    return filterInstallRequires(options.pyproject_requires)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

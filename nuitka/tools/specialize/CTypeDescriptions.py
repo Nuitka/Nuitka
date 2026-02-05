@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" C type descriptions. For specific or general C types, provide code generation help.
-
-"""
+"""C type descriptions. For specific or general C types, provide code generation help."""
 
 import math
 from abc import abstractmethod

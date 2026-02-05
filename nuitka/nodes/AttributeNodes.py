@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Attribute nodes
+"""Attribute nodes
 
 Knowing attributes of an object is very important, esp. when it comes to 'self'
 and objects and classes.

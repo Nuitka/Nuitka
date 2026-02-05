@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This package loads a file via pkgutil.get_data and outputs its contents in import.
-
-"""
+"""This package loads a file via pkgutil.get_data and outputs its contents in import."""
 
 from __future__ import print_function
 

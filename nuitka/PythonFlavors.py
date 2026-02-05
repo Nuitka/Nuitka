@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Python flavors specifics.
+"""Python flavors specifics.
 
 This abstracts the Python variants from different people. There is not just
 CPython, but Anaconda, Debian, pyenv, Apple, lots of people who make Python
@@ -40,15 +40,15 @@ from .PythonVersions import (
 )
 
 
-def isNuitkaPython():
-    """Is this our own fork of CPython named Nuitka-Python."""
+def isMonolithPy():
+    """Is this our own fork of CPython named MonolithPy."""
 
-    # spell-checker: ignore nuitkapython
+    # spell-checker: ignore monolithpy
 
     if python_version >= 0x300:
-        return sys.implementation.name == "nuitkapython"
+        return sys.implementation.name == "monolithpy"
     else:
-        return sys.subversion[0] == "nuitkapython"
+        return sys.subversion[0] == "monolithpy"
 
 
 _is_anaconda = None
@@ -369,12 +369,28 @@ def isGithubActionsPython():
     )
 
 
+def isWindowsStorePython():
+    if not isWin32Windows():
+        return False
+
+    # spell-checker: ignore LOCALAPPDATA
+    local_app_data = os.getenv("LOCALAPPDATA")
+    if not local_app_data:
+        # Not insisting to be any better for those.
+        return False
+
+    return isFilenameBelowPath(
+        path=os.path.join(local_app_data, "Microsoft", "WindowsApps"),
+        filename=sys.executable,
+    )
+
+
 def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
 
-    if isNuitkaPython():
-        return "Nuitka Python"
+    if isMonolithPy():
+        return "MonolithPy"
     elif isAnacondaPython():
         return "Anaconda Python"
     elif isWinPython():
@@ -405,6 +421,8 @@ def getPythonFlavorName():
         return "MSYS2 MinGW"
     elif isTermuxPython():
         return "Android Termux"
+    elif isWindowsStorePython():
+        return "Windows Store Python"
     elif isCPythonOfficialPackage():
         return "CPython Official"
     elif isSelfCompiledPythonUninstalled():
@@ -413,6 +431,10 @@ def getPythonFlavorName():
         return "Manylinux Python"
     else:
         return "Unknown"
+
+
+def hasAcceleratedSupportedFlavor():
+    return not isWindowsStorePython()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

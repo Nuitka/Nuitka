@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare XML outputs of two Nuitka versions.
-
-"""
+"""Tool to compare XML outputs of two Nuitka versions."""
 
 import os
 import sys

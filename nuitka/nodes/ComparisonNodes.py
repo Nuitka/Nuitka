@@ -1,12 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for comparisons.
+"""Nodes for comparisons."""
 
-"""
-
-from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
+from nuitka.PythonOperators import (
+    all_comparison_functions,
+    comparison_inversions,
+    other_comparison_functions,
+)
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
@@ -51,7 +53,7 @@ class ExpressionComparisonBase(ChildrenHavingLeftRightMixin, ExpressionBase):
         return True
 
     def getSimulator(self):
-        return PythonOperators.all_comparison_functions[self.comparator]
+        return all_comparison_functions[self.comparator]
 
     def _computeCompileTimeConstantComparison(self, trace_collection):
         left_value = self.subnode_left.getCompileTimeConstant()
@@ -68,7 +70,7 @@ class ExpressionComparisonBase(ChildrenHavingLeftRightMixin, ExpressionBase):
         return makeComparisonExpression(
             left=self.subnode_left,
             right=self.subnode_right,
-            comparator=PythonOperators.comparison_inversions[self.comparator],
+            comparator=comparison_inversions[self.comparator],
             source_ref=self.source_ref,
         )
 
@@ -515,7 +517,7 @@ class ExpressionComparisonExceptionMatchBase(
         # TODO: Doesn't happen yet, but will once we trace exceptions.
         assert False
 
-        return PythonOperators.all_comparison_functions[self.comparator]
+        return all_comparison_functions[self.comparator]
 
     def mayRaiseException(self, exception_type):
         # TODO: Match errors that exception comparisons might raise more accurately.
@@ -594,7 +596,7 @@ class ExpressionComparisonInNotInBase(
         return right.mayRaiseExceptionIn(exception_type, left)
 
     def getSimulator(self):
-        return PythonOperators.other_comparison_functions[self.comparator]
+        return other_comparison_functions[self.comparator]
 
     def computeExpression(self, trace_collection):
         if not self.left_available:
@@ -649,7 +651,7 @@ class ExpressionComparisonNotIn(ExpressionComparisonInNotInBase):
         )
 
 
-_comparator_to_nodeclass = {
+_comparator_to_node_class = {
     "Is": ExpressionComparisonIs,
     "IsNot": ExpressionComparisonIsNot,
     "In": ExpressionComparisonIn,
@@ -666,7 +668,7 @@ _comparator_to_nodeclass = {
 
 
 def makeComparisonExpression(left, right, comparator, source_ref):
-    return _comparator_to_nodeclass[comparator](
+    return _comparator_to_node_class[comparator](
         left=left, right=right, source_ref=source_ref
     )
 

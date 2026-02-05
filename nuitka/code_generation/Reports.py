@@ -1,15 +1,15 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reports about code generation.
+"""Reports about code generation.
 
 Initially this is about missing optimization only, but it should expand into
 real stuff.
 """
 
-from nuitka import Options
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.States import states
 from nuitka.Tracing import code_generation_logger, optimization_logger
 
 _missing_helpers = OrderedDict()
@@ -83,7 +83,7 @@ def onMissingUnaryOperation(operation, shape):
 
 
 def onMissingTrust(operation, source_ref, *args):
-    if Options.report_missing_trust:
+    if states.report_missing_trust:
         key = (operation,) + args
 
         if key not in _missing_trust:

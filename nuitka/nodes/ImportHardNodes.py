@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes representing more trusted imports. """
+"""Nodes representing more trusted imports."""
 
 from nuitka.importing.Importing import (
     locateModule,
@@ -82,6 +82,11 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
             "import_name": self.import_name,
             "module_guaranteed": self.module_guaranteed,
         }
+
+    # TODO: Need to clean up the naming here, there are variants
+    @staticmethod
+    def isExpressionImportModuleNameHard():
+        return True
 
     @staticmethod
     def hasVeryTrustedValue():

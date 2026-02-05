@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Print nodes.
+"""Print nodes.
 
 Right now there is only the print statement, but in principle, there should
 also be the print function here. These perform output, which can be combined

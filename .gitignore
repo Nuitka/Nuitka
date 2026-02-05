@@ -1,3 +1,5 @@
+# spell-checker: disable
+
 *~
 *.DS_Store
 *.e4t
@@ -71,6 +73,7 @@ doxygen-*
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+.vscode/c_cpp_properties.json
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
 nuitka/build/inline_copy/downloads

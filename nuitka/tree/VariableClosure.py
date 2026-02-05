@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Variable closure taking.
+"""Variable closure taking.
 
 This is the completion of variable object completion. The variables were not
 immediately resolved to be bound to actual scopes, but are only now.
@@ -213,6 +213,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 variable.addVariableUser(provider)
 
+                if variable.isModuleVariable():
+                    if node.getParentVariableProvider() is not provider:
+                        node.getParentVariableProvider().addClosureVariable(variable)
+
                 node.parent.replaceChild(node, new_node)
 
             del node.parent
@@ -338,7 +342,8 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
     @staticmethod
     def _attachVariable(node, provider):
-        # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
+        # print("Late reference", node.getVariableName(), "for",
+        # provider.getCodeName(), "caused at", node, "of", node.getParent())
 
         variable_name = node.getVariableName()
 
@@ -346,24 +351,37 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
         # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 0x300 and provider.isExpressionFunctionBodyBase():
-            was_taken = provider.hasTakenVariable(variable_name)
-
-            if not was_taken and variable.getOwner() is not provider:
-                parent_provider = provider.getParentVariableProvider()
-
-                while parent_provider.isExpressionClassBodyBase():
-                    parent_provider = parent_provider.getParentVariableProvider()
-
+            if variable.getOwner() is not provider:
+                # Explicit globals are fine.
                 if (
-                    parent_provider.isExpressionFunctionBody()
-                    and parent_provider.isUnqualifiedExec()
+                    not variable.isModuleVariable()
+                    or not provider.hasProvidedVariable(variable_name)
+                    or variable.getOwner()
+                    is not provider.getProvidedVariable(variable_name).getOwner()
                 ):
-                    raiseSyntaxError(
-                        getErrorMessageExecWithNestedFunction()
-                        % parent_provider.getName(),
-                        node.getSourceReference(),
-                        display_line=False,  # Wrong line anyway
-                    )
+                    parent_provider = provider.getParentVariableProvider()
+
+                    while parent_provider.isExpressionClassBodyBase():
+                        parent_provider = parent_provider.getParentVariableProvider()
+
+                    if (
+                        parent_provider.isExpressionFunctionBody()
+                        and parent_provider.isUnqualifiedExec()
+                    ):
+                        raiseSyntaxError(
+                            getErrorMessageExecWithNestedFunction()
+                            % parent_provider.getName(),
+                            node.getSourceReference(),
+                            display_line=False,  # Wrong line anyway
+                        )
+
+        if variable.isModuleVariable():
+            owner = node.getParentVariableProvider()
+
+            while owner is not provider:
+                owner.addClosureVariable(variable)
+
+                owner = owner.getParentVariableProvider()
 
         return variable
 
@@ -414,6 +432,9 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
     Also, frame objects for functions should learn their variable names.
     """
 
+    def __init__(self, provider):
+        self.provider = provider
+
     def onEnterNode(self, node):
         if python_version < 0x300 and node.isStatementDelVariable():
             variable = node.getVariable()
@@ -425,9 +446,14 @@ can not delete variable '%s' referenced in nested scope"""
                     % (variable.getName()),
                     node.getSourceReference(),
                 )
-        elif node.isStatementsFrame():
+
+            return
+
+        if node.isStatementsFrame():
             node.updateLocalNames()
-        elif node.isExpressionFunctionBodyBase():
+            return
+
+        if node.isExpressionFunctionBodyBase():
             addFunctionVariableReleases(node)
 
             # Python3 is influenced by the mere use of a variable named as
@@ -441,23 +467,45 @@ can not delete variable '%s' referenced in nested scope"""
                     while node != class_var.getOwner():
                         node = node.getParentVariableProvider()
                         node.getLocalsScope().registerClosureVariable(class_var)
-        elif node.isStatementAssignmentVariableGeneric():
-            node.parent.replaceChild(
-                node,
-                makeStatementAssignmentVariable(
+
+            return
+
+        # Resolve generic assignments that are artifacts of delayed resolutions
+        # esp. of variable name lookups. Need to keep this in like with what
+        # makeStatementAssignmentVariable checks for.
+        if node.isStatementAssignmentVariableGeneric():
+            source = node.subnode_source
+
+            if (
+                source.isCompileTimeConstant()
+                or source.isExpressionVariableRefOrTempVariableRef()
+                or source.hasVeryTrustedValue()
+                or source.getTypeShape().isShapeIterator()
+            ):
+                new_node = makeStatementAssignmentVariable(
                     source=node.subnode_source,
                     variable=node.variable,
                     variable_version=node.variable_version,
                     source_ref=node.source_ref,
-                ),
-            )
+                )
+
+                assert (
+                    not new_node.isStatementAssignmentVariableGeneric()
+                ), node.source_ref
+
+                node.parent.replaceChild(
+                    node,
+                    new_node,
+                )
+
+                return
 
 
 def completeVariableClosures(tree):
     visitors = (
         VariableClosureLookupVisitorPhase1(),
         VariableClosureLookupVisitorPhase2(),
-        VariableClosureLookupVisitorPhase3(),
+        VariableClosureLookupVisitorPhase3(tree),
     )
 
     for visitor in visitors:

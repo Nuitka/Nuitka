@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with compiled asyncgen objects.
-
-"""
+"""Code to generate and interact with compiled asyncgen objects."""
 
 from .CodeHelpers import generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectAccessCode
@@ -19,7 +17,7 @@ from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
-    template_asyncgen_noexception_exit,
+    template_asyncgen_no_exception_exit,
     template_asyncgen_object_body,
     template_asyncgen_object_maker_template,
     template_asyncgen_return_exit,
@@ -90,7 +88,7 @@ def getAsyncgenObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_asyncgen_noexception_exit % {
+        generator_exit = template_asyncgen_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 
@@ -163,7 +161,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
                 asyncgen_object_body.getCodeName()
             ),
             "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy, 0, True),
+            "closure_copy": indented(closure_copy),
         }
     )
 

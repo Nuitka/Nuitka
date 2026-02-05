@@ -1,11 +1,9 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to make dill module work for compiled stuff.
+"""Standard plug-in to make dill module work for compiled stuff."""
 
-"""
-
-from nuitka.Options import shallMakeModule
+from nuitka.options.Options import shallMakeModule
 from nuitka.plugins.PluginBase import (
     NuitkaNamespaceDetectorPluginBase,
     NuitkaPluginBase,
@@ -16,7 +14,7 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     """This is to make dill/ray/cloudpickle modules work with compiled methods."""
 
     plugin_name = "dill-compat"
-    plugin_desc = "Required for 'dill' package and 'cloudpickle' compatibility."
+    plugin_desc = "Required by 'dill' and 'cloudpickle' packages."
     plugin_category = "package-support"
 
     pickle_package_names = ("dill", "cloudpickle", "ray")

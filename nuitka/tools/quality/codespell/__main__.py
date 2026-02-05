@@ -2,19 +2,22 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for codespell checker tool.
-
-"""
+"""Main program for codespell checker tool."""
 
 import os
+import re
 import sys
-from optparse import OptionParser
 
+from nuitka.format.FileFormatting import cleanupWindowsNewlines
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
-from nuitka.tools.quality.auto_format.AutoFormat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
-from nuitka.utils.Execution import callProcess, check_output, getExecutablePath
+from nuitka.utils.Execution import (
+    callProcessChunked,
+    check_output,
+    getExecutablePath,
+)
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
@@ -27,6 +30,50 @@ replacements = [
     ("developer manual", "Developer Manual"),
     ("user manual", "User Manual"),
 ]
+
+
+def _isSpellcheckerIgnoringFile(filename):
+    return "spell-checker: disable" in getFileContents(filename)
+
+
+def _isGeneratedFile(contents):
+    for line in contents.splitlines()[:20]:
+        if "WARNING, this code is GENERATED" in line:
+            return True
+    return False
+
+
+def _checkIgnoreWords(contents):
+    ignored_words = []
+    lines = contents.splitlines()
+    clean_lines = []
+
+    for line in lines:
+        match = re.search(r"spell-checker:\s*ignore\s+(.*)", line)
+        if match:
+            # Add words found to the list of ignored words, we need to check matches
+            # for them.
+            words = match.group(1).replace(",", " ").split()
+            ignored_words.extend(words)
+
+            # verify if the word is present in the file, checking the line too, but
+            # ignoring the command itself.
+            line = line[: match.start()] + line[match.end() :]
+
+        clean_lines.append(line)
+
+    if not ignored_words:
+        return []
+
+    clean_content = "\n".join(clean_lines).lower()
+
+    unused = []
+    for word in ignored_words:
+        # Check if the word is present in the file, as a substring (e.g. CamelCase).
+        if word.lower() not in clean_content:
+            unused.append(word)
+
+    return unused
 
 
 def runCodespell(filenames, verbose, write):
@@ -63,9 +110,14 @@ def runCodespell(filenames, verbose, write):
 
     if write:
         command.append("-w")
-    command += filenames
 
-    result = callProcess(command, logger=tools_logger if verbose else None)
+    result = callProcessChunked(
+        command, filenames, logger=tools_logger if verbose else None
+    )
+
+    # Check for unnecessary ignores, but only if the file is cleanly passing
+    # codespell check itself.
+    found_superfluous_ignores = False
 
     if result == 0:
         for filename in filenames:
@@ -73,8 +125,18 @@ def runCodespell(filenames, verbose, write):
                 continue
 
             contents = getFileContents(filename)
-            old_contents = contents
 
+            if not _isGeneratedFile(contents):
+                unused_ignores = _checkIgnoreWords(contents)
+
+                if unused_ignores:
+                    my_print(
+                        "%s: Error, unused ignore words: %s"
+                        % (filename, ",".join(unused_ignores))
+                    )
+                    found_superfluous_ignores = True
+
+            old_contents = contents
             for word, replacement in replacements:
                 contents = contents.replace(word, replacement)
                 contents = contents.replace(word.title(), replacement.title())
@@ -83,11 +145,11 @@ def runCodespell(filenames, verbose, write):
                 putTextFileContents(filename, contents)
                 cleanupWindowsNewlines(filename, filename)
 
-    return result == 0
+    return result == 0 and not found_superfluous_ignores
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage="%prog [options]", epilog=None)
 
     parser.add_option(
         "--verbose",
@@ -136,6 +198,10 @@ def main():
             ignore_list=("get-pip-2.6.py",),
         )
     )
+
+    filenames = [
+        filename for filename in filenames if not _isSpellcheckerIgnoringFile(filename)
+    ]
     if not filenames:
         sys.exit("No files found.")
 

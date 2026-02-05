@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack and copy files for standalone mode.
+"""Pack and copy files for standalone mode.
 
 This is expected to work for macOS, Windows, and Linux. Other things like
 FreeBSD are also very welcome, but might break with time and need your
@@ -17,13 +17,17 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.Options import (
+from nuitka.options.Options import (
     isShowProgress,
     shallCreateAppBundle,
     shallNotStoreDependsExeCachedResults,
     shallNotUseDependsExeCachedResults,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    decideAllowOutsideDependencies,
+    onCopiedDLLs,
+    removeDllDependencies,
+)
 from nuitka.Progress import (
     closeProgressBar,
     reportProgressBar,
@@ -34,8 +38,8 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -43,7 +47,7 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
-    getNormalizedPath,
+    getNormalizedPathJoin,
     isFilenameBelowPath,
     makePath,
     relpath,
@@ -52,7 +56,6 @@ from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
-    getMSVCRedistPath,
     getOS,
     isDebianBasedLinux,
     isMacOS,
@@ -66,13 +69,17 @@ from .DllDependenciesMacOS import (
     fixupBinaryDLLPathsMacOS,
 )
 from .DllDependenciesPosix import detectBinaryPathDLLsPosix
-from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
+from .DllDependenciesWin32 import (
+    detectBinaryPathDLLsWin32,
+    shallIncludeVCRedistDLL,
+)
 from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
     getStandaloneEntryPointForSourceFile,
     makeDllEntryPoint,
 )
+from .MacOSApp import createEntitlementsInfoFile
 
 
 def checkFreezingModuleSet():
@@ -140,7 +147,7 @@ def _detectBinaryDLLs(
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if is_main_executable and isNuitkaPython():
+    if is_main_executable and isMonolithPy():
         return OrderedSet()
     elif (
         getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD", "AIX") or isPosixWindows()
@@ -152,7 +159,9 @@ def _detectBinaryDLLs(
         )
     elif isWin32Windows():
         with TimerReport(
-            message="Running 'depends.exe' for %s took %%.2f seconds" % binary_filename,
+            logger=inclusion_logger,
+            message="Detecting dependencies for %s took %%.2f seconds"
+            % binary_filename,
             decider=isShowProgress,
         ):
             return detectBinaryPathDLLsWin32(
@@ -188,12 +197,13 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         standalone_entry_point
         for standalone_entry_point in standalone_entry_points[1:]
         if not standalone_entry_point.kind.endswith("_ignored")
+        if "copy" in standalone_entry_point.tags
     ]
     main_standalone_entry_point = standalone_entry_points[0]
 
     if isMacOS():
         fixupBinaryDLLPathsMacOS(
-            binary_filename=os.path.join(
+            binary_filename=getNormalizedPathJoin(
                 dist_dir, main_standalone_entry_point.dest_path
             ),
             package_name=main_standalone_entry_point.package_name,
@@ -204,7 +214,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     # After dependency detection, we can change the RPATH for main binary.
     if isRPathUsingPlatform():
         setSharedLibraryRPATH(
-            os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
+            getNormalizedPathJoin(dist_dir, standalone_entry_points[0].dest_path),
+            "$ORIGIN",
         )
 
     setupProgressBar(
@@ -226,7 +237,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
         if isMacOS():
             fixupBinaryDLLPathsMacOS(
-                binary_filename=os.path.join(
+                binary_filename=getNormalizedPathJoin(
                     dist_dir, standalone_entry_point.dest_path
                 ),
                 package_name=standalone_entry_point.package_name,
@@ -236,7 +247,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
-    Plugins.onCopiedDLLs(
+    onCopiedDLLs(
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
     )
@@ -268,8 +279,8 @@ def signDistributionMacOS(
         return path
 
     if shallCreateAppBundle():
-        app_path = getNormalizedPath(os.path.join(dist_dir, "..", ".."))
-        resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
+        app_path = getNormalizedPathJoin(dist_dir, "..", "..")
+        resources_dir = getNormalizedPathJoin(dist_dir, "..", "Resources")
 
         def getNotSignableDirectoryPart(filename):
             result = []
@@ -294,8 +305,8 @@ def signDistributionMacOS(
                 continue
 
             filename = not_signable_part[len("Contents/MacOS/") :]
-            not_signable_path = os.path.join(app_path, not_signable_part)
-            resources_path = os.path.join(resources_dir, filename)
+            not_signable_path = getNormalizedPathJoin(app_path, not_signable_part)
+            resources_path = getNormalizedPathJoin(resources_dir, filename)
 
             if resources_path in symlinks:
                 continue
@@ -303,9 +314,9 @@ def signDistributionMacOS(
             makePath(os.path.dirname(resources_path))
             os.rename(not_signable_path, resources_path)
 
-            symlink_target = os.path.join("..", "Resources", filename)
+            symlink_target = getNormalizedPathJoin("..", "Resources", filename)
             for _i in range(filename.count("/")):
-                symlink_target = os.path.join("..", symlink_target)
+                symlink_target = getNormalizedPathJoin("..", symlink_target)
 
             os.symlink(symlink_target, not_signable_path)
 
@@ -316,12 +327,13 @@ def signDistributionMacOS(
         filenames=[
             _translatePath(filename)
             for filename in [
-                os.path.join(dist_dir, standalone_entry_point.dest_path)
+                getNormalizedPathJoin(dist_dir, standalone_entry_point.dest_path)
                 for standalone_entry_point in [main_standalone_entry_point]
                 + copy_standalone_entry_points
             ]
             + data_file_paths
-        ]
+        ],
+        entitlements_filename=createEntitlementsInfoFile(),
     )
 
 
@@ -331,7 +343,6 @@ _excluded_system_dlls = set()
 def _reduceToPythonPath(used_dll_paths):
     """Remove DLLs outside of python path unless they are found in the MSVC Redist folder."""
     inside_paths = getPythonUnpackedSearchPath()
-    vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
@@ -343,7 +354,7 @@ def _reduceToPythonPath(used_dll_paths):
         inside_paths.insert(0, getHomebrewInstallPath())
 
     if isMSYS2MingwPython():
-        inside_paths.insert(0, os.path.join(getSystemPrefixPath(), "bin"))
+        inside_paths.insert(0, getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
 
     def decideInside(dll_filename):
         return any(
@@ -351,17 +362,14 @@ def _reduceToPythonPath(used_dll_paths):
             for inside_path in inside_paths
         )
 
+    def decideMsvcRedistDll(dll_filename):
+        return isWin32Windows() and shallIncludeVCRedistDLL(dll_filename)
+
     kept_used_dll_paths = OrderedSet()
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        is_from_vc_redist = False
-        if vc_redist_path:
-            is_from_vc_redist = isFilenameBelowPath(
-                path=vc_redist_path, filename=dll_filename
-            )
-
-        if decideInside(dll_filename) or is_from_vc_redist:
+        if decideInside(dll_filename) or decideMsvcRedistDll(dll_filename):
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
@@ -394,7 +402,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         ):
             allow_outside_dependencies = True
         else:
-            allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+            allow_outside_dependencies = decideAllowOutsideDependencies(
                 standalone_entry_point.module_name
             )
     else:
@@ -442,7 +450,9 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
             assert finding == "absolute", standalone_entry_point.module_name
 
             if not allow_outside_dependencies:
-                used_dll_paths, removed_dll_paths = _reduceToPythonPath(used_dll_paths)
+                used_dll_paths, removed_dll_paths = _reduceToPythonPath(
+                    used_dll_paths=used_dll_paths
+                )
 
                 if removed_dll_paths:
                     _removed_dll_usages[standalone_entry_point] = (
@@ -456,7 +466,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
 
         # Allow plugins can prevent inclusion, this may discard things from
         # used_dlls through its return value.
-        removed_dlls = Plugins.removeDllDependencies(
+        removed_dlls = removeDllDependencies(
             dll_filename=binary_filename, dll_filenames=OrderedSet(used_dll_paths)
         )
         used_dll_paths = used_dll_paths - removed_dlls
@@ -481,11 +491,9 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                 # where required that way (openvino) or known to be good only (av),
                 # because it broke other things. spell-checker: ignore openvino
 
-                dest_path = getNormalizedPath(
-                    os.path.join(
-                        os.path.dirname(standalone_entry_point.dest_path),
-                        os.path.basename(used_dll_path),
-                    )
+                dest_path = getNormalizedPathJoin(
+                    os.path.dirname(standalone_entry_point.dest_path),
+                    os.path.basename(used_dll_path),
                 )
             else:
                 existing_entry_point = getStandaloneEntryPointForSourceFile(

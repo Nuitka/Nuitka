@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for constants in Nuitka.
+"""Module for constants in Nuitka.
 
 This contains tools to compare, classify and test constants.
 """
@@ -333,6 +333,19 @@ def isCompileTimeConstantValue(value):
         return True
     else:
         return False
+
+
+if python_version < 0x3C0:
+
+    def isConstantImmortal(value):
+        # Not happening before 3.12, pylint: disable=unused-argument
+        return False
+
+else:
+
+    def isConstantImmortal(value):
+        # TODO: Add way more than these few ones.
+        return value in (True, False, None)
 
 
 # Shared empty values, it would cost time to create them locally.

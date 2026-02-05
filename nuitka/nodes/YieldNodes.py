@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Yield node.
+"""Yield node.
 
 The yield node returns to the caller of the generator and therefore may execute
 absolutely arbitrary code, from the point of view of this code. It then returns

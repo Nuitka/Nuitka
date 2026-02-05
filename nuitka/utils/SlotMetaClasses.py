@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Helper for portable metaclasses that do checks. """
+"""Helper for portable metaclasses that do checks."""
 
 from abc import ABCMeta
 

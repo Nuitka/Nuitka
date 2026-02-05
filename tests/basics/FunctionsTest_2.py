@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Various kinds of functions definitions with Python2 only features.
+"""Various kinds of functions definitions with Python2 only features.
 
 Esp. nested arguments are no longer allowed in Python3 and covered here
 to make sure they are not forgotten.

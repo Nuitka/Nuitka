@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Coroutines function (await/async) related templates.
-
-"""
+"""Coroutines function (await/async) related templates."""
 
 template_coroutine_object_maker = """\
 static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s);
@@ -73,7 +71,7 @@ template_coroutine_exception_exit = """\
     return NULL;
 """
 
-template_coroutine_noexception_exit = """\
+template_coroutine_no_exception_exit = """\
     NUITKA_CANNOT_GET_HERE("Return statement must be present");
 
 %(function_cleanup)s

@@ -1,13 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka templates can have more checks that the normal '%' operation.
+"""Nuitka templates can have more checks that the normal '%' operation.
 
 This wraps strings with a class derived from "str" that does more checks.
 """
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger
 
 
@@ -60,7 +60,7 @@ def enableDebug(globals_dict):
 
 
 def checkDebug(globals_dict):
-    if Options.is_debug:
+    if states.is_debug:
         enableDebug(globals_dict)
 
 

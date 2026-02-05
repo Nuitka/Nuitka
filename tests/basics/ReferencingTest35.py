@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reference counting tests for features of Python3.5 or higher.
+"""Reference counting tests for features of Python3.5 or higher.
 
 These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and
@@ -179,8 +179,14 @@ async def run():
     await execute()
 
 
+try:
+    event_loop = asyncio.new_event_loop()
+except RuntimeError:
+    event_loop = asyncio.get_event_loop()
+
+
 def simpleFunction10():
-    asyncio.get_event_loop().run_until_complete(run())
+    event_loop.run_until_complete(run())
 
 
 def simpleFunction11():

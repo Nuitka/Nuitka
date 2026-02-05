@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for named variable reference, assignment, and deletion
+"""Nodes for named variable reference, assignment, and deletion
 
 x = ...
 del x

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Directories and paths to for output of Nuitka.
+"""Directories and paths to for output of Nuitka.
 
 There are two major outputs, the build directory *.build and for
 standalone mode, the *.dist folder.
@@ -12,7 +12,7 @@ this.
 
 import os
 
-from nuitka.Options import (
+from nuitka.options.Options import (
     getOutputFilename,
     getOutputFolderName,
     getOutputPath,
@@ -28,6 +28,7 @@ from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
     getNormalizedPath,
+    getNormalizedPathJoin,
     hasFilenameExtension,
     isFilesystemEncodable,
     makePath,
@@ -40,6 +41,17 @@ from nuitka.utils.SharedLibraries import getDllSuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
 _main_module = None
+
+
+def _getResultBaseName(suffix):
+    # If the user specified a build basename, we use that.
+    build_basename = getOutputFolderName()
+    if build_basename:
+        return build_basename + suffix
+
+    return os.path.basename(
+        getTreeFilenameWithSuffix(module=_main_module, suffix=suffix)
+    )
 
 
 def setMainModule(main_module):
@@ -61,9 +73,7 @@ def getMainModule():
     return _main_module
 
 
-# TODO: This is for compatibility for the hotfix, after Nuitka 2.8 release we can
-# and should remove this.
-def getSourceDirectoryPath(onefile=False, create=False):
+def getSourceDirectoryPath(onefile, create):
     """Return path inside the build directory."""
 
     # Distinct build folders for onefile mode.
@@ -72,17 +82,17 @@ def getSourceDirectoryPath(onefile=False, create=False):
     else:
         suffix = ".build"
 
-    filename = os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
+    filename = _getResultBaseName(suffix=suffix)
 
-    if isWin32Windows() and not isFilesystemEncodable(filename):
+    if isWin32Windows() and not isFilesystemEncodable(filename=filename):
         filename = "_nuitka_temp" + suffix
 
     result = getOutputPath(path=filename)
 
     if create:
-        makePath(result)
+        makePath(path=result)
 
-        git_ignore_filename = os.path.join(result, ".gitignore")
+        git_ignore_filename = getNormalizedPathJoin(result, ".gitignore")
 
         if not os.path.exists(git_ignore_filename):
             putTextFileContents(filename=git_ignore_filename, contents="*")
@@ -103,16 +113,18 @@ def _getActualOutputFolderName(bundle):
     dist_folder_name = getOutputFolderName()
 
     if dist_folder_name is None:
-        dist_folder_name = os.path.basename(
-            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
+        dist_folder_name = _getResultBaseName(
+            suffix=_getStandaloneDistSuffix(bundle=bundle)
         )
     else:
         # Add the suffix if not provided by the user
-        standalone_dist_suffix = _getStandaloneDistSuffix(bundle)
+        standalone_dist_suffix = _getStandaloneDistSuffix(bundle=bundle)
 
-        if not hasFilenameExtension(dist_folder_name, standalone_dist_suffix):
+        if not hasFilenameExtension(
+            path=dist_folder_name, extensions=standalone_dist_suffix
+        ):
             dist_folder_name = changeFilenameExtension(
-                dist_folder_name, standalone_dist_suffix
+                path=dist_folder_name, extension=standalone_dist_suffix
             )
 
     return dist_folder_name
@@ -120,7 +132,7 @@ def _getActualOutputFolderName(bundle):
 
 def needsStandaloneDirectoryWorkaround():
     return isWin32Windows() and not isFilesystemEncodable(
-        _getActualOutputFolderName(bundle=False)
+        filename=_getActualOutputFolderName(bundle=False)
     )
 
 
@@ -135,7 +147,7 @@ def getStandaloneDirectoryPath(bundle, real):
     result = getOutputPath(path=dist_folder_name)
 
     if bundle and shallCreateAppBundle() and not isOnefileMode():
-        result = os.path.join(result, "Contents", "MacOS")
+        result = getNormalizedPathJoin(result, "Contents", "MacOS")
 
     return result
 
@@ -143,14 +155,22 @@ def getStandaloneDirectoryPath(bundle, real):
 def initStandaloneDirectory(logger):
     """Reset the standalone directory, if it exists from a previous run."""
     standalone_dir = getStandaloneDirectoryPath(bundle=False, real=False)
+    standalone_dir_real = getStandaloneDirectoryPath(bundle=False, real=True)
+
+    if shallCreateAppBundle():
+        resetDirectory(
+            path=changeFilenameExtension(standalone_dir_real, ".app"),
+            logger=logger,
+            ignore_errors=True,
+            extra_recommendation="Stop previous binary.",
+        )
+
     resetDirectory(
         path=standalone_dir,
         logger=logger,
         ignore_errors=True,
         extra_recommendation="Stop previous binary.",
     )
-
-    standalone_dir_real = getStandaloneDirectoryPath(bundle=False, real=True)
 
     if standalone_dir != standalone_dir_real:
         removeDirectory(
@@ -159,14 +179,6 @@ def initStandaloneDirectory(logger):
             ignore_errors=True,
             extra_recommendation="Stop previous binary.",
         )
-
-        if shallCreateAppBundle():
-            resetDirectory(
-                path=changeFilenameExtension(standalone_dir_real, ".app"),
-                logger=logger,
-                ignore_errors=True,
-                extra_recommendation=None,
-            )
 
 
 def renameStandaloneDirectory(dist_dir):
@@ -180,15 +192,17 @@ def renameStandaloneDirectory(dist_dir):
 
 
 def getResultBasePath(onefile=False, real=False):
-    file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+    file_path = _getResultBaseName(suffix="")
 
     if isOnefileMode() and onefile:
         if shallCreateAppBundle():
-            file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
+            file_path = getNormalizedPathJoin(
+                file_path + ".app", "Contents", "MacOS", file_path
+            )
 
         return getOutputPath(path=file_path)
     elif isStandaloneMode() and not onefile:
-        return os.path.join(
+        return getNormalizedPathJoin(
             getStandaloneDirectoryPath(bundle=True, real=real),
             file_path,
         )
@@ -212,29 +226,29 @@ def getResultFullpath(onefile, real):
 
         if isOnefileMode() and output_filename is not None:
             if onefile:
-                result = getOutputPath(output_filename)
+                result = getOutputPath(path=output_filename)
             else:
-                result = os.path.join(
+                result = getNormalizedPathJoin(
                     getStandaloneDirectoryPath(bundle=True, real=real),
                     os.path.basename(output_filename),
                 )
         elif isStandaloneMode() and output_filename is not None:
-            result = os.path.join(
+            result = getNormalizedPathJoin(
                 getStandaloneDirectoryPath(bundle=True, real=real),
                 os.path.basename(output_filename),
             )
         elif output_filename is not None:
-            result = getOutputPath(output_filename)
+            result = getOutputPath(path=output_filename)
         elif not isWin32OrPosixWindows() and not shallCreateAppBundle():
-            result = addFilenameExtension(result, ".bin")
+            result = addFilenameExtension(path=result, extension=".bin")
 
         if isWin32OrPosixWindows():
-            result = addFilenameExtension(result, ".exe")
+            result = addFilenameExtension(path=result, extension=".exe")
 
         if not isWin32OrPosixWindows() and isOnefileMode() and not onefile:
-            result = addFilenameExtension(result, ".bin")
+            result = addFilenameExtension(path=result, extension=".bin")
 
-    return getNormalizedPath(result)
+    return getNormalizedPath(path=result)
 
 
 def getResultRunFilename(onefile):
@@ -242,8 +256,8 @@ def getResultRunFilename(onefile):
 
     if shallCreateScriptFileForExecution():
         result = changeFilenameExtension(
-            result,
-            ".cmd" if isWin32Windows() else ".sh",
+            path=result,
+            extension=".cmd" if isWin32Windows() else ".sh",
         )
 
     return result

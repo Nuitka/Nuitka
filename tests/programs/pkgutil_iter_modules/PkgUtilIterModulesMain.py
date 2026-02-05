@@ -1,10 +1,18 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Test to check if pkgutil.iter_modules works with compiled packages properly."""
+
 from __future__ import print_function
 
 import importlib
 import pkgutil
+
+# isort:start
+
+# Tests are dirty on purpose.
+#
+# pylint: disable=unused-import
 
 import some_package.sub_package1.SomeModuleC
 import some_package.sub_package1.SomeModuleD

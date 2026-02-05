@@ -1,12 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for classes and their creations.
+"""Nodes for classes and their creations.
 
 The classes are are at the core of the language and have their complexities.
 
 """
 
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import (
@@ -23,7 +24,7 @@ from .OutlineNodes import ExpressionOutlineFunctionBase
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
-    __slots__ = ("doc",)
+    __slots__ = ("doc", "locals_scope")
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunctionBase.__init__(
@@ -122,7 +123,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
-    __slots__ = ("needs_annotations_dict", "qualname_setup")
+    __slots__ = ("needs_annotations_dict", "qualname_setup", "static_attributes")
 
     # Force creation with proper type.
     locals_kind = "python_mapping_class"
@@ -139,6 +140,13 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
         MarkNeedsAnnotationsMixin.__init__(self)
 
         self.qualname_setup = None
+        self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
+
+    def addStaticAttribute(self, static_attribute):
+        self.static_attributes.add(static_attribute)
+
+    def getStaticAttributes(self):
+        return tuple(self.static_attributes)
 
 
 class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBase):
@@ -238,6 +246,7 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
         # Need to use private CPython API unless we want to re-implement it, pylint: disable=protected-access
         import ctypes
 
+        # spell-checker: ignore pythonapi
         ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = (
             ctypes.py_object,
             ctypes.py_object,
@@ -257,7 +266,7 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
     def computeExpression(self, trace_collection):
         # TODO: Can use this to specialize to the correct metaclass at compile
         # time.
-        # metacls = self._calculateMetaClass()
+        # meta_class = self._calculateMetaClass()
 
         # TODO: Should be compile time computable if bases and dict are
         # allowing that to happen into a dedicated class creation node,

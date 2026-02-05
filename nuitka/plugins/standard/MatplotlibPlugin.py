@@ -1,11 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Matplotlib standard plugin module. """
+"""Matplotlib standard plugin module."""
 
 import os
 
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import (
     getActiveQtPlugin,
@@ -34,7 +34,7 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
     """
 
     plugin_name = "matplotlib"  # Nuitka knows us by this name
-    plugin_desc = "Required for 'matplotlib' module."
+    plugin_desc = "Required by 'matplotlib' package."
     plugin_category = "package-support"
 
     @staticmethod

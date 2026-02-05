@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Expression base classes.
+"""Expression base classes.
 
 These classes provide the generic base classes available for
 expressions. They have a richer interface, mostly related to
@@ -11,13 +11,13 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
-from nuitka import Options
 from nuitka.__past__ import long
 
 # TODO: Probably should separate building reports out.
 from nuitka.code_generation.Reports import onMissingOverload
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .ChildrenHavingMixins import ChildHavingValueMixin
 from .NodeBases import NodeBase
@@ -153,7 +153,7 @@ class ExpressionBase(NodeBase):
 
     @staticmethod
     def extractUnhashableNodeType():
-        """Return the value type that is not hashable, if isKnowtoBeHashable() returns False."""
+        """Return the value type that is not hashable, if isKnownToBeHashable() returns False."""
 
         # Not available by default.
         return None
@@ -181,6 +181,11 @@ class ExpressionBase(NodeBase):
             evaluated first, but this allows e.g. to deal with branches, do
             not overload this unless necessary.
         """
+
+    @staticmethod
+    def undoComputeExpressionRaw(trace_collection):
+        # Virtual method
+        pass
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
@@ -500,7 +505,7 @@ class ExpressionBase(NodeBase):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 (
                     "float() argument must be a string or a number"
-                    if Options.is_full_compat and python_version < 0x300
+                    if states.is_full_compat and python_version < 0x300
                     else "float() argument must be a string or a number, not '%s'"
                 ),
                 operation="long",
@@ -556,7 +561,7 @@ class ExpressionBase(NodeBase):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 (
                     "complex() argument must be a string or a number"
-                    if Options.is_full_compat and python_version < 0x300
+                    if states.is_full_compat and python_version < 0x300
                     else "complex() argument must be a string or a number, not '%s'"
                 ),
                 operation="complex",
@@ -688,10 +693,13 @@ class ExpressionBase(NodeBase):
 
     def computeExpressionDrop(self, statement, trace_collection):
         if not self.mayHaveSideEffects():
+            self.undoComputeExpressionRaw(trace_collection)
+
             return (
                 None,
                 "new_statements",
-                lambda: "Removed %s without effect." % self.getDescription(),
+                lambda: "Removed expression '%s' without effect."
+                % self.getDescription(),
             )
 
         return statement, None, None
@@ -865,7 +873,7 @@ class ExpressionBase(NodeBase):
 
         # We want to have them all overloaded, so lets report cases where that
         # has not been happening.
-        if Options.is_debug:
+        if states.is_debug:
             onMissingOverload(method_name="getExpressionDictInConstant", node=self)
 
         return None

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for functions and their creations.
+"""Nodes for functions and their creations.
 
 Lambdas are functions too. The functions are at the core of the language and
 have their complexities.
@@ -18,9 +18,9 @@ classes.
 import inspect
 import re
 
-from nuitka import Options, Variables
 from nuitka.Constants import isMutable
 from nuitka.optimizations.TraceCollections import (
+    TraceCollectionFunction,
     TraceCollectionPureFunction,
     withChangeIndicationsTo,
 )
@@ -30,17 +30,19 @@ from nuitka.specs.ParameterSpecs import (
     TooManyArguments,
     matchCall,
 )
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
+from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
+    ChildrenHavingDefaultsTupleFunctionRefMixin,
     ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
     ChildrenHavingFunctionValuesTupleMixin,
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
 )
 from .CodeObjectSpecs import CodeObjectSpec
 from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
@@ -80,7 +82,7 @@ class ExpressionFunctionBodyBase(
         "name",
         "code_prefix",
         "code_name",
-        "uids",
+        "uuids",
         "temp_variables",
         "temp_scopes",
         "preserver_id",
@@ -104,7 +106,11 @@ class ExpressionFunctionBodyBase(
 
         ClosureTakerMixin.__init__(self, provider=provider)
 
-        ClosureGiverNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+        ClosureGiverNodeMixin.__init__(
+            self,
+            name=name,
+            code_prefix=code_prefix,
+        )
 
         ExpressionBase.__init__(self, source_ref)
 
@@ -223,6 +229,11 @@ class ExpressionFunctionBodyBase(
 
         self.code_object.removeFreeVarname(variable.getName())
 
+    def removeModuleVariable(self, variable):
+        assert variable.isModuleVariable()
+
+        self.taken.remove(variable)
+
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -230,19 +241,18 @@ class ExpressionFunctionBodyBase(
 
         assert variable.getOwner() is not self
 
-        new_variable = Variables.LocalVariable(
-            owner=self, variable_name=variable.getName()
-        )
-        for variable_trace in variable.traces:
-            if variable_trace.getOwner() is self:
-                new_variable.addTrace(variable_trace)
-        new_variable.updateUsageState()
+        new_variable = LocalVariable(owner=self, variable_name=variable.getName())
+        if self in variable.traces:
+            new_variable.setTracesForUserFirst(self, variable.traces[self])
 
         self.locals_scope.unregisterClosureVariable(variable)
         self.locals_scope.registerProvidedVariable(new_variable)
 
         updateVariableUsage(
-            provider=self, old_variable=variable, new_variable=new_variable
+            provider=self,
+            old_locals_scope=None,
+            new_locals_scope=None,
+            variable_translations={variable: new_variable},
         )
 
     def hasClosureVariable(self, variable):
@@ -268,7 +278,10 @@ class ExpressionFunctionBodyBase(
 
             # Remember that we need that closure variable for something, so
             # we don't create it again all the time.
-            if not result.isModuleVariable():
+            # TODO: Why is this done inconsistently in function or locals scope.
+            if result.isModuleVariable():
+                self.addClosureVariable(result)
+            else:
                 self.locals_scope.registerClosureVariable(result)
 
             entry_point = self.getEntryPoint()
@@ -378,7 +391,8 @@ class ExpressionFunctionBodyBase(
     def optimizeUnusedClosureVariables(self):
         """Gets called once module is complete, to consider giving up on closure variables."""
 
-        changed = False
+        # TODO: Use "self" in the future avoiding this uncertainty
+        assert self.trace_collection.owner is self
 
         for closure_variable in self.getClosureVariables():
             # Need to take closure of those either way
@@ -388,11 +402,7 @@ class ExpressionFunctionBodyBase(
             ):
                 continue
 
-            empty = self.trace_collection.hasEmptyTraces(closure_variable)
-
-            if empty:
-                changed = True
-
+            if closure_variable.hasEmptyTracesFor(self.trace_collection.owner):
                 self.trace_collection.signalChange(
                     "var_usage",
                     self.source_ref,
@@ -402,11 +412,25 @@ class ExpressionFunctionBodyBase(
 
                 self.removeClosureVariable(closure_variable)
 
-        return changed
+    def optimizeVeryHardHardModuleVariables(self, very_trusted_module_variables):
+        """Optimize module variables that are very trusted."""
+
+        for module_variable in very_trusted_module_variables:
+            if module_variable not in self.taken:
+                continue
+
+            self.trace_collection.signalChange(
+                "var_usage",
+                self.source_ref,
+                message="Remove unused module variable '%s'."
+                % module_variable.getName(),
+            )
+
+            self.removeModuleVariable(module_variable)
 
     def optimizeVariableReleases(self):
         for parameter_variable in self.getParameterVariablesWithManualRelease():
-            read_only = self.trace_collection.hasReadOnlyTraces(parameter_variable)
+            read_only = parameter_variable.hasNoWritingTraces()
 
             if read_only:
                 self.trace_collection.signalChange(
@@ -467,18 +491,16 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         return self.getFunctionQualname() + ".<locals>." + function_name
 
     def computeFunctionRaw(self, trace_collection):
-        from nuitka.optimizations.TraceCollections import (
-            TraceCollectionFunction,
-        )
-
         trace_collection = TraceCollectionFunction(
-            parent=trace_collection, function_body=self
+            parent=trace_collection,
+            function_body=self,
+            old_collection=self.trace_collection,
         )
         old_collection = self.setTraceCollection(trace_collection)
 
         self.computeFunction(trace_collection)
 
-        trace_collection.updateVariablesFromCollection(old_collection, self.source_ref)
+        updateVariablesFromCollection(old_collection, trace_collection, self.source_ref)
 
     def computeFunction(self, trace_collection):
         statements_sequence = self.subnode_body
@@ -498,6 +520,8 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
             if result is not statements_sequence:
                 self.setChildBody(result)
+
+        self.trace_collection.performDelayedWork()
 
     def removeVariableReleases(self, variable):
         assert variable in self.locals_scope.providing.values(), (self, variable)
@@ -803,7 +827,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             return
 
         def mySignal(tag, source_ref, change_desc):
-            if Options.is_verbose:
+            if states.is_verbose:
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),
@@ -821,14 +845,16 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         tags = set()
 
         while 1:
-            trace_collection = TraceCollectionPureFunction(function_body=self)
+            trace_collection = TraceCollectionPureFunction(
+                function_body=self, old_collection=self.trace_collection
+            )
             old_collection = self.setTraceCollection(trace_collection)
 
             with withChangeIndicationsTo(mySignal):
                 self.computeFunction(trace_collection)
 
-            trace_collection.updateVariablesFromCollection(
-                old_collection, self.source_ref
+            updateVariablesFromCollection(
+                old_collection, trace_collection, self.source_ref
             )
 
             if tags:
@@ -857,13 +883,20 @@ def makeExpressionFunctionCreation(
 
     assert function_ref.isExpressionFunctionRef()
 
-    return ExpressionFunctionCreation(
-        function_ref=function_ref,
-        defaults=defaults,
-        kw_defaults=kw_defaults,
-        annotations=annotations,
-        source_ref=source_ref,
-    )
+    if python_version < 0x300:
+        return ExpressionFunctionCreationOld(
+            function_ref=function_ref,
+            defaults=defaults,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionFunctionCreation(
+            function_ref=function_ref,
+            defaults=defaults,
+            kw_defaults=kw_defaults,
+            annotations=annotations,
+            source_ref=source_ref,
+        )
 
 
 class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
@@ -1024,7 +1057,7 @@ error"""
 
 class ExpressionFunctionCreationOld(
     ExpressionFunctionCreationMixin,
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
+    ChildrenHavingDefaultsTupleFunctionRefMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_FUNCTION_CREATION_OLD"
@@ -1038,21 +1071,21 @@ class ExpressionFunctionCreationOld(
     # code generation to detect which one is used. bugs.python.org/issue16967
     kw_defaults_before_defaults = True
 
+    # So the can share code generation with the new version.
+    subnode_annotations = None
+    subnode_kw_defaults = None
+
     named_children = (
-        "kw_defaults|optional",
         "defaults|tuple",
-        "annotations|optional",
         "function_ref",
     )
 
     __slots__ = ("variable_closure_traces",)
 
-    def __init__(self, kw_defaults, defaults, annotations, function_ref, source_ref):
-        ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin.__init__(
+    def __init__(self, defaults, function_ref, source_ref):
+        ChildrenHavingDefaultsTupleFunctionRefMixin.__init__(
             self,
-            kw_defaults=kw_defaults,
             defaults=defaults,
-            annotations=annotations,
             function_ref=function_ref,
         )
 
@@ -1095,10 +1128,6 @@ class ExpressionFunctionCreation(
         ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = None
-
-
-if python_version < 0x300:
-    ExpressionFunctionCreation = ExpressionFunctionCreationOld
 
 
 class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):

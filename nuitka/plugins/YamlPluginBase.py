@@ -8,6 +8,7 @@ This is to provide the base class for all Yaml plugins. These deal with the
 configuration files of Nuitka.
 """
 
+from nuitka.options.Options import assumeYesForDownloads
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 from .PluginBase import NuitkaPluginBase
@@ -17,7 +18,14 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
     """Nuitka base class for all plugins that use yaml config"""
 
     def __init__(self):
-        self.config = getYamlPackageConfiguration()
+        self.config = None
+
+    def onCompilationStartChecks(self):
+        self.config = getYamlPackageConfiguration(
+            logger=None,
+            assume_yes_for_downloads=assumeYesForDownloads(),
+            check_checksums=True,
+        )
 
     def getYamlConfigItem(
         self, module_name, section, item_name, decide_relevant, default, recursive

@@ -1,12 +1,10 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Templates for the loading of embedded modules.
-
-"""
+"""Templates for the loading of embedded modules."""
 
 template_metapath_loader_compiled_module_entry = """\
-{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
+{%(module_name)s, module_code_%(module_identifier)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
 #endif
@@ -23,6 +21,13 @@ template_metapath_loader_bytecode_module_entry = """\
 {%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 , %(file_path)s
+#endif
+},"""
+
+template_metapath_loader_excluded_module_entry = """\
+{%(module_name)s, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), 0, 0, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, NULL
 #endif
 },"""
 
@@ -55,6 +60,13 @@ static unsigned char *bytecode_data[%(bytecode_count)d];
 static unsigned char **bytecode_data = NULL;
 #endif
 
+/* Helper for portable cast, to use string literals as module_init_func */
+#ifdef __cplusplus
+#define NUITKA_CAST_INIT_REASON(x) reinterpret_cast<module_init_func>((void*)(x))
+#else
+#define NUITKA_CAST_INIT_REASON(x) (module_init_func)(x)
+#endif
+
 /* Table for lookup to find compiled or bytecode modules included in this
  * binary or module, or put along this binary as extension modules. We do
  * our own loading for each of these.
@@ -76,7 +88,6 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
         init_done = true;
     }
 }
-
 
 void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;

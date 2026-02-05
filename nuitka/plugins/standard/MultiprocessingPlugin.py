@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to make multiprocessing and joblib work well.
+"""Standard plug-in to make multiprocessing and joblib work well.
 
 On Windows, the multiprocessing modules forks new processes which then have
 to start from scratch. This won't work if there is no "sys.executable" to
@@ -12,11 +12,11 @@ The issue applies to accelerated and standalone mode alike.
 spell-checker: ignore joblib,anyio
 """
 
-from nuitka import Options
 from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -37,12 +37,12 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """
 
     plugin_name = "multiprocessing"
-    plugin_desc = "Required by Python's 'multiprocessing' module."
+    plugin_desc = "Required by 'multiprocessing' package."
     plugin_category = "package-support"
 
     @classmethod
     def isRelevant(cls):
-        return not Options.shallMakeModule()
+        return not shallMakeModule()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -51,6 +51,27 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     @staticmethod
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
+
+        if full_name == "__parents_main__":
+            yield (
+                """\
+import sys
+# If the multiprocessing fork flag is present, scrub the arguments so that the
+# user code (which might use argparse) doesn't see them. Save them in builtins
+# so we can restore them later when calling multiprocessing.spawn.spawn_main.
+if "--multiprocessing-fork" in sys.argv:
+    # Use builtins to store the args so they are available globally even in functions
+    # without needing to pass them around or use global keyword everywhere.
+    if str is bytes:
+        import __builtin__ as builtins
+    else:
+        import builtins
+
+    builtins.__nuitka_original_args = sys.argv[:]
+    sys.argv = [sys.argv[0]]
+""",
+                "Scrubbing multiprocessing fork arguments from sys.argv.",
+            )
 
         if full_name in ("multiprocessing", "anyio"):
             yield (
@@ -63,7 +84,7 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 sys.executable = %s
 sys._base_executable = sys.executable
 """
-                % ("__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"),
+                % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
                 """\
 Monkey patching "%s" load environment."""
                 % full_name,
@@ -110,6 +131,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
         # source code.
         root_module = getRootTopModule()
 
+        # TODO: Might have to also make "__mp_main__"
         module_name = ModuleName("__parents_main__")
 
         source_code = readSourceCodeFromFilename(module_name, root_module.getFilename())
@@ -123,8 +145,9 @@ Monkey patching "multiprocessing" for compiled methods.""",
             source_code += """
 def __nuitka_freeze_support():
     import sys
+    import builtins
 
-    # Not needed, and can crash from minor __file__ differences, depending on invocation
+    # Not needed, and can crash from minor "__file__" differences, depending on invocation
     import multiprocessing.spawn
     multiprocessing.spawn._fixup_main_from_path = lambda mod_name : None
 
@@ -132,6 +155,11 @@ def __nuitka_freeze_support():
     # joblib equally well.
     kwds = {}
     args = []
+
+    if hasattr(builtins, "__nuitka_original_args"):
+        sys.argv = builtins.__nuitka_original_args
+        del builtins.__nuitka_original_args
+
     for arg in sys.argv[2:]:
         try:
             name, value = arg.split('=')
@@ -152,8 +180,16 @@ __nuitka_freeze_support()
 """
         else:
             source_code += """
-__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
-__import__("multiprocessing.forking").forking.freeze_support()"""
+def __nuitka_freeze_support():
+    import __builtin__, sys
+    if hasattr(__builtin__, "__nuitka_original_args"):
+        sys.argv = __builtin__.__nuitka_original_args
+        del __builtin__.__nuitka_original_args
+
+    sys.modules["__main__"] = sys.modules[__name__]
+    __import__("multiprocessing.forking").forking.freeze_support()
+__nuitka_freeze_support()
+"""
 
         yield (
             module_name,

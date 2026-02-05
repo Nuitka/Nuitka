@@ -2,16 +2,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Generated API documentation for Nuitka source.
-
-"""
+"""Generated API documentation for Nuitka source."""
 
 import os
 import shutil
 import stat
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
@@ -26,7 +24,7 @@ from nuitka.utils.Utils import isWin32OrPosixWindows
 def main():
     goHome()
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--upload",

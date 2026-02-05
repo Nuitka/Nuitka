@@ -120,6 +120,7 @@
     "__firstlineno__",
     "__getitem__",
     "__newobj__",
+    "__pycache__",
     "__warningregistry__",
     "_get_soname",
     "_NUITKA_WINMAIN_ENTRY_POINT",
@@ -137,6 +138,7 @@
     "Anext",
     "appdirs",
     "argmap",
+    "armv7l",
     "Asend",
     "asyncgen",
     "asyncgens",
@@ -144,6 +146,8 @@
     "backslashreplace",
     "basenames",
     "basestring",
+    "bdist",
+    "bdist_nuitka",
     "binaryfunc",
     "bitor",
     "Buildbot",
@@ -154,6 +158,7 @@
     "CAPI",
     "CBOOL",
     "ccache",
+    "CCFLAGS",
     "certifi",
     "CFLOAT",
     "cframe",
@@ -197,9 +202,11 @@
     "curexc_traceback",
     "curexc_type",
     "curexc_value",
+    "cursorrules",
     "Cython",
     "dask",
     "deepcopy",
+    "deepdiff",
     "Dejong",
     "delattr",
     "descrgetfunc",
@@ -219,12 +226,14 @@
     "dylib",
     "elif",
     "embeddable",
+    "endfor",
     "endmacro",
     "enduml",
     "EPEL",
     "finalizer",
     "FLUFL",
     "fromlist",
+    "frontmatter",
     "frozenset",
     "fstrings",
     "genericalias",
@@ -272,6 +281,7 @@
     "iternext",
     "iternextfunc",
     "itervalues",
+    "joblib",
     "joinpath",
     "jsonschema",
     "kcachegrind",
@@ -282,6 +292,7 @@
     "lasti",
     "ldconf",
     "ldconfig",
+    "LDFLAGS",
     "libbacktrace",
     "libc",
     "libpython",
@@ -289,18 +300,21 @@
     "lintian",
     "listdir",
     "lldb",
+    "loky",
     "longlong",
     "LPWSTR",
     "lxml",
     "manylinux",
     "Matmult",
     "mdef",
+    "mdformat",
     "memcpy",
     "metaclass",
     "metaclasses",
     "metapath",
     "METH_NOARGS",
     "METH_VARARGS",
+    "MonolithPy",
     "MSCRT",
     "MSVC",
     "msys",
@@ -399,7 +413,11 @@
     "rpartition",
     "RPATH",
     "rpaths",
+    "rsplit",
+    "rstfmt",
     "RT_RCDATA",
+    "ruamel",
+    "rusage",
     "Scons",
     "sendfunc",
     "setattrofunc",
@@ -417,6 +435,7 @@
     "strrchr",
     "stubgen",
     "subclasscheck",
+    "syscall",
     "sysexit",
     "sysflag",
     "terminfo",
@@ -424,6 +443,7 @@
     "ternaryfunc",
     "Themida",
     "Tkinter",
+    "tomli",
     "tp_alloc",
     "tp_basicsize",
     "tp_dealloc",
@@ -467,8 +487,10 @@
     "wcsicmp",
     "weakrefs",
     "winlibs",
+    "WinLicense",
     "wmain",
     "xrange",
+    "ziglang",
     "zstandard",
     "zstd"
   ],
@@ -481,16 +503,32 @@
     "devcontainer.json",
     "nuitka/build/inline_copy",
     "debian",
-    "rpm/*.spec"
+    "rpm/*.spec",
+    "tests/scratch",
+    "tests/CPython*",
+    "doc/*.1",
+    "*.containerfile"
+  ],
+  "cSpell.languageSettings": [
+    {
+      "languageId": "restructuredtext",
+      "ignoreRegExpList": [
+        "/``.*?``/g",
+        "/^([ \\t]*)\\.\\. code::.*\\n(?:(?:\\s*\\n)|(?:\\1\\s+.*\\n))+/gm"
+      ]
+    },
+    {
+      "languageId": "markdown",
+      "ignoreRegExpList": [
+        "/`.*?`/g"
+      ]
+    }
   ],
   "yaml.schemas": {
-    "misc/nuitka-package-config-schema.json": [
+    "nuitka/package_config/nuitka-package-config-schema.json": [
       "*.nuitka-package.config.yml",
       "*.nuitka-package.config.yaml"
     ]
   },
-  "yaml.maxItemsComputed": 10000,
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter"
-  }
+  "yaml.maxItemsComputed": 10000
 }

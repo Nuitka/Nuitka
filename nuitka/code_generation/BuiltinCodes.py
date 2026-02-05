@@ -1,13 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in codes
+"""Built-in codes
 
 This is code generation for built-in references, and some built-ins like range,
 bin, etc.
 """
 
-from nuitka import Builtins
+from nuitka.Builtins import builtin_anon_codes
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -59,10 +59,7 @@ def generateBuiltinAnonymousRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "builtin_value", expression, emit, context
     ) as value_name:
-        emit(
-            "%s = (PyObject *)%s;"
-            % (value_name, Builtins.builtin_anon_codes[builtin_name])
-        )
+        emit("%s = (PyObject *)%s;" % (value_name, builtin_anon_codes[builtin_name]))
 
 
 def generateBuiltinType1Code(to_name, expression, emit, context):

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of for loop statements.
+"""Reformulation of for loop statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -56,6 +56,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         temp_scope=temp_scope, name="iter_value", temp_type="object"
     )
 
+    # ast naming, spell-checker: ignore orelse
     else_block = buildStatementsNode(
         provider=provider,
         nodes=node.orelse if node.orelse else None,

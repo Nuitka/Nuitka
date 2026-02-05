@@ -1,5 +1,5 @@
 %if 0%{?rhel} < 8
-# detect python site-packages path, use get_python_lib(0) as nuitka using
+# detect python site-packages path, spell-checker: disable
 %if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
@@ -33,6 +33,7 @@ BuildRequires:  python-debug
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 BuildRequires:  python3
 BuildRequires:  python3-devel
+BuildRequires:  python3-pip
 %endif
 %if 0%{?rhel} == 8
 BuildRequires:  python36
@@ -129,6 +130,7 @@ fi
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
+rm -rf nuitka/build/inline_copy/pefile
 
 if [ "$python2" != "" ]
 then
@@ -191,7 +193,7 @@ then
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
-    $python2 ./tests/run-tests --skip-reflection-test
+    $python2 ./tests/run-tests --skip-reflection-test --assume-yes-for-downloads
 else
     echo "Nuitka Version information"
     python3 -m nuitka --version
@@ -200,7 +202,7 @@ else
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
-    python3 ./tests/run-tests --skip-reflection-test
+    python3 ./tests/run-tests --skip-reflection-test --assume-yes-for-downloads
 fi
 
 %install

@@ -1,14 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Graph optimization states.
+"""Graph optimization states.
 
 These are not the graphs you might be thinking of. This is for rending the
 progress of optimization into images.
 """
 
-from nuitka import Options
 from nuitka.ModuleRegistry import getDoneModules
+from nuitka.options import Options
 from nuitka.Tracing import general
 
 graph = None

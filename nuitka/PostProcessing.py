@@ -1,23 +1,50 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Postprocessing tasks for create binaries or modules.
-
-"""
+"""Postprocessing tasks for create binaries or modules."""
 
 import ctypes
 import os
 import sys
 
-from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
+from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
+from nuitka.options.Options import (
+    getDebuggerName,
+    getFileVersionTuple,
+    getProductVersionTuple,
+    getWindowsIconExecutablePath,
+    getWindowsIconPaths,
+    getWindowsSplashScreen,
+    getWindowsVersionInfoStrings,
+    isOnefileMode,
+    isStandaloneMode,
+    shallAskForWindowsAdminRights,
+    shallAskForWindowsUIAccessRights,
+    shallCreateAppBundle,
+    shallCreatePyiFile,
+    shallCreatePyiFileContainStubs,
+    shallCreateScriptFileForExecution,
+    shallMakeModule,
+    shallRunInDebugger,
+    shallUseStaticLibPython,
+)
+from nuitka.OutputDirectories import (
+    getMainModule,
+    getResultBasePath,
+    getResultFullpath,
+    getResultRunFilename,
+    getSourceDirectoryPath,
+)
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
+from nuitka.States import states
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
+    deleteFile,
     getFileContents,
     getFileSize,
     hasFilenameExtension,
@@ -28,7 +55,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,
@@ -107,9 +133,9 @@ def _addWindowsIconFromIcons(onefile):
     image_id = 1
     images = []
 
-    result_filename = OutputDirectories.getResultFullpath(onefile=onefile, real=False)
+    result_filename = getResultFullpath(onefile=onefile, real=False)
 
-    for icon_spec in Options.getWindowsIconPaths():
+    for icon_spec in getWindowsIconPaths():
         if "#" in icon_spec:
             icon_path, icon_index = icon_spec.rsplit("#", 1)
             icon_index = int(icon_index)
@@ -123,13 +149,13 @@ def _addWindowsIconFromIcons(onefile):
             )
 
             if icon_index is not None:
-                postprocessing_logger.sysexit(
+                return postprocessing_logger.sysexit(
                     "Cannot specify indexes with non-ico format files in '%s'."
                     % icon_spec
                 )
 
             icon_build_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=onefile, create=False),
+                getSourceDirectoryPath(onefile=onefile, create=False),
                 "icons",
             )
             makePath(icon_build_path)
@@ -156,7 +182,7 @@ def _addWindowsIconFromIcons(onefile):
 
             if icon_index is not None:
                 if icon_index > len(icons):
-                    postprocessing_logger.sysexit(
+                    return postprocessing_logger.sysexit(
                         "Error, referenced icon index %d in file '%s' with only %d icons."
                         % (icon_index, icon_path, len(icons))
                     )
@@ -213,7 +239,7 @@ def _addWindowsIconFromIcons(onefile):
 
 
 def createScriptFileForExecution(result_filename):
-    script_filename = OutputDirectories.getResultRunFilename(onefile=False)
+    script_filename = getResultRunFilename(onefile=False)
 
     # TODO: This is probably a prefix kind that should be used more often, e.g.
     # in reporting.
@@ -229,12 +255,12 @@ def createScriptFileForExecution(result_filename):
         (
             " ".join(
                 wrapCommandForDebuggerForSubprocess(
-                    command=(), debugger=Options.getDebuggerName()
+                    command=(), debugger=getDebuggerName()
                 )
             )
             + " "
         )
-        if Options.shallRunInDebugger()
+        if shallRunInDebugger()
         else ""
     )
     exe_filename = os.path.basename(makeFilesystemEncodable(result_filename))
@@ -256,7 +282,7 @@ set NUITKA_PYTHONPATH=%(python_path)s
             "python_path": python_path,
             "exe_filename": exe_filename,
         }
-    elif isAIX() and not Options.isOnefileMode() and Options.isStandaloneMode():
+    elif isAIX() and not isOnefileMode() and isStandaloneMode():
         # On AIX we need to set LIBPATH in order to force it to load the DLL from the standalone
         # distribution. The onefile bootstrap does it the code already, and therefore does not
         # need it at all.
@@ -318,31 +344,31 @@ def executePostProcessingResources(result_filename, manifest, onefile):
     if manifest is None:
         manifest = getDefaultWindowsExecutableManifest()
 
-    if Options.shallAskForWindowsAdminRights():
+    if shallAskForWindowsAdminRights():
         manifest.addUacAdmin()
 
-    if Options.shallAskForWindowsUIAccessRights():
+    if shallAskForWindowsUIAccessRights():
         manifest.addUacUiAccess()
 
     manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
 
     if (
-        Options.getWindowsVersionInfoStrings()
-        or Options.getProductVersionTuple()
-        or Options.getFileVersionTuple()
+        getWindowsVersionInfoStrings()
+        or getProductVersionTuple()
+        or getFileVersionTuple()
     ):
         addVersionInfoResource(
-            string_values=Options.getWindowsVersionInfoStrings(),
-            product_version=Options.getProductVersionTuple(),
-            file_version=Options.getFileVersionTuple(),
+            string_values=getWindowsVersionInfoStrings(),
+            product_version=getProductVersionTuple(),
+            file_version=getFileVersionTuple(),
             file_date=(0, 0),
-            is_exe=not Options.shallMakeModule(),
+            is_exe=not shallMakeModule(),
             result_filename=result_filename,
             logger=postprocessing_logger,
         )
 
     # Attach icons from template file if given.
-    template_exe = Options.getWindowsIconExecutablePath()
+    template_exe = getWindowsIconExecutablePath()
     if template_exe is not None:
         res_copied = copyResourcesFromFileToFile(
             template_exe,
@@ -362,7 +388,7 @@ def executePostProcessingResources(result_filename, manifest, onefile):
     else:
         _addWindowsIconFromIcons(onefile=onefile)
 
-    splash_screen_filename = Options.getWindowsSplashScreen()
+    splash_screen_filename = getWindowsSplashScreen()
     if splash_screen_filename is not None:
         splash_data = getFileContents(splash_screen_filename, mode="rb")
 
@@ -377,8 +403,8 @@ def executePostProcessingResources(result_filename, manifest, onefile):
 
 
 def _createModulePyiFile():
-    if Options.shallCreatePyiFileContainStubs():
-        source_code = OutputDirectories.getMainModule().getSourceCode()
+    if shallCreatePyiFileContainStubs():
+        source_code = getMainModule().getSourceCode()
 
         if source_code is None:
             stubgen = None
@@ -416,7 +442,7 @@ Please report the module code in an issue report."""
                 % (str(e))
             )
 
-            if Options.is_debug:
+            if states.is_debug:
                 raise
 
             stubs = None
@@ -450,7 +476,7 @@ Please report the module code in an issue report."""
     else:
         contents += "# No other modules used internally, no implicit dependencies.\n"
 
-    pyi_filename = OutputDirectories.getResultBasePath() + ".pyi"
+    pyi_filename = getResultBasePath() + ".pyi"
     putTextFileContents(pyi_filename, contents, encoding="utf-8")
 
 
@@ -464,7 +490,7 @@ def executePostProcessing(result_filename):
     # pylint: disable=too-many-branches
 
     if isWin32Windows():
-        if not Options.shallMakeModule():
+        if not shallMakeModule():
             if python_version < 0x300:
                 # Copy the Windows manifest from the CPython binary to the created
                 # executable, so it finds "MSCRT.DLL". This is needed for Python2
@@ -477,9 +503,7 @@ def executePostProcessing(result_filename):
                 result_filename=result_filename, manifest=manifest, onefile=False
             )
 
-        source_dir = OutputDirectories.getSourceDirectoryPath(
-            onefile=False, create=True
-        )
+        source_dir = getSourceDirectoryPath(onefile=False, create=True)
 
         # Attach the binary blob as a Windows resource.
         addResourceToFile(
@@ -493,11 +517,7 @@ def executePostProcessing(result_filename):
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.
-    if (
-        isMacOS()
-        and not Options.shallMakeModule()
-        and not Options.shallUseStaticLibPython()
-    ):
+    if isMacOS() and not shallMakeModule() and not shallUseStaticLibPython():
         for dependency in parseOtoolListingOutput(
             getOtoolDependencyOutput(result_filename)
         ):
@@ -505,7 +525,7 @@ def executePostProcessing(result_filename):
                 python_dll_filename = dependency
                 break
         else:
-            postprocessing_logger.sysexit(
+            return postprocessing_logger.sysexit(
                 """
 Error, expected 'libpython dependency not found. Please report the bug."""
             )
@@ -534,32 +554,31 @@ Error, expected 'libpython dependency not found. Please report the bug."""
             rpath=python_lib_path,
         )
 
-    if Options.shallCreateAppBundle():
-        createPlistInfoFile(logger=postprocessing_logger, onefile=False)
+    if shallCreateAppBundle():
+        createPlistInfoFile(logger=postprocessing_logger)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
-    if not isWin32Windows() and Options.shallMakeModule():
+    if not isWin32Windows() and shallMakeModule():
         removeFileExecutablePermission(result_filename)
 
-    if isWin32Windows() and Options.shallMakeModule():
+    if isWin32Windows() and shallMakeModule():
         candidate = os.path.join(
             os.path.dirname(result_filename),
             "lib" + os.path.basename(result_filename)[:-4] + ".a",
         )
 
-        if os.path.exists(candidate):
-            os.unlink(candidate)
+        deleteFile(candidate, must_exist=False)
 
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(result_filename)
 
     # Might have to create a CMD file, potentially with debugger run.
-    if Options.shallCreateScriptFileForExecution():
+    if shallCreateScriptFileForExecution():
         createScriptFileForExecution(result_filename=result_filename)
 
     # Create a ".pyi" file for created modules
-    if Options.shallMakeModule() and Options.shallCreatePyiFile():
+    if shallMakeModule() and shallCreatePyiFile():
         _createModulePyiFile()
 
     if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Return codes
+"""Return codes
 
 This handles code generation for return statements of normal functions and of
 generator functions. Also the value currently being returned, and intercepted
@@ -9,6 +9,7 @@ by a try statement is accessible this way.
 
 """
 
+from nuitka.Constants import isConstantImmortal
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
@@ -59,9 +60,11 @@ def generateReturnConstantCode(statement, emit, context):
         emit("CHECK_OBJECT(%s);" % return_value_name)
         emit("Py_DECREF(%s);" % return_value_name)
 
+    constant = statement.getConstant()
+
     return_value_name.getCType().emitAssignmentCodeFromConstant(
         to_name=return_value_name,
-        constant=statement.getConstant(),
+        constant=constant,
         may_escape=True,
         emit=emit,
         context=context,
@@ -70,7 +73,10 @@ def generateReturnConstantCode(statement, emit, context):
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
     else:
-        emit("Py_INCREF(%s);" % return_value_name)
+        if isConstantImmortal(constant):
+            emit("Py_INCREF_IMMORTAL(%s);" % return_value_name)
+        else:
+            emit("Py_INCREF(%s);" % return_value_name)
 
     getGotoCode(label=context.getReturnTarget(), emit=emit)
 

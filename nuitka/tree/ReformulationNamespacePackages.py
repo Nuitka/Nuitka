@@ -25,7 +25,7 @@ from nuitka.nodes.ImportNodes import (
 from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
 from nuitka.nodes.ModuleNodes import CompiledPythonNamespacePackage
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
-from nuitka.Options import getFileReferenceMode
+from nuitka.options.Options import getFileReferenceMode
 from nuitka.PythonVersions import python_version
 
 from .FutureSpecState import popFutureSpec, pushFutureSpec

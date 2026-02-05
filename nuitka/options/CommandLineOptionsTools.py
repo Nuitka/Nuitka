@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools for command line options."""
+"""Tools for command line options."""
 
 import os
 import sys
@@ -187,13 +187,21 @@ class OurHelpFormatter(IndentedHelpFormatter):
 
         return long_opts[0]
 
+    def format_epilog(self, epilog):
+        if epilog:
+            return "\n" + epilog + "\n"
 
-def makeOptionsParser(usage):
+        return ""
+
+
+def makeOptionsParser(usage, epilog):
     kwargs = {}
     if os.getenv("NUITKA_MANPAGE_GEN"):
         kwargs["width"] = 10000
 
-    return OurOptionParser(usage=usage, formatter=OurHelpFormatter(**kwargs))
+    return OurOptionParser(
+        usage=usage, epilog=epilog, formatter=OurHelpFormatter(**kwargs)
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -119,6 +119,42 @@ PyObject *IMPORT_HARD_CTYPES(void) {
     return module_import_hard_ctypes;
 }
 
+/* C helper for hard import of module "ctypes._aix" import. */
+PyObject *IMPORT_HARD_CTYPES___AIX(void) {
+    static PyObject *module_import_hard_ctypes___aix = NULL;
+
+    if (module_import_hard_ctypes___aix == NULL) {
+        module_import_hard_ctypes___aix = PyImport_ImportModule("ctypes._aix");
+
+        if (unlikely(module_import_hard_ctypes___aix == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes._aix'");
+        }
+    }
+
+    return module_import_hard_ctypes___aix;
+}
+
+/* C helper for hard import of module "ctypes._endian" import. */
+PyObject *IMPORT_HARD_CTYPES___ENDIAN(void) {
+    static PyObject *module_import_hard_ctypes___endian = NULL;
+
+    if (module_import_hard_ctypes___endian == NULL) {
+        module_import_hard_ctypes___endian = PyImport_ImportModule("ctypes._endian");
+
+        if (unlikely(module_import_hard_ctypes___endian == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes._endian'");
+        }
+    }
+
+    return module_import_hard_ctypes___endian;
+}
+
 /* C helper for hard import of module "ctypes.macholib" import. */
 PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
     static PyObject *module_import_hard_ctypes__macholib = NULL;
@@ -135,6 +171,24 @@ PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
     }
 
     return module_import_hard_ctypes__macholib;
+}
+
+/* C helper for hard import of module "ctypes.util" import. */
+PyObject *IMPORT_HARD_CTYPES__UTIL(void) {
+    static PyObject *module_import_hard_ctypes__util = NULL;
+
+    if (module_import_hard_ctypes__util == NULL) {
+        module_import_hard_ctypes__util = PyImport_ImportModule("ctypes.util");
+
+        if (unlikely(module_import_hard_ctypes__util == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes.util'");
+        }
+    }
+
+    return module_import_hard_ctypes__util;
 }
 
 /* C helper for hard import of module "ctypes.wintypes" import. */

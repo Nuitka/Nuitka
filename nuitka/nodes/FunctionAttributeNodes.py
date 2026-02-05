@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Function attribute nodes
+"""Function attribute nodes
 
 The represent special values of the modules. The "__qualname__" value node
 is intended and to be resolved later. And the function output for error

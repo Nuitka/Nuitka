@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of contraction expressions.
+"""Reformulation of contraction expressions.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -76,6 +76,9 @@ from .TreeHelpers import (
 
 
 def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
+    if python_version > 0x3C0:
+        source_ref = source_ref.atLineNumber(qual.iter.lineno)
+
     if getattr(qual, "is_async", 0):
         result = ExpressionAsyncIter(
             value=buildNode(provider=provider, node=qual.iter, source_ref=source_ref),
@@ -187,7 +190,7 @@ def buildSetContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider=provider,
         node=node,
-        name="<setcontraction>",
+        name="<setcontraction>",  # spell-checker: ignore setcontraction
         emit_class=StatementSetOperationAdd,
         start_value=set(),
         source_ref=source_ref,
@@ -200,7 +203,7 @@ def buildDictContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider=provider,
         node=node,
-        name="<dictcontraction>",
+        name="<dictcontraction>",  # spell-checker: ignore dictcontraction
         emit_class=(
             StatementDictOperationSet
             if python_version < 0x380
@@ -517,7 +520,8 @@ def _buildContractionBodyNode(
                 source=ExpressionTempVariableRef(
                     variable=tmp_value_variable, source_ref=source_ref
                 ),
-                source_ref=source_ref,
+                # TODO: It might be most correct to use only this one inside of the loop iteration.
+                source_ref=source_ref.atLineNumber(qual.target.lineno),
             ),
         ]
 

@@ -2729,11 +2729,11 @@ class File(Base):
     def scanner_key(self):
         return self.get_suffix()
 
-    def get_contents(self) -> bytes:
+    def get_contents(self):
         """Return the contents of the file as bytes."""
         return SCons.Node._get_contents_map[self._func_get_contents](self)
 
-    def get_text_contents(self) -> str:
+    def get_text_contents(self):
         """Return the contents of the file in text form.
 
         This attempts to figure out what the encoding of the text is
@@ -2761,7 +2761,7 @@ class File(Base):
             except UnicodeDecodeError as e:
                 return contents.decode('utf-8', errors='backslashreplace')
 
-    def get_content_hash(self) -> str:
+    def get_content_hash(self):
         """
         Compute and return the hash for this file.
         """
@@ -2777,7 +2777,7 @@ class File(Base):
         return cs
 
     @SCons.Memoize.CountMethodCall
-    def get_size(self) -> int:
+    def get_size(self):
         try:
             return self._memo['get_size']
         except KeyError:
@@ -2793,7 +2793,7 @@ class File(Base):
         return size
 
     @SCons.Memoize.CountMethodCall
-    def get_timestamp(self) -> int:
+    def get_timestamp(self):
         try:
             return self._memo['get_timestamp']
         except KeyError:
@@ -3208,7 +3208,7 @@ class File(Base):
     # SIGNATURE SUBSYSTEM
     #
 
-    def get_max_drift_csig(self) -> Optional[str]:
+    def get_max_drift_csig(self):
         """
         Returns the content signature currently stored for this node
         if it's been unmodified longer than the max_drift value, or the
@@ -3234,7 +3234,7 @@ class File(Base):
 
         return None
 
-    def get_csig(self) -> str:
+    def get_csig(self):
         """Generate a node's content signature."""
         ninfo = self.get_ninfo()
         try:

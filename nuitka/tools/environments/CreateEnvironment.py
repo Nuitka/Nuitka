@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For creating virtual environments.
+"""For creating virtual environments.
 
 This can create empty virtualenv, but also populate them with packages from
 the reports.
@@ -10,7 +10,7 @@ the reports.
 import os
 
 from nuitka.Tracing import tools_logger
-from nuitka.TreeXML import fromFile
+from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.FileOperations import openTextFile
 
 from .Virtualenv import withVirtualenv
@@ -31,7 +31,7 @@ def createEnvironmentFromReport(environment_folder, report_filename):
         tools_logger.sysexit("Error, no such report file '%s'." % report_filename)
 
     with openTextFile(report_filename, "r", encoding="utf8") as report_file:
-        root = fromFile(report_file, use_lxml=True)
+        root = convertFileToXML(report_file, use_lxml=True)
 
     requirements_filename = os.path.join(environment_folder, "requirements.txt")
 

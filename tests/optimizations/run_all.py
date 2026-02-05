@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Test runners test
+"""Test runners test
 
 This shows that known good existing static optimization works and produces
 constant results. This should be used to preserve successful optimization
@@ -40,7 +40,7 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
-from nuitka.TreeXML import toString
+from nuitka.TreeXML import convertXmlToString
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import getFileContents
 
@@ -158,7 +158,7 @@ def checkSequence(filename, statements):
         if kind in ("ReturnNone", "ReturnConstant"):
             continue
 
-        print(toString(statement))
+        print(convertXmlToString(statement))
         search_mode.onErrorDetected(
             "Error, non-print statement of unknown kind '%s'." % kind
         )

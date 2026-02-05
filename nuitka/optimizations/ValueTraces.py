@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Value trace objects.
+"""Value trace objects.
 
 Value traces indicate the flow of values and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.
@@ -17,6 +17,8 @@ Values can be seen as:
 * LoopIncomplete (aggregation during loops, not yet fully known)
 * LoopComplete (complete knowledge of loop types)
 """
+
+from abc import abstractmethod
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
@@ -38,6 +40,7 @@ from nuitka.nodes.shapes.StandardShapes import (
     tshape_uninitialized,
     tshape_unknown,
 )
+from nuitka.States import states
 from nuitka.Tracing import my_print
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -55,27 +58,7 @@ class ValueTraceBase(object):
         "usage_count",
         "name_usage_count",
         "merge_usage_count",
-        "closure_usages",
-        "previous",
     )
-
-    @counted_init
-    def __init__(self, owner, previous):
-        self.owner = owner
-
-        # Definite usage indicator.
-        self.usage_count = 0
-
-        # If 0, this indicates, the variable name needs to be assigned as name.
-        self.name_usage_count = 0
-
-        # If 0, this indicates no value merges happened on the value.
-        self.merge_usage_count = 0
-
-        self.closure_usages = False
-
-        # Previous trace this is replacing.
-        self.previous = previous
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -95,12 +78,19 @@ class ValueTraceBase(object):
     def getOwner(self):
         return self.owner
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # Virtual method, pylint: disable=unused-argument
+        self.getTypeShape().emitAlternatives(emit)
+
     @staticmethod
     def isLoopTrace():
         return False
 
     def addUsage(self):
         self.usage_count += 1
+
+    def removeUsage(self):
+        self.usage_count -= 1
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -109,9 +99,20 @@ class ValueTraceBase(object):
         if self.name_usage_count <= 2 and self.previous is not None:
             self.previous.addNameUsage()
 
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+        if self.name_usage_count < 2 and self.previous is not None:
+            self.previous.removeNameUsage()
+
     def addMergeUsage(self):
         self.usage_count += 1
         self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
 
     def getUsageCount(self):
         return self.usage_count
@@ -122,11 +123,19 @@ class ValueTraceBase(object):
     def getMergeUsageCount(self):
         return self.merge_usage_count
 
-    def getMergeOrNameUsageCount(self):
-        return self.merge_usage_count + self.name_usage_count
+    def hasNoMergeOrNameUsage(self):
+        return (self.merge_usage_count | self.name_usage_count) == 0
 
     def getPrevious(self):
         return self.previous
+
+    @abstractmethod
+    def isUsingTrace(self):
+        """Is the trace indicating a usage of the variable."""
+
+    @abstractmethod
+    def isWritingTrace(self):
+        """Is the trace indicating a usage of the variable."""
 
     @staticmethod
     def isAssignTrace():
@@ -153,6 +162,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isUnknownStartTrace():
+        return False
+
+    @staticmethod
     def isAssignTraceVeryTrusted():
         return False
 
@@ -172,19 +185,13 @@ class ValueTraceBase(object):
     def isMergeTrace():
         return False
 
+    @abstractmethod
     def mustHaveValue(self):
-        """Will this definitely have a value.
+        """Will this definitely have a value."""
 
-        Every trace has this overloaded.
-        """
-        assert False, self
-
+    @abstractmethod
     def mustNotHaveValue(self):
-        """Will this definitely have a value.
-
-        Every trace has this overloaded.
-        """
-        assert False, self
+        """Will this definitely have a value."""
 
     def getReplacementNode(self, usage):
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -262,6 +269,8 @@ class ValueTraceBase(object):
 
 
 class ValueTraceUnassignedBase(ValueTraceBase):
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+
     __slots__ = ()
 
     @staticmethod
@@ -289,47 +298,118 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         return True
 
 
-class ValueTraceUninitialized(ValueTraceUnassignedBase):
+class ValueTraceStartMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+    def addUsage(self):
+        self.usage_count += 1
+
+    def removeUsage(self):
+        self.usage_count -= 1
+
+    def addMergeUsage(self):
+        self.usage_count += 1
+        self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
+
+    def addNameUsage(self):
+        self.usage_count += 1
+        self.name_usage_count += 1
+
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+    @staticmethod
+    def getAttributeNode():
+        return None
+
+    @staticmethod
+    def getAttributeNodeTrusted():
+        return None
+
+    @staticmethod
+    def getAttributeNodeVeryTrusted():
+        return None
+
+
+class ValueTraceStartUninitialized(ValueTraceStartMixin, ValueTraceUnassignedBase):
+    __slots__ = ()
+
+    @counted_init
+    def __init__(self, owner):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     @staticmethod
     def isUninitializedTrace():
         return True
 
+    def isUsingTrace(self):
+        return self.usage_count
+
+    @staticmethod
+    def isWritingTrace():
+        return False
+
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
 
-    def inhibitsClassScopeForwardPropagation(self):
+    @staticmethod
+    def inhibitsClassScopeForwardPropagation():
         return False
 
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
 
-    __slots__ = ("del_node",)
+    __slots__ = (
+        "previous",
+        "del_node",
+    )
 
+    @counted_init
     def __init__(self, owner, previous, del_node):
-        ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
+        self.previous = previous
         self.del_node = del_node
 
     @staticmethod
     def isDeletedTrace():
         return True
 
+    @staticmethod
+    def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
+        return True
+
     def getDelNode(self):
         return self.del_node
 
 
-class ValueTraceInit(ValueTraceBase):
+class ValueTraceStartInit(ValueTraceStartMixin, ValueTraceBase):
     __slots__ = ()
 
+    @counted_init
     def __init__(self, owner):
-        ValueTraceBase.__init__(self, owner=owner, previous=None)
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     @staticmethod
     def getTypeShape():
@@ -348,6 +428,14 @@ class ValueTraceInit(ValueTraceBase):
         return True
 
     @staticmethod
+    def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
+
+    @staticmethod
     def mustHaveValue():
         return True
 
@@ -356,7 +444,7 @@ class ValueTraceInit(ValueTraceBase):
         return False
 
 
-class ValueTraceInitStarArgs(ValueTraceInit):
+class ValueTraceStartInitStarArgs(ValueTraceStartInit):
     @staticmethod
     def getTypeShape():
         return tshape_tuple
@@ -370,7 +458,7 @@ class ValueTraceInitStarArgs(ValueTraceInit):
         return True
 
 
-class ValueTraceInitStarDict(ValueTraceInit):
+class ValueTraceStartInitStarDict(ValueTraceStartInit):
     @staticmethod
     def getTypeShape():
         return tshape_dict
@@ -384,8 +472,7 @@ class ValueTraceInitStarDict(ValueTraceInit):
         return True
 
 
-class ValueTraceUnknown(ValueTraceBase):
-    __slots__ = ()
+class ValueTraceUnknownBase(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
@@ -401,6 +488,12 @@ class ValueTraceUnknown(ValueTraceBase):
         if self.previous:
             self.previous.addUsage()
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        if self.previous:
+            self.previous.removeUsage()
+
     def addMergeUsage(self):
         self.usage_count += 1
         self.merge_usage_count += 1
@@ -408,12 +501,26 @@ class ValueTraceUnknown(ValueTraceBase):
         if self.previous:
             self.previous.addMergeUsage()
 
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        self.merge_usage_count -= 1
+
+        if self.previous:
+            self.previous.removeMergeUsage()
+
     def compareValueTrace(self, other):
         # We are unknown, just need to know if the other one is, pylint: disable=no-self-use
         return other.isUnknownTrace()
 
     @staticmethod
     def isUnknownTrace():
+        return True
+
+    def isUsingTrace(self):
+        return self.usage_count
+
+    @staticmethod
+    def isWritingTrace():
         return True
 
     @staticmethod
@@ -447,14 +554,37 @@ class ValueTraceUnknown(ValueTraceBase):
             return self.previous.getAttributeNodeVeryTrusted()
 
 
-class ValueTraceEscaped(ValueTraceUnknown):
+class ValueTraceUnknown(ValueTraceUnknownBase):
+    __slots__ = ("previous",)
+
+    @counted_init
+    def __init__(self, owner, previous):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+
+
+class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
+
+    @counted_init
+    def __init__(self, owner):
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
     __slots__ = ()
 
-    def __init__(self, owner, previous):
-        if previous.isMergeTrace():
-            assert self not in previous.previous
+    @staticmethod
+    def isUnknownStartTrace():
+        return True
 
-        ValueTraceUnknown.__init__(self, owner=owner, previous=previous)
+
+class ValueTraceEscaped(ValueTraceUnknown):
+    __slots__ = ()
 
     def addUsage(self):
         self.usage_count += 1
@@ -462,6 +592,13 @@ class ValueTraceEscaped(ValueTraceUnknown):
         # The previous must be prevented from optimization if still used afterwards.
         if self.usage_count <= 2:
             self.previous.addNameUsage()
+
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        # The previous must be prevented from optimization if still used afterwards.
+        if self.usage_count < 2:
+            self.previous.removeNameUsage()
 
     def addMergeUsage(self):
         self.usage_count += 1
@@ -471,6 +608,15 @@ class ValueTraceEscaped(ValueTraceUnknown):
         self.merge_usage_count += 1
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
+
+    def removeMergeUsage(self):
+        self.usage_count -= 1
+        if self.usage_count < 2:
+            self.previous.removeNameUsage()
+
+        self.merge_usage_count -= 1
+        if self.merge_usage_count < 2:
+            self.previous.removeMergeUsage()
 
     def getTypeShape(self):
         return self.previous.getTypeShape()
@@ -497,6 +643,13 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return True
 
     @staticmethod
+    def isWritingTrace():
+        return False
+
+    def isUsingTrace(self):
+        return self.usage_count
+
+    @staticmethod
     def isTraceThatNeedsEscape():
         return False
 
@@ -521,11 +674,21 @@ class ValueTraceEscaped(ValueTraceUnknown):
 
 
 class ValueTraceAssign(ValueTraceBase):
-    __slots__ = ("assign_node",)
+    __slots__ = (
+        "previous",
+        "assign_node",
+    )
 
+    @counted_init
     def __init__(self, owner, assign_node, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
+        # assert assign_node.isStatementAssignmentVariable(), assign_node
 
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
         self.assign_node = assign_node
 
     def __repr__(self):
@@ -537,6 +700,14 @@ class ValueTraceAssign(ValueTraceBase):
 
     @staticmethod
     def isAssignTrace():
+        return True
+
+    @staticmethod
+    def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
         return True
 
     def compareValueTrace(self, other):
@@ -630,10 +801,18 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 
     __slots__ = ("replacement",)
 
+    @counted_init
     def __init__(self, owner, assign_node, previous, replacement):
-        ValueTraceAssignUnescapable.__init__(
-            self, owner=owner, assign_node=assign_node, previous=previous
-        )
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+        self.assign_node = assign_node
 
         self.replacement = replacement
 
@@ -644,15 +823,25 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 class ValueTraceMergeBase(ValueTraceBase):
     """Merge of two or more traces or start of loops."""
 
-    __slots__ = ()
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
-    def addNameUsage(self):
+    __slots__ = ("previous",)
+
+    def addNameUsage(self):  # pylint: disable=I0021,too-many-branches
         self.usage_count += 1
         self.name_usage_count += 1
 
         if self.name_usage_count <= 2 and self.previous is not None:
             for previous in self.previous:
                 previous.addNameUsage()
+
+    def removeNameUsage(self):
+        self.usage_count -= 1
+        self.name_usage_count -= 1
+
+        if self.name_usage_count < 2 and self.previous is not None:
+            for previous in self.previous:
+                previous.removeNameUsage()
 
     def addUsage(self):
         self.usage_count += 1
@@ -662,9 +851,25 @@ class ValueTraceMergeBase(ValueTraceBase):
             for trace in self.previous:
                 trace.addMergeUsage()
 
+    def removeUsage(self):
+        self.usage_count -= 1
+
+        # Only do it once.
+        if self.usage_count == 0:
+            for trace in self.previous:
+                trace.removeMergeUsage()
+
     def addMergeUsage(self):
         self.addUsage()
         self.merge_usage_count += 1
+
+    def removeMergeUsage(self):
+        self.removeUsage()
+        self.merge_usage_count -= 1
+
+    def isUsingTrace(self):
+        # Checking definite is enough, the merges, we shall see them as well.
+        return self.usage_count
 
 
 class ValueTraceMerge(ValueTraceMergeBase):
@@ -677,6 +882,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     __slots__ = ()
 
+    @counted_init
     def __init__(self, traces):
         shorted = []
 
@@ -689,13 +895,17 @@ class ValueTraceMerge(ValueTraceMergeBase):
                 if trace not in shorted:
                     shorted.append(trace)
 
+        if _is_debug:
+            assert len(shorted) > 1, traces
+
         traces = tuple(shorted)
 
-        assert len(traces) > 1
+        self.owner = traces[0].owner
+        self.previous = traces
 
-        # assert len(set(traces)) == len(traces), [(v) for v in traces]
-
-        ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
@@ -737,6 +947,14 @@ class ValueTraceMerge(ValueTraceMergeBase):
     @staticmethod
     def isMergeTrace():
         return True
+
+    def isUsingTrace(self):
+        # Checking definite is enough, the merges, we shall see them as well.
+        return self.usage_count
+
+    @staticmethod
+    def isWritingTrace():
+        return False
 
     def compareValueTrace(self, other):
         if not other.isMergeTrace():
@@ -802,11 +1020,24 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+
+    # This one has many attributes, pylint: disable=too-many-instance-attributes
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
 
+    @counted_init
     def __init__(self, loop_node, previous, type_shapes):
-        # Note: That previous is being added to later.
-        ValueTraceMergeBase.__init__(self, owner=previous.owner, previous=(previous,))
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = previous.owner
+
+        # Note: That previous is being added to later, we will learn about more.
+        self.previous = (previous,)
+
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
 
         self.loop_node = loop_node
         self.type_shapes = type_shapes
@@ -824,6 +1055,14 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     @staticmethod
     def isLoopTrace():
         return True
+
+    @staticmethod
+    def isUsingTrace():
+        return True
+
+    @staticmethod
+    def isWritingTrace():
+        return False
 
     def getTypeShape(self):
         if self.type_shape is None:
@@ -962,6 +1201,22 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
+
+
+_is_debug = None
+
+
+def setupValueTraceFromOptions():
+    # singleton, pylint: disable=global-statement
+
+    global _is_debug
+    _is_debug = states.is_debug
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for variable deletion
+"""Nodes for variable deletion
 
 These refer to resolved variable objects.
 
@@ -10,7 +10,7 @@ These refer to resolved variable objects.
 from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
 
 from .NodeBases import StatementBase
@@ -84,6 +84,7 @@ class StatementDelVariableBase(StatementBase):
     def fromXML(cls, provider, source_ref, **args):
         owner = getOwnerFromCodeName(args["owner"])
 
+        # TODO: Need to also provide "outline" for best effect
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(
                 args["variable_name"], temp_type=args["var_type"]
@@ -155,16 +156,18 @@ class StatementDelVariableBase(StatementBase):
         if not self.is_tolerant:
             self.previous_trace.addNameUsage()
 
+        last_trace = self.variable_trace
         # TODO: Why doesn't this module variable check not follow from other checks done here, e.g. name usages.
         # TODO: This currently cannot be done as releases do not create successor traces yet, although they
         # probably should.
-        if isExperimental("del_optimization") and not variable.isModuleVariable():
+        if (
+            last_trace is not None
+            and not variable.isModuleVariable()
+            and isExperimental("del_optimization")
+        ):
             provider = trace_collection.getOwner()
-
             if variable.hasAccessesOutsideOf(provider) is False:
-                last_trace = variable.getMatchingDelTrace(self)
-
-                if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
+                if last_trace is not None and last_trace.hasNoMergeOrNameUsage():
                     if not last_trace.getUsageCount():
                         result = makeStatementReleaseVariable(
                             variable=variable, source_ref=self.source_ref
@@ -191,8 +194,8 @@ class StatementDelVariableBase(StatementBase):
 
         return self, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_write(self.variable)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
 
 
 class StatementDelVariableTolerant(StatementDelVariableBase):

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Release related common functionality.
-
-"""
+"""Release related common functionality."""
 
 import os
 import shutil
@@ -18,6 +16,7 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.Utils import isLinux
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionTuple
 
 
@@ -84,8 +83,8 @@ def getBranchRemoteIdentifier():
     if branch_remote_host.endswith(".home"):
         branch_remote_host = branch_remote_host.rsplit(".", 1)[0]
 
-    if branch_remote_host == "mastermind":
-        return "private"
+    if branch_remote_host == "git-server":
+        return "internal"
     elif branch_remote_host.endswith("nuitka.net"):
         return "private"
     elif branch_remote_host == "github":
@@ -234,6 +233,12 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     tools_logger.info("Created source distribution as '%s'." % filenames[0])
     return filenames
+
+
+def syncTime():
+    """Update WSL clock just in case, it can be skewed."""
+    if isLinux() and "Microsoft" in getFileContents("/proc/version"):
+        os.system("sudo hwclock -s")  # spell-checker: ignore hwclock
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

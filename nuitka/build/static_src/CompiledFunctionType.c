@@ -458,8 +458,17 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-
+#if PYTHON_VERSION < 0x3e0 || !defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
+#else
+        if (function->m_annotate == NULL) {
+            return MAKE_DICT_EMPTY(tstate);
+        }
+        function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
+        if (function->m_annotations == NULL) {
+            return NULL;
+        }
+#endif
     }
     CHECK_OBJECT(function->m_annotations);
 
@@ -490,6 +499,46 @@ static int Nuitka_Function_set_annotations(PyObject *self, PyObject *value, void
     return 0;
 }
 
+#endif
+
+#if PYTHON_VERSION >= 0x3e0
+static PyObject *Nuitka_Function_get_annotate(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
+
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+    if (function->m_annotate == NULL) {
+        Py_INCREF_IMMORTAL(Py_None);
+        return Py_None;
+    }
+    CHECK_OBJECT(function->m_annotate);
+
+    Py_INCREF(function->m_annotate);
+    return function->m_annotate;
+}
+
+static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
+
+    if (unlikely(value != NULL && !PyCallable_Check(value))) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__annotate__ must be callable or None");
+        return -1;
+    }
+
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+    PyObject *old = function->m_annotate;
+    CHECK_OBJECT_X(old);
+    Py_XINCREF(value);
+    function->m_annotate = value;
+    Py_XDECREF(old);
+
+    return 0;
+}
 #endif
 
 static int Nuitka_Function_set_globals(PyObject *self, PyObject *value, void *data) {
@@ -655,6 +704,9 @@ static PyGetSetDef Nuitka_Function_getset[] = {
 #if PYTHON_VERSION >= 0x3c0
     {(char *)"__type_params__", Nuitka_Function_get_type_params, Nuitka_Function_set_type_params, NULL},
 #endif
+#if PYTHON_VERSION >= 0x3e0
+    {(char *)"__annotate__", Nuitka_Function_get_annotate, Nuitka_Function_set_annotate, NULL},
+#endif
     {(char *)"__compiled__", Nuitka_Function_get_compiled, Nuitka_Function_set_compiled, NULL},
     {(char *)"__compiled_constant__", Nuitka_Function_get_compiled_constant, Nuitka_Function_set_compiled_constant,
      NULL},
@@ -698,6 +750,9 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 
     PyThreadState *tstate = PyThreadState_GET();
 
+#if PYTHON_VERSION >= 0x3e0
+    PyObject *annotations = function->m_annotate;
+#else
     PyObject *annotations = function->m_annotations;
     if (annotations != NULL) {
         if (DICT_SIZE(annotations) != 0) {
@@ -706,6 +761,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
             annotations = NULL;
         }
     }
+#endif
 
     PyObject *kwdefaults = function->m_kwdefaults;
     if (kwdefaults != NULL) {
@@ -778,6 +834,10 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 #if PYTHON_VERSION >= 0x300
     Py_XDECREF(function->m_kwdefaults);
     Py_XDECREF(function->m_annotations);
+#endif
+
+#if PYTHON_VERSION >= 0x3e0
+    Py_XDECREF(function->m_annotate);
 #endif
 
     for (Py_ssize_t i = 0; i < function->m_closure_given; i++) {
@@ -1315,7 +1375,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
     } else if (offset < 0) {
         // Try to catch if we are missing values for the specialized shared
         // bodies.
-        NUITKA_CANNOT_GET_HERE("Compiled function unpickle problem");
+        NUITKA_CANNOT_GET_HERE("Compiled function un-pickle problem");
     }
 
     assert(result->m_dict == NULL);
@@ -1429,7 +1489,15 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #if PYTHON_VERSION >= 0x300
     assert(kw_defaults == NULL || (PyDict_Check(kw_defaults) && DICT_SIZE(kw_defaults) > 0));
     result->m_kwdefaults = kw_defaults;
+#endif
 
+#if PYTHON_VERSION >= 0x3e0
+    // For simplicity's sake, the annotations parameter doubles as the __annotate__
+    // parameter on 3.14+
+    assert(annotations == NULL || PyCallable_Check(annotations));
+    result->m_annotations = NULL;
+    result->m_annotate = annotations;
+#elif PYTHON_VERSION >= 0x300
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;
 #endif

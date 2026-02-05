@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tools to compare outputs of compiled and not compiled programs.
+"""Tools to compare outputs of compiled and not compiled programs.
 
 There is a couple of replacements to be done for compiled programs to
 make the diff meaningful. The compiled type representations are just
@@ -12,14 +12,17 @@ an example.
 import difflib
 import os
 import re
+import sys
 
-from nuitka.Tracing import my_print
+from nuitka.Tracing import canUseColor, my_print, wrapWithStyles
 
+# spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
+instance_re_truncated = re.compile(r"\[[0-9]+ chars\][0-9a-fA-F]+")
 thread_re = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
 compiled_types_re = re.compile(
-    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)"
+    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)(?!\.h)"
 )
 module_repr_re = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
@@ -28,32 +31,10 @@ non_ascii_error_rt = re.compile(r"(SyntaxError: Non-ASCII character.*? on line) 
 python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
 local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
-
 traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
-
-
-def traceback_re_callback(match):
-    return r'%sile "%s", line %s' % (
-        match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
-        match.group(3),
-    )
-
-
 importerror_re = re.compile(
     r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
-
-
-def import_re_callback(match):
-    #    print (match.groups(), os.path.abspath(match.group(2)))
-
-    return r"%s( >> %s)" % (
-        match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2))),
-    )
-
-
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
@@ -65,9 +46,31 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
 did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
+# spell-checker:enable
+
+
+def traceback_re_callback(match):
+    # spell-checker: disable-next-line
+    return r'%sile "%s", line %s' % (
+        match.group(1),
+        os.path.realpath(os.path.abspath(match.group(2))),
+        match.group(3),
+    )
+
+
+def import_re_callback(match):
+    #    print (match.groups(), os.path.abspath(match.group(2)))
+
+    return r"%s( >> %s)" % (
+        match.group(1),
+        os.path.realpath(os.path.abspath(match.group(2))),
+    )
 
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
+    # Take any arbitrary test output from CPython and make it work against
+    # Nuitka's output. For example, some tracebacks would take a lot of work
+    # to implement for little benefit, so they're omitted with this function.
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
 
@@ -85,7 +88,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
                 lines = [line]
                 break
 
-    for line in lines:
+    for index, line in enumerate(lines):
         if type(line) is not str:
             try:
                 line = line.decode("utf-8" if os.name != "nt" else "cp850")
@@ -140,6 +143,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
+        line = instance_re_truncated.sub(r"[x chars]xxxx", line)
         line = thread_re.sub(r"Thread 0xXXXXXXXX", line)
         line = compiled_types_re.sub(r"\1", line)
         line = global_name_error_re.sub(r"\1\2\3", line)
@@ -147,6 +151,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = module_repr_re.sub(r"\1xxxxx\2", line)
 
         # Frozen modules of 3.11, _imp._frozen_module_names
+        # spell-checker: ignore sitebuiltins
         for module_name in (
             "zipimport",
             "abc",
@@ -180,12 +185,14 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             "http://python.org/dev/peps/pep-0263/",
         )
 
+        # spell-checker: disable-next-line
         line = ran_tests_re.sub(r"\1x.xxxs", line)
 
         line = traceback_re.sub(traceback_re_callback, line)
 
         line = importerror_re.sub(import_re_callback, line)
 
+        # spell-checker: disable-next-line
         line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
 
         line = did_you_mean_re.sub("", line)
@@ -232,6 +239,7 @@ exceeded while calling a Python object' in \
 
         # This is for self compiled Python with default options, gives this
         # harmless option for every time we link to "libpython".
+        # spell-checker: ignore tempnam,tmpnam
         if (
             "is dangerous, better use `mkstemp'" in line
             or "In function `posix_tempnam'" in line
@@ -264,9 +272,45 @@ exceeded while calling a Python object' in \
         if re.search(r"Gtk-WARNING.*cannot open display", line):
             continue
 
+        # Ensure that there's only a single line for each file in the traceback
+        if 'File "' in line:
+            end_index = None
+            for next_index, next_line in enumerate(lines[index + 1 :]):
+                # TODO: Deduplicate this code.
+                if type(next_line) is not str:
+                    try:
+                        next_line = next_line.decode(
+                            "utf-8" if os.name != "nt" else "cp850"
+                        )
+                    except UnicodeDecodeError:
+                        next_line = repr(next_line)
+
+                # If there's no indent, then we're no longer in a traceback.
+                if ('File "' in next_line) or (not next_line.startswith("  ")):
+                    end_index = next_index - 1
+                    break
+
+            if end_index is not None:
+                for _ in range(end_index):
+                    lines.pop(index + 2)
+
         result.append(line)
 
     return result
+
+
+def colorizeDiff(lines):
+    for line in lines:
+        if line.startswith("+++") or line.startswith("---"):
+            yield wrapWithStyles(line, ("yellow", "bold"))
+        elif line.startswith("+"):
+            yield wrapWithStyles(line, ("green",))
+        elif line.startswith("-"):
+            yield wrapWithStyles(line, ("red",))
+        elif line.startswith("@@"):
+            yield wrapWithStyles(line, ("blue", "bold"))
+        else:
+            yield line
 
 
 def compareOutput(
@@ -284,6 +328,9 @@ def compareOutput(
         to_date,
         n=3,
     )
+
+    if canUseColor(sys.stdout):
+        diff = colorizeDiff(diff)
 
     result = list(diff)
 

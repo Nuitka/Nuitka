@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Optimization of calls
+"""Optimization of calls
 
 
 TODO: This is only a placeholder, currently no real calls will be optimized.

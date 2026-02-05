@@ -1,29 +1,46 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pack distribution folders into a single file.
-
-"""
+"""Pack distribution folders into a single file."""
 
 import os
 import subprocess
 import sys
 
-from nuitka import Options, OutputDirectories
 from nuitka.build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
+    provideStaticSourceFilesOnefile,
     runScons,
 )
-from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
-from nuitka.OutputDirectories import getResultFullpath
-from nuitka.plugins.Plugins import Plugins
+from nuitka.options.Options import (
+    getJobLimit,
+    getOnefileTempDirSpec,
+    getProgressBar,
+    getWindowsSplashScreen,
+    isLowMemory,
+    isOnefileTempDirMode,
+    isRemoveBuildDir,
+    shallDisableCompressionCacheUsage,
+    shallNotCompressOnefile,
+    shallOnefileAsArchive,
+    shallTraceExecution,
+)
+from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
+from nuitka.plugins.Hooks import (
+    getBuildDefinitions,
+    onBootstrapBinary,
+    onGeneratedSourceCode,
+    onOnefileFinished,
+    writeExtraCodeFiles,
+)
 from nuitka.PostProcessing import executePostProcessingResources
 from nuitka.PythonVersions import (
     getZstandardSupportingVersions,
     python_version,
 )
+from nuitka.States import states
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
@@ -43,6 +60,8 @@ from nuitka.utils.Utils import (
 )
 from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
+from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
+
 
 def packDistFolderToOnefile(dist_dir):
     """Pack distribution to onefile, i.e. a single file that is directly executable."""
@@ -56,33 +75,35 @@ def packDistFolderToOnefile(dist_dir):
         start_binary=start_binary,
     )
 
-    Plugins.onOnefileFinished(onefile_output_filename)
+    onOnefileFinished(onefile_output_filename)
 
 
 def _runOnefileScons(onefile_compression, onefile_archive):
     scons_options, env_values = getCommonSconsOptions()
 
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=False)
+    source_dir = getSourceDirectoryPath(onefile=True, create=False)
 
     # Let plugins do their thing for onefile mode too.
-    Plugins.writeExtraCodeFiles(onefile=True)
+    writeExtraCodeFiles(onefile=True)
+    provideStaticSourceFilesOnefile(source_dir=source_dir)
+    onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
-    scons_options["result_exe"] = OutputDirectories.getResultFullpath(
-        onefile=True, real=False
-    )
+    scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
     scons_options["source_dir"] = source_dir
-    scons_options["debug_mode"] = asBoolStr(Options.is_debug)
-    scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
+    scons_options["debug_mode"] = asBoolStr(states.is_debug)
+    scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["onefile_splash_screen"] = asBoolStr(
-        Options.getWindowsSplashScreen() is not None
+        getWindowsSplashScreen() is not None
     )
+    if isWin32Windows() and shallIncludeWindowsRuntimeDLLs():
+        scons_options["onefile_windows_static_runtime"] = asBoolStr(True)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
 
     # Allow plugins to build definitions.
-    env_values.update(Plugins.getBuildDefinitions())
+    env_values.update(getBuildDefinitions())
 
     result = runScons(
         scons_options=scons_options,
@@ -100,7 +121,7 @@ _compressor_python = None
 
 def getCompressorPython():
     # User may disable it.
-    if Options.shallNotCompressOnefile():
+    if shallNotCompressOnefile():
         return None
 
     global _compressor_python  # singleton, pylint: disable=global-statement
@@ -146,11 +167,12 @@ def runOnefileCompressor(
             onefile_output_filename=onefile_output_filename,
             start_binary=start_binary,
             expect_compression=compressor_python is not None,
-            as_archive=Options.shallOnefileAsArchive(),
-            use_compression_cache=not Options.shallDisableCompressionCacheUsage(),
+            as_archive=shallOnefileAsArchive(),
+            use_compression_cache=not shallDisableCompressionCacheUsage(),
             file_checksums=file_checksums,
             win_path_sep=win_path_sep,
-            low_memory=Options.isLowMemory(),
+            low_memory=isLowMemory(),
+            job_limit=getJobLimit(),
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -163,7 +185,7 @@ def runOnefileCompressor(
             )
         }
 
-        mapping["NUITKA_PROGRESS_BAR"] = Options.getProgressBar()
+        mapping["NUITKA_PROGRESS_BAR"] = getProgressBar()
 
         onefile_logger.info(
             "Using external Python '%s' to compress the payload."
@@ -180,9 +202,10 @@ def runOnefileCompressor(
                     start_binary,
                     str(file_checksums),
                     str(win_path_sep),
-                    str(Options.isLowMemory()),
-                    str(Options.shallOnefileAsArchive()),
-                    str(not Options.shallDisableCompressionCacheUsage()),
+                    str(isLowMemory()),
+                    str(shallOnefileAsArchive()),
+                    str(not shallDisableCompressionCacheUsage()),
+                    str(getJobLimit()),
                 ],
                 shell=False,
             )
@@ -194,7 +217,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
     # Cleanup first.
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=True)
+    source_dir = getSourceDirectoryPath(onefile=True, create=True)
     cleanSconsDirectory(source_dir)
 
     # Used only in some configurations
@@ -218,7 +241,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
-        onefile_archive=Options.shallOnefileAsArchive(),
+        onefile_archive=shallOnefileAsArchive(),
     )
 
     if isWin32Windows():
@@ -229,10 +252,12 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(onefile_output_filename)
 
-    Plugins.onBootstrapBinary(onefile_output_filename)
+    onBootstrapBinary(onefile_output_filename)
 
     if isMacOS():
-        addMacOSCodeSignature(filenames=[onefile_output_filename])
+        addMacOSCodeSignature(
+            filenames=[onefile_output_filename], entitlements_filename=None
+        )
         assert payload_used_in_build
 
     if not payload_used_in_build:
@@ -257,7 +282,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
                 logger=postprocessing_logger,
             )
 
-    if Options.isRemoveBuildDir():
+    if isRemoveBuildDir():
         onefile_logger.info("Removing onefile build directory '%s'." % source_dir)
 
         removeDirectory(

@@ -48,7 +48,7 @@ def raiseExceptionAndReraise(arg):
 try:
     raiseExceptionAndReraise(0)
 except:
-    print("Caught reraised", sys.exc_info())
+    print("Caught re-raised", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
 print("*" * 20)
@@ -413,7 +413,7 @@ print("Check what happens if a function attempts to clear the exception in a han
 
 
 def clearingException():
-    def clearit():
+    def clear_sys_exc_info():
         try:
             if sys.version_info[0] < 3:
                 sys.exc_clear()
@@ -424,7 +424,7 @@ def clearingException():
         raise KeyError
     except:
         print("Before clearing, it's", sys.exc_info())
-        clearit()
+        clear_sys_exc_info()
 
         print("After clearing, it's", sys.exc_info())
 

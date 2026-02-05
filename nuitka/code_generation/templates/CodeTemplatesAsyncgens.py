@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Async generator (await/async + yield) related templates.
-
-"""
+"""Async generator (await/async + yield) related templates."""
 
 template_asyncgen_object_maker_template = """\
 static PyObject *%(asyncgen_maker_identifier)s(%(asyncgen_creation_args)s);
@@ -72,7 +70,7 @@ template_asyncgen_exception_exit = """\
     return NULL;
 """
 
-template_asyncgen_noexception_exit = """\
+template_asyncgen_no_exception_exit = """\
     NUITKA_CANNOT_GET_HERE("return must be present");
 
 %(function_cleanup)s

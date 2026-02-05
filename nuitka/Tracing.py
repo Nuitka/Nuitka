@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Outputs to the user.
+"""Outputs to the user.
 
 Printing with intends or plain, mostly a compensation for the print strangeness.
 
@@ -38,6 +38,10 @@ def setQuiet():
     # singleton, pylint: disable=global-statement
     global is_quiet
     is_quiet = True
+
+
+def isQuiet():
+    return is_quiet
 
 
 def printIndented(level, *what):
@@ -230,6 +234,8 @@ def _aliasStyle(style):
 
     if style == "test-prepare":
         return "pink"
+    if style == "test-execution":
+        return "green"
     if style == "test-progress":
         return "blue"
     if style == "test-debug":
@@ -246,41 +252,58 @@ def _aliasStyle(style):
         return style
 
 
-def _my_print(file_output, is_atty, args, kwargs):
+def _my_print(is_atty, args, kwargs):
+    file_output = kwargs.get("file", sys.stdout)
+
     try:
-        if "style" in kwargs:
-            style = kwargs["style"]
-            del kwargs["style"]
-
-            if "end" in kwargs:
-                end = kwargs["end"]
-                del kwargs["end"]
-            else:
-                end = "\n"
-
-            if style is not None and is_atty:
-                enable_style = getEnableStyleCode(style)
-
-                if enable_style is None:
-                    raise ValueError(
-                        "%r is an invalid value for keyword argument style" % style
-                    )
-
-                _enableAnsi()
-
-                print(enable_style, end="", **kwargs)
-
-            print(*args, end=end, **kwargs)
-
-            if style is not None and is_atty:
-                print(getDisableStylesCode(), end="", **kwargs)
-        else:
-            print(*args, **kwargs)
+        _my_print2(is_atty, args, kwargs)
 
         # Flush the output.
         file_output.flush()
     except BrokenPipeError:
         pass
+
+
+def _my_print2(is_atty, args, kwargs):
+    if "style" in kwargs:
+        style = kwargs["style"]
+        del kwargs["style"]
+
+        if "end" in kwargs:
+            end = kwargs["end"]
+            del kwargs["end"]
+        else:
+            end = "\n"
+
+        if style is not None and is_atty:
+            enable_style = getEnableStyleCode(style)
+
+            if enable_style is None:
+                raise ValueError(
+                    "%r is an invalid value for keyword argument style" % style
+                )
+
+            _enableAnsi()
+
+            print(enable_style, end="", **kwargs)
+
+        if style is not None and is_atty:
+            print(*args, end="", **kwargs)
+            print(getDisableStylesCode(), end=end, **kwargs)
+        else:
+            print(*args, end=end, **kwargs)
+    else:
+        print(*args, **kwargs)
+
+
+def canUseColor(file_output):
+    """Can use color with the given file handle.
+
+    This function is intended for globally disabling the feature
+    potentially, but for that we would need to use it everywhere
+    first.
+    """
+    return file_output.isatty()
 
 
 def my_print(*args, **kwargs):
@@ -292,13 +315,14 @@ def my_print(*args, **kwargs):
     """
 
     file_output = kwargs.get("file", sys.stdout)
+
     is_atty = file_output.isatty()
 
     if progress and is_atty:
         with progress.withExternalWritingPause():
-            _my_print(file_output, is_atty, args, kwargs)
+            _my_print(is_atty, args, kwargs)
     else:
-        _my_print(file_output, is_atty, args, kwargs)
+        _my_print(is_atty, args, kwargs)
 
 
 class ReportingSystemExit(SystemExit):
@@ -335,7 +359,7 @@ class OurLogger(object):
             style=style,
         )
 
-    def _printFormatted(self, prefix, leader, message, style, keep_format):
+    def _printFormatted(self, prefix, leader, message, style, keep_format, file_handle):
         style = style or self.base_style
 
         if sys.stderr.isatty() and not keep_format:
@@ -347,6 +371,9 @@ class OurLogger(object):
             message_prefix = prefix + "  "
         else:
             message_prefix = prefix
+
+        if width - len(message_prefix) < 20:
+            width = 80
 
         formatted_message = textwrap.fill(
             message,
@@ -364,13 +391,13 @@ class OurLogger(object):
         if leader is not None:
             formatted_message = prefix + leader + "\n" + formatted_message
 
-        self.my_print(formatted_message, style=style, file=sys.stderr)
+        self.my_print(formatted_message, style=style, file=file_handle)
 
     def warning(
         self, message, style="yellow", mnemonic=None, keep_format=False, leader=None
     ):
         if mnemonic is not None:
-            from .Options import shallDisplayWarningMnemonic
+            from .options.Options import shallDisplayWarningMnemonic
 
             if not shallDisplayWarningMnemonic(mnemonic):
                 return
@@ -386,6 +413,7 @@ class OurLogger(object):
             message=message,
             style=style,
             keep_format=keep_format,
+            file_handle=sys.stderr,
         )
 
         if mnemonic is not None:
@@ -452,6 +480,7 @@ class OurLogger(object):
                 message=message,
                 style=style,
                 keep_format=keep_format,
+                file_handle=sys.stderr,
             )
 
             if mnemonic is not None:
@@ -481,15 +510,31 @@ class FileLogger(OurLogger):
     def isFileOutput(self):
         return self.file_handle is not None
 
-    def info(self, message, style=None, mnemonic=None):
+    def info(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        prefix=None,
+        keep_format=False,
+        leader=None,
+    ):
         if not self.isQuiet() or self.file_handle:
-            message = "%s: %s" % (self.name, message)
-
-            style = style or self.base_style
-            self.my_print(message, style=style)
+            self._printFormatted(
+                prefix=(
+                    "%s: " % self.name
+                    if prefix is None
+                    else "%s:%s: " % (self.name, prefix)
+                ),
+                leader=leader,
+                message=message,
+                style=style,
+                keep_format=keep_format,
+                file_handle=self.file_handle or sys.stderr,
+            )
 
             if mnemonic is not None:
-                self._warnMnemonic(mnemonic, style=style, output_function=self.my_print)
+                self._warnMnemonic(mnemonic, style=style, output_function=self.info)
 
     def debug(self, message, style=None):
         if self.file_handle:
@@ -509,6 +554,42 @@ class FileLogger(OurLogger):
             other_logger.info(message, style=style)
 
 
+class OurSconsLogger(OurLogger):
+    def sysexit(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        exit_code=1,
+        reporting=False,
+        env=None,
+    ):
+        if env is not None:
+            from nuitka.utils.FileOperations import getNormalizedPathJoin
+            from nuitka.utils.Json import writeJsonToFilename
+
+            writeJsonToFilename(
+                getNormalizedPathJoin(env.source_dir, "scons-error.json"),
+                {
+                    "message": message,
+                    "mnemonic": mnemonic,
+                    "exit_code": exit_code,
+                    "reporting": reporting,
+                },
+            )
+
+            sys.exit(27)
+        else:
+            OurLogger.sysexit(
+                self,
+                message,
+                style=style,
+                mnemonic=mnemonic,
+                exit_code=exit_code,
+                reporting=reporting,
+            )
+
+
 general = OurLogger("Nuitka")
 plugins_logger = OurLogger("Nuitka-Plugins")
 recursion_logger = OurLogger("Nuitka-Inclusion")
@@ -519,7 +600,7 @@ optimization_logger = FileLogger("Nuitka-Optimization")
 pgo_logger = FileLogger("Nuitka-PGO")
 code_generation_logger = OurLogger("Nuitka-CodeGen")
 inclusion_logger = FileLogger("Nuitka-Inclusion")
-scons_logger = OurLogger("Nuitka-Scons")
+scons_logger = OurSconsLogger("Nuitka-Scons")
 scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
 options_logger = OurLogger("Nuitka-Options")
@@ -553,11 +634,14 @@ def queryUser(question, choices, default, default_non_interactive):
         reply = raw_input() or default
     except EOFError:
         reply = default_non_interactive
+        printLine("%s (default non-interactive)" % (reply))
+
+    reply = reply.lower()
 
     if reply == "y":
         reply = "yes"
 
-    return reply.lower()
+    return reply
 
 
 _non_breaking_space = chr(1)
@@ -568,6 +652,55 @@ def doNotBreakSpaces(*args):
         return doNotBreakSpaces(*tuple(args[0]))
 
     return tuple(element.replace(" ", _non_breaking_space) for element in args)
+
+
+class LineBufferedStreamRedirector(object):
+    def __init__(self, stream):
+        self.original_stream = stream
+        self.buffer = ""
+
+    def write(self, message):
+        if not message:
+            return
+
+        self.buffer += message
+
+        if "\n" in self.buffer:
+            lines = self.buffer.split("\n")
+            # All lines except the last one are complete.
+            # The last one is the start of the new line (remainder).
+            if lines[-1] == "":
+                # Ends with a newline
+                to_print = self.buffer
+                self.buffer = ""
+            else:
+                to_print = "\n".join(lines[:-1]) + "\n"
+                self.buffer = lines[-1]
+
+            if progress and self.original_stream.isatty():
+                with progress.withExternalWritingPause():
+                    self.original_stream.write(to_print)
+                    self.original_stream.flush()
+            else:
+                self.original_stream.write(to_print)
+                self.original_stream.flush()
+
+    def flush(self):
+        # We don't flush the buffer, as that would cause partial lines to be
+        # printed, which then get overwritten by the progress bar. We wait
+        # for the newline to print it.
+        self.original_stream.flush()
+
+    def __del__(self):
+        if self.buffer:
+            try:
+                self.original_stream.write(self.buffer)
+                self.original_stream.flush()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+    def isatty(self):
+        return self.original_stream.isatty()
 
 
 def _removeNotBreakingSpaces(message):

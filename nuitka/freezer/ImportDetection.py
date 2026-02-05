@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Detect imports made for code by Python.
+"""Detect imports made for code by Python.
 
 In the freezer, this is a step done to detect the technically needed modules to
 initialize the CPython interpreter.
@@ -18,7 +18,7 @@ from nuitka.importing.StandardLibrary import (
     isStandardLibraryPath,
     scanStandardLibraryPath,
 )
-from nuitka.Options import isStandaloneMode
+from nuitka.options.Options import isStandaloneMode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, printError
 from nuitka.utils.Execution import executeProcess

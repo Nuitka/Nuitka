@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node meta classes.
+"""Node meta classes.
 
 This provides meta classes for nodes, currently only one. These do all kinds
 of checks, and add methods automatically.

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Conditional statements related codes.
+"""Conditional statements related codes.
 
 Branches, conditions, truth checks.
 """

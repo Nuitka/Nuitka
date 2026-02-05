@@ -1,22 +1,25 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nuitka watch main part.
+"""Nuitka watch main part.
 
 This tool is used to monitor effect of PyPI changes on Nuitka and effect
 of Nuitka changes on PyPI packages.
 """
 
 import os
-import sys
-from optparse import OptionParser
 
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getTestExecutionPythonVersions
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
 from nuitka.Tracing import OurLogger
-from nuitka.TreeXML import fromFile
+from nuitka.TreeXML import convertFileToXML
 from nuitka.utils.Execution import (
     check_call,
     executeProcess,
@@ -26,7 +29,6 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
     getFileContentsHash,
-    getFileList,
     getNormalizedPath,
     listDir,
     makePath,
@@ -145,6 +147,8 @@ def selectOS(os_values):
 
 
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
+    # A bit of details needed, pylint: disable=too-many-locals
+
     preferred_package_type = installed_python.getPreferredPackageType()
 
     extra_options = []
@@ -178,13 +182,15 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     if nuitka_extra_options:
         extra_options.extend(nuitka_extra_options.split())
 
+    report_filename = "compilation-report.xml"
+
     check_call(
         run_command
         + [
             nuitka_binary,
             os.path.join(case_dir, case_data["filename"]),
             "--assume-yes-for-downloads",
-            "--report=compilation-report.xml",
+            "--report=%s" % report_filename,
             "--report-diffable",
             "--report-user-provided=pipenv_hash=%s"
             % getFileContentsHash(lock_filename),
@@ -194,14 +200,12 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     )
 
     if case_data["interactive"] == "no":
-        binaries = getFileList(
-            ".",
-            ignore_filenames=("__constants.bin",),
-            only_suffixes=(".exe" if os.name == "nt" else ".bin"),
-        )
+        compilation_report = parseCompilationReport(report_filename)
 
-        if len(binaries) != 1:
-            sys.exit("Error, failed to identify created binary.")
+        binary_filename = getCompilationOutputBinary(
+            compilation_report=compilation_report,
+            prefixes=(("${cwd}", os.getcwd()),),
+        )
 
         env = {
             "NUITKA_LAUNCH_TOKEN": "1",
@@ -209,7 +213,9 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         }
 
         with withEnvironmentVarsOverridden(env):
-            stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
+            stdout, stderr, exit_nuitka = executeProcess(
+                [binary_filename], timeout=5 * 60
+            )
 
         with open("compiled-stdout.txt", "wb") as output:
             output.write(stdout)
@@ -225,8 +231,9 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             )
 
         if exit_nuitka != 0:
-            sys.exit(
-                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
+            return watch_logger.sysexit(
+                "Error, failed to execute %s with code %d."
+                % (binary_filename, exit_nuitka)
             )
 
 
@@ -286,6 +293,8 @@ def _updateCaseLock(
                 installed_python=installed_python,
                 case_data=case_data,
             )
+        else:
+            assert False, preferred_package_type
 
         lock_filename = os.path.abspath(lock_filename)
 
@@ -316,9 +325,9 @@ def _updateCase(
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
-        if os.path.exists("compilation-report.xml"):
-            old_report_root = fromFile("compilation-report.xml")
+        old_report_root = convertFileToXML("compilation-report.xml")
 
+        if old_report_root is not None:
             existing_hash = getFileContentsHash(lock_filename)
             old_report_root_hash = (
                 old_report_root.find("user-data").find("pipenv_hash").text
@@ -448,7 +457,11 @@ def updateCase(
 
 
 def updateCases(case_dir, reset_pipenv, no_pipenv_update, nuitka_update_mode, jobs):
-    for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
+    for case_data in parseYaml(
+        logger=watch_logger,
+        data=getFileContents("case.yml", mode="rb"),
+        error_message="Error, empty (or malformed?) case.yml used.",
+    ):
         updateCase(
             case_dir=case_dir,
             case_data=case_data,
@@ -471,7 +484,7 @@ def main():
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka")
     )
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--python-version",

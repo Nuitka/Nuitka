@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare output of CPython and Nuitka.
-
-"""
+"""Tool to compare output of CPython and Nuitka."""
 
 import os
 import pickle
@@ -13,7 +11,7 @@ import sys
 import time
 
 from nuitka.__past__ import md5
-from nuitka.OptionParsing import getNuitkaProjectOptions
+from nuitka.options.OptionParsing import getNuitkaProjectOptions
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     decryptOutput,
@@ -37,7 +35,7 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getExtensionModuleSuffix
-from nuitka.utils.Timing import StopWatch
+from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
 
 
@@ -77,7 +75,7 @@ def checkNoPermissionError(output):
 
 
 def _getCPythonResults(cpython_cmd, send_kill):
-    stop_watch = StopWatch()
+    stop_watch = StopWatchWallClock()
 
     # Try a compile of times for permission denied, on Windows it can
     # be transient.
@@ -287,10 +285,8 @@ def main():
     if args:
         sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
 
-    project_options = tuple(
-        getNuitkaProjectOptions(
-            logger=test_logger, filename_arg=filename, module_mode=module_mode
-        )
+    project_options = getNuitkaProjectOptions(
+        logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
 
     if "--standalone" in project_options or "--mode=standalone" in project_options:
@@ -614,6 +610,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if trace_command:
         traceExecutedCommand("CPython command", cpython_cmd)
 
+    cpython_time = None
+
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
             cpython_cmd=cpython_cmd,
@@ -640,7 +638,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if trace_command:
             my_print("Going to output directory", os.getcwd())
 
-    stop_watch = StopWatch()
+    stop_watch = StopWatchWallClock()
     stop_watch.start()
 
     if not two_step_execution:

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Common test infrastructure functions. To be used by test runners. """
+"""Common test infrastructure functions. To be used by test runners."""
 
 import atexit
 import gc
@@ -13,12 +13,16 @@ import tempfile
 import threading
 import time
 from contextlib import contextmanager
-from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import getCommercialVersion
-from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
+from nuitka.PythonVersions import (
+    getSitePackageCandidateNames,
+    getTestExecutionPythonVersions,
+    isDebugPython,
+)
 from nuitka.Tracing import OurLogger, flushStandardOutputs, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
@@ -32,10 +36,12 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    deleteFile,
     getExternalUsePath,
     getFileContentByLine,
     getFileContents,
     getFileList,
+    getNormalizedPathJoin,
     getParentDirectories,
     isFilenameSameAsOrBelowPath,
     makePath,
@@ -45,14 +51,9 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
+from nuitka.Version import getCommercialVersion
 
-from .SearchModes import (
-    SearchModeByPattern,
-    SearchModeCoverage,
-    SearchModeImmediate,
-    SearchModeOnly,
-    SearchModeResume,
-)
+from .SearchModes import SearchMode
 
 # spell-checker: ignore popenargs,pathsep,killpg
 
@@ -399,8 +400,8 @@ def _removeCPythonTestSuiteDir():
                 ignore_errors=False,
                 extra_recommendation=None,
             )
-        elif os.path.isfile("@test"):
-            os.unlink("@test")
+        else:
+            deleteFile("@test", must_exist=False)
     except OSError:
         # TODO: Move this into removeDirectory maybe. Doing an external
         # call as last resort could be a good idea.
@@ -491,7 +492,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=Non
         if os.path.exists(compare_with_cpython):
             command = [sys.executable, compare_with_cpython, path, "silent"]
         else:
-            test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
+            return test_logger.sysexit("Error, cannot locate Nuitka comparison runner.")
 
     if extra_flags is not None:
         command += extra_flags
@@ -525,7 +526,12 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
     else:
         path = os.path.join(dirname, filename)
 
-    command = [_python_executable, "-mcompileall", path]
+    command = [
+        _python_executable,
+        "-m",
+        "compileall",
+        path,
+    ]
 
     try:
         result = subprocess.call(command)
@@ -663,7 +669,7 @@ def snapObjRefCntMap(before):
         else:
             k = str(x)
 
-        c = sys.getrefcount(x)
+        c = sys.getrefcount(x)  # spell-checker: ignore getrefcount
 
         if k in m:
             m[k] += c
@@ -809,9 +815,27 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
 
 def createSearchMode():
     # Dealing with many options, pylint: disable=too-many-branches
-    # Return driven, pylint: disable=too-many-return-statements
 
-    parser = OptionParser()
+    parser = makeOptionsParser(
+        usage="%prog [options]",
+        epilog="""\
+The following shortcuts are available for the default "search" mode:
+
+resume [pattern]    : Same as "search --resume [pattern]"
+skip [pattern]      : Same as "search --skip [pattern]" (resumes, skips current)
+only [pattern]      : Same as "search --only-one [pattern]"
+all [pattern]       : Same as "search --all [pattern]"
+coverage [pattern]  : Same as "search --coverage [pattern]"
+
+Examples:
+  ./run_all.py                    # Run all tests, abort on first error
+  ./run_all.py --all              # Run all tests, continue on error
+  ./run_all.py --all --pattern=A* # Run all tests starting with A
+  ./run_all.py resume             # Resume from last failed test
+  ./run_all.py skip               # Skip failure and resume from next
+  ./run_all.py only MyTest        # Run only MyTest.py
+""",
+    )
 
     select_group = parser.add_option_group("Select Tests")
 
@@ -830,6 +854,15 @@ Execute only tests matching the pattern. Defaults to all tests.""",
         default=False,
         help="""\
 Execute all tests, continue execution even after failure of one.""",
+    )
+    select_group.add_option(
+        "--max-failures",
+        action="store",
+        dest="max_failures",
+        default=None,
+        type="int",
+        help="""\
+Stop after this many failures. Default is to not stop. Only valid with --all.""",
     )
     select_group.add_option(
         "--jobs",
@@ -863,6 +896,31 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
+    debug_group.add_option(
+        "--resume",
+        action="store_true",
+        dest="resume",
+        default=False,
+        help="""Resume from last run.""",
+    )
+
+    debug_group.add_option(
+        "--only-one",
+        action="store_true",
+        dest="only",
+        default=False,
+        help="""Execute only the first matching test.""",
+    )
+
+    debug_group.add_option(
+        "--coverage",
+        action="store_true",
+        dest="coverage",
+        default=False,
+        help="""\
+Run tests with coverage enabled.""",
+    )
+
     del debug_group
 
     options, positional_args = parser.parse_args()
@@ -884,33 +942,38 @@ Defaults to off.""",
         if len(positional_args) >= 2 and not options.pattern:
             options.pattern = positional_args[1]
 
-    if mode == "search":
-        if options.all:
-            return SearchModeByPattern(start_at=None)
-        elif options.pattern:
-            return SearchModeByPattern(
-                start_at=options.pattern.replace("/", os.path.sep)
-            )
-        else:
-            return SearchModeImmediate()
-    elif mode == "resume":
-        return SearchModeResume(sys.modules["__main__"].__file__, skip=False)
+    if mode == "resume":
+        options.resume = True
     elif mode == "skip":
-        return SearchModeResume(sys.modules["__main__"].__file__, skip=True)
+        options.resume = True
+        options.skip = True
     elif mode == "only":
-        if options.pattern:
-            pattern = options.pattern.replace("/", os.path.sep)
-            return SearchModeOnly(pattern)
-        else:
-            assert False
+        options.only = True
+    elif mode == "all":
+        options.all = True
     elif mode == "coverage":
-        return SearchModeCoverage(
-            start_at=(
-                options.pattern.replace("/", os.path.sep) if options.pattern else None
-            )
-        )
+        options.coverage = True
+    elif mode == "search":
+        pass
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)
+
+    if options.max_failures is not None and not options.all:
+        test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+
+    start_at = options.pattern.replace("/", os.path.sep) if options.pattern else None
+
+    return SearchMode(
+        logger=test_logger,
+        start_at=start_at,
+        start_dir=getStartDir(),
+        resume=options.resume,
+        only=options.only,
+        abort_on_error=not options.all,
+        skip=getattr(options, "skip", False),
+        coverage=options.coverage,
+        max_failures=options.max_failures,
+    )
 
 
 def reportSkip(reason, dirname, filename):
@@ -1077,12 +1140,18 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
     if not os.path.exists(stage_dir):
         os.makedirs(stage_dir)
 
-    my_dirname = os.path.join(os.path.dirname(__file__), "../../..")
-    my_dirname = os.path.normpath(my_dirname)
+    my_dirname = getNormalizedPathJoin(os.path.dirname(__file__), "../../..")
 
-    paths = [path for path in sys.path if not path.startswith(my_dirname)]
+    paths = [
+        path
+        for path in sys.path
+        if not isFilenameSameAsOrBelowPath(path=my_dirname, filename=path)
+        if not isStandardLibraryPath(path)
+        if os.path.isdir(path)
+        if path != sys.prefix
+    ]
 
-    my_print("Using standard library paths:")
+    my_print("Using library paths:")
     for path in paths:
         my_print(path)
 
@@ -1416,6 +1485,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         loaded_basename = os.path.basename(loaded_filename)
 
         if isWin32Windows():
+            # spell-checker: ignore SYSTEMROOT
             if areSamePaths(
                 os.path.dirname(loaded_filename),
                 os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
@@ -1427,10 +1497,12 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             ):
                 continue
 
+            # spell-checker: ignore winsxs
             if r"windows\winsxs" in loaded_filename:
                 continue
 
-            # GitHub actions have these in PATH overriding SYSTEMROOT
+            # GitHub actions have these in PATH overriding SYSTEMROOT,
+            # spell-checker: ignore tortoisesvn
             if r"windows performance toolkit" in loaded_filename:
                 continue
             if r"powershell" in loaded_filename:
@@ -1506,7 +1578,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         ):
             continue
 
-        # TCL/tk for tkinter for non-Windows is OK.
+        # TCL/tk for tkinter for non-Windows is OK, spell-checker: ignore tcltk
         if loaded_filename.startswith(
             (
                 "/usr/lib/tcltk/",
@@ -1554,11 +1626,17 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_basename == "openssl.cnf":
             continue
 
-        # Taking these from system is harmless and desirable
+        # Taking these from system is harmless and desirable, spell-checker: ignore libz libgcc
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
 
-        # System C libraries are to be expected.
+        # System C libraries are to be expected,
+        # spell-checker: ignore libm,libdl,libpthread,libanl,libcrypt
+        # spell-checker: ignore libcidn,libBrokenLocale,libSegFault,libutil
+        # spell-checker: ignore libnsl,libnss_compat,libnss_db,libnss_dns
+        # spell-checker: ignore libnss_files,libnss_hesiod,libnss_nis
+        # spell-checker: ignore libnss_nisplus,libpcprofile,libresolv,
+        # spell-checker: ignore librt,libthread_db,libmemusage,libmvec
         if loaded_basename.startswith(
             (
                 "ld-linux-x86-64.so",
@@ -1592,14 +1670,19 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # System C++ standard library is also OK.
+        # spell-checker: ignore libstdc++
         if loaded_basename.startswith("libstdc++."):
             continue
 
         # Curses library is OK from system too.
+        # spell-checker: ignore libtinfo
         if loaded_basename.startswith("libtinfo.so."):
             continue
 
         # Loaded by C library potentially for DNS lookups.
+        # spell-checker: ignore libnss,libnsl,libattr,libbz2,libcap,
+        # spell-checker: ignore libdw,libelf,liblzma,libselinux,libpcre,
+        # spell-checker: ignore libblkid,libmount,libpcre2-8,libuuid
         if loaded_basename.startswith(
             (
                 "libnss_",
@@ -1629,6 +1712,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Loaded by cowbuilder and pbuilder on Debian
+        # spell-checker: ignore .ilist,cowbuilder,cowdancer,eatmydata
         if loaded_basename == ".ilist":
             continue
         if "cowdancer" in loaded_filename:
@@ -1656,6 +1740,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 
         # TODO: Unclear, loading gconv from filesystem of installed system
         # may be OK or not. I think it should be.
+        # spell-checker: ignore gconv,libicu
         if loaded_basename == "gconv-modules.cache":
             continue
         if "/gconv/" in loaded_filename:
@@ -1715,7 +1800,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
             continue
 
-        # GTK accesses package directories only.
+        # GTK accesses package directories only, spell-checker: ignore gobject
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/gtk-2.0/gtk"):
             continue
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/glib"):
@@ -1777,16 +1862,14 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith(
-            ("site-packages", "dist-packages", "vendor-packages")
-        ):
+        if loaded_filename.endswith(getSitePackageCandidateNames()):
             continue
 
-        # QtNetwork insist on doing this it seems.
+        # QtNetwork insist on doing this it seems, spell-checker: ignore libcrypto
         if loaded_basename.startswith(("libcrypto.so", "libssl.so")):
             continue
 
-        # macOS uses these:
+        # macOS uses these, spell-checker: ignore libfribidi
         if loaded_basename in (
             "libc.dylib",
             "libcrypto.1.0.0.dylib",
@@ -1797,15 +1880,13 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         ):
             continue
 
-        # Linux onefile uses this
-        if loaded_basename.startswith("libfuse.so."):
-            continue
-
         # MSVC run time DLLs, due to SxS come from system.
+        # spell-checker: ignore msvcr90
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
 
         if isMacOS():
+            # spell-checker: ignore libexec,preboot
             ignore = True
             for ignored_dir in (
                 "/System/Library",
@@ -1826,6 +1907,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             if loaded_filename == "/usr/libexec/rosetta/runtime":
                 continue
 
+            # spell-checker: ignore libfakelink,liboah,libobjc
             if loaded_filename in (
                 "/usr/lib/libSystem.B.dylib",
                 "/usr/lib/libc++.1.dylib",
@@ -1975,7 +2057,7 @@ def extractNuitkaVersionFromFilePath(version_filename):
 
 def decryptOutput(project_options, output):
     nuitka_decrypt_call = [
-        os.environ.get("PYTHON", sys.executable),
+        os.getenv("PYTHON", sys.executable),
         "-m",
         "nuitka.tools.commercial.decrypt",  # Note: Needed for Python2.6
     ]

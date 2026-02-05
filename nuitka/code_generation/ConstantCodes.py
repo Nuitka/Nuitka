@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Low level constant code generation.
+"""Low level constant code generation.
 
 This deals with constants, there creation, there access, and some checks about
 them. Even mutable constants should not change during the course of the
@@ -16,10 +16,10 @@ for a single module only.
 import os
 import sys
 
-from nuitka import Options
 from nuitka.__past__ import unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.ModuleRegistry import getRootTopModule, hasDoneModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -109,8 +109,8 @@ def getConstantsDefinitionCode():
 
     sys_executable = None
 
-    if not Options.shallMakeModule():
-        if Options.isStandaloneMode():
+    if not shallMakeModule():
+        if isStandaloneMode():
             # The directory is added back at run time.
             sys_executable = constant_accessor.getConstantCode(
                 os.path.basename(sys.executable)
@@ -124,7 +124,7 @@ def getConstantsDefinitionCode():
     sys_base_exec_prefix = None
 
     # TODO: This part is needed for main program only, so do it there?
-    if not Options.shallMakeModule() and not Options.isStandaloneMode():
+    if not shallMakeModule() and not isStandaloneMode():
         sys_prefix = constant_accessor.getConstantCode(sys.prefix)
         sys_exec_prefix = constant_accessor.getConstantCode(sys.exec_prefix)
 
@@ -211,7 +211,9 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-        module_name = getDistributionTopLevelPackageNames(distribution)[0]
+        module_name = getDistributionTopLevelPackageNames(
+            distribution=distribution, deep=True
+        )[0]
 
         _metadata_values[distribution_name] = MetaDataDescription(
             module_name=module_name,

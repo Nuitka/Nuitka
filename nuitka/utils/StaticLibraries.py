@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This module deals with finding and information about static libraries.
-
-"""
+"""This module deals with finding and information about static libraries."""
 
 import os
 
@@ -11,7 +9,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
-    isNuitkaPython,
+    isMonolithPy,
     isPyenvPython,
     isPythonBuildStandalonePython,
     isRyePython,
@@ -115,8 +113,8 @@ def _getSystemStaticLibPythonPath():
     sys_prefix = getSystemPrefixPath()
     python_abi_version = python_version_str + getPythonABI()
 
-    if isNuitkaPython():
-        # Nuitka Python has this.
+    if isMonolithPy():
+        # MonolithPy has this.
         if isWin32Windows():
             return os.path.join(
                 sys_prefix,

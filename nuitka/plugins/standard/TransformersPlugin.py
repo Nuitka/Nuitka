@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Plugin to provide transformers implicit dependencies.
-
-"""
+"""Plugin to provide transformers implicit dependencies."""
 
 import os
 
@@ -12,7 +10,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 class NuitkaPluginTransformers(NuitkaPluginBase):
     plugin_name = "transformers"
-    plugin_desc = "Provide implicit imports for transformers package."
+    plugin_desc = "Required by 'transformers' package."
     plugin_category = "package-support"
 
     @staticmethod

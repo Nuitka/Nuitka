@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Command line options of Nuitka.
+"""Command line options of Nuitka.
 
 These provide only the optparse options to use, and the mechanic to actually
 do it, but updating and checking module "nuitka.Options" values is not in
@@ -20,7 +20,6 @@ from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import isPythonWithGil
-from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -34,6 +33,8 @@ from nuitka.utils.Utils import (
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+
+from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -71,7 +72,7 @@ if not plugin_help_mode:
     command line options too), consider the output of
     '--help-plugins'."""
 
-parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
+parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name, epilog=None)
 
 parser.add_option(
     "--version",
@@ -199,6 +200,85 @@ When given multiple times, it enables "multidist"
 that depending on file name or invocation name.
 """,
 )
+
+# If specified, this takes the place of a "--main" argument, i.e. a
+# filename to compile. The value is "binary_name=module:function" and results in
+# generated main program that imports the module and calls the function.
+# Default empty.
+parser.add_option(
+    "--main-entry-point",
+    action="append",
+    dest="main_entry_points",
+    metavar="ENTRY_POINT",
+    default=[],
+    help=SUPPRESS_HELP,
+    github_action=False,
+)
+
+parser.add_option(
+    "--project",
+    action="store_true",
+    dest="is_project_mode",
+    default=False,
+    help="""\
+Compile the project in the current directory by extracting configuration
+from it. Default is not to use it.""",
+)
+
+parser.add_option(
+    "--pyproject-requires",
+    action="append",
+    dest="pyproject_requires",
+    default=[],
+    github_action=False,
+    help=SUPPRESS_HELP,
+)
+
+
+def getBuildConfigurationOptions(logger):
+    if "--project" not in sys.argv:
+        return []
+
+    # Auto-detection of Poetry, we want to support that without the user saying so,
+    # but only if --project is given.
+    if os.path.exists("pyproject.toml"):
+        from nuitka.utils.Toml import loadToml
+
+        pyproject_data = loadToml("pyproject.toml")
+
+        if pyproject_data is not None:
+            tool_data = pyproject_data.get("tool", {})
+
+            # Check if it is a Poetry project
+            if "poetry" in tool_data:
+                from .Poetry import getPoetryBuildConfiguration
+
+                return getPoetryBuildConfiguration(logger)
+
+            build_system_data = pyproject_data.get("build-system", {})
+            build_backend = build_system_data.get("build-backend", "")
+
+            # Check if it is a "setuptools" project
+            if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
+                from .BuildPackage import getBuildBackendConfiguration
+
+                return getBuildBackendConfiguration(logger)
+
+            return logger.sysexit(
+                "Error, unrecognized build-backend '%s' in 'pyproject.toml'."
+                % build_backend
+            )
+
+    # Check if it is old-style "setuptools".
+    if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
+        from .BuildPackage import getBuildBackendConfiguration
+
+        return getBuildBackendConfiguration(logger)
+
+    logger.sysexit(
+        "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."
+    )
+
 
 # Option for use with GitHub action workflow, where options are read
 # from the environment variable with the input values given there.
@@ -398,8 +478,9 @@ onefile_group.add_option(
     help="""\
 When stopping the child, e.g. due to CTRL-C or shutdown, etc. the
 Python code gets a "KeyboardInterrupt", that it may handle e.g. to
-flush data. This is the amount of time in ms, before the child it
-killed in the hard way. Unit is ms, and default 5000.""",
+flush data. This is the amount of time in ms, before the child is
+killed in a hard way. The special value 'infinity' disables this
+timeout. Unit is ms, and default 5000.""",
 )
 
 onefile_group.add_option(
@@ -585,6 +666,19 @@ Do not include DLL files matching the filename pattern given. This is against
 the target filename, not source paths. So ignore a DLL 'someDLL' contained in
 the package 'package_name' it should be matched as 'package_name/someDLL.*'.
 Default empty.""",
+)
+
+dll_group.add_option(
+    "--include-windows-runtime-dlls",
+    action="store",
+    dest="include_windows_runtime_dlls",
+    metavar="choice",
+    choices=("auto", "yes", "no"),
+    default="auto",
+    help="""\
+Include the Windows C runtime DLLs in the distribution. For onefile, this also
+enables static linking of the bootstrap binary. Defaults to 'auto', which
+includes them if found.""",
 )
 
 
@@ -895,6 +989,16 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-self-forking",
+    action="store_true",
+    dest="debug_self_forking",
+    default=False,
+    help="""\
+For fork bombs, debug what Nuitka does when it encounters a relaunch of itself.
+Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",
@@ -944,9 +1048,9 @@ Defaults to off.""",
 )
 
 debug_group.add_option(
-    "--profile",
+    "--debug-profile-runtime",
     action="store_true",
-    dest="profile",
+    dest="debug_profile_runtime",
     default=False,
     github_action=False,
     help="""\
@@ -1091,6 +1195,36 @@ development_group.add_option(
     help=SUPPRESS_HELP,
 )
 
+development_group.add_option(
+    "--devel-profile-compilation",
+    action="store_true",
+    dest="devel_profile_compilation",
+    default=False,
+    github_action=False,
+    help="""\
+Enable cProfile based profiling of time spent during compilation. Defaults to off.""",
+)
+
+development_group.add_option(
+    "--devel-generate-readable-code",
+    action="store_true",
+    dest="devel_generate_readable_code",
+    default=False,
+    github_action=False,
+    help="""\
+Produce C code that is readable (clang-format). Defaults to off.""",
+)
+
+development_group.add_option(
+    "--devel-data-composer-verbose",
+    action="store_true",
+    dest="data_composer_verbose",
+    default=False,
+    github_action=False,
+    help="""\
+Enable verbose mode for the data composer. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
@@ -1135,6 +1269,15 @@ c_compiler_group.add_option(
     default=None,
     help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW Python is used.""",
+)
+
+c_compiler_group.add_option(
+    "--zig",
+    dest="zig",
+    action="store_true",
+    default=False,
+    help="""\
+Enforce usage of Zig on for C compilation. Defaults to off.""",
 )
 
 c_compiler_group.add_option(
@@ -1546,7 +1689,7 @@ windows_group.add_option(
     action="store",
     dest="console_mode",
     choices=("force", "disable", "attach", "hide"),
-    metavar="CONSOLE_MODE",
+    metavar="WINDOWS_CONSOLE_MODE",
     default=None,
     help="""\
 Select console mode to use. Default mode is 'force' and creates a
@@ -1654,6 +1797,19 @@ off.""",
 )
 
 macos_group.add_option(
+    "--macos-app-console-mode",
+    action="store",
+    dest="macos_app_console_mode",
+    choices=("force", "disable"),
+    metavar="MACOS_APP_CONSOLE_MODE",
+    default=None,
+    help="""\
+Select console mode to use. Default mode is 'disable' and creates no
+console window. With 'force' it will create a console window when
+launched from Finder. Default is 'disable'.""",
+)
+
+macos_group.add_option(
     "--macos-target-arch",
     action="store",
     dest="macos_target_arch",
@@ -1673,6 +1829,16 @@ macos_group.add_option(
     metavar="ICON_PATH",
     default=[],
     help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
+macos_group.add_option(
+    "--macos-app-create-dmg",
+    action="store_true",
+    dest="macos_create_dmg",
+    default=False,
+    help="""\
+When compiling for macOS, create a DMG file for the application bundle.
+Defaults to off.""",
 )
 
 
@@ -2021,7 +2187,7 @@ def _considerPluginOptions(logger):
         ):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
-                logger.sysexit(
+                return logger.sysexit(
                     """\
 Error, plugin options format changed. Use '--enable-plugin=%s --help' \
 to know new options."""
@@ -2037,7 +2203,7 @@ to know new options."""
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                logger.sysexit(
+                return logger.sysexit(
                     """\
 Error, plugin options format changed. Use '--user-plugin=%s --help'
 to know new options."""
@@ -2134,15 +2300,17 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     try:
         contents_by_line = getFileContentByLine(filename_arg, "rb")
     except (OSError, IOError):
-        return
+        return []
 
     def sysexit(count, message):
-        logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
+        return logger.sysexit("%s:%d %s" % (filename_arg, count + 1, message))
 
     execute_block = True
     expect_block = False
 
     cond_level = -1
+
+    result = []
 
     for line_number, line in enumerate(contents_by_line):
         match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
@@ -2154,7 +2322,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
-                sysexit(
+                return sysexit(
                     line_number,
                     "Error, 'nuitka-project-if|else' is expected to be followed by block start.",
                 )
@@ -2175,7 +2343,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
             if command == "-if":
                 if not arg.endswith(":"):
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
@@ -2201,13 +2369,13 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 cond_level = level
             elif command == "-else":
                 if arg:
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-else' cannot have argument.",
                     )
 
                 if cond_level != level:
-                    sysexit(
+                    return sysexit(
                         line_number,
                         "Error, 'nuitka-project-else' not currently allowed after nested nuitka-project-if.",
                     )
@@ -2220,9 +2388,11 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 if not arg:
                     continue
 
-                yield _expandProjectArg(arg, filename_arg, for_eval=False)
+                result.append(_expandProjectArg(arg, filename_arg, for_eval=False))
             else:
                 assert False, (command, line)
+
+    return result
 
 
 def _considerGithubWorkflowOptions(phase):
@@ -2338,6 +2508,8 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="early")
 
+    sys.argv = [sys.argv[0]] + getBuildConfigurationOptions(logger) + sys.argv[1:]
+
     for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
@@ -2355,7 +2527,7 @@ def parseOptions(logger):
     for filename in filename_args:
         sys.argv = (
             [sys.argv[0]]
-            + list(getNuitkaProjectOptions(logger, filename, module_mode))
+            + getNuitkaProjectOptions(logger, filename, module_mode)
             + sys.argv[1:]
         )
 
@@ -2370,11 +2542,12 @@ def parseOptions(logger):
     if (
         not positional_args
         and not options.mains
+        and not options.main_entry_points
         and not parser.hasNonCompilingAction(options)
     ):
         parser.print_help()
 
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, need filename argument with python module, package directory or main
 program."""
@@ -2383,7 +2556,7 @@ program."""
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""

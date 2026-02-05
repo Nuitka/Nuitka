@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main module code templates
+"""Main module code templates
 
 This for the main program in case of executables, the module templates and
 stuff related to importing, and of course the generated code license.
@@ -37,6 +37,8 @@ template_module_body_template = r"""
 
 #include "__helpers.h"
 
+%(module_includes)s
+
 /* The "module_%(module_identifier)s" is a Python object pointer of module type.
  *
  * Note: For full compatibility with CPython, every module variable access
@@ -48,7 +50,9 @@ PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
-static PyObject *mod_consts[%(constants_count)d];
+static struct ModuleConstants {
+%(module_constants_decl)s
+} mod_consts;
 #ifndef __NUITKA_NO_ASSERT__
 static Py_hash_t mod_consts_hash[%(constants_count)d];
 #endif
@@ -61,13 +65,11 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, &mod_consts[0], UN_TRANSLATE(%(module_const_blob_name)s));
+        loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
-        for (int i = 0; i < %(constants_count)d; i++) {
-            mod_consts_hash[i] = DEEP_HASH(tstate, mod_consts[i]);
-        }
+%(module_constants_check_hash)s
 #endif
     }
 }
@@ -85,10 +87,7 @@ void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    for (int i = 0; i < %(constants_count)d; i++) {
-        assert(mod_consts_hash[i] == DEEP_HASH(tstate, mod_consts[i]));
-        CHECK_OBJECT_DEEP(mod_consts[i]);
-    }
+%(module_constants_check_object)s
 }
 #endif
 
@@ -228,7 +227,7 @@ static char const *module_full_name = %(module_name_cstr)s;
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
     PGO_onModuleEntered("%(module_identifier)s");
 
@@ -557,7 +556,7 @@ extern struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *
 static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *result = modulecode_%(module_identifier)s(tstate, module, getLoaderEntry(%(module_name_cstr)s));
+    PyObject *result = module_code_%(module_identifier)s(tstate, module, getLoaderEntry(%(module_name_cstr)s));
 
 #if PYTHON_VERSION < 0x300
     // Our "__file__" value will not be respected by CPython and one

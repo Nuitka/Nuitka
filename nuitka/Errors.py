@@ -1,12 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" For enhanced bug reporting, these exceptions should be used.
+"""For enhanced bug reporting, these exceptions should be used.
 
 They ideally should point out what it ought to take for reproducing the
 issue when output.
 
 """
+
+from nuitka.code_generation.Indentation import indented
 
 
 class NuitkaErrorBase(Exception):
@@ -17,8 +19,6 @@ class NuitkaNodeError(NuitkaErrorBase):
     # Try to output more information about nodes passed.
     def __str__(self):
         try:
-            from nuitka.code_generation.Indentation import indented
-
             parts = [""]
 
             for arg in self.args:  # false alarm, pylint: disable=I0021,not-an-iterable

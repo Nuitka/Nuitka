@@ -1,14 +1,13 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of with statements.
+"""Reformulation of with statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AttributeLookupNodes import ExpressionAttributeLookupSpecial
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import (
@@ -36,6 +35,7 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import (
@@ -57,7 +57,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Many details, pylint: disable=too-many-branches,too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if python_version < 0x380 and Options.is_full_compat:
+    if python_version < 0x380 and states.is_full_compat:
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
@@ -222,7 +222,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             attribute_exit_assignment,
             enter_await_statement,
         )
-    elif python_version >= 0x360 and sync:
+    # It's weird, but 3.14 looks up __exit__ before __enter__
+    elif 0x360 <= python_version < 0x3E0 and sync:
         attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
     else:
         attribute_assignments = (attribute_exit_assignment, attribute_enter_assignment)

@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Many tools work on Nuitka sources and need to find the files.
-
-"""
+"""Many tools work on Nuitka sources and need to find the files."""
 
 import os
 
@@ -13,6 +11,13 @@ _default_ignore_list = ("inline_copy", "tblib", "__pycache__")
 
 
 def _addFromDirectory(path, suffixes, ignore_list):
+    """Recursively find files in a directory with specific suffixes.
+
+    Args:
+        path: str - directory path to start from
+        suffixes: tuple - file suffixes to match
+        ignore_list: tuple - list of filenames to ignore
+    """
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
@@ -37,7 +42,7 @@ def _addFromDirectory(path, suffixes, ignore_list):
             if os.path.islink(fullpath):
                 continue
 
-            # Skip temporary files from flymake mode of Emacs.
+            # Skip temporary files from flymake mode of Emacs, spell-checker: ignore flymake
             if filename.endswith("_flymake.py"):
                 continue
             # Skip temporary files from unsaved files of Emacs.
@@ -62,6 +67,13 @@ def _addFromDirectory(path, suffixes, ignore_list):
 
 
 def scanTargets(positional_args, suffixes, ignore_list=()):
+    """Scan list of paths for files with specific suffixes.
+
+    Args:
+        positional_args: list - paths to scan (files or directories)
+        suffixes: tuple - file suffixes to match
+        ignore_list: tuple - list of filenames to ignore
+    """
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 
@@ -73,10 +85,18 @@ def scanTargets(positional_args, suffixes, ignore_list=()):
 
 
 def isPythonFile(filename, effective_filename=None):
+    """Check if a file is a Python file.
+
+    Checks extension and shebang for files without extension.
+
+    Args:
+        filename: str - path to the file
+        effective_filename: str - effective filename to use for extension check
+    """
     if effective_filename is None:
         effective_filename = filename
 
-    if effective_filename.endswith((".py", ".pyw", ".scons")):
+    if effective_filename.lower().endswith((".py", ".pyw", ".scons")):
         return True
     elif os.path.isdir(filename):
         return False

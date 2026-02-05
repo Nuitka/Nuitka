@@ -2,9 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Upload the packaging results and/or push branches.
-
-"""
+"""Upload the packaging results and/or push branches."""
 
 import os
 import sys

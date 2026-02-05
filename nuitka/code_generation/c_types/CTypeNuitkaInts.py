@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" CType classes for nuitka_ilong, a struct to represent long values.
-
-"""
+"""CType classes for nuitka_ilong, a struct to represent long values."""
 
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Internal module
+"""Internal module
 
 This is a container for helper functions that are shared across modules. It
 may not exist, and is treated specially in code generation. This avoids to
@@ -16,9 +16,9 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionPureBody,
     ExpressionFunctionPureInlineConstBody,
 )
-from nuitka.SourceCodeReferences import fromFilename
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 
-internal_source_ref = fromFilename("internal").atInternal()
+internal_source_ref = makeSourceReferenceFromFilename("internal").atInternal()
 
 
 def once_decorator(func):

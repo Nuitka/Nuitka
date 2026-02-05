@@ -4,12 +4,12 @@
 from setuptools import setup
 
 setup(
-    name="nested_namespaces",
-    version="1.0.0",
-    description=(
-        "bdist_nuitka test-case that verifies that Nuitka correctly handles"
-        " nested implicit namespaces"
-    ),
+    name="example-nested-namespaces32",
+    version="1.0",
+    author="Nuitka Contributors",
+    author_email="contributors@nuitka.invalid",
+    description="Nuitka distutils test case: example_nested_namespaces32",
+    url="https://nuitka.net",
     packages=["a.b.pkg"],
     entry_points={"console_scripts": ["runner = a.b.pkg:main"]},
 )

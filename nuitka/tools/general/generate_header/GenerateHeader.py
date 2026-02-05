@@ -1,11 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Generate header files that provide compiler specifics."""
+"""Generate header files that provide compiler specifics."""
 
 from nuitka.build.SconsInterface import (
     cleanSconsDirectory,
     getCommonSconsOptions,
+    provideStaticSourceFilesOffsets,
     runScons,
 )
 from nuitka.PythonVersions import isPythonWithGil, python_version_str
@@ -20,6 +21,8 @@ def generateHeader():
     scons_options["source_dir"] = "generate_header.build"
     cleanSconsDirectory(scons_options["source_dir"])
     makePath(scons_options["source_dir"])
+
+    provideStaticSourceFilesOffsets(scons_options["source_dir"])
 
     python_version_id = "%s_%s" % (
         python_version_str,

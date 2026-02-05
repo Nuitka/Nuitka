@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Comparison chains are multiple comparisons in one expression.
-
-"""
+"""Comparison chains are multiple comparisons in one expression."""
 
 from __future__ import print_function
 

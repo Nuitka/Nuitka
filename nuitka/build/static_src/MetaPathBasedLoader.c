@@ -23,6 +23,28 @@
 #include <windows.h>
 #endif
 
+// Toggle to control the extension module preservation hack.
+//
+// This handles cases where Nuitka is unable to set the loading package context properly
+// (via `_Py_PackageContext`), causing an extension module (e.g. `duckdb`) to load into
+// the parent package namespace instead of its intended nested location (e.g. `duckdb.duckdb`).
+//
+// This results in conflicts where the extension overwrites existing Nuitka-compiled submodules
+// (e.g. `duckdb.functional`) or creates new modules in the wrong place (e.g. `duckdb.typing`).
+//
+// The algorithm resolves these conflicts:
+// 1. Identification: We scan for existing submodules that would be obscured.
+// 2. Preservation: These submodules are saved before the extension module loads.
+// 3. Relocation: After extension load, we identify modules (both preserved and newly created
+//    by the extension) that are wrongly located at the top level. We move (alias) them to
+//    the nested name the extension expects (e.g. `duckdb.functional` -> `duckdb.duckdb.functional`).
+// 4. Restoration: We restore the preserved module object to its original location so
+//    that standard imports continue to work.
+// spell-checker: ignore duckdb
+#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#define _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK 1
+#endif
+
 extern PyTypeObject Nuitka_Loader_Type;
 
 struct Nuitka_LoaderObject {
@@ -618,7 +640,7 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 
         CHECK_OBJECT(name_punycode);
 
-        snprintf(buffer, buffer_size, "PyInitU_%s", PyBytes_AsString(name_punycode));
+        snprintf(buffer, buffer_size, "PyInitU_%s", Nuitka_Bytes_AsString(name_punycode));
 
         Py_DECREF(name_punycode);
     } else {
@@ -702,19 +724,15 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 #endif
 }
 
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
-                                         bool is_package) {
-    // Determine the package name and basename of the module to load.
+static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
+                                                    const filename_char_t *filename) {
+    // Determine the basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
-    char const *package;
 
     if (dot == NULL) {
-        package = NULL;
         name = full_name;
     } else {
-        // The extension modules do expect it to be full name in context.
-        package = (char *)full_name;
         name = dot + 1;
     }
 
@@ -735,7 +753,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     HINSTANCE hDLL;
 #if PYTHON_VERSION >= 0x380
     Py_BEGIN_ALLOW_THREADS;
-    hDLL = LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    hDLL = LoadLibraryExW(filename, NULL,
+// Where the onefile bootstrap is ran, we don't have anything to load from.
+#if !_NUITKA_ONEFILE_DLL_MODE
+                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+#endif
+                              LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS |
+                              LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
     Py_END_ALLOW_THREADS;
 #else
     hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
@@ -815,11 +839,34 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     entrypoint_t entrypoint = (entrypoint_t)dlsym(handle, entry_function_name);
 #endif // __wasi__
 #endif
+
+    return entrypoint;
+}
+
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
+                                         bool is_package) {
+    // Determine the package name and basename of the module to load.
+    char const *dot = strrchr(full_name, '.');
+    char const *package;
+
+    if (dot == NULL) {
+        package = NULL;
+    } else {
+        // The extension modules do expect it to be full name in context.
+        package = (char *)full_name;
+    }
+
+    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename);
+
+    if (entrypoint == NULL) {
+        return NULL;
+    }
+
     assert(entrypoint);
 
     char const *old_context = NuitkaImport_SwapPackageContext(package);
 
-#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#if _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK
     char const *base_name = strrchr(full_name, '.');
     PyObject *base_name_obj = NULL;
     PyObject *prefix_name_obj = NULL;
@@ -895,7 +942,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     PyObject *module = Nuitka_GetModuleString(tstate, full_name);
 #endif
 
-    PGO_onModuleExit(name, module == NULL);
+    PGO_onModuleExit(full_name, module == NULL);
 
     if (unlikely(module == NULL)) {
         if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
@@ -1054,18 +1101,23 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
 // See above, we need to correct modules imported if we don't successfully swap
 // the package context.
-#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+#if _NUITKA_EXTENSION_MODULE_PRESERVATION_HACK
     if (preserved_basename_module != NULL) {
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-        PRINT_STRING("Handling for preservation: ");
+        PRINT_STRING("Module Preservation: Handling preservation for extension module ");
         PRINT_ITEM_LINE(full_name_obj);
-        PRINT_STRING("Restoring preserved module: ");
+        PRINT_STRING("Module Preservation: Restoring preserved module ");
         PRINT_ITEM(base_name_obj);
-        if (Nuitka_HasModule(tstate, base_name_obj)) {
-            PRINT_STRING(" changes ");
-            PRINT_ITEM(Nuitka_GetModule(tstate, base_name_obj));
+
+        PyObject *current = Nuitka_GetModule(tstate, base_name_obj);
+        if (current == preserved_basename_module) {
+            PRINT_STRING(" (unchanged, identical object)");
+        } else if (current != NULL) {
+            PRINT_STRING(" (overwriting current value ");
+            PRINT_ITEM(current);
+            PRINT_STRING(")");
         }
-        PRINT_STRING(" -> ");
+        PRINT_STRING(" with preserved value ");
         PRINT_ITEM_LINE(preserved_basename_module);
 #endif
         Nuitka_SetModule(base_name_obj, preserved_basename_module);
@@ -1083,15 +1135,12 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
             PyObject *base_name_prefix = BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(base_name_obj, const_str_dot);
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-            PRINT_STRING("Scanning for modules needing correction: ");
-            PRINT_ITEM_LINE(base_name_prefix);
+            PRINT_STRING("Module Preservation: Scanning for modules needing correction (renaming) under '");
+            PRINT_ITEM(base_name_prefix);
+            PRINT_STRING("'\n");
 #endif
             while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
                 // TODO: Should have nuitka_bool return values for these as well maybe.
-                if (preserved_sub_modules != NULL && DICT_HAS_ITEM(tstate, preserved_sub_modules, key) == 1) {
-                    continue;
-                }
-
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
 
                 if (CHECK_IF_TRUE(starts_with_result) == 1) {
@@ -1100,12 +1149,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
                 Py_DECREF(starts_with_result);
             }
-
-            Py_XDECREF(preserved_sub_modules);
         }
 
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-        PRINT_STRING("Correction needed:");
+        PRINT_STRING("Module Preservation: The following modules need correction: ");
         PRINT_ITEM_LINE(need_correction);
 #endif
 
@@ -1120,16 +1167,44 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             PyObject *module_to_correct = Nuitka_GetModule(tstate, module_to_correct_name);
 
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_STRING("Module Preservation: Relocating (moving) ");
             PRINT_ITEM(module_to_correct_name);
-            PRINT_STRING(" -> ");
+            PRINT_STRING(" to ");
             PRINT_ITEM(correct_module_name);
-            PRINT_STRING(" changes ");
-            PRINT_ITEM_LINE(module_to_correct);
+            PRINT_STRING(" (Module object: ");
+            PRINT_ITEM(module_to_correct);
+            PRINT_STRING(")\n");
 #endif
             Nuitka_SetModule(correct_module_name, module_to_correct);
 
             Nuitka_DelModule(tstate, module_to_correct_name);
         }
+
+        if (preserved_sub_modules != NULL) {
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            while (Nuitka_DictNext(preserved_sub_modules, &pos, &key, &value)) {
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+                PRINT_STRING("Module Preservation: Restoring preserved submodule: ");
+                PRINT_ITEM(key);
+
+                PyObject *current = Nuitka_GetModule(tstate, key);
+                if (current == value) {
+                    PRINT_STRING(" (unchanged, identical object)\n");
+                } else if (current != NULL) {
+                    PRINT_STRING(" (changed from ");
+                    PRINT_ITEM(current);
+                    PRINT_STRING(")\n");
+                } else {
+                    PRINT_STRING(" (new)\n");
+                }
+#endif
+                Nuitka_SetModule(key, value);
+            }
+        }
+
+        Py_XDECREF(preserved_sub_modules);
 
         Py_DECREF(base_name_obj);
         Py_DECREF(prefix_name_obj);
@@ -1207,6 +1282,17 @@ static char **_bytecode_data = NULL;
 
 static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *module_name,
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+#if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
+    !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
+    if ((entry->flags & NUITKA_EXCLUDED_MODULE_FLAG) != 0) {
+        PyErr_Format(PyExc_ImportError,
+                     "Module '%s' was actively excluded from Nuitka compilation. Disable with "
+                     "'--no-deployment-flag=excluded-module-usage': %s",
+                     entry->name, (char const *)entry->python_init_func);
+        return NULL;
+    }
+#endif
+
 #if _NUITKA_STANDALONE_MODE
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
         bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;

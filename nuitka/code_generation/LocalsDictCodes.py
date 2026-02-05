@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for locals dict handling.
+"""Code generation for locals dict handling.
 
 These are variable handling for classes and partially also Python2 exec
 statements.
@@ -232,7 +232,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             else:
                 template = template_read_locals_mapping_with_fallback_no_ref
 
-            fallback_codes = indented(fallback_emit.codes, 8)
+            fallback_codes = indented(fallback_emit.codes)
 
             (
                 exception_state_name,

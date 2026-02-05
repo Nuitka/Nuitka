@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with compiled coroutine objects.
-
-"""
+"""Code to generate and interact with compiled coroutine objects."""
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -25,7 +23,7 @@ from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
-    template_coroutine_noexception_exit,
+    template_coroutine_no_exception_exit,
     template_coroutine_object_body,
     template_coroutine_object_maker,
     template_coroutine_return_exit,
@@ -96,7 +94,7 @@ def getCoroutineObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_coroutine_noexception_exit % {
+        generator_exit = template_coroutine_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 
@@ -173,7 +171,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
                 coroutine_object_body.getCodeName()
             ),
             "args": ", ".join(str(arg) for arg in args),
-            "closure_copy": indented(closure_copy, 0, True),
+            "closure_copy": indented(closure_copy),
         }
     )
 

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Call node
+"""Call node
 
 Function calls and generally calling expressions are the same thing. This is
 very important, because it allows to predict most things, and avoid expensive

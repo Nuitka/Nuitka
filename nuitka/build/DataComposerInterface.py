@@ -1,19 +1,22 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Interface to data composer
-
-"""
+"""Interface to data composer"""
 
 import os
 import subprocess
 import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import isExperimental
+from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
+from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
-from nuitka.utils.FileOperations import changeFilenameExtension, getFileSize
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    getFileSize,
+    getNormalizedPathJoin,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 
 # Indicate not done with -1
@@ -26,14 +29,12 @@ def getDataComposerReportValues():
 
 
 def runDataComposer(source_dir):
-    from nuitka.plugins.Plugins import Plugins
-
     # This module is a singleton, pylint: disable=global-statement
     global _data_composer_stats
 
-    Plugins.onDataComposerRun()
+    onDataComposerRun()
     blob_filename, _data_composer_stats = _runDataComposer(source_dir=source_dir)
-    Plugins.onDataComposerResult(blob_filename)
+    onDataComposerResult(blob_filename)
 
     global _data_composer_size
     _data_composer_size = getFileSize(blob_filename)
@@ -41,7 +42,7 @@ def runDataComposer(source_dir):
 
 def _runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
+        getNormalizedPathJoin(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
 
     mapping = {
@@ -50,7 +51,7 @@ def _runDataComposer(source_dir):
         )
     }
 
-    if isExperimental("debug-constants"):
+    if states.data_composer_verbose:
         mapping["NUITKA_DATA_COMPOSER_VERBOSE"] = "1"
 
     blob_filename = getConstantBlobFilename(source_dir)
@@ -79,7 +80,7 @@ def _runDataComposer(source_dir):
 
 
 def getConstantBlobFilename(source_dir):
-    return os.path.join(source_dir, "__constants.bin")
+    return getNormalizedPathJoin(source_dir, "__constants.bin")
 
 
 def deriveModuleConstantsBlobName(filename):

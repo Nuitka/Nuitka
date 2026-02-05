@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Source code reference record.
+"""Source code reference record.
 
 All the information to lookup line and file of a code location, together with
 the future flags in use there.
@@ -156,7 +156,7 @@ class SourceCodeReferenceInternal(SourceCodeReference):
         return True
 
 
-def fromFilename(filename):
+def makeSourceReferenceFromFilename(filename):
     return SourceCodeReference.fromFilenameAndLine(filename=filename, line=1)
 
 

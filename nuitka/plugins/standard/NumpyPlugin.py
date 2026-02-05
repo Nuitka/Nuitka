@@ -1,8 +1,7 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Details see below in class definition.
-"""
+"""Details see below in class definition."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
@@ -11,7 +10,7 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
     """This plugin is now not doing anything anymore."""
 
     plugin_name = "numpy"  # Nuitka knows us by this name
-    plugin_desc = "Deprecated, was once required by the numpy package"
+    plugin_desc = "Deprecated, was once required by 'numpy' package."
     plugin_category = "package-support,obsolete"
 
     @classmethod

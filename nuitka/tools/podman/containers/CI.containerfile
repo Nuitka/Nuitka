@@ -2,18 +2,45 @@
 
 FROM debian:12-slim
 ENV container docker
+ENV NUITKA_PIP_FLAGS="--break-system-packages"
+ENV DEBIAN_FRONTEND=noninteractive
 
 VOLUME [ "/sys/fs/cgroup" ]
 
 ## Install what we use for CI generally
-COPY requirements-devel.txt /etc/requirements-devel.txt
 RUN mkdir /src
-RUN apt-get update && apt-get install -y apt-utils gcc python2 python2-dev python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
+RUN apt-get update && apt-get install -y debconf-utils \
+    && echo "pbuilder pbuilder/mirrorsite string http://deb.debian.org/debian" | debconf-set-selections \
+    && apt-get install -y \
+    apt-utils \
+    ccache \
+    chrpath \
+    devscripts \
+    dh-python \
+    dput \
+    gcc \
+    gdb \
+    git \
+    help2man \
+    libzstd-dev \
+    lintian \
+    patchelf \
+    pbuilder \
+    python3 \
+    python3-all-dbg \
+    python3-all-dev \
+    python3-appdirs \
+    python3-dev \
+    python3-glob2 \
+    python3-pip \
+    python3-stdeb \
+    rst2pdf \
+    rsync \
+    scons \
+    strace \
+    sudo \
+    wget
 
-## Install pbuilder extra stuff along with Nuitka build dependencies.
-RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
-
-RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
 ## Clean up APT when done.
 RUN apt-get clean && rm -rf "/var/lib/apt/lists/*" "/tmp/*" "/var/tmp/*"

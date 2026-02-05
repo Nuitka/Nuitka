@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Specification record for future flags.
+"""Specification record for future flags.
 
 A source reference also implies a specific set of future flags in use by the
 parser at that location. Can be different inside a module due to e.g. the

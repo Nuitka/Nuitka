@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tree nodes for built-in references.
+"""Tree nodes for built-in references.
 
 There is 2 major types of built-in references. One is the values from
 built-ins, the other is built-in exceptions. They work differently and
@@ -17,7 +17,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names,
 )
-from nuitka.Options import hasPythonFlagNoAsserts
+from nuitka.options.Options import hasPythonFlagNoAsserts
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -162,7 +162,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
-            builtin_name=self.builtin_name, call_node=call_node
+            builtin_name=self.builtin_name,
+            call_node=call_node,
+            trace_collection=trace_collection,
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):

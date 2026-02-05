@@ -5,8 +5,8 @@
  * It needs to unpack the attached files and and then loads and executes
  * the compiled program as a separate process.
  *
- * spell-checker: ignore _wrename,SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
- * spell-checker: ignore HRESULT,HINSTANCE,lpUnkcaller,MAKELANGID,SUBLANG
+ * spell-checker: ignore SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
+ * spell-checker: ignore HINSTANCE
  *
  */
 
@@ -681,6 +681,12 @@ static int waitpid_timeout(pid_t pid) {
         return 0;
     }
 
+    // A value of -1 means wait indefinitely.
+    if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
+        waitpid_retried(pid, NULL, false);
+        return 0;
+    }
+
     // Checking 5 times per second should be good enough.
     long ns = 200000000L; // 0.2s
 
@@ -745,7 +751,9 @@ static void cleanupChildProcess(bool send_sigint) {
         // this process to exist anymore if there is nothing to do.
 #if _NUITKA_ONEFILE_TEMP_BOOL || 1
         NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
-#if defined(_WIN32)
+#if defined(_WIN32) && _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1
+        WaitForSingleObject(handle_process, INFINITE);
+#elif defined(_WIN32)
         if (WaitForSingleObject(handle_process, _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT) != 0) {
             TerminateProcess(handle_process, 0);
         }
@@ -753,7 +761,10 @@ static void cleanupChildProcess(bool send_sigint) {
         CloseHandle(handle_process);
 #else
         waitpid_timeout(handle_process);
+
+#if _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT != -1
         kill(handle_process, SIGKILL);
+#endif
 #endif
         NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif
@@ -939,7 +950,9 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     DLL_DIRECTORY_COOKIE dll_dir_cookie = AddDllDirectory(payload_path);
     assert(dll_dir_cookie != 0);
 
-    HINSTANCE hGetProcIDDLL = LoadLibraryExW(dll_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    HINSTANCE hGetProcIDDLL =
+        LoadLibraryExW(dll_filename, NULL,
+                       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS);
 
     if (!hGetProcIDDLL) {
         fatalIOError("Error, load DLL.", getLastErrorCode());
@@ -1005,6 +1018,15 @@ int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
+#endif
+
+#if defined(_WIN32)
+    // We want to force the loading of the DLLs from the payload directory only
+    // ideally, but Windows is not good at allowing %PATH% changes to be
+    // followed if we do that. So we remove only the CWD, but that is the best
+    // we can do while allowing os.environ["PATH"] updates to be still used and
+    // updated by Python.
+    SetDllDirectoryW(L"");
 #endif
 
 #if defined(NEEDS_ORIGINAL_ARGV0)

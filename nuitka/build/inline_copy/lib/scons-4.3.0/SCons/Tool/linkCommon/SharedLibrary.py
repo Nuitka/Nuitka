@@ -114,7 +114,7 @@ def _soname(target, source, env, for_signature):
         return "$SHLIBPREFIX$_get_shlib_stem${SHLIBSUFFIX}$_SHLIBSOVERSION"
 
 
-def _get_shlib_stem(target, source, env, for_signature: bool) -> str:
+def _get_shlib_stem(target, source, env, for_signature):
     """Get the base name of a shared library.
 
     Args:
@@ -154,7 +154,7 @@ def _get_shlib_stem(target, source, env, for_signature: bool) -> str:
     return target_name
 
 
-def _get_shlib_dir(target, source, env, for_signature: bool) -> str:
+def _get_shlib_dir(target, source, env, for_signature):
     """Get the directory the shared library is in.
 
     Args:

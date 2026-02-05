@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of Python2 class statements.
+"""Reformulation of Python2 class statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -41,7 +41,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
@@ -65,7 +65,7 @@ def buildClassNode2(provider, node, source_ref):
     # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
 
     # First, allow plugins to modify the code if they want to.
-    Plugins.onClassBodyParsing(provider=provider, class_name=node.name, node=node)
+    onClassBodyParsing(provider=provider, class_name=node.name, node=node)
 
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
@@ -242,7 +242,8 @@ def buildClassNode2(provider, node, source_ref):
                 except_handler=makeStatementsSequenceFromStatement(
                     statement=StatementReturn(
                         expression=ExpressionBuiltinAnonymousRef(
-                            builtin_name="classobj", source_ref=source_ref
+                            builtin_name="classobj",  # spell-checker: ignore classobj
+                            source_ref=source_ref,
                         ),
                         source_ref=source_ref,
                     )

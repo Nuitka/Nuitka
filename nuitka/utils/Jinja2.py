@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Jinja folklore wrappers and handling of inline copy usage.
-
-"""
+"""Jinja folklore wrappers and handling of inline copy usage."""
 
 import sys
 

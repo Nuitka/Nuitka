@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Dictionary operation specs. """
+"""Dictionary operation specs."""
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,

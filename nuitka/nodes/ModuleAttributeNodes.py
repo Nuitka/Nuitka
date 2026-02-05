@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module/Package attribute nodes
+"""Module/Package attribute nodes
 
 The represent special values of the modules. The "__name__", "__package__",
 "__file__", and "__spec__" values can all be highly dynamic and version
@@ -13,7 +13,7 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
-from nuitka import Options
+from nuitka.options.Options import getFileReferenceMode, getModuleNameMode
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
@@ -66,7 +66,7 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time, but options may disable that and make it predictable.
-        if Options.getFileReferenceMode() != "runtime":
+        if getFileReferenceMode() != "runtime":
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getRunTimeFilename(),
                 source_ref=self.source_ref,
@@ -90,7 +90,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if Options.getModuleNameMode() != "runtime":
+        if getModuleNameMode() != "runtime":
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getRuntimeNameValue(),
                 source_ref=self.source_ref,
@@ -114,7 +114,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if Options.getModuleNameMode() != "runtime":
+        if getModuleNameMode() != "runtime":
             provider = self.variable.getModule()
             value = provider.getRuntimePackageValue()
 

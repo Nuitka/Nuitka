@@ -2,23 +2,21 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main program for DLL checker tool.
-
-"""
+"""Main program for DLL checker tool."""
 
 import os
 import sys
 import tempfile
-from optparse import OptionParser
 
 from nuitka.freezer.DllDependenciesWin32 import detectBinaryPathDLLsWin32
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--no-use-path",
@@ -34,6 +32,9 @@ def main():
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
+        if not os.path.exists(filename):
+            sys.exit("Error, file '%s' not found." % filename)
+
         my_print("Filename: %s" % filename)
         my_print("Version Information: %s" % (getDLLVersion(filename),))
 

@@ -1,17 +1,18 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Program execution related stuff.
+"""Program execution related stuff.
 
 Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.
 """
 
+import errno
 import os
 import shlex
 from contextlib import contextmanager
 
-from nuitka.__past__ import subprocess
+from nuitka.__past__ import iterItems, selectors, subprocess
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -27,7 +28,9 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if isWin32OrPosixWindows() and not filename.lower().endswith((".exe", ".cmd")):
+    if isWin32OrPosixWindows() and not filename.lower().endswith(
+        (".exe", ".cmd", ".bat")
+    ):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
@@ -119,6 +122,9 @@ def check_output(*popenargs, **kwargs):
     if "stderr" not in kwargs:
         kwargs["stderr"] = subprocess.PIPE
 
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
+
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
 
     output, stderr = process.communicate()
@@ -149,9 +155,12 @@ def check_call(*popenargs, **kwargs):
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
+        if "env" in kwargs:
+            _checkEnvironment(kwargs["env"])
+
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
-        general.sysexit(
+        return general.sysexit(
             "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
         )
 
@@ -163,7 +172,44 @@ def callProcess(*popenargs, **kwargs):
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
+
     return subprocess.call(*popenargs, **kwargs)
+
+
+def callProcessChunked(command, chunks, **kwargs):
+    """Call a process with arguments chunked to avoid Windows command line limits."""
+
+    # Chunking to avoid command line length limit on Windows.
+    # Windows limit is 32767 characters. We stay safely below.
+    MAX_CMD_LEN = 20000
+
+    chunk = []
+    current_len = sum(len(arg) + 1 for arg in command)
+
+    result = 0
+
+    for filename in chunks:
+        arg_len = len(filename) + 1
+
+        if current_len + arg_len > MAX_CMD_LEN:
+            chunk_result = callProcess(command + chunk, **kwargs)
+            if chunk_result != 0:
+                result = chunk_result
+
+            chunk = []
+            current_len = sum(len(arg) + 1 for arg in command)
+
+        chunk.append(filename)
+        current_len += arg_len
+
+    if chunk:
+        chunk_result = callProcess(command + chunk, **kwargs)
+        if chunk_result != 0:
+            result = chunk_result
+
+    return result
 
 
 @contextmanager
@@ -288,7 +334,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, the selected debugger '%s' was not found in path."
                 % debugger_name
             )
@@ -296,7 +342,10 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.Options import assumeYesForDownloads, isExperimental
+        from nuitka.options.Options import (
+            assumeYesForDownloads,
+            isExperimental,
+        )
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
@@ -310,7 +359,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit(
+            return general.sysexit(
                 "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
             )
 
@@ -347,7 +396,9 @@ def wrapCommandForDebuggerForExec(command, debugger):
             #            "--leak-check=full",
         ) + command
     else:
-        general.sysexit("Error, the selected debugger '%s' was not found in path.")
+        return general.sysexit(
+            "Error, the selected debugger '%s' was not found in path."
+        )
 
     return args
 
@@ -393,6 +444,19 @@ def getNullInput():
         r.close()
 
 
+def filterOutputByLine(output, filter_func):
+    """For use by stderr filters of executeToolChecked."""
+    non_errors = []
+
+    for line in output.splitlines():
+        if line and not filter_func(line):
+            non_errors.append(line)
+
+    output = b"\n".join(non_errors)
+
+    return (0 if non_errors else None), output
+
+
 def executeToolChecked(
     logger,
     command,
@@ -404,6 +468,10 @@ def executeToolChecked(
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
+    # We are doing many returns, because for logger.sysexit() we need to
+    # return from the function, for proper pylint support.
+    # pylint: disable=too-many-return-statements
+
     command = list(command)
     tool = command[0]
 
@@ -412,29 +480,38 @@ def executeToolChecked(
             logger.warning(absence_message)
             return b"" if decoding else ""
         else:
-            logger.sysexit(absence_message)
+            return logger.sysexit(absence_message)
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
 
     if None in command:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed due to 'None' value: %s index %d."
             % (tool, command, command.index(None))
         )
 
-    with withEnvironmentVarOverridden("LC_ALL", "C"):
-        with getNullInput() as null_input:
-            process = subprocess.Popen(
-                command,
-                stdin=null_input,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-            )
+    try:
+        with withEnvironmentVarOverridden("LC_ALL", "C"):
+            with getNullInput() as null_input:
+                process = subprocess.Popen(
+                    command,
+                    stdin=null_input,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=False,
+                )
 
-    stdout, stderr = process.communicate()
-    result = process.poll()
+        stdout, stderr = process.communicate()
+        result = process.poll()
+    except OSError as e:
+        if e.errno != errno.E2BIG:
+            raise
+
+        return logger.sysexit(
+            "Error, call to '%s' failed, command line was too long: %r"
+            % (tool, command)
+        )
 
     if stderr_filter is not None:
         new_result, stderr = stderr_filter(stderr, **(context or {}))
@@ -443,11 +520,11 @@ def executeToolChecked(
             result = new_result
 
     if result != 0:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
     elif stderr:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
 
@@ -457,18 +534,47 @@ def executeToolChecked(
     return stdout
 
 
+def _checkEnvironment(env):
+    if not env:
+        return
+
+    # Make sure environment contains no None values
+    for key, value in iterItems(env):
+        if key is None:
+            # This is probably not possible, but just in case.
+            raise RuntimeError("Environment variable key cannot be None.")
+        if value is None:
+            raise RuntimeError("Environment variable '%s' value is None." % key)
+
+        if not isinstance(key, str) or not isinstance(value, str):
+            general.warning(
+                "Illegal environment variable %r: %r (types %s, %s)"
+                % (key, value, type(key), type(value))
+            )
+
+            # Dump the whole thing.
+            general.warning("Environment was: %r" % env)
+
+            raise TypeError(
+                "Environment variable %r has wrong type %s"
+                % (key, type(key) if not isinstance(key, str) else type(value))
+            )
+
+
 def createProcess(
     command,
     env=None,
     stdin=False,
-    stdout=None,
-    stderr=None,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
     shell=False,
     external_cwd=False,
     new_group=False,
 ):
     if not env:
         env = os.environ
+
+    _checkEnvironment(env)
 
     kw_args = {}
     if new_group:
@@ -483,8 +589,8 @@ def createProcess(
             # Note: Empty string should also be allowed for stdin, therefore check
             # for default "False" and "None" precisely.
             stdin=subprocess.PIPE if stdin not in (False, None) else null_input,
-            stdout=subprocess.PIPE if stdout is None else stdout,
-            stderr=subprocess.PIPE if stderr is None else stderr,
+            stdout=stdout,
+            stderr=stderr,
             shell=shell,
             # On Windows, closing file descriptions is not working with capturing outputs.
             close_fds=not isWin32Windows(),
@@ -501,8 +607,11 @@ def executeProcess(
     command,
     env=None,
     stdin=False,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
     shell=False,
     external_cwd=False,
+    rusage=False,
     timeout=None,
     logger=None,
 ):
@@ -510,8 +619,11 @@ def executeProcess(
         command=command,
         env=env,
         stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
         shell=shell,
         external_cwd=external_cwd,
+        rusage=rusage,
         timeout=timeout,
         logger=logger,
     )
@@ -525,15 +637,17 @@ class Process(object):
         command,
         env=None,
         stdin=False,
-        stdout=None,
-        stderr=None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         shell=False,
         external_cwd=False,
+        rusage=False,
         timeout=None,
         logger=None,
     ):
         self.stdin = stdin
         self.timeout = timeout
+        self.rusage = rusage
 
         # When running.
         self.process = None
@@ -565,14 +679,103 @@ class Process(object):
             if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
                 kw_args["timeout"] = self.timeout
 
-        stdout, stderr = self.process.communicate(input=process_input)
-        exit_code = self.process.wait()
+        # TODO: May introduce a namedtuple for the return value.
+        if self.rusage:
+            return _communicateWithRusage(
+                proc=self.process, process_input=process_input
+            )
+        else:
+            stdout, stderr = self.process.communicate(input=process_input)
+            exit_code = self.process.wait()
 
-        return stdout, stderr, exit_code
+            return stdout, stderr, exit_code
 
     def stop(self):
         if self.process is not None:
             self.process.terminate()
+
+
+def _communicateWithRusage(proc, process_input):
+    """
+    A correct implementation of communicate() that also returns resource usage.
+    This version uses the high-level 'selectors' module for robust I/O handling.
+    """
+
+    # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
+
+    if selectors is None or not hasattr(os, "wait4"):
+        stdout, stderr = proc.communicate(input=process_input)
+        exit_code = proc.wait()
+        rusage = {}
+    else:
+        # Use the best selector available for the current OS
+        with selectors.DefaultSelector() as selector:
+            # Register stdout and stderr for reading
+            if proc.stdout:
+                selector.register(proc.stdout, selectors.EVENT_READ)
+            if proc.stderr:
+                selector.register(proc.stderr, selectors.EVENT_READ)
+            if proc.stdin and process_input:
+                selector.register(proc.stdin, selectors.EVENT_WRITE)
+
+            input_offset = 0
+            if process_input is None:
+                process_input = b""
+
+            stdout_chunks = []
+            stderr_chunks = []
+
+            # The loop runs as long as there are file descriptors registered.
+            # This is the correct way to check if we're done.
+            while selector.get_map():
+                # Wait for any of the registered file descriptors to be ready
+                ready_events = selector.select()
+
+                for key, mask in ready_events:
+                    if mask & selectors.EVENT_READ:
+                        # key.fileobj is the original file object (e.g., proc.stdout)
+                        chunk = key.fileobj.read1(8192)
+
+                        if not chunk:
+                            # If we read empty bytes, the pipe has closed.
+                            # Unregister it so the loop can terminate.
+                            selector.unregister(key.fileobj)
+                            key.fileobj.close()
+                        elif key.fileobj is proc.stdout:
+                            stdout_chunks.append(chunk)
+                        else:  # key.fileobj is proc.stderr
+                            stderr_chunks.append(chunk)
+                    if mask & selectors.EVENT_WRITE:
+                        chunk = process_input[input_offset : input_offset + 8192]
+                        bytes_written = os.write(key.fileobj.fileno(), chunk)
+                        input_offset += bytes_written
+
+                        if input_offset >= len(process_input):
+                            # All input written, close and unregister stdin.
+                            selector.unregister(key.fileobj)
+                            key.fileobj.close()
+
+        # All I/O is done. Now, wait for the process and get the resource usage,
+        # spell-checker: ignore ECHILD,WEXITSTATUS
+        try:
+            _pid, status, rusage = os.wait4(proc.pid, 0)
+            exit_code = os.WEXITSTATUS(status)
+        except OSError as e:
+            # The ECHILD means the process is already reaped, which can happen with SCons
+            # due to races in error cases.
+            if e.errno == errno.ECHILD:
+                exit_code = proc.wait()
+                rusage = {}
+            else:
+                raise
+
+        # Set the returncode on the original object for consistency
+        proc.returncode = exit_code
+
+        stdout = b"".join(stdout_chunks)
+        stderr = b"".join(stderr_chunks)
+
+    return stdout, stderr, exit_code, rusage
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

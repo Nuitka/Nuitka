@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for node class mixins that indicate runtime determined node facts.
+"""Module for node class mixins that indicate runtime determined node facts.
 
 These come into play after finalization only. All of the these attributes (and
 we could use properties instead) are determined once or from a default and then

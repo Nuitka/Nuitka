@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Pacman backend for maintaining locked package state with nuitka-watch. """
+"""Pacman backend for maintaining locked package state with nuitka-watch."""
 
 from nuitka.utils.Execution import check_call, executeToolChecked
 from nuitka.utils.FileOperations import changeTextFileContents, openTextFile

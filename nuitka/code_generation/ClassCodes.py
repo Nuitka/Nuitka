@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Codes for classes.
+"""Codes for classes.
 
 Most the class specific stuff is solved in re-formulation. Only the selection
 of the metaclass remains as specific.

@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for basic tests of Nuitka.
+"""Runner for basic tests of Nuitka.
 
 Basic tests are those that cover our back quickly, but need not necessarily,
 be complete.
@@ -45,8 +45,6 @@ def main():
             "expect_success",
             # Keep no temporary files.
             "remove_output",
-            # Do not follow imports.
-            "--nofollow-imports",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
             "--file-reference-choice=original",
@@ -83,18 +81,20 @@ def main():
         if filename == "BuiltinOverloadTest.py":
             extra_flags.append("ignore_warnings")
 
-        if python_version >= (3, 13, 1):
-            if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
-                reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
-                continue
-
-        if "Wip" in filename:
-            reportSkip("Test not for automatic execution.", ".", filename)
-            continue
-
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
+            if python_version >= (3, 13, 1):
+                if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
+                    reportSkip(
+                        "Regression of CPython 3.13.1 not followed", ".", filename
+                    )
+                    continue
+
+            if "Wip" in filename:
+                reportSkip("Test not for automatic execution.", ".", filename)
+                continue
+
             compareWithCPython(
                 dirname=None,
                 filename=filename,

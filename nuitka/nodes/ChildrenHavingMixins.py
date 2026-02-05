@@ -163,15 +163,15 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
             c.finalize()
         del self.subnode_functions
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_body = self.subnode_body
 
         if subnode_body is not None:
-            self.subnode_body.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_body.collectVariableAccesses(emit_variable)
         for element in self.subnode_functions:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -270,10 +270,21 @@ class ChildHavingAsyncgenRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_asyncgen_ref.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_asyncgen_ref.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -390,13 +401,24 @@ class ChildHavingBodyOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_body = self.subnode_body
 
         if subnode_body is not None:
-            self.subnode_body.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_body.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -519,10 +541,21 @@ class ChildHavingBytesArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -669,11 +702,22 @@ class ChildrenHavingBytesArgCharsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_chars.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_chars.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -795,11 +839,22 @@ class ChildrenHavingBytesArgEncodingMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_encoding.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -937,12 +992,23 @@ class ChildrenHavingBytesArgEncodingErrorsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_encoding.collectVariableAccesses(emit_variable)
+        self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1062,11 +1128,22 @@ class ChildrenHavingBytesArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1186,11 +1263,22 @@ class ChildrenHavingBytesArgKeependsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_keepends.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_keepends.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1328,12 +1416,23 @@ class ChildrenHavingBytesArgOldNewMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_old.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_new.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_old.collectVariableAccesses(emit_variable)
+        self.subnode_new.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1489,13 +1588,24 @@ class ChildrenHavingBytesArgOldNewCountMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_old.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_new.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_count.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_old.collectVariableAccesses(emit_variable)
+        self.subnode_new.collectVariableAccesses(emit_variable)
+        self.subnode_count.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1615,11 +1725,22 @@ class ChildrenHavingBytesArgPrefixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1757,12 +1878,23 @@ class ChildrenHavingBytesArgPrefixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -1920,13 +2052,24 @@ class ChildrenHavingBytesArgPrefixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2051,11 +2194,22 @@ class ChildrenHavingBytesArgSepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sep.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sep.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2197,12 +2351,23 @@ class ChildrenHavingBytesArgSepMaxsplitMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sep.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_maxsplit.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sep.collectVariableAccesses(emit_variable)
+        self.subnode_maxsplit.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2327,11 +2492,22 @@ class ChildrenHavingBytesArgSubMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2477,12 +2653,23 @@ class ChildrenHavingBytesArgSubStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2646,13 +2833,24 @@ class ChildrenHavingBytesArgSubStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2776,11 +2974,22 @@ class ChildrenHavingBytesArgSuffixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -2918,12 +3127,23 @@ class ChildrenHavingBytesArgSuffixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3079,13 +3299,24 @@ class ChildrenHavingBytesArgSuffixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3207,11 +3438,22 @@ class ChildrenHavingBytesArgTableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_table.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_table.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3349,12 +3591,23 @@ class ChildrenHavingBytesArgTableDeleteMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_table.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_delete.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_table.collectVariableAccesses(emit_variable)
+        self.subnode_delete.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3474,11 +3727,22 @@ class ChildrenHavingBytesArgTabsizeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_tabsize.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_tabsize.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3601,11 +3865,22 @@ class ChildrenHavingBytesArgWidthMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_width.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_width.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3748,12 +4023,23 @@ class ChildrenHavingBytesArgWidthFillcharMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_bytes_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_width.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_fillchar.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_bytes_arg.collectVariableAccesses(emit_variable)
+        self.subnode_width.collectVariableAccesses(emit_variable)
+        self.subnode_fillchar.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3848,10 +4134,21 @@ class ChildHavingCalledMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_called.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_called.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -3976,11 +4273,22 @@ class ChildrenHavingCalledArgsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_called.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_args.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_called.collectVariableAccesses(emit_variable)
+        self.subnode_args.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4123,12 +4431,23 @@ class ChildrenHavingCalledArgsKwargsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_called.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_args.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_kwargs.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_called.collectVariableAccesses(emit_variable)
+        self.subnode_args.collectVariableAccesses(emit_variable)
+        self.subnode_kwargs.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4253,11 +4572,22 @@ class ChildrenHavingCalledKwargsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_called.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_kwargs.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_called.collectVariableAccesses(emit_variable)
+        self.subnode_kwargs.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4345,10 +4675,21 @@ class ChildHavingClsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_cls.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_cls.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4468,11 +4809,22 @@ class ChildrenHavingClsClassesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_cls.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_classes.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_cls.collectVariableAccesses(emit_variable)
+        self.subnode_classes.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4610,12 +4962,23 @@ class ChildrenHavingConditionExpressionYesExpressionNoMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_condition.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_expression_yes.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_expression_no.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_condition.collectVariableAccesses(emit_variable)
+        self.subnode_expression_yes.collectVariableAccesses(emit_variable)
+        self.subnode_expression_no.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -4705,14 +5068,172 @@ class ChildHavingCoroutineRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_coroutine_ref.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_coroutine_ref.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionMakeCoroutineObjectMixin = ChildHavingCoroutineRefMixin
+
+
+class ChildrenHavingDefaultsTupleFunctionRefMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionFunctionCreationOld
+
+    def __init__(
+        self,
+        defaults,
+        function_ref,
+    ):
+        assert type(defaults) is tuple
+
+        for val in defaults:
+            val.parent = self
+
+        self.subnode_defaults = defaults
+
+        function_ref.parent = self
+
+        self.subnode_function_ref = function_ref
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_defaults)
+        result.append(self.subnode_function_ref)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("defaults", self.subnode_defaults),
+            ("function_ref", self.subnode_function_ref),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_defaults
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_defaults = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_defaults = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_function_ref
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_function_ref = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
+            "function_ref": self.subnode_function_ref.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_defaults:
+            c.finalize()
+        del self.subnode_defaults
+        self.subnode_function_ref.finalize()
+        del self.subnode_function_ref
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_defaults:
+            element.collectVariableAccesses(emit_variable)
+        self.subnode_function_ref.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionFunctionCreationOldMixin = ChildrenHavingDefaultsTupleFunctionRefMixin
 
 
 class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin(
@@ -4899,20 +5420,31 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_defaults:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
         subnode_kw_defaults = self.subnode_kw_defaults
 
         if subnode_kw_defaults is not None:
-            self.subnode_kw_defaults.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_kw_defaults.collectVariableAccesses(emit_variable)
         subnode_annotations = self.subnode_annotations
 
         if subnode_annotations is not None:
-            self.subnode_annotations.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_function_ref.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_annotations.collectVariableAccesses(emit_variable)
+        self.subnode_function_ref.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5022,10 +5554,21 @@ class ChildHavingDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5165,11 +5708,22 @@ class ChildrenHavingDictArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5316,13 +5870,24 @@ class ChildrenHavingDictArgIterablePairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5448,11 +6013,22 @@ class ChildrenHavingDictArgKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5596,12 +6172,23 @@ class ChildrenHavingDictArgKeyDefaultMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_default.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
+        self.subnode_default.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5732,12 +6319,23 @@ class ChildrenHavingDictArgPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5826,10 +6424,21 @@ class ChildHavingDistMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_dist.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_dist.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -5927,10 +6536,21 @@ class ChildHavingDistributionNameMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_distribution_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_distribution_name.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -6065,11 +6685,22 @@ class ChildHavingElementsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_elements:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -6160,10 +6791,21 @@ class ChildHavingExceptionTypeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_exception_type.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_exception_type.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -6266,13 +6908,24 @@ class ChildHavingExitCodeOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_exit_code = self.subnode_exit_code
 
         if subnode_exit_code is not None:
-            self.subnode_exit_code.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_exit_code.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -6549,10 +7202,21 @@ class ChildHavingExpressionMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -6905,18 +7569,29 @@ class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
         subnode_lower = self.subnode_lower
 
         if subnode_lower is not None:
-            self.subnode_lower.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_lower.collectVariableAccesses(emit_variable)
         subnode_upper = self.subnode_upper
 
         if subnode_upper is not None:
-            self.subnode_upper.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_upper.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7038,11 +7713,22 @@ class ChildrenHavingExpressionMatchTypeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_match_type.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_match_type.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7191,15 +7877,26 @@ class ChildrenHavingExpressionNameDefaultOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_default = self.subnode_default
 
         if subnode_default is not None:
-            self.subnode_default.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_default.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7337,12 +8034,23 @@ class ChildrenHavingExpressionNameValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7464,11 +8172,22 @@ class ChildrenHavingExpressionSubscriptMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_subscript.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
+        self.subnode_subscript.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7559,10 +8278,21 @@ class ChildHavingFallbackMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_fallback.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_fallback.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -7721,18 +8451,29 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_filename.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_filename.collectVariableAccesses(emit_variable)
         subnode_mode = self.subnode_mode
 
         if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_mode.collectVariableAccesses(emit_variable)
         subnode_buffering = self.subnode_buffering
 
         if subnode_buffering is not None:
-            self.subnode_buffering.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_buffering.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -8039,38 +8780,49 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_filename.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_filename.collectVariableAccesses(emit_variable)
         subnode_mode = self.subnode_mode
 
         if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_mode.collectVariableAccesses(emit_variable)
         subnode_buffering = self.subnode_buffering
 
         if subnode_buffering is not None:
-            self.subnode_buffering.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_buffering.collectVariableAccesses(emit_variable)
         subnode_encoding = self.subnode_encoding
 
         if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_encoding.collectVariableAccesses(emit_variable)
         subnode_errors = self.subnode_errors
 
         if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_errors.collectVariableAccesses(emit_variable)
         subnode_newline = self.subnode_newline
 
         if subnode_newline is not None:
-            self.subnode_newline.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_newline.collectVariableAccesses(emit_variable)
         subnode_closefd = self.subnode_closefd
 
         if subnode_closefd is not None:
-            self.subnode_closefd.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_closefd.collectVariableAccesses(emit_variable)
         subnode_opener = self.subnode_opener
 
         if subnode_opener is not None:
-            self.subnode_opener.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_opener.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -8480,68 +9232,73 @@ class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompil
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_func = self.subnode_func
 
         if subnode_func is not None:
-            self.subnode_func.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_func.collectVariableAccesses(emit_variable)
         subnode_input_signature = self.subnode_input_signature
 
         if subnode_input_signature is not None:
-            self.subnode_input_signature.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_input_signature.collectVariableAccesses(emit_variable)
         subnode_autograph = self.subnode_autograph
 
         if subnode_autograph is not None:
-            self.subnode_autograph.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_autograph.collectVariableAccesses(emit_variable)
         subnode_jit_compile = self.subnode_jit_compile
 
         if subnode_jit_compile is not None:
-            self.subnode_jit_compile.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_jit_compile.collectVariableAccesses(emit_variable)
         subnode_reduce_retracing = self.subnode_reduce_retracing
 
         if subnode_reduce_retracing is not None:
-            self.subnode_reduce_retracing.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_reduce_retracing.collectVariableAccesses(emit_variable)
         subnode_experimental_implements = self.subnode_experimental_implements
 
         if subnode_experimental_implements is not None:
-            self.subnode_experimental_implements.collectVariableAccesses(
-                emit_read, emit_write
-            )
+            self.subnode_experimental_implements.collectVariableAccesses(emit_variable)
         subnode_experimental_autograph_options = (
             self.subnode_experimental_autograph_options
         )
 
         if subnode_experimental_autograph_options is not None:
             self.subnode_experimental_autograph_options.collectVariableAccesses(
-                emit_read, emit_write
+                emit_variable
             )
         subnode_experimental_attributes = self.subnode_experimental_attributes
 
         if subnode_experimental_attributes is not None:
-            self.subnode_experimental_attributes.collectVariableAccesses(
-                emit_read, emit_write
-            )
+            self.subnode_experimental_attributes.collectVariableAccesses(emit_variable)
         subnode_experimental_relax_shapes = self.subnode_experimental_relax_shapes
 
         if subnode_experimental_relax_shapes is not None:
             self.subnode_experimental_relax_shapes.collectVariableAccesses(
-                emit_read, emit_write
+                emit_variable
             )
         subnode_experimental_compile = self.subnode_experimental_compile
 
         if subnode_experimental_compile is not None:
-            self.subnode_experimental_compile.collectVariableAccesses(
-                emit_read, emit_write
-            )
+            self.subnode_experimental_compile.collectVariableAccesses(emit_variable)
         subnode_experimental_follow_type_hints = (
             self.subnode_experimental_follow_type_hints
         )
 
         if subnode_experimental_follow_type_hints is not None:
             self.subnode_experimental_follow_type_hints.collectVariableAccesses(
-                emit_read, emit_write
+                emit_variable
             )
 
 
@@ -8672,12 +9429,23 @@ class ChildrenHavingFunctionValuesTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_function.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_function.collectVariableAccesses(emit_variable)
         for element in self.subnode_values:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -8765,10 +9533,21 @@ class ChildHavingGeneratorRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_generator_ref.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_generator_ref.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -8898,14 +9677,25 @@ class ChildrenHavingGroupNameOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_group.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_group.collectVariableAccesses(emit_variable)
         subnode_name = self.subnode_name
 
         if subnode_name is not None:
-            self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_name.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9030,11 +9820,22 @@ class ChildrenHavingInstanceClassesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_instance.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_classes.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_instance.collectVariableAccesses(emit_variable)
+        self.subnode_classes.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9122,10 +9923,21 @@ class ChildHavingIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9245,11 +10057,22 @@ class ChildrenHavingIterableValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9369,11 +10192,22 @@ class ChildrenHavingIteratorDefaultMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_iterator.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_default.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_iterator.collectVariableAccesses(emit_variable)
+        self.subnode_default.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9494,11 +10328,22 @@ class ChildrenHavingKeyDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_key.collectVariableAccesses(emit_variable)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -9619,221 +10464,26 @@ class ChildrenHavingKeyValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_key.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionKeyValuePairNewMixin = ChildrenHavingKeyValueMixin
-
-
-class ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin(
-    object
-):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionFunctionCreationOld
-
-    def __init__(
-        self,
-        kw_defaults,
-        defaults,
-        annotations,
-        function_ref,
-    ):
-        if kw_defaults is not None:
-            kw_defaults.parent = self
-
-        self.subnode_kw_defaults = kw_defaults
-
-        assert type(defaults) is tuple
-
-        for val in defaults:
-            val.parent = self
-
-        self.subnode_defaults = defaults
-
-        if annotations is not None:
-            annotations.parent = self
-
-        self.subnode_annotations = annotations
-
-        function_ref.parent = self
-
-        self.subnode_function_ref = function_ref
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        result = []
-        value = self.subnode_kw_defaults
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        result.extend(self.subnode_defaults)
-        value = self.subnode_annotations
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        result.append(self.subnode_function_ref)
-        return tuple(result)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (
-            ("kw_defaults", self.subnode_kw_defaults),
-            ("defaults", self.subnode_defaults),
-            ("annotations", self.subnode_annotations),
-            ("function_ref", self.subnode_function_ref),
-        )
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_kw_defaults
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_kw_defaults = new_node
-
-            return
-
-        value = self.subnode_defaults
-        if old_node in value:
-            if new_node is not None:
-                new_node.parent = self
-
-                self.subnode_defaults = tuple(
-                    (val if val is not old_node else new_node) for val in value
-                )
-            else:
-                self.subnode_defaults = tuple(
-                    val for val in value if val is not old_node
-                )
-
-            return
-
-        value = self.subnode_annotations
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_annotations = new_node
-
-            return
-
-        value = self.subnode_function_ref
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_function_ref = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "kw_defaults": (
-                self.subnode_kw_defaults.makeClone()
-                if self.subnode_kw_defaults is not None
-                else None
-            ),
-            "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "annotations": (
-                self.subnode_annotations.makeClone()
-                if self.subnode_annotations is not None
-                else None
-            ),
-            "function_ref": self.subnode_function_ref.makeClone(),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        if self.subnode_kw_defaults is not None:
-            self.subnode_kw_defaults.finalize()
-        del self.subnode_kw_defaults
-        for c in self.subnode_defaults:
-            c.finalize()
-        del self.subnode_defaults
-        if self.subnode_annotations is not None:
-            self.subnode_annotations.finalize()
-        del self.subnode_annotations
-        self.subnode_function_ref.finalize()
-        del self.subnode_function_ref
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def collectVariableAccesses(self, emit_read, emit_write):
-        """Collect variable reads and writes of child nodes."""
-
-        subnode_kw_defaults = self.subnode_kw_defaults
-
-        if subnode_kw_defaults is not None:
-            self.subnode_kw_defaults.collectVariableAccesses(emit_read, emit_write)
-        for element in self.subnode_defaults:
-            element.collectVariableAccesses(emit_read, emit_write)
-        subnode_annotations = self.subnode_annotations
-
-        if subnode_annotations is not None:
-            self.subnode_annotations.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_function_ref.collectVariableAccesses(emit_read, emit_write)
-
-
-# Assign the names that are easier to import with a stable name.
-ChildrenExpressionFunctionCreationOldMixin = (
-    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin
-)
 
 
 class ChildrenHavingLeftRightMixin(object):
@@ -9989,11 +10639,22 @@ class ChildrenHavingLeftRightMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_left.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_right.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_left.collectVariableAccesses(emit_variable)
+        self.subnode_right.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10123,10 +10784,21 @@ class ChildHavingListArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10248,11 +10920,22 @@ class ChildrenHavingListArgIndexMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_index.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_index.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10390,12 +11073,23 @@ class ChildrenHavingListArgIndexItemMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_index.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_item.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_index.collectVariableAccesses(emit_variable)
+        self.subnode_item.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10515,11 +11209,22 @@ class ChildrenHavingListArgKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10666,15 +11371,26 @@ class ChildrenHavingListArgKeyOptionalReverseMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
         subnode_key = self.subnode_key
 
         if subnode_key is not None:
-            self.subnode_key.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_reverse.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_key.collectVariableAccesses(emit_variable)
+        self.subnode_reverse.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10797,11 +11513,22 @@ class ChildrenHavingListArgValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -10942,12 +11669,23 @@ class ChildrenHavingListArgValueStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11103,13 +11841,24 @@ class ChildrenHavingListArgValueStartStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_stop.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_list_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_stop.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11198,10 +11947,21 @@ class ChildHavingLowMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_low.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_low.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11323,11 +12083,22 @@ class ChildrenHavingLowHighMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_low.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_high.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_low.collectVariableAccesses(emit_variable)
+        self.subnode_high.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11467,12 +12238,23 @@ class ChildrenHavingLowHighStepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_low.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_high.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_step.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_low.collectVariableAccesses(emit_variable)
+        self.subnode_high.collectVariableAccesses(emit_variable)
+        self.subnode_step.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11593,11 +12375,22 @@ class ChildrenHavingMetaclassBasesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_metaclass.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_bases.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_metaclass.collectVariableAccesses(emit_variable)
+        self.subnode_bases.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11685,10 +12478,21 @@ class ChildHavingModuleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_module.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_module.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -11913,26 +12717,37 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_globals_arg = self.subnode_globals_arg
 
         if subnode_globals_arg is not None:
-            self.subnode_globals_arg.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_globals_arg.collectVariableAccesses(emit_variable)
         subnode_locals_arg = self.subnode_locals_arg
 
         if subnode_locals_arg is not None:
-            self.subnode_locals_arg.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_locals_arg.collectVariableAccesses(emit_variable)
         subnode_fromlist = self.subnode_fromlist
 
         if subnode_fromlist is not None:
-            self.subnode_fromlist.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_fromlist.collectVariableAccesses(emit_variable)
         subnode_level = self.subnode_level
 
         if subnode_level is not None:
-            self.subnode_level.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_level.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12150,26 +12965,37 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_mode = self.subnode_mode
 
         if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_mode.collectVariableAccesses(emit_variable)
         subnode_handle = self.subnode_handle
 
         if subnode_handle is not None:
-            self.subnode_handle.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_handle.collectVariableAccesses(emit_variable)
         subnode_use_errno = self.subnode_use_errno
 
         if subnode_use_errno is not None:
-            self.subnode_use_errno.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_use_errno.collectVariableAccesses(emit_variable)
         subnode_use_last_error = self.subnode_use_last_error
 
         if subnode_use_last_error is not None:
-            self.subnode_use_last_error.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_use_last_error.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12416,30 +13242,41 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_mode = self.subnode_mode
 
         if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_mode.collectVariableAccesses(emit_variable)
         subnode_handle = self.subnode_handle
 
         if subnode_handle is not None:
-            self.subnode_handle.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_handle.collectVariableAccesses(emit_variable)
         subnode_use_errno = self.subnode_use_errno
 
         if subnode_use_errno is not None:
-            self.subnode_use_errno.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_use_errno.collectVariableAccesses(emit_variable)
         subnode_use_last_error = self.subnode_use_last_error
 
         if subnode_use_last_error is not None:
-            self.subnode_use_last_error.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_use_last_error.collectVariableAccesses(emit_variable)
         subnode_winmode = self.subnode_winmode
 
         if subnode_winmode is not None:
-            self.subnode_winmode.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_winmode.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12570,14 +13407,25 @@ class ChildrenHavingNamePackageOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         subnode_package = self.subnode_package
 
         if subnode_package is not None:
-            self.subnode_package.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_package.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12728,13 +13576,24 @@ class ChildrenHavingNameTypeParamsTupleValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_name.collectVariableAccesses(emit_variable)
         for element in self.subnode_type_params:
-            element.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12827,10 +13686,21 @@ class ChildHavingOperandMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_operand.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_operand.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -12924,10 +13794,21 @@ class ChildHavingPMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_p.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_p.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13019,10 +13900,21 @@ class ChildHavingPackageMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_package.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_package.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13150,11 +14042,22 @@ class ChildrenHavingPackageResourceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_package.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_resource.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_package.collectVariableAccesses(emit_variable)
+        self.subnode_resource.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13346,19 +14249,30 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_package.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_resource.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_package.collectVariableAccesses(emit_variable)
+        self.subnode_resource.collectVariableAccesses(emit_variable)
         subnode_encoding = self.subnode_encoding
 
         if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_encoding.collectVariableAccesses(emit_variable)
         subnode_errors = self.subnode_errors
 
         if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13572,23 +14486,34 @@ class ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalM
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_package = self.subnode_package
 
         if subnode_package is not None:
-            self.subnode_package.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_package.collectVariableAccesses(emit_variable)
         for element in self.subnode_resources:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
         subnode_encoding = self.subnode_encoding
 
         if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_encoding.collectVariableAccesses(emit_variable)
         subnode_errors = self.subnode_errors
 
         if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13716,13 +14641,22 @@ class ChildrenHavingPackageOrRequirementResourceNameMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_package_or_requirement.collectVariableAccesses(
-            emit_read, emit_write
-        )
-        self.subnode_resource_name.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_package_or_requirement.collectVariableAccesses(emit_variable)
+        self.subnode_resource_name.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13842,11 +14776,22 @@ class ChildHavingPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -13958,11 +14903,22 @@ class ChildHavingParamsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_params:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14063,10 +15019,21 @@ class ChildHavingPathMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_path.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14171,13 +15138,24 @@ class ChildHavingPathOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_path = self.subnode_path
 
         if subnode_path is not None:
-            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_path.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14317,17 +15295,28 @@ class ChildrenHavingPathOptionalDirFdOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_path = self.subnode_path
 
         if subnode_path is not None:
-            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_path.collectVariableAccesses(emit_variable)
         subnode_dir_fd = self.subnode_dir_fd
 
         if subnode_dir_fd is not None:
-            self.subnode_dir_fd.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_dir_fd.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14496,21 +15485,32 @@ class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object)
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_path = self.subnode_path
 
         if subnode_path is not None:
-            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_path.collectVariableAccesses(emit_variable)
         subnode_dir_fd = self.subnode_dir_fd
 
         if subnode_dir_fd is not None:
-            self.subnode_dir_fd.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_dir_fd.collectVariableAccesses(emit_variable)
         subnode_follow_symlinks = self.subnode_follow_symlinks
 
         if subnode_follow_symlinks is not None:
-            self.subnode_follow_symlinks.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_follow_symlinks.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14652,15 +15652,26 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_pos_arg = self.subnode_pos_arg
 
         if subnode_pos_arg is not None:
-            self.subnode_pos_arg.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_pos_arg.collectVariableAccesses(emit_variable)
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14789,14 +15800,25 @@ class ChildrenHavingRealOptionalImagMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_real = self.subnode_real
 
         if subnode_real is not None:
-            self.subnode_real.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_imag.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_real.collectVariableAccesses(emit_variable)
+        self.subnode_imag.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -14908,11 +15930,22 @@ class ChildHavingRequirementsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_requirements:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15001,10 +16034,21 @@ class ChildHavingSMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_s.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_s.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15092,10 +16136,21 @@ class ChildHavingSequenceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_sequence.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_sequence.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15215,11 +16270,22 @@ class ChildrenHavingSequenceStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_sequence.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_sequence.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15339,11 +16405,22 @@ class ChildrenHavingSetArgValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_set_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_set_arg.collectVariableAccesses(emit_variable)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15487,12 +16564,23 @@ class ChildrenHavingSideEffectsTupleExpressionMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_side_effects:
-            element.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
+        self.subnode_expression.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15580,10 +16668,21 @@ class ChildHavingSourceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15810,24 +16909,35 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_filename.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source.collectVariableAccesses(emit_variable)
+        self.subnode_filename.collectVariableAccesses(emit_variable)
+        self.subnode_mode.collectVariableAccesses(emit_variable)
         subnode_flags = self.subnode_flags
 
         if subnode_flags is not None:
-            self.subnode_flags.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_flags.collectVariableAccesses(emit_variable)
         subnode_dont_inherit = self.subnode_dont_inherit
 
         if subnode_dont_inherit is not None:
-            self.subnode_dont_inherit.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_dont_inherit.collectVariableAccesses(emit_variable)
         subnode_optimize = self.subnode_optimize
 
         if subnode_optimize is not None:
-            self.subnode_optimize.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_optimize.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -15966,12 +17076,23 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source_code.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_globals_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_locals_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source_code.collectVariableAccesses(emit_variable)
+        self.subnode_globals_arg.collectVariableAccesses(emit_variable)
+        self.subnode_locals_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16141,16 +17262,27 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgClosureOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_source_code.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_globals_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_locals_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_source_code.collectVariableAccesses(emit_variable)
+        self.subnode_globals_arg.collectVariableAccesses(emit_variable)
+        self.subnode_locals_arg.collectVariableAccesses(emit_variable)
         subnode_closure = self.subnode_closure
 
         if subnode_closure is not None:
-            self.subnode_closure.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_closure.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16272,11 +17404,22 @@ class ChildrenHavingStartStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_stop.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_stop.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16414,12 +17557,23 @@ class ChildrenHavingStartStopStepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_stop.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_step.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_stop.collectVariableAccesses(emit_variable)
+        self.subnode_step.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16507,10 +17661,21 @@ class ChildHavingStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_stop.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_stop.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16632,10 +17797,21 @@ class ChildHavingStrArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16825,14 +18001,25 @@ class ChildrenHavingStrArgArgsTuplePairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
         for element in self.subnode_args:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
         for element in self.subnode_pairs:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -16954,11 +18141,22 @@ class ChildrenHavingStrArgCharsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_chars.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_chars.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17081,11 +18279,22 @@ class ChildrenHavingStrArgEncodingMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_encoding.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17225,12 +18434,23 @@ class ChildrenHavingStrArgEncodingErrorsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_encoding.collectVariableAccesses(emit_variable)
+        self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17351,11 +18571,22 @@ class ChildrenHavingStrArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17475,11 +18706,22 @@ class ChildrenHavingStrArgKeependsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_keepends.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_keepends.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17617,12 +18859,23 @@ class ChildrenHavingStrArgOldNewMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_old.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_new.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_old.collectVariableAccesses(emit_variable)
+        self.subnode_new.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17778,13 +19031,24 @@ class ChildrenHavingStrArgOldNewCountMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_old.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_new.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_count.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_old.collectVariableAccesses(emit_variable)
+        self.subnode_new.collectVariableAccesses(emit_variable)
+        self.subnode_count.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -17904,11 +19168,22 @@ class ChildrenHavingStrArgPrefixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18046,12 +19321,23 @@ class ChildrenHavingStrArgPrefixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18207,13 +19493,24 @@ class ChildrenHavingStrArgPrefixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_prefix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_prefix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18336,11 +19633,22 @@ class ChildrenHavingStrArgSepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sep.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sep.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18482,12 +19790,23 @@ class ChildrenHavingStrArgSepMaxsplitMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sep.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_maxsplit.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sep.collectVariableAccesses(emit_variable)
+        self.subnode_maxsplit.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18612,11 +19931,22 @@ class ChildrenHavingStrArgSubMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18762,12 +20092,23 @@ class ChildrenHavingStrArgSubStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -18931,13 +20272,24 @@ class ChildrenHavingStrArgSubStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_sub.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_sub.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19061,11 +20413,22 @@ class ChildrenHavingStrArgSuffixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19203,12 +20566,23 @@ class ChildrenHavingStrArgSuffixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19364,13 +20738,24 @@ class ChildrenHavingStrArgSuffixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_suffix.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_start.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_end.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_suffix.collectVariableAccesses(emit_variable)
+        self.subnode_start.collectVariableAccesses(emit_variable)
+        self.subnode_end.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19491,11 +20876,22 @@ class ChildrenHavingStrArgTableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_table.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_table.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19616,11 +21012,22 @@ class ChildrenHavingStrArgTabsizeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_tabsize.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_tabsize.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19743,11 +21150,22 @@ class ChildrenHavingStrArgWidthMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_width.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_width.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -19890,12 +21308,23 @@ class ChildrenHavingStrArgWidthFillcharMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_str_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_width.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_fillchar.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_str_arg.collectVariableAccesses(emit_variable)
+        self.subnode_width.collectVariableAccesses(emit_variable)
+        self.subnode_fillchar.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20057,18 +21486,29 @@ class ChildrenHavingStringEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_string.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_string.collectVariableAccesses(emit_variable)
         subnode_encoding = self.subnode_encoding
 
         if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_encoding.collectVariableAccesses(emit_variable)
         subnode_errors = self.subnode_errors
 
         if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20158,10 +21598,21 @@ class ChildHavingTypeArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_type_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_type_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20319,18 +21770,29 @@ class ChildrenHavingTypeArgArgsOptionalKwargsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_type_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_type_arg.collectVariableAccesses(emit_variable)
         subnode_args = self.subnode_args
 
         if subnode_args is not None:
-            self.subnode_args.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_args.collectVariableAccesses(emit_variable)
         subnode_kwargs = self.subnode_kwargs
 
         if subnode_kwargs is not None:
-            self.subnode_kwargs.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_kwargs.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20453,11 +21915,22 @@ class ChildrenHavingTypeArgObjectArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_type_arg.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_object_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_type_arg.collectVariableAccesses(emit_variable)
+        self.subnode_object_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20596,12 +22069,23 @@ class ChildrenHavingTypeNameBasesDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_type_name.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_bases.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_dict_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_type_name.collectVariableAccesses(emit_variable)
+        self.subnode_bases.collectVariableAccesses(emit_variable)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20689,10 +22173,21 @@ class ChildHavingTypeParamsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_type_params.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_type_params.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20814,10 +22309,21 @@ class ChildHavingValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -20983,14 +22489,25 @@ class ChildrenHavingValueOptionalBaseMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_value = self.subnode_value
 
         if subnode_value is not None:
-            self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_base.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_value.collectVariableAccesses(emit_variable)
+        self.subnode_base.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -21164,21 +22681,32 @@ class ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         subnode_value = self.subnode_value
 
         if subnode_value is not None:
-            self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_value.collectVariableAccesses(emit_variable)
         subnode_encoding = self.subnode_encoding
 
         if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_encoding.collectVariableAccesses(emit_variable)
         subnode_errors = self.subnode_errors
 
         if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_errors.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -21319,14 +22847,25 @@ class ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
         subnode_format_spec = self.subnode_format_spec
 
         if subnode_format_spec is not None:
-            self.subnode_format_spec.collectVariableAccesses(emit_read, emit_write)
+            self.subnode_format_spec.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -21448,11 +22987,22 @@ class ChildrenHavingValueKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_key.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_variable)
+        self.subnode_key.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -21569,11 +23119,22 @@ class ChildHavingValuesTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
         for element in self.subnode_values:
-            element.collectVariableAccesses(emit_read, emit_write)
+            element.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.

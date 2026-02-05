@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Hacks for scons that we apply.
+"""Hacks for scons that we apply.
 
 We block some tools from the standard scan, there is e.g. no need to ask
 what fortran version we have installed to compile with Nuitka.
@@ -20,13 +20,22 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import getNormalizedPathJoin, openTextFile
 from nuitka.utils.Utils import isLinux, isMacOS
 
-from .SconsUtils import decodeData, getExecutablePath, isGccName
+from .SconsUtils import (
+    decodeData,
+    getExecutablePath,
+    isClangName,
+    isGccName,
+    isZigName,
+)
 
 # Cache for detected versions.
 v_cache = {}
+
+# spell-checker: ignore gfortran,ifort,javah,ranlib,pdflatex,pdftex,dvipdf,dvips
+# spell-checker: ignore rpcgen,rpmbuild,sccs,nasm,dumpversion,dumpfullversion
 
 # Prevent these programs from being found, avoiding the burden of tool init.
 _blocked_tools = (
@@ -74,7 +83,12 @@ _blocked_tools = (
 
 
 def _myDetectVersion(cc):
-    if isGccName(cc) or "clang" in cc:
+    if isZigName(cc):
+        command = (
+            cc,
+            "version",
+        )
+    elif isGccName(cc) or isClangName(cc):
         command = (
             cc,
             "-dumpversion",
@@ -171,11 +185,12 @@ def getEnhancedToolDetect():
 
 
 def makeGccUseLinkerFile(env, source_files):
-    tmp_linker_filename = os.path.join(env.source_dir, "@link_input.txt")
+    tmp_linker_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
 
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
     # monkey patching.
+    # spell-checker: ignore SHLINKCOM,LINKCOM
     if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
             "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)

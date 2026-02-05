@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Assignment tests, cover most forms of them. """
-
-# nuitka-project: --nofollow-imports
+"""Assignment tests, cover most forms of them."""
 
 from __future__ import print_function
 
@@ -215,7 +213,7 @@ def multiTargetInterrupt():
         print("having attribute error", c, d, e)
 
 
-def optimizeableTargets():
+def optimizableTargets():
     a = [1, 2]
 
     a[int(1)] = 3
@@ -257,6 +255,12 @@ def globalErrors():
         print("Del on unassigned global gives", repr(e))
 
 
+def testLenEscapeDel():
+    lst = [0, 0]
+    del lst[0]
+    print(len(lst), lst)
+
+
 someFunction()
 varargsFunction(1, 2, 3, 4)
 otherFunction()
@@ -264,10 +268,11 @@ anotherFunction()
 swapVariables()
 InterruptedUnpack()
 multiTargetInterrupt()
-optimizeableTargets()
+optimizableTargets()
 complexDel()
 sliceDel()
 globalErrors()
+testLenEscapeDel()
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

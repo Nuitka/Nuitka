@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Lxml standalone basic test.
-
-"""
+"""Lxml standalone basic test."""
 
 # nuitka-project: --mode=standalone
 

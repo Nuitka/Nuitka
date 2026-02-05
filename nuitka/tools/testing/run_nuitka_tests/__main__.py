@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Main front-end to the tests of Nuitka.
+"""Main front-end to the tests of Nuitka.
 
 Has many options, read --help output.
 """
@@ -10,8 +10,8 @@ Has many options, read --help output.
 import os
 import subprocess
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
@@ -36,7 +36,7 @@ def parseOptions():
     # There are freaking many options to honor,
     # pylint: disable=too-many-branches,too-many-statements
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--skip-basic-tests",
@@ -427,6 +427,24 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
     )
 
     parser.add_option(
+        "--zig",
+        action="store_true",
+        dest="zig",
+        default=False,
+        help="""\
+Enforce the use of Zig. Defaults to off.""",
+    )
+
+    parser.add_option(
+        "--clang",
+        action="store_true",
+        dest="clang",
+        default=False,
+        help="""\
+Enforce the use of Clang. Defaults to off.""",
+    )
+
+    parser.add_option(
         "--mingw64",
         action="store_true",
         dest="mingw64",
@@ -685,12 +703,14 @@ def main():
         return False
 
     def getExtraFlags(where, name, flags):
-        if options.assume_yes_for_downloads and name in (
-            "onefile",
-            "standalone",
-            "plugins",
-        ):
+        if options.assume_yes_for_downloads:
             yield "--assume-yes-for-downloads"
+
+        if options.zig:
+            yield "--zig"
+
+        if options.clang:
+            yield "--clang"
 
         if os.name == "nt" and options.mingw64:
             yield "--mingw64"

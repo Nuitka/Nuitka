@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The code generation.
+"""The code generation.
 
 No language specifics at all are supposed to be present here. Instead it is
 using primitives from the given generator to build code sequences (list of
@@ -12,16 +12,19 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.plugins.Plugins import Plugins
+from nuitka.options.Options import isCompileTimeProfile
+from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
+from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
+from nuitka.utils.Timing import TimerReport
 
-from . import Contexts
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -92,6 +95,14 @@ from .ConstantCodes import (
     generateConstantGenericAliasCode,
     generateConstantReferenceCode,
     getConstantsDefinitionCode,
+)
+from .Contexts import (
+    PythonAsyncgenObjectContext,
+    PythonCoroutineObjectContext,
+    PythonFunctionCreatedContext,
+    PythonFunctionDirectContext,
+    PythonGeneratorObjectContext,
+    PythonModuleContext,
 )
 from .CoroutineCodes import (
     generateAsyncIterCode,
@@ -190,7 +201,6 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode,
 )
-from .InjectCCodes import generateInjectCCode
 from .IntegerCodes import (
     generateBuiltinInt1Code,
     generateBuiltinInt2Code,
@@ -379,28 +389,34 @@ def generateFunctionBodyCode(function_body, context):
         return _generated_functions[function_identifier]
 
     if function_body.isExpressionGeneratorObjectBody():
-        function_context = Contexts.PythonGeneratorObjectContext(
-            parent=context, function=function_body
+        function_context = PythonGeneratorObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionClassBodyBase():
-        function_context = Contexts.PythonFunctionDirectContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionDirectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionCoroutineObjectBody():
-        function_context = Contexts.PythonCoroutineObjectContext(
-            parent=context, function=function_body
+        function_context = PythonCoroutineObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.isExpressionAsyncgenObjectBody():
-        function_context = Contexts.PythonAsyncgenObjectContext(
-            parent=context, function=function_body
+        function_context = PythonAsyncgenObjectContext(
+            parent=context,
+            function=function_body,
         )
     elif function_body.needsCreation():
-        function_context = Contexts.PythonFunctionCreatedContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionCreatedContext(
+            parent=context,
+            function=function_body,
         )
     else:
-        function_context = Contexts.PythonFunctionDirectContext(
-            parent=context, function=function_body
+        function_context = PythonFunctionDirectContext(
+            parent=context,
+            function=function_body,
         )
 
     needs_exception_exit = function_body.mayRaiseException(BaseException)
@@ -413,7 +429,7 @@ def generateFunctionBodyCode(function_body, context):
                 closure_variables=function_body.getClosureVariables(),
                 user_variables=function_body.getUserLocalVariables(),
                 outline_variables=function_body.getOutlineLocalVariables(),
-                temp_variables=function_body.getTempVariables(),
+                temp_variables=function_body.getAllTempVariables(),
                 needs_exception_exit=needs_exception_exit,
                 needs_generator_return=function_body.needsGeneratorReturnExit(),
             )
@@ -432,7 +448,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
@@ -449,7 +465,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             needs_exception_exit=needs_exception_exit,
             needs_generator_return=function_body.needsGeneratorReturnExit(),
         )
@@ -488,7 +504,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
             user_variables=function_body.getUserLocalVariables()
             + function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
+            temp_variables=function_body.getAllTempVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(
@@ -514,10 +530,9 @@ def generateFunctionBodyCode(function_body, context):
 def _generateModuleCode(module, data_filename):
     # As this not only creates all modules, but also functions, it deals
     # also with its functions.
-
     assert module.isCompiledPythonModule(), module
 
-    context = Contexts.PythonModuleContext(
+    context = PythonModuleContext(
         module=module,
         data_filename=data_filename,
     )
@@ -558,8 +573,9 @@ def _generateModuleCode(module, data_filename):
             file_scope=getExportScopeCode(
                 cross_module=function_body.isCrossModuleUsed()
             ),
-            context=Contexts.PythonFunctionDirectContext(
-                parent=context, function=function_body
+            context=PythonFunctionDirectContext(
+                parent=context,
+                function=function_body,
             ),
         )
 
@@ -570,15 +586,35 @@ def _generateModuleCode(module, data_filename):
         function_decl_codes=function_decl_codes,
         function_body_codes=function_body_codes,
         module_const_blob_name=encodePythonStringToC(
-            Plugins.deriveModuleConstantsBlobName(data_filename)
+            deriveModuleConstantsBlobName(data_filename)
         ),
         context=context,
     )
 
 
 def generateModuleCode(module, data_filename):
+    module_name = module.getFullName()
+
     try:
-        return _generateModuleCode(module=module, data_filename=data_filename)
+        with TimerReport(
+            message="Generating C code for '%s'" % module_name,
+            logger=code_generation_logger,
+            decider=False,
+            include_sleep_time=False,
+            use_perf_counters=module.isCompiledPythonModule()
+            and not isCompileTimeProfile(),
+        ) as module_timer:
+            source_code = _generateModuleCode(
+                module=module, data_filename=data_filename
+            )
+
+            addModuleCodeGenerationTimeInformation(
+                module_name=module_name,
+                time_used=module_timer.getDelta(),
+                perf_counters=module_timer.getPerfCounters(),
+            )
+
+        return source_code
     except KeyboardInterrupt:
         raise KeyboardInterrupt("Interrupted while working on", module)
 
@@ -966,6 +1002,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
+        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarCode,
+        "EXPRESSION_PARAMETER_SPECIFICATION": generateTypeVarCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
@@ -1062,7 +1100,6 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
-        "STATEMENT_INJECT_C_CODE": generateInjectCCode,
     }
 )
 

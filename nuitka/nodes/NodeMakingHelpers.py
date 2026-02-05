@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" These are just helpers to create nodes, often to replace existing nodes
+"""These are just helpers to create nodes, often to replace existing nodes
 
 These are for use in optimizations and computations, and therefore cover
 mostly exceptions and constants.
@@ -12,11 +12,12 @@ the local imports instead, as these local imports look ugly everywhere else,
 making it more difficult to use.
 """
 
-from nuitka import Options
 from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
+from nuitka.options import Options
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import my_print, unusual_logger
 
 
@@ -290,7 +291,7 @@ def getComputationResult(node, computation, description, user_provided):
             value=result, node=node, user_provided=user_provided
         )
 
-        if Options.is_debug:
+        if states.is_debug:
             assert new_node is not node, (node, result)
 
         if new_node is not node:
@@ -460,7 +461,9 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
 def makeRaiseImportErrorReplacementExpression(expression, module_name):
     return makeRaiseExceptionReplacementExpression(
         expression=expression,
-        exception_type="ImportError",
+        exception_type=(
+            "ModuleNotFoundError" if python_version >= 0x360 else "ImportError"
+        ),
         exception_value=module_name.asString(),
     )
 

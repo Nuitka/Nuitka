@@ -1,11 +1,9 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Signing of executables.
+"""Signing of executables."""
 
-"""
-
-from nuitka.Options import (
+from nuitka.options.Options import (
     getMacOSSignedAppName,
     getMacOSSigningCertificateFilename,
     getMacOSSigningCertificatePassword,
@@ -16,7 +14,6 @@ from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
 from .FileOperations import getExternalUsePath, withMadeWritableFileMode
-from .MacOSApp import createEntitlementsInfoFile
 
 _macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
@@ -37,7 +34,7 @@ def _filterCodesignErrorOutput(stderr):
     )
 
     if b"errSecInternalComponent" in stderr:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             """\
 Access to the specified codesign certificate was not allowed. Please \
 'allow all items' or when compiling with GUI available, enable prompting \
@@ -68,7 +65,7 @@ def detectMacIdentity():
         line = line.strip()
 
         if line.startswith("2)"):
-            postprocessing_logger.sysexit(
+            return postprocessing_logger.sysexit(
                 "More than one signing identity, auto mode cannot be used."
             )
 
@@ -79,7 +76,7 @@ def detectMacIdentity():
             signing_name = parts[2]
 
     if result is None:
-        postprocessing_logger.sysexit(
+        return postprocessing_logger.sysexit(
             "Failed to detect any signing identity, auto mode cannot be used."
         )
     else:
@@ -90,11 +87,12 @@ def detectMacIdentity():
     return result
 
 
-def addMacOSCodeSignature(filenames):
+def addMacOSCodeSignature(filenames, entitlements_filename):
     """Add the code signature to filenames.
 
     Args:
         filenames - The filenames to be signed.
+        entitlements_filename - The entitlements file to use, optional.
 
     Returns:
         None
@@ -142,8 +140,6 @@ def addMacOSCodeSignature(filenames):
             "-i",
             macos_signed_app_name,
         ]
-
-    entitlements_filename = createEntitlementsInfoFile()
 
     if entitlements_filename is not None:
         command += [

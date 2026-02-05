@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node base classes.
+"""Node base classes.
 
 These classes provide the generic base classes available for nodes,
 statements or expressions alike. There is a dedicated module for
@@ -14,11 +14,13 @@ expression only stuff.
 import ast
 from abc import abstractmethod
 
-from nuitka import Options, Tracing, TreeXML
 from nuitka.__past__ import iterItems
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.States import states
+from nuitka.Tracing import printIndented, printLine, printSeparator
+from nuitka.TreeXML import Element, convertXmlToString
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -36,10 +38,10 @@ class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
     # This can trigger if this is included to early.
-    assert Options.is_full_compat is not None
+    assert states.is_full_compat is not None
 
     # Avoid the attribute unless it's really necessary.
-    if Options.is_full_compat:
+    if states.is_full_compat:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
@@ -63,7 +65,38 @@ class NodeBase(NodeMetaClassBase):
 
     @abstractmethod
     def finalize(self):
-        pass
+        """Finalize the node, intended to release memory and make it un-usable.
+
+        This is to break reference cycles and allow for garbage collection of
+        variables, functions and other stuff that holds a lot of memory
+        potentially, and to make sure that we catch use after free errors.
+        """
+
+    def isConnected(self):
+        current = self
+        while current.parent is not None:
+            if not hasattr(current, "parent"):
+                # If current is not self, this is indicating we might have made
+                # an error by not calling finalize() on a node.
+                break
+
+            if current not in current.parent.getVisitableNodes():
+                # TODO: Add experimental tracing for this so we can catch these
+                # cases and see if they are indicating a bug, however, this
+                # could also be normal and will always indicate it's a not
+                # connected node, because one of the parents became disconnected.
+                if states.is_debug:
+                    assert False, current
+
+                return False
+
+            current = current.parent
+
+        # TODO: Function bodies maybe are not connected, are they?
+        if states.is_debug:
+            assert not current.isExpressionFunctionBody(), current
+
+        return current.isCompiledPythonModule()
 
     def __repr__(self):
         return "<Node %s>" % (self.getDescription())
@@ -140,6 +173,10 @@ class NodeBase(NodeMetaClassBase):
 
         return self.parent
 
+    def onForwardPropagation(self, propagated_scopes):
+        # pylint: disable=unused-argument
+        return self, None, None
+
     def getChildName(self):
         """Return the role in the current parent, subject to changes."""
         parent = self.getParent()
@@ -190,8 +227,10 @@ class NodeBase(NodeMetaClassBase):
         """Return the parent that is module."""
         parent = self.parent
 
+        # TODO: Actually outline functions ought to not abort here, but we ought
+        # to get rid of the this function entirely in favor of a finalization
+        # annotation.
         while parent is not None and not parent.isExpressionFunctionBodyBase():
-
             if parent.isStatementLoop():
                 return parent
 
@@ -199,9 +238,10 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
-    def isParentVariableProvider(self):
-        # Check if it's a closure giver, in which cases it can provide variables,
-        return isinstance(self, ClosureGiverNodeMixin)
+    @staticmethod
+    def isParentVariableProvider():
+        """Closure givers are providing variables."""
+        return False
 
     def getParentVariableProvider(self):
         parent = self.getParent()
@@ -255,7 +295,7 @@ class NodeBase(NodeMetaClassBase):
         # this first.
         if (
             self.source_ref is not source_ref
-            and Options.is_full_compat
+            and states.is_full_compat
             and self.source_ref != source_ref
         ):
             # An attribute outside of "__init__", so we save one memory for the
@@ -274,7 +314,7 @@ class NodeBase(NodeMetaClassBase):
     def asXml(self):
         line = self.source_ref.getLineNumber()
 
-        result = TreeXML.Element("node", kind=self.__class__.__name__, line=str(line))
+        result = Element("node", kind=self.__class__.__name__, line=str(line))
 
         compat_line = self.getCompatibleSourceReference().getLineNumber()
 
@@ -285,7 +325,7 @@ class NodeBase(NodeMetaClassBase):
             result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            role = TreeXML.Element("role", name=name)
+            role = Element("role", name=name)
 
             result.append(role)
 
@@ -309,16 +349,16 @@ class NodeBase(NodeMetaClassBase):
     def asXmlText(self):
         xml = self.asXml()
 
-        return TreeXML.toString(xml)
+        return convertXmlToString(xml)
 
     def dump(self, level=0):
-        Tracing.printIndented(level, self)
-        Tracing.printSeparator(level)
+        printIndented(level, self)
+        printSeparator(level)
 
         for visitable in self.getVisitableNodes():
             visitable.dump(level + 1)
 
-        Tracing.printSeparator(level)
+        printSeparator(level)
 
     @staticmethod
     def isStatementsSequence():
@@ -437,7 +477,8 @@ class NodeBase(NodeMetaClassBase):
 
         return ()
 
-    def collectVariableAccesses(self, emit_read, emit_write):
+    @staticmethod
+    def collectVariableAccesses(emit_variable):
         """Collect variable reads and writes of child nodes."""
 
     @staticmethod
@@ -508,8 +549,8 @@ class CodeNodeMixin(object):
         # The code name is determined on demand only.
         self.code_name = None
 
-        # The "UID" values of children kinds are kept here.
-        self.uids = {}
+        # The "UUID" values of children kinds are kept here.
+        self.uuids = {}
 
     def getName(self):
         return self.name
@@ -537,12 +578,12 @@ class CodeNodeMixin(object):
         return self.code_name
 
     def getChildUID(self, node):
-        if node.kind not in self.uids:
-            self.uids[node.kind] = 0
+        if node.kind not in self.uuids:
+            self.uuids[node.kind] = 0
 
-        self.uids[node.kind] += 1
+        self.uuids[node.kind] += 1
 
-        return self.uids[node.kind]
+        return self.uuids[node.kind]
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
@@ -552,13 +593,21 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
-        CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+        CodeNodeMixin.__init__(
+            self,
+            name=name,
+            code_prefix=code_prefix,
+        )
 
         self.temp_variables = {}
 
         self.temp_scopes = {}
 
         self.preserver_id = 0
+
+    @staticmethod
+    def isParentVariableProvider():
+        return True
 
     def hasProvidedVariable(self, variable_name):
         return self.locals_scope.hasProvidedVariable(variable_name)
@@ -579,7 +628,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return "%s_%d" % (name, self.temp_scopes[name])
 
-    def allocateTempVariable(self, temp_scope, name, temp_type):
+    def allocateTempVariable(
+        self, temp_scope, name, temp_type, late=False, outline=None
+    ):
         if temp_scope is not None:
             full_name = "%s__%s" % (temp_scope, name)
         else:
@@ -590,16 +641,21 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = self.createTempVariable(temp_name=full_name, temp_type=temp_type)
+        result = self.createTempVariable(
+            temp_name=full_name, temp_type=temp_type, outline=outline
+        )
 
         # Late added temp variables should be treated with care for the
-        # remaining trace.
+        # remaining trace, therefore force usage, but do not track versions yet.
         if self.trace_collection is not None:
-            self.trace_collection.initVariableUnknown(result).addUsage()
+            if late:
+                self.trace_collection.initVariableUninitializedLate(result).addUsage()
+            else:
+                self.trace_collection.initVariableUninitialized(result, None).addUsage()
 
         return result
 
-    def createTempVariable(self, temp_name, temp_type):
+    def createTempVariable(self, temp_name, temp_type, outline):
         if temp_name in self.temp_variables:
             return self.temp_variables[temp_name]
 
@@ -609,7 +665,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             variable_type=temp_type,
         )
 
-        self.temp_variables[temp_name] = result
+        self.temp_variables[temp_name] = (result, outline)
 
         return result
 
@@ -619,10 +675,16 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         else:
             full_name = name
 
-        return self.temp_variables[full_name]
+        return self.temp_variables[full_name][0]
 
-    def getTempVariables(self):
-        return self.temp_variables.values()
+    def getAllTempVariables(self):
+        assert self.getEntryPoint() is self
+        return tuple(x[0] for x in self.temp_variables.values())
+
+    def getTempVariables(self, outline):
+        # TODO: Harden API to allow for removing this complexity.
+        assert self.getEntryPoint() is self
+        return tuple(x[0] for x in self.temp_variables.values() if x[1] is outline)
 
     def _removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
@@ -630,8 +692,8 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def optimizeUnusedTempVariables(self):
         remove = []
 
-        for temp_variable in self.getTempVariables():
-            empty = self.trace_collection.hasEmptyTraces(variable=temp_variable)
+        for temp_variable in self.getAllTempVariables():
+            empty = temp_variable.hasEmptyTracesFor(self)
 
             if empty:
                 remove.append(temp_variable)
@@ -660,6 +722,9 @@ class ClosureTakerMixin(object):
     def getParentVariableProvider(self):
         return self.provider
 
+    def getEntryPoint(self):
+        return self.provider.getEntryPoint()
+
     def getClosureVariable(self, variable_name):
         result = self.provider.getVariableForClosure(variable_name=variable_name)
         assert result is not None, variable_name
@@ -674,14 +739,6 @@ class ClosureTakerMixin(object):
 
         return variable
 
-    def getClosureVariables(self):
-        return tuple(
-            sorted(
-                [take for take in self.taken if not take.isModuleVariable()],
-                key=lambda x: x.getName(),
-            )
-        )
-
     def getClosureVariableIndex(self, variable):
         closure_variables = self.getClosureVariables()
 
@@ -690,6 +747,22 @@ class ClosureTakerMixin(object):
                 return count
 
         raise IndexError(variable)
+
+    def getClosureVariables(self):
+        return tuple(
+            sorted(
+                [take for take in self.taken if not take.isModuleVariable()],
+                key=lambda x: x.getName(),
+            )
+        )
+
+    def getModuleVariables(self):
+        return tuple(
+            sorted(
+                [take for take in self.taken if take.isModuleVariable()],
+                key=lambda x: x.getName(),
+            )
+        )
 
     def hasTakenVariable(self, variable_name):
         for variable in self.taken:
@@ -733,8 +806,6 @@ class StatementBase(NodeBase):
                 # They probably have changed.
                 expressions = self.getVisitableNodes()
 
-                child_name = expression.getChildNameNice()
-
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
                     expressions[: count + 1]
                 )
@@ -745,7 +816,7 @@ class StatementBase(NodeBase):
                     wrapped_expression,
                     "new_raise",
                     lambda: "For %s the child expression '%s' will raise."
-                    % (self.getStatementNiceName(), child_name),
+                    % (self.getStatementNiceName(), expression.getChildNameNice()),
                 )
 
         return self, None, None
@@ -870,7 +941,7 @@ def fromXML(provider, xml, source_ref=None):
     try:
         return node_class.fromXML(provider=provider, source_ref=source_ref, **args)
     except (TypeError, AttributeError):
-        Tracing.printLine(node_class, args, source_ref)
+        printLine(node_class, args, source_ref)
         raise
 
 

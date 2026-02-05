@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for statements.
-
-"""
+"""Nodes for statements."""
 
 from nuitka.PythonVersions import python_version
 

@@ -29,8 +29,17 @@ extern PyObject *IMPORT_HARD_BUILTINS(void);
 /* C helper for hard import of module "ctypes" import. */
 extern PyObject *IMPORT_HARD_CTYPES(void);
 
+/* C helper for hard import of module "ctypes._aix" import. */
+extern PyObject *IMPORT_HARD_CTYPES___AIX(void);
+
+/* C helper for hard import of module "ctypes._endian" import. */
+extern PyObject *IMPORT_HARD_CTYPES___ENDIAN(void);
+
 /* C helper for hard import of module "ctypes.macholib" import. */
 extern PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void);
+
+/* C helper for hard import of module "ctypes.util" import. */
+extern PyObject *IMPORT_HARD_CTYPES__UTIL(void);
 
 /* C helper for hard import of module "ctypes.wintypes" import. */
 #if defined(_WIN32)

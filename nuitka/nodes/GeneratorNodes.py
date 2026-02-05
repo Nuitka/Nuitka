@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes for generator objects and their creations.
+"""Nodes for generator objects and their creations.
 
 Generators are turned into normal functions that create generator objects,
 whose implementation lives here. The creation itself also lives here.
@@ -149,7 +149,7 @@ class StatementGeneratorReturn(StatementReturn):
 Return statement raises in returned expression, removed return.""",
             )
 
-        trace_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn(trace_collection)
 
         if expression.isExpressionConstantNoneRef():
             result = StatementGeneratorReturnNone(source_ref=self.source_ref)

@@ -3,41 +3,24 @@
 # spell-checker: ignore orderedset,rstcheck,rstfmt,ruamel,tqdm,pytest
 # spell-checker: ignore pyyaml
 
-# Speed up Nuitka by having this available. On Windows, installing on 2.7 is not
-# working easily, so let's exclude that.
-ordered-set == 4.1.0; python_version >= '3.7'
-orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
-orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.6' and python_version < '3.7'
-orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 
 # Make testing more reliable on Python2 with timeout features added.
 subprocess32 == 3.5.4 ; python_version == '2.7'
 
 # PyLint wouldn't be installable on 2.6 and not work with too old Python3
-pylint == 3.0.3 ; python_version >= '3.9'
-astroid == 3.0.2 ; python_version >= '3.9'
+pylint == 4.0.4 ; python_version >= '3.11'
+astroid == 4.0.2 ; python_version >= '3.11'
 
 # linting rest code snippets
-restructuredtext-lint==1.4.0 ; python_version >= '3.9'
-Pygments == 2.15.1 ; python_version >= '3.9'
-rstcheck == 6.2.0 ; python_version >= '3.9'
+restructuredtext-lint==1.4.0 ; python_version >= '3.11'
+Pygments == 2.15.1 ; python_version >= '3.11'
+rstcheck == 6.2.0 ; python_version >= '3.11'
 
-# Auto-format needs
-black == 24.10.0 ; python_version >= '3.9'
-toml >= 0.10.1 ; python_version >= '3.9'
-isort == 5.13.2 ; python_version >= '3.9'
-yamllint == 1.28.0 ; python_version >= '3.9'
-rstfmt == 0.0.14 ; python_version >= '3.9'
-jsonschema == 4.6.0 ; python_version >= '3.9'
-ruamel.yaml == 0.17.21 ; python_version >= '3.9'
-deepdiff == 8.6.1 ; python_version >= '3.9'
-mdformat == 0.7.16 ; python_version >= '3.9'
-mdformat-gfm == 0.3.5 ; python_version >= '3.9'
-mdformat-frontmatter == 2.0.1 ; python_version >= '3.9'
-mdformat-footnote == 0.1.1 ; python_version >= '3.9'
+# Auto-format needs and private pip space requirements
+-r nuitka/utils/requirements-private.txt
 
 # Codespell can be used as well, no need to fix the version
-codespell ; python_version >= '3.9'
+codespell ; python_version >= '3.11'
 
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'

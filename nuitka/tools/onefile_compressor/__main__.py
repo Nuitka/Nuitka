@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Internal tool, attach the standalone distribution in compressed form.
-
-"""
+"""Internal tool, attach the standalone distribution in compressed form."""
 
 import os
 import sys

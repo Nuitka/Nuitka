@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Hard import specs.
+"""Hard import specs.
 
 Centralized here for code generation purposes. When a spec gets added here,
 it automatically creates a reference node and a base class for the call node

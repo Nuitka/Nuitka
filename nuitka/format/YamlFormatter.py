@@ -1,7 +1,7 @@
-#     Copyright 2025, Fire-Cube <ben7@gmx.ch> find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Automatic formatting of Yaml files.
+"""Automatic formatting of Yaml files.
 
 spell-checker: ignore ruamel, scalarstring
 """
@@ -10,7 +10,6 @@ import json
 import sys
 
 from nuitka.__past__ import StringIO
-from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import (
     getFileContents,
     openTextFile,
@@ -18,8 +17,9 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
+    getDeepDiffPackage,
+    getRuamelYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
-    parseYaml,
 )
 
 MASTER_KEYS = None
@@ -47,6 +47,7 @@ YAML_HEADER = """\
 
 
 def _initNuitkaPackageSchema():
+    """Initialize the Nuitka package configuration schema."""
     # Singleton, pylint: disable=global-statement
     global MASTER_KEYS, VARIABLE_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
     global DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
@@ -96,8 +97,13 @@ def _initNuitkaPackageSchema():
 
 
 def _decideStrFormat(string_value):
-    """
-    take the character that is not closest to the beginning or end
+    """Decide which string format to use for a given YAML string value.
+
+    Args:
+        string_value: str - string value to check
+
+    Returns:
+        str: SINGLE_QUOTE, DOUBLE_QUOTE or empty string (for plain)
     """
     # Singleton, pylint: disable=too-many-boolean-expressions,too-many-return-statements
     if (
@@ -149,13 +155,21 @@ def _decideStrFormat(string_value):
 
 
 def _reorderDictionary(entry, key_order):
-    # pylint: disable=I0021,import-error
-    import ruamel
+    """Reorder a dictionary based on a given key order.
+
+    Args:
+        entry: ruamel.yaml.comments.CommentedMap - dictionary to reorder
+        key_order: tuple - keys in the desired order
+
+    Returns:
+        ruamel.yaml.comments.CommentedMap: reordered dictionary
+    """
+    ruamel_yaml = getRuamelYamlPackage(logger=None, assume_yes_for_downloads=True)
 
     # Yes, friends with ruamel here, to make a sorted copy
     # pylint: disable=protected-access
 
-    result = ruamel.yaml.comments.CommentedMap()
+    result = ruamel_yaml.comments.CommentedMap()
     for key, value in sorted(
         entry._items(),
         key=lambda item: key_order.index(item[0]) if item[0] in key_order else 1000,
@@ -164,13 +178,13 @@ def _reorderDictionary(entry, key_order):
 
         # Strip trailing new lines from end of sequence. It is attached to
         # the last key.
-        if type(value) is ruamel.yaml.comments.CommentedMap and value.items():
+        if type(value) is ruamel_yaml.comments.CommentedMap and value.items():
             sub_mapping_key, _submapping_value = list(value._items())[-1]
 
             if sub_mapping_key in value.ca.items:
                 ca_value = value.ca.items[sub_mapping_key]
 
-                if type(ca_value[2]) is ruamel.yaml.tokens.CommentToken:
+                if type(ca_value[2]) is ruamel_yaml.tokens.CommentToken:
                     ca_value[2]._value = ca_value[2]._value.rstrip() + "\n"
 
     entry.copy_attributes(result)
@@ -179,10 +193,18 @@ def _reorderDictionary(entry, key_order):
 
 
 def _reorderDictionaryList(entry_list, key_order):
-    # pylint: disable=I0021,import-error
-    import ruamel
+    """Reorder a list of dictionaries based on a given key order.
 
-    result = ruamel.yaml.comments.CommentedSeq()
+    Args:
+        entry_list: ruamel.yaml.comments.CommentedSeq - list to reorder
+        key_order: tuple - keys in the desired order
+
+    Returns:
+        ruamel.yaml.comments.CommentedSeq: list with reordered dictionaries
+    """
+    ruamel_yaml = getRuamelYamlPackage(logger=None, assume_yes_for_downloads=True)
+
+    result = ruamel_yaml.comments.CommentedSeq()
     result.extend(_reorderDictionary(entry, key_order) for entry in entry_list)
 
     for attribute_name in entry_list.ca.__slots__:
@@ -191,20 +213,50 @@ def _reorderDictionaryList(entry_list, key_order):
     return result
 
 
-def deepCompareYamlFiles(path1, path2):
-    yaml1 = PackageConfigYaml(path1, parseYaml(getFileContents(path1)))
-    yaml2 = PackageConfigYaml(path2, parseYaml(getFileContents(path2)))
+def deepCompareYamlFiles(logger, path1, path2, assume_yes_for_downloads):
+    """Deeply compare two YAML files for equivalence using DeepDiff.
 
-    import deepdiff  # pylint: disable=I0021,import-error
+    Args:
+        logger: logger to use
+        path1: str - path to the first YAML file
+        path2: str - path to the second YAML file
+        assume_yes_for_downloads: if tools should be downloaded automatically
+
+    Returns:
+        deepdiff.DeepDiff object representing the differences
+    """
+    yaml1 = PackageConfigYaml(
+        logger=logger,
+        name=path1,
+        file_data=getFileContents(filename=path1, mode="rb"),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        check_checksums=False,
+    )
+    yaml2 = PackageConfigYaml(
+        logger=logger,
+        name=path2,
+        file_data=getFileContents(filename=path2, mode="rb"),
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        check_checksums=False,
+    )
+
+    deepdiff = getDeepDiffPackage(
+        logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
+    )
 
     diff = deepdiff.diff.DeepDiff(yaml1.items(), yaml2.items(), ignore_order=True)
 
     return diff
 
 
-def formatYaml(path, ignore_diff=False):
-    """
-    format and sort a yaml file
+def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
+    """Format and sort a YAML file.
+
+    Args:
+        logger: logger to use
+        path: str - path to the YAML file to format
+        assume_yes_for_downloads: bool - if tools should be downloaded automatically
+        ignore_diff: bool - if diff between original and formatted should be ignored
     """
     # local on purpose, so no imports are deferred, and complex code
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -213,21 +265,20 @@ def formatYaml(path, ignore_diff=False):
 
     _initNuitkaPackageSchema()
 
-    # pylint: disable=I0021,import-error
-    import ruamel
-    from ruamel.yaml import YAML
-    from ruamel.yaml.compat import _F
-    from ruamel.yaml.constructor import ConstructorError
-    from ruamel.yaml.nodes import ScalarNode
-    from ruamel.yaml.scalarstring import (
-        DoubleQuotedScalarString,
-        FoldedScalarString,
-        LiteralScalarString,
-        PlainScalarString,
-        SingleQuotedScalarString,
+    ruamel_yaml = getRuamelYamlPackage(
+        logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
     )
+    YAML = ruamel_yaml.YAML
+    _F = ruamel_yaml.compat._F  # pylint: disable=protected-access
+    ConstructorError = ruamel_yaml.constructor.ConstructorError
+    ScalarNode = ruamel_yaml.nodes.ScalarNode
+    DoubleQuotedScalarString = ruamel_yaml.scalarstring.DoubleQuotedScalarString
+    FoldedScalarString = ruamel_yaml.scalarstring.FoldedScalarString
+    LiteralScalarString = ruamel_yaml.scalarstring.LiteralScalarString
+    PlainScalarString = ruamel_yaml.scalarstring.PlainScalarString
+    SingleQuotedScalarString = ruamel_yaml.scalarstring.SingleQuotedScalarString
 
-    class CustomConstructor(ruamel.yaml.constructor.RoundTripConstructor):
+    class CustomConstructor(ruamel_yaml.constructor.RoundTripConstructor):
         def construct_scalar(self, node):
             # foreign code , pylint: disable=too-many-branches,too-many-return-statements
             if not isinstance(node, ScalarNode):
@@ -297,7 +348,7 @@ def formatYaml(path, ignore_diff=False):
 
             return node.value
 
-    ruamel.yaml.constructor.RoundTripConstructor = CustomConstructor
+    ruamel_yaml.constructor.RoundTripConstructor = CustomConstructor
 
     yaml = YAML(typ="rt", pure=True)
     yaml.width = 100000000  # high value to not wrap lines
@@ -384,12 +435,23 @@ def formatYaml(path, ignore_diff=False):
             output_file.write(line + "\n")
 
     if not ignore_diff:
-        diff = deepCompareYamlFiles(path, tmp_path)
+        diff = deepCompareYamlFiles(
+            logger=logger,
+            path1=path,
+            path2=tmp_path,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
         if diff:
-            tools_logger.sysexit(
-                "Error, auto-format for Yaml file %s is changing contents %s"
-                % (path, diff)
-            )
+            if logger:
+                return logger.sysexit(
+                    "Error, auto-format for Yaml file %s is changing contents %s"
+                    % (path, diff)
+                )
+            else:
+                sys.exit(
+                    "Error, auto-format for Yaml file %s is changing contents %s"
+                    % (path, diff)
+                )
 
     renameFile(tmp_path, path)
 

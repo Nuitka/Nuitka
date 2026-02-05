@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-ins module. Information about built-ins of the running Python.
-
-"""
+"""Built-ins module. Information about built-ins of the running Python."""
 
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType, ModuleType

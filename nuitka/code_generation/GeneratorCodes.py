@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code to generate and interact with compiled function objects.
-
-"""
+"""Code to generate and interact with compiled function objects."""
 
 from nuitka.PythonVersions import python_version
 
@@ -23,7 +21,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_context_body_template,
     template_generator_context_maker_decl,
     template_generator_exception_exit,
-    template_generator_noexception_exit,
+    template_generator_no_exception_exit,
     template_generator_return_exit,
     template_make_empty_generator,
     template_make_generator,
@@ -91,7 +89,7 @@ def getGeneratorObjectCode(
             "exception_state_name": exception_state_name,
         }
     else:
-        generator_exit = template_generator_noexception_exit % {
+        generator_exit = template_generator_no_exception_exit % {
             "function_cleanup": indented(function_cleanup)
         }
 
@@ -170,7 +168,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         emit(
             template_make_empty_generator
             % {
-                "closure_copy": indented(closure_copy, 0, True),
+                "closure_copy": indented(closure_copy),
                 "to_name": to_name,
                 "generator_module": getModuleAccessCode(context),
                 "generator_name_obj": context.getConstantCode(
@@ -195,7 +193,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 ),
                 "to_name": to_name,
                 "args": ", ".join(str(arg) for arg in args),
-                "closure_copy": indented(closure_copy, 0, True),
+                "closure_copy": indented(closure_copy),
             }
         )
 

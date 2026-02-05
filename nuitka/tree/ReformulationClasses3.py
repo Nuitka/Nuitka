@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of Python3 class statements.
+"""Reformulation of Python3 class statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -29,7 +29,11 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional,
 )
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    ExpressionConstantTupleRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
@@ -64,7 +68,11 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatements,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import (
+    StatementReturn,
+    makeStatementReturnConstant,
+)
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import (
@@ -79,8 +87,8 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.Options import isExperimental
-from nuitka.plugins.Plugins import Plugins
+from nuitka.options.Options import isExperimental
+from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -149,20 +157,28 @@ def buildClassNode3(provider, node, source_ref):
     # according to Developer Manual.
 
     # First, allow plugins to modify the code if they want to.
-    Plugins.onClassBodyParsing(provider=provider, class_name=node.name, node=node)
+    onClassBodyParsing(provider=provider, class_name=node.name, node=node)
+
+    # We need a container for the temporary variables to not pollute the outside.
+    helper_name = "class_container"
+
+    # TODO: Make this a statement of some sorts.
+    outline_body = ExpressionOutlineBody(
+        provider=provider, name=helper_name, source_ref=source_ref
+    )
 
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.
-    temp_scope = provider.allocateTempScope(name="class_creation")
+    temp_scope = outline_body.allocateTempScope(name="class_creation")
 
-    tmp_class_decl_dict = provider.allocateTempVariable(
+    tmp_class_decl_dict = outline_body.allocateTempVariable(
         temp_scope=temp_scope, name="class_decl_dict", temp_type="object"
     )
-    tmp_metaclass = provider.allocateTempVariable(
+    tmp_metaclass = outline_body.allocateTempVariable(
         temp_scope=temp_scope, name="metaclass", temp_type="object"
     )
-    tmp_prepared = provider.allocateTempVariable(
+    tmp_prepared = outline_body.allocateTempVariable(
         temp_scope=temp_scope, name="prepared", temp_type="object"
     )
 
@@ -192,7 +208,7 @@ def buildClassNode3(provider, node, source_ref):
 
     if type_param_nodes is not None:
         type_params_expressions = buildNodeTuple(
-            provider=provider, nodes=type_param_nodes, source_ref=source_ref
+            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
         )
     else:
         type_params_expressions = ()
@@ -258,7 +274,7 @@ def buildClassNode3(provider, node, source_ref):
             provider=class_creation_function,
             variable_name="__module__",
             source=ExpressionModuleAttributeNameRef(
-                variable=provider.getParentModule().getVariableForReference("__name__"),
+                variable=parent_module.getVariableForReference("__name__"),
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -305,6 +321,19 @@ def buildClassNode3(provider, node, source_ref):
     if python_version >= 0x300:
         qualname_assign = statements[-1]
 
+    if python_version >= 0x3D0:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__firstlineno__",
+                source=ExpressionConstantIntRef(
+                    constant=node.lineno,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
         statements.append(
             StatementLocalsDictOperationSet(
@@ -319,22 +348,62 @@ def buildClassNode3(provider, node, source_ref):
 
     statements.append(body)
 
+    if python_version >= 0x3D0:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__static_attributes__",
+                source=ExpressionConstantTupleRef(
+                    constant=class_creation_function.getStaticAttributes(),
+                    user_provided=False,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     needs_orig_bases = _needsOrigBases(static_qualname)
 
     has_bases = node.bases or type_params_expressions
 
     if has_bases:
-        tmp_bases = provider.allocateTempVariable(
+        tmp_bases = outline_body.allocateTempVariable(
             temp_scope=temp_scope, name="bases", temp_type="object"
         )
 
         if needs_orig_bases:
-            tmp_bases_orig = provider.allocateTempVariable(
+            tmp_bases_orig = outline_body.allocateTempVariable(
                 temp_scope=temp_scope, name="bases_orig", temp_type="object"
             )
 
         def makeBasesRef():
             return ExpressionTempVariableRef(variable=tmp_bases, source_ref=source_ref)
+
+        if needs_orig_bases:
+            statements.append(
+                makeStatementConditional(
+                    condition=makeComparisonExpression(
+                        comparator="NotEq",
+                        left=ExpressionTempVariableRef(
+                            variable=tmp_bases, source_ref=source_ref
+                        ),
+                        right=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementLocalsDictOperationSet(
+                        locals_scope=locals_scope,
+                        variable_name="__orig_bases__",
+                        source=ExpressionTempVariableRef(
+                            variable=tmp_bases_orig, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
 
     else:
 
@@ -342,32 +411,6 @@ def buildClassNode3(provider, node, source_ref):
             return makeConstantRefNode(constant=(), source_ref=source_ref)
 
         needs_orig_bases = False
-
-    if has_bases and needs_orig_bases:
-        statements.append(
-            makeStatementConditional(
-                condition=makeComparisonExpression(
-                    comparator="NotEq",
-                    left=ExpressionTempVariableRef(
-                        variable=tmp_bases, source_ref=source_ref
-                    ),
-                    right=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                yes_branch=StatementLocalsDictOperationSet(
-                    locals_scope=locals_scope,
-                    variable_name="__orig_bases__",
-                    source=ExpressionTempVariableRef(
-                        variable=tmp_bases_orig, source_ref=source_ref
-                    ),
-                    source_ref=source_ref,
-                ),
-                no_branch=None,
-                source_ref=source_ref,
-            )
-        )
 
     statements += (
         makeStatementAssignmentVariable(
@@ -402,7 +445,7 @@ def buildClassNode3(provider, node, source_ref):
 
     new_statements = []
     if type_params_expressions:
-        tmp_type_params = provider.allocateTempVariable(
+        tmp_type_params = outline_body.allocateTempVariable(
             temp_scope=temp_scope, name="type_params", temp_type="object"
         )
         new_statements.append(
@@ -748,16 +791,22 @@ def buildClassNode3(provider, node, source_ref):
     if type_params_expressions:
         tmp_variables.append(tmp_type_params)
 
-    return makeTryFinallyReleaseStatement(
-        provider=provider,
-        tried=statements,
-        variables=tmp_variables,
-        source_ref=source_ref,
+    body = makeStatementsSequenceFromStatements(
+        makeTryFinallyReleaseStatement(
+            provider=outline_body,
+            tried=statements,
+            variables=tmp_variables,
+            source_ref=source_ref,
+        ),
+        makeStatementReturnConstant(constant=None, source_ref=source_ref),
     )
+    outline_body.setChildBody(body)
+
+    return StatementExpressionOnly(expression=outline_body, source_ref=source_ref)
 
 
 # Note: This emulates "Python/bltinmodule.c/update_bases" function. We have it
-# here, so we can hope to statically optimize it later on.
+# here, so we can hope to statically optimize it later on. spell-checker: ignore bltinmodule
 @once_decorator
 def getClassBasesMroConversionHelper():
     helper_name = "_mro_entries_conversion"

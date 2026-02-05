@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Loop nodes.
+"""Loop nodes.
 
 There are for and loop nodes, but both are reduced to loops with break/continue
 statements for it. These re-formulations require that optimization of loops has
@@ -110,9 +110,7 @@ class StatementLoop(StatementLoopBase):
         # precise knowledge.
         if self.loop_variables is None:
             self.loop_variables = OrderedSet()
-            loop_body.collectVariableAccesses(
-                self.loop_variables.add, self.loop_variables.add
-            )
+            loop_body.collectVariableAccesses(self.loop_variables.add)
 
             all_first_pass = True
         else:
@@ -158,8 +156,9 @@ class StatementLoop(StatementLoopBase):
                 # Don't forget to initialize the loop resume traces with the starting point. We use
                 # a special trace class that will not take the list too serious though.
                 self.loop_resume[loop_variable] = set()
-                current.getTypeShape().emitAlternatives(
-                    self.loop_resume[loop_variable].add
+                current.emitShapeAlternativesForLoop(
+                    self.loop_resume[loop_variable].add,
+                    self,
                 )
                 # print("first", self.source_ref, loop_variable, ":",
                 #     self.loop_resume[loop_variable])
@@ -219,7 +218,7 @@ class StatementLoop(StatementLoopBase):
             if loop_body is not None:
                 # Emulate terminal continue if not aborting.
                 if not loop_body.isStatementAborting():
-                    trace_collection.onLoopContinue()
+                    trace_collection.onLoopContinue(trace_collection)
 
             continue_collections = trace_collection.getLoopContinueCollections()
 
@@ -272,7 +271,7 @@ class StatementLoop(StatementLoopBase):
                 shapes = set()
 
                 for loop_resume_trace in loop_resume_traces:
-                    loop_resume_trace.getTypeShape().emitAlternatives(shapes.add)
+                    loop_resume_trace.emitShapeAlternativesForLoop(shapes.add, self)
 
                 self.loop_resume[loop_variable] = minimizeShapes(shapes)
 
@@ -360,6 +359,9 @@ Removed useless terminal 'continue' as last statement of loop.""",
 
         return self, None, None
 
+    def collectVariableAccesses(self, emit_variable):
+        self.subnode_loop_body.collectVariableAccesses(emit_variable)
+
     @staticmethod
     def getStatementNiceName():
         return "loop statement"
@@ -388,7 +390,7 @@ class StatementLoopContinue(StatementBase):
 
     def computeStatement(self, trace_collection):
         # This statement being aborting, will already tell everything.
-        trace_collection.onLoopContinue()
+        trace_collection.onLoopContinue(trace_collection)
 
         return self, None, None
 
@@ -420,7 +422,7 @@ class StatementLoopBreak(StatementBase):
 
     def computeStatement(self, trace_collection):
         # This statement being aborting, will already tell everything.
-        trace_collection.onLoopBreak()
+        trace_collection.onLoopBreak(trace_collection)
 
         return self, None, None
 

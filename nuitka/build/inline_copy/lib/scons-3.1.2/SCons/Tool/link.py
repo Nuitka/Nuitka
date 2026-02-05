@@ -42,7 +42,7 @@ import SCons.Tool
 import SCons.Util
 import SCons.Warnings
 
-# Nuitka: Avoid ununused tools
+# Nuitka: Avoid unused tools
 # from SCons.Tool.FortranCommon import isfortran
 # from SCons.Tool.DCommon import isD
 def isfortran(env, source): return False

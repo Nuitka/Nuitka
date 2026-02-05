@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Scons interface.
+"""Scons interface.
 
 Interaction with scons. Find the binary, and run it with a set of given
 options.
@@ -14,25 +14,54 @@ import os
 import subprocess
 import sys
 
-from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import (
+from nuitka.options.Options import (
+    assumeYesForDownloads,
     getDebugModeIndications,
     getExperimentalIndications,
+    getFcfProtectionMode,
+    getFileVersion,
     getJobLimit,
+    getLtoMode,
+    getMacOSTargetArch,
+    getMsvcVersion,
+    getNoDeploymentIndications,
     getOnefileChildGraceTime,
+    getProductVersion,
+    getProgressBar,
     getPythonPathForScons,
+    getWindowsConsoleMode,
+    getWindowsSplashScreen,
+    getWindowsVersionInfoStrings,
+    isClang,
     isDeploymentMode,
     isExperimental,
+    isMingw64,
+    isOnefileMode,
+    isOnefileTempDirMode,
     isShowScons,
+    isStandaloneMode,
+    isUnstripped,
+    isZig,
     shallCompileWithoutBuildDirectory,
+    shallCreateAppBundle,
+    shallDisableCCacheUsage,
+    shallMakeDll,
+    shallMakeExe,
+    shallMakeModule,
+    shallRunInDebugger,
 )
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import (
+    getExtraIncludeDirectories,
+    getExtraLinkDirectories,
+    getExtraLinkLibraries,
+    getPreprocessorSymbols,
+)
 from nuitka.PythonFlavors import (
     isAnacondaPython,
+    isMonolithPy,
     isMSYS2MingwPython,
-    isNuitkaPython,
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
@@ -42,7 +71,11 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
-from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
+from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
+from nuitka.utils.AppDirs import (
+    getCacheDir,
+    getCacheDirEnvironmentVariableName,
+)
 from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
     getExecutablePath,
@@ -51,9 +84,13 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     areSamePaths,
     changeFilenameExtension,
+    cheapCopyFile,
     deleteFile,
+    encodeToFilesystemEncoding,
     getDirectoryRealPath,
     getExternalUsePath,
+    getNormalizedPath,
+    getNormalizedPathJoin,
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
@@ -63,6 +100,8 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.Json import loadJsonFromFilename
+from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -82,10 +121,49 @@ def getSconsDataPath():
     return os.path.dirname(__file__)
 
 
+def _provideStaticSourceFiles(source_dir, filenames):
+    scons_data_path = getSconsDataPath()
+    static_src_dir = os.path.join(scons_data_path, "static_src")
+    target_static_dir = os.path.join(source_dir, "static_src")
+
+    for filename in filenames:
+        src = os.path.join(static_src_dir, filename)
+        dst = os.path.join(target_static_dir, filename)
+
+        cheapCopyFile(src, dst)
+
+
+def provideStaticSourceFilesBackend(source_dir):
+    """Provide static source files for the backend build."""
+    filenames = ["CompiledFunctionType.c"]
+
+    if shallMakeExe() or shallMakeDll():
+        filenames.append("MainProgram.c")
+
+    _provideStaticSourceFiles(source_dir, filenames)
+
+
+def provideStaticSourceFilesOnefile(source_dir):
+    """Provide static source files for the onefile build."""
+    filenames = ["OnefileBootstrap.c"]
+
+    if getWindowsSplashScreen():
+        filenames.append("OnefileSplashScreen.cpp")
+
+    _provideStaticSourceFiles(source_dir, filenames)
+
+
+def provideStaticSourceFilesOffsets(source_dir):
+    """Provide static source files for the offsets calculation."""
+    filenames = ["GenerateHeadersMain.c"]
+
+    _provideStaticSourceFiles(source_dir, filenames)
+
+
 def _getSconsInlinePath():
     """Return path to inline copy of scons."""
 
-    return os.path.join(getSconsDataPath(), "inline_copy")
+    return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
 
 
 def _getSconsBinaryCall():
@@ -95,7 +173,7 @@ def _getSconsBinaryCall():
     or if we are on Windows, there it is mandatory.
     """
 
-    inline_path = os.path.join(_getSconsInlinePath(), "bin", "scons.py")
+    inline_path = getNormalizedPathJoin(_getSconsInlinePath(), "bin", "scons.py")
 
     if os.path.exists(inline_path) and not isExperimental("force-system-scons"):
         return [
@@ -110,7 +188,7 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            Tracing.scons_logger.sysexit(
+            scons_logger.sysexit(
                 "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
@@ -127,7 +205,7 @@ def _getPythonForSconsExePath():
 
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
-        python_versions=getSconsSupportingVersions(),
+        python_versions=reversed(getSconsSupportingVersions()),
         module_name=None,
         module_version=None,
     )
@@ -138,7 +216,7 @@ def _getPythonForSconsExePath():
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
 
-        Tracing.scons_logger.sysexit(
+        scons_logger.sysexit(
             """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
 Nuitka needs to find a %s executable, so please install it.
@@ -183,6 +261,16 @@ def _setupSconsEnvironment2():
         os.environ[getCacheDirEnvironmentVariableName(getDownloadCacheName())] = (
             getExternalUsePath(download_cache_dir)
         )
+
+        msvc_config_cache_dir = getCacheDir("scons-msvc-config")
+        makePath(msvc_config_cache_dir)
+
+        try:
+            os.environ["SCONS_CACHE_MSVC_CONFIG"] = encodeToFilesystemEncoding(
+                getNormalizedPath(msvc_config_cache_dir)
+            )
+        except UnicodeEncodeError:
+            pass
 
     yield
 
@@ -259,7 +347,7 @@ def _buildSconsCommand(options, scons_filename):
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         if value is None:
-            Tracing.scons_logger.sysexit(
+            scons_logger.sysexit(
                 "Error, failure to provide argument for '%s', please report bug." % key
             )
 
@@ -285,7 +373,7 @@ def _createSconsDebugScript(source_dir, scons_command):
     )
 
     putTextFileContents(
-        filename=os.path.join(source_dir, scons_debug_python_name),
+        filename=getNormalizedPathJoin(source_dir, scons_debug_python_name),
         contents="""\
 # -*- coding: utf-8 -*-
 
@@ -320,7 +408,7 @@ cd "${0%/*}"
 """
 
     putTextFileContents(
-        filename=os.path.join(
+        filename=getNormalizedPathJoin(
             source_dir,
             changeFilenameExtension(scons_debug_python_name, script_extension),
         ),
@@ -347,6 +435,10 @@ def _removeUnwantedArtifacts(scons_created_exe):
 
 
 def runScons(scons_options, env_values, scons_filename):
+    # We are handling quite a few error cases, as this contains transfer of
+    # exceptions, workarounds for non-encodable filenames, and other error
+    # handling. pylint: disable=too-many-branches
+
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
@@ -375,16 +467,19 @@ def runScons(scons_options, env_values, scons_filename):
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
         # Pass quiet setting to scons via environment variable.
-        env_values["NUITKA_QUIET"] = "1" if Tracing.is_quiet else "0"
+        env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
+
+        if isShowScons():
+            env_values["NUITKA_SCONS_CHECK_MSVC_CACHE"] = "1"
 
         scons_command = _buildSconsCommand(
             options=scons_options, scons_filename=scons_filename
         )
 
         if isShowScons():
-            Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
+            scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
-        Tracing.flushStandardOutputs()
+        flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
             # Create debug script to quickly re-run this step only.
@@ -397,11 +492,18 @@ def runScons(scons_options, env_values, scons_filename):
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
-                Tracing.scons_logger.sysexit("User interrupted scons build.")
+                scons_logger.sysexit("User interrupted scons build.")
             else:
                 # TODO: We might want to make a difference for where reporting makes sense or not.
                 if result == 27:
-                    Tracing.scons_logger.sysexit("Fatal error in scons build.")
+                    scons_error_json = getNormalizedPathJoin(
+                        source_dir, "scons-error.json"
+                    )
+                    if os.path.exists(scons_error_json):
+                        error_info = loadJsonFromFilename(scons_error_json)
+
+                        if error_info is not None:
+                            return general.sysexit(**error_info)
 
         # TODO: Actually this should only flush one of these, namely the one for
         # current source_dir.
@@ -409,12 +511,14 @@ def runScons(scons_options, env_values, scons_filename):
 
         if "source_dir" in scons_options and result == 0:
             if "result_exe" in scons_options:
-                scons_created_exe = getSconsReportValue(
-                    source_dir or scons_options["source_dir"], "TARGET"
+                scons_created_exe = getNormalizedPath(
+                    getSconsReportValue(
+                        source_dir or scons_options["source_dir"], "TARGET"
+                    )
                 )
 
                 if not os.path.exists(scons_created_exe):
-                    Tracing.scons_logger.sysexit(
+                    scons_logger.sysexit(
                         "Error, scons failed to create the expected file %r. "
                         % scons_created_exe
                     )
@@ -426,7 +530,7 @@ def runScons(scons_options, env_values, scons_filename):
 
             checkCachingSuccess(source_dir or scons_options["source_dir"])
 
-        return result == 0
+    return result == 0
 
 
 def asBoolStr(value):
@@ -468,13 +572,13 @@ def cleanSconsDirectory(source_dir):
         for path, _filename in listDir(source_dir):
             check(path)
 
-        static_dir = os.path.join(source_dir, "static_src")
+        static_dir = getNormalizedPathJoin(source_dir, "static_src")
 
         if os.path.exists(static_dir):
             for path, _filename in listDir(static_dir):
                 check(path)
 
-        plugins_dir = os.path.join(source_dir, "plugins")
+        plugins_dir = getNormalizedPathJoin(source_dir, "plugins")
 
         if os.path.exists(plugins_dir):
             for path, _filename in listDir(plugins_dir):
@@ -500,44 +604,55 @@ def getCommonSconsOptions():
 
     scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
-    scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
+    scons_options["no_deployment"] = ",".join(getNoDeploymentIndications())
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
-    if Options.shallRunInDebugger():
+    if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
-    if Options.assumeYesForDownloads():
+    if assumeYesForDownloads():
         scons_options["assume_yes_for_downloads"] = asBoolStr(True)
 
-    if Options.getProgressBar() != "auto":
-        scons_options["progress_bar"] = Options.getProgressBar()
+    if getProgressBar() != "auto":
+        scons_options["progress_bar"] = getProgressBar()
 
-    if Options.isClang():
+    if isClang():
         scons_options["clang_mode"] = asBoolStr(True)
 
-    if Options.isShowScons():
+    if isShowScons():
         scons_options["show_scons"] = asBoolStr(True)
 
-    if Options.isMingw64():
+    if isMingw64():
         scons_options["mingw_mode"] = asBoolStr(True)
 
-    if Options.getMsvcVersion():
-        scons_options["msvc_version"] = Options.getMsvcVersion()
+    if isZig():
+        if "CC" not in os.environ:
+            scons_options["zig_exe_path"] = getZigBinaryPath(
+                logger=scons_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
+                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+            )
 
-    if Options.shallDisableCCacheUsage():
+            if scons_options["zig_exe_path"] is None:
+                scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
+
+    if getMsvcVersion():
+        scons_options["msvc_version"] = getMsvcVersion()
+
+    if shallDisableCCacheUsage():
         scons_options["disable_ccache"] = asBoolStr(True)
 
-    if isWin32Windows() and Options.getWindowsConsoleMode() != "attach":
-        scons_options["console_mode"] = Options.getWindowsConsoleMode()
+    if isWin32Windows() and getWindowsConsoleMode() != "attach":
+        scons_options["console_mode"] = getWindowsConsoleMode()
 
-    if Options.getLtoMode() != "auto":
-        scons_options["lto_mode"] = Options.getLtoMode()
+    if getLtoMode() != "auto":
+        scons_options["lto_mode"] = getLtoMode()
 
     if not isElfUsingPlatform():
         scons_options["noelf_mode"] = asBoolStr(True)
 
-    if Options.isUnstripped():
+    if isUnstripped():
         scons_options["unstripped_mode"] = asBoolStr(True)
 
     if isAnacondaPython():
@@ -549,22 +664,22 @@ def getCommonSconsOptions():
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
-    cpp_defines = Plugins.getPreprocessorSymbols()
+    cpp_defines = getPreprocessorSymbols()
     if cpp_defines:
         scons_options["cpp_defines"] = ",".join(
             "%s%s%s" % (key, "=" if value else "", value or "")
             for key, value in cpp_defines.items()
         )
 
-    cpp_include_dirs = Plugins.getExtraIncludeDirectories()
+    cpp_include_dirs = getExtraIncludeDirectories()
     if cpp_include_dirs:
         scons_options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
 
-    link_dirs = Plugins.getExtraLinkDirectories()
+    link_dirs = getExtraLinkDirectories()
     if link_dirs:
         scons_options["link_dirs"] = ",".join(link_dirs)
 
-    link_libraries = Plugins.getExtraLinkLibraries()
+    link_libraries = getExtraLinkLibraries()
     if link_libraries:
         scons_options["link_libraries"] = ",".join(link_libraries)
 
@@ -572,22 +687,22 @@ def getCommonSconsOptions():
         macos_min_version = detectBinaryMinMacOS(sys.executable)
 
         if macos_min_version is None:
-            Tracing.general.sysexit(
+            general.sysexit(
                 "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 
         scons_options["macos_min_version"] = macos_min_version
 
-        scons_options["macos_target_arch"] = Options.getMacOSTargetArch()
+        scons_options["macos_target_arch"] = getMacOSTargetArch()
 
     scons_options["target_arch"] = getArchitecture()
 
-    if Options.getFcfProtectionMode() != "auto":
-        scons_options["cf_protection"] = Options.getFcfProtectionMode()
+    if getFcfProtectionMode() != "auto":
+        scons_options["cf_protection"] = getFcfProtectionMode()
 
     env_values = OrderedDict()
 
-    string_values = Options.getWindowsVersionInfoStrings()
+    string_values = getWindowsVersionInfoStrings()
     if "CompanyName" in string_values:
         env_values["NUITKA_COMPANY_NAME"] = string_values["CompanyName"]
     if "ProductName" in string_values:
@@ -595,8 +710,8 @@ def getCommonSconsOptions():
 
     # Merge version information if possible, to avoid collisions, or deep nesting
     # in file system.
-    product_version = Options.getProductVersion()
-    file_version = Options.getFileVersion()
+    product_version = getProductVersion()
+    file_version = getFileVersion()
 
     if product_version is None:
         product_version = file_version
@@ -614,21 +729,21 @@ def getCommonSconsOptions():
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
-    if isNuitkaPython() and not isWin32OrPosixWindows():
+    if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig
 
         env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
         env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
-    scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
-    scons_options["dll_mode"] = asBoolStr(Options.shallMakeDll())
-    scons_options["exe_mode"] = asBoolStr(Options.shallMakeExe())
+    scons_options["module_mode"] = asBoolStr(shallMakeModule())
+    scons_options["dll_mode"] = asBoolStr(shallMakeDll())
+    scons_options["exe_mode"] = asBoolStr(shallMakeExe())
 
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         scons_options["standalone_mode"] = asBoolStr(True)
 
-    if Options.isOnefileMode():
+    if isOnefileMode():
         scons_options["onefile_mode"] = asBoolStr(True)
 
         # Onefile grace time is shared, because client will also suicide based
@@ -637,12 +752,12 @@ def getCommonSconsOptions():
             getOnefileChildGraceTime()
         )
 
-        if Options.isOnefileTempDirMode():
+        if isOnefileTempDirMode():
             scons_options["onefile_temp_mode"] = asBoolStr(True)
 
     # TODO: Some things are going to hate that, we might need to bundle
     # for accelerated mode still.
-    if Options.shallCreateAppBundle():
+    if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     return scons_options, env_values

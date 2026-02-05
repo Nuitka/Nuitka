@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Basic Python PGO test. """
+"""Basic Python PGO test."""
 
 # nuitka-project-if: "no-gpo" not in os.getenv("NUITKA_TEST_VARIANT", ""):
 #   nuitka-project: --pgo-python

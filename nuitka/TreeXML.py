@@ -1,13 +1,15 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" XML node tree handling
+"""XML node tree handling
 
 Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka.__past__ import BytesIO, StringIO
+import os
+
+from nuitka.__past__ import BytesIO, StringIO, basestring
 
 
 def _indent(elem, level=0, more_sibs=False):
@@ -80,12 +82,12 @@ except ImportError:
 #     xml_writer = None
 
 
-def toBytes(tree, indent=True, encoding=None):
+def convertXmlToBytes(tree, indent=True, encoding=None):
     return xml_tostring(tree, indent=indent, encoding=encoding)
 
 
-def toString(tree):
-    result = toBytes(tree, encoding="utf8")
+def convertXmlToString(tree):
+    result = convertXmlToBytes(tree, encoding="utf8")
 
     if str is not bytes:
         result = result.decode("utf8")
@@ -93,20 +95,28 @@ def toString(tree):
     return result
 
 
-def fromString(text, use_lxml=False):
+def convertStringToXML(text, use_lxml=False):
     if type(text) is str:
-        return fromFile(StringIO(text), use_lxml=use_lxml)
+        return convertFileToXML(StringIO(text), use_lxml=use_lxml)
     else:
-        return fromFile(BytesIO(text), use_lxml=use_lxml)
+        return convertFileToXML(BytesIO(text), use_lxml=use_lxml)
 
 
-def fromFile(file_handle, use_lxml=False):
+def convertFileToXML(file_handle, use_lxml=False):
+    if isinstance(file_handle, basestring):
+        if not os.path.isfile(file_handle):
+            return None
+
     if use_lxml:
         from lxml import etree  # pylint: disable=I0021,import-error
 
+        # TODO: Catch parse error exception to return None as well.
         return etree.parse(file_handle).getroot()
     else:
-        return xml_module.parse(file_handle).getroot()
+        try:
+            return xml_module.parse(file_handle).getroot()
+        except xml.etree.ElementTree.ParseError:
+            return None
 
 
 def appendTreeElement(parent, *args, **kwargs):
@@ -120,7 +130,7 @@ def appendTreeElement(parent, *args, **kwargs):
 def dumpTreeXMLToFile(tree, output_file):
     """Write an XML node tree to a file."""
 
-    value = toBytes(tree).rstrip()
+    value = convertXmlToBytes(tree).rstrip()
     output_file.write(value)
     output_file.write(b"\n")
 

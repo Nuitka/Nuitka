@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node children checkers.
+"""Node children checkers.
 
 The role of checkers is to make sure that node children have specific value
 types only.

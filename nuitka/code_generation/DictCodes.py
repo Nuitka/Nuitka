@@ -1,12 +1,10 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for dictionaries.
+"""Code generation for dictionaries."""
 
-"""
-
-from nuitka import Options
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CallCodes import getCallCodePosArgsQuick
@@ -886,7 +884,7 @@ def generateDictOperationRemoveCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         statement.subnode_key.getSourceReference()
-        if Options.is_full_compat
+        if states.is_full_compat
         else statement.getSourceReference()
     ):
         res_name = context.getBoolResName()

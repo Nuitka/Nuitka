@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Data composer, crunch constants into binary blobs to load. """
+"""Data composer, crunch constants into binary blobs to load."""
 
 import binascii
 import os

@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Small tool to create a pbuilder image for Nuitka private CI mainly. """
+"""Small tool to create a pbuilder image for Nuitka private CI mainly."""
 
 import os
 import shutil

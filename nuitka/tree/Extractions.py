@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Extracting visitors.
+"""Extracting visitors.
 
 This is used for lookahead supporting abstract execution. We need to e.g.
 know the variables written by a piece of code ahead of abstractly executing a
@@ -12,22 +12,46 @@ from .Operations import VisitorNoopMixin, visitTree
 
 
 class VariableUsageUpdater(VisitorNoopMixin):
-    def __init__(self, old_variable, new_variable):
-        self.old_variable = old_variable
-        self.new_variable = new_variable
+    __slots__ = (
+        "old_locals_scope",
+        "new_locals_scope",
+        "variable_translations",
+    )
+
+    def __init__(self, old_locals_scope, new_locals_scope, variable_translations):
+        self.old_locals_scope = old_locals_scope
+        self.new_locals_scope = new_locals_scope
+        self.variable_translations = variable_translations
 
     def onEnterNode(self, node):
-        if (
-            node.isStatementAssignmentVariable()
-            or node.isStatementDelVariable()
-            or node.isStatementReleaseVariable()
-        ):
-            if node.getVariable() is self.old_variable:
-                node.setVariable(self.new_variable)
+        if hasattr(node, "variable"):
+            if node.variable in self.variable_translations:
+                node.setVariable(self.variable_translations[node.variable])
+
+        if hasattr(node, "loop_variables") and node.loop_variables is not None:
+            if any(
+                variable in self.variable_translations
+                for variable in node.loop_variables
+            ):
+                node.loop_variables = None
+
+        if hasattr(node, "locals_scope"):
+            if node.locals_scope is self.old_locals_scope:
+                node.locals_scope = self.new_locals_scope
+
+        if hasattr(node, "provider"):
+            if node.provider is self.old_locals_scope.owner:
+                node.provider = self.new_locals_scope.owner
 
 
-def updateVariableUsage(provider, old_variable, new_variable):
-    visitor = VariableUsageUpdater(old_variable=old_variable, new_variable=new_variable)
+def updateVariableUsage(
+    provider, old_locals_scope, new_locals_scope, variable_translations
+):
+    visitor = VariableUsageUpdater(
+        old_locals_scope=old_locals_scope,
+        new_locals_scope=new_locals_scope,
+        variable_translations=variable_translations,
+    )
 
     visitTree(provider, visitor)
 

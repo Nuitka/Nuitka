@@ -1,10 +1,9 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Details see below in class definition.
-"""
+"""Details see below in class definition."""
 
-from nuitka import Options
+from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -12,7 +11,7 @@ class NuitkaPluginGevent(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "gevent"
-    plugin_desc = "Required by the 'gevent' package."
+    plugin_desc = "Required by 'gevent' package."
     plugin_category = "package-support"
 
     # TODO: Change this to Yaml configuration.
@@ -28,7 +27,7 @@ class NuitkaPluginGevent(NuitkaPluginBase):
         Returns:
             True if this is a standalone compilation.
         """
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     @staticmethod
     def createPostModuleLoadCode(module):

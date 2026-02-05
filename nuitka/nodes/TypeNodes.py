@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" The type nodes.
+"""The type nodes.
 
 These ones deal with types and they are great for optimization. We need to know
 them, their relationship or check for them in re-formulations.
@@ -10,7 +10,7 @@ them, their relationship or check for them in re-formulations.
 
 from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
-from nuitka.Options import isExperimental
+from nuitka.options.Options import isExperimental
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -29,8 +29,10 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import (
+    ExpressionParameterSpecificationBase,
     ExpressionSubtypeCheckBase,
     ExpressionTypeVariableBase,
+    ExpressionTypeVariableTupleBase,
 )
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
@@ -356,6 +358,28 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
 
     auto_compute_handling = "final,no_raise"
     node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0"
+
+
+class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBase):
+    kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0"
+
+
+class ExpressionParameterSpecification(
+    ExpressionParameterSpecificationBase, ExpressionBase
+):
+    kind = "EXPRESSION_PARAMETER_SPECIFICATION"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0"
 
 
 class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, ExpressionBase):

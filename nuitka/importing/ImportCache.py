@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Import cache.
+"""Import cache.
 
 This is not about caching the search of modules in the file system, but about
 maintaining a cache of module trees built.
@@ -13,7 +13,7 @@ not start anew, but reuse what we already found out about it.
 
 import os
 
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import onModuleDiscovered
 from nuitka.utils.Importing import hasPackageDirFilename
 
 imported_modules = {}
@@ -31,7 +31,7 @@ def addImportedModule(imported_module):
     if key in imported_modules:
         assert imported_module is imported_modules[key], key
     else:
-        Plugins.onModuleDiscovered(imported_module)
+        onModuleDiscovered(imported_module)
 
     imported_modules[key] = imported_module
     imported_by_name[imported_module.getFullName()] = imported_module

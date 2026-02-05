@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for program tests of Nuitka.
+"""Runner for program tests of Nuitka.
 
 Program tests are typically aiming at checking specific module constellations
 and making sure the details are being right there. These are synthetic small
@@ -45,7 +45,7 @@ def main():
 
     search_mode = createSearchMode()
 
-    extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "")
 
     for filename, filename_main in scanDirectoryForTestCaseFolders("."):
         active = search_mode.consider(dirname=None, filename=filename)
@@ -95,7 +95,7 @@ def main():
             "case_imports3",
             "import_variants",
             "package_init_import",
-            "pkgutil_itermodules",
+            "pkgutil_iter_modules",
         ):
             extra_flags.append("ignore_warnings")
 

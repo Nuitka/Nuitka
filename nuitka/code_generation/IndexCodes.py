@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation for index values.
+"""Code generation for index values.
 
 This is not for actual subscripts (see SubscriptCodes), but to convert
 generic values to indexes. Also the maximum and minimum index values

@@ -75,7 +75,7 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    // Python API, spell-checker: ignore copyreg,newobj
+    // Python API, spell-checker: ignore newobj
 
 #if PYTHON_VERSION < 0x300
     PyObject *copy_reg = PyImport_ImportModule("copy_reg");

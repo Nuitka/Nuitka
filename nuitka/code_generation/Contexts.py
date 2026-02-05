@@ -1,19 +1,18 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Code generation contexts.
-
-"""
+"""Code generation contexts."""
 
 import collections
 from abc import abstractmethod
 from contextlib import contextmanager
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
+from nuitka.States import states
 from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -169,7 +168,7 @@ class TempMixin(object):
 
         # For finally handlers of Python3, which have conditions on assign and
         # use, the NULL init is needed.
-        debug = Options.is_debug and python_version >= 0x300
+        debug = states.is_debug and python_version >= 0x300
 
         if debug:
             keeper_obj_init = "Empty_Nuitka_ExceptionPreservationItem"
@@ -202,7 +201,7 @@ class TempMixin(object):
         # For finally handlers of Python3, which have conditions on assign and
         # use.
         if preserver_id not in self.preserver_variable_declaration:
-            needs_init = Options.is_debug and python_version >= 0x300
+            needs_init = states.is_debug and python_version >= 0x300
 
             if needs_init:
                 preserver_obj_init = "Nuitka_ExceptionStackItem_Empty"
@@ -286,7 +285,7 @@ CodeObjectHandle = collections.namedtuple(
 )
 
 
-if Options.isExperimental("new-code-objects"):
+if isExperimental("new-code-objects"):
 
     class CodeObjectsMixin(object):
         __slots__ = ()
@@ -520,6 +519,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def popCleanupScope(self):
         pass
 
+    @abstractmethod
+    def addInclude(self, header_name):
+        pass
+
 
 class PythonChildContextBase(PythonContextBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
@@ -578,6 +581,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
+
+    def addInclude(self, header_name):
+        self.parent.addInclude(header_name)
 
 
 class FrameDeclarationsMixin(object):
@@ -781,6 +787,7 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
+        "module_includes",
         "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
@@ -841,6 +848,8 @@ class PythonModuleContext(
         )
 
         self.module_init_codes = []
+
+        self.module_includes = set()
 
         self.module_variable_caching = {}
 
@@ -907,7 +916,7 @@ class PythonModuleContext(
         return False
 
     def getConstantCode(self, constant, deep_check=False):
-        if deep_check and Options.is_debug:
+        if deep_check and states.is_debug:
             assert not isMutable(constant)
 
         return self.constant_accessor.getConstantCode(constant)
@@ -915,11 +924,20 @@ class PythonModuleContext(
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()
 
+    def getConstantNames(self):
+        return self.constant_accessor.getConstantNames()
+
     def getModuleInitCodes(self):
         return self.module_init_codes
 
     def addModuleInitCode(self, code):
         self.module_init_codes.append(code)
+
+    def addInclude(self, header_name):
+        self.module_includes.add(header_name)
+
+    def getModuleIncludes(self):
+        return sorted(self.module_includes)
 
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)

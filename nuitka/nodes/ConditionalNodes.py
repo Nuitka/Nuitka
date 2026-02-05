@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Conditional nodes.
+"""Conditional nodes.
 
 These is the conditional expression '(a if b else c)' and the conditional
 statement, 'if a: ... else: ...' and there is no 'elif', because that is
@@ -716,6 +716,7 @@ branches.""",
 Both branches have no effect, reduced to evaluate condition.""",
                 )
             else:
+                condition.undoComputeExpressionRaw(trace_collection)
                 self.finalize()
 
                 return (

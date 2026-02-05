@@ -1,8 +1,7 @@
 #     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-""" Details see below in class definition.
-"""
+"""Details see below in class definition."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
@@ -11,7 +10,7 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"
-    plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching."
+    plugin_desc = "Required by 'eventlet' package."
     plugin_category = "package-support"
 
     # TODO: Change this to Yaml configuration.

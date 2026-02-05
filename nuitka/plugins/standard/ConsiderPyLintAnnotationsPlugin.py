@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Standard plug-in to take advantage of pylint or PyDev annotations.
+"""Standard plug-in to take advantage of pylint or PyDev annotations.
 
 Nuitka can detect some things that PyLint and PyDev will complain about too,
 and sometimes it's a false alarm, so people add disable markers into their

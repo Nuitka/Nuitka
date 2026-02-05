@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Built-in staticmethod/classmethod nodes
+"""Built-in staticmethod/classmethod nodes
 
 These are good for optimizations, as they give a very well known result, changing
 only the way a class member is being called. Being able to avoid going through a

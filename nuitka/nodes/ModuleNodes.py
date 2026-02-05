@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module/Package nodes
+"""Module/Package nodes
 
 The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
@@ -9,15 +9,19 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import os
 
-from nuitka import Options, Variables
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
-from nuitka.Options import hasPythonFlagIsolated
+from nuitka.options.Options import (
+    getFileReferenceMode,
+    hasPythonFlagIsolated,
+    hasPythonFlagPackageMode,
+    shallMakeModule,
+)
 from nuitka.PythonVersions import python_version
-from nuitka.SourceCodeReferences import fromFilename
+from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import switchFilenameExtension
@@ -26,12 +30,14 @@ from nuitka.utils.Importing import (
     getPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.Variables import ModuleVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
 )
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
+from .LocalsDictNodes import LocalsScopePropagationVisitor
 from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ClosureGiverNodeMixin,
@@ -174,7 +180,7 @@ class PythonModuleBase(NodeBase):
         return result
 
     def getRunTimeFilename(self):
-        reference_mode = Options.getFileReferenceMode()
+        reference_mode = getFileReferenceMode()
 
         if reference_mode == "original":
             return self.getCompileTimeFilename()
@@ -232,7 +238,7 @@ class CompiledPythonModule(
         "name",
         "code_prefix",
         "code_name",
-        "uids",
+        "uuids",
         "temp_variables",
         "temp_scopes",
         "preserver_id",
@@ -261,7 +267,9 @@ class CompiledPythonModule(
         )
 
         ClosureGiverNodeMixin.__init__(
-            self, name=module_name.getBasename(), code_prefix="module"
+            self,
+            name=module_name.getBasename(),
+            code_prefix="module",
         )
 
         ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
@@ -440,7 +448,7 @@ class CompiledPythonModule(
     def createProvidedVariable(self, variable_name):
         assert variable_name not in self.variables
 
-        result = Variables.ModuleVariable(module=self, variable_name=variable_name)
+        result = ModuleVariable(module=self, variable_name=variable_name)
 
         self.variables[variable_name] = result
 
@@ -494,6 +502,11 @@ class CompiledPythonModule(
         return self.trace_collection.getModuleUsageAttempts()
 
     def getUsedDistributions(self):
+        if self.trace_collection is None:
+            # Optimization is not yet done at all, but report writing for error
+            # exit may happen.
+            return ()
+
         return self.trace_collection.getUsedDistributions()
 
     def addUsedFunction(self, function_body):
@@ -560,6 +573,7 @@ class CompiledPythonModule(
                 if old_collection is not None
                 else {}
             ),
+            old_collection=old_collection,
         )
 
         module_body = self.subnode_body
@@ -571,6 +585,8 @@ class CompiledPythonModule(
 
             if result is not module_body:
                 self.setChildBody(result)
+
+            self.trace_collection.performDelayedWork()
 
         self.attemptRecursion()
 
@@ -596,21 +612,26 @@ class CompiledPythonModule(
                 source_ref=self.source_ref,
             )
 
-        # Finalize locals scopes previously determined for removal in last pass.
-        self.trace_collection.updateVariablesFromCollection(
-            old_collection=old_collection, source_ref=self.source_ref
+        updateVariablesFromCollection(
+            old_collection, self.trace_collection, self.source_ref
         )
 
         # Indicate if this is pass 1 for the module as return value.
         was_complete = not self.locals_scope.complete
 
+        propagated_scopes = OrderedSet()
+
+        # Finalize locals scopes previously determined for removal in last pass.
         def markAsComplete(body, trace_collection):
             if body.locals_scope is not None:
                 # Make sure the propagated stuff releases memory.
                 if body.locals_scope.isMarkedForPropagation():
                     body.locals_scope.onPropagationComplete()
 
-                body.locals_scope.markAsComplete(trace_collection)
+                propagated_scope = body.locals_scope.markAsComplete(trace_collection)
+
+                if propagated_scope is not None:
+                    propagated_scopes.add(propagated_scope)
 
         def markEntryPointAsComplete(body):
             markAsComplete(body, body.trace_collection)
@@ -628,8 +649,26 @@ class CompiledPythonModule(
         for function_body in self.getUsedFunctions():
             markEntryPointAsComplete(function_body)
 
+            if old_collection is not None:
+                function_body.optimizeVeryHardHardModuleVariables(
+                    old_collection.getVeryTrustedModuleVariables()
+                )
             function_body.optimizeUnusedClosureVariables()
             function_body.optimizeVariableReleases()
+
+        if propagated_scopes:
+            visitor = LocalsScopePropagationVisitor(
+                trace_collection=self.trace_collection,
+                propagated_scopes=propagated_scopes,
+            )
+            visitor.onNode(self)
+
+            # We need to revert back to incomplete, as we add fully new
+            # temporary variables that will only get traces that are well
+            # analyzed in the next pass. This avoids an issue where after
+            # doing this, no other optimization can be done yet, but then
+            # in the next one it can be done.
+            self.locals_scope.complete = False
 
         return was_complete
 
@@ -704,7 +743,7 @@ class CompiledPythonModule(
             return None
 
     def getRuntimeNameValue(self):
-        if self.isMainModule() and Options.hasPythonFlagPackageMode():
+        if self.isMainModule() and hasPythonFlagPackageMode():
             return "__main__"
         elif self.module_name.isMultidistModuleName():
             return "__main__"
@@ -759,7 +798,7 @@ class CompiledPythonNamespacePackage(CompiledPythonPackage):
 def makeUncompiledPythonModule(
     module_name, reason, filename, bytecode, is_package, technical
 ):
-    source_ref = fromFilename(filename)
+    source_ref = makeSourceReferenceFromFilename(filename)
 
     if is_package:
         return UncompiledPythonPackage(
@@ -865,7 +904,7 @@ class PythonMainModule(CompiledPythonModule):
     __slots__ = ("main_added", "standard_library_modules")
 
     def __init__(self, module_name, main_added, mode, future_spec, source_ref):
-        assert not Options.shallMakeModule()
+        assert not shallMakeModule()
 
         # Is this one from a "__main__.py" file
         self.main_added = main_added

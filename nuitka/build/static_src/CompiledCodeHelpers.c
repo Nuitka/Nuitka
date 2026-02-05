@@ -295,7 +295,14 @@ PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
     /* TODO: It would be sweet to calculate that on user side already. */
     unsigned long n = getLengthOfRange(tstate, start, stop, step);
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
     if (n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX) {
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "xrange() result has too many items");
 
         return NULL;

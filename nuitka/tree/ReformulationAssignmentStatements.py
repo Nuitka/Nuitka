@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of assignment statements.
+"""Reformulation of assignment statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
@@ -28,10 +28,6 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.InjectCNodes import (
-    StatementInjectCCode,
-    StatementInjectCDecl,
-)
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -56,7 +52,12 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionTypeAlias, ExpressionTypeVariable
+from nuitka.nodes.TypeNodes import (
+    ExpressionParameterSpecification,
+    ExpressionTypeAlias,
+    ExpressionTypeVariable,
+    ExpressionTypeVariableTuple,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
@@ -66,9 +67,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general
 
 from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -118,28 +117,12 @@ def buildExtSliceNode(provider, node, source_ref):
 
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_ref):
     # This is using many variable names on purpose, so as to give names to the
-    # unpacked detail values, and has many branches due to the many cases
-    # dealt with and it is return driven.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
+    # unpacked detail values, and has many branches due to the many cases dealt
+    # with and it is return driven.
+
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
-        if detail in ("_inject_c_code", "_inject_c_decl") and isExperimental(
-            "c-code-injection"
-        ):
-            if not source.isExpressionConstantStrRef():
-                general.sysexit(
-                    "Error, value assigned to '%s' not be constant str" % detail
-                )
-
-            if detail == "_inject_c_code":
-                return StatementInjectCCode(
-                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
-                )
-            else:
-                return StatementInjectCDecl(
-                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
-                )
-
         return StatementAssignmentVariableName(
             provider=provider,
             variable_name=detail,
@@ -148,6 +131,16 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
+
+        # Handle "__static_attributes__" for Python 3.13+
+        if (
+            python_version >= 0x3D0
+            and lookup_source.isExpressionVariableNameRef()
+            and (lookup_source.variable_name == "self")
+        ):
+            class_creation = provider.getContainingClassDictCreation()
+            if class_creation is not None:
+                class_creation.addStaticAttribute(attribute_name)
 
         return StatementAssignmentAttribute(
             expression=lookup_source,
@@ -1228,6 +1221,14 @@ def buildTypeVarNode(node, source_ref):
     return ExpressionTypeVariable(node.name, source_ref=source_ref)
 
 
+def buildTypeVarTupleNode(node, source_ref):
+    return ExpressionTypeVariableTuple(node.name, source_ref=source_ref)
+
+
+def buildTypeParamSpec(node, source_ref):
+    return ExpressionParameterSpecification(node.name, source_ref=source_ref)
+
+
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
@@ -1242,7 +1243,10 @@ def buildTypeAliasNode(provider, node, source_ref):
 
         assignments = []
         for type_param in node.type_params:
-            type_var = buildTypeVarNode(type_param, source_ref=source_ref)
+            type_var = buildNode(
+                provider=provider, node=type_param, source_ref=source_ref
+            )
+
             assign = StatementAssignmentVariableName(
                 provider=outline_body,
                 variable_name=type_param.name,

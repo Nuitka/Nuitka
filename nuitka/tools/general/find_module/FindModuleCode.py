@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Find module code and open it in Visual Code.
+"""Find module code and open it in Visual Code.
 
 The idea is that this can be used during development, to accept module names,
 but also standalone filenames, etc. to simply find the original code in the

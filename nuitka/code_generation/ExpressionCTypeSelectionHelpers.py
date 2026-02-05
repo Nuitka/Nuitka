@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Module for helpers to select types for operation arguments.
+"""Module for helpers to select types for operation arguments.
 
 This is first used for comparisons and binary operations, but should see
 general use too and expand beyond constant values, e.g. covering constant

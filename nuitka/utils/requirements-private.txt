@@ -1,0 +1,16 @@
+# These are requirements of tools used by Nuitka in a private pip space.
+
+black == 25.12.0 ; python_version >= '3.11'
+isort == 5.13.2 ; python_version >= '3.11'
+yamllint == 1.28.0 ; python_version >= '3.11'
+rstfmt == 0.0.14 ; python_version >= '3.11'
+jsonschema == 4.6.0 ; python_version >= '3.7'
+ruamel.yaml == 0.17.21 ; python_version >= '3.11'
+deepdiff == 8.6.1 ; python_version >= '3.11'
+mdformat == 0.7.16 ; python_version >= '3.11'
+mdformat-gfm == 0.3.5 ; python_version >= '3.11'
+mdformat-frontmatter == 2.0.1 ; python_version >= '3.11'
+mdformat-footnote == 0.1.1 ; python_version >= '3.11'
+clang-format == 21.1.0 ; python_version >= '3.11'
+toml == 0.10.2 ; python_version >= '3.11'
+tomli == 1.1.0 ; python_version < '3.11' and python_version >= '3.7'

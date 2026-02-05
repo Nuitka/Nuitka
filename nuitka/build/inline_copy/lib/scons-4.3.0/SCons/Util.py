@@ -49,7 +49,7 @@ PYPY = hasattr(sys, 'pypy_translation_info')
 NOFILE = "SCONS_MAGIC_MISSING_FILE_STRING"
 
 # unused?
-def dictify(keys, values, result=None) -> dict:
+def dictify(keys, values, result=None):
     if result is None:
         result = {}
     result.update(dict(zip(keys, values)))
@@ -68,21 +68,21 @@ else:
 
 # First two from the Python Cookbook, just for completeness.
 # (Yeah, yeah, YAGNI...)
-def containsAny(s, pat) -> bool:
+def containsAny(s, pat):
     """Check whether string `s` contains ANY of the items in `pat`."""
     for c in pat:
         if c in s:
             return True
     return False
 
-def containsAll(s, pat) -> bool:
+def containsAll(s, pat):
     """Check whether string `s` contains ALL of the items in `pat`."""
     for c in pat:
         if c not in s:
             return False
     return True
 
-def containsOnly(s, pat) -> bool:
+def containsOnly(s, pat):
     """Check whether string `s` contains ONLY items in `pat`."""
     for c in s:
         if c not in pat:
@@ -91,7 +91,7 @@ def containsOnly(s, pat) -> bool:
 
 
 # TODO: Verify this method is STILL faster than os.path.splitext
-def splitext(path) -> tuple:
+def splitext(path):
     """Split `path` into a (root, ext) pair.
 
     Same as :mod:`os.path.splitext` but faster.
@@ -104,7 +104,7 @@ def splitext(path) -> tuple:
 
     return path, ""
 
-def updrive(path) -> str:
+def updrive(path):
     """Make the drive letter (if any) upper case.
 
     This is useful because Windows is inconsistent on the case
@@ -142,11 +142,11 @@ class NodeList(UserList):
     def __iter__(self):
         return iter(self.data)
 
-    def __call__(self, *args, **kwargs) -> 'NodeList':
+    def __call__(self, *args, **kwargs):
         result = [x(*args, **kwargs) for x in self.data]
         return self.__class__(result)
 
-    def __getattr__(self, name) -> 'NodeList':
+    def __getattr__(self, name):
         """Returns a NodeList of `name` from each member."""
         result = [getattr(x, name) for x in self.data]
         return self.__class__(result)
@@ -161,7 +161,7 @@ class NodeList(UserList):
 
 _get_env_var = re.compile(r'^\$([_a-zA-Z]\w*|{[_a-zA-Z]\w*})$')
 
-def get_environment_var(varstr) -> Optional[str]:
+def get_environment_var(varstr):
     """Return undecorated construction variable string.
 
     Determine if `varstr` looks like a reference
@@ -251,7 +251,7 @@ def render_tree(root, child_func, prune=0, margin=[0], visited=None):
 
     return retval
 
-def IDX(n) -> bool:
+def IDX(n):
     """Generate in index into strings from the tree legends.
 
     These are always a choice between two, so bool works fine.
@@ -430,37 +430,37 @@ BaseStringTypes = str
 
 def is_Dict(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, isinstance=isinstance, DictTypes=DictTypes
-) -> bool:
+):
     return isinstance(obj, DictTypes)
 
 
 def is_List(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, isinstance=isinstance, ListTypes=ListTypes
-) -> bool:
+):
     return isinstance(obj, ListTypes)
 
 
 def is_Sequence(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, isinstance=isinstance, SequenceTypes=SequenceTypes
-) -> bool:
+):
     return isinstance(obj, SequenceTypes)
 
 
 def is_Tuple(  # pylint: disable=redefined-builtin
     obj, isinstance=isinstance, tuple=tuple
-) -> bool:
+):
     return isinstance(obj, tuple)
 
 
 def is_String(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, isinstance=isinstance, StringTypes=StringTypes
-) -> bool:
+):
     return isinstance(obj, StringTypes)
 
 
 def is_Scalar(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, isinstance=isinstance, StringTypes=StringTypes, SequenceTypes=SequenceTypes
-) -> bool:
+):
 
     # Profiling shows that there is an impressive speed-up of 2x
     # when explicitly checking for strings instead of just not
@@ -491,7 +491,7 @@ def flatten(  # pylint: disable=redefined-outer-name,redefined-builtin
     StringTypes=StringTypes,
     SequenceTypes=SequenceTypes,
     do_flatten=do_flatten,
-) -> list:
+):
     """Flatten a sequence to a non-nested list.
 
     Converts either a single scalar or a nested sequence to a non-nested list.
@@ -515,7 +515,7 @@ def flatten_sequence(  # pylint: disable=redefined-outer-name,redefined-builtin
     StringTypes=StringTypes,
     SequenceTypes=SequenceTypes,
     do_flatten=do_flatten,
-) -> list:
+):
     """Flatten a sequence to a non-nested list.
 
     Same as :func:`flatten`, but it does not handle the single scalar case.
@@ -540,7 +540,7 @@ def to_String(  # pylint: disable=redefined-outer-name,redefined-builtin
     str=str,
     UserString=UserString,
     BaseStringTypes=BaseStringTypes,
-) -> str:
+):
     """Return a string version of obj."""
 
     if isinstance(obj, BaseStringTypes):
@@ -560,7 +560,7 @@ def to_String_for_subst(  # pylint: disable=redefined-outer-name,redefined-built
     BaseStringTypes=BaseStringTypes,
     SequenceTypes=SequenceTypes,
     UserString=UserString,
-) -> str:
+):
     """Return a string version of obj for subst usage."""
 
     # Note that the test cases are sorted by order of probability.
@@ -578,7 +578,7 @@ def to_String_for_subst(  # pylint: disable=redefined-outer-name,redefined-built
 
 def to_String_for_signature(  # pylint: disable=redefined-outer-name,redefined-builtin
     obj, to_String_for_subst=to_String_for_subst, AttributeError=AttributeError
-) -> str:
+):
     """Return a string version of obj for signature usage.
 
     Like :func:`to_String_for_subst` but has special handling for
@@ -612,15 +612,15 @@ def to_String_for_signature(  # pylint: disable=redefined-outer-name,redefined-b
 # The dispatch table approach used here is a direct rip-off from the
 # normal Python copy module.
 
-def semi_deepcopy_dict(obj, exclude=None) -> dict:
+def semi_deepcopy_dict(obj, exclude=None):
     if exclude is None:
         exclude = []
     return {k: semi_deepcopy(v) for k, v in obj.items() if k not in exclude}
 
-def _semi_deepcopy_list(obj) -> list:
+def _semi_deepcopy_list(obj):
     return [semi_deepcopy(item) for item in obj]
 
-def _semi_deepcopy_tuple(obj) -> tuple:
+def _semi_deepcopy_tuple(obj):
     return tuple(map(semi_deepcopy, obj))
 
 _semi_deepcopy_dispatch = {
@@ -817,7 +817,7 @@ else:
 
 if sys.platform == 'win32':
 
-    def WhereIs(file, path=None, pathext=None, reject=None) -> Optional[str]:
+    def WhereIs(file, path=None, pathext=None, reject=None):
         if path is None:
             try:
                 path = os.environ['PATH']
@@ -854,7 +854,7 @@ if sys.platform == 'win32':
 
 elif os.name == 'os2':
 
-    def WhereIs(file, path=None, pathext=None, reject=None) -> Optional[str]:
+    def WhereIs(file, path=None, pathext=None, reject=None):
         if path is None:
             try:
                 path = os.environ['PATH']
@@ -886,7 +886,7 @@ elif os.name == 'os2':
 
 else:
 
-    def WhereIs(file, path=None, pathext=None, reject=None) -> Optional[str]:
+    def WhereIs(file, path=None, pathext=None, reject=None):
         import stat  # pylint: disable=import-outside-toplevel
 
         if path is None:
@@ -935,7 +935,7 @@ is used. Will not select any path name or names in the optional
 
 def PrependPath(
     oldpath, newpath, sep=os.pathsep, delete_existing=True, canonicalize=None
-) -> Union[list, str]:
+):
     """Prepends `newpath` path elements to `oldpath`.
 
     Will only add any particular path once (leaving the first one it
@@ -1021,7 +1021,7 @@ def PrependPath(
 
 def AppendPath(
     oldpath, newpath, sep=os.pathsep, delete_existing=True, canonicalize=None
-) -> Union[list, str]:
+):
     """Appends `newpath` path elements to `oldpath`.
 
     Will only add any particular path once (leaving the last one it
@@ -1137,11 +1137,11 @@ def AddPathIfNotExists(env_dict, key, path, sep=os.pathsep):
 if sys.platform == 'cygwin':
     import subprocess  # pylint: disable=import-outside-toplevel
 
-    def get_native_path(path) -> str:
+    def get_native_path(path):
         cp = subprocess.run(('cygpath', '-w', path), check=False, stdout=subprocess.PIPE)
         return cp.stdout.decode().replace('\n', '')
 else:
-    def get_native_path(path) -> str:
+    def get_native_path(path):
         return path
 
 get_native_path.__doc__ = """\
@@ -1155,7 +1155,7 @@ system object.  For other platforms, `path` is unchanged.
 
 display = DisplayEngine()
 
-def Split(arg) -> list:
+def Split(arg):
     """Returns a list of file names or other objects.
 
     If `arg` is a string, it will be split on strings of white-space
@@ -1261,15 +1261,15 @@ class Selector(OrderedDict):
 if sys.platform == 'cygwin':
     # On Cygwin, os.path.normcase() lies, so just report back the
     # fact that the underlying Windows OS is case-insensitive.
-    def case_sensitive_suffixes(s1, s2) -> bool:  # pylint: disable=unused-argument
+    def case_sensitive_suffixes(s1, s2):  # pylint: disable=unused-argument
         return False
 
 else:
-    def case_sensitive_suffixes(s1, s2) -> bool:
+    def case_sensitive_suffixes(s1, s2):
         return os.path.normcase(s1) != os.path.normcase(s2)
 
 
-def adjustixes(fname, pre, suf, ensure_suffix=False) -> str:
+def adjustixes(fname, pre, suf, ensure_suffix=False):
     """Adjust filename prefixes and suffixes as needed.
 
     Add `prefix` to `fname` if specified.
@@ -1585,7 +1585,7 @@ class Unbuffered:
     def __getattr__(self, attr):
         return getattr(self.file, attr)
 
-def make_path_relative(path) -> str:
+def make_path_relative(path):
     """Converts an absolute path name to a relative pathname."""
 
     if os.path.isabs(path):
@@ -2057,7 +2057,7 @@ class NullSeq(Null):
         return self
 
 
-def to_bytes(s) -> bytes:
+def to_bytes(s):
     if s is None:
         return b'None'
     if isinstance(s, (bytes, bytearray)):
@@ -2066,7 +2066,7 @@ def to_bytes(s) -> bytes:
     return bytes(s, 'utf-8')
 
 
-def to_str(s) -> str:
+def to_str(s):
     if s is None:
         return 'None'
     if is_String(s):
@@ -2074,12 +2074,12 @@ def to_str(s) -> str:
     return str(s, 'utf-8')
 
 
-def cmp(a, b) -> bool:
+def cmp(a, b):
     """A cmp function because one is no longer available in python3."""
     return (a > b) - (a < b)
 
 
-def get_env_bool(env, name, default=False) -> bool:
+def get_env_bool(env, name, default=False):
     """Convert a construction variable to bool.
 
     If the value of `name` in `env` is 'true', 'yes', 'y', 'on' (case
@@ -2113,7 +2113,7 @@ def get_env_bool(env, name, default=False) -> bool:
         return default
 
 
-def get_os_env_bool(name, default=False) -> bool:
+def get_os_env_bool(name, default=False):
     """Convert an environment variable to bool.
 
     Conversion is the same as for :func:`get_env_bool`.

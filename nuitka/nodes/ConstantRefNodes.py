@@ -1,14 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for constant expressions. Can be all common built-in types.
-
-"""
+"""Node for constant expressions. Can be all common built-in types."""
 
 import sys
 from abc import abstractmethod
 
-from nuitka import Options
 from nuitka.__past__ import (
     GenericAlias,
     UnionType,
@@ -35,6 +32,7 @@ from nuitka.Constants import (
     the_empty_unicode,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import optimization_logger
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
@@ -284,7 +282,7 @@ class ExpressionConstantRefBase(ExpressionConstantUntrackedRefBase):
 
         self.user_provided = user_provided
 
-        if not user_provided and Options.is_debug:
+        if not user_provided and states.is_debug:
             try:
                 if type(constant) in (str, unicode, bytes):
                     max_size = 1000
@@ -1294,7 +1292,9 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
             )
 
             new_node, tags, message = computeBuiltinCall(
-                builtin_name=self.constant.__name__, call_node=call_node
+                builtin_name=self.constant.__name__,
+                call_node=call_node,
+                trace_collection=trace_collection,
             )
 
             return new_node, tags, message

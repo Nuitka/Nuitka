@@ -1,6 +1,7 @@
 # Spell checking makes no sense, spell-checker: disable
 
 include LICENSE.txt
+include LICENSE-RUNTIME.txt
 include MANIFEST.in
 include README.rst
 include Changelog.rst
@@ -45,6 +46,7 @@ recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
 recursive-include tests/reflected *.py
+recursive-include tests/type_inference *.py
 recursive-include tests/plugins *.py
 recursive-include tests/plugins *.yml
 include tests/plugins/data_files/data_files_package/*.txt

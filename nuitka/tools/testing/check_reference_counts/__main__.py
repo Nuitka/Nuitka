@@ -2,14 +2,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Tool to compare reference counting behavior of CPython and Nuitka.
-
-"""
+"""Tool to compare reference counting behavior of CPython and Nuitka."""
 
 import os
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.PythonVersions import isDebugPython
 from nuitka.tools.testing.Common import checkReferenceCount, getTempDir
 from nuitka.Tracing import my_print
@@ -18,7 +16,7 @@ from nuitka.utils.Importing import importFileAsModule
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--checked-module",

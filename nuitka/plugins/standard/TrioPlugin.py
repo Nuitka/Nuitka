@@ -1,15 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Deprecated trio plugin.
-"""
+"""Deprecated trio plugin."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginTrio(NuitkaPluginBase):
     plugin_name = "trio"
-    plugin_desc = "Deprecated, was once required by the 'trio' package"
+    plugin_desc = "Deprecated, was once required by 'trio' package."
     plugin_category = "package-support,obsolete"
 
     @classmethod

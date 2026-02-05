@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reference counting tests for Python3.6 or higher.
+"""Reference counting tests for Python3.6 or higher.
 
 These contain functions that do specific things, where we have a suspect
 that references may be lost or corrupted. Executing them repeatedly and
@@ -155,9 +155,9 @@ def simpleFunction5():
 
         z = x + y + t * u  # pylint: disable=undefined-variable
 
-        rawdata = b"The quick brown fox jumps over the lazy dog.\r\n"
+        raw_data = b"The quick brown fox jumps over the lazy dog.\r\n"
         # Be slow so we don't depend on other modules
-        rawdata += bytes(range(256))
+        raw_data += bytes(range(256))
 
     return C()
 

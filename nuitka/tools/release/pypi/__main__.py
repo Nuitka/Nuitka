@@ -2,12 +2,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Make PyPI upload of Nuitka, and check success of it. """
+"""Make PyPI upload of Nuitka, and check success of it."""
 
 import os
 import shutil
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import (
@@ -55,7 +55,7 @@ def main():
 
     branch_name = checkBranchName()
 
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--token",
@@ -96,7 +96,11 @@ Check if it would build, without uploading.
     checkReleaseDocumentation()
     tools_logger.info("Creating source distribution.", style="blue")
 
-    dist_filenames = makeNuitkaSourceDistribution(formats=("gztar",), sign=False)
+    # spell-checker: ignore gztar
+    dist_filenames = makeNuitkaSourceDistribution(
+        formats=("gztar",),
+        sign=False,
+    )
 
     # Test with these Pythons if the installed package would work.
     pythons = [

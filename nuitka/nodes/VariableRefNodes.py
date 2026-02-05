@@ -1,20 +1,21 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Node for variable references.
+"""Node for variable references.
 
 These represent all variable references in the node tree. Can be in assignments
 and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, Variables
+from nuitka.Builtins import builtin_exception_names, builtin_names
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import (
     getUnboundLocalErrorErrorTemplate,
     python_version,
 )
 from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
+from nuitka.Variables import Variable
 
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
@@ -62,6 +63,11 @@ class ExpressionVariableRefBase(ExpressionBase):
 
     def getVariable(self):
         return self.variable
+
+    def setVariable(self, variable):
+        assert isinstance(variable, Variable), repr(variable)
+
+        self.variable = variable
 
     def getVariableTrace(self):
         return self.variable_trace
@@ -291,10 +297,13 @@ Subscript del to dictionary lowered to dictionary del."""
             else:
                 return result, change_tags, change_desc
 
-        # By default, an subscript may change everything about the lookup
-        # source.
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
+
+        # By default, an subscript may change everything about the lookup
+        # source and even the subscript.
+        trace_collection.removeKnowledge(self)
+        trace_collection.removeKnowledge(subscript)
 
         # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
@@ -410,14 +419,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
         return cls(variable=variable, source_ref=source_ref)
 
-    def getVariable(self):
-        return self.variable
-
-    def setVariable(self, variable):
-        assert isinstance(variable, Variables.Variable), repr(variable)
-
-        self.variable = variable
-
     def computeExpressionRaw(self, trace_collection):
         # Terribly detailed, pylint: disable=too-many-branches,too-many-statements
 
@@ -432,26 +433,26 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         if replacement is not None:
             return self._applyReplacement(trace_collection, replacement)
 
-        if not self.variable_trace.mustHaveValue():
-            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
-            # could be decided from context.
-            trace_collection.onExceptionRaiseExit(BaseException)
-
         very_trusted_node = self.variable_trace.getAttributeNodeVeryTrusted()
         if very_trusted_node is not None:
             return (
                 very_trusted_node.makeClone(),
                 "new_expression",
-                lambda: "Forward propagating value of %s from very trusted %s value."
+                lambda: "Forward propagating value of '%s' from very trusted '%s' value."
                 % (self.getVariableName(), very_trusted_node.kind),
             )
+
+        if not self.variable_trace.mustHaveValue():
+            # TODO: This could be way more specific surely, either NameError or UnboundLocalError
+            # could be decided from context.
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         if variable.isModuleVariable() and (
             variable.hasDefiniteWrites() is False or variable.getName() == "super"
         ):
             variable_name = self.variable.getName()
 
-            if variable_name in Builtins.builtin_exception_names:
+            if variable_name in builtin_exception_names:
                 if not self.variable.getOwner().getLocalsScope().isEscaped():
                     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -472,7 +473,7 @@ Module variable '%s' found to be built-in exception reference.""" % (
                     change_tags = None
                     change_desc = None
 
-            elif variable_name in Builtins.builtin_names:
+            elif variable_name in builtin_names:
                 if (
                     variable_name in _hard_names
                     or not self.variable.getOwner().getLocalsScope().isEscaped()
@@ -559,6 +560,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return self, None, None
 
+    def undoComputeExpressionRaw(self, trace_collection):
+        self.variable_trace.removeUsage()
+
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         if self.variable_trace is not None:
             attribute_node = self.variable_trace.getAttributeNode()
@@ -623,8 +627,8 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return None, None, None
 
-    def collectVariableAccesses(self, emit_read, emit_write):
-        emit_read(self.variable)
+    def collectVariableAccesses(self, emit_variable):
+        emit_variable(self.variable)
 
     def hasShapeListExact(self):
         return (

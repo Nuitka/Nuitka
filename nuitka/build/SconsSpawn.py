@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Spawning processes.
+"""Spawning processes.
 
 This is to replace the standard spawn implementation with one that tracks the
 progress, and gives warnings about things taking very long.
@@ -27,6 +27,9 @@ from .SconsUtils import decodeData, reportSconsUnexpectedOutput
 
 # Thread class to run a command
 class SubprocessThread(threading.Thread):
+    # Lots of details, to keep track of pylint: disable=too-many-instance-attributes
+    # TODO: If executeProcess returned a "namedtuple", we could stop only that.
+
     def __init__(self, cmdline, env):
         threading.Thread.__init__(self)
 
@@ -36,6 +39,8 @@ class SubprocessThread(threading.Thread):
         self.data = None
         self.err = None
         self.exit_code = None
+        self.rusage = None
+
         self.exception = None
 
         self.timer_report = TimerReport(
@@ -49,15 +54,17 @@ class SubprocessThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.data, self.err, self.exit_code = executeProcess(
-                    command=self.cmdline, env=self.env
+                self.data, self.err, self.exit_code, self.rusage = executeProcess(
+                    command=self.cmdline,
+                    env=self.env,
+                    rusage=True,
                 )
 
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
     def getProcessResult(self):
-        return self.data, self.err, self.exit_code, self.exception
+        return self.data, self.err, self.exit_code, self.exception, self.rusage
 
 
 def _runProcessMonitored(env, cmdline, os_env):
@@ -153,8 +160,12 @@ def _getWindowsSpawnFunction(env, source_files):
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
             data, err, rv = runClCache(args, os_env)
+            _rusage = {}
         else:
-            data, err, rv, exception = _runProcessMonitored(env, cmdline, os_env)
+            # TODO: Make use of _rusage
+            data, err, rv, exception, _rusage = _runProcessMonitored(
+                env, cmdline, os_env
+            )
 
             if exception:
                 closeSconsProgressBar()
@@ -297,6 +308,9 @@ length parameter; this could be due to transposed parameters"""
 
 
 class SpawnThread(threading.Thread):
+    # Lots of details, to keep track of pylint: disable=too-many-instance-attributes
+    # TODO: If executeProcess returned a "namedtuple", we could stop only that.
+
     def __init__(self, env, *args):
         threading.Thread.__init__(self)
 
@@ -315,6 +329,7 @@ class SpawnThread(threading.Thread):
         )
 
         self.result = None
+        self.rusage = {}
         self.exception = None
 
         self.is_terminated = False
@@ -333,9 +348,12 @@ class SpawnThread(threading.Thread):
     def spawnSubprocess(self, env, args):
         sh, _cmd, args, os_env = args
 
-        self.process = Process(command=[sh, "-c", " ".join(args)], env=os_env)
-
-        _stdout, stderr, exit_code = self.process.communicate()
+        self.process = Process(
+            command=[sh, "-c", " ".join(args)],
+            env=os_env,
+            rusage=True,
+        )
+        _stdout, stderr, exit_code, self.rusage = self.process.communicate()
 
         if self.is_terminated and exit_code != 0:
             return exit_code
@@ -367,7 +385,7 @@ class SpawnThread(threading.Thread):
         return exit_code
 
     def getSpawnResult(self):
-        return self.result, self.exception
+        return self.result, self.exception, self.rusage
 
     def stopThread(self):
         self.is_terminated = True
@@ -408,7 +426,7 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
 
         spawn_result = thread.getSpawnResult()
 
-        if spawn_result == (0, None):
+        if spawn_result[:2] == (0, None):
             updateSconsProgressBar()
 
         return spawn_result
@@ -427,7 +445,7 @@ def _getWrappedSpawnFunction(env):
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
-        result, exception = _runSpawnMonitored(env, sh, cmd, args, os_env)
+        result, exception, _rusage = _runSpawnMonitored(env, sh, cmd, args, os_env)
 
         if exception:
             closeSconsProgressBar()

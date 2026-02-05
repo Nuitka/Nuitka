@@ -1,10 +1,10 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" State of a stack of future specs during parsing. """
+"""State of a stack of future specs during parsing."""
 
 from nuitka.nodes.FutureSpecs import FutureSpec
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Hooks import decideAnnotations
 from nuitka.PythonVersions import python_version
 
 from .SyntaxErrors import raiseSyntaxError
@@ -13,9 +13,7 @@ _future_specs = []
 
 
 def pushFutureSpec(module_name):
-    _future_specs.append(
-        FutureSpec(use_annotations=Plugins.decideAnnotations(module_name))
-    )
+    _future_specs.append(FutureSpec(use_annotations=decideAnnotations(module_name)))
 
 
 def getFutureSpec():

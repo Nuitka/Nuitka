@@ -13,6 +13,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 import pkgutil
 import sys
+import time
 from hashlib import md5 as _md5
 
 # pylint: disable=invalid-name,self-assigning-variable
@@ -81,7 +82,7 @@ except ImportError:
 
 
 if str is bytes:
-    # Python2 only code, pylint: disable=deprecated-class,no-name-in-module
+    # Python2 only code, pylint: disable=I0021,deprecated-class,no-name-in-module
     from collections import Iterable, MutableSet
 else:
     from collections.abc import Iterable, MutableSet
@@ -178,6 +179,32 @@ except ValueError:
 else:
     md5 = _md5
 
+
+try:
+    perf_counter = time.perf_counter
+except AttributeError:
+    # Python2 didn't have it yet.
+    perf_counter = time.time
+
+try:
+    process_time = time.process_time
+except AttributeError:
+    # Python2 didn't have it yet.
+    process_time = time.time
+
+
+try:
+    import imp  # Before Python3.12 only, pylint: disable=I0021,import-error
+
+    imp.get_suffixes  # Just to test the attribute, pylint: disable=pointless-statement
+except (AttributeError, ImportError):
+    import _imp as imp
+
+try:
+    import selectors  # pylint: disable=unused-import
+except ImportError:
+    selectors = None
+
 # For PyLint to be happy.
 assert long
 assert unicode
@@ -193,6 +220,7 @@ assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
 assert FileNotFoundError
+assert imp
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

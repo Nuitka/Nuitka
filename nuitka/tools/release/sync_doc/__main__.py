@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Release tool to sync Developer Manual with code comments. """
+"""Release tool to sync Developer Manual with code comments."""
 
 import inspect
 import re

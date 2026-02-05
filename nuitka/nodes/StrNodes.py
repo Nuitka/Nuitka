@@ -1,9 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Nodes that build and operate on str.
-
-"""
+"""Nodes that build and operate on str."""
 
 from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationCapitalizeBase,
@@ -893,7 +891,10 @@ class ExpressionStrOperationSplitlines1(ExpressionStrOperationSplitlines1Base):
 
 
 class ExpressionStrOperationSplitlines2(ExpressionStrOperationSplitlines2Base):
-    """This operation represents s.splitlines(keepends)."""
+    """This operation represents s.splitlines(keepends).
+
+    spell-checker: ignore keepends
+    """
 
     kind = "EXPRESSION_STR_OPERATION_SPLITLINES2"
 

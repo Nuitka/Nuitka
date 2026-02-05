@@ -1,13 +1,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" This tool is generating code variants for helper codes from Jinja templates.
+"""This tool is generating code variants for helper codes from Jinja templates."""
 
-"""
+from nuitka.States import states
 
-import nuitka.Options
-
-nuitka.Options.is_full_compat = False
+states.is_full_compat = False
 
 # isort:start
 
@@ -69,7 +67,7 @@ from .Common import (
     python3_dict_methods,
     python3_list_methods,
     python3_str_methods,
-    withFileOpenedAndAutoFormatted,
+    withFileOpenedAndAutoFormattedWithClaim,
     writeLine,
 )
 from .CTypeDescriptions import (
@@ -562,10 +560,10 @@ def makeHelpersComparisonOperation(operand, op_code):
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -611,10 +609,10 @@ def makeHelpersComparisonDualOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/comparisons_dual_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -671,10 +669,10 @@ def makeHelpersBinaryOperation(operator, op_code):
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -721,10 +719,10 @@ def makeHelpersInplaceOperation(operator, op_code):
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -775,10 +773,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
         % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -819,10 +817,10 @@ def makeHelpersImportHard():
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -897,10 +895,10 @@ def makeHelperCalls():
     filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -1011,10 +1009,10 @@ def makeHelperLists():
     filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
     filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 
@@ -1139,7 +1137,7 @@ generate_builtin_type_operations = [
     # TODO: For these, we would need an implementation for adding/deleting dictionary values. That
     # has turned out to be too hard so far and these are very good friends, not doing hashing
     # multiple times when reading and writing, so can't do it unless we add something for the
-    # Nuitka-Python eventually.
+    # MonolithPy eventually.
     (
         "tshape_dict",
         dict_desc,
@@ -1294,7 +1292,7 @@ generate_builtin_type_operations = [
 def makeDictCopyHelperCodes():
     filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
 
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
 
@@ -1341,10 +1339,10 @@ def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
-    with withFileOpenedAndAutoFormatted(
+    with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseTextStandard()
     ) as output_c:
-        with withFileOpenedAndAutoFormatted(
+        with withFileOpenedAndAutoFormattedWithClaim(
             filename_h, claim=getLicenseTextStandard()
         ) as output_h:
 

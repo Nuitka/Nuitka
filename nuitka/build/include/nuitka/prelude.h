@@ -197,6 +197,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_modsupport.h>
 #include <internal/pycore_parking_lot.h>
 #include <internal/pycore_pyatomic_ft_wrappers.h>
+#include <internal/pycore_pylifecycle.h>
 #include <internal/pycore_setobject.h>
 #include <internal/pycore_time.h>
 #endif
@@ -269,6 +270,9 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <malloc.h>
 #define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT)                                                  \
     ELEMENT_TYPE *VARIABLE_NAME = (ELEMENT_TYPE *)_alloca(sizeof(ELEMENT_TYPE) * (COUNT));
+#elif defined(__ZIG__)
+#define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT)                                                  \
+    ELEMENT_TYPE VARIABLE_NAME[((COUNT) == 0) ? 1 : (COUNT)];
 #else
 #define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT) ELEMENT_TYPE VARIABLE_NAME[COUNT];
 #endif
@@ -388,8 +392,52 @@ typedef long Py_hash_t;
  * The Python 3.7.0 release on at Linux doesn't work this way either, was
  * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
  * become runtime incompatible.
+ *
  */
-#if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
+    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
+        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+    }
+}
+
+static inline void Nuitka_Py_TriggerGC(struct _gc_runtime_state *gcstate) {
+    PyThreadState *tstate = _PyThreadState_GET();
+    if (gcstate->enabled && gcstate->young.threshold != 0 && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+        !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+}
+#undef Nuitka_GC_Track
+static inline void Nuitka_GC_Track(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    assert(!_PyObject_GC_IS_TRACKED(op));
+#ifdef Py_GIL_DISABLED
+    _PyObject_SET_GC_BITS(op, _PyGC_BITS_TRACKED);
+#else
+    PyGC_Head *gc = _Py_AS_GC(op);
+    assert((gc->_gc_prev & _PyGC_PREV_MASK_COLLECTING) == 0);
+
+    struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+    PyGC_Head *generation0 = &gcstate->young.head;
+    PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+    _PyGCHead_SET_NEXT(last, gc);
+    _PyGCHead_SET_PREV(gc, last);
+    uintptr_t not_visited = 1 ^ gcstate->visited_space;
+    gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+    generation0->_gc_prev = (uintptr_t)gc;
+    gcstate->young.count++; /* number of tracked GC objects */
+    gcstate->heap_size++;
+    if (gcstate->young.count > gcstate->young.threshold) {
+        Nuitka_Py_TriggerGC(gcstate);
+    }
+#endif
+}
+
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
+#undef _PyObject_GC_TRACK
+#elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK
@@ -595,19 +643,6 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #endif
 
-#if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
-#include "nuitka_init_program.h"
-#else
-#define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
-#define NUITKA_INIT_PROGRAM_LATE(module_name)
-#endif
-
-#if _NUITKA_EXPERIMENTAL_EXIT_PROGRAM
-#include "nuitka_exit_program.h"
-#else
-#define NUITKA_FINALIZE_PROGRAM(tstate)
-#endif
-
 // Only Python3.9+ has a more precise check, while making the old one slow.
 #ifndef PyCFunction_CheckExact
 #define PyCFunction_CheckExact PyCFunction_Check
@@ -622,8 +657,8 @@ extern void DUMP_C_BACKTRACE(void);
 extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #endif
 
-#if _NUITKA_PLUGIN_THEMIDA_ENABLED
-#include "nuitka_themida.h"
+#if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
+#include "extra_includes.h"
 #endif
 
 #endif

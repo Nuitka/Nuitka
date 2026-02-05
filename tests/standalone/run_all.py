@@ -2,7 +2,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Runner for standalone program tests of Nuitka.
+"""Runner for standalone program tests of Nuitka.
 
 These tests aim at showing that one specific module works in standalone
 mode, trying to find issues with that packaging.
@@ -61,6 +61,7 @@ def displayError(dirname, filename):
 
     if isLinux():
         test_logger.info("ELF listing of main binary:")
+        # spell-checker: ignore readelf
         os.system("readelf -d " + filename[:-3] + ".dist/" + filename[:-3] + ".bin")
 
     inclusion_log_path = filename[:-3] + ".py.inclusion.log"
@@ -68,6 +69,9 @@ def displayError(dirname, filename):
 
 
 def _checkForLibcBinaries(dist_path):
+    # spell-checker: ignore libanl libcidn libcrypt libdl libm libmemusage libmvec
+    # spell-checker: ignore libnsl libnss libpcprofile libpthread libresolv librt
+    # spell-checker: ignore libthread libutil nisplus
     found_glibc_libs = []
     for dist_filename in os.listdir(os.path.join(dist_path)):
         if os.path.basename(dist_filename).startswith(

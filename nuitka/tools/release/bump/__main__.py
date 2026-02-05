@@ -2,11 +2,11 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Make version bump for Nuitka. """
+"""Make version bump for Nuitka."""
 
 import sys
-from optparse import OptionParser
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
@@ -59,7 +59,7 @@ def getBumpedVersion(mode, old_version):
 
 
 def main():
-    parser = OptionParser()
+    parser = makeOptionsParser(usage=None, epilog=None)
 
     parser.add_option(
         "--mode",
@@ -68,7 +68,7 @@ def main():
         default=None,
         help="""\
 The mode of version number update, "prerelease", "hotfix", "release",
-"auto" (default auto determined from branch name), and "redate" bumps
+"auto" (default auto determined from branch name), and "re-date" bumps
 the changelog date only.""",
     )
 
@@ -102,7 +102,7 @@ the changelog date only.""",
         else:
             sys.exit("Error, cannot detect mode from branch name '%s'." % branch_name)
 
-    if mode != "redate":
+    if mode != "re-date":
         new_version = getBumpedVersion(mode, old_version)
         my_print("Bumped %s '%s' -> '%s'." % (mode, old_version, new_version))
 

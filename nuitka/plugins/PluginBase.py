@@ -19,7 +19,6 @@ import os
 import sys
 import unittest
 
-from nuitka import Options
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -41,13 +40,16 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
-from nuitka.Options import (
+from nuitka.options.Options import (
     getCompanyName,
     getFileVersion,
+    getMacOSTargetArch,
+    getModuleParameter,
     getProductFileVersion,
     getProductName,
     getProductVersion,
     isDeploymentMode,
+    isExperimental,
     isOnefileMode,
     isOnefileTempDirMode,
     isStandaloneMode,
@@ -58,7 +60,7 @@ from nuitka.Options import (
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
-    isNuitkaPython,
+    isMonolithPy,
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
@@ -66,6 +68,7 @@ from nuitka.PythonVersions import (
     python_version_full_str,
     python_version_str,
 )
+from nuitka.States import states
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
@@ -106,6 +109,8 @@ from nuitka.utils.Utils import (
     isWin32Windows,
     withNoWarning,
 )
+
+from .Hooks import decideAnnotations, decideAssertions, decideDocStrings
 
 _warned_unused_plugins = set()
 
@@ -157,7 +162,7 @@ def _getEvaluationContext():
             "anaconda": isAnacondaPython(),
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
-            "nuitka_python": isNuitkaPython(),
+            "monolithpy": isMonolithPy(),
             "standalone": isStandaloneMode(),
             "onefile": isOnefileMode(),
             "onefile_cached": not isOnefileTempDirMode(),
@@ -234,7 +239,7 @@ def _getEvaluationContext():
         _context_dict["before_python3"] = python_version < 0x300
         _context_dict["python3_or_higher"] = python_version >= 0x300
 
-        if not isNuitkaPython():
+        if not isMonolithPy():
             _context_dict["extension_std_suffix"] = getExtensionModuleSuffix(
                 preferred=True
             )
@@ -473,6 +478,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
 
+    def onGeneratedSourceCode(self, source_dir, onefile):
+        """Called after all C code has been generated.
+
+        Args:
+            source_dir: (str) directory where the C code is
+            onefile: (bool) true if this is onefile bootstrap
+
+        Returns:
+            None
+        """
+
     @staticmethod
     def isAlwaysEnabled():
         """Request to be always enabled.
@@ -525,7 +541,10 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         if plugin_category is None:
             result = ()
         else:
-            result = plugin_category.split(",")
+            if isinstance(plugin_category, (tuple, list)):
+                result = list(plugin_category)
+            else:
+                result = plugin_category.split(",")
 
         return OrderedSet(sorted(result))
 
@@ -601,6 +620,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return bytecode
+
+    @staticmethod
+    def getUncompiledDecoratorNames():
+        """Return a tuple of decorator names that should cause the function to be uncompiled.
+
+        Returns:
+            tuple of strings
+        """
+        return ()
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -1063,6 +1091,9 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     def onDataFileTags(self, included_datafile):
         """Action on data file tags."""
 
+    def onDllTags(self, included_entry_point):
+        """Action on DLL tags."""
+
     def onBeforeCodeParsing(self):
         """Prepare for code parsing, normally not needed."""
 
@@ -1392,7 +1423,7 @@ except Exception as e:
         command = [sys.executable, "-c", cmd]
 
         if isMacOS():
-            command = ["arch", "-" + Options.getMacOSTargetArch()] + command
+            command = ["arch", "-" + getMacOSTargetArch()] + command
 
         try:
             feedback = check_output(command, env=env)
@@ -1405,7 +1436,7 @@ except Exception as e:
 
                 return None
 
-            if Options.is_debug:
+            if states.is_debug:
                 self.info(cmd, keep_format=True)
 
             if e.returncode == 39:
@@ -1433,7 +1464,7 @@ except Exception as e:
             feedback.pop(0)
 
         if feedback.count("-" * 27) != len(keys):
-            self.sysexit(
+            return self.sysexit(
                 "Error, mismatch in output retrieving %r information." % info_name
             )
 
@@ -1446,7 +1477,7 @@ except Exception as e:
                 *(_literal_eval(value) for value in feedback)
             )
         except ValueError:
-            self.sysexit(
+            return self.sysexit(
                 "Error, non-constant values in output retrieving %r information."
                 % info_name
             )
@@ -1505,6 +1536,11 @@ except Exception as e:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def getReportData(self):
+        """Provide dictionary of data for reporting purposes."""
+        # Virtual method, pylint: disable=no-self-use
+        return {}
 
     @staticmethod
     def getPackageVersion(module_name):
@@ -1578,7 +1614,7 @@ except Exception as e:
                 declarations = variable_config.get("declarations", {})
 
                 if len(declarations) < 1:
-                    self.sysexit(
+                    return self.sysexit(
                         "Error, no variable 'declarations' for %s makes no sense."
                         % full_name
                     )
@@ -1615,11 +1651,11 @@ except Exception as e:
                             values=tuple(declarations.items()),
                         )
 
-                    if Options.isExperimental("display-yaml-variables"):
+                    if isExperimental("display-yaml-variables"):
                         self.info("Evaluated %r" % info)
 
                     if info is None:
-                        self.sysexit(
+                        return self.sysexit(
                             "Error, failed to evaluate variables for '%s'." % full_name
                         )
 
@@ -1675,7 +1711,7 @@ except Exception as e:
         context["get_constant"] = get_constant
 
         def get_parameter(parameter_name, default):
-            result = Options.getModuleParameter(config_module_name, parameter_name)
+            result = getModuleParameter(config_module_name, parameter_name)
 
             if result is None:
                 result = default
@@ -1699,10 +1735,10 @@ except Exception as e:
             try:
                 result = eval(expression, context)
             except Exception as e:  # Catch all the things, pylint: disable=broad-except
-                if Options.is_debug:
+                if states.is_debug:
                     raise
 
-                self.sysexit(
+                return self.sysexit(
                     "Error, failed to evaluate expression %r in this context, exception was '%r'."
                     % (expression, e)
                 )
@@ -1729,7 +1765,7 @@ except Exception as e:
 
     def _checkStrResult(self, value, expression, full_name):
         if type(value) not in (str, unicode):
-            self.sysexit(
+            return self.sysexit(
                 """\
 Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result, but '%s'"""
                 % (expression, full_name, type(value))
@@ -1737,7 +1773,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
 
     def _checkSequenceResult(self, value, expression, full_name):
         if type(value) not in (tuple, list):
-            self.sysexit(
+            return self.sysexit(
                 """\
 Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list[str]' result."""
                 % (expression, full_name)
@@ -1790,7 +1826,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
-            result = Options.getModuleParameter(full_name, parameter_name)
+            result = getModuleParameter(full_name, parameter_name)
 
             if result is None:
                 result = default
@@ -1811,16 +1847,16 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
             try:
                 result = eval(condition, context)
             except Exception as e:  # Catch all the things, pylint: disable=broad-except
-                if Options.is_debug:
+                if states.is_debug:
                     raise
 
-                self.sysexit(
+                return self.sysexit(
                     "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
                     % (condition, e)
                 )
 
         if type(result) is not bool:
-            self.sysexit(
+            return self.sysexit(
                 "Error, condition '%s' for module '%s' did not evaluate to boolean result."
                 % (condition, full_name)
             )
@@ -1862,7 +1898,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         # user errors still.
         mnemonic = kwargs.pop("mnemonic", None)
         if kwargs:
-            plugins_logger.sysexit("Illegal keyword arguments for self.warning")
+            return plugins_logger.sysexit("Illegal keyword arguments for self.warning")
 
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
@@ -1872,12 +1908,12 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
 
     @classmethod
     def debug(cls, message, keep_format=False):
-        if Options.is_debug:
+        if states.is_debug:
             cls.info(message, keep_format=keep_format)
 
     @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
-        plugins_logger.sysexit(
+        return plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
 
@@ -1939,22 +1975,15 @@ class TagContext(dict):
                 return False
 
             if key == "no_asserts":
-                # TODO: This should be better decoupled.
-                from .Plugins import Plugins
-
-                return Plugins.decideAssertions(self.full_name) is False
+                return decideAssertions(self.full_name) is False
 
             if key == "no_docstrings":
-                from .Plugins import Plugins
-
-                return Plugins.decideDocStrings(self.full_name) is False
+                return decideDocStrings(self.full_name) is False
 
             if key == "no_annotations":
-                from .Plugins import Plugins
+                return decideAnnotations(self.full_name) is False
 
-                return Plugins.decideAnnotations(self.full_name) is False
-
-            self.logger.sysexit(
+            return self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
                 % (key, self.config_name, self.full_name)
             )
