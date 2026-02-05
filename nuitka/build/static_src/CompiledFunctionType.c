@@ -523,6 +523,12 @@ static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *d
     assert(Nuitka_Function_Check(self));
     assert(_PyObject_GC_IS_TRACKED(self));
 
+    // Same to us, immortal value needs no ref count handling for 3.14 only
+    // code.
+    if (value == Py_None) {
+        value = NULL;
+    }
+
     if (unlikely(value != NULL && !PyCallable_Check(value))) {
         PyThreadState *tstate = PyThreadState_GET();
 
@@ -1491,7 +1497,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION >= 0x3e0 && !!defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
     // For simplicity's sake, the annotations parameter doubles as the __annotate__
     // parameter on 3.14+
     assert(annotations == NULL || PyCallable_Check(annotations));
