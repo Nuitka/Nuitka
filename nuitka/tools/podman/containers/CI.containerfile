@@ -3,12 +3,15 @@
 FROM debian:12-slim
 ENV container docker
 ENV NUITKA_PIP_FLAGS="--break-system-packages"
+ENV DEBIAN_FRONTEND=noninteractive
 
 VOLUME [ "/sys/fs/cgroup" ]
 
 ## Install what we use for CI generally
 RUN mkdir /src
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y debconf-utils \
+    && echo "pbuilder pbuilder/mirrorsite string http://deb.debian.org/debian" | debconf-set-selections \
+    && apt-get install -y \
     apt-utils \
     ccache \
     chrpath \
