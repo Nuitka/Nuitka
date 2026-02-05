@@ -242,7 +242,8 @@ def buildClassNode2(provider, node, source_ref):
                 except_handler=makeStatementsSequenceFromStatement(
                     statement=StatementReturn(
                         expression=ExpressionBuiltinAnonymousRef(
-                            builtin_name="classobj", source_ref=source_ref
+                            builtin_name="classobj",  # spell-checker: ignore classobj
+                            source_ref=source_ref,
                         ),
                         source_ref=source_ref,
                     )
