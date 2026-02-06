@@ -50,7 +50,7 @@ def generateCtypesCIntCallCode(to_name, expression, emit, context):
         getBuiltinCallViaSpecCode(
             spec=expression.spec,
             called_name=ctypes_c_int_class,
-            to_name=to_name,
+            to_name=result_name,
             expression=expression,
             emit=emit,
             context=context,
