@@ -11,6 +11,7 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.options.Options import (
@@ -274,15 +275,14 @@ def restoreFromXML(text):
     return module
 
 
-def makeOptimizationPass():
+def _makeOptimizationPass():
     """Make a single pass for optimization, indication potential completion."""
-
-    finished = True
 
     ModuleRegistry.startTraversal()
 
     _restartProgress()
 
+    unfinished_modules = OrderedSet()
     main_module = None
     stdlib_phase_done = False
 
@@ -328,7 +328,7 @@ def makeOptimizationPass():
         _traceProgressModuleEnd(current_module)
 
         if changed:
-            finished = False
+            unfinished_modules.add(current_module)
 
     # Unregister collection traces from now unused code, dropping the trace
     # collections of functions no longer used. This must be done after global
@@ -349,13 +349,14 @@ def makeOptimizationPass():
 
     _endProgress()
 
-    return finished
+    return unfinished_modules
 
 
 def _optimizeModules(output_filename):
     Graphs.startGraph()
 
-    finished = makeOptimizationPass()
+    # Pass 1 is unconditional.
+    unfinished_modules = _makeOptimizationPass()
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
@@ -366,9 +367,21 @@ def _optimizeModules(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    # Second, "endless" pass.
-    while not finished:
-        finished = makeOptimizationPass()
+    # Second more more, "endless" passes.
+    while unfinished_modules:
+        if pass_count >= 2:
+            general.info(
+                "Module(s) '%s' necessitate pass %d"
+                % (
+                    ",".join(
+                        unfinished_module.getFullName()
+                        for unfinished_module in unfinished_modules
+                    ),
+                    pass_count,
+                )
+            )
+
+        unfinished_modules = _makeOptimizationPass()
 
     Graphs.endGraph(output_filename)
 
