@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y debconf-utils \
     python3-glob2 \
     python3-pip \
     python3-stdeb \
+    reprepro \
     rst2pdf \
     rsync \
     scons \
