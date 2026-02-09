@@ -11,6 +11,19 @@ for+while, while+for) and several container types (list, dict, set).
 
 from __future__ import print_function
 
+_passed = 0
+_failed = 0
+
+
+def run_test(func):
+    global _passed, _failed
+    try:
+        func()
+        _passed += 1
+    except Exception as e:
+        _failed += 1
+        print("FAILED %s: %s %s" % (func.__name__, type(e).__name__, e))
+
 
 # for+for: None -> list, iterate after nested loops
 
@@ -29,10 +42,7 @@ def test_for_for_list_iterate():
     print("for+for list iterate:", out)
 
 
-try:
-    test_for_for_list_iterate()
-except Exception as e:
-    print("FAILED test_for_for_list_iterate:", type(e).__name__, e)
+run_test(test_for_for_list_iterate)
 
 
 # for+while: None -> list, iterate after nested loops
@@ -53,10 +63,7 @@ def test_for_while_list_iterate():
     print("for+while list iterate:", sorted(out))
 
 
-try:
-    test_for_while_list_iterate()
-except Exception as e:
-    print("FAILED test_for_while_list_iterate:", type(e).__name__, e)
+run_test(test_for_while_list_iterate)
 
 
 #  while+for: None -> list, iterate after nested loops
@@ -78,10 +85,7 @@ def test_while_for_list_iterate():
     print("while+for list iterate:", out)
 
 
-try:
-    test_while_for_list_iterate()
-except Exception as e:
-    print("FAILED test_while_for_list_iterate:", type(e).__name__, e)
+run_test(test_while_for_list_iterate)
 
 
 # for+for: None -> dict, iterate keys after nested loops
@@ -101,10 +105,7 @@ def test_for_for_dict_iterate():
     print("for+for dict iterate:", sorted(result))
 
 
-try:
-    test_for_for_dict_iterate()
-except Exception as e:
-    print("FAILED test_for_for_dict_iterate:", type(e).__name__, e)
+run_test(test_for_for_dict_iterate)
 
 
 # for+for: None -> set, iterate members after nested loops
@@ -124,10 +125,7 @@ def test_for_for_set_iterate():
     print("for+for set iterate:", sorted(result))
 
 
-try:
-    test_for_for_set_iterate()
-except Exception as e:
-    print("FAILED test_for_for_set_iterate:", type(e).__name__, e)
+run_test(test_for_for_set_iterate)
 
 
 # Top-level function (not a closure) with nested loops
@@ -149,10 +147,7 @@ def test_top_level_for_while(data=None):
     print("top-level for+while iterate:", sorted(out))
 
 
-try:
-    test_top_level_for_while()
-except Exception as e:
-    print("FAILED test_top_level_for_while:", type(e).__name__, e)
+run_test(test_top_level_for_while)
 
 
 # Closure with nested loops and callback iteration
@@ -177,10 +172,7 @@ def test_closure_callback_iterate():
     print("closure callback iterate:", sorted(output))
 
 
-try:
-    test_closure_callback_iterate()
-except Exception as e:
-    print("FAILED test_closure_callback_iterate:", type(e).__name__, e)
+run_test(test_closure_callback_iterate)
 
 
 # Single loop (no nesting) with iteration — control case
@@ -199,10 +191,9 @@ def test_single_loop_iterate():
     print("single loop iterate:", out)
 
 
-try:
-    test_single_loop_iterate()
-except Exception as e:
-    print("FAILED test_single_loop_iterate:", type(e).__name__, e)
+run_test(test_single_loop_iterate)
+
+print("Summary: %d passed, %d failed, %d total" % (_passed, _failed, _passed + _failed))
 
 
 #     Python tests originally created or extracted from other peoples work. The
