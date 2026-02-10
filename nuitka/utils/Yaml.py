@@ -448,7 +448,13 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         else:
             result = ()
 
-        if section in ("options", "variables") and type(result) in (dict, OrderedDict):
+        if section in (
+            "options",
+            "variables",
+            "constants",
+        ) and type(
+            result
+        ) in (dict, OrderedDict):
             result = (result,)
 
         if type(result) is list:
