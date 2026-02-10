@@ -3775,7 +3775,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 11103e47
+- module-name: 'paddle' # checksum: 1b5d195c
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -3784,6 +3784,7 @@
           - 'mkl'
           - 'war'
           - 'common'
+          - 'phi'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:
