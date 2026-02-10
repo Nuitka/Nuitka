@@ -1141,12 +1141,6 @@ _only_bool_shape = frozenset((tshape_bool,))
 class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
 
-    def emitShapeAlternativesForLoop(self, emit, loop_node):
-        if self.loop_node is loop_node:
-            self.getTypeShape().emitAlternatives(emit)
-        else:
-            emit(tshape_unknown)
-
     @staticmethod
     def getReleaseEscape():
         # TODO: May consider the shapes for better result
