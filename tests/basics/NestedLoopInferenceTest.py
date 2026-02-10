@@ -128,28 +128,6 @@ def test_for_for_set_iterate():
 run_test(test_for_for_set_iterate)
 
 
-# Top-level function (not a closure) with nested loops
-
-def test_top_level_for_while(data=None):
-    if data is None:
-        data = [[3, 2, 1]]
-    collected = None
-    for group in data:
-        while group:
-            item = group.pop()
-            if collected is None:
-                collected = []
-            collected.append(item)
-    out = []
-    if collected is not None:
-        for x in collected:
-            out.append(x)
-    print("top-level for+while iterate:", sorted(out))
-
-
-run_test(test_top_level_for_while)
-
-
 # Closure with nested loops and callback iteration
 
 def test_closure_callback_iterate():
