@@ -621,6 +621,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def getTypeShape(self):
         return self.previous.getTypeShape()
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        self.previous.emitShapeAlternativesForLoop(emit, loop_node)
+
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 
@@ -1137,6 +1140,12 @@ _only_bool_shape = frozenset((tshape_bool,))
 
 class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
 
     @staticmethod
     def getReleaseEscape():
