@@ -8,8 +8,6 @@ loops (seeing tshape_unknown or the pre-loop type instead of the actual
 converged type), it can misoptimize many different operations — not just
 iter(). This file exercises each category of operation that relies on
 correct type shape information.
-
-Regression tests for https://github.com/Nuitka/Nuitka/issues/3696
 """
 
 from __future__ import print_function

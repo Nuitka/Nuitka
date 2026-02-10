@@ -193,6 +193,63 @@ def test_single_loop_iterate():
 
 run_test(test_single_loop_iterate)
 
+
+# Chained inner loops (canary): inner loop 1 builds list, inner loop 2
+# iterates it, within the same outer body.
+
+def test_chain_inner_loops():
+    groups = [[1, 2], [3, 4]]
+    total = 0
+    for group in groups:
+        bucket = None
+        for val in group:
+            if bucket is None:
+                bucket = []
+            bucket.append(val * 10)
+        for item in bucket:
+            total += item
+    print("chain inner loops:", total)
+
+
+run_test(test_chain_inner_loops)
+
+
+# Variable used between outer iterations (canary): shape must propagate
+# to outer loop body after inner loop completes.
+
+def test_use_between_outer_iters():
+    groups = [[1, 2], [3, 4], [5]]
+    result = None
+    for group in groups:
+        for val in group:
+            if result is None:
+                result = []
+            result.append(val)
+        result.append(0)
+    print("between outer iters:", result)
+
+
+run_test(test_use_between_outer_iters)
+
+
+# Nonlocal scope (canary): variable mutated via nonlocal inside nested loop.
+
+def test_nonlocal_var_in_nested_loop():
+    result = None
+    def inner():
+        nonlocal result
+        data = [[1, 2], [3]]
+        for group in data:
+            for val in group:
+                if result is None:
+                    result = []
+                result.append(val)
+    inner()
+    print("nonlocal nested loop:", result, len(result))
+
+
+run_test(test_nonlocal_var_in_nested_loop)
+
 print("Summary: %d passed, %d failed, %d total" % (_passed, _failed, _passed + _failed))
 
 
