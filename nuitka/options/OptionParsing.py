@@ -255,13 +255,20 @@ def getBuildConfigurationOptions(logger):
 
                 return getPoetryBuildConfiguration(logger)
 
+
+
+
             build_system_data = pyproject_data.get("build-system", {})
             build_backend = build_system_data.get("build-backend", "")
+
+            # Check if it is a "uv_build" project
+            if build_backend == "uv_build":
+                from .UVBuild import getUVBuildConfiguration
+                return getUVBuildConfiguration(logger)
 
             # Check if it is a "setuptools" project
             if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
                 from .BuildPackage import getBuildBackendConfiguration
-
                 return getBuildBackendConfiguration(logger)
 
             return logger.sysexit(
