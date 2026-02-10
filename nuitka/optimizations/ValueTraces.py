@@ -621,6 +621,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def getTypeShape(self):
         return self.previous.getTypeShape()
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        self.previous.emitShapeAlternativesForLoop(emit, loop_node)
+
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 
