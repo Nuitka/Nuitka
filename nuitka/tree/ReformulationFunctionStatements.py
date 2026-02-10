@@ -155,7 +155,7 @@ def _isUncompiledDecorator(decorator):
     if decorator_name == "nuitka_ignore":
         return True
 
-    # False alarm, pylint: disable=unsupported-membership-test
+    # False alarm, pylint: disable=I021,unsupported-membership-test
     if decorator_name in getUncompiledDecoratorNames():
         return True
 
@@ -243,7 +243,8 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
+    # Functions have way too many details,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert getKind(node) == "FunctionDef"
 
