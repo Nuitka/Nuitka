@@ -27,6 +27,7 @@ def run_test(func):
 
 # for+for: None -> list, iterate after nested loops
 
+
 def test_for_for_list_iterate():
     data = [[1, 2, 3]]
     collected = None
@@ -46,6 +47,7 @@ run_test(test_for_for_list_iterate)
 
 
 # for+while: None -> list, iterate after nested loops
+
 
 def test_for_while_list_iterate():
     data = [[3, 2, 1]]
@@ -67,6 +69,7 @@ run_test(test_for_while_list_iterate)
 
 
 #  while+for: None -> list, iterate after nested loops
+
 
 def test_while_for_list_iterate():
     data = [[1, 2, 3]]
@@ -90,6 +93,7 @@ run_test(test_while_for_list_iterate)
 
 # for+for: None -> dict, iterate keys after nested loops
 
+
 def test_for_for_dict_iterate():
     data = [["a", "b"], ["c"]]
     mapping = None
@@ -110,6 +114,7 @@ run_test(test_for_for_dict_iterate)
 
 # for+for: None -> set, iterate members after nested loops
 
+
 def test_for_for_set_iterate():
     data = [[1, 2, 2], [3, 1]]
     seen = None
@@ -129,6 +134,7 @@ run_test(test_for_for_set_iterate)
 
 
 # Closure with nested loops and callback iteration
+
 
 def test_closure_callback_iterate():
     output = []
@@ -155,6 +161,7 @@ run_test(test_closure_callback_iterate)
 
 # Single loop (no nesting) with iteration — control case
 
+
 def test_single_loop_iterate():
     data = [1, 2, 3]
     collected = None
@@ -174,6 +181,7 @@ run_test(test_single_loop_iterate)
 
 # Chained inner loops (canary): inner loop 1 builds list, inner loop 2
 # iterates it, within the same outer body.
+
 
 def test_chain_inner_loops():
     groups = [[1, 2], [3, 4]]
@@ -195,6 +203,7 @@ run_test(test_chain_inner_loops)
 # Variable used between outer iterations (canary): shape must propagate
 # to outer loop body after inner loop completes.
 
+
 def test_use_between_outer_iters():
     groups = [[1, 2], [3, 4], [5]]
     result = None
@@ -212,8 +221,10 @@ run_test(test_use_between_outer_iters)
 
 # Nonlocal scope (canary): variable mutated via nonlocal inside nested loop.
 
+
 def test_nonlocal_var_in_nested_loop():
     result = None
+
     def inner():
         nonlocal result
         data = [[1, 2], [3]]
@@ -222,6 +233,7 @@ def test_nonlocal_var_in_nested_loop():
                 if result is None:
                     result = []
                 result.append(val)
+
     inner()
     print("nonlocal nested loop:", result, len(result))
 

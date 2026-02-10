@@ -32,6 +32,7 @@ def run_test(func):
 # 1. Attribute / method calls (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_method_append():
     """list.append() on variable built in nested loop."""
     data = [[1, 2], [3]]
@@ -49,6 +50,7 @@ def test_method_append():
 # 2. Subscript / indexing (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_list_indexing():
     """Indexing a list built in nested loop."""
     data = [[10, 20], [30]]
@@ -65,6 +67,7 @@ def test_list_indexing():
 # 3. Binary / augmented operations
 #    Wrong type -> wrong operator specialization or TypeError.
 # ---------------------------------------------------------------------------
+
 
 def test_list_concatenation():
     """List + list where left operand is from nested loop."""
@@ -160,6 +163,7 @@ def test_str_multiply():
 # 4. Boolean context / truthiness (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_truthiness_if():
     """if <var>: where var is built in nested loop."""
     data = [[1, 2], [3]]
@@ -179,6 +183,7 @@ def test_truthiness_if():
 # 5. Membership testing (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_in_list():
     """'val in list' where list is from nested loop."""
     data = [[1, 2], [3, 4]]
@@ -195,6 +200,7 @@ def test_in_list():
 # 6. Unpacking
 #    Optimizer must know the variable is iterable to allow unpacking.
 # ---------------------------------------------------------------------------
+
 
 def test_unpack_list():
     """Unpack a 2-element list built in nested loop."""
@@ -241,6 +247,7 @@ def test_unpack_in_loop():
 # 7. len() and builtins (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_len_list():
     """len() on list from nested loop."""
     data = [[1, 2], [3, 4, 5]]
@@ -256,6 +263,7 @@ def test_len_list():
 # ---------------------------------------------------------------------------
 # 8. Comparison specialization
 # ---------------------------------------------------------------------------
+
 
 def test_eq_comparison():
     """== comparison on variable from nested loop."""
@@ -292,6 +300,7 @@ def test_list_ordering():
 # 9. Iteration protocol (canary — currently passes)
 # ---------------------------------------------------------------------------
 
+
 def test_iter_next():
     """iter() + next() on variable from nested loop."""
     data = [[10, 20], [30]]
@@ -308,6 +317,7 @@ def test_iter_next():
 # ---------------------------------------------------------------------------
 # 10. Comprehension iteration
 # ---------------------------------------------------------------------------
+
 
 def test_list_comp_on_loop_var():
     """List comprehension over variable from nested loop."""
