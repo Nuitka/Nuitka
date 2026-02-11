@@ -40,7 +40,7 @@ def _get_packages_and_modules(settings):
     include_paths = _get_paths_from_patterns(settings.get("source-include", []))
     exclude_paths = _get_paths_from_patterns(settings.get("source-exclude", []))
     if settings.get("default-excludes", True):
-        exclude_paths |= _get_paths_from_patterns(["__pycache__", "*.pyc", "*.py"])
+        exclude_paths |= _get_paths_from_patterns(["__pycache__", "*.pyc", "*.pyo"])
 
     source_paths = list(include_paths - exclude_paths)
 
@@ -103,7 +103,7 @@ def get_uv_build_config():
     data_file_args = _get_data_files(settings)
 
     arguments = entry_point_args + package_args + data_file_args
-    for req in project.get("dependencies"):
+    for req in project.get("dependencies", []):
         arguments.append("--pyproject-requires=%s" % req)
 
     arguments.append("--output-folder-name=%s" % project.get("name"))
