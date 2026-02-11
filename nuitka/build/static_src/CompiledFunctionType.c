@@ -584,7 +584,15 @@ static PyObject *Nuitka_Function_get_builtins(PyObject *self, void *data) {
 
     PyThreadState *tstate = PyThreadState_GET();
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
-    return LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+    PyObject *builtins_module =
+        LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+    if (builtins_module == NULL) {
+        return NULL;
+    }
+
+    PyObject *builtins_dict = LOOKUP_ATTRIBUTE(tstate, builtins_module, const_str_plain___dict__);
+    Py_DECREF(builtins_module);
+    return builtins_dict;
 }
 #endif
 
