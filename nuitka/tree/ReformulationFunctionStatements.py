@@ -155,7 +155,7 @@ def _isUncompiledDecorator(decorator):
     if decorator_name == "nuitka_ignore":
         return True
 
-    # False alarm, pylint: disable=I021,unsupported-membership-test
+    # False alarm, pylint: disable=too-many-branches,unsupported-membership-test
     if decorator_name in getUncompiledDecoratorNames():
         return True
 
