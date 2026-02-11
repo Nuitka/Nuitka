@@ -180,6 +180,13 @@ def deletingClosureVariable():
 
 print("Using deleted non-local variable:", deletingClosureVariable())
 
+
+def emptyFunction():
+    pass
+
+
+print(emptyFunction.__builtins__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
