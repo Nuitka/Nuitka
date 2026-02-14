@@ -1,8 +1,8 @@
 <!--     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -->
 
 ---
-description: Create a Minimally Reproducible Example (MRE) from a larger file triggering
-  a Nuitka bug.
+description: Create a Minimally Reproducible Example (MRE) from a larger file 
+  triggering a Nuitka bug.
 ---
 
 # MRE Extraction Workflow
@@ -25,7 +25,9 @@ If the crash happens during optimization in standalone mode (often a Python trac
 1. **Check the output** for lines starting with `Problem with statement at ...`.
 2. **Identify the filename** mentioned in the next line.
 3. **Run Nuitka in module mode** on that specific file (e.g.,
-   `python bin/nuitka --mode=module path/to/ProblematicFile.py`).
+   `python bin/nuitka --mode=module --generate-c-only path/to/ProblematicFile.py`). *Note*: Use
+   `--generate-c-only` to skip the C compilation phase, which is unnecessary if the crash occurs
+   during Nuitka's optimization (Python) phase. This significantly speeds up the reduction cycle.
 4. **If the crash reproduces**, specific reduction in module mode as described below is the best
    path forward.
 
