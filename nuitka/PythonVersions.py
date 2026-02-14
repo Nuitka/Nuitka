@@ -512,6 +512,17 @@ def getSitePackageCandidateNames():
     return ("site-packages", "dist-packages", "vendor-packages")
 
 
+def isPythonIdentifier(name):
+    """
+    Check if a string is a valid Python identifier.
+    """
+    # Python 3 has isidentifier, Python 2 does not.
+    if str is not bytes:
+        return name.isidentifier()
+
+    return bool(re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name))
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
