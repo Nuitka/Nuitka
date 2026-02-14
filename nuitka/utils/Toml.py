@@ -43,7 +43,7 @@ def loadToml(filename):
     if toml_loads is None:
         return None
 
-    return toml_loads(getFileContents(filename))
+    return toml_loads(getFileContents(filename, encoding="utf-8"))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -32,10 +32,6 @@ build = "*"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[virtualenvs]
-create = true
-in-project = true
-
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be

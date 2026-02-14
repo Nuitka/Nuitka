@@ -621,6 +621,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def getTypeShape(self):
         return self.previous.getTypeShape()
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        self.previous.emitShapeAlternativesForLoop(emit, loop_node)
+
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 
@@ -909,6 +912,13 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # TODO: Need to consider loop_node by asking for emission from
+        # all self.previous.
+        # TODO: Also make the method abstract in ValueTraceBase, to avoid
+        # accidental missing overloads.
+        self.getTypeShape().emitAlternatives(emit)
 
     def getTypeShape(self):
         type_shape_found = None

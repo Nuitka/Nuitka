@@ -20,7 +20,7 @@ except ImportError:
     )
 
 
-def _get_entry_points(package):
+def _getEntryPoints(package):
     """Extract entry points from package."""
 
     arguments = []
@@ -42,7 +42,7 @@ def _get_entry_points(package):
     return arguments
 
 
-def _get_packages_and_modules(package):
+def _getPackagesAndModules(package):
     """Extract packages and modules."""
     arguments = []
     source_roots = set()
@@ -70,7 +70,7 @@ def _get_packages_and_modules(package):
     return arguments, package_dir
 
 
-def _get_data_files(package):
+def _getDataFiles(package):
     """Extract data files."""
     arguments = []
 
@@ -86,7 +86,7 @@ def _get_data_files(package):
     return arguments
 
 
-def get_poetry_config():
+def getPoetryConfig():
     try:
         # Avoid using pathlib.Path, execute with string path, which poetry core supports
         p = Factory().create_poetry(os.getcwd())
@@ -94,9 +94,9 @@ def get_poetry_config():
     except Exception as e:  # pylint: disable=broad-exception-caught
         sys.exit("Error, failed to load poetry project: %s" % e)
 
-    entry_point_args = _get_entry_points(package)
-    package_args, package_dir = _get_packages_and_modules(package)
-    data_file_args = _get_data_files(package)
+    entry_point_args = _getEntryPoints(package)
+    package_args, package_dir = _getPackagesAndModules(package)
+    data_file_args = _getDataFiles(package)
 
     arguments = entry_point_args + package_args + data_file_args
     for req in package.requires:
@@ -107,18 +107,23 @@ def get_poetry_config():
     result = {
         "package_dir": package_dir,
         "arguments": arguments,
+        "project_name": package.name,
     }
 
     return result
 
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) < 2:
         sys.exit("Usage: %s <output_file>" % sys.argv[0])
 
-    config = get_poetry_config()
+    config = getPoetryConfig()
     with open(sys.argv[1], "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
+
+
+if __name__ == "__main__":
+    main()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
