@@ -13,6 +13,8 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
+from .BuildPackageCommon import reportBuildError, setProjectName
+
 
 def getPoetryBuildConfiguration(logger):
     """
@@ -32,20 +34,19 @@ def getPoetryBuildConfiguration(logger):
             "extract_poetry_config",
         )
 
-        _stdout, _stderr, exit_code = executeProcess(
-            [
-                sys.executable,
-                script_filename,
-                dump_filename,
-            ],
+        command = (
+            sys.executable,
+            script_filename,
+            dump_filename,
+        )
+
+        stdout, stderr, exit_code = executeProcess(
+            command,
             stdin=False,
         )
 
         if exit_code != 0:
-            assert False, (_stdout, _stderr)
-            return logger.sysexit(
-                "Error, failed to extract build configuration via 'poetry'."
-            )
+            reportBuildError(logger, "poetry", command, stdout, stderr)
 
         config = loadJsonFromFilename(dump_filename)
 
@@ -54,6 +55,8 @@ def getPoetryBuildConfiguration(logger):
             addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
         else:
             addMainScriptDirectory(os.getcwd())
+
+    setProjectName(config.get("project_name"))
 
     return config.get("arguments", [])
 

@@ -22,13 +22,17 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Json import loadJsonFromFilename
 
+from .BuildPackageCommon import reportBuildError, setProjectName
+
 
 def getBuildBackendConfiguration(logger):
     """
     Get the build configuration from a project using the 'build' backend.
     """
     # This is "build" handling.
-    with withTemporaryDirectory("nuitka-project-dump") as temp_dir:
+    with withTemporaryDirectory(
+        prefix="nuitka-project-dump", logger=logger
+    ) as temp_dir:
 
         mock_site_packages_path = os.path.join(temp_dir, "site_packages")
         makePath(mock_site_packages_path)
@@ -42,15 +46,33 @@ def getBuildBackendConfiguration(logger):
 import sys
 import os
 
+try:
+    import wheel.bdist_wheel
+except ImportError:
+    sys.stderr.write("Wheel not importable in sitecustomize\\n")
+    os._exit(1)
+
 # Ensure nuitka is importable
 nuitka_path = %(nuitka_path)r
 if nuitka_path not in sys.path:
     sys.path.insert(0, nuitka_path)
+    added_path = True
+else:
+    added_path = False
+
+try:
+    from nuitka.distutils.DistutilsCommands import build as nuitka_build
+except ImportError:
+    sys.stderr.write("Nuitka not importable in sitecustomize\\n")
+    os._exit(1)
+
+if added_path:
+    del sys.path[0]
+
 
 import setuptools
 import distutils.core
 import setuptools.command.egg_info
-from nuitka.distutils.DistutilsCommands import build as nuitka_build
 
 # Patch setuptools
 _old_setuptools_setup = setuptools.setup
@@ -102,15 +124,19 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
             }
         ):
             with withDirectoryChange(temp_dir):
-                _stdout, _stderr, exit_code = executeProcess(
-                    [
-                        sys.executable,
-                        "-m",
-                        "build",
-                        "--no-isolation",
-                        "--skip-dependency-check",
-                        project_dir,
-                    ],
+                command = (
+                    sys.executable,
+                    "-W",
+                    "ignore",
+                    "-m",
+                    "build",
+                    "--no-isolation",
+                    "--skip-dependency-check",
+                    project_dir,
+                )
+
+                stdout, stderr, exit_code = executeProcess(
+                    command,
                     stdin=False,
                 )
 
@@ -118,10 +144,7 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
         # without producing a wheel, causing build frontend to complain. But if
         # we have the dump file, we are good.
         if exit_code == 0 or not os.path.exists(dump_filename):
-            assert False, _stdout
-            return logger.sysexit(
-                "Error, failed to extract build configuration via 'python -m build'."
-            )
+            reportBuildError(logger, "python -m build", command, stdout, stderr)
 
         config = loadJsonFromFilename(dump_filename)
 
@@ -130,6 +153,8 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
             addMainScriptDirectory(os.path.join(os.getcwd(), package_dir.get("")))
         else:
             addMainScriptDirectory(os.getcwd())
+
+    setProjectName(config.get("project_name"))
 
     return config.get("arguments", [])
 

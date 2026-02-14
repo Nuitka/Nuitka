@@ -141,7 +141,8 @@ def _handleCase(python_version, nuitka_dir, filename):
         "venv_cpython", python=getPythonBinary(), logger=test_logger
     ) as venv:
         venv.runCommand(
-            "pip install setuptools build wheel poetry-core", style="test-prepare"
+            "pip install setuptools build wheel poetry-core uv_build",
+            style="test-prepare",
         )
 
         if is_pyproject:
@@ -214,7 +215,10 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_nuitka", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        venv.runCommand("pip install setuptools build wheel poetry-core")
+        venv.runCommand(
+            "pip install setuptools build wheel poetry-core uv_build",
+            style="test-prepare",
+        )
 
         venv.runCommand(
             commands=['cd "%s"' % nuitka_dir, "python setup.py install"],
