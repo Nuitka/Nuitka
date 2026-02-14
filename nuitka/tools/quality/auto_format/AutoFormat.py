@@ -401,6 +401,7 @@ def autoFormatFile(
                     ".containerfile",
                     ".containerfile.in",
                     ".1",
+                    ".pth",
                 )
             ) or os.path.basename(filename) in (
                 "changelog",
