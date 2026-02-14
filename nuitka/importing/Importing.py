@@ -895,6 +895,16 @@ def _findModuleInPath(module_name, logger):
     if package_name is None and isBuiltinModuleName(module_name):
         return module_name, None, "built-in"
 
+    # These are existing in the standard library but are effectively inline
+    # already and should be avoided to look at.
+    if package_name == "importlib" and module_name in (
+        "_bootstrap",
+        "_bootstrap_external",
+    ):
+        candidate = package_name.getChildNamed(module_name)
+        if candidate.asString() in sys.modules:
+            return candidate, None, "built-in"
+
     search_path = getPackageSearchPath(package_name)
 
     if logger is not None:
