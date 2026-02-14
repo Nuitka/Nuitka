@@ -875,16 +875,14 @@ class StatementAssignmentVariableHardValue(
 Assignment raises exception in assigned value, removed assignment.""",
             )
 
+        current_trace = trace_collection.getVariableCurrentTrace(variable)
+
         # If the variable was already assigned to the same value, we can drop this.
-        if (
-            variable.isModuleVariable()
-            and self.variable_trace.getPrevious().isAssignTraceVeryTrusted()
-            and (
-                source.isExpressionImportModuleHard()
-                or source.isExpressionImportModuleFixed()
-            )
+        if current_trace.isAssignTraceVeryTrusted() and (
+            source.isExpressionImportModuleHard()
+            or source.isExpressionImportModuleFixed()
         ):
-            prev_assign_node = self.variable_trace.getPrevious().getAssignNode()
+            prev_assign_node = current_trace.getAssignNode()
             prev_source = prev_assign_node.subnode_source
 
             assert (
@@ -895,7 +893,9 @@ Assignment raises exception in assigned value, removed assignment.""",
 
             if prev_source.getValueName() == source.getValueName():
                 trace_collection.updateVeryTrustedModuleVariable(
-                    variable, source, prev_source
+                    variable,
+                    old_node=source,
+                    new_node=prev_source,
                 )
 
                 return (

@@ -143,7 +143,9 @@ another discoverable Python >= 3.5 on your system."""
             else:
                 onefile_logger.warning(
                     """\
-Onefile mode cannot compress without 'zstandard' package installed."""
+Onefile mode cannot compress without 'zstandard' package installed You \
+probably should depend on 'Nuitka[onefile]' rather than 'Nuitka' which \
+among other things depends on it."""
                 )
 
     return _compressor_python

@@ -1,36 +1,17 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-[tool.poetry]
-name = "example-2-pyproject"
-version = "1.0"
-description = "Nuitka distutils test case: example_2_pyproject"
-authors = ["Nuitka Contributors <contributors@nuitka.invalid>"]
-homepage = "https://nuitka.net"
-packages = [
-    {include = "main.py", from = "src" },
-]
-keywords = [
-    "Hello",
-]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: Other/Proprietary License",
-    "Operating System :: OS Independent"
-]
-
-[tool.poetry.dependencies]
-python = "*"
-
-[tool.poetry.scripts]
-runner = "main:main"
-
-[tool.poetry.dev-dependencies]
-nuitka = "*"
-build = "*"
-
 [build-system]
-requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
-build-backend = "nuitka.distutils.Build"
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[project]
+name = "example_uv"
+version = "0.1.0"
+description = "Example UV project for Nuitka testing"
+authors = [{name = "Nuitka User", email = "user@example.com"}]
+
+[project.scripts]
+runner = "example_uv.runner:main"
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

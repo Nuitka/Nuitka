@@ -3775,7 +3775,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 11103e47
+- module-name: 'paddle' # checksum: 1b5d195c
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -3784,6 +3784,7 @@
           - 'mkl'
           - 'war'
           - 'common'
+          - 'phi'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:
@@ -3884,7 +3885,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: b4c6897a
+- module-name: 'pandas' # checksum: 47010086
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3897,6 +3898,9 @@
         'pandas.core._numba.extensions': 'no numba acceleration'
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
+    - description: 'remove getrefcount usage'
+      global_replacements_plain:
+        'if sys.getrefcount(': 'if False and sys.getrefcount('
 
 - module-name: 'pandas._libs' # checksum: 53e16a27
   implicit-imports:

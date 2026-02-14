@@ -259,10 +259,19 @@ def getBuildConfigurationOptions(logger):
             build_backend = build_system_data.get("build-backend", "")
 
             # Check if it is a "setuptools" project
-            if build_backend in ("", "setuptools.build_meta", "nuitka.distutils.Build"):
+            if build_backend in (
+                "",
+                "setuptools.build_meta",
+                "nuitka.distutils.Build",
+            ):
                 from .BuildPackage import getBuildBackendConfiguration
 
                 return getBuildBackendConfiguration(logger)
+
+            if build_backend == "uv_build":
+                from .UvBuild import getUvBuildConfiguration
+
+                return getUvBuildConfiguration(logger, pyproject_data)
 
             return logger.sysexit(
                 "Error, unrecognized build-backend '%s' in 'pyproject.toml'."
