@@ -23,6 +23,7 @@ from nuitka.options.Options import (
     getFcfProtectionMode,
     getFileVersion,
     getJobLimit,
+    getLinuxConsoleMode,
     getLtoMode,
     getMacOSTargetArch,
     getMsvcVersion,
@@ -106,6 +107,7 @@ from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
     isElfUsingPlatform,
+    isLinux,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
@@ -759,6 +761,9 @@ def getCommonSconsOptions():
     # for accelerated mode still.
     if shallCreateAppBundle():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
+
+    if isLinux():
+        scons_options["linux_app_console_mode"] = getLinuxConsoleMode()
 
     return scons_options, env_values
 

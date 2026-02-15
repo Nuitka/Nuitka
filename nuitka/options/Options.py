@@ -2557,6 +2557,11 @@ def getLinuxIconPaths():
     return _checkedIconPaths(result)
 
 
+def getLinuxConsoleMode():
+    """*str* console mode for Linux app bundles, derived from ``--linux-app-console-mode`` value"""
+    return options.linux_app_console_mode
+
+
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
     return _checkedIconPaths(
