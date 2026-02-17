@@ -2439,7 +2439,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                         return sysexit(
                             line_number,
                             "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
-                            % (val_expr, expanded, e)
+                            % (val_expr, expanded, e),
                         )
 
                 # Likely mistakes, e.g. evaluating to a module object, class, or
@@ -2452,7 +2452,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                         """\
 Error, 'nuitka-project-set' expression %r (expanded to %r) \
 yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."""
-                        % (val_expr, expanded, type(r).__name__, r)
+                        % (val_expr, expanded, type(r).__name__, r),
                     )
 
                 custom_values[key] = r
