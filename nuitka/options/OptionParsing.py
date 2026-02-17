@@ -2250,7 +2250,7 @@ class _RetainingFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwargs)
 
 
-def _expandProjectArg(arg, filename_arg, for_eval, custom_values=None):
+def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
     def wrap(value):
         if for_eval:
             return repr(value)
@@ -2302,6 +2302,9 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     """
 
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
+    # The returns are not real, but make exception raises explicit to bytecode and pylint.
+    # pylint: disable=too-many-return-statements
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -2365,7 +2368,10 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 arg = arg[:-1].strip()
 
                 expanded = _expandProjectArg(
-                    arg, filename_arg, for_eval=True, custom_values=custom_values
+                    arg=arg,
+                    filename_arg=filename_arg,
+                    for_eval=True,
+                    custom_values=custom_values,
                 )
 
                 with withNoSyntaxWarning():
@@ -2409,6 +2415,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 key = key.strip()
                 val_expr = val_expr.strip()
 
+                # TODO: Use isPythonIdentifier starting with 4.1 development for Python2 compatibility.
                 if not key.isidentifier():
                     return sysexit(
                         line_number,
@@ -2417,7 +2424,10 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                     )
 
                 expanded = _expandProjectArg(
-                    val_expr, filename_arg, for_eval=True, custom_values=custom_values
+                    arg=val_expr,
+                    filename_arg=filename_arg,
+                    for_eval=True,
+                    custom_values=custom_values,
                 )
 
                 with withNoSyntaxWarning():
@@ -2425,17 +2435,23 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                         r = eval(  # We allow the user to run any code, pylint: disable=eval-used
                             expanded
                         )
-                    except Exception as e:
-                        sys.exit(
+                    except Exception as e:  # pylint: disable=broad-except
+                        return sysexit(
+                            line_number,
                             "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
                             % (val_expr, expanded, e)
                         )
 
-                # Likely mistakes, e.g. evaluating to a module object, class, or unformattable type.
-                # We enforce that the returned value is a basic primitive type.
+                # Likely mistakes, e.g. evaluating to a module object, class, or
+                # not type. We enforce that the returned value is a basic
+                # primitive type. TODO: That's actually a valid concern that
+                # should have a test too.
                 if not isinstance(r, (str, int, float, bool)):
-                    sys.exit(
-                        "Error, 'nuitka-project-set' expression %r (expanded to %r) yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."
+                    return sysexit(
+                        line_number,
+                        """\
+Error, 'nuitka-project-set' expression %r (expanded to %r) \
+yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."""
                         % (val_expr, expanded, type(r).__name__, r)
                     )
 
@@ -2448,7 +2464,10 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
                 result.append(
                     _expandProjectArg(
-                        arg, filename_arg, for_eval=False, custom_values=custom_values
+                        arg=arg,
+                        filename_arg=filename_arg,
+                        for_eval=False,
+                        custom_values=custom_values,
                     )
                 )
             else:
