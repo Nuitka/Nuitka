@@ -32,14 +32,24 @@ class ExpressionStringConcatenation(
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
         # of mergeable types.
+
+        # The optimization and checks require a few cases, pylint: disable=too-many-branches
         streaks = []
 
         start = None
 
         values = self.subnode_values
 
+        exception_raised = False
+
         for count, value in enumerate(values):
-            if value.isCompileTimeConstant() and value.hasShapeStrOrUnicodeExact():
+            has_shape = value.hasShapeStrOrUnicodeExact()
+
+            if not has_shape and not exception_raised:
+                trace_collection.onExceptionRaiseExit(BaseException)
+                exception_raised = True
+
+            if value.isCompileTimeConstant() and has_shape:
                 if start is None:
                     start = count
             else:
@@ -85,6 +95,20 @@ class ExpressionStringConcatenation(
             )
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        for value in self.subnode_values:
+            if value.mayRaiseException(exception_type):
+                return True
+
+        return self.mayRaiseExceptionOperation()
+
+    def mayRaiseExceptionOperation(self):
+        for value in self.subnode_values:
+            if not value.hasShapeStrOrUnicodeExact():
+                return True
+
+        return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
