@@ -543,7 +543,6 @@ functionIterNext()
 functionListCompOnLoopVar()
 functionSetCompOnLoopVar()
 
-
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
