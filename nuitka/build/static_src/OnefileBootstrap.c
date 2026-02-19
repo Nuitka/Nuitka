@@ -105,6 +105,10 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
+#if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
+#include "extra_onefile_includes.h"
+#endif
+
 #include "HelpersChecksumTools.c"
 #include "HelpersEnvironmentVariablesSystem.c"
 #include "HelpersFilesystemPaths.c"
@@ -1043,6 +1047,8 @@ int main(int argc, char **argv) {
 #if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
     inheritAttachedConsole();
 #endif
+
+    // NUITKA_ONEFILE_INIT_EARLY(argc, argv);
 
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
