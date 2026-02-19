@@ -1146,7 +1146,7 @@ int main(int argc, char **argv) {
     }
 
 #if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
-    wprintf(L"payload path: '%lS'\n", payload_path);
+    wprintf(L"payload path: '" FILENAME_FORMAT_STR "'\n", payload_path);
 #endif
 
     if (process_role == NULL) {
