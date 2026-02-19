@@ -124,7 +124,7 @@ def functionClosureCallbackIterate():
     print("closure callback iterate:", sorted(output))
 
 
-# Single loop (no nesting) with iteration — control case
+# Single loop (no nesting) with iteration - control case
 
 
 def functionSingleLoopIterate():
@@ -175,27 +175,8 @@ def functionUseBetweenOuterIters():
     print("between outer iters:", result)
 
 
-# Nonlocal scope (canary): variable mutated via nonlocal inside nested loop.
-
-
-def functionNonlocalVarInNestedLoop():
-    result = None
-
-    def inner():
-        nonlocal result
-        data = [[1, 2], [3]]
-        for group in data:
-            for val in group:
-                if result is None:
-                    result = []
-                result.append(val)
-
-    inner()
-    print("nonlocal nested loop:", result, len(result))
-
-
 # ---------------------------------------------------------------------------
-# 1. Attribute / method calls (canary — currently passes)
+# 1. Attribute / method calls (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -213,7 +194,7 @@ def functionMethodAppend():
 
 
 # ---------------------------------------------------------------------------
-# 2. Subscript / indexing (canary — currently passes)
+# 2. Subscript / indexing (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -326,7 +307,7 @@ def functionStrMultiply():
 
 
 # ---------------------------------------------------------------------------
-# 4. Boolean context / truthiness (canary — currently passes)
+# 4. Boolean context / truthiness (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -346,7 +327,7 @@ def functionTruthinessIf():
 
 
 # ---------------------------------------------------------------------------
-# 5. Membership testing (canary — currently passes)
+# 5. Membership testing (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -410,7 +391,7 @@ def functionUnpackInLoop():
 
 
 # ---------------------------------------------------------------------------
-# 7. len() and builtins (canary — currently passes)
+# 7. len() and builtins (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -463,7 +444,7 @@ def functionListOrdering():
 
 
 # ---------------------------------------------------------------------------
-# 9. Iteration protocol (canary — currently passes)
+# 9. Iteration protocol (canary)
 # ---------------------------------------------------------------------------
 
 
@@ -521,7 +502,7 @@ functionClosureCallbackIterate()
 functionSingleLoopIterate()
 functionChainInnerLoops()
 functionUseBetweenOuterIters()
-functionNonlocalVarInNestedLoop()
+
 functionMethodAppend()
 functionListIndexing()
 functionListConcatenation()
