@@ -27,12 +27,12 @@ def generateAssignmentAttributeCode(statement, emit, context):
     attribute_name = statement.getAttributeName()
     value = statement.subnode_source
 
-    value_name = context.allocateTempName("assattr_value")
+    value_name = context.allocateTempName("ass_attr_value")
     generateExpressionCode(
         to_name=value_name, expression=value, emit=emit, context=context
     )
 
-    target_name = context.allocateTempName("assattr_target")
+    target_name = context.allocateTempName("ass_attr_target")
     generateExpressionCode(
         to_name=target_name, expression=lookup_source, emit=emit, context=context
     )
@@ -67,7 +67,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
 
 def generateDelAttributeCode(statement, emit, context):
-    target_name = context.allocateTempName("attrdel_target")
+    target_name = context.allocateTempName("attr_del_target")
 
     generateExpressionCode(
         to_name=target_name,
