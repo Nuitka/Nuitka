@@ -658,7 +658,7 @@ extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #endif
 
 #if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
-#include "extra_includes.h"
+#include "extra_python_includes.h"
 #endif
 
 #endif
