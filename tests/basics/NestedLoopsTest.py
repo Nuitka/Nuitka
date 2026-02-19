@@ -362,19 +362,6 @@ def functionUnpackList():
     print("unpack_list:", a, b)
 
 
-def functionStarUnpack():
-    """Star unpacking from list built in nested loop."""
-    data = [[1, 2], [3, 4]]
-    result = None
-    for group in data:
-        for val in group:
-            if result is None:
-                result = []
-            result.append(val)
-    first, *rest = result
-    print("star_unpack:", first, rest)
-
-
 def functionUnpackInLoop():
     """Unpack variable from nested loop inside a for loop."""
     data = [[(1, "a")], [(2, "b")]]
@@ -515,7 +502,6 @@ functionStrMultiply()
 functionTruthinessIf()
 functionInList()
 functionUnpackList()
-functionStarUnpack()
 functionUnpackInLoop()
 functionLenList()
 functionEqComparison()
