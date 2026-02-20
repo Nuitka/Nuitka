@@ -1,14 +1,14 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Reference counting tests for Python3.6 or higher.
+"""Reference counting tests for Python3.12 or higher.
 
-These contain functions that do specific things, where we have a suspect
-that references may be lost or corrupted. Executing them repeatedly and
-checking the reference count is how they are used.
+These contain functions that do specific things, where we have a suspect that
+references may be lost or corrupted. Executing them repeatedly and checking the
+reference count is how they are used.
 
-These are Python3.6 specific constructs, that will give a SyntaxError or
-not be relevant on older versions.
+These are Python3.12 specific constructs, that will give a SyntaxError or not be
+relevant on older versions.
 """
 
 import os
