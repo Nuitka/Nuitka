@@ -2250,7 +2250,7 @@ class _RetainingFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwargs)
 
 
-def _expandProjectArg(arg, filename_arg, for_eval):
+def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
     def wrap(value):
         if for_eval:
             return repr(value)
@@ -2279,6 +2279,10 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     if isWin32OrPosixWindows():
         values["WindowsRelease"] = getWindowsRelease()
 
+    if custom_values:
+        for k, v in custom_values.items():
+            values[k] = wrap(v)
+
     values.update(
         (
             (run_time_variable_name, "{%s}" % run_time_variable_name)
@@ -2298,6 +2302,9 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     """
 
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
+    # The returns are not real, but make exception raises explicit to bytecode and pylint.
+    # pylint: disable=too-many-return-statements
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -2320,6 +2327,7 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
     cond_level = -1
 
     result = []
+    custom_values = {}
 
     for line_number, line in enumerate(contents_by_line):
         match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
@@ -2359,7 +2367,12 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
                 arg = arg[:-1].strip()
 
-                expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
+                expanded = _expandProjectArg(
+                    arg=arg,
+                    filename_arg=filename_arg,
+                    for_eval=True,
+                    custom_values=custom_values,
+                )
 
                 with withNoSyntaxWarning():
                     r = eval(  # We allow the user to run any code, pylint: disable=eval-used
@@ -2391,13 +2404,72 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
                 expect_block = True
                 cond_level = level
+            elif command == "-set":
+                if "=" not in arg:
+                    return sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-set' requires the format 'KEY = expression'.",
+                    )
+
+                key, val_expr = arg.split("=", 1)
+                key = key.strip()
+                val_expr = val_expr.strip()
+
+                # TODO: Use isPythonIdentifier starting with 4.1 development for Python2 compatibility.
+                if not key.isidentifier():
+                    return sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-set' key '%s' is not a valid Python identifier."
+                        % key,
+                    )
+
+                expanded = _expandProjectArg(
+                    arg=val_expr,
+                    filename_arg=filename_arg,
+                    for_eval=True,
+                    custom_values=custom_values,
+                )
+
+                with withNoSyntaxWarning():
+                    try:
+                        r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                            expanded
+                        )
+                    except Exception as e:  # pylint: disable=broad-except
+                        return sysexit(
+                            line_number,
+                            "Error, 'nuitka-project-set' expression %r (expanded to %r) failed to evaluate: %s"
+                            % (val_expr, expanded, e),
+                        )
+
+                # Likely mistakes, e.g. evaluating to a module object, class, or
+                # not type. We enforce that the returned value is a basic
+                # primitive type. TODO: That's actually a valid concern that
+                # should have a test too.
+                if not isinstance(r, (str, int, float, bool)):
+                    return sysexit(
+                        line_number,
+                        """\
+Error, 'nuitka-project-set' expression %r (expanded to %r) \
+yielded unsupported type '%s' (value: %r). Expected string, number, or boolean."""
+                        % (val_expr, expanded, type(r).__name__, r),
+                    )
+
+                custom_values[key] = r
             elif command == "":
                 arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
 
                 if not arg:
                     continue
 
-                result.append(_expandProjectArg(arg, filename_arg, for_eval=False))
+                result.append(
+                    _expandProjectArg(
+                        arg=arg,
+                        filename_arg=filename_arg,
+                        for_eval=False,
+                        custom_values=custom_values,
+                    )
+                )
             else:
                 assert False, (command, line)
 
