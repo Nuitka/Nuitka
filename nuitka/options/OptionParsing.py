@@ -474,7 +474,9 @@ This mode is inferred from your use of the spec. If it contains
 runtime dependent paths, "auto" resolves to "temporary" which
 will make sure to remove the unpacked binaries after execution,
 and cached will not remove it and see to reuse its contents
-during next execution for faster startup times.""",
+during next execution for faster startup times. Using it also
+changes the default tempdir spec to be in the cache directory.
+""",
 )
 
 

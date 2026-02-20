@@ -71,7 +71,7 @@ Onefile options:
 Use this as a folder to unpack to in onefile mode. Defaults to '{TEMP}/onefile_{PID}_{TIME}', i.e. user temporary directory and being non\-static it's removed. Use e.g. a string like '{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good static cache path, this will then not be removed.
 .TP
 \fB\-\-onefile\-cache\-mode\fR=\fI\,ONEFILE_CACHED_MODE\/\fR
-This mode is inferred from your use of the spec. If it contains runtime dependent paths, "auto" resolves to "temporary" which will make sure to remove the unpacked binaries after execution, and cached will not remove it and see to reuse its contents during next execution for faster startup times.
+This mode is inferred from your use of the spec. If it contains runtime dependent paths, "auto" resolves to "temporary" which will make sure to remove the unpacked binaries after execution, and cached will not remove it and see to reuse its contents during next execution for faster startup times. Using it also changes the default tempdir spec to be in the cache directory.
 .TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
 When stopping the child, e.g. due to CTRL\-C or shutdown, etc. the Python code gets a "KeyboardInterrupt", that it may handle e.g. to flush data. This is the amount of time in ms, before the child is killed in a hard way. The special value 'infinity' disables this timeout. Unit is ms, and default 5000.
