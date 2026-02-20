@@ -811,7 +811,7 @@ def buildClassNode3(provider, node, source_ref):
         class_creation_function.qualname_setup = node.name, qualname_assign
 
     tmp_variables = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
-    if node.bases:
+    if has_bases:
         tmp_variables.insert(0, tmp_bases)
         if needs_orig_bases:
             tmp_variables.insert(0, tmp_bases_orig)
