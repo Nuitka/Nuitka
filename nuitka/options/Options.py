@@ -182,19 +182,19 @@ def checkPathSpec(value, arg_name, allow_disable):
 
     if "{COMPANY}" in value and not getCompanyName():
         return options_logger.sysexit(
-            "Using value '{COMPANY}' in '%s=%s' value without being specified."
+            "Using value '{COMPANY}' in '%s=%s' value without '--company-name' being specified."
             % (arg_name, value)
         )
 
     if "{PRODUCT}" in value and not getProductName():
         return options_logger.sysexit(
-            "Using value '{PRODUCT}' in '%s=%s' value without being specified."
+            "Using value '{PRODUCT}' in '%s=%s' value without '--product-name' being specified."
             % (arg_name, value)
         )
 
     if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
         return options_logger.sysexit(
-            "Using value '{VERSION}' in '%s=%s' value without being specified."
+            "Using value '{VERSION}' in '%s=%s' value without '--product-version' or '--file-version' being specified."
             % (arg_name, value)
         )
 
@@ -275,7 +275,7 @@ below them."""
 
 def _checkOnefileTargetSpec():
     options.onefile_tempdir_spec = checkPathSpec(
-        options.onefile_tempdir_spec,
+        getOnefileTempDirSpec(),
         arg_name="--onefile-tempdir-spec",
         allow_disable=False,
     )
@@ -313,6 +313,9 @@ unless you are targeting a very well known environment, anchoring \
 it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
+
+    # Trigger checks done in that function as well.
+    isOnefileTempDirMode()
 
 
 def _getVersionInformationValues():
@@ -734,8 +737,8 @@ Please use an 'arm64' Python to create it."""
     if options.onefile_tempdir_spec:
         _warnOnefileOnlyOption("--onefile-tempdir-spec")
 
-        if options.is_onefile:
-            _checkOnefileTargetSpec()
+    if options.is_onefile:
+        _checkOnefileTargetSpec()
 
     # Check onefile splash image
     if options.splash_screen_image:
@@ -2411,6 +2414,21 @@ def isAcceleratedMode():
     return not isStandaloneMode() and not shallMakeModule()
 
 
+def isDynamicSpec(spec):
+    """Check if a spec contains dynamic values that change every run."""
+    for candidate in (
+        "{PID}",
+        "{TIME}",
+        "{PROGRAM}",
+        "{PROGRAM_BASE}",
+        "{PROGRAM_DIR}",
+    ):
+        if candidate in spec:
+            return True
+
+    return False
+
+
 def isOnefileTempDirMode():
     """:returns: bool derived from ``--onefile-tempdir-spec`` and ``--onefile-cache-mode``
 
@@ -2427,18 +2445,20 @@ def isOnefileTempDirMode():
     if options.onefile_cached_mode == "auto":
         spec = getOnefileTempDirSpec()
 
-        for candidate in (
-            "{PID}",
-            "{TIME}",
-            "{PROGRAM}",
-            "{PROGRAM_BASE}",
-            "{PROGRAM_DIR}",
-        ):
-            if candidate in spec:
-                return True
+        if isDynamicSpec(spec):
+            return True
+
     elif options.onefile_cached_mode == "temporary":
         return True
     elif options.onefile_cached_mode == "cached":
+        spec = getOnefileTempDirSpec()
+
+        if isDynamicSpec(spec):
+            return options_logger.sysexit(
+                "Error, run-time dynamic spec '%s' cannot be used with cached mode."
+                % spec
+            )
+
         return False
     else:
         assert False, options.onefile_cached_mode
@@ -2488,9 +2508,15 @@ def getPythonPgoUnseenModulePolicy():
 
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
-    result = (
-        options.onefile_tempdir_spec or "{TEMP}" + os.path.sep + "onefile_{PID}_{TIME}"
-    )
+    result = options.onefile_tempdir_spec
+
+    if result is None:
+        if options.onefile_cached_mode in ("auto", "temporary"):
+            parts = ("{TEMP}", "onefile_{PID}_{TIME}")
+        else:
+            parts = ("{CACHE_DIR}", "{COMPANY}", "{PRODUCT}", "{VERSION}")
+
+        return os.path.sep.join(parts)
 
     return result
 
@@ -2629,19 +2655,27 @@ def getWindowsVersionInfoStrings():
     return result
 
 
-def _parseVersionNumber(value):
+def _parseVersionNumber(value, option_name):
     if value:
         parts = value.split(".")
 
-        assert len(parts) <= 4
+        try:
+            if len(parts) > 4:
+                raise ValueError
 
-        while len(parts) < 4:
-            parts.append("0")
+            while len(parts) < 4:
+                parts.append("0")
 
-        r = tuple(int(d) for d in parts)
-        assert min(r) >= 0
-        assert max(r) < 2**16
-        return r
+            r = tuple(int(d) for d in parts)
+
+            if any(part < 0 or part > 65535 for part in r):
+                raise ValueError
+        except ValueError:
+            return options_logger.sysexit(
+                "Invalid version number %s='%s'." % (option_name, value)
+            )
+        else:
+            return r
     else:
         return None
 
@@ -2653,7 +2687,7 @@ def getProductVersion():
 
 def getProductVersionTuple():
     """:returns: tuple of 4 ints or None, derived from ``--product-version``"""
-    return _parseVersionNumber(options.product_version)
+    return _parseVersionNumber(options.product_version, "--product-version")
 
 
 def getFileVersion():
@@ -2663,7 +2697,7 @@ def getFileVersion():
 
 def getFileVersionTuple():
     """:returns tuple of 4 ints or None, derived from ``--file-version``"""
-    return _parseVersionNumber(options.file_version)
+    return _parseVersionNumber(options.file_version, "--file-version")
 
 
 def getProductFileVersion():
