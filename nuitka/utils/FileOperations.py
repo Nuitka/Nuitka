@@ -10,10 +10,10 @@ stuff. It will also frequently add sorting for determinism.
 
 from __future__ import print_function
 
-import codecs
 import errno
 import fnmatch
 import glob
+import io
 import os
 import pickle
 import shutil
@@ -1128,7 +1128,7 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if python_version >= 0x370:
         mode = mode.replace("U", "")
 
-    return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    return io.open(filename, mode, encoding=encoding, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):
