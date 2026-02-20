@@ -2048,7 +2048,7 @@
         - '*.csv'
         - '*.jar'
 
-- module-name: 'h5py' # checksum: 5a8caf97
+- module-name: 'h5py' # checksum: a1a03058
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
@@ -2059,6 +2059,9 @@
         'from .tests import run_tests': ''
       change_function:
         'run_tests': "'(lambda args=None: None)'"
+  implicit-imports:
+    - depends:
+        - 'h5py._npystrings'
 
 - module-name: 'h5py.h5' # checksum: 4247d58a
   implicit-imports:
