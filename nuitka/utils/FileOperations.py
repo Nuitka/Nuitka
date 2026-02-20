@@ -14,6 +14,7 @@ import codecs
 import errno
 import fnmatch
 import glob
+import io
 import os
 import pickle
 import shutil
@@ -1128,7 +1129,10 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if python_version >= 0x370:
         mode = mode.replace("U", "")
 
-    return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    if str is bytes:
+        return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    else:
+        return io.open(filename, mode, encoding=encoding, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):
