@@ -5854,6 +5854,11 @@
     - depends:
         - 'scipy._lib.messagestream'
 
+- module-name: 'scipy._lib._ccallback' # checksum: 41e6ce11
+  implicit-imports:
+    - depends:
+        - 'scipy._cyutility'
+
 - module-name: 'scipy._lib._docscrape' # checksum: e4a58ca7
   anti-bloat:
     - description: 'remove sphinx reference'
