@@ -30,6 +30,55 @@ def someGenericFunctionShadowingGlobal[T]():
 someGenericFunctionShadowingGlobal()
 print(T)
 
+
+print("Function in a class with private name")
+
+
+class someClassWithPrivateArgumentNames:
+    def f(self, *, __kw: 1):
+        pass
+
+
+print(someClassWithPrivateArgumentNames.f.__annotations__)
+
+
+def simpleExample[T](test: T) -> T:
+    print(test)
+    return test
+
+
+simpleExample(42)
+
+try:
+    print(T)
+except NameError:
+    print("good")
+
+try:
+
+    def weirdExample[T](a: T = T):
+        print(a)
+
+except NameError as err:
+    print(err)
+
+try:
+
+    def weirdExample[*Ts](a: Ts = Ts):
+        print(a)
+
+except NameError as err:
+    print(err)
+
+try:
+
+    def weirdExample[**P](a: P = P):
+        print(a)
+
+except NameError as err:
+    print(err)
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
