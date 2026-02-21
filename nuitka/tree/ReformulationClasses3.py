@@ -68,7 +68,10 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatements,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import (
     StatementReturn,
     makeStatementReturnConstant,
@@ -106,6 +109,7 @@ from .ReformulationTryFinallyStatements import (
 )
 from .TreeHelpers import (
     buildFrameNode,
+    buildNode,
     buildNodeTuple,
     extractDocFromBody,
     getKind,
@@ -182,6 +186,15 @@ def buildClassNode3(provider, node, source_ref):
         temp_scope=temp_scope, name="prepared", temp_type="object"
     )
 
+    type_variables = []
+    if python_version >= 0x3C0 and node.type_params:
+        for type_param in node.type_params:
+            temp_var = outline_body.allocateTempVariable(
+                temp_scope=temp_scope, name="type_variable", temp_type="object"
+            )
+            data = (type_param, temp_var)
+            type_variables.append(data)
+
     # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
@@ -202,28 +215,11 @@ def buildClassNode3(provider, node, source_ref):
     class_locals_scope.registerProvidedVariable(class_variable)
 
     if python_version >= 0x3C0:
-        type_param_nodes = node.type_params
-    else:
-        type_param_nodes = None
-
-    if type_param_nodes is not None:
         type_params_expressions = buildNodeTuple(
-            provider=outline_body, nodes=type_param_nodes, source_ref=source_ref
+            provider=outline_body, nodes=node.type_params, source_ref=source_ref
         )
     else:
         type_params_expressions = ()
-
-    type_variables = []
-
-    for type_params_expression in type_params_expressions:
-        type_variable = class_locals_scope.getLocalVariable(
-            owner=class_creation_function,
-            variable_name=type_params_expression.name,
-        )
-
-        class_locals_scope.registerProvidedVariable(type_variable)
-
-        type_variables.append(type_variable)
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
@@ -281,17 +277,6 @@ def buildClassNode3(provider, node, source_ref):
         ),
     ]
 
-    for type_variable, type_params_expression in zip(
-        type_variables, type_params_expressions
-    ):
-        statements.append(
-            makeStatementAssignmentVariable(
-                variable=type_variable,
-                source=type_params_expression.makeClone(),
-                source_ref=source_ref,
-            )
-        )
-
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
@@ -342,6 +327,19 @@ def buildClassNode3(provider, node, source_ref):
                 source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
                 ),
+                source_ref=source_ref,
+            )
+        )
+
+    for type_param, type_param_var in type_variables:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                source=ExpressionTempVariableRef(
+                    variable=type_param_var,
+                    source_ref=source_ref,
+                ),
+                variable_name=type_param.name,
                 source_ref=source_ref,
             )
         )
@@ -506,9 +504,38 @@ def buildClassNode3(provider, node, source_ref):
     statements = new_statements
 
     if has_bases:
-        bases_value = _buildBasesTupleCreationNode(
-            provider=provider, elements=node.bases, source_ref=source_ref
-        )
+        if type_variables:
+            annotation_outline = ExpressionOutlineFunction(
+                provider=provider, name="class_annotations", source_ref=source_ref
+            )
+            outline_statements = []
+            for type_param, temp_type_var in type_variables:
+                outline_statements.append(
+                    StatementAssignmentVariableName(
+                        provider=annotation_outline,
+                        source=ExpressionTempVariableRef(
+                            variable=temp_type_var,
+                            source_ref=source_ref,
+                        ),
+                        variable_name=type_param.name,
+                        source_ref=source_ref,
+                    )
+                )
+
+            unwrapped_bases_value = _buildBasesTupleCreationNode(
+                provider=annotation_outline, elements=node.bases, source_ref=source_ref
+            )
+            outline_statements.append(
+                StatementReturn(unwrapped_bases_value, source_ref)
+            )
+            annotation_outline.setChildBody(
+                makeStatementsSequenceFromStatements(outline_statements)
+            )
+            bases_value = annotation_outline
+        else:
+            bases_value = _buildBasesTupleCreationNode(
+                provider=provider, elements=node.bases, source_ref=source_ref
+            )
 
         if type_params_expressions:
             bases_value = makeBinaryOperationNode(
@@ -784,14 +811,27 @@ def buildClassNode3(provider, node, source_ref):
         class_creation_function.qualname_setup = node.name, qualname_assign
 
     tmp_variables = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
-    if node.bases:
+    if has_bases:
         tmp_variables.insert(0, tmp_bases)
         if needs_orig_bases:
             tmp_variables.insert(0, tmp_bases_orig)
     if type_params_expressions:
         tmp_variables.append(tmp_type_params)
+    for _, type_temp_var in type_variables:
+        tmp_variables.append(type_temp_var)
+
+    type_variable_assignments = []
+    for type_param, type_param_var in type_variables:
+        type_variable_assignments.append(
+            makeStatementAssignmentVariable(
+                variable=type_param_var,
+                source=buildNode(provider, type_param, source_ref),
+                source_ref=source_ref,
+            )
+        )
 
     body = makeStatementsSequenceFromStatements(
+        type_variable_assignments,
         makeTryFinallyReleaseStatement(
             provider=outline_body,
             tried=statements,
