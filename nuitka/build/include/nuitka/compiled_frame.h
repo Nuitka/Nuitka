@@ -319,24 +319,13 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
     }
 
 #if PYTHON_VERSION >= 0x3e0
-    // In Python 3.14+, the GC and _Py_Dealloc() require that an executing
-    // frame have a non-NULL stack pointer. We can avoid getting into trouble
-    // by simply pretending there's a null reference on the top of the interpreter
-    // stack, which tricks the GC into skipping this frame (which is fine, since
-    // Nuitka will clean up its own variables).
-#if defined(_MSC_VER)
-    static _PyStackRef null_stack_ref;
-    static bool is_null_stack_ref_initialized = false;
-
-    if (unlikely(!is_null_stack_ref_initialized)) {
-        null_stack_ref = PyStackRef_NULL;
-        is_null_stack_ref_initialized = true;
-    }
-    interpreter_frame->stackpointer = &null_stack_ref;
-#else
-    static _PyStackRef null_stack_ref = PyStackRef_NULL;
-    interpreter_frame->stackpointer = &null_stack_ref;
-#endif
+    // In Python 3.14+, executing frames must have a non-NULL stackpointer.
+    // CPython gc.c::mark_stacks() scans stack entries with:
+    //   locals = frame->localsplus; sp = frame->stackpointer; while (sp > locals) { ... }
+    // so stackpointer must be within the frame's localsplus region. For compact
+    // Nuitka frames, setting stackpointer == localsplus exposes an empty in-frame
+    // stack and avoids out-of-bounds scanning of synthetic/out-of-line storage.
+    interpreter_frame->stackpointer = interpreter_frame->localsplus;
 #endif
 }
 #else
