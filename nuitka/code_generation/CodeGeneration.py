@@ -158,6 +158,7 @@ from .ExceptionCodes import (
     generateExceptionCaughtTracebackCode,
     generateExceptionCaughtTypeCode,
     generateExceptionCaughtValueCode,
+    generateExceptionGroupMatchCode,
     generateExceptionPublishCode,
     generateExceptionRefCode,
 )
@@ -782,6 +783,7 @@ addExpressionDispatchDict(
         "EXPRESSION_COMPARISON_NOT_IN": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MISMATCH": generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_EXCEPTION_GROUP_MATCH": generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LT": generateRichComparisonExpressionCode,
         "EXPRESSION_COMPARISON_LTE": generateRichComparisonExpressionCode,
         "EXPRESSION_COMPARISON_GT": generateRichComparisonExpressionCode,
@@ -815,6 +817,7 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
+        "EXPRESSION_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatchCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
