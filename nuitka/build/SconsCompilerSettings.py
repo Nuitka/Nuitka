@@ -1148,6 +1148,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.clang_mode or env.clangcl_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
+    if env.clang_mode:
+        env.Append(CCFLAGS=["-Wno-missing-field-initializers"])
+    elif env.clangcl_mode:
+        # spell-checker: ignore Xclang
+        env.Append(CCFLAGS=["-Xclang", "-Wno-missing-field-initializers"])
+
     if isClangName(env.the_cc_name):
         env.Append(CCFLAGS=["-Wno-constant-logical-operand"])
 
