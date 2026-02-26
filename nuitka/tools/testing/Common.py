@@ -984,7 +984,13 @@ def reportSkip(reason, dirname, filename):
 
 
 def executeReferenceChecked(
-    prefix, names, tests_skipped=(), tests_stderr=(), explain=False, no_print=True
+    prefix,
+    names,
+    tests_skipped=(),
+    tests_stderr=(),
+    max_rounds=20,
+    explain=False,
+    no_print=True,
 ):
     gc.disable()
 
@@ -1015,12 +1021,18 @@ def executeReferenceChecked(
                     sys.stderr = null_output
             except OSError:  # Windows
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             else:
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             finally:
