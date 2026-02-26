@@ -15,7 +15,36 @@ PY_MAJOR_MINOR=$(echo "$PY_VER" | cut -d. -f1-2) # e.g., 3.11
 TARBALL="Python-$PY_VER.tar.xz"
 SOURCE_DIR="Python-$PY_VER"
 
+BUILD_CONFIG="Release"
+BUILD_TARGET="Build"
+EXTRA_CONFIGURE_OPTS="--enable-optimizations --with-lto"
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --debug)
+            BUILD_CONFIG="Debug"
+            # In debug mode, we disable PGO/LTO and enable pydebug, which includes assertions
+            EXTRA_CONFIGURE_OPTS="--with-pydebug --without-lto"
+            shift
+            ;;
+        --rebuild)
+            BUILD_TARGET="Rebuild"
+            shift
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            exit 1
+            ;;
+    esac
+done
+
 echo "--- Starting static Python $PY_VER build for Nuitka ---"
+echo "Configuration: $BUILD_CONFIG"
+if [[ "$BUILD_CONFIG" == "Release" ]]; then
+    echo "PGO is Enabled."
+else
+    echo "PGO is Disabled. Assertions are Enabled."
+fi
 
 if [[ "$(uname)" == "Darwin" ]]; then
     # --- macOS Dependencies ---
@@ -65,28 +94,35 @@ else
 fi
 
 if [ -d "$SOURCE_DIR" ]; then
-    echo "Removing existing source directory $SOURCE_DIR..."
-    rm -rf "$SOURCE_DIR"
+    echo "Using existing source directory $SOURCE_DIR..."
+else
+    echo "Extracting $TARBALL..."
+    tar -xf "$TARBALL"
 fi
-echo "Extracting $TARBALL..."
-tar -xf "$TARBALL"
 
 # --- 3. Configure Build ---
 cd "$SOURCE_DIR"
-echo "Configuring build with optimizations and static linking..."
 
-# --prefix:         Install location
-# --disable-shared: CRITICAL. This prevents building libpython.so/dylib
-#                   and builds only libpythonX.Y.a
-# --enable-optimizations: Enables PGO. This runs the build, runs tests,
-#                         and then re-builds using profile data.
-# --with-lto:       Enables Link Time Optimization.
-./configure \
-    --prefix="$INSTALL_PREFIX" \
-    --disable-shared \
-    --enable-optimizations \
-    --with-lto \
-    $CONFIGURE_OPTS
+if [ "$BUILD_TARGET" == "Rebuild" ] && [ -f "Makefile" ]; then
+    echo "Rebuild requested. Cleaning existing build..."
+    make clean || true
+    rm -f Makefile
+fi
+
+if [ ! -f "Makefile" ]; then
+    echo "Configuring build with optimizations and static linking..."
+
+    # --prefix:         Install location
+    # --disable-shared: CRITICAL. This prevents building libpython.so/dylib
+    #                   and builds only libpythonX.Y.a
+    ./configure \
+        --prefix="$INSTALL_PREFIX" \
+        --disable-shared \
+        $EXTRA_CONFIGURE_OPTS \
+        $CONFIGURE_OPTS
+else
+    echo "Makefile exists, skipping configure for incremental build..."
+fi
 
 # --- 4. Build and Install ---
 echo "Building Python... This will take a long time due to PGO."
@@ -95,12 +131,6 @@ cd -
 
 $PYTHON_BINARY -m ensurepip
 $PYTHON_BINARY -m pip install -r /dev/stdin <<EOF
-# Generic
-ordered-set == 4.1.0; python_version >= '3.7'
-orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
-orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.6' and python_version < '3.7'
-orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
-
 # Onefile compression
 zstandard >= 0.15; python_version >= '3.5'
 
