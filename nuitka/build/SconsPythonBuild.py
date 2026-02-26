@@ -61,7 +61,7 @@ def _detectPythonHeaderPath(env):
         search.append("pyconfig.h")  # spell-checker: ignore pyconfig
 
     for candidate in candidates:
-        for s in search.copy():
+        for s in tuple(search):
             found = False
             if os.path.exists(os.path.join(candidate, s)):
                 search.remove(s)
@@ -107,7 +107,7 @@ def applyPythonBuildSettings(env):
         env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
     if env.python_debug:
-        env.Append(CPPDEFINES=["Py_DEBUG"])
+        env.Append(CPPDEFINES=["Py_DEBUG", "Py_NO_LINK_LIB"])
 
     if not env.gil_mode:
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
