@@ -103,13 +103,13 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
 
 #if PYTHON_VERSION >= 0x300
 static PyMethodDef _method_def_inspect_getgeneratorstate_replacement = {
-    "getgeneratorstate", (PyCFunction)_inspect_getgeneratorstate_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
+    "getgeneratorstate", CAST_METHOD_KW(_inspect_getgeneratorstate_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
 #if PYTHON_VERSION >= 0x350
 static PyMethodDef _method_def_inspect_getcoroutinestate_replacement = {
-    "getcoroutinestate", (PyCFunction)_inspect_getcoroutinestate_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
+    "getcoroutinestate", CAST_METHOD_KW(_inspect_getcoroutinestate_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
-static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", (PyCFunction)_types_coroutine_replacement,
+static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", CAST_METHOD_KW(_types_coroutine_replacement),
                                                               METH_VARARGS | METH_KEYWORDS, NULL};
 
 #endif
@@ -168,7 +168,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
 
 // spell-checker: ignore getframemodulename
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
-    "getcoroutinestate", (PyCFunction)_sys_getframemodulename_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
+    "getcoroutinestate", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
 #endif
 
