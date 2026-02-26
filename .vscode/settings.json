@@ -108,6 +108,7 @@
   "python.analysis.diagnosticSeverityOverrides": {
     "reportMissingImports": "none"
   },
+  "python.analysis.typeCheckingMode": "off",
   "python.terminal.activateEnvironment": true,
   "cSpell.words": [
     "__abstractmethods__",
