@@ -2320,7 +2320,12 @@ def isDeploymentMode():
 
 def getNoDeploymentIndications():
     """:returns: list derived from ``--no-deployment-flag``"""
-    return options.no_deployment_flags
+    result = list(options.no_deployment_flags)
+
+    if shallRunInDebugger() and "segfault" not in result:
+        result.append("segfault")
+
+    return result
 
 
 def hasNonDeploymentIndicator(indicator_name):
