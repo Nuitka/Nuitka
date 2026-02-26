@@ -297,10 +297,11 @@ def formatImage(filename, logger):
         cleanupJpegImage(filename, logger=logger)
 
 
-def formatJson(filename, assume_yes_for_downloads):
+def formatJson(filename, effective_filename, assume_yes_for_downloads):
     """Format JSON files."""
     formatJsonFile(filename, assume_yes_for_downloads=assume_yes_for_downloads)
     cleanupTrailingWhitespace(filename)
+    cleanupWindowsNewlines(filename, effective_filename=effective_filename)
 
 
 def autoFormatFile(
@@ -473,7 +474,11 @@ def autoFormatFile(
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
         elif is_json:
-            formatJson(tmp_filename, assume_yes_for_downloads=assume_yes_for_downloads)
+            formatJson(
+                tmp_filename,
+                effective_filename=effective_filename,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+            )
         elif is_png or is_jpeg:
             formatImage(tmp_filename, logger=tools_logger)
 

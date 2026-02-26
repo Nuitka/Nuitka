@@ -1,4 +1,7 @@
 {
+  "formatter": {
+    "lineEnding": "lf"
+  },
   "json": {
     "parser": {
       "allowComments": true
