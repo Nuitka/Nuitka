@@ -12,6 +12,8 @@ from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def _detectPythonHeaderPath(env):
+    # Many cases to deal with due to flavor peculiarities, pylint: disable=too-many-branches
+
     if os.name == "nt":
 
         candidates = [
@@ -54,9 +56,21 @@ def _detectPythonHeaderPath(env):
                 )
             )
 
+    search = ["Python.h"]
+    if env.self_compiled_python_uninstalled:
+        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
+
     for candidate in candidates:
-        if os.path.exists(os.path.join(candidate, "Python.h")):
-            yield candidate
+        for s in search.copy():
+            found = False
+            if os.path.exists(os.path.join(candidate, s)):
+                search.remove(s)
+                found = True
+
+            if found:
+                yield candidate
+
+        if not search:
             break
     else:
         if os.name == "nt":
