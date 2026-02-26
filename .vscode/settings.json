@@ -526,10 +526,7 @@
     }
   ],
   "yaml.schemas": {
-    "nuitka/package_config/nuitka-package-config-schema.json": [
-      "*.nuitka-package.config.yml",
-      "*.nuitka-package.config.yaml"
-    ]
+    "nuitka/package_config/nuitka-package-config-schema.json": "*.nuitka-package.config.{yml,yaml}"
   },
   "yaml.maxItemsComputed": 10000
 }
