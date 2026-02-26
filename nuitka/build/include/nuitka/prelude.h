@@ -58,7 +58,7 @@
  * be used like in-line helper functions in headers or static per module
  * variables from headers.
  */
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
 #else
 #define NUITKA_MAY_BE_UNUSED
@@ -203,6 +203,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION >= 0x3e0
+#include "internal/pycore_object_alloc.h"
 #include <internal/pycore_interpframe.h>
 #include <internal/pycore_interpolation.h>
 #include <internal/pycore_list.h>
@@ -581,6 +582,13 @@ extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 typedef signed int sdigit;
 #endif
 #endif
+
+// Standard way to cast PyCFunctionWithKeywords to PyCFunction without
+// triggering compiler warnings about mismatched function types. To preserve
+// type safety, we assert that the passed function actually matches
+// PyCFunctionWithKeywords using a ternary operator conditional that forces the
+// compiler to check the input type.
+#define CAST_METHOD_KW(func) (PyCFunction)(void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))
 
 // A long value that represents a signed digit on the helper interface.
 typedef long nuitka_digit;

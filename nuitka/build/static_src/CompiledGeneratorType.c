@@ -1587,7 +1587,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 #endif
 }
 
-static long Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
+static Py_hash_t Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
 
 static PyObject *Nuitka_Generator_get_name(PyObject *self, void *data) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;

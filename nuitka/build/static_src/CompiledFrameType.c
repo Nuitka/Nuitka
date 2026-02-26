@@ -364,7 +364,7 @@ static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
 #endif
 }
 
-static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
+static void _Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
     if (frame->m_type_description) {
         char const *w = frame->m_type_description;
         char const *t = frame->m_locals_storage;
@@ -413,6 +413,11 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
     }
 }
 
+static int Nuitka_Frame_tp_clear(PyObject *frame_obj) {
+    _Nuitka_Frame_tp_clear((struct Nuitka_FrameObject *)frame_obj);
+    return 0;
+}
+
 // Freelist setup
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
@@ -454,7 +459,7 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_XDECREF(frame->f_exc_traceback);
 #endif
 
-    Nuitka_Frame_tp_clear(nuitka_frame);
+    _Nuitka_Frame_tp_clear(nuitka_frame);
 
     if (Py_REFCNT(nuitka_frame) > 0) {
         Py_SET_REFCNT(nuitka_frame, Py_REFCNT(nuitka_frame) - 1);
@@ -584,7 +589,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
 
 #if PYTHON_VERSION >= 0x3b0
     if (frame->m_frame_state == FRAME_COMPLETED) {
-        Nuitka_Frame_tp_clear(frame);
+        _Nuitka_Frame_tp_clear(frame);
 
         Py_RETURN_NONE;
     }
@@ -644,7 +649,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
     }
 #endif
 
-    Nuitka_Frame_tp_clear(frame);
+    _Nuitka_Frame_tp_clear(frame);
 
     Py_RETURN_NONE;
 }
