@@ -254,9 +254,11 @@ def createScriptFileForExecution(result_filename):
     debugger_call = (
         (
             " ".join(
-                wrapCommandForDebuggerForSubprocess(
-                    command=(), debugger=getDebuggerName()
+                x
+                for x in wrapCommandForDebuggerForSubprocess(
+                    command=("dummy",), debugger=getDebuggerName()
                 )
+                if os.path.basename(x) != "dummy"
             )
             + " "
         )
