@@ -379,6 +379,8 @@ def wrapCommandForDebuggerForExec(command, debugger):
         args = (
             lldb_path,
             "lldb",
+            "--script-language",
+            "none",
             "-o",
             "run",
             "-o",
