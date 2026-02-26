@@ -142,7 +142,7 @@ def addWin32PythonLib(env):
 
     if env.python_version >= (3,):
         pc_build_dir = (
-            "PCBuild/amd64" if env.target_arch == "x86_64" else "PCBuild/win32"
+            "PCBuild\\amd64" if env.target_arch == "x86_64" else "PCBuild\\win32"
         )
     else:
         pc_build_dir = "PCBuild"
@@ -153,7 +153,9 @@ def addWin32PythonLib(env):
         if os.path.exists(os.path.join(win_lib_path, win_lib_filename)):
             break
     else:
-        scons_logger.sysexit("Error, cannot find '%s' file." % win_lib_filename)
+        scons_logger.sysexit(
+            "Error, cannot find link library '%s' file." % win_lib_filename
+        )
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])
