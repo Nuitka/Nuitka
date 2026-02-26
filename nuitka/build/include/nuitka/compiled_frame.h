@@ -182,6 +182,7 @@ inline static PyCodeObject *Nuitka_InterpreterFrame_GetCodeObject(_PyInterpreter
 #else
     assert(!PyStackRef_IsNull(frame->f_executable));
     PyCodeObject *result = (PyCodeObject *)PyStackRef_AsPyObjectBorrow(frame->f_executable);
+    CHECK_CODE_OBJECT(result);
 #endif
     assert(result == (PyCodeObject *)Py_None || PyCode_Check(result));
     return result;
@@ -317,27 +318,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
 
         Py_XINCREF(old->frame_obj);
     }
-
-#if PYTHON_VERSION >= 0x3e0
-    // In Python 3.14+, the GC and _Py_Dealloc() require that an executing
-    // frame have a non-NULL stack pointer. We can avoid getting into trouble
-    // by simply pretending there's a null reference on the top of the interpreter
-    // stack, which tricks the GC into skipping this frame (which is fine, since
-    // Nuitka will clean up its own variables).
-#if defined(_MSC_VER)
-    static _PyStackRef null_stack_ref;
-    static bool is_null_stack_ref_initialized = false;
-
-    if (unlikely(!is_null_stack_ref_initialized)) {
-        null_stack_ref = PyStackRef_NULL;
-        is_null_stack_ref_initialized = true;
-    }
-    interpreter_frame->stackpointer = &null_stack_ref;
-#else
-    static _PyStackRef null_stack_ref = PyStackRef_NULL;
-    interpreter_frame->stackpointer = &null_stack_ref;
-#endif
-#endif
 }
 #else
 // Put frame at the top of the frame stack and mark as executing.

@@ -842,6 +842,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
 #if PYTHON_VERSION >= 0x3e0
     result->m_interpreter_frame.f_funcobj = PyStackRef_NULL; // spell-checker: ignore funcobj
+    locals_owner->stackpointer = &locals_owner->localsplus[0];
 #elif PYTHON_VERSION >= 0x3c0
     result->m_interpreter_frame.f_funcobj = NULL; // spell-checker: ignore funcobj
 #else
