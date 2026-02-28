@@ -616,7 +616,11 @@ offer it), set the 'CC' environment variable or add it to PATH."""
     if options.verbose_output:
         optimization_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            openTextFile(options.verbose_output, "w", encoding="utf8")
+            openTextFile(
+                getUserInputNormalizedPath(options.verbose_output),
+                "w",
+                encoding="utf8",
+            )
         )
 
         options.verbose = True
@@ -641,7 +645,11 @@ offer it), set the 'CC' environment variable or add it to PATH."""
     if options.show_inclusion_output:
         inclusion_logger.setFileHandle(
             # Can only have unbuffered binary IO in Python3, therefore not disabling buffering here.
-            openTextFile(options.show_inclusion_output, "w", encoding="utf8")
+            openTextFile(
+                getUserInputNormalizedPath(options.show_inclusion_output),
+                "w",
+                encoding="utf8",
+            )
         )
 
         options.show_inclusion = True
