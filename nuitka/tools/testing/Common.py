@@ -1960,7 +1960,8 @@ Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
 
 def getInstalledPythonVersion(python_version, must_exist):
     result = findInstalledPython(
-        python_versions=(python_version,), module_name=None, module_version=None
+        python_versions=(python_version,),
+        module_specs=None,
     )
 
     if result is None and must_exist:
@@ -2018,8 +2019,7 @@ def getLocalWebServerDir(base_dir):
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
-            module_name=None,
-            module_version=None,
+            module_specs=None,
         )
 
         if web_server_python is None:

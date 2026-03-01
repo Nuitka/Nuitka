@@ -381,7 +381,7 @@ onefile_requires = []
 icon_conversion_requires = ["imageio"]
 package_requires = []
 
-if sys.version_info >= (3, 7):
+if (3, 7) <= sys.version_info < (3, 14):
     onefile_requires.append("zstandard >= 0.15")
 
 setup(

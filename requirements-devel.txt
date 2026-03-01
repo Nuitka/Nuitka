@@ -42,7 +42,7 @@ virtualenv ; python_version >= '3.5'
 pytest; python_version == '2.7' or python_version >= '3.4'
 
 # Onefile compression
-zstandard >= 0.15; python_version >= '3.5'
+zstandard >= 0.15; python_version >= '3.5' and python_version < '3.14'
 
 # Plugins need that
 pyyaml == 6.0.1; python_version >= '3.6'

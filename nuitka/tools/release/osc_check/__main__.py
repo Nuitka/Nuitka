@@ -29,7 +29,8 @@ def main():
     osc_cmd = "osc pr -c home:kayhayen"
 
     installed_python = findInstalledPython(
-        python_versions=("3.10",), module_name=None, module_version=None
+        python_versions=("3.10",),
+        module_specs=None,
     )
 
     with withVirtualenv(

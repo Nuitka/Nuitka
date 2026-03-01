@@ -206,8 +206,7 @@ def _getPythonForSconsExePath():
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
         python_versions=reversed(getSconsSupportingVersions()),
-        module_name=None,
-        module_version=None,
+        module_specs=None,
     )
 
     if python_for_scons is None:

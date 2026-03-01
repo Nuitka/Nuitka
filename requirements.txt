@@ -16,7 +16,7 @@ tqdm; python_version == '2.7' or python_version >= '3.4'
 subprocess32; python_version == '2.7'
 
 # Onefile compression
-zstandard >= 0.15; python_version >= '3.5'
+zstandard >= 0.15; python_version >= '3.5' and python_version < '3.14'
 
 # Plugins need that, but there is an inline copy for old versions too.
 pyyaml; python_version == '2.7' or python_version >= '3.6'

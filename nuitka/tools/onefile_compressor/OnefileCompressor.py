@@ -41,18 +41,38 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
     # spell-checker: ignore closefd
 
     if expect_compression:
-        from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
+        try:
+            from compression import zstd
 
-        compressor_context = ZstdCompressor(
-            level=getCompressorLevel(low_memory), threads=job_limit
-        )
+            @contextmanager
+            def useCompressedFile(output_file):
+                options = {
+                    zstd.CompressionParameter.nb_workers: job_limit,
+                    zstd.CompressionParameter.compression_level: getCompressorLevel(
+                        low_memory
+                    ),
+                }
 
-        @contextmanager
-        def useCompressedFile(output_file):
-            with compressor_context.stream_writer(
-                output_file, closefd=False
-            ) as compressed_file:
-                yield compressed_file
+                with zstd.open(
+                    output_file,
+                    mode="wb",
+                    options=options,
+                ) as compressed_file:
+                    yield compressed_file
+
+        except ImportError:
+            from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
+
+            compressor_context = ZstdCompressor(
+                level=getCompressorLevel(low_memory), threads=job_limit
+            )
+
+            @contextmanager
+            def useCompressedFile(output_file):
+                with compressor_context.stream_writer(
+                    output_file, closefd=False
+                ) as compressed_file:
+                    yield compressed_file
 
         onefile_logger.info("Using compression for onefile payload.")
 
@@ -199,9 +219,16 @@ def _getCacheFilename(binary_filename, low_memory):
     hash_value.updateFromValues(version_string)
 
     # Take zstandard version and compression level into account.
-    from zstandard import __version__  # pylint: disable=I0021,import-error
+    try:
+        from compression.zstd import zstd_version_info
 
-    hash_value.updateFromValues(__version__, getCompressorLevel(low_memory))
+        version = str(zstd_version_info)
+    except ImportError:
+        from zstandard import (
+            __version__ as version,
+        )  # pylint: disable=I0021,import-error
+
+    hash_value.updateFromValues(version, getCompressorLevel(low_memory))
 
     cache_dir = getCacheDir("onefile-compression")
     makePath(cache_dir)
