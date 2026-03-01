@@ -4,6 +4,7 @@
 """Code generation for ctypes module stuff."""
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
+from .CodeHelpers import withObjectCodeTemporaryAssignment
 from .ImportCodes import getImportModuleNameHardCode
 
 
@@ -28,6 +29,32 @@ def generateCtypesCdllCallCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateCtypesCIntCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "ctypes_c_int_class", expression, emit, context
+    ) as result_name:
+        # TODO: Have global cached forms of hard attribute lookup results too.
+        ctypes_c_int_class = context.allocateTempName("ctypes_c_int_class", unique=True)
+
+        getImportModuleNameHardCode(
+            to_name=ctypes_c_int_class,
+            module_name="ctypes",
+            import_name="c_int",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getBuiltinCallViaSpecCode(
+            spec=expression.spec,
+            called_name=ctypes_c_int_class,
+            to_name=result_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
