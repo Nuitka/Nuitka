@@ -508,7 +508,8 @@
     "tests/scratch",
     "tests/CPython*",
     "doc/*.1",
-    "*.containerfile"
+    "*.containerfile",
+    "Containerfile"
   ],
   "cSpell.languageSettings": [
     {
