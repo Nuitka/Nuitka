@@ -702,6 +702,11 @@ _debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
+    # Force clear internal type caches to stabilize the reference count,
+    # and not be polluted by cached types or IO values.
+    # pylint: disable=protected-access
+    sys._clear_type_cache()
+
     if _debug_python:
         gc.collect()
         return sys.gettotalrefcount()
