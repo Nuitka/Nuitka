@@ -15,8 +15,6 @@ def getPlatformRequirements(installed_python, case_data):
     # spell-checker: ignore orderedset,imageio
     needs_onefile = False
 
-    if installed_python.getHexVersion() >= 0x370:
-        requirements.append("ordered-set >= 4.1.0")
     if installed_python.getHexVersion() < 0x300:
         requirements.append("subprocess32")
     if needs_onefile and 0x370 <= installed_python.getHexVersion() < 0x3E0:
