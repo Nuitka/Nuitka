@@ -2423,6 +2423,14 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                         % key,
                     )
 
+                if key in run_time_variable_names:
+                    return sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-set' cannot overwrite reserved runtime variable '%s'. "
+                        "Reserved names are: %s."
+                        % (key, ", ".join(run_time_variable_names)),
+                    )
+
                 expanded = _expandProjectArg(
                     arg=val_expr,
                     filename_arg=filename_arg,
