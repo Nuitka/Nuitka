@@ -1,6 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Test to cover Python3 specific function features."""
+
+# TODO: Once 3.14 has this as a default, remove the experimental flag
+# nuitka-project: --experimental=deferred-annotations
+
+
 def displayDict(d):
     result = "{"
     first = True
