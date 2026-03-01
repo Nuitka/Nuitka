@@ -624,9 +624,7 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/jit_sources.h"
 
-#if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
-#include "nuitka_data_decoder.h"
-#else
+#if !_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define DECODE(x) assert(x)
 #define UN_TRANSLATE(x) (x)
 #endif
