@@ -505,14 +505,14 @@ def buildClassNode3(provider, node, source_ref):
 
     if has_bases:
         if type_variables:
-            annotation_outline = ExpressionOutlineFunction(
-                provider=provider, name="class_annotations", source_ref=source_ref
+            typevars_outline = ExpressionOutlineFunction(
+                provider=provider, name="class_typevar", source_ref=source_ref
             )
             outline_statements = []
             for type_param, temp_type_var in type_variables:
                 outline_statements.append(
                     StatementAssignmentVariableName(
-                        provider=annotation_outline,
+                        provider=typevars_outline,
                         source=ExpressionTempVariableRef(
                             variable=temp_type_var,
                             source_ref=source_ref,
@@ -523,15 +523,15 @@ def buildClassNode3(provider, node, source_ref):
                 )
 
             unwrapped_bases_value = _buildBasesTupleCreationNode(
-                provider=annotation_outline, elements=node.bases, source_ref=source_ref
+                provider=typevars_outline, elements=node.bases, source_ref=source_ref
             )
             outline_statements.append(
                 StatementReturn(unwrapped_bases_value, source_ref)
             )
-            annotation_outline.setChildBody(
+            typevars_outline.setChildBody(
                 makeStatementsSequenceFromStatements(outline_statements)
             )
-            bases_value = annotation_outline
+            bases_value = typevars_outline
         else:
             bases_value = _buildBasesTupleCreationNode(
                 provider=provider, elements=node.bases, source_ref=source_ref
