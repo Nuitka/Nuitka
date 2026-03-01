@@ -96,7 +96,7 @@ echo Installing dependencies via pip...
 
 :: Write dependencies to a temporary requirements file
 echo # Onefile compression > reqs.txt
-echo zstandard ^>= 0.15; python_version ^>= '3.5' >> reqs.txt
+echo zstandard ^>= 0.15; python_version ^>= '3.5' and python_version ^< '3.14' >> reqs.txt
 echo. >> reqs.txt
 echo # Wheels >> reqs.txt
 echo wheel >> reqs.txt

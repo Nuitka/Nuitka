@@ -105,10 +105,12 @@ Check if it would build, without uploading.
     # Test with these Pythons if the installed package would work.
     pythons = [
         findInstalledPython(
-            python_versions=("2.7",), module_name=None, module_version=None
+            python_versions=("2.7",),
+            module_specs=None,
         ),
         findInstalledPython(
-            python_versions=("3.10",), module_name=None, module_version=None
+            python_versions=("3.10",),
+            module_specs=None,
         ),
     ]
 

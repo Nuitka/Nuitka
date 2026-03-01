@@ -568,7 +568,8 @@ to reserve cores.""",
         getTestExecutionPythonVersions()
     ):
         installed_pythons[python_version] = findPythons(
-            python_version, module_name=None if isAnacondaPython() else "pipenv"
+            python_version,
+            module_specs=(None if isAnacondaPython() else "pipenv"),
         )
 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))

@@ -154,8 +154,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     python = findInstalledPython(
         python_versions=("3.10", "3.11", "3.12"),
-        module_name=None,
-        module_version=None,
+        module_specs=None,
     )
 
     # Avoid strange permissions in archive

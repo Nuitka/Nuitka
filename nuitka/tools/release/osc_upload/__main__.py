@@ -48,7 +48,8 @@ def main():
         sys.exit("Skipping OSC for branch '%s'" % branch_name)
 
     installed_python = findInstalledPython(
-        python_versions=("3.10",), module_name=None, module_version=None
+        python_versions=("3.10",),
+        module_specs=None,
     )
 
     with withVirtualenv(
