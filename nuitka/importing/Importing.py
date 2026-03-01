@@ -893,7 +893,9 @@ def _findModuleInPath(module_name, logger):
 
     # Free pass for built-in modules, they need not exist.
     if package_name is None and isBuiltinModuleName(module_name):
-        return module_name, None, "built-in"
+        return module_name, "built-in", "built-in"
+    if package_name is not None and isBuiltinModuleName(package_name + "." + module_name):
+        return package_name + "." + module_name, "built-in", "built-in"
 
     # These are existing in the standard library but are effectively inline
     # already and should be avoided to look at.
@@ -1017,7 +1019,17 @@ def locateModule(module_name, parent_package, level, logger=None):
         type(module_package) is ModuleName and module_package != ""
     ), ("Must not attempt to locate %r" % module_name)
 
-    if module_filename is not None:
+    if module_kind == "built-in":
+        from nuitka.HardImportRegistry import (
+            addModuleDynamicHard,
+            isHardModule,
+        )
+        if not isHardModule(found_module_name):
+            # If we encounter an unexpected builtin module,
+            # mark it as a dynamic hard import.
+            addModuleDynamicHard(found_module_name)
+
+    elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
 
         if found_module_name == "distutils":
@@ -1104,7 +1116,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     else:
         main_added = False
 
-    if is_fake:
+    if is_fake or filename == "built-in":
         source_filename = filename
 
         source_ref = makeSourceReferenceFromFilename(filename=filename)
