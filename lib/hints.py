@@ -73,7 +73,7 @@ do_normalize_paths = None
 do_show_source = None
 
 
-def _ourimport(
+def _our_import(
     name,
     globals=None,  # pylint: disable=redefined-builtin
     locals=None,  # pylint: disable=redefined-builtin
@@ -93,7 +93,7 @@ def _ourimport(
         )
 
         for entry in traceback.extract_stack()[:-1]:
-            if entry[2] == "_ourimport":
+            if entry[2] == "_our_import":
                 print(_indentation * " " + "by __import__")
             else:
                 entry = list(entry)
@@ -112,7 +112,7 @@ def _ourimport(
 
         print(_indentation * " " + "*" * 40)
 
-        builtins.__import__ = _ourimport
+        builtins.__import__ = _our_import
         try:
             result = original_import(name, globals, locals, fromlist, level)
         except ImportError as e:
@@ -124,14 +124,14 @@ def _ourimport(
         print(_indentation * " " + "RESULT:", _moduleRepr(result))
         print(_indentation * " " + "*" * 40)
 
-        builtins.__import__ = _ourimport
+        builtins.__import__ = _our_import
 
         return result
     finally:
         _indentation -= 1
 
 
-_ourimport_reference = None
+_our_import_reference = None
 
 
 def enableImportTracing(normalize_paths=True, show_source=False):
@@ -141,12 +141,12 @@ def enableImportTracing(normalize_paths=True, show_source=False):
     do_normalize_paths = normalize_paths
     do_show_source = show_source
 
-    builtins.__import__ = _ourimport
+    builtins.__import__ = _our_import
 
     # Since we swap this around, prevent it from releasing by giving it a global
     # name too, not only a local one, pylint: disable=global-statement
-    global _ourimport_reference
-    _ourimport_reference = _ourimport
+    global _our_import_reference
+    _our_import_reference = _our_import
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
