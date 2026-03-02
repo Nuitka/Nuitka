@@ -377,7 +377,7 @@ def _optimizeModules(output_filename):
                         unfinished_module.getFullName()
                         for unfinished_module in unfinished_modules
                     ),
-                    pass_count,
+                    pass_count + 1,
                 )
             )
 
