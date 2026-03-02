@@ -5386,6 +5386,13 @@
         - 'shiboken'
         - 'PySide6'
 
+- module-name: 'PySimpleGUI' # checksum: 8c86c1db
+  anti-bloat:
+    - description: 'remove pydoc usage'
+      replacements_plain:
+        'import pydoc': ''
+      when: 'not use_pydoc'
+
 - module-name: 'pysnmp.smi' # checksum: 6af35c04
   data-files:
     - patterns:
