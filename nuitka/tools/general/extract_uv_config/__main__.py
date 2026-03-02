@@ -106,7 +106,7 @@ def _extractFromUvBuild(temp_dir):
     project_name = pkg_info.get("Name")
     requirements = pkg_info.get("Requires-Dist", [])
     for req in requirements:
-        arguments.append("--project-requires=%s" % req)
+        arguments.append("--pyproject-requires=%s" % req)
 
     # Parse entry points
     entry_points_file = os.path.join(metadata_path, "entry_points.txt")

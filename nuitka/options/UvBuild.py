@@ -36,6 +36,8 @@ def _maybeVirtualEnv(path):
 
 
 def getUvBuildConfiguration(logger, pyproject_data):
+    # Necessarily a lot of details in the configuration
+    # pylint: disable=too-many-locals
     """
     Get the build configuration from a UV Build project.
     """
@@ -73,15 +75,17 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         config = loadJsonFromFilename(dump_filename)
 
-        # UV projects typically use 'src' layout or root layout.
-        # We auto-detect 'src' and add it to python path.
-        if os.path.exists("src"):
-            addMainScriptDirectory(os.path.abspath("src"))
-
         arguments = config.get("arguments", [])
 
-        # Parse tool.uv configuration for data files
-        uv_config = pyproject_data.get("tool", {}).get("uv", {})
+        # Parse tool.uv configuration
+        uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
+
+        module_root = uv_config.pop("module-root", None)
+        if module_root is not None:
+            if module_root != "":
+                addMainScriptDirectory(os.path.abspath(module_root))
+        elif os.path.exists("src"):
+            addMainScriptDirectory(os.path.abspath("src"))
 
         if uv_config:
             for unhandled_key in uv_config:
