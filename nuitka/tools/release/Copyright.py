@@ -326,6 +326,28 @@ def getLicenseTextStandard():
     return _copyright_claim_standard
 
 
+_copyright_claim_commercial = (
+    b"""\
+    Part of Nuitka commercial.
+
+    Commercial grade license of Nuitka. No distribution to outside of the
+    buyer is allowed, the file must be kept secret. Usage is limited to
+    Nuitka. Changed versions, or versions of changes sent to the
+    copyright holder are automatically licensed to him under the Apache
+    License, Version 2.0 as used in proper Nuitka, to allow opening code
+    up later.
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+"""
+).split(b"\n")
+
+
+def getLicenseTextCommercial():
+    return _copyright_claim_commercial
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

@@ -12,7 +12,18 @@ from nuitka.tools.quality.auto_format.AutoFormat import (
 from nuitka.tools.release.Copyright import (
     attachLeadingComment,
     getCopyrightClaim,
+    getLicenseTextCommercial,
+    getLicenseTextStandard,
 )
+from nuitka.tools.release.Release import getBranchRemoteIdentifier
+from nuitka.Version import getCommercialVersion
+
+
+def getLicenseGeneratedCode():
+    if getCommercialVersion() is None or getBranchRemoteIdentifier() == "internal":
+        return getLicenseTextStandard()
+    else:
+        return getLicenseTextCommercial()
 
 
 def writeLine(output, *args):
