@@ -81,24 +81,32 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         )
     ):
         # TODO: Check exit code, should never fail.
-        stdout, stderr, _exit_code = executeProcess(command=("ldd", dll_filename))
+        process_result = executeProcess(
+            command=("ldd", dll_filename),
+        )
 
     stderr = b"\n".join(
         line
-        for line in stderr.splitlines()
+        for line in process_result.stderr.splitlines()
         if not line.startswith(
             b"ldd: warning: you do not have execution permission for"
         )
     )
 
-    inclusion_logger.debug("ldd output for %s is:\n%s" % (dll_filename, stdout))
+    inclusion_logger.debug(
+        "ldd output for %s is:\n%s"
+        % (
+            dll_filename,
+            process_result.stdout,
+        )
+    )
 
     if stderr:
         inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
 
-    result = OrderedSet()
+    result_set = OrderedSet()
 
-    for line in stdout.split(b"\n"):
+    for line in process_result.stdout.split(b"\n"):
         if not line:
             continue
 
@@ -141,14 +149,14 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 + filename
             )
 
-        result.add(filename)
+        result_set.add(filename)
 
-    ldd_result_cache[dll_filename] = result
+    ldd_result_cache[dll_filename] = result_set
 
-    sub_result = OrderedSet(result)
+    complete_result = OrderedSet(result_set)
 
-    for sub_dll_filename in result:
-        sub_result.update(
+    for sub_dll_filename in result_set:
+        complete_result.update(
             detectBinaryPathDLLsPosix(
                 dll_filename=sub_dll_filename,
                 package_name=package_name,
@@ -156,7 +164,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             )
         )
 
-    return sub_result
+    return complete_result
 
 
 _linux_dll_ignore_list = [

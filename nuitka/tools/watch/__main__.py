@@ -147,8 +147,6 @@ def selectOS(os_values):
 
 
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
-    # A bit of details needed, pylint: disable=too-many-locals
-
     preferred_package_type = installed_python.getPreferredPackageType()
 
     extra_options = []
@@ -213,27 +211,28 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         }
 
         with withEnvironmentVarsOverridden(env):
-            stdout, stderr, exit_nuitka = executeProcess(
-                [binary_filename], timeout=5 * 60
+            process_result = executeProcess(
+                [binary_filename],
+                timeout=5 * 60,
             )
 
         with open("compiled-stdout.txt", "wb") as output:
-            output.write(stdout)
+            output.write(process_result.stdout)
         with open("compiled-stderr.txt", "wb") as output:
-            output.write(stderr)
+            output.write(process_result.stderr)
 
-        if exit_nuitka == 0:
+        if process_result.exit_code == 0:
             deleteFile("compiled-exit.txt", must_exist=False)
         else:
             putTextFileContents(
                 filename="compiled-exit.txt",
-                contents=str(exit_nuitka),
+                contents=str(process_result.exit_code),
             )
 
-        if exit_nuitka != 0:
+        if process_result.exit_code != 0:
             return watch_logger.sysexit(
                 "Error, failed to execute %s with code %d."
-                % (binary_filename, exit_nuitka)
+                % (binary_filename, process_result.exit_code)
             )
 
 

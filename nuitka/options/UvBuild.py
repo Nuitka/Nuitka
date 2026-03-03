@@ -36,11 +36,12 @@ def _maybeVirtualEnv(path):
 
 
 def getUvBuildConfiguration(logger, pyproject_data):
-    # Necessarily a lot of details in the configuration
-    # pylint: disable=too-many-locals
     """
     Get the build configuration from a UV Build project.
     """
+
+    # Necessarily a lot of details in the configuration
+
     with withTemporaryDirectory("nuitka-project-dump") as temp_dir:
         dump_filename = os.path.join(temp_dir, "build_config.json")
 
@@ -60,13 +61,19 @@ def getUvBuildConfiguration(logger, pyproject_data):
             dump_filename,
         )
 
-        stdout, stderr, exit_code = executeProcess(
+        process_result = executeProcess(
             command,
             stdin=False,
         )
 
-        if exit_code != 0:
-            reportBuildError(logger, "uv_build", command, stdout, stderr)
+        if process_result.exit_code != 0:
+            reportBuildError(
+                logger=logger,
+                name="uv_build",
+                command=command,
+                stdout=process_result.stdout,
+                stderr=process_result.stderr,
+            )
 
         if not os.path.exists(dump_filename):
             logger.sysexit(

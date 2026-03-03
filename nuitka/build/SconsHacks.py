@@ -100,15 +100,20 @@ def _myDetectVersion(cc):
             "--version",
         )
 
-    stdout, stderr, exit_code = executeProcess(command)
+    process_result = executeProcess(command)
 
-    if exit_code != 0:
+    if process_result.exit_code != 0:
         scons_details_logger.info(
-            "Error, error exit from '%s' (%d) gave %r." % (command, exit_code, stderr)
+            "Error, error exit from '%s' (%d) gave %r."
+            % (
+                command,
+                process_result.exit_code,
+                process_result.stderr,
+            )
         )
         return None
 
-    line = stdout.splitlines()[0]
+    line = process_result.stdout.splitlines()[0]
 
     if str is not bytes and type(line) is bytes:
         line = decodeData(line)

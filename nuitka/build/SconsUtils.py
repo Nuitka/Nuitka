@@ -901,18 +901,19 @@ def _getBinaryArch(binary, mingw_mode):
         command = ["objdump", "-f", binary]
 
         try:
-            data, _err, rv = executeProcess(command)
+            process_result = executeProcess(command)
         except OSError:
             command[0] = "llvm-objdump"
 
             try:
-                data, _err, rv = executeProcess(command)
+                process_result = executeProcess(command)
             except OSError:
                 return None
 
-        if rv != 0:
+        if process_result.exit_code != 0:
             return None
 
+        data = process_result.stdout
         if str is not bytes:
             data = decodeData(data)
 
@@ -977,21 +978,21 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
                 cmdline.append("--version")
 
             # The cl.exe without further args will give error
-            stdout, stderr, _rv = executeProcess(
+            process_result = executeProcess(
                 command=cmdline,
             )
 
             # The MSVC will output on error, while clang outputs in stdout and they
             # use different names for arches.
-            if b"x64" in stderr or b"x86_64" in stdout:
+            if b"x64" in process_result.stderr or b"x86_64" in process_result.stdout:
                 _compiler_arch[compiler_path] = "pei-x86-64"
-            elif b"x86" in stderr or b"i686" in stdout:
+            elif b"x86" in process_result.stderr or b"i686" in process_result.stdout:
                 _compiler_arch[compiler_path] = "pei-i386"
-            elif b"ARM64" in stderr:
+            elif b"ARM64" in process_result.stderr:
                 # TODO: The ARM64 output for Clang is not known yet.
                 _compiler_arch[compiler_path] = "pei-arm64"
             else:
-                assert False, (stdout, stderr)
+                assert False, (process_result.stdout, process_result.stderr)
         else:
             assert False, compiler_path
 

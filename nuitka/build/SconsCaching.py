@@ -13,6 +13,7 @@ from collections import defaultdict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Execution import ExecuteProcessResult
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -441,7 +442,7 @@ to install it."""
             )
 
 
-def runClCache(args, env):
+def runClCache(args, os_env):
     # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
     from clcache.caching import runClCache
 
@@ -450,13 +451,15 @@ def runClCache(args, env):
         scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 
     # The first argument is "<clcache>" and should not be used.
-    result = runClCache(
-        os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], env
+    stdout, stderr, exit_code = runClCache(
+        os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], os_env
     )
 
     updateSconsProgressBar()
 
-    return result
+    return ExecuteProcessResult(
+        stdout=stdout, stderr=stderr, exit_code=exit_code, rusage=None
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

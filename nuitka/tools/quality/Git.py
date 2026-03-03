@@ -235,28 +235,28 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     command.append("-")
 
     # Apply the patch.
-    output, err, exit_code = executeProcess(
+    process_result = executeProcess(
         command,
         stdin=patch,
     )
 
-    if exit_code != 0 and os.name == "nt":
+    if process_result.exit_code != 0 and os.name == "nt":
         cleanupWindowsNewlines(path, path)
 
-        output, err, exit_code = executeProcess(
+        process_result = executeProcess(
             ["git", "apply", "-"],
             stdin=patch,
         )
 
-    success = exit_code == 0
+    success = process_result.exit_code == 0
 
     if not success:
         # TODO: In case of failure, do we need to abort, or what do we do.
 
-        if output:
-            my_print(output, style="yellow")
-        if err:
-            my_print(err, style="yellow")
+        if process_result.stdout:
+            my_print(process_result.stdout, style="yellow")
+        if process_result.stderr:
+            my_print(process_result.stderr, style="yellow")
 
     return success
 

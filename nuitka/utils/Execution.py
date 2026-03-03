@@ -13,6 +13,7 @@ import shlex
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -605,6 +606,17 @@ def createProcess(
     return process
 
 
+ExecuteProcessResult = makeNamedtupleClass(
+    "ExecuteProcessResult",
+    (
+        "exit_code",
+        "stdout",
+        "stderr",
+        "rusage",
+    ),
+)
+
+
 def executeProcess(
     command,
     env=None,
@@ -683,14 +695,17 @@ class Process(object):
 
         # TODO: May introduce a namedtuple for the return value.
         if self.rusage:
-            return _communicateWithRusage(
+            stdout, stderr, exit_code, rusage = _communicateWithRusage(
                 proc=self.process, process_input=process_input
             )
         else:
             stdout, stderr = self.process.communicate(input=process_input)
             exit_code = self.process.wait()
+            rusage = None
 
-            return stdout, stderr, exit_code
+        return ExecuteProcessResult(
+            exit_code=exit_code, stdout=stdout, stderr=stderr, rusage=rusage
+        )
 
     def stop(self):
         if self.process is not None:

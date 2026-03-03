@@ -83,25 +83,30 @@ def _takeSystemCallTraceOutput(logger, path, command):
         if os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0":
             traceExecutedCommand("Tracing with:", command)
 
-        _stdout_strace, stderr_strace, exit_strace = executeProcess(
-            command, stdin=False, timeout=5 * 60
+        process_result = executeProcess(
+            command,
+            stdin=False,
+            timeout=5 * 60,
         )
 
-        if exit_strace != 0:
+        if process_result.exit_code != 0:
+            stderr = process_result.stderr
             if str is not bytes:
-                stderr_strace = stderr_strace.decode("utf8")
+                stderr = stderr.decode("utf8")
 
-            logger.warning(stderr_strace)
-            logger.sysexit("Failed to run '%s'." % tracing_tool)
+            logger.warning(stderr)
+            return logger.sysexit("Failed to run '%s'." % tracing_tool)
 
-        if b"dtrace: system integrity protection is on" in stderr_strace:
-            logger.sysexit("System integrity protection prevents system call tracing.")
+        if b"dtrace: system integrity protection is on" in process_result.stderr:
+            return logger.sysexit(
+                "System integrity protection prevents system call tracing."
+            )
 
         with open(path + "." + tracing_tool, "wb") as f:
-            f.write(stderr_strace)
+            f.write(process_result.stderr)
 
-        for line in stderr_strace.split(b"\n"):
-            if exit_strace != 0:
+        for line in process_result.stderr.split(b"\n"):
+            if process_result.exit_code != 0:
                 logger.my_print(line)
 
             if not line:
@@ -135,13 +140,13 @@ def _takeSystemCallTraceOutput(logger, path, command):
 
 def _getRuntimeTraceOfLoadedFilesDtruss(logger, command):
     if not isExecutableCommand("dtruss"):
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, needs 'dtruss' on your system to scan used libraries."""
         )
 
     if not isExecutableCommand("sudo"):
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, needs 'sudo' on your system to scan used libraries."""
         )
@@ -154,7 +159,7 @@ Error, needs 'sudo' on your system to scan used libraries."""
 
 def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
     if not isExecutableCommand("strace"):
-        logger.sysexit(
+        return logger.sysexit(
             """\
 Error, needs 'strace' on your system to scan used libraries."""
         )
@@ -190,13 +195,14 @@ def doesSupportTakingRuntimeTrace():
     if _supports_taking_runtime_traces is None:
         command = ("sudo", "dtruss", "echo")
 
-        _stdout, stderr, exit_code = executeProcess(
-            command, stdin=False, timeout=5 * 60
+        process_result = executeProcess(
+            command,
+            stdin=False,
+            timeout=5 * 60,
         )
 
-        _supports_taking_runtime_traces = (
-            exit_code == 0
-            and b"dtrace: system integrity protection is on" not in stderr
+        _supports_taking_runtime_traces = process_result.exit_code == 0 and (
+            b"dtrace: system integrity protection is on" not in process_result.stderr
         )
 
     return _supports_taking_runtime_traces
@@ -211,7 +217,7 @@ def getRuntimeTraceOfLoadedFiles(logger, command, required=False):
     path = command[0]
 
     if not os.path.exists(path):
-        logger.sysexit(
+        return logger.sysexit(
             "Error, cannot find '%s' ('%s')." % (path, os.path.abspath(path))
         )
 

@@ -545,13 +545,13 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    stdout, stderr, exit_code = executeProcess(command)
+    process_result = executeProcess(command)
 
-    if exit_code != 0:
-        my_print("stdout", stdout)
-        my_print("stderr", stderr)
+    if process_result.exit_code != 0:
+        my_print("stdout", process_result.stdout)
+        my_print("stderr", process_result.stderr)
 
-    return exit_code == 0
+    return process_result.exit_code == 0
 
 
 def getDebugPython():
@@ -2083,11 +2083,14 @@ def decryptOutput(project_options, output):
         if project_option.startswith("--encryption-key="):
             nuitka_decrypt_call.append("--key=" + project_option.split("=", 1)[1])
 
-    stdout, stderr, exit_code = executeProcess(nuitka_decrypt_call, stdin=output)
+    process_result = executeProcess(
+        nuitka_decrypt_call,
+        stdin=output,
+    )
 
-    assert exit_code == 0, stderr
+    assert process_result.exit_code == 0, process_result.stderr
 
-    return stdout
+    return process_result.stdout
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

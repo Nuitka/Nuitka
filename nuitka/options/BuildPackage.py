@@ -135,7 +135,7 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
                     project_dir,
                 )
 
-                stdout, stderr, exit_code = executeProcess(
+                process_result = executeProcess(
                     command,
                     stdin=False,
                 )
@@ -143,8 +143,14 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
         # The build is expected to fail with exit code 1 because we exit(0)
         # without producing a wheel, causing build frontend to complain. But if
         # we have the dump file, we are good.
-        if exit_code == 0 or not os.path.exists(dump_filename):
-            reportBuildError(logger, "python -m build", command, stdout, stderr)
+        if process_result.exit_code == 0 or not os.path.exists(dump_filename):
+            reportBuildError(
+                logger=logger,
+                name="python -m build",
+                command=command,
+                stdout=process_result.stdout,
+                stderr=process_result.stderr,
+            )
 
         config = loadJsonFromFilename(dump_filename)
 
