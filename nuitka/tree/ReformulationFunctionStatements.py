@@ -88,6 +88,7 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mangleName,
 )
 
@@ -154,7 +155,7 @@ def _isUncompiledDecorator(decorator):
     if decorator_name == "nuitka_ignore":
         return True
 
-    # False alarm, pylint: disable=unsupported-membership-test
+    # False alarm, pylint: disable=I0021,unsupported-membership-test
     if decorator_name in getUncompiledDecoratorNames():
         return True
 
@@ -241,26 +242,9 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
-def _wrapWithTypeAnnotations(provider, type_params, body, source_ref):
-    assignments = []
-
-    for type_param in type_params:
-        type_var = buildNode(provider=provider, node=type_param, source_ref=source_ref)
-
-        assign = StatementAssignmentVariableName(
-            provider=provider,
-            variable_name=type_param.name,
-            source=type_var,
-            source_ref=source_ref,
-        )
-        assignments.append(assign)
-
-    body.setChildStatements(tuple(assignments) + body.subnode_statements)
-    return body
-
-
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
+    # Functions have way too many details,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert getKind(node) == "FunctionDef"
 
@@ -282,12 +266,20 @@ def buildFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_outline = ExpressionOutlineFunction(
+            provider, "create_type_annotations", source_ref
+        )
+        function_provider = type_params_outline
+    else:
+        function_provider = provider
+
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
     function_kind, flags = detectFunctionBodyKind(nodes=function_statement_nodes)
 
     function_body, code_body, code_object = buildFunctionWithParsing(
-        provider=provider,
+        provider=function_provider,
         function_kind=function_kind,
         name=node.name,
         function_doc=function_doc,
@@ -344,7 +336,10 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     kw_defaults = buildParameterKwDefaults(
-        provider=provider, node=node, function_body=function_body, source_ref=source_ref
+        provider=function_provider,
+        node=node,
+        function_body=function_body,
+        source_ref=source_ref,
     )
 
     function_statements_body = buildFrameNode(
@@ -366,14 +361,6 @@ def buildFunctionNode(provider, node, source_ref):
             function_body=code_body, function_statements_body=function_statements_body
         )
 
-    if python_version >= 0x3C0 and node.type_params:
-        function_statements_body = _wrapWithTypeAnnotations(
-            provider=code_body,
-            type_params=node.type_params,
-            body=function_statements_body,
-            source_ref=source_ref,
-        )
-
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
             statement=function_statements_body
@@ -381,7 +368,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     code_body.setChildBody(function_statements_body)
 
-    annotations = buildParameterAnnotations(provider, node, source_ref)
+    annotations = buildParameterAnnotations(function_provider, node, source_ref)
 
     function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
@@ -392,6 +379,28 @@ def buildFunctionNode(provider, node, source_ref):
         annotations=annotations,
         source_ref=source_ref,
     )
+
+    if python_version >= 0x3C0 and node.type_params:
+        type_statements = []
+
+        for type_param in node.type_params:
+            type_var = buildNode(
+                provider=function_provider, node=type_param, source_ref=source_ref
+            )
+
+            assign = StatementAssignmentVariableName(
+                provider=function_provider,
+                variable_name=type_param.name,
+                source=type_var,
+                source_ref=source_ref,
+            )
+            type_statements.append(assign)
+
+        type_statements.append(StatementReturn(function_creation, source_ref))
+        type_params_outline.setChildBody(
+            makeStatementsSequenceFromStatements(type_statements)
+        )
+        function_creation = type_params_outline
 
     # Add wrapping for function with generic types to be provided to the
     # Add the "staticmethod" decorator to __new__ methods if not provided.
