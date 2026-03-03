@@ -1,4 +1,5 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
 
 """Nuitka version related stuff."""
 

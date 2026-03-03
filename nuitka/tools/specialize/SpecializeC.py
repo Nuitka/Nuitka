@@ -53,11 +53,11 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
-from nuitka.tools.release.Copyright import getLicenseTextStandard
 from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
     formatArgs,
+    getLicenseGeneratedCode,
     getMethodVariations,
     python2_dict_methods,
     python2_list_methods,
@@ -561,10 +561,10 @@ def makeHelpersComparisonOperation(operand, op_code):
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -610,10 +610,10 @@ def makeHelpersComparisonDualOperation(operand, op_code):
     )
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -670,10 +670,10 @@ def makeHelpersBinaryOperation(operator, op_code):
     )
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -720,10 +720,10 @@ def makeHelpersInplaceOperation(operator, op_code):
     )
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -774,10 +774,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
     )
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -818,10 +818,10 @@ def makeHelpersImportHard():
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -896,10 +896,10 @@ def makeHelperCalls():
     filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -1010,10 +1010,10 @@ def makeHelperLists():
     filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
@@ -1293,7 +1293,7 @@ def makeDictCopyHelperCodes():
     filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
 
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
 
         def emit(*args):
@@ -1340,10 +1340,10 @@ def makeHelperBuiltinTypeMethods():
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
     with withFileOpenedAndAutoFormattedWithClaim(
-        filename_c, claim=getLicenseTextStandard()
+        filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
         with withFileOpenedAndAutoFormattedWithClaim(
-            filename_h, claim=getLicenseTextStandard()
+            filename_h, claim=getLicenseGeneratedCode()
         ) as output_h:
 
             def emit_h(*args):
