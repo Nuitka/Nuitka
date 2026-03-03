@@ -97,6 +97,27 @@ def _adaptPyProjectFile(case_dir, variant):
     return pyproject_filename
 
 
+def installBuildTools(venv, filename, is_nuitka):
+    install_command = "pip install "
+
+    if is_nuitka:
+        install_command += "setuptools "
+
+    install_command += "build "
+
+    if "_uv_" in filename:
+        install_command += "uv_build"
+    elif "_poetry_" in filename:
+        install_command += "poetry-core"
+    else:
+        install_command += "setuptools wheel"
+
+    venv.runCommand(
+        install_command,
+        style="test-prepare",
+    )
+
+
 def _handleCase(python_version, nuitka_dir, filename):
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
@@ -140,9 +161,10 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_cpython", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        venv.runCommand(
-            "pip install setuptools build wheel poetry-core uv_build",
-            style="test-prepare",
+        installBuildTools(
+            venv=venv,
+            filename=filename,
+            is_nuitka=False,
         )
 
         if is_pyproject:
@@ -215,9 +237,10 @@ def _handleCase(python_version, nuitka_dir, filename):
     with withVirtualenv(
         "venv_nuitka", python=getPythonBinary(), logger=test_logger
     ) as venv:
-        venv.runCommand(
-            "pip install setuptools build wheel poetry-core uv_build",
-            style="test-prepare",
+        installBuildTools(
+            venv=venv,
+            filename=filename,
+            is_nuitka=True,
         )
 
         venv.runCommand(

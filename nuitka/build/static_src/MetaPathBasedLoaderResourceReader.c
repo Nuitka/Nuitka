@@ -51,8 +51,8 @@ static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, str
     return result;
 }
 
-static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
-                                                     PyObject *kwds) {
+static PyObject *Nuitka_ResourceReader_resource_path(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)reader_obj;
     PyObject *resource;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:resource_path", (char **)_kw_list_get_data, &resource);
@@ -66,8 +66,8 @@ static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReade
     return _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
 }
 
-static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
-                                                     PyObject *kwds) {
+static PyObject *Nuitka_ResourceReader_open_resource(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)reader_obj;
     PyObject *resource;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:open_resource", (char **)_kw_list_get_data, &resource);
@@ -85,17 +85,17 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
 
 #include "MetaPathBasedLoaderResourceReaderFiles.c"
 
-static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
-                                             PyObject *kwds) {
+static PyObject *Nuitka_ResourceReader_files(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)reader_obj;
 
     PyThreadState *tstate = PyThreadState_GET();
     return Nuitka_ResourceReaderFiles_New(tstate, reader->m_loader_entry, const_str_empty);
 }
 
 static PyMethodDef Nuitka_ResourceReader_methods[] = {
-    {"resource_path", (PyCFunction)Nuitka_ResourceReader_resource_path, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"open_resource", (PyCFunction)Nuitka_ResourceReader_open_resource, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"files", (PyCFunction)Nuitka_ResourceReader_files, METH_NOARGS, NULL},
+    {"resource_path", CAST_METHOD_KW(Nuitka_ResourceReader_resource_path), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"open_resource", CAST_METHOD_KW(Nuitka_ResourceReader_open_resource), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"files", CAST_METHOD_KW(Nuitka_ResourceReader_files), METH_NOARGS, NULL},
     {NULL}};
 
 static PyTypeObject Nuitka_ResourceReader_Type = {

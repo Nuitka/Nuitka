@@ -300,7 +300,7 @@ def checkDataChecksums(file_data, data):
         module_name = parts[1]
         module_name = module_name.split("#", 2)[0]
         module_name = module_name.strip()
-        module_name = module_name.strip("'")
+        module_name = module_name.strip("'\"")
 
         if "# checksum: " not in line:
             result.append(module_name)

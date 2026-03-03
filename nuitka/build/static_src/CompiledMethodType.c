@@ -407,7 +407,7 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
     return result;
 }
 
-static long Nuitka_Method_tp_hash(struct Nuitka_MethodObject *method) {
+static Py_hash_t Nuitka_Method_tp_hash(struct Nuitka_MethodObject *method) {
     // Just give the hash of the method function, that ought to be good enough.
     return method->m_function->m_counter;
 }

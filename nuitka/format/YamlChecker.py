@@ -162,15 +162,15 @@ def checkOrUpdateChecksum(filename, update, logger):
                 module_name = parts[1]
                 module_name = module_name.split("#", 2)[0]
                 module_name = module_name.strip()
-                module_name = module_name.strip("'")
+                module_name = module_name.strip("'\"")
             except IndexError:
-                logger.sysexit("Malformed line: %s" % line)
+                return logger.sysexit("Malformed line: %s" % line)
 
             yaml_module_data = yaml_data.data.get(module_name)
             try:
                 checksum = getYamlDataHash(yaml_module_data)
             except BaseException as e:  # pylint: disable=broad-exception-caught
-                logger.sysexit(
+                return logger.sysexit(
                     "Problem hashing module %s data %s gives %s"
                     % (module_name, yaml_module_data, e)
                 )

@@ -1394,25 +1394,53 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         if not setup_codes:
             setup_codes = ("pass",)
 
-        cmd = r"""\
+        cmd = (
+            r"""
 from __future__ import print_function
 from __future__ import absolute_import
-import sys
+import os,sys
 
 try:
 %(setup_codes)s
 except ImportError as e:
     sys.stderr.write("\n%%s" %% repr(e))
     sys.exit(38)
+
+if sys.version_info[0] >= 3:
+    import builtins
+else:
+    import __builtin__ as builtins
+
+_orig_import = builtins.__import__
+
+_dummy_file = open(os.devnull, "w")
+
+def _import_hook(*args, **kwargs):
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+
+    sys.stdout = _dummy_file
+    sys.stderr = _dummy_file
+
+    try:
+        return _orig_import(*args, **kwargs)
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+builtins.__import__ = _import_hook
+
 try:
 %(query_codes)s
 except Exception as e:
     sys.stderr.write("\n%%s" %% repr(e))
     sys.exit(39)
-""" % {
-            "setup_codes": "\n".join("   %s" % line for line in setup_codes),
-            "query_codes": "\n".join("   %s" % line for line in query_codes),
-        }
+"""
+            % {
+                "setup_codes": "\n".join("   %s" % line for line in setup_codes),
+                "query_codes": "\n".join("   %s" % line for line in query_codes),
+            }
+        ).strip()
 
         if shallShowExecutedCommands():
             self.info("Executing query command:\n%s" % cmd, keep_format=True)
@@ -1625,7 +1653,7 @@ except Exception as e:
                     allow_constants=True,
                     allow_variables=False,
                 ):
-                    setup_codes.extend(
+                    setup_codes[0:0] = (
                         "%s=%r" % (constant_name, constant_value)
                         for (
                             constant_name,
