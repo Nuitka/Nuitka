@@ -1068,7 +1068,7 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
 #endif
 }
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x300 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
@@ -1107,6 +1107,10 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
 #else
     result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
 #endif
+#if PYTHON_VERSION >= 0x3e0
+    result_mp->_ma_watcher_tag = 0;
+#endif
+
     CHECK_OBJECT(result_mp);
     assert(PyDict_CheckExact((PyObject *)result_mp));
     return result_mp;
@@ -2181,7 +2185,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
 #endif
 
-#if NUITKA_DICT_HAS_FREELIST
+#if NUITKA_DICT_HAS_FREELIST && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 

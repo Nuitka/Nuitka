@@ -145,6 +145,14 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
 
     type->tp_base = base;
 
+#if PYTHON_VERSION >= 0x3d0
+    if (base != NULL) {
+        // Assert that we don't accidentally miss setting pre-header flags
+        // that the base type has, as it causes GC segfaults.
+        assert(_PyType_PreHeaderSize(type) == _PyType_PreHeaderSize(base));
+    }
+#endif
+
     if (generic_get_attr) {
         assert(type->tp_getattro == NULL);
         type->tp_getattro = PyObject_GenericGetAttr_resolved;

@@ -687,7 +687,8 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 
         // Avoid the long cache, won't do anything useful for small ints
 #if PYTHON_VERSION >= 0x300
-        if (value < NUITKA_STATIC_SMALLINT_VALUE_MIN || value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
+        long check_value = (c == 'l') ? (long)value : -(long)value;
+        if (check_value < NUITKA_STATIC_SMALLINT_VALUE_MIN || check_value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
 #endif
         {
             insertToDictCache(long_cache, &l);

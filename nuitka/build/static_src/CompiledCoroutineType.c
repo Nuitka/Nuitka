@@ -60,7 +60,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
                                         PyObject *value, bool closing,
                                         struct Nuitka_ExceptionPreservationItem *exception_state);
 
-static long Nuitka_Coroutine_tp_hash(struct Nuitka_CoroutineObject *coroutine) { return coroutine->m_counter; }
+static Py_hash_t Nuitka_Coroutine_tp_hash(struct Nuitka_CoroutineObject *coroutine) { return coroutine->m_counter; }
 
 static PyObject *Nuitka_Coroutine_get_name(PyObject *self, void *data) {
     CHECK_OBJECT(self);
@@ -615,7 +615,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
     }
 }
 
-static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
+static PyObject *_Nuitka_Coroutine_send_api(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT(value);
 
@@ -636,6 +636,10 @@ static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine,
     }
 
     return result;
+}
+
+static PyObject *Nuitka_Coroutine_send(PyObject *coroutine_obj, PyObject *value) {
+    return _Nuitka_Coroutine_send_api((struct Nuitka_CoroutineObject *)coroutine_obj, value);
 }
 
 // Note: Used by compiled frames.
@@ -664,7 +668,7 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
     return true;
 }
 
-static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *_Nuitka_Coroutine_close_api(struct Nuitka_CoroutineObject *coroutine, PyObject *args) {
     PyThreadState *tstate = PyThreadState_GET();
 
     bool r = _Nuitka_Coroutine_close(tstate, coroutine);
@@ -675,6 +679,10 @@ static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
+}
+
+static PyObject *Nuitka_Coroutine_close(PyObject *coroutine_obj, PyObject *args) {
+    return _Nuitka_Coroutine_close_api((struct Nuitka_CoroutineObject *)coroutine_obj, args);
 }
 
 #if PYTHON_VERSION >= 0x360
@@ -934,7 +942,7 @@ throw_here:
     }
 }
 
-static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine, PyObject *args) {
+static PyObject *_Nuitka_Coroutine_throw_api(struct Nuitka_CoroutineObject *coroutine, PyObject *args) {
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT_DEEP(args);
 
@@ -980,6 +988,10 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 #endif
 
     return result;
+}
+
+static PyObject *Nuitka_Coroutine_throw(PyObject *coroutine_obj, PyObject *args) {
+    return _Nuitka_Coroutine_throw_api((struct Nuitka_CoroutineObject *)coroutine_obj, args);
 }
 
 static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *coroutine) {
@@ -1251,7 +1263,7 @@ static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObj
 static PyObject *Nuitka_CoroutineWrapper_tp_iternext(struct Nuitka_CoroutineWrapperObject *cw) {
     CHECK_OBJECT(cw);
 
-    return Nuitka_Coroutine_send(cw->m_coroutine, Py_None);
+    return _Nuitka_Coroutine_send_api(cw->m_coroutine, Py_None);
 }
 
 static int Nuitka_CoroutineWrapper_tp_traverse(struct Nuitka_CoroutineWrapperObject *cw, visitproc visit, void *arg) {
@@ -1261,24 +1273,27 @@ static int Nuitka_CoroutineWrapper_tp_traverse(struct Nuitka_CoroutineWrapperObj
     return 0;
 }
 
-static PyObject *Nuitka_CoroutineWrapper_send(struct Nuitka_CoroutineWrapperObject *cw, PyObject *arg) {
+static PyObject *Nuitka_CoroutineWrapper_send(PyObject *cw_obj, PyObject *arg) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)cw_obj;
     CHECK_OBJECT(cw);
     CHECK_OBJECT(arg);
 
-    return Nuitka_Coroutine_send(cw->m_coroutine, arg);
+    return _Nuitka_Coroutine_send_api(cw->m_coroutine, arg);
 }
 
-static PyObject *Nuitka_CoroutineWrapper_throw(struct Nuitka_CoroutineWrapperObject *cw, PyObject *args) {
+static PyObject *Nuitka_CoroutineWrapper_throw(PyObject *cw_obj, PyObject *args) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)cw_obj;
     CHECK_OBJECT(cw);
     CHECK_OBJECT_DEEP(args);
 
-    return Nuitka_Coroutine_throw(cw->m_coroutine, args);
+    return _Nuitka_Coroutine_throw_api(cw->m_coroutine, args);
 }
 
-static PyObject *Nuitka_CoroutineWrapper_close(struct Nuitka_CoroutineWrapperObject *cw) {
+static PyObject *Nuitka_CoroutineWrapper_close(PyObject *cw_obj, PyObject *args) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)cw_obj;
     CHECK_OBJECT(cw);
 
-    return Nuitka_Coroutine_close(cw->m_coroutine);
+    return _Nuitka_Coroutine_close_api(cw->m_coroutine, args);
 }
 
 static PyObject *Nuitka_CoroutineWrapper_tp_repr(struct Nuitka_CoroutineWrapperObject *cw) {

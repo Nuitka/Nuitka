@@ -68,7 +68,7 @@ static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, 
     return 0;
 }
 
-static long Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
+static Py_hash_t Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -1505,7 +1505,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && !!defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
+#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
     // For simplicity's sake, the annotations parameter doubles as the __annotate__
     // parameter on 3.14+
     assert(annotations == NULL || PyCallable_Check(annotations));
@@ -1514,6 +1514,9 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #elif PYTHON_VERSION >= 0x300
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;
+#if PYTHON_VERSION >= 0x3e0
+    result->m_annotate = NULL;
+#endif
 #endif
 
     result->m_code_object = code_object;

@@ -1175,7 +1175,7 @@ def buildNamedExprNode(provider, node, source_ref):
     while locals_owner.isExpressionOutlineFunction():
         locals_owner = locals_owner.getParentVariableProvider()
 
-    variable_name = node.target.id
+    variable_name = mangleName(node.target.id, provider)
 
     if (
         locals_owner.isExpressionGeneratorObjectBody()
