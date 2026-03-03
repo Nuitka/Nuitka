@@ -437,6 +437,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
     # Can give multiple names.
     for variable_name in node.names:
+        variable_name = mangleName(variable_name, provider)
         closure_variable = None
 
         # Reuse already taken global variables, in order to avoid creating yet
