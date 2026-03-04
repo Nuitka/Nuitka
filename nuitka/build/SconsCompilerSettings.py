@@ -1519,7 +1519,8 @@ def _enableDebugSystemSettings(env):
         if env.gcc_mode or env.zig_mode:
             if isMacOS():
                 env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-            elif not env.clang_mode:
+
+            if not env.clangcl_mode and not isMacOS():
                 env.Append(LINKFLAGS=["-s"])
 
 
