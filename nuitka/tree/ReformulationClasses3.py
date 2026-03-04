@@ -188,9 +188,9 @@ def buildClassNode3(provider, node, source_ref):
 
     type_variables = []
     if python_version >= 0x3C0 and node.type_params:
-        for type_param in node.type_params:
+        for index, type_param in enumerate(node.type_params):
             temp_var = outline_body.allocateTempVariable(
-                temp_scope=temp_scope, name="type_variable", temp_type="object"
+                temp_scope=temp_scope, name="type_variable_%d" % index, temp_type="object"
             )
             data = (type_param, temp_var)
             type_variables.append(data)
