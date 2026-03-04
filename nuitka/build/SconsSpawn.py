@@ -65,8 +65,7 @@ class SubprocessThread(threading.Thread):
                 )
 
                 self.process_result = SubprocessSpawnResult(
-                    exception=None,
-                    **process_result.asDict(),
+                    exception=None, **process_result.asDict()
                 )
 
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
@@ -381,10 +380,7 @@ class SpawnThread(threading.Thread):
         exit_code = process_result.exit_code
 
         if self.is_terminated and exit_code != 0:
-            return SubprocessSpawnResult(
-                exception=None,
-                **process_result.asDict(),
-            )
+            return SubprocessSpawnResult(exception=None, **process_result.asDict())
 
         stderr = process_result.stderr
         if str is not bytes:
@@ -412,8 +408,7 @@ class SpawnThread(threading.Thread):
             reportSconsUnexpectedOutput(env, args, stdout=None, stderr=line)
 
         return SubprocessSpawnResult(
-            exception=None,
-            **process_result.replace(exit_code=exit_code).asDict(),
+            exception=None, **process_result.replace(exit_code=exit_code).asDict()
         )
 
     def getSpawnResult(self):
