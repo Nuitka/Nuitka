@@ -1325,7 +1325,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
     if env.console_mode in ("attach", "disable"):
-        if env.mingw_mode:
+        if env.mingw_mode or env.zig_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
         elif env.msvc_mode:
