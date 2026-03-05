@@ -1,6 +1,36 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+class GenericInInstanceMethod:
+    @property
+    def get[T](self):
+        print(f"GenericInInstanceMethod:get -> {T}")
+
+    def method[T](self):
+        print(f"GenericInInstanceMethod:method -> {T}")
+
+
+class GenericInStaticMethod:
+    @staticmethod
+    def method[T]():
+        print(f"GenericInStaticMethod:method -> {T}")
+
+
+class GenericInClassMethod:
+    @classmethod
+    def method[T](cls):
+        print(f"GenericInClassMethod:method -> {T}")
+
+
+try:
+    GenericInInstanceMethod().get
+    GenericInInstanceMethod().method()
+    GenericInStaticMethod.method()
+    GenericInClassMethod.method()
+except NameError:
+    raise
+
+
 class Parent[T]:
     value: T
     print(T)
@@ -17,11 +47,13 @@ class MutiTypeVarGeneric[T1, T2]:
     print(T1)
     print(T2)
 
+
 class MutiParamSpecGeneric[**P1, **P2]:
     generic_value_1: P1
     generic_value_2: P2
     print(P1)
     print(P2)
+
 
 try:
     print(T)
@@ -31,6 +63,7 @@ try:
     print(P2)
 except NameError:
     print("!!!")
+
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
