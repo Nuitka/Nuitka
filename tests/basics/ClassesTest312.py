@@ -22,13 +22,10 @@ class GenericInClassMethod:
         print(f"GenericInClassMethod:method -> {T}")
 
 
-try:
-    GenericInInstanceMethod().get
-    GenericInInstanceMethod().method()
-    GenericInStaticMethod.method()
-    GenericInClassMethod.method()
-except NameError:
-    raise
+GenericInInstanceMethod().get()
+GenericInInstanceMethod().method()
+GenericInStaticMethod.method()
+GenericInClassMethod.method()
 
 
 class Parent[T]:
