@@ -8,6 +8,7 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
+import shlex
 import sys
 import threading
 
@@ -372,7 +373,7 @@ class SpawnThread(threading.Thread):
         sh, _cmd, args, os_env = args
 
         self.process = Process(
-            command=[sh, "-c", " ".join(args)],
+            command=[sh, "-c", " ".join(shlex.quote(arg) for arg in args)],
             env=os_env,
             rusage=True,
         )
