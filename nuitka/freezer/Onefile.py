@@ -129,8 +129,7 @@ def getCompressorPython():
     if _compressor_python is None:
         _compressor_python = findInstalledPython(
             python_versions=getZstandardSupportingVersions(),
-            module_name="zstandard",
-            module_version="0.15",
+            module_specs="compression.zstd|zstandard>=0.15",
         )
 
         if _compressor_python is None:
@@ -143,7 +142,9 @@ another discoverable Python >= 3.5 on your system."""
             else:
                 onefile_logger.warning(
                     """\
-Onefile mode cannot compress without 'zstandard' package installed."""
+Onefile mode cannot compress without 'zstandard' package installed You \
+probably should depend on 'Nuitka[onefile]' rather than 'Nuitka' which \
+among other things depends on it."""
                 )
 
     return _compressor_python

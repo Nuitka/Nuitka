@@ -257,20 +257,23 @@ def _executePylint(filenames, pylint_options, extra_options):
         + filenames
     )
 
-    stdout, stderr, exit_code = executeProcess(
+    process_result = executeProcess(
         command,
         env={"PYTHONWARNINGS": "ignore"},
     )
 
-    if exit_code == -11:
+    if process_result.exit_code == -11:
         sys.exit("Error, segfault from pylint.")
 
     # Catch random crashes with non standard exit code.
-    if exit_code < 0 or exit_code >= 64:
-        sys.exit("Error, strange crash with exit_code %d from pylint." % exit_code)
+    if process_result.exit_code < 0 or process_result.exit_code >= 64:
+        sys.exit(
+            "Error, strange crash with exit_code %d from pylint."
+            % process_result.exit_code
+        )
 
-    stdout = _cleanupPylintOutput(stdout)
-    stderr = _cleanupPylintOutput(stderr)
+    stdout = _cleanupPylintOutput(process_result.stdout)
+    stderr = _cleanupPylintOutput(process_result.stderr)
 
     if stderr:
         our_exit_code = 1

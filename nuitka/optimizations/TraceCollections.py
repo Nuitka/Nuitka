@@ -289,6 +289,11 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
         # Surely do this only once.
         del self.delayed_work
 
+    def updateVeryTrustedModuleVariable(self, variable, old_node, new_node):
+        """Update a very trusted module variable assignment if necessary."""
+        if self.very_trusted_module_variables.get(variable, None) is old_node:
+            self.very_trusted_module_variables[variable] = new_node
+
 
 class TraceCollectionBase(object):
     """This contains for logic for maintaining active traces.
@@ -969,6 +974,9 @@ class TraceCollectionBase(object):
 
     def getVeryTrustedModuleVariables(self):
         return self.parent.getVeryTrustedModuleVariables()
+
+    def updateVeryTrustedModuleVariable(self, variable, old_node, new_node):
+        return self.parent.updateVeryTrustedModuleVariable(variable, old_node, new_node)
 
     def onUsedFunction(self, function_body):
         return self.parent.onUsedFunction(function_body)

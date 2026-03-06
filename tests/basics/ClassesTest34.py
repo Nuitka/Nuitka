@@ -3,8 +3,6 @@
 
 """Covers Python3 meta classes with __prepare__ non-dict values."""
 
-# nuitka-project: --nofollow-imports
-
 from enum import Enum
 
 print("Enum class with duplicate enumeration values:")

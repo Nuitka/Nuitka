@@ -56,6 +56,7 @@ def callExecProcess(args, uac):
 
 
 def setLaunchingNuitkaProcessEnvironmentValue(environment_variable_name, value):
+    # spell-checker: ignore getpid
     os.environ[environment_variable_name] = str(os.getpid()) + ":" + value
 
 

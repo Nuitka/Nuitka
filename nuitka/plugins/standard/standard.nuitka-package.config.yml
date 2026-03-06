@@ -986,7 +986,7 @@
       replacements:
         # Before OpenCV 4.6
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
-      # After OpenCV 4.6
+        # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
       when: 'standalone and before_python312 and not monolithpy'
     - description: 'workaround for colliding native module import'
@@ -1427,7 +1427,7 @@
 - module-name: 'duckdb' # checksum: 8daca454
   implicit-imports:
     - depends:
-      # The anti-bloat avoids this one, but we need to force it.
+        # The anti-bloat avoids this one, but we need to force it.
         - '_datetime'
 
 - module-name: 'easyocr' # checksum: 58ad3ee8
@@ -2048,7 +2048,7 @@
         - '*.csv'
         - '*.jar'
 
-- module-name: 'h5py' # checksum: 5a8caf97
+- module-name: 'h5py' # checksum: a1a03058
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
@@ -2059,6 +2059,9 @@
         'from .tests import run_tests': ''
       change_function:
         'run_tests': "'(lambda args=None: None)'"
+  implicit-imports:
+    - depends:
+        - 'h5py._npystrings'
 
 - module-name: 'h5py.h5' # checksum: 4247d58a
   implicit-imports:
@@ -3775,7 +3778,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 11103e47
+- module-name: 'paddle' # checksum: 1b5d195c
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -3784,6 +3787,7 @@
           - 'mkl'
           - 'war'
           - 'common'
+          - 'phi'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:
@@ -3884,7 +3888,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: b4c6897a
+- module-name: 'pandas' # checksum: 47010086
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3897,13 +3901,17 @@
         'pandas.core._numba.extensions': 'no numba acceleration'
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
+    - description: 'remove getrefcount usage'
+      global_replacements_plain:
+        'if sys.getrefcount(': 'if False and sys.getrefcount('
 
-- module-name: 'pandas._libs' # checksum: 582d52b9
+- module-name: 'pandas._libs' # checksum: 53e16a27
   implicit-imports:
     - depends:
         - 'pandas._libs.tslibs.np_datetime'
         - 'pandas._libs.tslibs.nattype'
         - 'pandas._libs.tslibs.base'
+        - 'pandas._libs._cyutility'
 
 - module-name: 'pandas._libs.testing' # checksum: 9059205
   implicit-imports:
@@ -5381,6 +5389,13 @@
         - 'shiboken'
         - 'PySide6'
 
+- module-name: 'PySimpleGUI' # checksum: 8c86c1db
+  anti-bloat:
+    - description: 'remove pydoc usage'
+      replacements_plain:
+        'import pydoc': ''
+      when: 'not use_pydoc'
+
 - module-name: 'pysnmp.smi' # checksum: 6af35c04
   data-files:
     - patterns:
@@ -5672,7 +5687,7 @@
         - 'idna'
         - 'chardet'
     - depends:
-      # In case chardet is not there, another package is used.
+        # In case chardet is not there, another package is used.
         - 'charset_normalizer'
       when: 'not has_module("chardet")'
 
@@ -5848,6 +5863,11 @@
   implicit-imports:
     - depends:
         - 'scipy._lib.messagestream'
+
+- module-name: 'scipy._lib._ccallback' # checksum: 41e6ce11
+  implicit-imports:
+    - depends:
+        - 'scipy._cyutility'
 
 - module-name: 'scipy._lib._docscrape' # checksum: e4a58ca7
   anti-bloat:
@@ -6975,8 +6995,8 @@
 - module-name: 'sqlfluff' # checksum: 3fc9a782
   data-files:
     - include-metadata:
-      # TODO: Actually we should be able to include by
-      # entry point names.
+        # TODO: Actually we should be able to include by
+        # entry point names.
         - 'sqlfluff'
 
   anti-bloat:

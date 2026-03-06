@@ -515,7 +515,7 @@ to be installed on target systems."""
         else:
             inclusion_logger.info(
                 """\
-Including Windows Runtime DLLs, which increases distribution  \
+Including Windows Runtime DLLs, which increases distribution \
 size. Use '--include-windows-runtime-dlls=no' to disable, or \
 make explicit with '--include-windows-runtime-dlls=yes'."""
             )

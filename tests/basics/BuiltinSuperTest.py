@@ -5,9 +5,6 @@ from __future__ import print_function
 
 import sys
 
-# nuitka-project: --nofollow-imports
-
-
 # Python2 will fallback to this variable, which Python3 will ignore.
 __class__ = "Using module level __class__ variable, would be wrong for Python3"
 

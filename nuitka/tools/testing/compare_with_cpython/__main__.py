@@ -668,13 +668,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
         for _i in range(5):
             with withPythonPathChange(nuitka_package_dir):
-                stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(
-                    nuitka_cmd1
-                )
+                process_result = executeProcess(nuitka_cmd1)
 
                 python_path_used = os.environ["PYTHONPATH"]
 
-            if exit_nuitka1 != 0:
+            if process_result.exit_code != 0:
                 if (
                     not expect_failure
                     and not comparison_mode
@@ -687,13 +685,16 @@ Error, failed to take coverage with '%s' (PYTHONPATH was '%s').
 Stderr was:
 %s
 """
-                        % (nuitka_cmd1, python_path_used, stderr_nuitka1)
+                        % (nuitka_cmd1, python_path_used, process_result.stderr)
                     )
 
-                exit_nuitka = exit_nuitka1
-                stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
-                stdout_nuitka2 = b"not run due to compilation error:\n" + stdout_nuitka1
-                stderr_nuitka2 = stderr_nuitka1
+                exit_nuitka = process_result.exit_code
+                stdout_nuitka = process_result.stdout
+                stderr_nuitka = process_result.stderr
+                stdout_nuitka2 = (
+                    b"not run due to compilation error:\n" + process_result.stdout
+                )
+                stderr_nuitka2 = process_result.stderr
             else:
                 # No execution second step for coverage mode.
                 if comparison_mode:
@@ -717,8 +718,8 @@ Stderr was:
                         )
 
                     stdout_nuitka2, stderr_nuitka2 = process.communicate()
-                    stdout_nuitka = stdout_nuitka1 + stdout_nuitka2
-                    stderr_nuitka = stderr_nuitka1 + stderr_nuitka2
+                    stdout_nuitka = process_result.stdout + stdout_nuitka2
+                    stderr_nuitka = process_result.stderr + stderr_nuitka2
                     exit_nuitka = process.returncode
 
                     # In case of segfault or assertion triggered, run in debugger.
@@ -730,8 +731,9 @@ Stderr was:
 
                         callProcess(nuitka_cmd2, shell=False)
                 else:
-                    exit_nuitka = exit_nuitka1
-                    stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+                    exit_nuitka = process_result.exit_code
+                    stdout_nuitka = process_result.stdout
+                    stderr_nuitka = process_result.stderr
 
             if checkNoPermissionError(stdout_nuitka) and checkNoPermissionError(
                 stderr_nuitka

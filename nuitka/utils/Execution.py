@@ -12,7 +12,8 @@ import os
 import shlex
 from contextlib import contextmanager
 
-from nuitka.__past__ import subprocess
+from nuitka.__past__ import iterItems, selectors, subprocess
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
@@ -122,6 +123,9 @@ def check_output(*popenargs, **kwargs):
     if "stderr" not in kwargs:
         kwargs["stderr"] = subprocess.PIPE
 
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
+
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
 
     output, stderr = process.communicate()
@@ -152,6 +156,9 @@ def check_call(*popenargs, **kwargs):
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
+        if "env" in kwargs:
+            _checkEnvironment(kwargs["env"])
+
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
         return general.sysexit(
@@ -165,6 +172,9 @@ def callProcess(*popenargs, **kwargs):
 
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
+
+    if "env" in kwargs:
+        _checkEnvironment(kwargs["env"])
 
     return subprocess.call(*popenargs, **kwargs)
 
@@ -370,6 +380,8 @@ def wrapCommandForDebuggerForExec(command, debugger):
         args = (
             lldb_path,
             "lldb",
+            "--script-language",
+            "none",
             "-o",
             "run",
             "-o",
@@ -525,6 +537,33 @@ def executeToolChecked(
     return stdout
 
 
+def _checkEnvironment(env):
+    if not env:
+        return
+
+    # Make sure environment contains no None values
+    for key, value in iterItems(env):
+        if key is None:
+            # This is probably not possible, but just in case.
+            raise RuntimeError("Environment variable key cannot be None.")
+        if value is None:
+            raise RuntimeError("Environment variable '%s' value is None." % key)
+
+        if not isinstance(key, str) or not isinstance(value, str):
+            general.warning(
+                "Illegal environment variable %r: %r (types %s, %s)"
+                % (key, value, type(key), type(value))
+            )
+
+            # Dump the whole thing.
+            general.warning("Environment was: %r" % env)
+
+            raise TypeError(
+                "Environment variable %r has wrong type %s"
+                % (key, type(key) if not isinstance(key, str) else type(value))
+            )
+
+
 def createProcess(
     command,
     env=None,
@@ -537,6 +576,8 @@ def createProcess(
 ):
     if not env:
         env = os.environ
+
+    _checkEnvironment(env)
 
     kw_args = {}
     if new_group:
@@ -563,6 +604,17 @@ def createProcess(
         )
 
     return process
+
+
+ExecuteProcessResult = makeNamedtupleClass(
+    "ExecuteProcessResult",
+    (
+        "exit_code",
+        "stdout",
+        "stderr",
+        "rusage",
+    ),
+)
 
 
 def executeProcess(
@@ -643,14 +695,17 @@ class Process(object):
 
         # TODO: May introduce a namedtuple for the return value.
         if self.rusage:
-            return _communicateWithRusage(
+            stdout, stderr, exit_code, rusage = _communicateWithRusage(
                 proc=self.process, process_input=process_input
             )
         else:
             stdout, stderr = self.process.communicate(input=process_input)
             exit_code = self.process.wait()
+            rusage = None
 
-            return stdout, stderr, exit_code
+        return ExecuteProcessResult(
+            exit_code=exit_code, stdout=stdout, stderr=stderr, rusage=rusage
+        )
 
     def stop(self):
         if self.process is not None:
@@ -664,11 +719,6 @@ def _communicateWithRusage(proc, process_input):
     """
 
     # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
-
-    try:
-        import selectors
-    except ImportError:
-        selectors = None
 
     if selectors is None or not hasattr(os, "wait4"):
         stdout, stderr = proc.communicate(input=process_input)
@@ -701,12 +751,13 @@ def _communicateWithRusage(proc, process_input):
                 for key, mask in ready_events:
                     if mask & selectors.EVENT_READ:
                         # key.fileobj is the original file object (e.g., proc.stdout)
-                        chunk = key.fileobj.read(8192)
+                        chunk = key.fileobj.read1(8192)
 
                         if not chunk:
                             # If we read empty bytes, the pipe has closed.
                             # Unregister it so the loop can terminate.
                             selector.unregister(key.fileobj)
+                            key.fileobj.close()
                         elif key.fileobj is proc.stdout:
                             stdout_chunks.append(chunk)
                         else:  # key.fileobj is proc.stderr

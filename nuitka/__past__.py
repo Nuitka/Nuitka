@@ -200,6 +200,10 @@ try:
 except (AttributeError, ImportError):
     import _imp as imp
 
+try:
+    import selectors  # pylint: disable=unused-import
+except ImportError:
+    selectors = None
 
 # For PyLint to be happy.
 assert long

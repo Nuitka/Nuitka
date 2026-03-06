@@ -143,7 +143,7 @@ License: public-domain
  For more information, please refer to <http://unlicense.org/>
  SPDX-License-Identifier: CC0-1.0
 
-Files: nuitka/build/inline-copy/stubgen/stubgen.py
+Files: nuitka/build/inline_copy/stubgen/stubgen.py
 Copyright: 2024 Kevin Rodriguez <mailto:turcioskevinr@gmail.com>
 License: MIT
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -164,7 +164,7 @@ License: MIT
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 
-Files: nuitka/build/inline-copy/stubgen/six.py
+Files: nuitka/build/inline_copy/stubgen/six.py
 Copyright: 2010-2020 Benjamin Peterson
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -184,7 +184,7 @@ Copyright: 2010-2020 Benjamin Peterson
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 
-Files: nuitka/build/inline-copy/stubgen/
+Files: nuitka/build/inline_copy/stubgen/
 Copyright: 2014 Simon Percivall
 License: PSF2+Percivall
   Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -199,7 +199,7 @@ License: PSF2+Percivall
 
 Files:
   debian
-Copyright: 2024 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2025 Kay Hayen <kay.hayen@gmail.com>
 License: Apache
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.

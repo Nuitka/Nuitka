@@ -34,8 +34,15 @@ extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "")
 nuitka1_cmd = "{nuitka1} --xml {filename}".format(nuitka1=nuitka1, filename=filename)
 nuitka2_cmd = "{nuitka2} --xml {filename}".format(nuitka2=nuitka2, filename=filename)
 
-stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(nuitka1_cmd, shell=True)
-stdout_nuitka2, stderr_nuitka2, exit_nuitka2 = executeProcess(nuitka2_cmd, shell=True)
+process_result1 = executeProcess(
+    nuitka1_cmd,
+    shell=True,
+)
+
+process_result2 = executeProcess(
+    nuitka2_cmd,
+    shell=True,
+)
 
 
 def makeDiffable(output):
@@ -69,16 +76,18 @@ def compareOutput(kind, out1, out2):
         return 0
 
 
-exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
-exit_code_return = exit_nuitka1 != exit_nuitka2
+exit_code_stdout = compareOutput(
+    "stdout", process_result1.stdout, process_result2.stdout
+)
+exit_code_return = process_result1.exit_code != process_result2.exit_code
 
 if exit_code_return:
     my_print(
         """\
 Exit codes {exit_nuitka1:d} ({nuitka1}) != {exit_nuitka2:d} ({nuitka2})""".format(
-            exit_nuitka1=exit_nuitka1,
+            exit_nuitka1=process_result1.exit_code,
             nuitka1=nuitka1,
-            exit_nuitka2=exit_nuitka2,
+            exit_nuitka2=process_result2.exit_code,
             nuitka2=nuitka2,
         )
     )

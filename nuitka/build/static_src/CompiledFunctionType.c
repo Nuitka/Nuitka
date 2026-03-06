@@ -68,7 +68,7 @@ static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, 
     return 0;
 }
 
-static long Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
+static Py_hash_t Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -458,7 +458,7 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-#if PYTHON_VERSION < 0x3e0
+#if PYTHON_VERSION < 0x3e0 || !defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
 #else
         if (function->m_annotate == NULL) {
@@ -523,6 +523,12 @@ static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *d
     assert(Nuitka_Function_Check(self));
     assert(_PyObject_GC_IS_TRACKED(self));
 
+    // Same to us, immortal value needs no ref count handling for 3.14 only
+    // code.
+    if (value == Py_None) {
+        value = NULL;
+    }
+
     if (unlikely(value != NULL && !PyCallable_Check(value))) {
         PyThreadState *tstate = PyThreadState_GET();
 
@@ -584,7 +590,15 @@ static PyObject *Nuitka_Function_get_builtins(PyObject *self, void *data) {
 
     PyThreadState *tstate = PyThreadState_GET();
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
-    return LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+    PyObject *builtins_module =
+        LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+    if (builtins_module == NULL) {
+        return NULL;
+    }
+
+    PyObject *builtins_dict = LOOKUP_ATTRIBUTE(tstate, builtins_module, const_str_plain___dict__);
+    Py_DECREF(builtins_module);
+    return builtins_dict;
 }
 #endif
 
@@ -1491,7 +1505,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
     // For simplicity's sake, the annotations parameter doubles as the __annotate__
     // parameter on 3.14+
     assert(annotations == NULL || PyCallable_Check(annotations));
@@ -1500,6 +1514,9 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #elif PYTHON_VERSION >= 0x300
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;
+#if PYTHON_VERSION >= 0x3e0
+    result->m_annotate = NULL;
+#endif
 #endif
 
     result->m_code_object = code_object;

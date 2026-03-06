@@ -3,8 +3,6 @@
 
 """Assignment tests, cover most forms of them."""
 
-# nuitka-project: --nofollow-imports
-
 from __future__ import print_function
 
 import sys

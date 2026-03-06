@@ -78,6 +78,10 @@ class ValueTraceBase(object):
     def getOwner(self):
         return self.owner
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # Virtual method, pylint: disable=unused-argument
+        self.getTypeShape().emitAlternatives(emit)
+
     @staticmethod
     def isLoopTrace():
         return False
@@ -617,6 +621,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def getTypeShape(self):
         return self.previous.getTypeShape()
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        self.previous.emitShapeAlternativesForLoop(emit, loop_node)
+
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 
@@ -677,6 +684,8 @@ class ValueTraceAssign(ValueTraceBase):
 
     @counted_init
     def __init__(self, owner, assign_node, previous):
+        # assert assign_node.isStatementAssignmentVariable(), assign_node
+
         self.owner = owner
         self.usage_count = 0
         self.name_usage_count = 0
@@ -903,6 +912,13 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # TODO: Need to consider loop_node by asking for emission from
+        # all self.previous.
+        # TODO: Also make the method abstract in ValueTraceBase, to avoid
+        # accidental missing overloads.
+        self.getTypeShape().emitAlternatives(emit)
 
     def getTypeShape(self):
         type_shape_found = None
@@ -1195,6 +1211,12 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
+
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
 
 
 _is_debug = None

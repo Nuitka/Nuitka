@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 
-# nuitka-project: --nofollow-imports
-
 a = 3
 
 del a

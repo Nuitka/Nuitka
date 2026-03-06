@@ -138,6 +138,7 @@ template_release_object_unclear = """\
 Py_XDECREF(%(identifier)s);"""
 
 template_release_object_clear = """\
+CHECK_OBJECT(%(identifier)s);
 Py_DECREF(%(identifier)s);"""
 
 template_read_shared_known = """\

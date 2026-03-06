@@ -83,6 +83,11 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
             "module_guaranteed": self.module_guaranteed,
         }
 
+    # TODO: Need to clean up the naming here, there are variants
+    @staticmethod
+    def isExpressionImportModuleNameHard():
+        return True
+
     @staticmethod
     def hasVeryTrustedValue():
         return True

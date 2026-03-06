@@ -5,8 +5,6 @@
 
 from __future__ import print_function
 
-# nuitka-project: --nofollow-imports
-
 # pylint: disable=dangerous-default-value,unused-argument
 
 module_level = 1

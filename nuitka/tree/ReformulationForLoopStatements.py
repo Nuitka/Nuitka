@@ -56,6 +56,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         temp_scope=temp_scope, name="iter_value", temp_type="object"
     )
 
+    # ast naming, spell-checker: ignore orelse
     else_block = buildStatementsNode(
         provider=provider,
         nodes=node.orelse if node.orelse else None,

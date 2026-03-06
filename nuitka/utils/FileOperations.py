@@ -14,6 +14,7 @@ import codecs
 import errno
 import fnmatch
 import glob
+import io
 import os
 import pickle
 import shutil
@@ -519,24 +520,16 @@ def listDir(path):
     if str is bytes and type(real_path) is str:
         real_path = unicode(real_path)
 
-    def _tryDecodeToStr(value):
-        if str is bytes:
-            if type(value) is unicode:
-                # File system paths, that should be usable for names of modules,
-                # as Python2 code objects will e.g. hate unicode values.
-
-                # spell-checker: ignore getfilesystemencoding
-                try:
-                    return value.decode(sys.getfilesystemencoding())
-                except UnicodeDecodeError:
-                    return value
-        else:
+    def _tryEncodeToFilesystemEncoding(value):
+        try:
+            return encodeToFilesystemEncoding(value)
+        except UnicodeEncodeError:
             return value
 
     return sorted(
         (
-            _tryDecodeToStr(getNormalizedPathJoin(path, filename)),
-            _tryDecodeToStr(filename),
+            _tryEncodeToFilesystemEncoding(getNormalizedPathJoin(path, filename)),
+            _tryEncodeToFilesystemEncoding(filename),
         )
         for filename in os.listdir(real_path)
     )
@@ -1136,7 +1129,10 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if python_version >= 0x370:
         mode = mode.replace("U", "")
 
-    return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    if str is bytes:
+        return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    else:
+        return io.open(filename, mode, encoding=encoding, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):
@@ -2017,6 +2013,25 @@ def getFileContentsHash(filename, as_string=True, line_filter=None):
         return result.asHexDigest()
     else:
         return result.asDigest()
+
+
+def encodeToFilesystemEncoding(path):
+    """Encode a path to filesystem encoding.
+
+    Args:
+        path: Path to encode.
+
+    Returns:
+        Encoded path (bytes on Python 2, str on Python 3).
+
+    Raises:
+        UnicodeEncodeError: If the path cannot be encoded in the filesystem encoding.
+    """
+    if str is bytes and type(path) is unicode:
+        # spell-checker: ignore getfilesystemencoding
+        return path.encode(sys.getfilesystemencoding() or "utf8")
+
+    return path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

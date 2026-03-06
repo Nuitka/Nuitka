@@ -408,40 +408,55 @@ def _checkRichModule():
 def _checkTqdmModule():
     global _colorama  # singleton, pylint: disable=global-statement
 
-    if _getTqdmModule() is not None:
-        if isWin32Windows():
-            if _colorama is None:
-                _colorama = importFromInlineCopy(
-                    "colorama", must_exist=True, delete_module=True
-                )
+    old_colorama = sys.modules.get("colorama")
 
-            # Check for our redirection, and temporarily disable it, so colorama
-            # finds the real handles.
-            if hasattr(sys.stdout, "original_stream"):
-                stdout_redirector = sys.stdout
-                sys.stdout = stdout_redirector.original_stream
-            else:
-                stdout_redirector = None
+    # Prevent tqdm from seeing any system installed or previously loaded
+    # colorama which it unconditionally initializes on load, wrapping Nuitka's
+    # redirector and breaking Windows CRT handle inheritance. We initialize
+    # colorama manually down below instead.
+    sys.modules["colorama"] = None
 
-            if hasattr(sys.stderr, "original_stream"):
-                stderr_redirector = sys.stderr
-                sys.stderr = stderr_redirector.original_stream
-            else:
-                stderr_redirector = None
+    tqdm_module = _getTqdmModule()
 
-            _colorama.init()
-
-            if stdout_redirector:
-                stdout_redirector.original_stream = sys.stdout
-                sys.stdout = stdout_redirector
-
-            if stderr_redirector:
-                stderr_redirector.original_stream = sys.stderr
-                sys.stderr = stderr_redirector
-
-        return "tqdm"
+    if old_colorama is not None:
+        sys.modules["colorama"] = old_colorama
     else:
+        del sys.modules["colorama"]
+
+    if tqdm_module is None:
         return "none"
+
+    if isWin32Windows():
+        if _colorama is None:
+            _colorama = importFromInlineCopy(
+                "colorama", must_exist=True, delete_module=True
+            )
+
+        # Check for our redirection, and temporarily disable it, so colorama
+        # finds the real handles.
+        if hasattr(sys.stdout, "original_stream"):
+            stdout_redirector = sys.stdout
+            sys.stdout = stdout_redirector.original_stream
+        else:
+            stdout_redirector = None
+
+        if hasattr(sys.stderr, "original_stream"):
+            stderr_redirector = sys.stderr
+            sys.stderr = stderr_redirector.original_stream
+        else:
+            stderr_redirector = None
+
+        _colorama.init(strip=False)
+
+        if stdout_redirector:
+            stdout_redirector.original_stream = sys.stdout
+            sys.stdout = stdout_redirector
+
+        if stderr_redirector:
+            stderr_redirector.original_stream = sys.stderr
+            sys.stderr = stderr_redirector
+
+    return "tqdm"
 
 
 # Try progress bars in this order.

@@ -51,9 +51,9 @@ def runValgrind(description, tool, args, include_startup, save_log_filename=None
 
         command.extend(args)
 
-        _stdout_valgrind, stderr_valgrind, exit_valgrind = executeProcess(command)
+        process_result = executeProcess(command)
 
-        assert exit_valgrind == 0, stderr_valgrind
+        assert process_result.exit_code == 0, process_result.stderr
         if description:
             my_print("OK", file=sys.stderr)
 

@@ -545,13 +545,13 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    stdout, stderr, exit_code = executeProcess(command)
+    process_result = executeProcess(command)
 
-    if exit_code != 0:
-        my_print("stdout", stdout)
-        my_print("stderr", stderr)
+    if process_result.exit_code != 0:
+        my_print("stdout", process_result.stdout)
+        my_print("stderr", process_result.stderr)
 
-    return exit_code == 0
+    return process_result.exit_code == 0
 
 
 def getDebugPython():
@@ -702,6 +702,11 @@ _debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
+    # Force clear internal type caches to stabilize the reference count,
+    # and not be polluted by cached types or IO values.
+    # pylint: disable=protected-access
+    sys._clear_type_cache()
+
     if _debug_python:
         gc.collect()
         return sys.gettotalrefcount()
@@ -984,7 +989,13 @@ def reportSkip(reason, dirname, filename):
 
 
 def executeReferenceChecked(
-    prefix, names, tests_skipped=(), tests_stderr=(), explain=False, no_print=True
+    prefix,
+    names,
+    tests_skipped=(),
+    tests_stderr=(),
+    max_rounds=20,
+    explain=False,
+    no_print=True,
 ):
     gc.disable()
 
@@ -1015,12 +1026,18 @@ def executeReferenceChecked(
                     sys.stderr = null_output
             except OSError:  # Windows
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             else:
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             finally:
@@ -1948,7 +1965,8 @@ Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
 
 def getInstalledPythonVersion(python_version, must_exist):
     result = findInstalledPython(
-        python_versions=(python_version,), module_name=None, module_version=None
+        python_versions=(python_version,),
+        module_specs=None,
     )
 
     if result is None and must_exist:
@@ -2006,8 +2024,7 @@ def getLocalWebServerDir(base_dir):
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
-            module_name=None,
-            module_version=None,
+            module_specs=None,
         )
 
         if web_server_python is None:
@@ -2066,11 +2083,14 @@ def decryptOutput(project_options, output):
         if project_option.startswith("--encryption-key="):
             nuitka_decrypt_call.append("--key=" + project_option.split("=", 1)[1])
 
-    stdout, stderr, exit_code = executeProcess(nuitka_decrypt_call, stdin=output)
+    process_result = executeProcess(
+        nuitka_decrypt_call,
+        stdin=output,
+    )
 
-    assert exit_code == 0, stderr
+    assert process_result.exit_code == 0, process_result.stderr
 
-    return stdout
+    return process_result.stdout
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

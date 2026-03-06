@@ -300,7 +300,7 @@ def checkDataChecksums(file_data, data):
         module_name = parts[1]
         module_name = module_name.split("#", 2)[0]
         module_name = module_name.strip()
-        module_name = module_name.strip("'")
+        module_name = module_name.strip("'\"")
 
         if "# checksum: " not in line:
             result.append(module_name)
@@ -448,7 +448,13 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         else:
             result = ()
 
-        if section in ("options", "variables") and type(result) in (dict, OrderedDict):
+        if section in (
+            "options",
+            "variables",
+            "constants",
+        ) and type(
+            result
+        ) in (dict, OrderedDict):
             result = (result,)
 
         if type(result) is list:

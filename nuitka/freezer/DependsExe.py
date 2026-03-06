@@ -236,7 +236,9 @@ SxS
     # but errors might be interesting potentially.
 
     with withEnvironmentVarOverridden("PATH", ""):
-        _stdout, _stderr, _exit_code = executeProcess(
+        # TODO: At least exit code should be checked, output goes to a filename,
+        # but errors might be interesting potentially.
+        _process_result = executeProcess(
             command=(
                 depends_exe,
                 "-c",

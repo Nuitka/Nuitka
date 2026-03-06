@@ -86,6 +86,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     cheapCopyFile,
     deleteFile,
+    encodeToFilesystemEncoding,
     getDirectoryRealPath,
     getExternalUsePath,
     getNormalizedPath,
@@ -205,8 +206,7 @@ def _getPythonForSconsExePath():
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
         python_versions=reversed(getSconsSupportingVersions()),
-        module_name=None,
-        module_version=None,
+        module_specs=None,
     )
 
     if python_for_scons is None:
@@ -263,7 +263,13 @@ def _setupSconsEnvironment2():
 
         msvc_config_cache_dir = getCacheDir("scons-msvc-config")
         makePath(msvc_config_cache_dir)
-        os.environ["SCONS_CACHE_MSVC_CONFIG"] = getNormalizedPath(msvc_config_cache_dir)
+
+        try:
+            os.environ["SCONS_CACHE_MSVC_CONFIG"] = encodeToFilesystemEncoding(
+                getNormalizedPath(msvc_config_cache_dir)
+            )
+        except UnicodeEncodeError:
+            pass
 
     yield
 
@@ -626,6 +632,9 @@ def getCommonSconsOptions():
                 assume_yes_for_downloads=assumeYesForDownloads(),
                 reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
             )
+
+            if scons_options["zig_exe_path"] is None:
+                scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
 
     if getMsvcVersion():
         scons_options["msvc_version"] = getMsvcVersion()

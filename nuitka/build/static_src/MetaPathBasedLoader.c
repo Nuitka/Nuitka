@@ -1543,7 +1543,8 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
 
 static char const *_kw_list_iter_modules[] = {"package", NULL};
 
-static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
+static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_LoaderObject *self = (struct Nuitka_LoaderObject *)self_obj;
     PyObject *prefix;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kw_list_iter_modules, &prefix);
@@ -2215,28 +2216,28 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 }
 
 static PyMethodDef Nuitka_Loader_methods[] = {
-    {"iter_modules", (PyCFunction)_nuitka_loader_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"get_data", (PyCFunction)_nuitka_loader_get_data, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"find_module", (PyCFunction)_nuitka_loader_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"load_module", (PyCFunction)_nuitka_loader_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"is_package", (PyCFunction)_nuitka_loader_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"iter_modules", CAST_METHOD_KW(_nuitka_loader_iter_modules), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"get_data", CAST_METHOD_KW(_nuitka_loader_get_data), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"find_module", CAST_METHOD_KW(_nuitka_loader_find_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"load_module", CAST_METHOD_KW(_nuitka_loader_load_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"is_package", CAST_METHOD_KW(_nuitka_loader_is_package), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #if PYTHON_VERSION >= 0x300
-    {"module_repr", (PyCFunction)_nuitka_loader_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"find_spec", (PyCFunction)_nuitka_loader_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"module_repr", CAST_METHOD_KW(_nuitka_loader_repr_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"find_spec", CAST_METHOD_KW(_nuitka_loader_find_spec), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 #if PYTHON_VERSION >= 0x350
-    {"create_module", (PyCFunction)_nuitka_loader_create_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-    {"exec_module", (PyCFunction)_nuitka_loader_exec_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"create_module", CAST_METHOD_KW(_nuitka_loader_create_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"exec_module", CAST_METHOD_KW(_nuitka_loader_exec_module), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 #if PYTHON_VERSION >= 0x370
-    {"get_resource_reader", (PyCFunction)_nuitka_loader_get_resource_reader, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
-     NULL},
+    {"get_resource_reader", CAST_METHOD_KW(_nuitka_loader_get_resource_reader),
+     METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
 
-    {"find_distributions", (PyCFunction)_nuitka_loader_find_distributions, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
-     NULL},
+    {"find_distributions", CAST_METHOD_KW(_nuitka_loader_find_distributions),
+     METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
-    {"sys_path_hook", (PyCFunction)_nuitka_loader_sys_path_hook, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
+    {"sys_path_hook", CAST_METHOD_KW(_nuitka_loader_sys_path_hook), METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
     {NULL, NULL} // terminator
 };

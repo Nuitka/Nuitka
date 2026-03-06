@@ -2,26 +2,44 @@
 
 FROM debian:12-slim
 ENV container docker
+ENV NUITKA_PIP_FLAGS="--break-system-packages"
+ENV DEBIAN_FRONTEND=noninteractive
 
 VOLUME [ "/sys/fs/cgroup" ]
 
 ## Install what we use for CI generally
 RUN mkdir /src
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y debconf-utils \
+    && echo "pbuilder pbuilder/mirrorsite string http://deb.debian.org/debian" | debconf-set-selections \
+    && apt-get install -y \
     apt-utils \
     ccache \
     chrpath \
+    devscripts \
+    dh-python \
     dput \
     gcc \
     gdb \
     git \
     help2man \
+    libzstd-dev \
     lintian \
+    patchelf \
+    pbuilder \
     python3 \
+    python3-all-dbg \
+    python3-all-dev \
+    python3-appdirs \
     python3-dev \
+    python3-glob2 \
     python3-pip \
+    python3-stdeb \
+    reprepro \
     rst2pdf \
+    rsync \
+    scons \
     strace \
+    sudo \
     wget
 
 

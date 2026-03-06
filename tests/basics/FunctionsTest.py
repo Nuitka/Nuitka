@@ -579,6 +579,17 @@ d = {"other": 7, "c": 3}
 print("Dual star args consuming function", posDoubleStarArgsFunction(1, *l, **d))
 
 
+def emptyFunction():
+    pass
+
+
+if hasattr(emptyFunction, "__builtins__"):
+    print("Function has __builtins__")
+    print(emptyFunction.__builtins__)
+else:
+    print("Function does not have __builtins__")
+
+
 for value in sorted(dir()):
     main_value = getattr(sys.modules["__main__"], value)
 

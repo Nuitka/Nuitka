@@ -15,6 +15,7 @@ from nuitka import ModuleRegistry
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
+from nuitka.options.BuildPackageCommon import getProjectExpectedDataFiles
 from nuitka.options.Options import (
     getOutputPath,
     getShallIncludeDataDirs,
@@ -473,6 +474,49 @@ def getIncludedDataFiles():
         list: List of IncludedDataFile objects.
     """
     return _included_data_files
+
+
+def checkProjectExpectedDataFiles():
+    """Check if the expected data files are present.
+
+    Notes:
+        This is used to verify that the project configuration tools like
+        'uv' or 'poetry' are not having their data files ignored by
+        Nuitka or that Nuitka is not ignoring them.
+    """
+
+    expected_data_files = getProjectExpectedDataFiles()
+
+    if expected_data_files is None:
+        return
+
+    expected_data_files = set(
+        getNormalizedPath(filename) for filename in expected_data_files
+    )
+
+    included_data_files = set()
+
+    for included_data_file in _included_data_files:
+        if "user" in included_data_file.tags:
+            included_data_files.add(included_data_file.dest_path)
+
+    if expected_data_files != included_data_files:
+        start_message = "Error, the expected data files from project configuration do not match the included data files."
+
+        missing_data_files = expected_data_files - included_data_files
+        extra_data_files = included_data_files - expected_data_files
+
+        if missing_data_files:
+            start_message += "\nMissing data files:\n" + "\n".join(
+                sorted(missing_data_files)
+            )
+
+        if extra_data_files:
+            start_message += "\nExtra data files:\n" + "\n".join(
+                sorted(extra_data_files)
+            )
+
+        inclusion_logger.sysexit(start_message)
 
 
 def _addIncludedDataFilesFromFileOptions():

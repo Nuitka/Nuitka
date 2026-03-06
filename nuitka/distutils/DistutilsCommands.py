@@ -178,6 +178,7 @@ class build(distutils.command.build.build):
         result = {
             "package_dir": self.distribution.package_dir,
             "arguments": nuitka_command,
+            "project_name": self.distribution.get_name(),
         }
 
         if dump_filename == "-":

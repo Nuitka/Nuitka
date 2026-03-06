@@ -156,8 +156,9 @@ class StatementLoop(StatementLoopBase):
                 # Don't forget to initialize the loop resume traces with the starting point. We use
                 # a special trace class that will not take the list too serious though.
                 self.loop_resume[loop_variable] = set()
-                current.getTypeShape().emitAlternatives(
-                    self.loop_resume[loop_variable].add
+                current.emitShapeAlternativesForLoop(
+                    self.loop_resume[loop_variable].add,
+                    self,
                 )
                 # print("first", self.source_ref, loop_variable, ":",
                 #     self.loop_resume[loop_variable])
@@ -270,7 +271,7 @@ class StatementLoop(StatementLoopBase):
                 shapes = set()
 
                 for loop_resume_trace in loop_resume_traces:
-                    loop_resume_trace.getTypeShape().emitAlternatives(shapes.add)
+                    loop_resume_trace.emitShapeAlternativesForLoop(shapes.add, self)
 
                 self.loop_resume[loop_variable] = minimizeShapes(shapes)
 
@@ -357,6 +358,9 @@ Removed useless terminal 'continue' as last statement of loop.""",
         outer_trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def collectVariableAccesses(self, emit_variable):
+        self.subnode_loop_body.collectVariableAccesses(emit_variable)
 
     @staticmethod
     def getStatementNiceName():

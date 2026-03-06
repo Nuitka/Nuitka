@@ -12,6 +12,8 @@ from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def _detectPythonHeaderPath(env):
+    # Many cases to deal with due to flavor peculiarities, pylint: disable=too-many-branches
+
     if os.name == "nt":
 
         candidates = [
@@ -54,9 +56,21 @@ def _detectPythonHeaderPath(env):
                 )
             )
 
+    search = ["Python.h"]
+    if env.self_compiled_python_uninstalled:
+        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
+
     for candidate in candidates:
-        if os.path.exists(os.path.join(candidate, "Python.h")):
-            yield candidate
+        for s in tuple(search):
+            found = False
+            if os.path.exists(os.path.join(candidate, s)):
+                search.remove(s)
+                found = True
+
+            if found:
+                yield candidate
+
+        if not search:
             break
     else:
         if os.name == "nt":
@@ -93,7 +107,7 @@ def applyPythonBuildSettings(env):
         env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
     if env.python_debug:
-        env.Append(CPPDEFINES=["Py_DEBUG"])
+        env.Append(CPPDEFINES=["Py_DEBUG", "Py_NO_LINK_LIB"])
 
     if not env.gil_mode:
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
@@ -142,7 +156,7 @@ def addWin32PythonLib(env):
 
     if env.python_version >= (3,):
         pc_build_dir = (
-            "PCBuild/amd64" if env.target_arch == "x86_64" else "PCBuild/win32"
+            "PCBuild\\amd64" if env.target_arch == "x86_64" else "PCBuild\\win32"
         )
     else:
         pc_build_dir = "PCBuild"
@@ -153,7 +167,9 @@ def addWin32PythonLib(env):
         if os.path.exists(os.path.join(win_lib_path, win_lib_filename)):
             break
     else:
-        scons_logger.sysexit("Error, cannot find '%s' file." % win_lib_filename)
+        scons_logger.sysexit(
+            "Error, cannot find link library '%s' file." % win_lib_filename
+        )
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])

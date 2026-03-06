@@ -244,12 +244,56 @@ static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long fea
     return ((type->tp_flags & feature) != 0);
 }
 
-#if PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION >= 0x3d0
 
-static inline size_t Nuitka_PyType_PreHeaderSize(PyTypeObject *tp) {
-    return _PyType_IS_GC(tp) * sizeof(PyGC_Head) +
-           Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT) * 2 * sizeof(PyObject *);
+static inline size_t Nuitka_PyType_InlineValuesSize(PyTypeObject *tp) {
+    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+        return 0;
+    }
+
+    return _PyInlineValuesSize(tp);
 }
+
+static inline void Nuitka_PyObject_InitInlineValues(PyObject *obj, PyTypeObject *tp) {
+    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+        return;
+    }
+
+    PyDictKeysObject *keys = ((PyHeapTypeObject *)tp)->ht_cached_keys;
+    assert(keys != NULL);
+
+#ifdef Py_GIL_DISABLED
+    Py_ssize_t usable = _Py_atomic_load_ssize_relaxed(&keys->dk_usable);
+    if (usable > 1) {
+        LOCK_KEYS(keys);
+        if (keys->dk_usable > 1) {
+            _Py_atomic_store_ssize(&keys->dk_usable, keys->dk_usable - 1);
+        }
+        UNLOCK_KEYS(keys);
+    }
+#else
+    if (keys->dk_usable > 1) {
+        keys->dk_usable--;
+    }
+#endif
+
+    size_t size = shared_keys_usable_size(keys);
+    PyDictValues *values = _PyObject_InlineValues(obj);
+
+    assert(size < 256);
+    values->capacity = (uint8_t)size;
+    values->size = 0;
+    values->embedded = 1;
+    values->valid = 1;
+    for (size_t i = 0; i < size; i++) {
+        values->values[i] = NULL;
+    }
+
+    _PyObject_ManagedDictPointer(obj)->dict = NULL;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3b0
 
 extern void Nuitka_PyObject_GC_Link(PyObject *op);
 
@@ -258,10 +302,14 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     const size_t size = _PyObject_VAR_SIZE(type, nitems + 1);
 
     // TODO: This ought to be static for all our types, so remove it as a call.
-    const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
-    assert(pre_size == sizeof(PyGC_Head));
+    size_t pre_size = _PyType_PreHeaderSize(type);
+    size_t inline_values_size = 0;
 
-    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+#if PYTHON_VERSION >= 0x3d0
+    inline_values_size = Nuitka_PyType_InlineValuesSize(type);
+#endif
+
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size + inline_values_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -287,6 +335,10 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
         Py_INCREF(type);
     }
 
+#if PYTHON_VERSION >= 0x3d0
+    Nuitka_PyObject_InitInlineValues(obj, type);
+#endif
+
     Nuitka_Py_NewReference(obj);
 
     return obj;
@@ -294,9 +346,14 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 
 static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     // TODO: This ought to be static for all our types, so remove it as a call.
-    const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
+    size_t pre_size = _PyType_PreHeaderSize(type);
+    size_t inline_values_size = 0;
 
-    char *alloc = (char *)NuitkaObject_Malloc(_PyObject_SIZE(type) + pre_size);
+#if PYTHON_VERSION >= 0x3d0
+    inline_values_size = Nuitka_PyType_InlineValuesSize(type);
+#endif
+
+    char *alloc = (char *)NuitkaObject_Malloc(_PyObject_SIZE(type) + pre_size + inline_values_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -312,11 +369,16 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#if PYTHON_VERSION >= 0x3d0
+    Nuitka_PyObject_InitInlineValues(obj, type);
+#endif
 
     Nuitka_Py_NewReference(obj);
 
     return obj;
 }
+#endif
+
 #endif
 
 NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_t nitems) {
@@ -463,8 +525,6 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
         Py_XDECREF(_tmp_old_dst);                                                                                      \
     } while (0)
 #endif
-#endif
-
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

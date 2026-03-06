@@ -663,6 +663,13 @@ class CompiledPythonModule(
             )
             visitor.onNode(self)
 
+            # We need to revert back to incomplete, as we add fully new
+            # temporary variables that will only get traces that are well
+            # analyzed in the next pass. This avoids an issue where after
+            # doing this, no other optimization can be done yet, but then
+            # in the next one it can be done.
+            self.locals_scope.complete = False
+
         return was_complete
 
     def getTraceCollections(self):

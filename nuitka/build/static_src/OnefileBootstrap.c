@@ -105,6 +105,10 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
+#if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
+#include "extra_onefile_includes.h"
+#endif
+
 #include "HelpersChecksumTools.c"
 #include "HelpersEnvironmentVariablesSystem.c"
 #include "HelpersFilesystemPaths.c"
@@ -1044,6 +1048,8 @@ int main(int argc, char **argv) {
     inheritAttachedConsole();
 #endif
 
+    // NUITKA_ONEFILE_INIT_EARLY(argc, argv);
+
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
 #if _NUITKA_ONEFILE_DLL_MODE
@@ -1140,7 +1146,7 @@ int main(int argc, char **argv) {
     }
 
 #if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
-    wprintf(L"payload path: '%lS'\n", payload_path);
+    wprintf(L"payload path: '" FILENAME_FORMAT_STR "'\n", payload_path);
 #endif
 
     if (process_role == NULL) {

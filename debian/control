@@ -60,7 +60,6 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
 Recommends: python3-lxml,
             python3-tqdm,
             strace,
-            libfuse2,
             gdb | lldb
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python

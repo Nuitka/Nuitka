@@ -163,6 +163,7 @@ def generateStringConcatenationCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name,
             release_name=tuple_temp_name,
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )

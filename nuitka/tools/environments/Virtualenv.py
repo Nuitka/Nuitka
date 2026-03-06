@@ -55,22 +55,25 @@ class Virtualenv(object):
                 self.logger.info("Executing: %s" % command, style=style)
 
             with withEnvironmentVarsOverridden(env):
-                stdout, stderr, exit_code = executeProcess(
+                process_result = executeProcess(
                     command=command,
                     shell=True,
                     stdout=None,
                     stderr=None,
                 )
 
-                if exit_code != 0:
+                if process_result.exit_code != 0:
                     self.logger.info(
-                        "Failure %s for: %s" % (exit_code, command),
+                        "Failure %s for: %s" % (process_result.exit_code, command),
                         keep_format=True,
                         style=style,
                     )
 
                     raise NuitkaCalledProcessError(
-                        exit_code, command, output=stdout, stderr=stderr
+                        process_result.exit_code,
+                        command,
+                        output=process_result.stdout,
+                        stderr=process_result.stderr,
                     )
 
     def runCommandWithOutput(self, commands, style=None):
@@ -98,9 +101,14 @@ class Virtualenv(object):
                 self.logger.info("Executing: %s" % command, style=style)
 
             # Use subprocess and also return outputs, stdout, stderr, result
-            return executeProcess(
+            process_result = executeProcess(
                 command=command,
                 shell=True,
+            )
+            return (
+                process_result.stdout,
+                process_result.stderr,
+                process_result.exit_code,
             )
 
     def getBinaryPath(self, binary_name):
@@ -154,21 +162,24 @@ def withVirtualenv(
     )
 
     with withDirectoryChange(base_dir, allow_none=True):
-        if tool == "virtualenv":
-            command = [python, "-m", "virtualenv", env_name]
-        elif tool == "venv":
-            command = [python, "-m", "venv", env_name]
-        elif tool == "uv":
-            uv_path = getExecutablePath("uv")
-            if uv_path is None:
-                logger.sysexit("Error, cannot find 'uv' executable.")
 
-            command = [uv_path, "venv", "--python", python, env_name]
-        else:
-            logger.sysexit("Error, unsupported virtualenv tool '%s'." % tool)
+        def _getVirtualenvCreationCommand():
+            if tool == "virtualenv":
+                return [python, "-m", "virtualenv", env_name]
+            elif tool == "venv":
+                return [python, "-m", "venv", env_name]
+            elif tool == "uv":
+                uv_path = getExecutablePath("uv")
+                if uv_path is None:
+                    return logger.sysexit("Error, cannot find 'uv' executable.")
+
+                return [uv_path, "venv", "--python", python, env_name]
+            else:
+                return logger.sysexit("Error, unsupported virtualenv tool '%s'." % tool)
+
+        command = _getVirtualenvCreationCommand()
 
         if style is not None:
-            # False alarm, pylint: disable=possibly-used-before-assignment
             logger.info("Executing: %s" % " ".join(command), style=style)
 
         check_call(command)

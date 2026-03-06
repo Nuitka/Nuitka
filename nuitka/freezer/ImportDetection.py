@@ -57,7 +57,7 @@ print("\\n".join(sorted(
     if str is not bytes:
         command = command.encode("utf8")
 
-    _stdout, stderr, exit_code = executeProcess(
+    process_result = executeProcess(
         command=(
             sys.executable,
             "-s",
@@ -70,22 +70,22 @@ print("\\n".join(sorted(
         env=dict(os.environ, PYTHONIOENCODING="utf-8"),
     )
 
-    assert type(stderr) is bytes
+    assert type(process_result.stderr) is bytes
 
     # Don't let errors here go unnoticed.
-    if exit_code != 0:
+    if process_result.exit_code != 0:
         # An error by the user pressing CTRL-C should not lead to the below output.
-        if b"KeyboardInterrupt" in stderr:
+        if b"KeyboardInterrupt" in process_result.stderr:
             general.sysexit("Pressed CTRL-C while detecting early imports.")
 
         general.warning("There is a problem with detecting imports, CPython said:")
-        for line in stderr.split(b"\n"):
+        for line in process_result.stderr.split(b"\n"):
             printError(line)
         general.sysexit("Error, please report the issue with above output.")
 
     detections = []
 
-    for line in stderr.replace(b"\r", b"").split(b"\n"):
+    for line in process_result.stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
             parts = line.split(b" # ", 2)
 
