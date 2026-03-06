@@ -22,7 +22,7 @@ class GenericInClassMethod:
         print(f"GenericInClassMethod:method -> {T}")
 
 
-GenericInInstanceMethod().get()
+GenericInInstanceMethod().get
 GenericInInstanceMethod().method()
 GenericInStaticMethod.method()
 GenericInClassMethod.method()
