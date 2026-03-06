@@ -11,7 +11,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
@@ -174,15 +174,11 @@ def generateExceptionPublishCode(statement, emit, context):
 
 
 def generateExceptionGroupMatchCode(to_name, expression, emit, context):
-    arg_desc = (
-        ("exception", expression.subnode_exception),
-        ("match_type", expression.subnode_match_type),
-    )
     generateCAPIObjectCode(
         to_name=to_name,
         capi="EXCEPTION_GROUP_MATCH",
         tstate=True,
-        arg_desc=arg_desc,
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=True,
         none_null=True,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
