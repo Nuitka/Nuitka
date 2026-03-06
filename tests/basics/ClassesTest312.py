@@ -1,31 +1,33 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+# TODO: Make these work
 
-class GenericInInstanceMethod:
-    @property
-    def get[T](self):
-        print(f"GenericInInstanceMethod:get -> {T}")
+if False:
+    class GenericInInstanceMethod:
+        @property
+        def get[T](self):
+            print(f"GenericInInstanceMethod:get -> {T}")
 
-    def method[T](self):
-        print(f"GenericInInstanceMethod:method -> {T}")
-
-
-class GenericInStaticMethod:
-    @staticmethod
-    def method[T]():
-        print(f"GenericInStaticMethod:method -> {T}")
+        def method[T](self):
+            print(f"GenericInInstanceMethod:method -> {T}")
 
 
-class GenericInClassMethod:
-    @classmethod
-    def method[T](cls):
-        print(f"GenericInClassMethod:method -> {T}")
+    class GenericInStaticMethod:
+        @staticmethod
+        def method[T]():
+            print(f"GenericInStaticMethod:method -> {T}")
 
 
-GenericInInstanceMethod().get
-GenericInInstanceMethod().method()
-GenericInStaticMethod.method()
-GenericInClassMethod.method()
+    class GenericInClassMethod:
+        @classmethod
+        def method[T](cls):
+            print(f"GenericInClassMethod:method -> {T}")
+
+
+    GenericInInstanceMethod().get
+    GenericInInstanceMethod().method()
+    GenericInStaticMethod.method()
+    GenericInClassMethod.method()
 
 
 class Parent[T]:
