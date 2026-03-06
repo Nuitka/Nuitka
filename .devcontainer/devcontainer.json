@@ -1,8 +1,6 @@
 {
     "name": "Nuitka Dev Container",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12",
     "features": {
         "ghcr.io/devcontainers-community/features/llvm:latest": {}
     },
