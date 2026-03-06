@@ -146,7 +146,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         }
 
         if (!PyTuple_CheckExact(pair)) {
-            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "%s.split must return a tuple, not %.200s",
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "%s.split must return a tuple, not %s",
                                                 Py_TYPE(exc_value)->tp_name, Py_TYPE(pair)->tp_name);
             Py_DECREF(pair);
             return -1;
