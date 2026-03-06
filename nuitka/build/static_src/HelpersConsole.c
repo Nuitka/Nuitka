@@ -21,6 +21,20 @@ static bool needs_stderr_attaching = false;
 
 static bool is_attachable = false;
 
+static void _enableConsoleModeProcessed(FILE_HANDLE handle) {
+    DWORD dwMode = 0;
+    if (GetConsoleMode(handle, &dwMode)) {
+        // Ensure processed output is enabled so \r\n works
+        dwMode |= ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT;
+
+        // Optionally enable ANSI support for modern terminals (ENABLE_VIRTUAL_TERMINAL_PROCESSING).
+        // This fails on Windows versions prior to Windows 10, so we fallback gracefully.
+        if (!SetConsoleMode(handle, dwMode | 0x0004)) {
+            SetConsoleMode(handle, dwMode);
+        }
+    }
+}
+
 void inheritAttachedConsole(void) {
     is_attachable = AttachConsole(ATTACH_PARENT_PROCESS);
 
@@ -37,14 +51,17 @@ void inheritAttachedConsole(void) {
 
     if (needs_stdout_attaching) {
         FILE_HANDLE win_handle =
-            CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes, OPEN_EXISTING, 0, NULL);
+            CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        &security_attributes, OPEN_EXISTING, 0, NULL);
         assert(win_handle != INVALID_HANDLE_VALUE);
 
         FILE *new_handle = _wfreopen(L"CONOUT$", L"wb", stdout);
         assert(new_handle != NULL);
         // Win32 doesn't allow line buffering.
-        setvbuf(new_handle, NULL, _IONBF, 0);
-        *stdout = *new_handle;
+        setvbuf(stdout, NULL, _IONBF, 0);
+
+        _enableConsoleModeProcessed(win_handle);
+        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdout)));
 
         BOOL r = SetStdHandle(STD_OUTPUT_HANDLE, win_handle);
         assert(r);
@@ -56,14 +73,17 @@ void inheritAttachedConsole(void) {
 
     if (needs_stderr_attaching) {
         FILE_HANDLE win_handle =
-            CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes, OPEN_EXISTING, 0, NULL);
+            CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        &security_attributes, OPEN_EXISTING, 0, NULL);
 
         FILE *new_handle = _wfreopen(L"CONOUT$", L"wb", stderr);
         assert(new_handle != NULL);
         // Win32 doesn't allow line buffering.
-        setvbuf(new_handle, NULL, _IONBF, 0);
+        setvbuf(stderr, NULL, _IONBF, 0);
 
-        *stderr = *new_handle;
+        _enableConsoleModeProcessed(win_handle);
+        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stderr)));
+
         SetStdHandle(STD_ERROR_HANDLE, win_handle);
     } else {
 #if !defined(NUITKA_FORCED_STDERR_PATH) && !defined(NUITKA_FORCED_STDERR_NONE_BOOL) &&                                 \
@@ -76,7 +96,8 @@ void inheritAttachedConsole(void) {
 
     if (needs_stdin_attaching) {
         FILE_HANDLE win_handle =
-            CreateFileW(L"CONIN$", GENERIC_READ, FILE_SHARE_READ, &security_attributes, OPEN_EXISTING, 0, NULL);
+            CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        &security_attributes, OPEN_EXISTING, 0, NULL);
 
         // Get the current mode of the console input buffer if possible.
         DWORD console_mode = 0;
@@ -88,7 +109,6 @@ void inheritAttachedConsole(void) {
             FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);
             assert(new_handle != NULL);
             assert(new_handle == stdin);
-            *stdin = *new_handle;
 
             SetStdHandle(STD_INPUT_HANDLE, win_handle);
         }
