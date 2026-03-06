@@ -27,7 +27,10 @@ import shutil
 import subprocess
 import time
 
-from nuitka.reports.CompilationReportReader import getCompilationOutputBinary
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.Basics import addPYTHONPATH
 from nuitka.tools.testing.Common import (
     getPythonSysPath,
@@ -464,8 +467,10 @@ def executePASS3():
 def executePASS4():
     test_logger.info("PASS 4: Compiling the compiler running from single exe.")
 
+    compilation_report = parseCompilationReport("compilation-report-pass3.xml")
+
     exe_path = getCompilationOutputBinary(
-        compilation_report="compilation-report-pass3.xml",
+        compilation_report=compilation_report,
         prefixes=(("${cwd}", os.getcwd()),),
     )
 

@@ -1111,6 +1111,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
 
+    # Make sure we use a fixed date for macros like "__DATE__" to ensure
+    # reproducibility.
+    if env.gcc_mode:
+        setEnvironmentVariable(env, "SOURCE_DATE_EPOCH", "0")
+
+    # Ask the MSVC linker to be reproducible.
+    if env.clangcl_mode or env.msvc_mode:
+        env.Append(LINKFLAGS=["/Brepro"])
+
     if env.gcc_mode or env.zig_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
         env.Append(CCFLAGS=["-fvisibility=hidden"])
@@ -1325,7 +1334,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
     if env.console_mode in ("attach", "disable"):
-        if env.mingw_mode:
+        if env.mingw_mode or env.zig_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
         elif env.msvc_mode:
@@ -1519,7 +1528,8 @@ def _enableDebugSystemSettings(env):
         if env.gcc_mode or env.zig_mode:
             if isMacOS():
                 env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
-            elif not env.clang_mode:
+
+            if not env.clangcl_mode and not isMacOS():
                 env.Append(LINKFLAGS=["-s"])
 
 

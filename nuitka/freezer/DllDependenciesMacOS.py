@@ -274,7 +274,7 @@ def _resolveBinaryPathDLLsMacOS(
         # Some extension modules seem to reference themselves by a different
         # extension module name, so use that if it exists, and some versioned
         # DLL dependencies do not matter.
-        if python_version >= 0x300:
+        if python_version >= 0x300 and not os.path.exists(resolved_path):
             so_suffixes = getExtensionModuleSuffixes()[:-1]
 
             specific_suffix = so_suffixes[0]
@@ -301,6 +301,24 @@ def _resolveBinaryPathDLLsMacOS(
                 if candidate is not None and os.path.exists(candidate):
                     resolved_path = candidate
                     break
+
+        # Some extension modules seem to reference themselves by a shorter
+        # extension module name without the version, so use that if it matches
+        # the binary name.
+        if not os.path.exists(resolved_path):
+            specific_suffix = getExtensionModuleSuffixes()[0]
+
+            if (
+                specific_suffix.endswith(".so")
+                and binary_filename.endswith(specific_suffix)
+                and resolved_path.endswith(".so")
+            ):
+                if (
+                    os.path.basename(resolved_path)
+                    == os.path.basename(binary_filename)[: -len(specific_suffix)]
+                    + ".so"
+                ):
+                    resolved_path = binary_filename
 
         # Sometimes self-dependencies are on a numbered version, but deployed is
         # one version without it. Also be tolerant about changing suffixes
@@ -364,7 +382,8 @@ def _resolveBinaryPathDLLsMacOS(
                 continue
 
             inclusion_logger.sysexit(
-                "Error, failed to find path %s (resolved DLL to %s) for %s from '%s', please report the bug."
+                """\
+Error, failed to find path '%s' (resolved DLL to '%s') for binary '%s' from package '%s', please report the bug."""
                 % (path, resolved_path, binary_filename, package_name)
             )
 

@@ -44,12 +44,12 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
-from nuitka.tools.release.Copyright import getLicenseTextStandard
 from nuitka.utils.FileOperations import getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
     formatArgs,
+    getLicenseGeneratedCode,
     getMethodVariations,
     getSpecs,
     python2_dict_methods,
@@ -359,7 +359,7 @@ def makeAttributeNodes():
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python:
 
         def emit(*args):
@@ -432,7 +432,7 @@ def makeBuiltinOperationNodes():
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python:
 
         def emit(*args):
@@ -792,15 +792,15 @@ def makeChildrenHavingMixinNodes():
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python, withFileOpenedAndAutoFormattedWithClaim(
         filename_python2,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python2, withFileOpenedAndAutoFormattedWithClaim(
         filename_python3,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python3:
 
         def emit1(*args):
@@ -1019,7 +1019,7 @@ def makeHardImportNodes():
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
         ignore_errors=True,
-        claim=getLicenseTextStandard(),
+        claim=getLicenseGeneratedCode(),
     ) as output_python:
 
         def emit(*args):

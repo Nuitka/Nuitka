@@ -1,9 +1,10 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
 
 """Nuitka version related stuff."""
 
 version_string = """\
-Nuitka V4.0.2
+Nuitka V4.0.3
 Copyright (C) 2025 Kay Hayen."""
 
 

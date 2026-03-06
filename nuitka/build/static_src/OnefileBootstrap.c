@@ -105,7 +105,7 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
-#if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
+#if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES
 #include "extra_onefile_includes.h"
 #endif
 
