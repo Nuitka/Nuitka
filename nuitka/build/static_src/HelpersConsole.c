@@ -21,16 +21,26 @@ static bool needs_stderr_attaching = false;
 
 static bool is_attachable = false;
 
-static void _enableConsoleModeProcessed(FILE_HANDLE handle) {
+static void _enableConsoleModeProcessed(FILE_HANDLE handle, bool is_input) {
     DWORD dwMode = 0;
     if (GetConsoleMode(handle, &dwMode)) {
-        // Ensure processed output is enabled so \r\n works
-        dwMode |= ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT;
+        if (is_input) {
+            // Ensure processed input is enabled for Windows terminal backward compatibility
+            dwMode |= ENABLE_PROCESSED_INPUT;
 
-        // Optionally enable ANSI support for modern terminals (ENABLE_VIRTUAL_TERMINAL_PROCESSING).
-        // This fails on Windows versions prior to Windows 10, so we fallback gracefully.
-        if (!SetConsoleMode(handle, dwMode | 0x0004)) {
-            SetConsoleMode(handle, dwMode);
+            // Optionally enable ANSI input sequences (ENABLE_VIRTUAL_TERMINAL_INPUT).
+            if (!SetConsoleMode(handle, dwMode | 0x0200)) {
+                SetConsoleMode(handle, dwMode);
+            }
+        } else {
+            // Ensure processed output is enabled so \r\n works
+            dwMode |= ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT;
+
+            // Optionally enable ANSI support for modern terminals (ENABLE_VIRTUAL_TERMINAL_PROCESSING).
+            // This fails on Windows versions prior to Windows 10, so we fallback gracefully.
+            if (!SetConsoleMode(handle, dwMode | 0x0004)) {
+                SetConsoleMode(handle, dwMode);
+            }
         }
     }
 }
@@ -60,8 +70,8 @@ void inheritAttachedConsole(void) {
         // Win32 doesn't allow line buffering.
         setvbuf(stdout, NULL, _IONBF, 0);
 
-        _enableConsoleModeProcessed(win_handle);
-        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdout)));
+        _enableConsoleModeProcessed(win_handle, false);
+        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdout)), false);
 
         BOOL r = SetStdHandle(STD_OUTPUT_HANDLE, win_handle);
         assert(r);
@@ -81,8 +91,8 @@ void inheritAttachedConsole(void) {
         // Win32 doesn't allow line buffering.
         setvbuf(stderr, NULL, _IONBF, 0);
 
-        _enableConsoleModeProcessed(win_handle);
-        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stderr)));
+        _enableConsoleModeProcessed(win_handle, false);
+        _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stderr)), false);
 
         SetStdHandle(STD_ERROR_HANDLE, win_handle);
     } else {
@@ -109,6 +119,9 @@ void inheritAttachedConsole(void) {
             FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);
             assert(new_handle != NULL);
             assert(new_handle == stdin);
+
+            _enableConsoleModeProcessed(win_handle, true);
+            _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdin)), true);
 
             SetStdHandle(STD_INPUT_HANDLE, win_handle);
         }
