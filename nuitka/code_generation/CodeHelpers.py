@@ -162,15 +162,10 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
 statement_dispatch_dict = {}
 
 
-def setStatementDispatchDict(dispatch_dict):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
-
-    # Please call us only once.
-    global statement_dispatch_dict
-
-    assert not statement_dispatch_dict
-    statement_dispatch_dict = dispatch_dict
+def setStatementDispatchDict(dispatch_dict, update=False):
+    # Please call us only once or explicitly for update.
+    assert not statement_dispatch_dict or update
+    statement_dispatch_dict.update(dispatch_dict)
 
 
 def generateStatementCode(statement, emit, context):
