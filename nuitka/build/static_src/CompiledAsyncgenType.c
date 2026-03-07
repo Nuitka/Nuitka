@@ -632,23 +632,21 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
         }
 
         if (unlikely(ret == NULL)) {
+            // Return value or exception, not to continue with yielding from.
+            if (asyncgen->m_yield_from != NULL) {
+                CHECK_OBJECT(asyncgen->m_yield_from);
+#if _DEBUG_ASYNCGEN
+                PRINT_ASYNCGEN_STATUS("Null return, yield from removal:", asyncgen);
+                PRINT_COROUTINE_VALUE("yield_from", asyncgen->m_yield_from);
+#endif
+                Py_DECREF(asyncgen->m_yield_from);
+                asyncgen->m_yield_from = NULL;
+            }
+
             PyObject *val;
 
             if (Nuitka_PyGen_FetchStopIterationValue(tstate, &val)) {
                 CHECK_OBJECT(val);
-
-                asyncgen->m_yield_from = NULL;
-
-                // Return value, not to continue with yielding from.
-                if (asyncgen->m_yield_from != NULL) {
-                    CHECK_OBJECT(asyncgen->m_yield_from);
-#if _DEBUG_ASYNCGEN
-                    PRINT_ASYNCGEN_STATUS("Yield from removal:", asyncgen);
-                    PRINT_COROUTINE_VALUE("yield_from", asyncgen->m_yield_from);
-#endif
-                    Py_DECREF(asyncgen->m_yield_from);
-                    asyncgen->m_yield_from = NULL;
-                }
 
 #if _DEBUG_ASYNCGEN
                 PRINT_ASYNCGEN_STATUS("Sending return value into ourselves", asyncgen);
@@ -663,7 +661,6 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
             } else {
 #if _DEBUG_ASYNCGEN
                 PRINT_ASYNCGEN_STATUS("Sending exception value into ourselves", asyncgen);
-                PRINT_COROUTINE_VALUE("yield_from", asyncgen->m_yield_from);
                 PRINT_CURRENT_EXCEPTION();
                 PRINT_NEW_LINE();
 #endif
