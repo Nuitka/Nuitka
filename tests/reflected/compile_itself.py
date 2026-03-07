@@ -365,7 +365,9 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 # In case of segfault or assertion triggered, run in debugger.
                 if exit_nuitka in (-11, -6) and sys.platform != "nt":
-                    command2 = wrapCommandForDebuggerForSubprocess(command=command)
+                    command2 = wrapCommandForDebuggerForSubprocess(
+                        command=command, debugger=os.getenv("NUITKA_DEBUGGER_CHOICE")
+                    )
                     subprocess.call(command2)
 
                 if exit_nuitka != 0:
@@ -424,12 +426,12 @@ def executePASS3():
         "PASS 3: Compiling from compiler running from .py files to single .exe."
     )
 
-    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
+    exe_path = os.path.join(tmp_dir, "nuitka-runner" + exe_suffix)
 
     if os.path.exists(exe_path):
         os.unlink(exe_path)
 
-    build_path = os.path.join(tmp_dir, "nuitka.build")
+    build_path = os.path.join(tmp_dir, "nuitka-runner.build")
 
     if os.path.exists(build_path):
         shutil.rmtree(build_path)
@@ -442,7 +444,7 @@ def executePASS3():
         command = [
             os.environ["PYTHON"],
             nuitka_main_path,
-            "--output-dir=%s" % build_path,
+            "--output-dir=%s" % tmp_dir,
             "--python-flag=-S",
             "--follow-imports",
             "--include-package=nuitka.plugins.standard",
