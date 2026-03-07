@@ -1120,7 +1120,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     # Ask the MSVC linker to be reproducible.
     if env.clangcl_mode or env.msvc_mode:
-        env.Append(LINKFLAGS=["/Brepro"])
+        env.Append(LINKFLAGS=["/Brepro"])  # spell-checker: ignore Brepro
 
     if env.gcc_mode or env.zig_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
