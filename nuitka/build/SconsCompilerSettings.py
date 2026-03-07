@@ -478,10 +478,11 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             addToPATH(env=env, dirname=os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
-                mingw_mode=True,
+                mingw_mode=env.python_version < (3, 13),
                 msvc_version=None,
                 clang_mode=False,
                 clangcl_mode=False,
+                zig_exe_path=None if env.python_version < (3, 13) else compiler_path,
                 target_arch=target_arch,
                 consider_environ_variables=False,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
@@ -519,6 +520,7 @@ def createEnvironmentAndCheckCompiler(
         msvc_version=msvc_version,
         clang_mode=clang_mode,
         clangcl_mode=clangcl_mode,
+        zig_exe_path=None,
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
         assume_yes_for_downloads=assume_yes_for_downloads,
@@ -909,7 +911,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         # scons. They are referred to as sources from here on.
         source_dir = getArgumentRequired("source_dir")
     else:
-        source_dir = "/dev/null"
+        source_dir = os.devnull
 
     # The directory containing Nuitka provided C files to be built and where it
     # should be used.
