@@ -171,7 +171,11 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             pairs=_sorted(pairs), source_ref=self.source_ref
         )
 
-        return result, "new_expression", "Statically predicted locals dictionary."
+        return (
+            result,
+            "changed_variable_usage" if pairs else "new_expression",
+            "Statically predicted locals dictionary.",
+        )
 
 
 class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):

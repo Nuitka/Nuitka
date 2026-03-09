@@ -1526,7 +1526,7 @@ def _describeNewNode(new_node):
         tags = "new_expression"
         message = "call"
     elif new_node.isExpressionOutlineBody():
-        tags = "new_expression"
+        tags = "changed_variable_usage"
         message = "outlined function"
     elif new_node.isExpressionConstantRef():
         tags = "new_expression"
