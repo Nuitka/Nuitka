@@ -15,7 +15,6 @@ def _detectPythonHeaderPath(env):
     # Many cases to deal with due to flavor peculiarities, pylint: disable=too-many-branches
 
     if os.name == "nt":
-
         candidates = [
             # On Windows, the CPython official installation layout is relatively fixed,
             os.path.join(env.python_prefix_external, "include"),
@@ -209,13 +208,13 @@ def addPythonHaclLib(env, link_module_libs):
             # env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC128"])
             env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC256"])
 
-        # Remove it from static link libraries as well, if present, so far they are
-        # bugs and do not exist.
-        link_module_libs = [
-            link_module_lib
-            for link_module_lib in link_module_libs
-            if "libHacl_Hash_SHA2" not in link_module_lib
-        ]
+    # Remove it from static link libraries unconditionally — libHacl_Hash_SHA2
+    # is an internal CPython build artifact, never shipped as a standalone .a file.
+    link_module_libs = [
+        link_module_lib
+        for link_module_lib in link_module_libs
+        if "libHacl_Hash_SHA2" not in link_module_lib
+    ]
 
     return link_module_libs
 
