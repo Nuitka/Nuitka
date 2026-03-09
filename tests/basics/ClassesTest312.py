@@ -39,14 +39,14 @@ class Child[T](Parent[T]):
     print(T)
 
 
-class MutiTypeVarGeneric[T1, T2]:
+class MultiTypeVarGeneric[T1, T2]:
     generic_value_1: T1
     generic_value_2: T2
     print(T1)
     print(T2)
 
 
-class MutiParamSpecGeneric[**P1, **P2]:
+class MultiParamSpecGeneric[**P1, **P2]:
     generic_value_1: P1
     generic_value_2: P2
     print(P1)
