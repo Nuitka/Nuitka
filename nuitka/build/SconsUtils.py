@@ -211,6 +211,7 @@ def createEnvironment(
     msvc_version,
     clang_mode,
     clangcl_mode,
+    zig_exe_path,
     target_arch,
     consider_environ_variables,
     assume_yes_for_downloads,
@@ -220,7 +221,8 @@ def createEnvironment(
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Zig compiler mode usually from the option --zig.
-    zig_exe_path = getArgumentDefaulted("zig_exe_path", None)
+    if zig_exe_path is None:
+        zig_exe_path = getArgumentDefaulted("zig_exe_path", None)
 
     # Prepare environment for compiler detection.
     if consider_environ_variables:
@@ -228,7 +230,7 @@ def createEnvironment(
     else:
         zig_mode_env = False
 
-    zig_mode = zig_mode_env or zig_exe_path
+    zig_mode = zig_mode_env or bool(zig_exe_path)
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 

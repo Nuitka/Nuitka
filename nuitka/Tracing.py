@@ -455,7 +455,9 @@ class OurLogger(object):
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         traceback.print_exc()
-        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code, reporting=True)
+        return self.sysexit(
+            "FATAL:" + repr(exception), exit_code=exit_code, reporting=True
+        )
 
     def isQuiet(self):
         return is_quiet or self.is_quiet
@@ -568,19 +570,20 @@ class OurSconsLogger(OurLogger):
             from nuitka.utils.FileOperations import getNormalizedPathJoin
             from nuitka.utils.Json import writeJsonToFilename
 
-            writeJsonToFilename(
-                getNormalizedPathJoin(env.source_dir, "scons-error.json"),
-                {
-                    "message": message,
-                    "mnemonic": mnemonic,
-                    "exit_code": exit_code,
-                    "reporting": reporting,
-                },
-            )
+            if env.source_dir != os.devnull:
+                writeJsonToFilename(
+                    getNormalizedPathJoin(env.source_dir, "scons-error.json"),
+                    {
+                        "message": message,
+                        "mnemonic": mnemonic,
+                        "exit_code": exit_code,
+                        "reporting": reporting,
+                    },
+                )
 
             sys.exit(27)
         else:
-            OurLogger.sysexit(
+            return OurLogger.sysexit(
                 self,
                 message,
                 style=style,
