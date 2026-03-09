@@ -323,7 +323,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
                     if module_name.matchesToShellPattern(
                         "*__mypyc"
-                    ):  # spell-checker: ignore mypyc
+                    )[0]:  # spell-checker: ignore mypyc
                         yield module_name
 
         if full_name == "pkg_resources.extern":
