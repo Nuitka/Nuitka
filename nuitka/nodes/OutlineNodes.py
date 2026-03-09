@@ -235,7 +235,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
     def makeClone(self):
         result = ExpressionFunctionBodyBase.makeClone(self)
-        result.name += "_clone"
 
         entry_point = self.getEntryPoint()
 
