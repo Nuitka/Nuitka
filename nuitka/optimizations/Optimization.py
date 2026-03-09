@@ -88,6 +88,9 @@ def optimizeCompiledPythonModule(module):
     while True:
         micro_pass += 1
 
+        # Indicator that new variables or changed were added in the previous
+        # pass, will require another pass to fully propagate.
+        added_variables = "changed_variable_usage" in tag_set
         tag_set.clear()
 
         try:
@@ -100,8 +103,9 @@ def optimizeCompiledPythonModule(module):
             general.info("Interrupted while working on '%s'." % module)
             raise
 
-        if scopes_were_incomplete:
+        if scopes_were_incomplete or added_variables:
             tag_set.add("var_usage")
+        added_variables = False
 
         Graphs.onModuleOptimizationStep(module)
 
