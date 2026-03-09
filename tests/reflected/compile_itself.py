@@ -258,7 +258,6 @@ def executePASS1():
         os.environ["PYTHON"],
         nuitka_main_path,
         "--nofollow-imports",
-        "--enable-plugin=pylint-warnings",
         "--output-dir=.",
         "--python-flag=no_site",
         "nuitka-runner.py",
@@ -352,7 +351,6 @@ def compileAndCompareWith(nuitka, pass_number):
                 command = [
                     nuitka,
                     "--mode=module",
-                    "--enable-plugin=pylint-warnings",
                     "--output-dir=%s" % tmp_dir,
                     "--no-pyi-file",
                     "--nofollow-imports",
@@ -492,7 +490,6 @@ def executePASS5():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        "--enable-plugin=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--include-plugin-dir=%s" % path,
         "--nofollow-import-to=nuitka.build.inline_copy",
