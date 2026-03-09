@@ -130,6 +130,12 @@ class ExpressionFunctionBodyBase(
             # Non-local declarations if any.
             self.non_local_declarations = None
 
+    def getCloneArgs(self):
+        result = ChildHavingBodyOptionalMixin.getCloneArgs(self)
+        result["name"] += "_clone"
+
+        return result
+
     @staticmethod
     def isExpressionFunctionBodyBase():
         return True
