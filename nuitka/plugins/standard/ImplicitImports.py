@@ -311,6 +311,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
             for used_module_name in module.getPyIModuleImportedNames():
                 yield used_module_name
 
+            # Find mypyc dependencies, spell-checker: ignore mypyc
             for distribution in getDistributionsFromModuleName(full_name):
                 for module_name in getDistributionTopLevelPackageNames(
                     distribution=distribution, deep=False
@@ -321,9 +322,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
                     module_name = ModuleName(module_name)
 
-                    if module_name.matchesToShellPattern(
-                        "*__mypyc"
-                    ):  # spell-checker: ignore mypyc
+                    if module_name.matchesToShellPattern("*__mypyc")[0]:
                         yield module_name
 
         if full_name == "pkg_resources.extern":
