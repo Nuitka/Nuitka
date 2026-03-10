@@ -22,6 +22,9 @@ def makeNamedtupleClass(name, element_names):
         def asDict(self):
             return self._asdict()
 
+        def asTuple(self):
+            return tuple(self)
+
         def replace(self, **kwargs):
             new_data = self.asDict()
             new_data.update(**kwargs)

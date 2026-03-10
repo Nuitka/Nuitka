@@ -46,6 +46,7 @@ from nuitka.options.Options import (
     isZig,
     shallCompileWithoutBuildDirectory,
     shallCreateAppBundle,
+    shallCreateDiffableCompilationReport,
     shallDisableCCacheUsage,
     shallMakeDll,
     shallMakeExe,
@@ -71,6 +72,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.reports.Reports import getCompilationReportFilename
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import (
     getCacheDir,
@@ -563,6 +565,7 @@ def cleanSconsDirectory(source_dir):
         ".gcda",
         ".pgd",
         ".pgc",
+        ".json",
     )
 
     def check(path):
@@ -606,6 +609,12 @@ def getCommonSconsOptions():
     scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
     scons_options["no_deployment"] = ",".join(getNoDeploymentIndications())
+
+    if (
+        getCompilationReportFilename() is not None
+        and not shallCreateDiffableCompilationReport()
+    ):
+        scons_options["collect_resources"] = asBoolStr(True)
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 

@@ -616,6 +616,27 @@ ExecuteProcessResult = makeNamedtupleClass(
     ),
 )
 
+ProcessResourceUsage = None
+
+
+def makeProcessResourceUsage(raw_rusage):
+    # Cannot prepare this globally, since it may not exist.
+    # pylint: disable=global-statement
+
+    global ProcessResourceUsage
+    if ProcessResourceUsage is None:
+        # Extracting the fields name from the first repr, we encounter is not
+        # award winning style code, but I didn't find a way that is not hard
+        # coding the names.
+        fields = tuple(
+            value.strip().split("=")[0]
+            for value in str(raw_rusage).split("(", 1)[-1].rsplit(")", 1)[0].split(",")
+        )
+
+        ProcessResourceUsage = makeNamedtupleClass("ProcessResourceUsage", fields)
+
+    return ProcessResourceUsage(*raw_rusage)
+
 
 def executeProcess(
     command,
@@ -723,7 +744,7 @@ def _communicateWithRusage(proc, process_input):
     if selectors is None or not hasattr(os, "wait4"):
         stdout, stderr = proc.communicate(input=process_input)
         exit_code = proc.wait()
-        rusage = {}
+        rusage = None
     else:
         # Use the best selector available for the current OS
         with selectors.DefaultSelector() as selector:
@@ -775,14 +796,16 @@ def _communicateWithRusage(proc, process_input):
         # All I/O is done. Now, wait for the process and get the resource usage,
         # spell-checker: ignore ECHILD,WEXITSTATUS
         try:
-            _pid, status, rusage = os.wait4(proc.pid, 0)
+            _pid, status, raw_rusage = os.wait4(proc.pid, 0)
             exit_code = os.WEXITSTATUS(status)
+
+            rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:
             # The ECHILD means the process is already reaped, which can happen with SCons
             # due to races in error cases.
             if e.errno == errno.ECHILD:
                 exit_code = proc.wait()
-                rusage = {}
+                rusage = None
             else:
                 raise
 

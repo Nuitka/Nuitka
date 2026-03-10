@@ -19,6 +19,7 @@ from nuitka.build.SconsUtils import (
     getSconsReportValue,
     readSconsErrorReport,
     readSconsReport,
+    readSconsResourceUsageReports,
 )
 from nuitka.code_generation.CodeGeneration import (
     generateHelpersCode,
@@ -1270,6 +1271,7 @@ def _main():
         # Make sure the scons report is cached before deleting it.
         readSconsReport(source_dir)
         readSconsErrorReport(source_dir)
+        readSconsResourceUsageReports(source_dir)
 
         removeDirectory(
             path=source_dir,

@@ -14,7 +14,11 @@ import traceback
 
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
-from nuitka.build.SconsUtils import getSconsReportValue, readSconsErrorReport
+from nuitka.build.SconsUtils import (
+    getSconsReportValue,
+    readSconsErrorReport,
+    readSconsResourceUsageReports,
+)
 from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
@@ -271,8 +275,12 @@ def _getReportInputData(aborted):
         scons_error_report_data = readSconsErrorReport(
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
+        scons_resource_usage_data = readSconsResourceUsageReports(
+            source_dir=getSourceDirectoryPath(onefile=False, create=False)
+        )
     else:
         scons_error_report_data = {}
+        scons_resource_usage_data = {}
         output_run_filename = "failed too early"
 
     source_dir = (
@@ -466,6 +474,24 @@ def _addModulesToReport(root, report_input_data, diffable):
                 timing_xml_node.attrib["cpu_cycles"] = str(timing_info.cpu_cycles_count)
 
             module_xml_node.append(timing_xml_node)
+
+        if report_input_data["scons_resource_usage_data"] is not None:
+            compile_rusage = report_input_data["scons_resource_usage_data"].get(
+                module_name.asString()
+            )
+        else:
+            compile_rusage = None
+
+        if compile_rusage:
+            compile_xml_node = Element("c-compilation-time")
+            for key, value in compile_rusage.items():
+                if type(value) is float:
+                    value = "volatile" if diffable else "%.4f" % value
+                else:
+                    value = "volatile" if diffable else str(value)
+                compile_xml_node.attrib[key] = value
+
+            module_xml_node.append(compile_xml_node)
 
         distributions = report_input_data["module_distribution_usages"][module_name]
 

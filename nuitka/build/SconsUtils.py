@@ -31,10 +31,12 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
+    listDir,
     openPickleFile,
     openTextFile,
     withFileLock,
 )
+from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
@@ -428,6 +430,9 @@ def createEnvironment(
     if env.standalone_mode:
         env.Append(CPPDEFINES=["_NUITKA_STANDALONE_MODE"])
 
+    # Provide rusage from the subprocess if requested.
+    env.collect_resources = getArgumentBool("collect_resources", False)
+
     # Onefile mode: Create suitable for use in a bootstrap with either dll or
     # exe mode.
     env.onefile_mode = getArgumentBool("onefile_mode", False)
@@ -657,11 +662,13 @@ section for that."""
 
 _scons_reports = {}
 _scons_error_reports = {}
+_scons_resource_usage_reports = {}
 
 
 def flushSconsReports():
     _scons_reports.clear()
     _scons_error_reports.clear()
+    _scons_resource_usage_reports.clear()
 
 
 def _getSconsReportFilename(source_dir):
@@ -740,6 +747,37 @@ def readSconsErrorReport(source_dir):
         _scons_error_reports[source_dir] = scons_error_report
 
     return _scons_error_reports[source_dir]
+
+
+def writeSconsResourceUsageReport(source_filename, rusage):
+    json_filename = os.path.splitext(source_filename)[0] + ".resource-usage.json"
+
+    writeJsonToFilename(
+        filename=json_filename,
+        contents={"source_filename": source_filename, "rusage": rusage.asDict()},
+    )
+
+
+def readSconsResourceUsageReports(source_dir):
+    if source_dir not in _scons_resource_usage_reports:
+        results = {}
+
+        for filename, _filename_only in listDir(source_dir):
+            if filename.endswith(".resource-usage.json"):
+                data = loadJsonFromFilename(filename)
+                source_filename = data["source_filename"]
+                if source_filename.startswith("module.") and source_filename.endswith(
+                    ".c"
+                ):
+                    # TODO: Could resolve this more reliable by checking mapping to
+                    # actually picked source file names in "pickSourceFilenames"
+                    module_name = source_filename[7:-2]
+
+                    results[module_name] = data["rusage"]
+
+        _scons_resource_usage_reports[source_dir] = results
+
+    return _scons_resource_usage_reports[source_dir]
 
 
 def addClangClPathFromMSVC(env):

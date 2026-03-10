@@ -8,6 +8,7 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
+import shlex
 import sys
 import threading
 
@@ -23,7 +24,11 @@ from .SconsProgress import (
     reportSlowCompilation,
     updateSconsProgressBar,
 )
-from .SconsUtils import decodeData, reportSconsUnexpectedOutput
+from .SconsUtils import (
+    decodeData,
+    reportSconsUnexpectedOutput,
+    writeSconsResourceUsageReport,
+)
 
 SubprocessSpawnResult = makeNamedtupleClass(
     "SubprocessSpawnResult",
@@ -150,6 +155,7 @@ def _getWindowsSpawnFunction(env, source_files):
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
         """Our own spawn implementation for use on Windows."""
+        assert type(args) in (list, tuple)
 
         # The "del" appears to not work reliably, but is used with large amounts of
         # files to link. So, lets do this ourselves, plus it avoids a process
@@ -260,17 +266,14 @@ def _getWindowsSpawnFunction(env, source_files):
     return spawnWindowsCommand
 
 
+def reverseShQuoting(arg):
+    # Undo the damage that scons did in order to pass it to "sh"
+    result = shlex.split(arg)
+    assert len(result) == 1, (arg, result)
+    return result[0]
+
+
 def _formatForOutput(arg):
-    # Undo the damage that scons did to pass it to "sh"
-    arg = arg.strip('"')
-
-    slash = "\\"
-    special = '"$()'
-
-    arg = arg.replace(slash + slash, slash)
-    for c in special:
-        arg = arg.replace(slash + c, c)
-
     if arg.startswith("-I"):
         prefix = "-I"
         arg = arg[2:]
@@ -332,16 +335,17 @@ length parameter; this could be due to transposed parameters"""
 
 
 class SpawnThread(threading.Thread):
-    def __init__(self, env, *args):
+    def __init__(self, env, command, os_env):
         threading.Thread.__init__(self)
 
         self.env = env
-        self.args = args
+        self.command = command
+        self.os_env = os_env
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
             % (
-                " ".join(_formatForOutput(arg) for arg in self.args[2]).replace(
+                " ".join(_formatForOutput(arg) for arg in self.command).replace(
                     "%", "%%"
                 ),
             ),
@@ -358,7 +362,7 @@ class SpawnThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.process_result = self.spawnSubprocess(env=self.env, args=self.args)
+                self.process_result = self.spawnSubprocess(env=self.env)
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.process_result = SubprocessSpawnResult(
                 stdout=None, stderr=None, exit_code=None, exception=e, rusage=None
@@ -368,12 +372,10 @@ class SpawnThread(threading.Thread):
                 stdout=None, stderr=None, exit_code=e.code, exception=None, rusage=None
             )
 
-    def spawnSubprocess(self, env, args):
-        sh, _cmd, args, os_env = args
-
+    def spawnSubprocess(self, env):
         self.process = Process(
-            command=[sh, "-c", " ".join(args)],
-            env=os_env,
+            command=self.command,
+            env=self.os_env,
             rusage=True,
         )
         process_result = self.process.communicate()
@@ -405,7 +407,7 @@ class SpawnThread(threading.Thread):
 
             my_print(line, style="scons-unexpected", file=sys.stderr)
 
-            reportSconsUnexpectedOutput(env, args, stdout=None, stderr=line)
+            reportSconsUnexpectedOutput(env, self.command, stdout=None, stderr=line)
 
         return SubprocessSpawnResult(
             exception=None, **process_result.replace(exit_code=exit_code).asDict()
@@ -435,8 +437,8 @@ def _stopOtherThreads():
                 thread.stopThread()
 
 
-def _runSpawnMonitored(env, sh, cmd, args, os_env):
-    thread = SpawnThread(env, sh, cmd, args, os_env)
+def _runSpawnMonitored(env, args, os_env):
+    thread = SpawnThread(env, args, os_env)
 
     _threads.append(thread)
 
@@ -447,7 +449,7 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
         thread.join(360)
 
         if thread.is_alive():
-            reportSlowCompilation(env, cmd, thread.timer_report.getTimer().getDelta())
+            reportSlowCompilation(env, args, thread.timer_report.getTimer().getDelta())
 
         thread.join()
 
@@ -464,15 +466,24 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
 
 def _getWrappedSpawnFunction(env):
     def spawnCommand(sh, escape, cmd, args, os_env):
-        # signature needed towards Scons core, pylint: disable=unused-argument
+        # Signature needed towards Scons core, pylint: disable=unused-argument
+        assert type(args) in (list, tuple)
+
+        args = [reverseShQuoting(arg) for arg in args]
+        for arg in args[1:]:
+            if arg.endswith(".c") and os.path.exists(arg):
+                source_filename = arg
+                break
+        else:
+            source_filename = None
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
+        if source_filename == "__constants_data.c":
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
-        spawn_result = _runSpawnMonitored(env, sh, cmd, args, os_env)
+        spawn_result = _runSpawnMonitored(env, args, os_env)
 
         if spawn_result.exception:
             closeSconsProgressBar()
@@ -491,6 +502,17 @@ def _getWrappedSpawnFunction(env):
 Error, the C compiler '%s' crashed with segfault. Consider upgrading \
 it or using '--clang' option."""
                 % env.the_compiler
+            )
+
+        if (
+            spawn_result.exit_code == 0
+            and spawn_result.rusage is not None
+            and source_filename is not None
+            and env.collect_resources
+        ):
+            writeSconsResourceUsageReport(
+                source_filename=os.path.basename(source_filename),
+                rusage=spawn_result.rusage,
             )
 
         return spawn_result.exit_code
