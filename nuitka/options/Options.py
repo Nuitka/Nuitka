@@ -3188,10 +3188,11 @@ def shallRecompileExtensionModules(module_name):
 
     result = module_name.matchesToShellPatterns(options.recompile_extension_modules)
 
-    if result is None:
-        return None, "no user options given"
+    # TODO: Lets return a named tuple from here too.
+    if result.is_match:
+        return result
 
-    return result
+    return None, "no user options given"
 
 
 def getProgressBar():
@@ -3223,9 +3224,9 @@ def shallShowSourceModifications(module_name):
     if options is None:
         return False
 
-    result, _reason = module_name.matchesToShellPatterns(options.show_source_changes)
+    result = module_name.matchesToShellPatterns(options.show_source_changes)
 
-    return result
+    return result.is_match
 
 
 def isLowMemory():

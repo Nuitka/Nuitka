@@ -996,7 +996,7 @@ slow down compilation."""
             config_of_module_name,
             description,
         ) in self.no_follows.items():
-            if module_name.matchesToShellPattern(no_follow_pattern)[0]:
+            if module_name.matchesToShellPattern(no_follow_pattern).is_match:
                 return (
                     False,
                     "according to yaml 'no-follow' configuration of '%s' for '%s'"

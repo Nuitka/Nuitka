@@ -45,7 +45,11 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.freezer.MacOSDmg import createDmgFile
-from nuitka.importing.Importing import locateModule, setupImportingFromOptions
+from nuitka.importing.Importing import (
+    getRecompileDecisionReason,
+    locateModule,
+    setupImportingFromOptions,
+)
 from nuitka.importing.Recursion import (
     scanIncludedPackage,
     scanPluginFilenamePattern,
@@ -345,6 +349,23 @@ use the correct name instead."""
             return inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."
                 % (distribution_name, meta_data_value.module_name)
+            )
+
+    # Complain about undecided recompilations of extension modules
+    for module in ModuleRegistry.getDoneModules():
+        recompile_decision = getRecompileDecisionReason(module.getFullName())
+
+        # TODO: Make that a shared constant value
+        if (
+            recompile_decision[0] is None
+            and recompile_decision[1] == "default behavior"
+        ):
+            inclusion_logger.info(
+                """\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default, but source code is available and \
+may work too."""
+                % (module.getFullName())
             )
 
     # Allow plugins to comment on final module set.

@@ -11,6 +11,8 @@ allow to easily make checks on them.
 import fnmatch
 import os
 
+from nuitka.containers.Namedtuples import makeNamedtupleClass
+
 from .Hashing import getStringHash
 
 
@@ -39,6 +41,15 @@ _multi_dist_prefix = "multidist-"
 
 def makeMultidistModuleName(count, suffix):
     return ModuleName("%s%d-%s" % (_multi_dist_prefix, count, suffix))
+
+
+ShellPatternMatchResult = makeNamedtupleClass(
+    "ShellPatternMatchResult",
+    (
+        "is_match",
+        "reason",
+    ),
+)
 
 
 class ModuleName(str):
@@ -244,20 +255,35 @@ class ModuleName(str):
                 "something.tests.MyTest", thereby allowing to match whole
                 packages with one pattern only.
         Returns:
-            Tuple of two values, where the first value is the result, second value
+            ShellPatternMatchResult where is_match is a boolean and reason
             explains why the pattern matched and how.
         """
 
         if self == pattern:
-            return True, "is exact match of '%s'" % pattern
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is exact match of '%s'" % pattern,
+            )
         elif self.isBelowNamespace(pattern):
-            return True, "is package content of '%s'" % pattern
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is package content of '%s'" % pattern,
+            )
         elif fnmatch.fnmatch(self.asString(), pattern):
-            return True, "matches pattern '%s'" % pattern
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="matches pattern '%s'" % pattern,
+            )
         elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
-            return True, "is package content of match to pattern '%s'" % pattern
+            return ShellPatternMatchResult(
+                is_match=True,
+                reason="is package content of match to pattern '%s'" % pattern,
+            )
         else:
-            return False, None
+            return ShellPatternMatchResult(
+                is_match=False,
+                reason=None,
+            )
 
     def matchesToShellPatterns(self, patterns):
         """Match a module name to a list of patterns
@@ -269,18 +295,21 @@ class ModuleName(str):
                 "something.tests.MyTest", thereby allowing to match whole
                 packages with one pattern only.
         Returns:
-            Tuple of two values, where the first value is the result, second value
+            ShellPatternMatchResult where is_match is a boolean and reason
             explains which pattern matched and how.
         """
 
         for pattern in patterns:
-            match, reason = self.matchesToShellPattern(pattern)
+            match_result = self.matchesToShellPattern(pattern)
 
-            if match:
-                return match, reason
+            if match_result.is_match:
+                return match_result
 
         # No match result
-        return False, None
+        return ShellPatternMatchResult(
+            is_match=False,
+            reason=None,
+        )
 
     def isFakeModuleName(self):
         return str(self).endswith(trigger_names)

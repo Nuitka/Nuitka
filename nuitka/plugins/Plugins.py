@@ -49,7 +49,7 @@ from nuitka.options.Options import (
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
-from nuitka.Tracing import plugins_logger, printLine, recursion_logger
+from nuitka.Tracing import plugins_logger, printLine
 from nuitka.tree.SourceHandling import writeSourceCode
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -1313,14 +1313,6 @@ through implicit import by '%s' plugin encountered."""
             return options_value
 
         if result is None:
-            recursion_logger.info(
-                """\
-Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
-existing '%s' extension module by default, but source code is available and \
-may work too."""
-                % (module_name)
-            )
-
             return None, "default behavior"
         else:
             return result
