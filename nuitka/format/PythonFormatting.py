@@ -7,8 +7,10 @@ This contains the logic to format Python source code.
 """
 
 import ast
+import io
 import os
 import re
+import tokenize
 
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
@@ -89,6 +91,46 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
     new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
+        putTextFileContents(filename, new_code, encoding="utf8")
+
+
+def _cleanupDashesInComments(filename):
+    """Cleanup em dashes and en dashes in code comments.
+
+    Args:
+        filename: path to the file
+    """
+    # The tokenize interface is a bit verbose, pylint: disable=too-many-locals
+    source_code = getFileContents(filename, encoding="utf8")
+
+    # Go backwards to not mess up offsets
+    source_lines = source_code.splitlines()
+    changed = False
+
+    for t in reversed(
+        tuple(tokenize.generate_tokens(io.StringIO(source_code).readline))
+    ):
+        tok_type, tok_string, (start_row, start_col), (_end_row, end_col), _line = t
+
+        if tok_type == tokenize.COMMENT:
+            if "\u2014" in tok_string or "\u2013" in tok_string:
+                line_idx = start_row - 1
+                line = source_lines[line_idx]
+
+                new_tok_string = tok_string.replace("\u2014", "-").replace(
+                    "\u2013", "-"
+                )
+
+                source_lines[line_idx] = (
+                    line[:start_col] + new_tok_string + line[end_col:]
+                )
+                changed = True
+
+    if changed:
+        new_code = "\n".join(source_lines)
+        if source_code.endswith("\n") and not new_code.endswith("\n"):
+            new_code += "\n"
+
         putTextFileContents(filename, new_code, encoding="utf8")
 
 
@@ -284,6 +326,8 @@ def formatPython(
     _cleanupPyLintComments(
         logger=logger, filename=filename, effective_filename=effective_filename
     )
+
+    _cleanupDashesInComments(filename=filename)
 
     if effective_filename not in BLACK_SKIP_LIST:
         black_path = getBlackBinaryPath(
