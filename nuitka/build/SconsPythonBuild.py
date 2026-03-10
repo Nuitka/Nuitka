@@ -192,7 +192,7 @@ def addPythonHaclLib(env, link_module_libs):
             # env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC128"])
             env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC256"])
 
-    # Remove it from static link libraries unconditionally — libHacl_Hash_SHA2
+    # Remove it from static link libraries unconditionally - libHacl_Hash_SHA2
     # is an internal CPython build artifact, never shipped as a standalone .a file.
     link_module_libs = [
         link_module_lib
