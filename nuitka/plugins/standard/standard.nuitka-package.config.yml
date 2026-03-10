@@ -3699,7 +3699,7 @@
         - 'libs'
 
   dlls:
-    - from_filesnames:
+    - from_filenames:
         relative_path: 'libs'
         prefixes:
           - ''
