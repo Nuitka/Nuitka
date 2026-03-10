@@ -9,6 +9,8 @@ methods like "asDict".
 
 from collections import namedtuple
 
+from nuitka.Errors import NuitkaCodeDeficit
+
 
 def makeNamedtupleClass(name, element_names):
     namedtuple_class = namedtuple(name, element_names)
@@ -30,6 +32,12 @@ def makeNamedtupleClass(name, element_names):
             new_data.update(**kwargs)
 
             return self.__class__(**new_data)
+
+        # Avoid testing the namedtuple as boolean, which is not supported.
+        def __nonzero__(self):
+            raise NuitkaCodeDeficit("boolean testing of namedtuples")
+
+        __bool__ = __nonzero__
 
     DynamicNamedtuple.__name__ = name
 

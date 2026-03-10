@@ -150,7 +150,10 @@ def writeImportedModulesNamesToCache(
         # We use a tuple, so preserve the order.
         "modules_used": used_modules,
         "distribution_names": distribution_names,
-        "timing_infos": getModuleOptimizationTimingInfos(module_name),
+        "timing_infos": tuple(
+            timing_info.asTuple()
+            for timing_info in getModuleOptimizationTimingInfos(module_name)
+        ),
     }
 
     makePath(os.path.dirname(cache_filename))
