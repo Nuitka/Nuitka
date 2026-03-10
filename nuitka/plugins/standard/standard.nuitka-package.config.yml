@@ -5426,6 +5426,10 @@
     - patterns:
         - 'runtime/Python.Runtime.dll'
 
+- module-name: 'pytokens' # checksum: 339a370b
+  import-hacks:
+    - recompile-extensions: 'no'
+
 - module-name: 'pytorch_lightning' # checksum: ffc61f79
   data-files:
     - patterns:
