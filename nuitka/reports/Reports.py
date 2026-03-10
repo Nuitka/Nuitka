@@ -483,13 +483,19 @@ def _addModulesToReport(root, report_input_data, diffable):
             compile_rusage = None
 
         if compile_rusage:
-            compile_xml_node = Element("c-compilation-time")
-            for key, value in compile_rusage.items():
-                if type(value) is float:
-                    value = "volatile" if diffable else "%.4f" % value
-                else:
-                    value = "volatile" if diffable else str(value)
-                compile_xml_node.attrib[key] = value
+            compile_xml_node = Element("c-compilation-resources")
+            for group_name, group_data in compile_rusage.items():
+                if not group_data:
+                    continue
+                group_xml_node = Element(group_name)
+                for key, value in group_data.items():
+                    if type(value) is float:
+                        value = "volatile" if diffable else "%.4f" % value
+                    else:
+                        value = "volatile" if diffable else str(value)
+                    group_xml_node.attrib[key] = value
+
+                compile_xml_node.append(group_xml_node)
 
             module_xml_node.append(compile_xml_node)
 

@@ -752,9 +752,37 @@ def readSconsErrorReport(source_dir):
 def writeSconsResourceUsageReport(source_filename, rusage):
     json_filename = os.path.splitext(source_filename)[0] + ".resource-usage.json"
 
+    rusage_dict = rusage.asDict()
+    normalized_rusage = {"cpu": {}, "memory": {}, "system-events": {}}
+
+    # spell-checker: ignore maxrss,majflt,minflt,nvcsw,nivcsw,oublock,inblock
+    mapping = {
+        "ru_utime": ("cpu", "user-cpu-time"),
+        "ru_stime": ("cpu", "system-cpu-time"),
+        "ru_maxrss": ("memory", "memory-max-rss-kb"),
+        "ru_majflt": ("system-events", "page-faults-major"),
+        "ru_minflt": ("system-events", "page-faults-minor"),
+        "ru_nvcsw": ("system-events", "context-switches-voluntary"),
+        "ru_nivcsw": ("system-events", "context-switches-involuntary"),
+        "ru_oublock": ("system-events", "disk-output-blocks"),
+        "ru_inblock": ("system-events", "disk-input-blocks"),
+    }
+
+    for old_key, (group, new_key) in mapping.items():
+        if old_key in rusage_dict:
+            val = rusage_dict[old_key]
+
+            if old_key == "ru_maxrss" and sys.platform == "darwin":
+                val = val // 1024
+
+            normalized_rusage[group][new_key] = val
+
     writeJsonToFilename(
         filename=json_filename,
-        contents={"source_filename": source_filename, "rusage": rusage.asDict()},
+        contents={
+            "source_filename": source_filename,
+            "rusage": normalized_rusage,
+        },
     )
 
 
