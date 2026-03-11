@@ -14,6 +14,7 @@ import traceback
 
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
+from nuitka.build.SconsCaching import getCcacheModuleStats
 from nuitka.build.SconsUtils import (
     getSconsReportValue,
     readSconsErrorReport,
@@ -278,9 +279,11 @@ def _getReportInputData(aborted):
         scons_resource_usage_data = readSconsResourceUsageReports(
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
+        scons_ccache_stats = getCcacheModuleStats()
     else:
         scons_error_report_data = {}
         scons_resource_usage_data = {}
+        scons_ccache_stats = {}
         output_run_filename = "failed too early"
 
     source_dir = (
@@ -482,22 +485,45 @@ def _addModulesToReport(root, report_input_data, diffable):
         else:
             compile_rusage = None
 
-        if compile_rusage:
-            compile_xml_node = Element("c-compilation-resources")
-            for group_name, group_data in compile_rusage.items():
-                if not group_data:
-                    continue
-                group_xml_node = Element(group_name)
-                for key, value in group_data.items():
-                    if type(value) is float:
-                        value = "volatile" if diffable else "%.4f" % value
-                    else:
-                        value = "volatile" if diffable else str(value)
-                    group_xml_node.attrib[key] = value
+        if report_input_data["scons_ccache_stats"]:
+            ccache_info = report_input_data["scons_ccache_stats"].get(
+                module_name.asString()
+            )
+        else:
+            ccache_info = None
 
-                compile_xml_node.append(group_xml_node)
+        if not diffable and (compile_rusage or ccache_info is not None):
+            compile_xml_node = appendTreeElement(
+                module_xml_node,
+                "c-compilation-resources",
+            )
 
-            module_xml_node.append(compile_xml_node)
+            if ccache_info is not None:
+                appendTreeElement(
+                    compile_xml_node,
+                    "c-cache",
+                    tech=ccache_info[0],
+                    result=ccache_info[1],
+                )
+            else:
+                appendTreeElement(
+                    compile_xml_node,
+                    "c-cache",
+                    tech="none",
+                )
+
+            if compile_rusage:
+                for group_name, group_data in compile_rusage.items():
+                    group_xml_node = appendTreeElement(
+                        compile_xml_node,
+                        group_name,
+                    )
+                    for key, value in group_data.items():
+                        if type(value) is float:
+                            value = "%.4f" % value
+                        else:
+                            value = str(value)
+                        group_xml_node.attrib[key] = value
 
         distributions = report_input_data["module_distribution_usages"][module_name]
 

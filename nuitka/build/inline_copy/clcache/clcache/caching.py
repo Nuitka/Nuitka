@@ -833,6 +833,7 @@ class Statistics(object):
     SOURCE_CHANGED_MISSES = "SourceChangedMisses"
     CACHE_ENTRIES = "CacheEntries"
     CACHE_SIZE = "CacheSize"
+    CACHE_HISTORY = "CacheHistory"
 
     RESETTABLE_KEYS = {
         CALLS_WITH_INVALID_ARGUMENT,
@@ -847,6 +848,7 @@ class Statistics(object):
         EVICTED_MISSES,
         HEADER_CHANGED_MISSES,
         SOURCE_CHANGED_MISSES,
+        CACHE_HISTORY,
     }
     NON_RESETTABLE_KEYS = {
         CACHE_ENTRIES,
@@ -866,6 +868,10 @@ class Statistics(object):
         for k in Statistics.RESETTABLE_KEYS | Statistics.NON_RESETTABLE_KEYS:
             if k not in self._stats:
                 self._stats[k] = 0
+
+        if Statistics.CACHE_HISTORY not in self._stats or type(self._stats[Statistics.CACHE_HISTORY]) is not dict:
+            self._stats[Statistics.CACHE_HISTORY] = {}
+
         return self
 
     def __exit__(self, typ, value, traceback):
@@ -916,22 +922,22 @@ class Statistics(object):
     def numEvictedMisses(self):
         return self._stats[Statistics.EVICTED_MISSES]
 
-    def registerEvictedMiss(self):
-        self.registerCacheMiss()
+    def registerEvictedMiss(self, sourceFile):
+        self.registerCacheMiss(sourceFile)
         self._stats[Statistics.EVICTED_MISSES] += 1
 
     def numHeaderChangedMisses(self):
         return self._stats[Statistics.HEADER_CHANGED_MISSES]
 
-    def registerHeaderChangedMiss(self):
-        self.registerCacheMiss()
+    def registerHeaderChangedMiss(self, sourceFile):
+        self.registerCacheMiss(sourceFile)
         self._stats[Statistics.HEADER_CHANGED_MISSES] += 1
 
     def numSourceChangedMisses(self):
         return self._stats[Statistics.SOURCE_CHANGED_MISSES]
 
-    def registerSourceChangedMiss(self):
-        self.registerCacheMiss()
+    def registerSourceChangedMiss(self, sourceFile):
+        self.registerCacheMiss(sourceFile)
         self._stats[Statistics.SOURCE_CHANGED_MISSES] += 1
 
     def numCacheEntries(self):
@@ -957,14 +963,16 @@ class Statistics(object):
     def numCacheHits(self):
         return self._stats[Statistics.CACHE_HITS]
 
-    def registerCacheHit(self):
+    def registerCacheHit(self, sourceFile):
         self._stats[Statistics.CACHE_HITS] += 1
+        self._stats[Statistics.CACHE_HISTORY][sourceFile] = "Hit"
 
     def numCacheMisses(self):
         return self._stats[Statistics.CACHE_MISSES]
 
-    def registerCacheMiss(self):
+    def registerCacheMiss(self, sourceFile):
         self._stats[Statistics.CACHE_MISSES] += 1
+        self._stats[Statistics.CACHE_HISTORY][sourceFile] = "Miss"
 
     def numCallsForPreprocessing(self):
         return self._stats[Statistics.CALLS_FOR_PREPROCESSING]
@@ -974,7 +982,10 @@ class Statistics(object):
 
     def resetCounters(self):
         for k in Statistics.RESETTABLE_KEYS:
-            self._stats[k] = 0
+            if k == Statistics.CACHE_HISTORY:
+                self._stats[k] = {}
+            else:
+                self._stats[k] = 0
 
 
 class AnalysisError(Exception):
@@ -1673,7 +1684,7 @@ def addObjectToCache(stats, cache, cachekey, artifacts):
         return stats.currentCacheSize() >= cfg.maximumCacheSize()
 
 
-def processCacheHit(cache, objectFile, cachekey):
+def processCacheHit(cache, objectFile, cachekey, sourceFile):
     printTraceStatement(
         "Reusing cached object for key {} for object file {}".format(
             cachekey, objectFile
@@ -1682,7 +1693,7 @@ def processCacheHit(cache, objectFile, cachekey):
 
     with cache.lockFor(cachekey):
         with cache.statistics as stats:
-            stats.registerCacheHit()
+            stats.registerCacheHit(sourceFile)
 
         if os.path.exists(objectFile):
             os.remove(objectFile)
@@ -1880,7 +1891,7 @@ def processSingleSource(compiler, cmdLine, sourceFile, objectFile, environment):
         cache = Cache()
 
         if "CLCACHE_NODIRECT" in os.environ and os.environ["CLCACHE_NODIRECT"] != "0":
-            return processNoDirect(cache, objectFile, compiler, cmdLine, environment)
+            return processNoDirect(cache, objectFile, compiler, cmdLine, sourceFile, environment)
         else:
             return processDirect(
                 cache, objectFile, compiler, cmdLine, sourceFile, environment
@@ -1921,7 +1932,7 @@ def processDirect(cache, objectFile, compiler, cmdLine, sourceFile, env):
                         manifestHit = True
                         with cache.lockFor(cachekey):
                             if cache.hasEntry(cachekey):
-                                return processCacheHit(cache, objectFile, cachekey)
+                                return processCacheHit(cache, objectFile, cachekey, sourceFile)
 
                 except IncludeNotFoundException:
                     pass
@@ -1948,7 +1959,7 @@ def processDirect(cache, objectFile, compiler, cmdLine, sourceFile, env):
     with cache.manifestLockFor(manifestHash):
         if manifestHit is not None:
             return ensureArtifactsExist(
-                cache, cachekey, unusableManifestMissReason, objectFile, compilerResult
+                cache, cachekey, unusableManifestMissReason, objectFile, sourceFile, compilerResult
             )
 
         entry = createManifestEntry(manifestHash, includePaths)
@@ -1964,30 +1975,31 @@ def processDirect(cache, objectFile, compiler, cmdLine, sourceFile, env):
             cachekey,
             unusableManifestMissReason,
             objectFile,
+            sourceFile,
             compilerResult,
             addManifest,
         )
 
 
-def processNoDirect(cache, objectFile, compiler, cmdLine, environment):
+def processNoDirect(cache, objectFile, compiler, cmdLine, sourceFile, environment):
     cachekey = CompilerArtifactsRepository.computeKeyNodirect(
         compiler, cmdLine, environment
     )
     with cache.lockFor(cachekey):
         if cache.hasEntry(cachekey):
-            return processCacheHit(cache, objectFile, cachekey)
+            return processCacheHit(cache, objectFile, cachekey, sourceFile)
 
     compilerResult = invokeRealCompiler(
         compiler, cmdLine, captureOutput=True, environment=environment
     )
 
     return ensureArtifactsExist(
-        cache, cachekey, Statistics.registerCacheMiss, objectFile, compilerResult
+        cache, cachekey, Statistics.registerCacheMiss, objectFile, sourceFile, compilerResult
     )
 
 
 def ensureArtifactsExist(
-    cache, cachekey, reason, objectFile, compilerResult, extraCallable=None
+    cache, cachekey, reason, objectFile, sourceFile, compilerResult, extraCallable=None
 ):
     cleanupRequired = False
     returnCode, compilerOutput, compilerStderr = compilerResult
@@ -1995,7 +2007,7 @@ def ensureArtifactsExist(
     with cache.lockFor(cachekey):
         if not cache.hasEntry(cachekey):
             with cache.statistics as stats:
-                reason(stats)
+                reason(stats, sourceFile)
                 if correctCompiliation:
                     artifacts = CompilerArtifacts(
                         objectFile, compilerOutput, compilerStderr

@@ -31,7 +31,6 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
 from nuitka.utils.Utils import isMacOS
 
-from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     addConstantBlobFile,
     createNuitkaSconsEnvironment,
@@ -90,8 +89,6 @@ python_prefix = getArgumentRequired("python_prefix")
 
 python_prefix_external = getExternalUsePath(python_prefix)
 
-# Disable ccache/clcache usage if that is requested
-disable_ccache = getArgumentBool("disable_ccache", False)
 
 # Preprocessor defines and link libraries from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -232,21 +229,6 @@ enableSpawnMonitoring(
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
 changeKeyboardInterruptToErrorExit()
-
-# Check if ccache is installed, and complain if it is not.
-if env.gcc_mode:
-    enableCcache(
-        env=env,
-        source_dir=env.source_dir,
-        python_prefix=python_prefix_external,
-        disable_ccache=disable_ccache,
-    )
-
-if env.msvc_mode and not disable_ccache:
-    enableClcache(
-        env=env,
-        source_dir=env.source_dir,
-    )
 
 
 def createBuildDefinitionsFile():

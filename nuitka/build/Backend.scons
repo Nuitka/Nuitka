@@ -43,7 +43,6 @@ from nuitka.utils.Utils import (
 )
 
 from .DataComposerInterface import getConstantBlobFilename
-from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     addConstantBlobFile,
     createNuitkaSconsEnvironment,
@@ -153,9 +152,6 @@ link_libraries = getArgumentList("link_libraries", "")
 # From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
 
-
-# Disable ccache/clcache usage if that is requested
-disable_ccache = getArgumentBool("disable_ccache", False)
 
 # Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
@@ -582,21 +578,6 @@ enableSpawnMonitoring(
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
 changeKeyboardInterruptToErrorExit()
-
-# Check if ccache is installed, and complain if it is not.
-if env.gcc_mode:
-    enableCcache(
-        env=env,
-        source_dir=env.source_dir,
-        python_prefix=env.python_prefix_external,
-        disable_ccache=disable_ccache,
-    )
-
-if env.msvc_mode and not disable_ccache:
-    enableClcache(
-        env=env,
-        source_dir=env.source_dir,
-    )
 
 writeSconsReport(env=env, target=target)
 

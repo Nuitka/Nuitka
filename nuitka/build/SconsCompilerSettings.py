@@ -30,6 +30,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 
+from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
 from .SconsUtils import (
@@ -1087,6 +1088,23 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Set build directory and scons general settings.
     if needs_source_dir:
         setupScons(env, source_dir)
+
+        # Check if ccache is installed, and complain if it is not.
+        disable_ccache = getArgumentBool("disable_ccache", False)
+
+        if env.gcc_mode:
+            enableCcache(
+                env=env,
+                source_dir=source_dir,
+                python_prefix=env.python_prefix_external,
+                disable_ccache=disable_ccache,
+            )
+
+        if env.msvc_mode and not disable_ccache:
+            enableClcache(
+                env=env,
+                source_dir=source_dir,
+            )
 
     return env
 
