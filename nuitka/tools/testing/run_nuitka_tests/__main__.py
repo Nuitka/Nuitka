@@ -262,6 +262,16 @@ covered. With Python 2.x these are not run. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-cpython314-tests",
+        action="store_false",
+        dest="cpython314",
+        default=True,
+        help="""\
+The standard CPython3.14 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action="store_true",
         dest="cpython_no_other",
@@ -400,6 +410,15 @@ Do not use Python3.13 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.14",
+        action="store_true",
+        dest="no314",
+        default=False,
+        help="""\
+Do not use Python3.14 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -496,6 +515,8 @@ not being passed.""",
             options.no312 = True
         if sys.version_info[0:2] != (3, 13):
             options.no313 = True
+        if sys.version_info[0:2] != (3, 14):
+            options.no314 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -524,6 +545,8 @@ not being passed.""",
             options.cpython312 = False
         if sys.version_info[0:2] != (3, 13):
             options.cpython313 = False
+        if sys.version_info[0:2] != (3, 14):
+            options.cpython314 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -539,6 +562,7 @@ not being passed.""",
         options.cpython311 = False
         options.cpython312 = False
         options.cpython313 = False
+        options.cpython314 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -648,6 +672,8 @@ def main():
             return False
         if command == "python3.13" and options.no313:
             return False
+        if command == "python3.14" and options.no314:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -674,6 +700,8 @@ def main():
         if command == "python3.12" and sys.version_info[0:2] == (3, 12):
             return True
         if command == "python3.13" and sys.version_info[0:2] == (3, 13):
+            return True
+        if command == "python3.14" and sys.version_info[0:2] == (3, 14):
             return True
 
         path = os.environ["PATH"]
@@ -998,7 +1026,7 @@ def main():
                     else:
                         my_print("The CPython3.12 tests are not present, not run.")
 
-            # Running the Python 3.12 test suite only with CPython3.x.
+            # Running the Python 3.13 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if options.cpython313:
                     if os.path.exists("./tests/CPython313/run_all.py"):
@@ -1008,6 +1036,17 @@ def main():
                             executeSubTest("./tests/CPython313/run_all.py search")
                     else:
                         my_print("The CPython3.13 tests are not present, not run.")
+
+            # Running the Python 3.13 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if options.cpython314:
+                    if os.path.exists("./tests/CPython314/run_all.py"):
+                        with withExtendedExtraOptions(
+                            *getExtraFlags(where, "314tests", flags)
+                        ):
+                            executeSubTest("./tests/CPython314/run_all.py search")
+                    else:
+                        my_print("The CPython3.14 tests are not present, not run.")
 
     if not any(
         checkExecutableCommand("python%s" % python_version)
@@ -1085,6 +1124,11 @@ def main():
         execute_tests("python3.13-no-debug", "python3.13", "")
     else:
         my_print("Cannot execute tests with Python 3.13, disabled or not installed.")
+
+    if checkExecutableCommand("python3.14"):
+        execute_tests("python3.14-no-debug", "python3.14", "")
+    else:
+        my_print("Cannot execute tests with Python 3.14, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()
