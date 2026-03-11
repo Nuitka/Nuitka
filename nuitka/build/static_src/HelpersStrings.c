@@ -570,7 +570,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 #endif
 
     PyUnicode_WRITE(PyUnicode_KIND(unicode), PyUnicode_DATA(unicode), length, 0);
-    assert(_PyUnicode_CheckConsistency(unicode, 0));
+    assert(Nuitka_PyUnicode_CheckConsistency(unicode, 0));
 
     return unicode;
 }
@@ -622,7 +622,7 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
         PyErr_NoMemory();
         return -1;
     }
-    assert(_PyUnicode_CheckConsistency(unicode, 0));
+    assert(Nuitka_PyUnicode_CheckConsistency(unicode, 0));
     return 0;
 }
 
@@ -1023,9 +1023,8 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
         memset((char *)(ascii + 1), 0xff, size);
 #endif
 
-#ifndef __NUITKA_NO_ASSERT__
-        _PyUnicode_CheckConsistency((PyObject *)ascii, 0);
-#endif
+        assert(Nuitka_PyUnicode_CheckConsistency((PyObject *)ascii, 0));
+
         return (PyObject *)ascii;
     }
 
@@ -1113,9 +1112,8 @@ PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char) {
     memset(data, 0xff, size * kind);
 #endif
 
-#ifndef __NUITKA_NO_ASSERT__
-    _PyUnicode_CheckConsistency(result, 0);
-#endif
+    assert(Nuitka_PyUnicode_CheckConsistency(result, 0));
+
     return result;
 #elif PYTHON_VERSION >= 0x300
     // Python3 < 3.12
