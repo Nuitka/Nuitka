@@ -4,7 +4,7 @@
 trigger: always_on
 ---
 
-Follow the results defined in the top level file ".cursorrules" to the best of your abilities.
+Follow the rules defined in the top level file ".cursorrules" to the best of your abilities.
 
 <!--     Part of "Nuitka", an optimizing Python compiler that is compatible and -->
 <!--     integrates with CPython, but also works on its own. -->
