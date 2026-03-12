@@ -78,6 +78,24 @@ try:
 except NameError as err:
     print(err)
 
+
+try:
+
+    async def asyncExample[T, *Ts, **P](
+        a: T, b: T = T, c: Ts = Ts, d: P = P
+    ) -> T | Ts | P:
+        print(a, b, c, d)
+        print(T, Ts, P)
+
+    # This is a little cheat to await it without using asyncio
+    try:
+        next(asyncExample())
+    except StopIteration:
+        print("Awaited function")
+except NameError as err:
+    print(err)
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
