@@ -6140,6 +6140,13 @@
     - depends:
         - 'sentry_sdk.integrations.*'
 
+- module-name: 'sentry_sdk.integrations' # checksum: e54205da
+  anti-bloat:
+    - description: "Don't include dependencies automatically"
+      limit-auto-follow:
+        - 'sentry_sdk'
+        - 'multiprocessing'
+
 - module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
     - description: 'no runtime expansion of sys.path needed'

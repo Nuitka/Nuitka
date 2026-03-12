@@ -313,6 +313,12 @@
                 "$ref": "#/definitions/non-empty-string"
               }
             },
+            "limit-auto-follow": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/non-empty-string"
+              }
+            },
             "bloat-mode-overrides": {
               "type": "object",
               "additionalProperties": {

@@ -1114,13 +1114,16 @@ through implicit import by '%s' plugin encountered."""
             if result is not None:
                 if result[0] != must_recurse[0]:
                     plugin.sysexit(
-                        "Error, decision %s does not match other plugin '%s' decision."
+                        "Error, follow decision '%s' for module '%s' of plugin '%s' does not match other plugin '%s' decision '%s'."
                         % (
                             must_recurse[0],
+                            module_name,
+                            plugin.plugin_name,
                             ".".join(
                                 deciding_plugin.plugin_name
                                 for deciding_plugin in deciding_plugins
                             ),
+                            result[0],
                         )
                     )
 

@@ -193,6 +193,13 @@ if you want no message."""
                         )
                         result = False
 
+            if k == "limit-auto-follow":
+                for item in v:
+                    if not _checkNotEmptyString(
+                        logger, filename, module_name, section, k, item
+                    ):
+                        result = False
+
             if k == "declarations":
                 for m, d in v.items():
                     if not _checkNotEmptyString(

@@ -264,6 +264,9 @@ instead of '--noinclude-custom-mode=%s'"""
         # information given for that.
         self.no_auto_follows = {}
 
+        # Keep track of modules that limit what might be followed.
+        self.limit_auto_follows = OrderedDict()
+
         # Keep track of modules prevented from being followed at all.
         self.no_follows = OrderedDict()
 
@@ -991,6 +994,29 @@ slow down compilation."""
                     "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
                     % (config_of_module_name, no_auto_follow),
                 )
+
+            # Do checking of "limit-auto-follow"
+            for (
+                config_of_module_name,
+                limit_auto_follows,
+            ) in self.getYamlConfigItem(
+                module_name=using_module_name,
+                section="anti-bloat",
+                item_name="limit-auto-follow",
+                default=(),
+                decide_relevant=lambda x: x is not None,
+                recursive=True,
+            ):
+                # Check if any limit pattern is matching
+                for limit_pattern in limit_auto_follows:
+                    if module_name.matchesToShellPattern(limit_pattern).is_match:
+                        break
+                else:
+                    return (
+                        False,
+                        "according to yaml 'limit-auto-follow' configuration of '%s'"
+                        % config_of_module_name,
+                    )
 
         for no_follow_pattern, (
             config_of_module_name,
