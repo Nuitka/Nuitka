@@ -9742,6 +9742,12 @@
     - depends:
         - 'zmq.backend.cython'
 
+- module-name: 'zodbpickle.pickle_3' # checksum: 54ef2ab9
+  anti-bloat:
+    - description: 'remove test code'
+      change_function:
+        '_test': 'un-callable'
+
 - module-name: 'zope.interface._compat' # checksum: 5a8f0d92
   anti-bloat:
     - description: 'remove unittest reference'
