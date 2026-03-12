@@ -281,7 +281,7 @@ def _maybeWrapWithAnnotations(function_provider, node, function_creation, source
 
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details,
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
 
