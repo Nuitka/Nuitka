@@ -89,7 +89,7 @@ try:
 
     # This is a little cheat to await it without using asyncio
     try:
-        next(asyncExample())
+        asyncExample().send(None)
     except StopIteration:
         print("Awaited function")
 except NameError as err:
