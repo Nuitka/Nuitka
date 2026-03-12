@@ -1179,14 +1179,22 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 ]
             )
 
-            if env.clang_mode or env.gcc_version >= (4, 6):
+            if (
+                isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+            ):
                 env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
         if env.msvc_mode:
             env.Append(CCFLAGS=["/WX"])
     else:
         if env.gcc_mode or env.zig_mode:
-            if env.clang_mode or (env.gcc_version and env.gcc_version >= (4, 6)):
+            if (
+                isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+            ):
                 env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
