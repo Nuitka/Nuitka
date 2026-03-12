@@ -474,8 +474,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     compilation_mode = decideFunctionCompilationMode(decorators)
 
-    function_provider = _getFunctionProvider(provider, node, source_ref)
-
     onFunctionBodyParsing(provider=provider, function_name=node.name, body=node.body)
 
     if compilation_mode != "compiled":
@@ -485,6 +483,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             compilation_mode=compilation_mode,
             source_ref=source_ref,
         )
+
+    function_provider = _getFunctionProvider(provider, node, source_ref)
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
