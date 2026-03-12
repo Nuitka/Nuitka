@@ -495,7 +495,16 @@ def getExecutablePath(filename, env):
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
     while filename.startswith("$"):
-        filename = env[filename[1:]]
+        variable_name = filename[1:]
+
+        filename = env[variable_name]
+
+        if filename is None:
+            scons_logger.sysexit(
+                """\
+Error, scons environment variable '%s' is not set, this ought to never happen. Please report the bug."""
+                % variable_name
+            )
 
     # Append ".exe" suffix  on Windows if not already present.
     if os.name == "nt" and not filename.lower().endswith(".exe"):

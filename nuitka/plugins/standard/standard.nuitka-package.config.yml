@@ -3128,11 +3128,11 @@
       no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
 
-- module-name: 'networkx.classes.backends' # checksum: d0e705ae
+- module-name: 'networkx.classes.backends' # checksum: 29bf8c92
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
-        'os.getenv("NETWORKX_GRAPH_CONVERT")': 'None'
+        'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
 - module-name: 'nicegui' # checksum: 438c71c
@@ -4278,11 +4278,12 @@
     - depends:
         - '.*.locale'
 
-- module-name: 'persistent._compat' # checksum: 652e5c4a
+- module-name: 'persistent._compat' # checksum: 79e919b4
   anti-bloat:
     - description: 'use own compilation for compatibility'
       replacements_plain:
         "os.getenv('PURE_PYTHON')": '"1"'
+        "os.environ.get('PURE_PYTHON')": '"1"'
 
 - module-name: 'persistent.ring' # checksum: ff2e6560
   implicit-imports:
@@ -5425,6 +5426,10 @@
   data-files:
     - patterns:
         - 'runtime/Python.Runtime.dll'
+
+- module-name: 'pytokens' # checksum: 339a370b
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'pytorch_lightning' # checksum: ffc61f79
   data-files:
@@ -7471,7 +7476,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 9368cad9
+- module-name: 'tensorflow' # checksum: 7bd997cd
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -7493,7 +7498,7 @@
         'from ._api.v2 import test': 'test = None'
         'from tensorflow._api.v2 import test': 'test = None'
       replacements:
-        '_os.getenv("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
+        '_os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -7922,13 +7927,13 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: 6a52973c
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: b554bf0
   anti-bloat:
     - description: 'reduce keras usage'
       replacements_re:
         '(package_name = "(.*?)")': '\1; import \2'
       replacements:
-        'os.getenv("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
+        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
 
 - module-name: 'tensorflow.python.util.tf_inspect' # checksum: 8e3a3cbf
@@ -9736,6 +9741,12 @@
   implicit-imports:
     - depends:
         - 'zmq.backend.cython'
+
+- module-name: 'zodbpickle.pickle_3' # checksum: 54ef2ab9
+  anti-bloat:
+    - description: 'remove test code'
+      change_function:
+        '_test': 'un-callable'
 
 - module-name: 'zope.interface._compat' # checksum: 5a8f0d92
   anti-bloat:

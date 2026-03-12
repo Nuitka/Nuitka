@@ -169,32 +169,7 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
         ):
             variable_name = self.variable.getName()
 
-            # Create a cloned node with the locals variable.
-            call_node_clone = call_node.makeClone()
-            call_node_clone.setChildCalled(
-                ExpressionLocalsVariableRef(
-                    locals_scope=self.locals_scope,
-                    variable_name=variable_name,
-                    source_ref=self.source_ref,
-                )
-            )
-
-            # Make the original one for the fallback
-            call_node = call_node.makeCloneShallow()
-            call_node.setChildCalled(self.subnode_fallback)
-
-            result = ExpressionConditional(
-                condition=ExpressionLocalsVariableCheck(
-                    locals_scope=self.locals_scope,
-                    variable_name=variable_name,
-                    source_ref=self.source_ref,
-                ),
-                expression_yes=call_node_clone,
-                expression_no=call_node,
-                source_ref=self.source_ref,
-            )
-
-            if self.variable.getName() in (
+            if variable_name in (
                 "dir",
                 "eval",
                 "exec",
@@ -205,11 +180,37 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                 # Just inform the collection that all escaped.
                 trace_collection.onLocalsUsage(self.getLocalsDictScope())
 
-            return (
-                result,
-                "new_expression",
-                "Moved call of uncertain dict variable '%s' to inside." % variable_name,
-            )
+                # Create a cloned node with the locals variable.
+                call_node_clone = call_node.makeClone()
+                call_node_clone.setChildCalled(
+                    ExpressionLocalsVariableRef(
+                        locals_scope=self.locals_scope,
+                        variable_name=variable_name,
+                        source_ref=self.source_ref,
+                    )
+                )
+
+                # Make the original one for the fallback
+                call_node = call_node.makeCloneShallow()
+                call_node.setChildCalled(self.subnode_fallback)
+
+                result = ExpressionConditional(
+                    condition=ExpressionLocalsVariableCheck(
+                        locals_scope=self.locals_scope,
+                        variable_name=variable_name,
+                        source_ref=self.source_ref,
+                    ),
+                    expression_yes=call_node_clone,
+                    expression_no=call_node,
+                    source_ref=self.source_ref,
+                )
+
+                return (
+                    result,
+                    "new_expression",
+                    "Moved call of uncertain dict variable '%s' to inside."
+                    % variable_name,
+                )
 
         return call_node, None, None
 

@@ -353,6 +353,13 @@ NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObjec
 #define Nuitka_UnicodeAsWideString PyUnicode_AsWideCharString
 #endif
 
+// Before 3.7, it's only available in debug Python, so we need to guard this.
+#if PYTHON_VERSION < 0x370
+#define Nuitka_PyUnicode_CheckConsistency(op, check) 1
+#else
+#define Nuitka_PyUnicode_CheckConsistency(op, check) (_PyUnicode_CheckConsistency(op, check))
+#endif
+
 // Wrap the type lookup for debug mode, to identify errors, and potentially
 // to make our own enhancement later on. For now only verify it is not being
 // called with an error set, which 3.9 asserts against in core code.
