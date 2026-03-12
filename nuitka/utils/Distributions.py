@@ -279,11 +279,13 @@ def getDistributionTopLevelPackageNames(distribution, deep):
         # Filtering according to existence is necessary, since some packages
         # put e.g. "__dummy__" there.
         result.update(
-            module_name
-            for module_name in (
-                dirname.replace("/", ".") for dirname in top_level_txt.splitlines()
+            tuple(
+                module_name
+                for module_name in (
+                    dirname.replace("/", ".") for dirname in top_level_txt.splitlines()
+                )
+                if hasModule(module_name)
             )
-            if hasModule(module_name)
         )
 
         if result:

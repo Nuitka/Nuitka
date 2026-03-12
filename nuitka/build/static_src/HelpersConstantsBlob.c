@@ -527,7 +527,7 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
     // Note: Setting to immortal happens last, but we want to check now.
     Py_SET_REFCNT_IMMORTAL(u);
 
-    _PyUnicode_CheckConsistency(u, 1);
+    assert(Nuitka_PyUnicode_CheckConsistency(u, 1));
 #endif
 
     return u;

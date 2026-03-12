@@ -242,9 +242,46 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
     )
 
 
+def _getFunctionProvider(provider, node, source_ref):
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_outline = ExpressionOutlineFunction(
+            provider, "create_type_annotations", source_ref
+        )
+        return type_params_outline
+    else:
+        return provider
+
+
+def _maybeWrapWithAnnotations(function_provider, node, function_creation, source_ref):
+    if python_version >= 0x3C0 and node.type_params:
+        type_statements = []
+
+        for type_param in node.type_params:
+            type_var = buildNode(
+                provider=function_provider, node=type_param, source_ref=source_ref
+            )
+
+            assign = StatementAssignmentVariableName(
+                provider=function_provider,
+                variable_name=type_param.name,
+                source=type_var,
+                source_ref=source_ref,
+            )
+            type_statements.append(assign)
+
+        type_statements.append(StatementReturn(function_creation, source_ref))
+        assert function_provider.isExpressionOutlineFunction()
+        function_provider.setChildBody(
+            makeStatementsSequenceFromStatements(type_statements)
+        )
+        return function_provider
+    else:
+        return function_creation
+
+
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details,
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
 
@@ -266,13 +303,7 @@ def buildFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
-    if python_version >= 0x3C0 and node.type_params:
-        type_params_outline = ExpressionOutlineFunction(
-            provider, "create_type_annotations", source_ref
-        )
-        function_provider = type_params_outline
-    else:
-        function_provider = provider
+    function_provider = _getFunctionProvider(provider, node, source_ref)
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -380,27 +411,9 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 0x3C0 and node.type_params:
-        type_statements = []
-
-        for type_param in node.type_params:
-            type_var = buildNode(
-                provider=function_provider, node=type_param, source_ref=source_ref
-            )
-
-            assign = StatementAssignmentVariableName(
-                provider=function_provider,
-                variable_name=type_param.name,
-                source=type_var,
-                source_ref=source_ref,
-            )
-            type_statements.append(assign)
-
-        type_statements.append(StatementReturn(function_creation, source_ref))
-        type_params_outline.setChildBody(
-            makeStatementsSequenceFromStatements(type_statements)
-        )
-        function_creation = type_params_outline
+    function_creation = _maybeWrapWithAnnotations(
+        function_provider, node, function_creation, source_ref
+    )
 
     # Add wrapping for function with generic types to be provided to the
     # Add the "staticmethod" decorator to __new__ methods if not provided.
@@ -471,6 +484,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
+    function_provider = _getFunctionProvider(provider, node, source_ref)
+
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
     function_kind, flags = detectFunctionBodyKind(
@@ -478,7 +493,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     )
 
     creator_function_body, _, code_object = buildFunctionWithParsing(
-        provider=provider,
+        provider=function_provider,
         function_kind=function_kind,
         name=node.name,
         function_doc=function_doc,
@@ -534,10 +549,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_body.setChildBody(function_statements_body)
 
-    annotations = buildParameterAnnotations(provider, node, source_ref)
+    annotations = buildParameterAnnotations(function_provider, node, source_ref)
 
     kw_defaults = buildParameterKwDefaults(
-        provider=provider,
+        provider=function_provider,
         node=node,
         function_body=creator_function_body,
         source_ref=source_ref,
@@ -572,6 +587,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         kw_defaults=kw_defaults,
         annotations=annotations,
         source_ref=source_ref,
+    )
+
+    function_creation = _maybeWrapWithAnnotations(
+        function_provider, node, function_creation, source_ref
     )
 
     decorated_function = function_creation
