@@ -20,9 +20,6 @@ from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
 options = None
 
 
-# This is XML API, spell-checker: ignore addprevious,getnext,addnext
-
-
 def _findMatchingChild(current, node):
     node_tag = node.tag
 
