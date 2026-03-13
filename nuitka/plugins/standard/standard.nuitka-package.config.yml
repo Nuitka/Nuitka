@@ -3697,6 +3697,11 @@
   data-files:
     - dirs:
         - 'libs'
+  dlls:
+    - from_filenames:
+        relative_path: 'libs'
+        prefixes:
+          - ''
 
 - module-name: 'openvino.inference_engine' # checksum: 9100f948
   dlls:
