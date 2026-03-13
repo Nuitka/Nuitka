@@ -86,13 +86,10 @@ not found, the list of installed ones is '%s'."""
                         )
 
             if not self.used_language_model_names:
-                self.warning(
-                    """\
+                self.warning("""\
 No language models included. Use the option '--spacy-language-model=language_model_name' to \
 include one. Use 'all' to include all downloaded ones, or select from the list of installed \
-ones: %s"""
-                    % ",".join(self._getInstalledSpaceLanguageModels())
-                )
+ones: %s""" % ",".join(self._getInstalledSpaceLanguageModels()))
 
             for used_language_model_name in self.used_language_model_names:
                 yield used_language_model_name

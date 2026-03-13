@@ -76,8 +76,7 @@ class ExpressionMakeSequenceMixin(object):
             result,
             "new_statements",
             """\
-Removed %s creation for unused sequence."""
-            % self.getSequenceName(),
+Removed %s creation for unused sequence.""" % self.getSequenceName(),
         )
 
     def onContentEscapes(self, trace_collection):

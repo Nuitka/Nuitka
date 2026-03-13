@@ -65,7 +65,10 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 if (%(locals_dict)s == NULL) %(locals_dict)s = MAKE_DICT_EMPTY(tstate);
 %(to_name)s = %(locals_dict)s;
 Py_INCREF(%(to_name)s);"""
-                % {"to_name": value_name, "locals_dict": locals_declaration}
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                }
             )
             context.addCleanupTempName(value_name)
 

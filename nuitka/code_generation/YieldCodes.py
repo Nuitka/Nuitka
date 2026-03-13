@@ -163,9 +163,7 @@ def generateYieldFromCode(to_name, expression, emit, context):
     yield_code = """\
 generator->m_yield_from = %(yield_from)s;
 return NULL;
-""" % {
-        "yield_from": value_name
-    }
+""" % {"yield_from": value_name}
 
     with withObjectCodeTemporaryAssignment(
         to_name, "yieldfrom_result", expression, emit, context
@@ -200,9 +198,7 @@ return NULL;
 
     resume_code = """\
 %(object_name)s->m_awaiting = false;
-""" % {
-        "object_name": context.getContextObjectName()
-    }
+""" % {"object_name": context.getContextObjectName()}
 
     getReferenceExportCode(awaited_name, emit, context)
     if context.needsCleanup(awaited_name):

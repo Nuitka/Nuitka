@@ -203,19 +203,23 @@ def main():
         for filename in wrapWithProgressBar(
             filenames, stage="Auto format", unit="file"
         ):
-            if autoFormatFile(
-                filename,
-                git_stage=False,
-                check_only=options.check_only,
-                limit_yaml=options.yaml,
-                limit_c=options.c,
-                limit_python=options.python,
-                limit_rst=options.rst,
-                limit_md=options.md,
-                limit_json=options.json,
-                assume_yes_for_downloads=options.assume_yes_for_downloads,
-            ):
-                result += 1
+            try:
+                if autoFormatFile(
+                    filename,
+                    git_stage=False,
+                    check_only=options.check_only,
+                    limit_yaml=options.yaml,
+                    limit_c=options.c,
+                    limit_python=options.python,
+                    limit_rst=options.rst,
+                    limit_md=options.md,
+                    limit_json=options.json,
+                    assume_yes_for_downloads=options.assume_yes_for_downloads,
+                ):
+                    result += 1
+            except Exception as e:
+                tools_logger.warning(f"Error formatting {filename}: {e}")
+                raise
 
         # Tool is named without separator, spellchecker: ignore autoformat
 

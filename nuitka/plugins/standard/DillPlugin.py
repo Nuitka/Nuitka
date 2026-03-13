@@ -82,8 +82,7 @@ the usage.""",
                     return (
                         self._getPostLoadCode(candidate),
                         """\
-Extending "%s" for compiled types to be pickle-able as well."""
-                        % candidate,
+Extending "%s" for compiled types to be pickle-able as well.""" % candidate,
                     )
         elif module.isTopModule():
             return (

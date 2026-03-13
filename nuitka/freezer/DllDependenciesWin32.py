@@ -495,30 +495,24 @@ def shallIncludeWindowsRuntimeDLLs():
         msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
         if msvc_redist_path is None:
-            inclusion_logger.sysexit(
-                """\
+            inclusion_logger.sysexit("""\
 Error, cannot find Windows Runtime DLLs to include, but '--include-windows-runtime-dlls=yes' \
 make sure to install Visual Studio as that is the only provider of those DLLs with license \
-terms that allow redistribution."""
-            )
+terms that allow redistribution.""")
         result = True
     else:
         msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
         if msvc_redist_path is None:
-            inclusion_logger.warning(
-                """\
+            inclusion_logger.warning("""\
 Cannot find Windows Runtime DLLs to include, requiring them \
-to be installed on target systems."""
-            )
+to be installed on target systems.""")
             result = False
         else:
-            inclusion_logger.info(
-                """\
+            inclusion_logger.info("""\
 Including Windows Runtime DLLs, which increases distribution \
 size. Use '--include-windows-runtime-dlls=no' to disable, or \
-make explicit with '--include-windows-runtime-dlls=yes'."""
-            )
+make explicit with '--include-windows-runtime-dlls=yes'.""")
             result = True
 
     _include_windows_runtime_dlls = result

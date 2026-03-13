@@ -5,12 +5,10 @@ from __future__ import print_function
 
 import itertools
 
-exec(
-    """
+exec("""
 def python_func(a,b,c,d,e,f):
     pass
-"""
-)
+""")
 
 
 def calledRepeatedly():

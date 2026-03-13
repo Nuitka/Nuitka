@@ -8,7 +8,6 @@ This is a test to reveal hidden dependencies on a system.
 
 """
 
-
 import os
 import sys
 

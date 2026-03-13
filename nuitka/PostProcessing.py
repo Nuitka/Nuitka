@@ -436,13 +436,10 @@ def _createModulePyiFile():
                 text_only=True,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
-            postprocessing_logger.warning(
-                """\
+            postprocessing_logger.warning("""\
 Stub generation with internal stubgen tool failed due to: '%s'.
 
-Please report the module code in an issue report."""
-                % (str(e))
-            )
+Please report the module code in an issue report.""" % (str(e)))
 
             if states.is_debug:
                 raise
@@ -527,10 +524,8 @@ def executePostProcessing(result_filename):
                 python_dll_filename = dependency
                 break
         else:
-            return postprocessing_logger.sysexit(
-                """
-Error, expected 'libpython dependency not found. Please report the bug."""
-            )
+            return postprocessing_logger.sysexit("""
+Error, expected 'libpython dependency not found. Please report the bug.""")
 
         python_lib_path = os.path.dirname(python_dll_filename)
         python_dll_path = python_dll_filename
@@ -584,11 +579,9 @@ Error, expected 'libpython dependency not found. Please report the bug."""
         _createModulePyiFile()
 
     if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:
-        postprocessing_logger.warning(
-            """\
+        postprocessing_logger.warning("""\
 The created compiled binary is larger than 1.8GB and therefore may not be
-executable by Windows due to its limitations."""
-        )
+executable by Windows due to its limitations.""")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

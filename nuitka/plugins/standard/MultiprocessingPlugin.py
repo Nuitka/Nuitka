@@ -83,11 +83,9 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 
 sys.executable = %s
 sys._base_executable = sys.executable
-"""
-                % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
+""" % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
                 """\
-Monkey patching "%s" load environment."""
-                % full_name,
+Monkey patching "%s" load environment.""" % full_name,
             )
 
     @staticmethod

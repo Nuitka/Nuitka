@@ -140,16 +140,12 @@ def _takeSystemCallTraceOutput(logger, path, command):
 
 def _getRuntimeTraceOfLoadedFilesDtruss(logger, command):
     if not isExecutableCommand("dtruss"):
-        return logger.sysexit(
-            """\
-Error, needs 'dtruss' on your system to scan used libraries."""
-        )
+        return logger.sysexit("""\
+Error, needs 'dtruss' on your system to scan used libraries.""")
 
     if not isExecutableCommand("sudo"):
-        return logger.sysexit(
-            """\
-Error, needs 'sudo' on your system to scan used libraries."""
-        )
+        return logger.sysexit("""\
+Error, needs 'sudo' on your system to scan used libraries.""")
 
     binary_path = os.path.abspath(command[0])
     command = ("sudo", "dtruss", binary_path) + tuple(command[1:])
@@ -159,10 +155,8 @@ Error, needs 'sudo' on your system to scan used libraries."""
 
 def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
     if not isExecutableCommand("strace"):
-        return logger.sysexit(
-            """\
-Error, needs 'strace' on your system to scan used libraries."""
-        )
+        return logger.sysexit("""\
+Error, needs 'strace' on your system to scan used libraries.""")
 
     binary_path = os.path.abspath(command[0])
 

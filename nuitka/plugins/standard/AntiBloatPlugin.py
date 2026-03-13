@@ -217,12 +217,9 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
 
         for custom_choice in custom_choices:
             if custom_choice.count(":") != 1:
-                self.sysexit(
-                    """\
+                self.sysexit("""\
 Error, argument value '%s' for '--noinclude-custom-mode' used. It has to be of \
-form 'module_name:[%s]'."""
-                    % (custom_choice, "|".join(_mode_choices + _other_choices))
-                )
+form 'module_name:[%s]'.""" % (custom_choice, "|".join(_mode_choices + _other_choices)))
 
             module_name, mode = custom_choice.rsplit(":", 1)
 
@@ -233,12 +230,9 @@ form 'module_name:[%s]'."""
                 )
 
             if mode == "nofollow":
-                self.sysexit(
-                    """\
+                self.sysexit("""\
 Error, cannot use 'follow' as a custom mode, use '--nofollow-import-to=%s' option \
-instead of '--noinclude-custom-mode=%s'"""
-                    % (module_name, custom_choice)
-                )
+instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
 
             self.handled_modules[ModuleName(module_name)] = mode, module_name
 

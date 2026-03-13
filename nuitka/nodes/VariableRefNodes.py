@@ -463,9 +463,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
                     change_tags = "new_builtin_ref"
                     change_desc = """\
-Module variable '%s' found to be built-in exception reference.""" % (
-                        variable_name
-                    )
+Module variable '%s' found to be built-in exception reference.""" % (variable_name)
                 else:
                     self.variable_trace.addUsage()
 
@@ -488,9 +486,7 @@ Module variable '%s' found to be built-in exception reference.""" % (
 
                     change_tags = "new_builtin_ref"
                     change_desc = """\
-Module variable '%s' found to be built-in reference.""" % (
-                        variable_name
-                    )
+Module variable '%s' found to be built-in reference.""" % (variable_name)
                 else:
                     self.variable_trace.addUsage()
 

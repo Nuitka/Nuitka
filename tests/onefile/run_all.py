@@ -9,7 +9,6 @@ mode, trying to find issues with that form of packaging.
 
 """
 
-
 import os
 import sys
 

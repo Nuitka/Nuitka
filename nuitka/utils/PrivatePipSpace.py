@@ -479,7 +479,7 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
             binary_name="clang-format",
             package_name="clang-format",
             module_name="clang_format",
-            version=_getRequiredVersion(logger, "clang-format"),
+            version=getRequiredVersion(logger, "clang-format"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -495,7 +495,7 @@ def getBlackBinaryPath(logger, assume_yes_for_downloads):
             binary_name="black",
             package_name="black",
             module_name="black",
-            version=_getRequiredVersion(logger, "black"),
+            version=getRequiredVersion(logger, "black"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'black'.",
         )
@@ -511,7 +511,7 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
             binary_name="isort",
             package_name="isort",
             module_name="isort",
-            version=_getRequiredVersion(logger, "isort"),
+            version=getRequiredVersion(logger, "isort"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'isort'.",
         )
@@ -527,7 +527,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             binary_name="mdformat",
             package_name="mdformat",
             module_name="mdformat",
-            version=_getRequiredVersion(logger, "mdformat"),
+            version=getRequiredVersion(logger, "mdformat"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat'.",
         )
@@ -538,7 +538,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             logger=logger,
             package_name="mdformat-gfm",
             module_name="mdformat_gfm",
-            package_version=_getRequiredVersion(logger, "mdformat-gfm"),
+            package_version=getRequiredVersion(logger, "mdformat-gfm"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat-gfm'.",
         )
@@ -546,7 +546,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             logger=logger,
             package_name="mdformat-frontmatter",
             module_name="mdformat_frontmatter",
-            package_version=_getRequiredVersion(logger, "mdformat-frontmatter"),
+            package_version=getRequiredVersion(logger, "mdformat-frontmatter"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat-frontmatter'.",
         )
@@ -554,7 +554,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             logger=logger,
             package_name="mdformat-footnote",
             module_name="mdformat_footnote",
-            package_version=_getRequiredVersion(logger, "mdformat-footnote"),
+            package_version=getRequiredVersion(logger, "mdformat-footnote"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat-footnote'.",
         )
@@ -570,7 +570,7 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
             binary_name="rstfmt",
             package_name="rstfmt",
             module_name="rstfmt",
-            version=_getRequiredVersion(logger, "rstfmt"),
+            version=getRequiredVersion(logger, "rstfmt"),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
         )
@@ -666,7 +666,7 @@ def _getPrivatePipHash():
     return private_pip_hash.asHexDigest()
 
 
-def _getRequiredVersion(logger, tool):
+def getRequiredVersion(logger, tool):
     """Get the required version of a tool from requirements-private.txt."""
     requirements = _parseRequirements(logger)
 
@@ -695,16 +695,24 @@ def _getRequiredVersion(logger, tool):
     return None
 
 
+_check_required_version_cache = {}
+
+
 def _checkRequiredVersion(logger, tool, tool_call):
     """Check if the version of a tool matches the requirement."""
-    required_version = _getRequiredVersion(logger=logger, tool=tool)
+    required_version = getRequiredVersion(logger=logger, tool=tool)
 
-    tool_call = list(tool_call) + ["--version"]
+    tool_call = tuple(list(tool_call) + ["--version"])
+
+    if tool_call in _check_required_version_cache:
+        return _check_required_version_cache[tool_call]
 
     try:
         version_output = check_output(tool_call)
     except NuitkaCalledProcessError as e:
-        return False, "failed to execute: %s" % e.stderr
+        result = False, "failed to execute: %s" % e.stderr
+        _check_required_version_cache[tool_call] = result
+        return result
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
@@ -733,10 +741,12 @@ def _checkRequiredVersion(logger, tool, tool_call):
             break
 
     if not actual_version:
-        return False, "Error, couldn't determine version output of '%s' ('%s')" % (
+        result = False, "Error, couldn't determine version output of '%s' ('%s')" % (
             tool,
             " ".join(tool_call),
         )
+        _check_required_version_cache[tool_call] = result
+        return result
 
     message = "Version of '%s' via '%s' is required to be %r and not %r." % (
         tool,
@@ -745,7 +755,9 @@ def _checkRequiredVersion(logger, tool, tool_call):
         actual_version,
     )
 
-    return required_version == actual_version, message
+    result = required_version == actual_version, message
+    _check_required_version_cache[tool_call] = result
+    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

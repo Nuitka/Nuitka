@@ -1111,9 +1111,7 @@ class UnicodeDesc(ConcreteSequenceTypeBase):
     def getCheckValueCode(cls, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(PyUnicode_CheckExact(%(operand)s));""" % {
-            "operand": operand
-        }
+assert(PyUnicode_CheckExact(%(operand)s));""" % {"operand": operand}
 
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):

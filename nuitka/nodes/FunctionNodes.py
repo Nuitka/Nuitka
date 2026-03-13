@@ -1053,8 +1053,7 @@ Replaced call to created function body '%s' with direct function call."""
                 result,
                 "new_raise",  # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' to argument \
-error"""
-                % self.getName(),
+error""" % self.getName(),
             )
 
     def getClosureVariableVersions(self):

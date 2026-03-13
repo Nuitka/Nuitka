@@ -208,12 +208,9 @@ def getReleaseCodes(release_names, emit, context):
 
 
 def getMustNotGetHereCode(reason, emit):
-    emit(
-        """\
+    emit("""\
 NUITKA_CANNOT_GET_HERE("%s");
-return NULL;"""
-        % reason
-    )
+return NULL;""" % reason)
 
 
 def getAssertionCode(check, emit):

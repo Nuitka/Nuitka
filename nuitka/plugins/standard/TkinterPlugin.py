@@ -78,12 +78,9 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
 
         # Only ever saw these in use, report if there are more.
         if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Error, it seems 'tk-inter' has an unsupported version '%s'. \
-Please report as a issue."""
-                % self.tk_inter_version
-            )
+Please report as a issue.""" % self.tk_inter_version)
 
         return None
 
@@ -283,11 +280,9 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Could not find Tcl, you might need to use '--tcl-library-dir' and if \
-that works, report a bug so it can be added to Nuitka."""
-            )
+that works, report a bug so it can be added to Nuitka.""")
 
         tk_library_dir = self.tk_library_dir
         if tk_library_dir is None:
@@ -298,11 +293,9 @@ that works, report a bug so it can be added to Nuitka."""
                     break
 
         if tk_library_dir is None or not os.path.exists(tk_library_dir):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Could not find Tk, you might need to use '--tk-library-dir' and if \
-that works, report a bug."""
-            )
+that works, report a bug.""")
 
         # survived the above, now do provide the locations
         yield self.makeIncludedDataDirectory(

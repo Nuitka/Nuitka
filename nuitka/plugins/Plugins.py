@@ -93,9 +93,7 @@ def withPluginProblemReporting(plugin, template, args):
     except Exception:  # Catch all the things, pylint: disable=broad-except
         message = """\
 Plugin issue while working on '%s'. Please report the bug with the above \
-traceback included.""" % (
-            template % args
-        )
+traceback included.""" % (template % args)
 
         if states.is_debug:
             plugin.warning(message)
@@ -1114,7 +1112,8 @@ through implicit import by '%s' plugin encountered."""
             if result is not None:
                 if result[0] != must_recurse[0]:
                     plugin.sysexit(
-                        "Error, decision %s does not match other plugin '%s' decision."
+                        """\
+Error, follow decision '%s' for module '%s' of plugin '%s' does not match other plugin '%s' decision '%s'."""
                         % (
                             must_recurse[0],
                             ".".join(

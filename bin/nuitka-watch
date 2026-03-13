@@ -10,7 +10,6 @@ Nuitka that do.
 
 """
 
-
 # Import as little as possible initially, because we might be re-executing
 # soon.
 import os

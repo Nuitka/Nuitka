@@ -12,15 +12,19 @@ import os
 import re
 import tokenize
 
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
+    makePath,
     putBinaryFileContents,
     putTextFileContents,
 )
+from nuitka.utils.Hashing import Hash
 from nuitka.utils.PrivatePipSpace import (
     getBlackBinaryPath,
     getIsortBinaryPath,
+    getRequiredVersion,
     withPrivatePipSitePackagesPathAdded,
 )
 
@@ -188,6 +192,29 @@ def _cleanupImportSortOrder(
 
         putTextFileContents(filename, contents=contents, encoding="utf8")
 
+    isort_hash = Hash()
+    isort_hash.updateFromValues(os.name, getRequiredVersion(logger, "isort"), contents)
+    content_hash = isort_hash.asHexDigest()
+
+    cache_dir = getCacheDir("formatting")
+    makePath(cache_dir)
+    cache_filename = os.path.join(cache_dir, "isort-" + content_hash)
+
+    if os.path.exists(cache_filename):
+        # Restore from cache
+        isort_output = getFileContents(cache_filename, mode="rb")
+        if contents != isort_output:
+            putBinaryFileContents(filename, isort_output)
+
+        # Restore the original complete contents if we had split them out
+        if start_index is not None:
+            contents = getFileContents(filename, encoding="utf8")
+            contents = (
+                "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
+            )
+            putTextFileContents(filename, contents=contents, encoding="utf8")
+        return
+
     with withPrivatePipSitePackagesPathAdded(logger=logger):
         isort_output = check_output(
             isort_call
@@ -214,6 +241,10 @@ def _cleanupImportSortOrder(
         putBinaryFileContents(filename, isort_output)
 
     cleanupWindowsNewlines(filename, effective_filename)
+
+    # Store the hash of the resulting formatted contents so next time we see them, we skip
+    new_contents = getFileContents(filename, mode="rb")
+    putBinaryFileContents(cache_filename, new_contents)
 
     if start_index is not None:
         contents = getFileContents(filename, encoding="utf8")

@@ -250,12 +250,9 @@ def _createMainModule():
         real_distribution_name = getDistributionName(distribution)
 
         if real_distribution_name != distribution_name:
-            general.warning(
-                """\
+            general.warning("""\
 Warning, the distribution specified as '--include-distribution-metadata=%s' is really named '%s', \
-use the correct name instead."""
-                % (distribution_name, real_distribution_name)
-            )
+use the correct name instead.""" % (distribution_name, real_distribution_name))
 
         addDistributionMetadataValue(
             distribution_name=real_distribution_name,
@@ -360,13 +357,10 @@ use the correct name instead."""
             recompile_decision[0] is None
             and recompile_decision[1] == "default behavior"
         ):
-            inclusion_logger.info(
-                """\
+            inclusion_logger.info("""\
 Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
 existing '%s' extension module by default, but source code is available and \
-may work too."""
-                % (module.getFullName())
-            )
+may work too.""" % (module.getFullName()))
 
     # Allow plugins to comment on final module set.
     onModuleCompleteSet()
@@ -682,18 +676,14 @@ def _runCPgoBinary():
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
 
     if exit_code_pgo != 0:
-        pgo_logger.warning(
-            """\
+        pgo_logger.warning("""\
 Error, the C PGO compiled program error exited. Make sure it works \
-fully before using '--pgo-c' option."""
-        )
+fully before using '--pgo-c' option.""")
 
     if not pgo_data_collected:
-        return pgo_logger.sysexit(
-            """\
+        return pgo_logger.sysexit("""\
 Error, no C PGO compiled program did not produce expected information, \
-did the created binary run at all?"""
-        )
+did the created binary run at all?""")
 
     pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
@@ -709,12 +699,9 @@ def _runPythonPgoBinary():
         exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
-        return general.sysexit(
-            """\
+        return general.sysexit("""\
 Error, no Python PGO information produced, did the created binary
-run (exit code %d) as expected?"""
-            % exit_code
-        )
+run (exit code %d) as expected?""" % exit_code)
 
     return pgo_filename
 
@@ -955,12 +942,9 @@ importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 
     output_dir = os.path.normpath(getOutputDir())
     if output_dir != ".":
-        python_command_template = (
-            """\
+        python_command_template = """\
 import sys; sys.path.insert(0, %(output_dir)r)
-"""
-            + python_command_template
-        )
+""" + python_command_template
 
     python_command_template += ";__import__('%(module_name)s')"
 
@@ -1335,8 +1319,7 @@ def _main():
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
 not use compiled code while it exists because it has precedence while both \
-exist, out e.g. '--output-dir=output' to sure is importable."""
-                % base_path,
+exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
                 mnemonic="compiled-package-hidden-by-package",
             )
 
@@ -1375,12 +1358,9 @@ def main():
         except KeyboardInterrupt:
             general.warning("""Report writing was prevented by user interrupt.""")
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-            general.warning(
-                """\
+            general.warning("""\
 Report writing was prevented by exception %r, use option \
-'--experimental=debug-report-traceback' for full traceback."""
-                % e
-            )
+'--experimental=debug-report-traceback' for full traceback.""" % e)
 
             if isExperimental("debug-report-traceback"):
                 raise

@@ -458,11 +458,9 @@ def addIncludedDataFile(included_datafile):
                 dest_path = getOutputPath(included_datafile.dest_path)
 
                 if areSamePaths(dest_path, included_datafile.source_path):
-                    inclusion_logger.sysexit(
-                        """\
+                    inclusion_logger.sysexit("""\
 Error, when asking to copy files external data, you cannot output to\
-same directory and need to use '--output-dir' option."""
-                    )
+same directory and need to use '--output-dir' option.""")
 
     _included_data_files.append(included_datafile)
 
@@ -606,12 +604,9 @@ def addIncludedDataFilesFromFlavor():
         if getArchitecture() == "64":
             lib_part = "lib64"
         else:
-            return inclusion_logger.sysexit(
-                """\
+            return inclusion_logger.sysexit("""\
 Error, change Nuitka code to define the path of the '%s' \
-file in the Python installation '%s'."""
-                % (filename, system_prefix)
-            )
+file in the Python installation '%s'.""" % (filename, system_prefix))
 
         filename_full = os.path.join(system_prefix, lib_part, filename)
 
@@ -908,19 +903,13 @@ def copyDataFiles(standalone_entry_points):
         # TODO: directories should be resolved to files.
         if included_datafile.needsCopy():
             if shallMakeModule():
-                options_logger.sysexit(
-                    """\
+                options_logger.sysexit("""\
 Error, data files for modules must be done via wheels, or commercial plugins \
-'--embed-*' options. Not done for '%s'."""
-                    % included_datafile.dest_path
-                )
+'--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path)
             elif not isStandaloneMode():
-                options_logger.sysexit(
-                    """\
+                options_logger.sysexit("""\
 Error, data files cannot be included in accelerated mode unless using commercial \
-plugins '--embed-*' options. Not done for '%s'."""
-                    % included_datafile.dest_path
-                )
+plugins '--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path)
 
             external, data_file_path = _handleDataFile(
                 included_datafile=included_datafile,

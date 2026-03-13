@@ -428,12 +428,10 @@ def _checkCachingSuccessCcache(source_dir):
         stats = _getCcacheStatistics(ccache_logfile)
 
         if not stats:
-            scons_logger.warning(
-                """\
+            scons_logger.warning("""\
 You are not using ccache, re-compilation of identical code \
 will be slower than necessary. Use your OS package manager \
-to install it."""
-            )
+to install it.""")
         else:
             counts = defaultdict(int)
             for command, results in stats.items():

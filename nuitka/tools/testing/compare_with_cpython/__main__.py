@@ -678,15 +678,12 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                     and not comparison_mode
                     and not os.path.exists(".coverage")
                 ):
-                    sys.exit(
-                        """\
+                    sys.exit("""\
 Error, failed to take coverage with '%s' (PYTHONPATH was '%s').
 
 Stderr was:
 %s
-"""
-                        % (nuitka_cmd1, python_path_used, process_result.stderr)
-                    )
+""" % (nuitka_cmd1, python_path_used, process_result.stderr))
 
                 exit_nuitka = process_result.exit_code
                 stdout_nuitka = process_result.stdout

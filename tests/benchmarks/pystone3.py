@@ -40,6 +40,7 @@ Version History:
                 making the benchmark an integer benchmark again.
 
 """
+
 from time import time
 
 LOOPS = 50000

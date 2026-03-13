@@ -333,9 +333,7 @@ Do not use %(func_name)s on ModuleName objects, use e.g.
 Check API documentation of nuitka.utils.ModuleNames.ModuleName for more
 variations.
 ''')
-""" % {
-            "func_name": _func_name
-        }
+""" % {"func_name": _func_name}
 
         exec(code)  # Avoid code duplication, pylint: disable=exec-used
 

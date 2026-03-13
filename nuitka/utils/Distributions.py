@@ -649,12 +649,10 @@ def getDistributionInstallerName(distribution_name):
                 _distribution_to_installer[distribution_name] = installer_name
 
                 if installer_name.lower().startswith("poetry") and isAnacondaPython():
-                    return metadata_logger.sysexit(
-                        """\
+                    return metadata_logger.sysexit("""\
 Error, cannot use poetry and conda combined in a virtualenv, due \
 to poetry corrupting installer information. Use either pure conda \
-or poetry virtualenv."""
-                    )
+or poetry virtualenv.""")
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):

@@ -114,8 +114,7 @@ def optimizeCompiledPythonModule(module):
                 """\
 Changes made after there were already no changes for module '%s' \
 in the extra micro pass that checks for that to not happen \
-that is done in debug mode: '%s'"""
-                % (module_name, tag_set.asString()),
+that is done in debug mode: '%s'""" % (module_name, tag_set.asString()),
             )
 
         # Search for local change tags.

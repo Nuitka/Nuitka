@@ -94,15 +94,12 @@ Error, package '%s' requires '--mode=app' to be used or else it cannot work."""
             pass
         elif macos_bundle == "recommend":
             if not shallCreateAppBundle():
-                self.info(
-                    """\
+                self.info("""\
 Note, when using '%s', consider using '--mode=app' option. Otherwise \
 high resolution will not be available and a terminal window will open. \
 However for debugging, terminal output is the easiest way to see \
 informative traceback and error information, so launch it from there if \
-possible."""
-                    % full_name
-                )
+possible.""" % full_name)
         else:
             self.sysexitIllegalOptionValue(full_name, "macos_bundle", macos_bundle)
 

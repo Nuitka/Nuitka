@@ -31,7 +31,6 @@ spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues 
 spell-checker: ignore winmode zfill
 """
 
-
 from abc import abstractmethod
 
 from .ChildrenHavingMixins import (

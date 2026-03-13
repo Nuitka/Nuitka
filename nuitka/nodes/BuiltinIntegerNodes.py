@@ -99,8 +99,7 @@ class ExpressionBuiltinIntLong2Base(
                         node=self,
                         computation=lambda: self.builtin(base=2),
                         description="""\
-%s built-in call with only base argument"""
-                        % self.builtin.__name__,
+%s built-in call with only base argument""" % self.builtin.__name__,
                     )
 
             given_values = ()

@@ -96,12 +96,9 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         if uv_config:
             for unhandled_key in uv_config:
-                logger.warning(
-                    """\
+                logger.warning("""\
 Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
-have to ignore list or handle it: %s"""
-                    % (unhandled_key, uv_config[unhandled_key])
-                )
+have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
 
         detected_packages = config.get("packages", [])
 

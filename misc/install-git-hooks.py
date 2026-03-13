@@ -37,11 +37,9 @@ def main():
                 git_path = None
 
         if git_path is None:
-            tools_logger.sysexit(
-                """\
+            tools_logger.sysexit("""\
 Error, cannot locate 'git.exe' which we need to install git hooks. Add it to
-PATH while executing this will be sufficient."""
-            )
+PATH while executing this will be sufficient.""")
 
         for candidate in (
             "sh.exe",
@@ -55,11 +53,9 @@ PATH while executing this will be sufficient."""
             if os.path.exists(sh_path):
                 break
         else:
-            tools_logger.sysexit(
-                """\
+            tools_logger.sysexit("""\
 Error, cannot locate 'sh.exe' near 'git.exe' which we need to install git hooks,
-please improve this script."""
-            )
+please improve this script.""")
 
         # For MinGW and #! we will need a path without spaces, so use this
         # code to find the short name, that won't have it.

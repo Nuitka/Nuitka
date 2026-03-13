@@ -410,7 +410,7 @@ def generateListOperationPop2Code(to_name, expression, emit, context):
 
 
 def generateListOperationRemoveCode(to_name, expression, emit, context):
-    (list_arg_name, value_arg_name) = generateChildExpressionsCode(
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

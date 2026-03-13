@@ -485,14 +485,11 @@ def scanPluginSinglePath(plugin_filename, module_package, package_only):
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
     if module_kind == "extension" and not isStandaloneMode():
-        recursion_logger.warning(
-            """\
+        recursion_logger.warning("""\
 Cannot include extension module '%s' unless using at least standalone mode, \
 where they would be copied. In this mode, extension modules are not part of \
 the compiled result, and therefore asking to include them makes no sense.
-"""
-            % module_name.asString()
-        )
+""" % module_name.asString())
 
     if module_kind is not None:
         decision, decision_reason = decideRecursion(

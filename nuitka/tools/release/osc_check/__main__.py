@@ -9,7 +9,6 @@ Buildbot on a timer basis.
 
 """
 
-
 import csv
 import sys
 

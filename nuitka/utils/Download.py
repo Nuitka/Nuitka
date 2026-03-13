@@ -52,8 +52,7 @@ def shouldDownload(message, reject_message, assume_yes_for_downloads, download_o
 
 Is it OK to download and put it in local user cache.
 
-Fully automatic, cached. Proceed and download"""
-            % (message,),
+Fully automatic, cached. Proceed and download""" % (message,),
             choices=("yes", "no"),
             default="yes",
             default_non_interactive="no",

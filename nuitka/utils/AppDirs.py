@@ -68,13 +68,10 @@ def _getCacheDir():
             if e.errno != errno.EACCES:
                 raise
 
-            return general.sysexit(
-                """\
+            return general.sysexit("""\
 Error, failed to create cache directory '%s'. If this is due to a special environment, \
 please consider making a PR for a general solution that adds support for it, or use \
-'NUITKA_CACHE_DIR' set to a writable directory."""
-                % _cache_dir
-            )
+'NUITKA_CACHE_DIR' set to a writable directory.""" % _cache_dir)
 
     return _cache_dir
 

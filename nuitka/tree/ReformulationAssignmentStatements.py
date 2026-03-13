@@ -299,8 +299,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
                     yes_branch=makeRaiseExceptionExpressionFromTemplate(
                         exception_type="ValueError",
                         template="""\
-not enough values to unpack (expected at least %d, got %%d)"""
-                        % (len(statements) - 1),
+not enough values to unpack (expected at least %d, got %%d)""" % (len(statements) - 1),
                         template_args=makeBinaryOperationNode(
                             operator="Add",
                             left=ExpressionBuiltinLen(

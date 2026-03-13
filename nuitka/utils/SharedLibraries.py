@@ -469,8 +469,7 @@ def checkPatchElfPresenceAndUsability(logger):
         command=("patchelf", "--version"),
         absence_message="""\
 Error, standalone mode on %s requires 'patchelf' to be \
-installed. Use 'apt/dnf/yum install patchelf' first."""
-        % getOS(),
+installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
     )
 
     if output.split() == b"0.18.0":

@@ -311,12 +311,10 @@ there might be.""",
                 "path_name": path_name,
             }
 
-        setup_codes = self._applyBindingName(
-            r"""
+        setup_codes = self._applyBindingName(r"""
 import os
 import %(binding_name)s.QtCore
-"""
-        )
+""")
 
         info = self.queryRuntimeInformationMultiple(
             info_name=self._applyBindingName("%(binding_name)s_info"),
@@ -779,9 +777,7 @@ class OurQApplication(orig_QApplication):
         self.setWindowIcon(icon)
 
 %(binding_name)s.QtWidgets.QApplication = OurQApplication
-""" % {
-                "binding_name": self.binding_name
-            }
+""" % {"binding_name": self.binding_name}
 
             yield (code, "Loading Qt application icon from Windows resources.")
 
@@ -884,9 +880,7 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
     %(web_engine_locales_path)r,
     "qtwebengine_locales"
 )
-""" % {
-                "web_engine_locales_path": self._getTranslationsTargetDir()
-            }
+""" % {"web_engine_locales_path": self._getTranslationsTargetDir()}
 
             yield (
                 code,
@@ -1353,8 +1347,7 @@ behavior with the uncompiled code."""
             self.warning(
                 """Including QML file %s, but not having Qt qml plugins is unlikely \
 to work. Consider using '--include-qt-plugins=qml' to include the \
-necessary files to use it."""
-                % included_datafile.dest_path
+necessary files to use it.""" % included_datafile.dest_path
             )
 
 
@@ -1637,10 +1630,8 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
         NuitkaPluginQtBindingsPluginBase.onCompilationStartChecks(self)
 
         if self._getBindingVersion() < (6, 5, 0):
-            self.warning(
-                """\
-Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all cases."""
-            )
+            self.warning("""\
+Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all cases.""")
 
         if self._getBindingVersion() < (6, 1, 2):
             self.warning(

@@ -34,15 +34,12 @@ def getBranchingCode(condition, emit, context):
     else:
         assert true_target is not None and false_target is not None
 
-        emit(
-            """\
+        emit("""\
 if (%s) {
     goto %s;
 } else {
     goto %s;
-}"""
-            % (condition, true_target, false_target)
-        )
+}""" % (condition, true_target, false_target))
 
 
 def getStatementTrace(source_desc, statement_repr):

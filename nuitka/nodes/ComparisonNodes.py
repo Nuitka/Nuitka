@@ -431,8 +431,7 @@ Determined values to not alias and therefore result of '%s' comparison."""
             result,
             "new_statements",
             """\
-Removed %s comparison for unused result."""
-            % self.comparator,
+Removed %s comparison for unused result.""" % self.comparator,
         )
 
 
