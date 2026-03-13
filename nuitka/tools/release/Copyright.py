@@ -326,8 +326,7 @@ def getLicenseTextStandard():
     return _copyright_claim_standard
 
 
-_copyright_claim_commercial = (
-    b"""\
+_copyright_claim_commercial = (b"""\
     Part of Nuitka commercial.
 
     Commercial grade license of Nuitka. No distribution to outside of the
@@ -340,8 +339,7 @@ _copyright_claim_commercial = (
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-"""
-).split(b"\n")
+""").split(b"\n")
 
 
 def getLicenseTextCommercial():

@@ -8,13 +8,11 @@ print(r"""\x00""")
 
 print("\ttest\n")
 
-print(
-    """
+print("""
 something
 with
 new
-lines"""
-)
+lines""")
 
 print("favicon.ico (32\xd732)")
 

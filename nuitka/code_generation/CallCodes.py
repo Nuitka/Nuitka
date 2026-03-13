@@ -760,12 +760,9 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
 
     quick_tuple_calls_used.add(arg_size)
 
-    emit(
-        """\
+    emit("""\
 %s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
-"""
-        % (to_name, arg_size, called_name, arg_tuple_name)
-    )
+""" % (to_name, arg_size, called_name, arg_tuple_name))
 
     getErrorExitCode(
         check_name=to_name,

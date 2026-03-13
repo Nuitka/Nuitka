@@ -199,13 +199,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
-        if (
-            line
-            == """\
+        if line == """\
 Exception RuntimeError: 'maximum recursion depth \
 exceeded while calling a Python object' in \
-<type 'exceptions.AttributeError'> ignored"""
-        ):
+<type 'exceptions.AttributeError'> ignored""":
             continue
 
         # TODO: Harmonize exception ignored in function or method.

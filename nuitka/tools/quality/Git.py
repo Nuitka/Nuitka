@@ -268,8 +268,7 @@ def addGitArguments(parser, verb="Analyze"):
         dest="diff",
         default=False,
         help="""\
-%s the changed files in git checkout. Default is %%default."""
-        % verb,
+%s the changed files in git checkout. Default is %%default.""" % verb,
     )
 
     parser.add_option(
@@ -279,8 +278,7 @@ def addGitArguments(parser, verb="Analyze"):
         dest="un_pushed",
         default=False,
         help="""\
-%s the changed files in git not yet pushed. Default is %%default."""
-        % verb,
+%s the changed files in git not yet pushed. Default is %%default.""" % verb,
     )
 
 

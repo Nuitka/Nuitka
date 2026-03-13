@@ -63,8 +63,7 @@ class ExpressionBuiltinFormat(
                     value,
                     "new_expression",
                     """\
-Removed useless 'format' on '%s' value."""
-                    % value.getTypeShape().getTypeName(),
+Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName(),
                 )
 
         return self, None, None

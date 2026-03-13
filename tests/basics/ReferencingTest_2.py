@@ -94,9 +94,9 @@ def simpleFunction8():
     d1 = Decimal("5")
     d2 = Decimal("2")
 
-    (p, q) = divmod(d1, d2)
-    (p, q) = divmod(d1, 4)
-    (p, q) = divmod(7, d1)
+    p, q = divmod(d1, d2)
+    p, q = divmod(d1, 4)
+    p, q = divmod(7, d1)
 
     return q, p
 

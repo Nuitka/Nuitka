@@ -1,6 +1,6 @@
 # These are requirements of tools used by Nuitka in a private pip space.
 
-black == 25.12.0 ; python_version >= '3.11'
+black == 26.3.1 ; python_version >= '3.11'
 isort == 5.13.2 ; python_version >= '3.11'
 yamllint == 1.28.0 ; python_version >= '3.11'
 rstfmt == 0.0.14 ; python_version >= '3.11'

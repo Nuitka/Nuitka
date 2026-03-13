@@ -217,17 +217,14 @@ def _getPythonForSconsExePath():
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
 
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, while Nuitka works with older Python, Scons does not, and therefore
 Nuitka needs to find a %s executable, so please install it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry or PATH, e.g. due to using an
 uninstalled Anaconda Python.
-"""
-            % scons_python_requirement
-        )
+""" % scons_python_requirement)
 
     return python_for_scons.getPythonExe()
 

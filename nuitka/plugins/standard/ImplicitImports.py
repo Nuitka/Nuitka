@@ -720,9 +720,7 @@ if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
 else:
     os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
     del os.environ["%(environment_variable_name)s" + "_OLD"]
-""" % {
-                            "environment_variable_name": environment_variable_name
-                        }
+""" % {"environment_variable_name": environment_variable_name}
 
                         yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""

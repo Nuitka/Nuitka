@@ -692,7 +692,7 @@ def generateDictOperationFromkeys2Code(to_name, expression, emit, context):
 
 
 def generateDictOperationFromkeys3Code(to_name, expression, emit, context):
-    (iterable_name, value_name) = generateChildExpressionsCode(
+    iterable_name, value_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
@@ -802,13 +802,10 @@ def generateDictOperationSetCode(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit(
-        """\
+    emit("""\
 assert(PyDict_CheckExact(%s));
 %s = PyDict_SetItem(%s, %s, %s);
-"""
-        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
-    )
+""" % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s != 0" % res_name,
@@ -848,13 +845,10 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
 
     res_name = context.getIntResName()
 
-    emit(
-        """\
+    emit("""\
 assert(PyDict_CheckExact(%s));
 %s = PyDict_SetItem(%s, %s, %s);
-"""
-        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
-    )
+""" % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
         condition="%s != 0" % res_name,

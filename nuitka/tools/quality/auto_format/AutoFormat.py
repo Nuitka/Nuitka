@@ -416,23 +416,25 @@ def autoFormatFile(
             is_txt = False
 
         if limit_yaml or limit_python or limit_c or limit_rst or limit_md or limit_json:
-            if (
-                effective_filename.endswith(".nuitka-package.config.yml")
-                and not limit_yaml
-            ):
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif (is_c or is_cpp) and not limit_c:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif is_python and not limit_python:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif effective_filename.endswith((".rst", ".inc")) and not limit_rst:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
+            is_match = False
+
+            if effective_filename.endswith(".nuitka-package.config.yml") and limit_yaml:
+                is_match = True
+            elif (is_c or is_cpp) and limit_c:
+                is_match = True
+            elif is_python and limit_python:
+                is_match = True
+            elif effective_filename.endswith((".rst", ".inc")) and limit_rst:
+                is_match = True
             elif (
                 effective_filename.endswith(".md")
                 or os.path.basename(effective_filename) == ".cursorrules"
-            ) and not limit_md:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif is_json and not limit_json:
+            ) and limit_md:
+                is_match = True
+            elif is_json and limit_json:
+                is_match = True
+
+            if not is_match:
                 is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
 
         if not (is_python or is_c or is_cpp or is_txt or is_json or is_png or is_jpeg):

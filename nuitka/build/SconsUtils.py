@@ -629,12 +629,10 @@ def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
         eng_dir = os.path.join(bin_dir, "1033")
 
         if not os.path.exists(eng_dir):
-            scons_logger.warning(
-                """\
+            scons_logger.warning("""\
 Support language of Nuitka is English. Please install the English \
 language pack for Visual Studio in the installer. There is a \
-section for that."""
-            )
+section for that.""")
 
     if env.warn_error_mode and stderr is not None:
 
@@ -1093,8 +1091,7 @@ def decideArchMismatch(target_arch, the_cc_name, compiler_path):
 
 def raiseNoCompilerFoundErrorExit():
     if os.name == "nt":
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed (check above trace
@@ -1110,8 +1107,7 @@ b) Using "--mingw64" forces Nuitka download MinGW64 for you, but only for
 
 c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
    this only works with 64 bit Python versions.
-"""
-        )
+""")
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
 

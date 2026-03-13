@@ -338,9 +338,7 @@ def getDefaultWindowsExecutableManifest():
     # Note: Supported OS are lied about by CPython.
     # spell-checker: ignore asmv3
 
-    # pylint: disable=line-too-long
-    template = (
-        """\
+    template = """\
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
   <assemblyIdentity type="win32" name="Mini" version="1.0.0.0"/>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
@@ -364,9 +362,7 @@ def getDefaultWindowsExecutableManifest():
   </dependency>
   %s
 </assembly>
-"""
-        % _getDefaultWindowsExecutableTrustInfo()
-    )
+""" % _getDefaultWindowsExecutableTrustInfo()
 
     return WindowsExecutableManifest(template)
 

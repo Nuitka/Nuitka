@@ -33,17 +33,13 @@ class NuitkaPluginUpx(NuitkaPluginBase):
 
     def onCompilationStartChecks(self):
         if self.upx_binary is None:
-            self.sysexit(
-                """\
-No UPX binary found, please use '--upx-binary' option to specify it."""
-            )
+            self.sysexit("""\
+No UPX binary found, please use '--upx-binary' option to specify it.""")
 
         if isOnefileMode and not shallNotCompressOnefile() and not isLinux():
-            self.warning(
-                """\
+            self.warning("""\
 For best results, disable onefile compression with '--onefile-no-compression' \
-as double compression going to give larger and slower results."""
-            )
+as double compression going to give larger and slower results.""")
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):

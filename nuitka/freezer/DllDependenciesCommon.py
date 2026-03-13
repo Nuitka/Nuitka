@@ -51,12 +51,9 @@ def getPackageSpecificDLLDirectories(
             if allow_not_found:
                 return scan_dirs
 
-            inclusion_logger.sysexit(
-                """\
+            inclusion_logger.sysexit("""\
 Error, failed to locate package '%s' while trying to look up DLL dependencies, \
-that should not happen. Please report the issue."""
-                % package_name
-            )
+that should not happen. Please report the issue.""" % package_name)
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)

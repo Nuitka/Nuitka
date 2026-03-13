@@ -803,8 +803,7 @@ class C:
 
         return args, kwargs
 
-    exec(
-        """
+    exec("""
 def method_uncompiled_function(*args, **kwargs):
     # Make sure to mutate the list argument value
     if "x" in kwargs:
@@ -819,8 +818,7 @@ def method_uncompiled_function(*args, **kwargs):
 
 
     return args, kwargs
-"""
-    )
+""")
 
     def method_function_with_defaults(self, a, b, c, d=1, e=2, f=3):
         return True
@@ -1227,8 +1225,7 @@ def local_function(*args, **kwargs):
     return args, kwargs
 
 
-exec(
-    """
+exec("""
 def local_uncompiled_function(*args, **kwargs):
     # Make sure to mutate the list argument value
     if "x" in kwargs:
@@ -1243,8 +1240,7 @@ def local_uncompiled_function(*args, **kwargs):
 
 
     return args, kwargs
-"""
-)
+""")
 
 
 def simpleFunction133():

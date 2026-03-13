@@ -1019,13 +1019,10 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
     # Cannot change mode of "__main__" to bytecode, that is not going to work
     # currently, maybe in the future we could allow it.
     if result == "bytecode" and is_top:
-        plugins_logger.warning(
-            """\
+        plugins_logger.warning("""\
 Ignoring plugin decision to compile top level package '%s' \
 as bytecode, the extension module entry point is technically \
-required to compiled."""
-            % module_name
-        )
+required to compiled.""" % module_name)
         result = "compiled"
 
     # Include all of standard library as bytecode, for now. We need to identify

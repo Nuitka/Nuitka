@@ -442,8 +442,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
             if not variable.isModuleVariable() and isSharedAmongScopes(variable):
                 raiseSyntaxError(
                     """\
-can not delete variable '%s' referenced in nested scope"""
-                    % (variable.getName()),
+can not delete variable '%s' referenced in nested scope""" % (variable.getName()),
                     node.getSourceReference(),
                 )
 

@@ -176,8 +176,7 @@ class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, Expression
                             result,
                             "new_expression",
                             """Replaced call to built-in 'getattr' with constant \
-attribute '%s' to mere attribute lookup"""
-                            % attribute_name,
+attribute '%s' to mere attribute lookup""" % attribute_name,
                         )
 
         return self, None, None

@@ -278,12 +278,13 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3D0 > python_version >= 0x3C0
         elif basename == "python3.13":
             result = 0x3E0 > python_version >= 0x3D0
+        elif basename == "python3.14":
+            result = 0x3F0 > python_version >= 0x3E0
         else:
             result = None
 
         if result is False:
-            general.sysexit(
-                """\
+            return general.sysexit("""\
 The program you compiled wants to be run with: %s.
 
 Nuitka is currently running with Python version '%s', which seems to not
@@ -291,9 +292,7 @@ match that. Nuitka cannot guess the Python version of your source code. You
 therefore might want to specify: '%s -m nuitka'.
 
 That will make use the correct Python version for Nuitka.
-"""
-                % (shebang, python_version_str, binary)
-            )
+""" % (shebang, python_version_str, binary))
 
 
 def readSourceLine(source_ref):

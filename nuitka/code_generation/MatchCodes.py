@@ -11,7 +11,7 @@ from .ErrorCodes import getErrorExitCode
 
 
 def generateMatchArgsCode(to_name, expression, emit, context):
-    (matched_value_name, match_type_name) = generateChildExpressionsCode(
+    matched_value_name, match_type_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

@@ -534,14 +534,12 @@ def emitGenerationWarning(emit, template_name):
 
 
 def emitIDE(emit):
-    emit(
-        """
+    emit("""
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
-"""
-    )
+""")
 
 
 def _getSpecializedComparisonOperations(dual):
@@ -921,8 +919,7 @@ def makeHelperCalls():
 
             emitIDE(emit)
 
-            emit_c(
-                """\
+            emit_c("""\
 // We are switching some warnings off for this code, as they are triggered
 // by the generated code constructs in a way that is not useful.
 // spell-checker: ignore Wparentheses GNUC
@@ -935,8 +932,7 @@ def makeHelperCalls():
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
 #endif
-"""
-            )
+""")
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
@@ -992,8 +988,7 @@ def makeHelperCalls():
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
-            emit_c(
-                """\
+            emit_c("""\
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
@@ -1001,8 +996,7 @@ def makeHelperCalls():
 #pragma GCC diagnostic pop
 #endif
 #endif
-"""
-            )
+""")
 
 
 def makeHelperLists():

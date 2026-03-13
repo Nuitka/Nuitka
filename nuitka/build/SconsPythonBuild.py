@@ -84,7 +84,10 @@ use a full Python instead.""",
                 """\
 Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
-                % ("debug" if env.python_debug else "development", candidates),
+                % (
+                    "debug" if env.python_debug else "development",
+                    candidates,
+                ),
                 exit_code=27,  # Fatal error exit for scons
             )
 

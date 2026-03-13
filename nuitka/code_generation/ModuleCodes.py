@@ -201,8 +201,7 @@ def getModuleCode(
         module_constants_check_object = indented(
             """\
 assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s));
-CHECK_OBJECT_DEEP(mod_consts.%(name)s);"""
-            % {"index": count, "name": name}
+CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
             for count, name in enumerate(context.getConstantNames())
         )
     else:

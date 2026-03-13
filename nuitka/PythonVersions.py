@@ -128,13 +128,11 @@ def getErrorMessageExecWithNestedFunction():
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
     try:
-        exec(
-            """
+        exec("""
 def f():
    exec ""
    def nested():
-      return closure"""
-        )
+      return closure""")
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
 

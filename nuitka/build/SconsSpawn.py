@@ -131,13 +131,10 @@ def _filterMsvcLinkOutput(env, data, exit_code):
 
 def _raiseCorruptedObjectFilesExit(cache_name):
     """Error exit due to corrupt object files and point to cache cleanup."""
-    scons_logger.sysexit(
-        """\
+    scons_logger.sysexit("""\
 Error, the C linker reported a corrupt object file. You may need to run
 Nuitka with '--clean-cache=%s' once to repair it, or else will
-surely happen again."""
-        % cache_name
-    )
+surely happen again.""" % cache_name)
 
 
 def _getNoSuchCommandErrorMessage():
@@ -315,12 +312,9 @@ def isIgnoredError(line):
         return True
 
     # Trusty has buggy toolchain that does this with LTO.
-    if (
-        line
-        == """\
+    if line == """\
 bytearrayobject.o (symbol from plugin): warning: memset used with constant zero \
-length parameter; this could be due to transposed parameters"""
-    ):
+length parameter; this could be due to transposed parameters""":
         return True
 
     # The gcc LTO with debug information is deeply buggy with many messages:
@@ -497,12 +491,9 @@ def _getWrappedSpawnFunction(env):
 
         # Segmentation fault should give a clear error.
         if spawn_result.exit_code == -11:
-            scons_logger.sysexit(
-                """\
+            scons_logger.sysexit("""\
 Error, the C compiler '%s' crashed with segfault. Consider upgrading \
-it or using '--clang' option."""
-                % env.the_compiler
-            )
+it or using '--clang' option.""" % env.the_compiler)
 
         if (
             spawn_result.exit_code == 0

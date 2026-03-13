@@ -36,7 +36,9 @@ def generateSetLocalsDictCode(statement, emit, context):
     emit(
         """\
 %(locals_dict)s = MAKE_DICT_EMPTY(tstate);"""
-        % {"locals_dict": locals_declaration}
+        % {
+            "locals_dict": locals_declaration,
+        }
     )
 
 
@@ -71,12 +73,9 @@ def generateReleaseLocalsDictCode(statement, emit, context):
         statement.getLocalsScope().getCodeName()
     )
 
-    emit(
-        """\
+    emit("""\
 Py_DECREF(%(locals_dict)s);
-%(locals_dict)s = NULL;"""
-        % {"locals_dict": locals_declaration}
-    )
+%(locals_dict)s = NULL;""" % {"locals_dict": locals_declaration})
 
 
 def generateLocalsDictSetCode(statement, emit, context):

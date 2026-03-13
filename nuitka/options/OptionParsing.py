@@ -775,8 +775,7 @@ execute_group.add_option(
     default=is_nuitka_run,
     help="""\
 Execute immediately the created binary (or import the compiled module).
-Defaults to %s."""
-    % ("on" if is_nuitka_run else "off"),
+Defaults to %s.""" % ("on" if is_nuitka_run else "off"),
 )
 
 execute_group.add_option(
@@ -882,8 +881,7 @@ choice and using it will be an error. For onefile mode this may include path
 information that needs to exist though. For standalone mode it can only be
 a name, and controls how the binary is named inside the dist folder. Defaults
 to '%s' on this platform.
-"""
-    % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
+""" % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
 )
 
 output_group.add_option(
@@ -1376,8 +1374,7 @@ caching_group.add_option(
     help="""\
 Disable selected caches, specify "all" for all cached. Currently allowed
 values are: %s. can be given multiple times or with comma separated values.
-Default none."""
-    % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
+Default none.""" % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
 )
 
 caching_group.add_option(
@@ -2198,12 +2195,9 @@ def _considerPluginOptions(logger):
         ):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
-                return logger.sysexit(
-                    """\
+                return logger.sysexit("""\
 Error, plugin options format changed. Use '--enable-plugin=%s --help' \
-to know new options."""
-                    % plugin_names.split("=", 1)[0]
-                )
+to know new options.""" % plugin_names.split("=", 1)[0])
 
             addPluginCommandLineOptions(
                 parser=parser,
@@ -2214,12 +2208,9 @@ to know new options."""
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                return logger.sysexit(
-                    """\
+                return logger.sysexit("""\
 Error, plugin options format changed. Use '--user-plugin=%s --help'
-to know new options."""
-                    % plugin_name.split("=", 1)[0]
-                )
+to know new options.""" % plugin_name.split("=", 1)[0])
 
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
@@ -2638,20 +2629,16 @@ def parseOptions(logger):
     ):
         parser.print_help()
 
-        return logger.sysexit(
-            """\
+        return logger.sysexit("""\
 Error, need filename argument with python module, package directory or main
-program."""
-        )
+program.""")
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        return logger.sysexit(
-            """\
+        return logger.sysexit("""\
 Error, specify only one positional argument unless "--run" is specified to
-pass them to the compiled program execution."""
-        )
+pass them to the compiled program execution.""")
 
     return is_nuitka_run, options, positional_args, extra_args
 

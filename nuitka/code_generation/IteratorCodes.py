@@ -242,14 +242,11 @@ def generateUnpackCheckFromIteratedCode(statement, emit, context):
     context.removeCleanupTempName(to_name)
 
     # TODO: This exception ought to have a creator function.
-    emit(
-        """
+    emit("""
 if (%(to_name)s) {
     PyErr_Format(PyExc_ValueError, "too many values to unpack");
 }
-"""
-        % {"to_name": to_name}
-    )
+""" % {"to_name": to_name})
 
     getErrorExitBoolCode(condition=str(to_name), emit=emit, context=context)
 

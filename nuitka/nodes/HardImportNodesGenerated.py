@@ -30,6 +30,7 @@ spell-checker: ignore swapcase table tabsize title translate update upper use_er
 spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
 spell-checker: ignore winmode zfill
 """
+
 import os
 from abc import abstractmethod
 

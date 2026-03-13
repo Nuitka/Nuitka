@@ -207,9 +207,7 @@ def main():
 
     if options.update_pbuilder:
         command = """\
-sudo /usr/sbin/pbuilder --update --basetgz %s""" % (
-            basetgz_filename
-        )
+sudo /usr/sbin/pbuilder --update --basetgz %s""" % (basetgz_filename)
 
         check_call(
             ["sudo", "/usr/sbin/pbuilder", "--update", "--basetgz", basetgz_filename]
@@ -260,8 +258,7 @@ Architectures: i386 amd64 armel armhf powerpc
 Components: main
 Description: Apt repository for project Nuitka %(codename)s
 SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
-"""
-        % {"codename": codename},
+""" % {"codename": codename},
     )
 
     # spell-checker: ignore reprepro includedeb

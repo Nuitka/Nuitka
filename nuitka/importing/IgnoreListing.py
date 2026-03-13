@@ -424,8 +424,7 @@ def isIgnoreListedNotExistingModule(module_name):
         raise NuitkaOptimizationError(
             """
 Your CPython version has a built-in module '%s', that is not ignore listed
-please report this as a bug."""
-            % module_name,
+please report this as a bug.""" % module_name,
         )
 
     return module_name.hasOneOfNamespaces(getModuleIgnoreList())

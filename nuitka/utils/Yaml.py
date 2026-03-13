@@ -54,8 +54,7 @@ def _checkNotEmptyString(logger, filename, module_name, section, k, value):
     if value == "":
         logger.info(
             """\
-%s: %s config value of %s %s cannot be empty."""
-            % (filename, module_name, section, k),
+%s: %s config value of %s %s cannot be empty.""" % (filename, module_name, section, k),
             keep_format=True,
         )
         return False
@@ -106,8 +105,7 @@ def _checkNormalizedPosixPath(logger, filename, module_name, section, k, value):
         logger.info(
             """\
 %s: module '%s' config value of '%s' '%s' should be normalized posix \
-path, with '/' style slashes not '%s'."""
-            % (filename, module_name, section, k, value),
+path, with '/' style slashes not '%s'.""" % (filename, module_name, section, k, value),
             keep_format=True,
         )
         return False
@@ -187,8 +185,7 @@ def checkSectionValues(logger, filename, module_name, section, value):
                         logger.info(
                             """\
 %s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
-if you want no message."""
-                            % (filename, module_name, section, k, m),
+if you want no message.""" % (filename, module_name, section, k, m),
                             keep_format=True,
                         )
                         result = False
@@ -383,8 +380,7 @@ class PackageConfigYaml(object):
             logger=logger,
             data=file_data,
             error_message="""\
-Error, empty (or malformed?) user package configuration '%s' used."""
-            % name,
+Error, empty (or malformed?) user package configuration '%s' used.""" % name,
         )
 
         assert type(data) is list, type(data)

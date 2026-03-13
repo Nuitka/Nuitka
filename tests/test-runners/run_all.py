@@ -64,8 +64,7 @@ def main():
         # TODO: Maybe assert that the type name of a local function and one from
         # the package are not the same, i.e. we are running inside the compiled
         # package.
-        output.write(
-            """
+        output.write("""
 from __future__ import print_function
 
 import package
@@ -88,8 +87,7 @@ print("__package__:", package.sub_package1.tests.__package__)
 print("__path__:",    package.sub_package1.tests.__path__)
 print("__file__:",    package.sub_package1.tests.__file__)
 # print("__loader__:",    package.sub_package1.tests.__loader__)
-"""
-        )
+""")
 
     os.makedirs("nose")
     with openTextFile("nose/usage.txt", "w") as output:

@@ -83,12 +83,10 @@ def _detectWindowsSDK(env):
 
         env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
     else:
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 Windows SDK must be installed in Visual Studio for it to \
 be usable with Nuitka. Use the Visual Studio installer for \
-adding it."""
-        )
+adding it.""")
 
         env.windows_sdk_version = None
 
@@ -226,12 +224,9 @@ def _enableLtoSettings(
         )
 
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6). Disabled."""
-            % (env["CXX"], env["CXXVERSION"])
-        )
+version for lto mode (>= 4.6). Disabled.""" % (env["CXX"], env["CXXVERSION"]))
 
         lto_mode = False
         reason = "gcc 4.6 is doesn't have good enough LTO support"
@@ -244,13 +239,11 @@ version for lto mode (>= 4.6). Disabled."""
         and not isMacOS()
         and getExecutablePath("make", env=env) is None
     ):
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 The gcc compiler for LTO mode requires 'make' to be installed \
 for parallel linking to be used, compilation might be a lot \
 slower without it.
-"""
-        )
+""")
 
     if (env.gcc_mode or env.zig_mode) and lto_mode:
         if env.clang_mode:
@@ -728,8 +721,7 @@ INCBIN(constant_bin, "%(blob_filename)s");
 unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
-"""
-            % {"blob_filename": blob_filename},
+""" % {"blob_filename": blob_filename},
         )
 
     elif resource_mode == "linker":
@@ -778,23 +770,18 @@ unsigned char const *getConstantsBlobData(void) {
                 if not env.c11_mode:
                     output.write('extern "C" {')
 
-                output.write(
-                    """\
+                output.write("""\
 // Constant data for the program.
-"""
-                )
+""")
 
                 if env.clang_mode or env.clangcl_mode:
-                    output.write(
-                        """
+                    output.write("""
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
 #endif
-"""
-                    )
+""")
 
-                output.write(
-                    """
+                output.write("""
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -802,8 +789,7 @@ extern "C"
 const
 #endif
 unsigned char constant_bin_data[] =\n{\n
-"""
-                )
+""")
 
                 if resource_mode == "code":
                     with open(blob_filename, "rb") as f:
@@ -1580,41 +1566,29 @@ def switchFromGccToGpp(env):
     env.gcc_version = myDetectVersion(env, the_compiler)
 
     if env.gcc_version is None:
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, failed to detect gcc version of backend compiler '%s'.
-"""
-            % env.the_compiler
-        )
+""" % env.the_compiler)
 
     if "++" in env.the_cc_name:
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
-"""
-            % env.the_cc_name
-        )
+""" % env.the_cc_name)
 
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
     if env.gcc_version < (4, 4):
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4)."""
-            % (env.the_compiler, env.gcc_version)
-        )
+version (>= 4.4).""" % (env.the_compiler, env.gcc_version))
 
     # CondaCC or newer.
     if env.mingw_mode and env.gcc_version < (5, 3):
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
-version (>= 5.3)."""
-            % (env.the_compiler, env.gcc_version)
-        )
+version (>= 5.3).""" % (env.the_compiler, env.gcc_version))
 
     if env.gcc_version < (5,):
         if env.python_version < (3, 11):
@@ -1647,12 +1621,9 @@ version (>= 5.3)."""
                 env["CC"] = env.the_compiler
                 env["CXX"] = env.the_compiler
             else:
-                scons_logger.sysexit(
-                    """\
+                scons_logger.sysexit("""\
 Error, your gcc is too old for C11 support, and no g++ ('%s') to
-workaround that was found."""
-                    % the_gpp_compiler_name
-                )
+workaround that was found.""" % the_gpp_compiler_name)
         else:
             scons_logger.sysexit(
                 "Error, your gcc is too old for C11 support, install a newer one.",

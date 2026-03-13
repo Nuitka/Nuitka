@@ -201,9 +201,7 @@ redefined-slots-in-subclass
 --max-bool-expr=10
 --load-plugins=pylint.extensions.no_self_use
 --score=no\
-""".split(
-        "\n"
-    )
+""".split("\n")
 
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
