@@ -18,12 +18,7 @@ from nuitka.Progress import (
 )
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import (
-    areSamePaths,
-    getFileList,
-    getFileSize,
-    makePath,
-)
+from nuitka.utils.FileOperations import areSamePaths, getFileList, getFileSize
 from nuitka.utils.Hashing import Hash, HashCRC32
 from nuitka.utils.Utils import (
     decoratorRetries,
@@ -230,8 +225,7 @@ def _getCacheFilename(binary_filename, low_memory):
 
     hash_value.updateFromValues(version, getCompressorLevel(low_memory))
 
-    cache_dir = getCacheDir("onefile-compression")
-    makePath(cache_dir)
+    cache_dir = getCacheDir("onefile-compression", create=True)
 
     return os.path.join(cache_dir, hash_value.asHexDigest())
 

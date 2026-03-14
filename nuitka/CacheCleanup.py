@@ -9,34 +9,35 @@ caches and is supposed to run before or instead of Nuitka compilation.
 
 import os
 
-from nuitka.BytecodeCaching import getBytecodeCacheDir
 from nuitka.Tracing import cache_logger
-from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.AppDirs import getCacheDir, removeCacheDir
 
 
-def _cleanCacheDirectory(cache_name, cache_dir):
+def _cleanCacheDirectory(cache_name, cache_basename):
     from nuitka.options.Options import shallCleanCache
 
-    if shallCleanCache(cache_name) and os.path.exists(cache_dir):
-        cache_logger.info(
-            "Cleaning cache '%s' directory '%s'." % (cache_name, cache_dir)
-        )
-        removeDirectory(
-            cache_dir,
-            logger=cache_logger,
-            ignore_errors=False,
-            extra_recommendation=None,
-        )
-        cache_logger.info("Done.")
+    if shallCleanCache(cache_name):
+        cache_dir = getCacheDir(cache_basename, create=False)
+
+        if os.path.exists(cache_dir):
+            cache_logger.info(
+                "Cleaning cache '%s' directory '%s'." % (cache_name, cache_dir)
+            )
+            removeCacheDir(
+                cache_basename=cache_basename,
+                logger=cache_logger,
+                ignore_errors=False,
+                extra_recommendation=None,
+            )
+            cache_logger.info("Done.")
 
 
 def cleanCaches():
-    _cleanCacheDirectory("ccache", getCacheDir("ccache"))
-    _cleanCacheDirectory("clcache", getCacheDir("clcache"))
-    _cleanCacheDirectory("zig", getCacheDir("zig"))
-    _cleanCacheDirectory("bytecode", getBytecodeCacheDir())
-    _cleanCacheDirectory("dll-dependencies", getCacheDir("library_dependencies"))
+    _cleanCacheDirectory("ccache", "ccache")
+    _cleanCacheDirectory("clcache", "clcache")
+    _cleanCacheDirectory("zig", "zig")
+    _cleanCacheDirectory("bytecode", "module-cache")
+    _cleanCacheDirectory("dll-dependencies", "library_dependencies")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

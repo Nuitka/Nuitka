@@ -22,7 +22,6 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getLinkTarget,
     getNormalizedPathJoin,
-    makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS
@@ -167,8 +166,7 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
 
         # Unless asked to do otherwise, store ccache files in our own directory.
         if "CCACHE_DIR" not in os.environ:
-            ccache_dir = getCacheDir("ccache")
-            makePath(ccache_dir)
+            ccache_dir = getCacheDir("ccache", create=True)
             ccache_dir = getExternalUsePath(ccache_dir)
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
@@ -219,10 +217,9 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
         )
 
         if "CCACHE_DIR" not in os.environ:
-            zig_cache_dir = getCacheDir("zig")
+            zig_cache_dir = getCacheDir("zig", create=True)
 
             if not os.getenv("ZIG_LOCAL_CACHE_DIR"):
-                makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
                     env,
@@ -231,7 +228,6 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
                 )
 
             if not os.getenv("ZIG_GLOBAL_CACHE_DIR"):
-                makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
                     env,
@@ -276,8 +272,7 @@ def enableClcache(env, source_dir):
 
     # Unless asked to do otherwise, store ccache files in our own directory.
     if "CLCACHE_DIR" not in os.environ:
-        clcache_dir = getCacheDir("clcache")
-        makePath(clcache_dir)
+        clcache_dir = getCacheDir("clcache", create=True)
         clcache_dir = getExternalUsePath(clcache_dir)
         setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)
         env["CLCACHE_DIR"] = clcache_dir
