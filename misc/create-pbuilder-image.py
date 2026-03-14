@@ -28,7 +28,8 @@ try:
     os.chdir(stage)
 
     if debian == "debian":
-        mirror = "https://ftp.us.debian.org/debian"
+        # Certificate for https is not good.
+        mirror = "http://ftp.us.debian.org/debian"
         components = "main"
     elif debian == "ubuntu":
         mirror = "http://de.archive.ubuntu.com/ubuntu"
@@ -38,7 +39,7 @@ try:
 
     subprocess.check_call(
         [
-            "debootstrap",
+            "debootstrap",  # spell-checker: ignore debootstrap
             "--include=ccache",
             "--include=dpkg-dev",
             "--arch=" + arch,
