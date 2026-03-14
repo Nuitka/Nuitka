@@ -27,7 +27,10 @@ if appdirs is None:
     try:
         import appdirs  # pylint: disable=I0021,import-error
     except ImportError:
-        appdirs = None
+        try:
+            import platformdirs as appdirs
+        except ImportError:
+            appdirs = None
 
 
 def getAppdirsModule():
