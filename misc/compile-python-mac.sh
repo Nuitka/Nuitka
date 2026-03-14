@@ -1,5 +1,5 @@
 #!/bin/bash
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 set -e # Exit immediately if a command exits with a non-zero status.
 

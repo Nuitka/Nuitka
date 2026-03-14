@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Test to cover Python3 specific function features."""
