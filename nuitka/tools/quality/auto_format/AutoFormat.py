@@ -62,6 +62,8 @@ def _shouldNotFormatCode(filename, effective_filename):
         return True
     if "tests" in parts and "syntax" in parts:
         return True
+    if "tests" in parts and "scratch" in parts:
+        return True
     if ".dist/" in effective_filename:
         return True
     if os.path.basename(effective_filename) in ("incbin.h", "hedley.h"):
