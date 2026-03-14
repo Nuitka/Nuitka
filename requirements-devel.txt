@@ -8,8 +8,8 @@
 subprocess32 == 3.5.4 ; python_version == '2.7'
 
 # PyLint wouldn't be installable on 2.6 and not work with too old Python3
-pylint == 4.0.4 ; python_version >= '3.11'
-astroid == 4.0.2 ; python_version >= '3.11'
+pylint == 4.0.5 ; python_version >= '3.11'
+astroid == 4.0.4 ; python_version >= '3.11'
 
 # linting rest code snippets
 restructuredtext-lint==1.4.0 ; python_version >= '3.11'
