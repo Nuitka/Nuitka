@@ -16,7 +16,6 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
-    makePath,
     putBinaryFileContents,
     putTextFileContents,
 )
@@ -54,6 +53,16 @@ BLACK_SKIP_LIST = [
     "tests/benchmarks/pystone.py",
 ]
 BLACK_SKIP_LIST = tuple(os.path.normpath(path) for path in BLACK_SKIP_LIST)
+
+
+def _getAutoformatCacheFilename(logger, tool_name, args, contents):
+    content_hash = Hash()
+    content_hash.updateFromValues(
+        os.name, getRequiredVersion(logger, tool_name), args, contents
+    )
+
+    cache_dir = getCacheDir("autoformat", create=True)
+    return os.path.join(cache_dir, "%s-%s" % (tool_name, content_hash.asHexDigest()))
 
 
 def _cleanupPyLintComments(logger, filename, effective_filename):
@@ -192,18 +201,24 @@ def _cleanupImportSortOrder(
 
         putTextFileContents(filename, contents=contents, encoding="utf8")
 
-    isort_hash = Hash()
-    isort_hash.updateFromValues(os.name, getRequiredVersion(logger, "isort"), contents)
-    content_hash = isort_hash.asHexDigest()
+    isort_args = [
+        "-q",
+        "--stdout",
+        "--order-by-type",
+        "--multi-line=VERTICAL_HANGING_INDENT",
+        "--trailing-comma",
+        "--project=nuitka",
+        "--float-to-top",
+        # spell-checker: ignore thirdparty
+        "--thirdparty=SCons",
+    ]
 
-    cache_dir = getCacheDir("formatting")
-    makePath(cache_dir)
-    cache_filename = os.path.join(cache_dir, "isort-" + content_hash)
+    cache_filename = _getAutoformatCacheFilename(logger, "isort", isort_args, contents)
 
     if os.path.exists(cache_filename):
         # Restore from cache
         isort_output = getFileContents(cache_filename, mode="rb")
-        if contents != isort_output:
+        if getFileContents(filename, mode="rb") != isort_output:
             putBinaryFileContents(filename, isort_output)
 
         # Restore the original complete contents if we had split them out
@@ -213,24 +228,11 @@ def _cleanupImportSortOrder(
                 "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
             )
             putTextFileContents(filename, contents=contents, encoding="utf8")
+
         return
 
     with withPrivatePipSitePackagesPathAdded(logger=logger):
-        isort_output = check_output(
-            isort_call
-            + [
-                "-q",
-                "--stdout",
-                "--order-by-type",
-                "--multi-line=VERTICAL_HANGING_INDENT",
-                "--trailing-comma",
-                "--project=nuitka",
-                "--float-to-top",
-                # spell-checker: ignore thirdparty
-                "--thirdparty=SCons",
-                filename,
-            ]
-        )
+        isort_output = check_output(isort_call + isort_args + [filename])
 
     if isort_output == b"" and contents != "":
         if logger is not None:
@@ -368,19 +370,32 @@ def formatPython(
         if black_path is None:
             return logger.sysexit("Error, cannot find 'black' binary.")
 
-        black_call = [black_path, "-q", "--fast", filename]
+        black_args = ["-q", "--fast"]
+        black_call = [black_path] + black_args + [filename]
         # logger.info("Executing: %s" % " ".join(black_call))
 
         old_contents = getFileContents(filename, "rb")
 
-        try:
-            with withPrivatePipSitePackagesPathAdded(logger=logger):
-                check_call(black_call)
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Problem formatting for '%s'." % effective_filename)
+        cache_filename = _getAutoformatCacheFilename(
+            logger, "black", black_args, old_contents
+        )
 
-            if not ignore_errors:
-                raise
+        if os.path.exists(cache_filename):
+            black_output = getFileContents(cache_filename, mode="rb")
+            if old_contents != black_output:
+                putBinaryFileContents(filename, black_output)
+        else:
+            try:
+                with withPrivatePipSitePackagesPathAdded(logger=logger):
+                    check_call(black_call)
+
+                new_contents = getFileContents(filename, mode="rb")
+                putBinaryFileContents(cache_filename, new_contents)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Problem formatting for '%s'." % effective_filename)
+
+                if not ignore_errors:
+                    raise
 
         if getFileContents(filename) == "" and old_contents != b"":
             if ignore_errors:
