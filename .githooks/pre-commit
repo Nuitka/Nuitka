@@ -1,5 +1,5 @@
 #!/bin/sh
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 # To enable this hook, execute "python misc/install-git-hook.py". It
 # makes sure changed code is auto-formatted. It is good enough to

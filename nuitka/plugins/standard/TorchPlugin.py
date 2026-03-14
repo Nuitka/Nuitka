@@ -1,4 +1,4 @@
-#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2026, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """Deprecated torch plugin."""
