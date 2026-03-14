@@ -193,11 +193,16 @@ data_files = []
 try:
     import distutils.util
 except ImportError:
-    # Python 3.12 might do this, we need to find out where to disable the
-    # bytecode compilation there.
-    pass
+    # With Python 3.12 setuptools._distutils.util what we can use.
+    try:
+        import setuptools._distutils.util as distutils_util
+    except ImportError:
+        distutils_util = None
 else:
-    orig_byte_compile = distutils.util.byte_compile
+    distutils_util = distutils.util
+
+if distutils_util is not None:
+    orig_byte_compile = distutils_util.byte_compile
 
     def byte_compile(py_files, *args, **kw):
         # Disable bytecode compilation output, too annoying.
@@ -215,8 +220,7 @@ else:
 
         orig_byte_compile(py_files, *args, **kw)
 
-
-distutils.util.byte_compile = byte_compile
+    distutils_util.byte_compile = byte_compile
 
 
 # We monkey patch easy install script generation to not load pkg_resources,
