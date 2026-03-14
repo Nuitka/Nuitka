@@ -59,6 +59,7 @@ def cleanupTrailingWhitespace(filename):
 
     if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
         putTextFileContents(filename, contents=clean_lines, encoding="utf8")
+        cleanupWindowsNewlines(filename, filename)
 
 
 _warned_clang_format = False
