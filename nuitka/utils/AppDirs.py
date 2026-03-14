@@ -18,7 +18,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.Tracing import general
 
-from .FileOperations import getNormalizedPath, makePath
+from .FileOperations import getNormalizedPath, makePath, removeDirectory
 from .Importing import importFromInlineCopy
 
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
@@ -79,14 +79,35 @@ def getCacheDirEnvironmentVariableName(cache_basename):
     return "NUITKA_CACHE_DIR_" + env_name
 
 
-def getCacheDir(cache_basename):
+_created_cache_dirs = set()
+
+
+def getCacheDir(cache_basename, create=False):
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
 
     cache_dir = getNormalizedPath(cache_dir)
 
+    if create and cache_dir not in _created_cache_dirs:
+        makePath(cache_dir)
+        _created_cache_dirs.add(cache_dir)
+
     return cache_dir
+
+
+def removeCacheDir(cache_basename, logger, ignore_errors, extra_recommendation):
+    cache_dir = getCacheDir(cache_basename, create=False)
+
+    if os.path.isdir(cache_dir):
+        removeDirectory(
+            path=cache_dir,
+            logger=logger,
+            ignore_errors=ignore_errors,
+            extra_recommendation=extra_recommendation,
+        )
+
+        _created_cache_dirs.discard(cache_dir)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
