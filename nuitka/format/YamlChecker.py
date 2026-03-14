@@ -15,6 +15,8 @@ from nuitka.utils.Yaml import (
     validateSchema,
 )
 
+from .FileFormatting import cleanupWindowsNewlines
+
 
 def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
     """Check the schema of the Nuitka package configuration YAML file.
@@ -45,7 +47,7 @@ def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
 module_allow_list = ("mozilla-ca",)
 
 
-def checkYamlModuleName(logger, module_name):
+def _checkYamlModuleName(logger, module_name):
     """Check if the module name is valid.
 
     Args:
@@ -75,7 +77,7 @@ def checkYamlModuleName(logger, module_name):
     return result
 
 
-def checkValues(logger, filename):
+def _checkValues(logger, filename, effective_filename):
     """Check validness of values in the Nuitka package configuration YAML file.
 
     Mainly checks the module names and sections within the configuration.
@@ -83,6 +85,7 @@ def checkValues(logger, filename):
     Args:
         logger: logger to use
         filename: path to the YAML file
+        effective_filename: filename to use for errors
     """
     yaml = PackageConfigYaml(
         logger=logger,
@@ -94,7 +97,7 @@ def checkValues(logger, filename):
 
     result = True
     for module_name, config in yaml.items():
-        if not checkYamlModuleName(logger, module_name):
+        if not _checkYamlModuleName(logger, module_name):
             result = False
 
         for section, section_config in config.items():
@@ -106,15 +109,18 @@ def checkValues(logger, filename):
     if result:
         logger.info("OK, manual value tests passed.", style="blue")
     else:
-        logger.sysexit("Error, manual value checks are not clean.")
+        return logger.sysexit(
+            "Error, manual value checks for '%s' are not clean." % effective_filename
+        )
 
 
-def checkYamllint(logger, document):
+def checkYamllint(logger, document, effective_filename):
     """Run yamllint on the file.
 
     Args:
         logger: logger to use
         document: path to the YAML file
+        effective_filename: filename to use for errors
     """
     yamllint = getYamllintPackage(
         logger=logger,
@@ -128,9 +134,14 @@ def checkYamllint(logger, document):
         lint_result = e.code
 
         if lint_result != 0:
-            logger.sysexit("Error, not lint clean yaml.")
+            return logger.sysexit(
+                "Error, '%s' is not lint clean yaml." % effective_filename
+            )
     else:
-        logger.sysexit("Error, yamllint didn't raise expected SystemExit exception.")
+        return logger.sysexit(
+            "Error, yamllint didn't raise expected SystemExit exception for '%s'."
+            % effective_filename
+        )
 
     logger.info("OK, yamllint passed.", style="blue")
 
@@ -180,8 +191,12 @@ def checkOrUpdateChecksum(filename, update, logger):
         lines.append(line)
 
     if update:
-        putTextFileContents(filename, lines, encoding="utf8")
-        logger.info("OK, checksums updated.", style="blue")
+        new_text = "\n".join(lines) + "\n"
+        if yaml_file_text != new_text:
+            putTextFileContents(filename, lines, encoding="utf8")
+            cleanupWindowsNewlines(filename, filename)
+
+            logger.info("OK, checksums updated.", style="blue")
 
 
 def checkYamlSchema(logger, filename, effective_filename, update):
@@ -203,9 +218,9 @@ def checkYamlSchema(logger, filename, effective_filename, update):
         effective_filename=effective_filename,
         assume_yes_for_downloads=False,
     )
-    checkValues(logger, filename)
+    _checkValues(logger, filename, effective_filename=effective_filename)
     checkOrUpdateChecksum(filename=filename, update=update, logger=logger)
-    checkYamllint(logger, filename)
+    checkYamllint(logger, filename, effective_filename=effective_filename)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
