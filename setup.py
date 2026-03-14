@@ -103,15 +103,16 @@ def addInlineCopy(name, do_byte_compile=True):
     )
 
 
+sdist_mode = "sdist" in sys.argv
+install_mode = "install" in sys.argv
+
 addInlineCopy("appdirs")
-addInlineCopy("glob2")
+if sys.version_info < (3, 5) or sdist_mode:
+    addInlineCopy("glob2")
 addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
 addInlineCopy("stubgen")
-
-sdist_mode = "sdist" in sys.argv
-install_mode = "install" in sys.argv
 
 if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
