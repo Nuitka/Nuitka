@@ -9,7 +9,7 @@ from nuitka.options.Options import isOnefileMode, shallNotCompressOnefile
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
-from nuitka.utils.FileOperations import copyFile, getFileContentsHash, makePath
+from nuitka.utils.FileOperations import copyFile, getFileContentsHash
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Utils import isLinux
 
@@ -96,8 +96,7 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
             upx_hash.updateFromFile(filename)
 
             # TODO: Repeating pattern
-            upx_cache_dir = getCacheDir("upx")
-            makePath(upx_cache_dir)
+            upx_cache_dir = getCacheDir("upx", create=True)
 
             upx_cache_filename = os.path.join(
                 upx_cache_dir, upx_hash.asHexDigest() + ".bin"

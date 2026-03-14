@@ -15,7 +15,7 @@ from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import getNormalizedPathJoin, makePath
+from nuitka.utils.FileOperations import getNormalizedPathJoin
 from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
@@ -23,7 +23,7 @@ from nuitka.Version import version_string
 
 
 def getBytecodeCacheDir():
-    return getCacheDir("module-cache")
+    return getCacheDir("module-cache", create=True)
 
 
 def _getCacheFilename(module_name, extension):
@@ -156,7 +156,6 @@ def writeImportedModulesNamesToCache(
         ),
     }
 
-    makePath(os.path.dirname(cache_filename))
     writeJsonToFilename(filename=cache_filename, contents=data)
 
 
