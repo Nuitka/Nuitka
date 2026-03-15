@@ -94,6 +94,14 @@ jobs:
         run: |
           python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
 
+      - name: 🔎 Specialized C code check
+        run: |
+          python ./bin/generate-specialized-c-code --check
+
+      - name: 🔎 Specialized Python code check
+        run: |
+          python ./bin/generate-specialized-python-code --check
+
   linux:
     needs: checks
     runs-on: ubuntu-24.04

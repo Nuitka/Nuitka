@@ -52,6 +52,7 @@ from .Common import (
     getLicenseGeneratedCode,
     getMethodVariations,
     getSpecs,
+    parseOptions,
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
@@ -1127,6 +1128,8 @@ hard_import_node_classes = {}
 
 
 def main():
+    parseOptions()
+
     makeHardImportNodes()
     makeAttributeNodes()
     makeBuiltinOperationNodes()

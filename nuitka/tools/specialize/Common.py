@@ -3,9 +3,8 @@
 
 """Common helper functions for specializing code."""
 
-import contextlib
-
 from nuitka.Constants import the_empty_unicode
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.quality.auto_format.AutoFormat import (
     withFileOpenedAndAutoFormatted,
 )
@@ -382,21 +381,48 @@ def check():
 check()
 
 
-@contextlib.contextmanager
+check_only = False
+
+
+def enableCheckOnlyMode():
+    # Singleton, pylint: disable=global-statement
+    global check_only
+    check_only = True
+
+
+def parseOptions():
+    parser = makeOptionsParser(usage=None, epilog=None)
+    parser.add_option(
+        "--check",
+        action="store_true",
+        dest="check_only",
+        default=False,
+        help="""Check only, do not write files. Default is %default.""",
+    )
+    options, _positional_args = parser.parse_args()
+
+    if options.check_only:
+        enableCheckOnlyMode()
+
+
 def withFileOpenedAndAutoFormattedWithClaim(filename, claim, ignore_errors=False):
     """Context manager for opening a file, auto-formatting it, and adding a copyright claim."""
-    with withFileOpenedAndAutoFormatted(
-        filename=filename,
-        ignore_errors=ignore_errors,
-    ) as output:
-        yield output
 
-    if claim:
-        attachLeadingComment(
-            filename=filename,
-            effective_filename=filename,
-            comments=getCopyrightClaim(filename=filename, claim=claim),
-        )
+    def addCopyrightClaimComments(tmp_filename):
+        if claim:
+            attachLeadingComment(
+                filename=tmp_filename,
+                effective_filename=filename,
+                comments=getCopyrightClaim(filename=filename, claim=claim),
+            )
+
+    return withFileOpenedAndAutoFormatted(
+        filename=filename,
+        effective_filename=filename,
+        ignore_errors=ignore_errors,
+        check_only=check_only,
+        post_format_hook=addCopyrightClaimComments,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

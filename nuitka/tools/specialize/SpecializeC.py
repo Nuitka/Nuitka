@@ -59,6 +59,7 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
+    parseOptions,
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
@@ -1468,6 +1469,8 @@ def makeHelperBuiltinTypeMethods():
 
 
 def main():
+    parseOptions()
+
     makeHelpersBinaryDualOperation("+", "ADD")
 
     makeDictCopyHelperCodes()
