@@ -18,7 +18,6 @@
 #   python3 misc/make-appimage.py [--python /path/to/python3]
 
 import argparse
-import base64
 import os
 import platform
 import re
@@ -50,8 +49,15 @@ def python_query(python, code):
 
 def get_ldd_deps(binary):
     """Return non-glibc shared library paths needed by a binary."""
-    skip = {"libc.so", "libm.so", "libdl.so", "librt.so", "libpthread.so",
-            "ld-linux", "linux-vdso"}
+    skip = {
+        "libc.so",
+        "libm.so",
+        "libdl.so",
+        "librt.so",
+        "libpthread.so",
+        "ld-linux",
+        "linux-vdso",
+    }
     deps = []
     try:
         output = capture(["ldd", binary])
@@ -116,7 +122,8 @@ def fix_libpython_symlinks(lib_dir, pyver):
 def write_apprun(appdir):
     """Write the AppRun entry point."""
     apprun = appdir / "AppRun"
-    apprun.write_text("""\
+    apprun.write_text(
+        """\
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="${HERE}/usr/bin:${PATH}"
@@ -147,13 +154,15 @@ _prefer_tool "${HERE}/usr/bin/patchelf" NUITKA_PATCHELF_BINARY
 _prefer_tool "${HERE}/usr/bin/ccache"   NUITKA_CCACHE_BINARY
 
 exec "${HERE}/usr/bin/python3" -m nuitka "$@"
-""")
+"""
+    )
     apprun.chmod(0o755)
 
 
 def write_desktop(appdir):
     """Write the .desktop file."""
-    (appdir / "nuitka.desktop").write_text("""\
+    (appdir / "nuitka.desktop").write_text(
+        """\
 [Desktop Entry]
 Type=Application
 Name=Nuitka
@@ -163,16 +172,14 @@ Categories=Development;
 Terminal=true
 Comment=Python Compiler
 X-AppImage-Integrate=false
-""")
-
-
-def write_icon(appdir):
-    """Write a minimal 1x1 PNG icon."""
-    png = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
-        "2mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=="
+"""
     )
-    (appdir / "nuitka.png").write_bytes(png)
+
+
+def write_icon(appdir, nuitka_src):
+    """Copy the Nuitka logo as the AppImage icon."""
+    shutil.copy2(nuitka_src / "doc" / "images" / "Nuitka-Logo-Symbol.png",
+                 appdir / "nuitka.png")
 
 
 def write_sitecustomize(stdlib_dir):
@@ -181,7 +188,8 @@ def write_sitecustomize(stdlib_dir):
     Debian Python uses dist-packages but pip in a venv installs to
     site-packages. This ensures both are on sys.path regardless of flavor.
     """
-    (stdlib_dir / "sitecustomize.py").write_text("""\
+    (stdlib_dir / "sitecustomize.py").write_text(
+        """\
 import os
 import site
 import sys
@@ -191,7 +199,8 @@ _appimage_site = os.path.join(sys.prefix, "lib",
     "site-packages")
 if os.path.isdir(_appimage_site) and _appimage_site not in sys.path:
     site.addsitedir(_appimage_site)
-""")
+"""
+    )
 
 
 def get_appimagetool(arch):
@@ -203,9 +212,15 @@ def get_appimagetool(arch):
     if os.path.isfile(tool) and os.access(tool, os.X_OK):
         return tool
     print("==> Downloading appimagetool...")
-    run(["curl", "-fsSL",
-         f"https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-{arch}.AppImage",
-         "-o", tool])
+    run(
+        [
+            "curl",
+            "-fsSL",
+            f"https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-{arch}.AppImage",
+            "-o",
+            tool,
+        ]
+    )
     os.chmod(tool, 0o755)
     return tool
 
@@ -231,8 +246,12 @@ def main():
     nuitka_src = script_dir.parent
     arch = platform.machine()
 
-    pyver = python_query(python, "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')")
-    pyabi = python_query(python, "import sys; print(sys.abiflags if hasattr(sys, 'abiflags') else '')")
+    pyver = python_query(
+        python, "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')"
+    )
+    pyabi = python_query(
+        python, "import sys; print(sys.abiflags if hasattr(sys, 'abiflags') else '')"
+    )
     nuitka_version = re.search(
         r"Nuitka V([0-9rc.]+)",
         (nuitka_src / "nuitka" / "Version.py").read_text(),
@@ -241,7 +260,11 @@ def main():
 
     tmpdir = Path(tempfile.mkdtemp())
     appdir = tmpdir / "Nuitka.AppDir"
-    output = Path(args.output) if args.output else nuitka_src / f"Nuitka-{nuitka_version}-{arch}.AppImage"
+    output = (
+        Path(args.output)
+        if args.output
+        else nuitka_src / f"Nuitka-{nuitka_version}-{arch}.AppImage"
+    )
 
     print("=== Building Nuitka AppImage ===")
     print(f"  Python:  {python} ({pyver})")
@@ -261,19 +284,37 @@ def main():
         (appdir / d).mkdir(parents=True)
 
     run([python, "-m", "venv", str(appdir / "usr"), "--without-pip"])
-    run([str(appdir / "usr" / "bin" / "python3"), "-m", "ensurepip", "--default-pip"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    run(
+        [str(appdir / "usr" / "bin" / "python3"), "-m", "ensurepip", "--default-pip"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
     print("==> Installing Nuitka and dependencies...")
     pip = str(appdir / "usr" / "bin" / "pip3")
     run([pip, "install", "--quiet", str(nuitka_src)])
-    run([pip, "install", "--quiet",
-         "appdirs", "tqdm", "zstandard>=0.15", "pyyaml", "Jinja2>=2.10.2", "ordered-set"])
+    run(
+        [
+            pip,
+            "install",
+            "--quiet",
+            "appdirs",
+            "tqdm",
+            "zstandard>=0.15",
+            "pyyaml",
+            "Jinja2>=2.10.2",
+            "ordered-set",
+        ]
+    )
 
     # Replace venv Python symlink with real binary
     print("==> Bundling Python runtime...")
     venv_python = appdir / "usr" / "bin" / "python3"
-    real_python = Path(os.readlink(venv_python)).resolve() if venv_python.is_symlink() else venv_python
+    real_python = (
+        Path(os.readlink(venv_python)).resolve()
+        if venv_python.is_symlink()
+        else venv_python
+    )
     real_bin = appdir / "usr" / "bin" / "python3.real"
     shutil.copy2(real_python, real_bin)
     for name in ["python3", "python"]:
@@ -285,7 +326,9 @@ def main():
     (appdir / "usr" / "pyvenv.cfg").unlink(missing_ok=True)
 
     # --- Bundle Python stdlib ---
-    stdlib_src = Path(python_query(python, "import sysconfig; print(sysconfig.get_path('stdlib'))"))
+    stdlib_src = Path(
+        python_query(python, "import sysconfig; print(sysconfig.get_path('stdlib'))")
+    )
     stdlib_dst = appdir / "usr" / "lib" / f"python{pyver}"
     # Copy everything from system stdlib over the venv's stdlib
     for item in stdlib_src.iterdir():
@@ -302,7 +345,11 @@ def main():
     write_sitecustomize(stdlib_dst)
 
     # --- Bundle libpython shared library ---
-    libdir = Path(python_query(python, "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))"))
+    libdir = Path(
+        python_query(
+            python, "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))"
+        )
+    )
     lib_dst = appdir / "usr" / "lib"
     for f in libdir.glob(f"libpython{pyver}*"):
         dst = lib_dst / f.name
@@ -315,16 +362,27 @@ def main():
 
     # --- Bundle Python dev headers ---
     print("==> Bundling Python dev headers...")
-    sys_include = Path(python_query(python, "import sysconfig; print(sysconfig.get_path('include'))"))
+    sys_include = Path(
+        python_query(python, "import sysconfig; print(sysconfig.get_path('include'))")
+    )
     if sys_include.is_dir():
         inc_dst = appdir / "usr" / "include" / f"python{pyver}{pyabi}"
         shutil.copytree(sys_include, inc_dst, dirs_exist_ok=True)
     else:
-        print(f"Warning: Python dev headers not found at {sys_include}", file=sys.stderr)
-        print(f"         Install python{pyver}-dev for full functionality.", file=sys.stderr)
+        print(
+            f"Warning: Python dev headers not found at {sys_include}", file=sys.stderr
+        )
+        print(
+            f"         Install python{pyver}-dev for full functionality.",
+            file=sys.stderr,
+        )
 
     # --- Bundle Python config dir (Makefile, static lib) ---
-    cfgdir = Path(python_query(python, "import sysconfig; print(sysconfig.get_config_var('LIBPL'))"))
+    cfgdir = Path(
+        python_query(
+            python, "import sysconfig; print(sysconfig.get_config_var('LIBPL'))"
+        )
+    )
     cfgname = cfgdir.name
     cfg_dst = appdir / "usr" / "lib" / f"python{pyver}" / cfgname
     cfg_dst.mkdir(parents=True, exist_ok=True)
@@ -356,10 +414,15 @@ def main():
 
     # --- Trim bloat ---
     print("==> Trimming unnecessary files...")
-    for pattern in ["**/__pycache__", f"python{pyver}/test",
-                     f"python{pyver}/unittest/test", f"python{pyver}/idlelib",
-                     f"python{pyver}/tkinter", f"python{pyver}/turtledemo",
-                     f"python{pyver}/site-packages/pip*"]:
+    for pattern in [
+        "**/__pycache__",
+        f"python{pyver}/test",
+        f"python{pyver}/unittest/test",
+        f"python{pyver}/idlelib",
+        f"python{pyver}/tkinter",
+        f"python{pyver}/turtledemo",
+        f"python{pyver}/site-packages/pip*",
+    ]:
         for p in (appdir / "usr" / "lib").glob(pattern):
             if p.is_dir():
                 shutil.rmtree(p)
@@ -369,7 +432,7 @@ def main():
     # --- Create AppRun, desktop file, icon ---
     write_apprun(appdir)
     write_desktop(appdir)
-    write_icon(appdir)
+    write_icon(appdir, nuitka_src)
 
     # --- Get appimagetool and build ---
     appimagetool = get_appimagetool(arch)
@@ -380,7 +443,10 @@ def main():
 
     env = os.environ.copy()
     env["ARCH"] = arch
-    run([appimagetool, "--no-appstream", "--comp", "zstd", str(appdir), str(output)], env=env)
+    run(
+        [appimagetool, "--no-appstream", "--comp", "zstd", str(appdir), str(output)],
+        env=env,
+    )
 
     print()
     print("=== Done ===")
