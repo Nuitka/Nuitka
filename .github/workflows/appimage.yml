@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-24.04
     container: debian:stable-slim
     name: AppImage Linux x86_64
+    env:
+      PIP_ROOT_USER_ACTION: ignore
     steps:
       - name: Install system dependencies
         run: |
@@ -61,9 +63,12 @@ jobs:
           filter: blob:none
         id: checkout_retry_2
 
+      - name: Fix pip cache directory
+        run: mkdir -p /github/home/.cache/pip
+
       - name: Install Nuitka Python dependencies
         run: |
-          pip3 install --break-system-packages --root-user-action=ignore --no-cache-dir \
+          pip3 install --break-system-packages \
             appdirs tqdm "zstandard>=0.15" pyyaml "Jinja2>=2.10.2" ordered-set
 
       - name: Determine version
