@@ -25,14 +25,17 @@ RUN pip3 install --break-system-packages \
 WORKDIR /src
 COPY . /src/
 
+ARG APPIMAGE_FILENAME=Nuitka-x86_64.AppImage
+
 RUN mkdir -p -- /out && \
-    python3 /src/misc/make-appimage.py --output /out/Nuitka-x86_64.AppImage
+    python3 /src/misc/make-appimage.py --output "/out/${APPIMAGE_FILENAME}"
 
 # Verify it works (extract since no FUSE in container)
-RUN /out/Nuitka-x86_64.AppImage --appimage-extract > /dev/null 2>&1 && \
+RUN "/out/${APPIMAGE_FILENAME}" --appimage-extract > /dev/null 2>&1 && \
     squashfs-root/AppRun --version && \
     rm -rf -- squashfs-root
 
 # Output stage
 FROM scratch
-COPY --from=builder /out/Nuitka-x86_64.AppImage /Nuitka-x86_64.AppImage
+ARG APPIMAGE_FILENAME=Nuitka-x86_64.AppImage
+COPY --from=builder /out/${APPIMAGE_FILENAME} /${APPIMAGE_FILENAME}
