@@ -461,19 +461,34 @@ Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
 
+def _getPatchelfBinary():
+    """Return the patchelf binary to use, honoring NUITKA_PATCHELF_BINARY."""
+    return os.getenv("NUITKA_PATCHELF_BINARY", "patchelf")
+
+
 def checkPatchElfPresenceAndUsability(logger):
     """Checks if patchelf is present and usable."""
 
     output = executeToolChecked(
         logger=logger,
-        command=("patchelf", "--version"),
+        command=(_getPatchelfBinary(), "--version"),
         absence_message="""\
 Error, standalone mode on %s requires 'patchelf' to be \
 installed. Use 'apt/dnf/yum install patchelf' first."""
         % getOS(),
     )
 
-    if output.split() == b"0.18.0":
+    # Skip version check for the AppImage-bundled patchelf, where Debian's
+    # 0.18.0 includes distro-backported fixes for the known issues.
+    # Only trust the bundled binary (path inside the AppImage), not a system
+    # patchelf that might genuinely be the buggy upstream 0.18.0.
+    appdir = os.environ.get("APPDIR")
+    patchelf_is_bundled = (
+        "APPIMAGE" in os.environ
+        and appdir is not None
+        and os.getenv("NUITKA_PATCHELF_BINARY", "").startswith(appdir)
+    )
+    if output.split() == b"0.18.0" and not patchelf_is_bundled:
         return logger.sysexit(
             "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
         )
@@ -482,7 +497,7 @@ installed. Use 'apt/dnf/yum install patchelf' first."""
 def _setSharedLibraryRPATHElf(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--force-rpath", "--set-rpath", rpath, filename),
+        command=(_getPatchelfBinary(), "--force-rpath", "--set-rpath", rpath, filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
@@ -928,7 +943,7 @@ def cleanupHeaderForAndroid(filename):
 
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--shrink-rpath", filename),
+        command=(_getPatchelfBinary(), "--shrink-rpath", filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )

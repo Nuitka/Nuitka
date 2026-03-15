@@ -287,6 +287,37 @@ def getLaunchingSystemPrefixPath():
 _the_sys_prefix = None
 
 
+def _getAppImageSystemPrefix(bundled_version_tuple):
+    """When running inside an AppImage, return '/usr' if system python3-dev
+    headers are the same version or newer than the bundled ones."""
+
+    if os.name == "nt" or "APPIMAGE" not in os.environ:
+        return None
+
+    import glob
+
+    # Scan for system Python dev headers.
+    system_versions = []
+    for header_dir in glob.glob("/usr/include/python3.*/Python.h"):
+        try:
+            ver_str = header_dir.split("/python")[1].split("/")[0]
+            parts = ver_str.split(".")
+            ver_tuple = (int(parts[0]), int(parts[1]))
+            system_versions.append(ver_tuple)
+        except (ValueError, IndexError):
+            continue
+
+    if not system_versions:
+        return None
+
+    newest_system = max(system_versions)
+
+    if newest_system >= bundled_version_tuple:
+        return "/usr"
+
+    return None
+
+
 def getSystemPrefixPath():
     """Return real sys.prefix as an absolute path breaking out of virtualenv.
 
@@ -307,6 +338,11 @@ def getSystemPrefixPath():
             sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix)
         )
         sys_prefix = os.path.abspath(sys_prefix)
+
+        # When inside an AppImage, prefer system python3-dev if newer.
+        appimage_system_prefix = _getAppImageSystemPrefix(sys.version_info[0:2])
+        if appimage_system_prefix is not None:
+            sys_prefix = appimage_system_prefix
 
         # Some virtualenv contain the "orig-prefix.txt" as a textual link to the
         # target, this is often on Windows with virtualenv. There are two places to
