@@ -287,25 +287,33 @@ def getLaunchingSystemPrefixPath():
 _the_sys_prefix = None
 
 
+_appimage_system_prefix_cached = False
+_appimage_system_prefix_result = None
+
+
 def _getAppImageSystemPrefix(bundled_version_tuple):
     """When running inside an AppImage, return '/usr' if system python3-dev
     headers are the same version or newer than the bundled ones."""
+
+    global _appimage_system_prefix_cached, _appimage_system_prefix_result  # pylint: disable=global-statement
+
+    if _appimage_system_prefix_cached:
+        return _appimage_system_prefix_result
+
+    _appimage_system_prefix_cached = True
 
     if os.name == "nt" or "APPIMAGE" not in os.environ:
         return None
 
     import glob
+    import re
 
     # Scan for system Python dev headers.
     system_versions = []
     for header_dir in glob.glob("/usr/include/python3.*/Python.h"):
-        try:
-            ver_str = header_dir.split("/python")[1].split("/")[0]
-            parts = ver_str.split(".")
-            ver_tuple = (int(parts[0]), int(parts[1]))
-            system_versions.append(ver_tuple)
-        except (ValueError, IndexError):
-            continue
+        match = re.search(r"/python(\d+)\.(\d+)", header_dir)
+        if match:
+            system_versions.append((int(match.group(1)), int(match.group(2))))
 
     if not system_versions:
         return None
@@ -313,6 +321,7 @@ def _getAppImageSystemPrefix(bundled_version_tuple):
     newest_system = max(system_versions)
 
     if newest_system >= bundled_version_tuple:
+        _appimage_system_prefix_result = "/usr"
         return "/usr"
 
     return None
