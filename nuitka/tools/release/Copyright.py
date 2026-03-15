@@ -142,7 +142,9 @@ def _formatComments(filename, comments):
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]
     elif filename.endswith(".j2"):
-        comments = [(b"{# %-76s #}" % comment) for comment in comments]
+        comments = [(b"{# %-76s #}" % comment) for comment in comments[:-1]] + [
+            b"{# %-76s -#}" % comments[-1]
+        ]
     elif (
         filename.endswith(".txt")
         and "tests/commercial" in filename
