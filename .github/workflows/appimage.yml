@@ -117,7 +117,13 @@ jobs:
               "${api}/releases" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
           }
 
-          # Upload asset
+          # Delete existing asset if present, then upload
+          asset_name=$(basename "${file}")
+          asset_id=$(curl -sf -H "$auth" "${api}/releases/${release_id}/assets" | \
+            python3 -c "import sys,json; assets=json.load(sys.stdin); print(next((a['id'] for a in assets if a['name']=='${asset_name}'),''))" 2>/dev/null) || true
+          if [ -n "$asset_id" ]; then
+            curl -sf -X DELETE -H "$auth" "${api}/releases/assets/${asset_id}"
+          fi
           curl -sf -X POST -H "$auth" -H "Content-Type: application/octet-stream" \
             --data-binary "@${file}" \
-            "https://uploads.github.com/repos/${repo}/releases/${release_id}/assets?name=$(basename "${file}")"
+            "https://uploads.github.com/repos/${repo}/releases/${release_id}/assets?name=${asset_name}"
