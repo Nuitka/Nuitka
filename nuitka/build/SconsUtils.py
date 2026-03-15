@@ -37,7 +37,7 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
-from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isLinux, isPosixWindows, isWin32Windows
 
 
 def initScons(arguments):
@@ -307,7 +307,8 @@ def createEnvironment(
 
         # spell-checker: ignore CCCOM,CFLAGS,CCFLAGS,CCCOMCOM,CXXCOM,CXXFLAGS
         # spell-checker: ignore LINKCOM,LIBDIRFLAGS,LIBFLAGS,SHCCCOM,SHCFLAGS
-        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,SHLINKFLAGS
+        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,
+        # spell-checker: ignore LINKFLAGS,SHLINKFLAGS
 
         env["CCCOM"] = (
             '"%s" cc -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' % safe_zig_path
@@ -612,6 +613,8 @@ def writeSconsReport(env, target):
 
         print("PATH=%s" % os.environ["PATH"], file=report_file)
         print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
+
+        print("resource_mode=%s" % env.resource_mode, file=report_file)
 
 
 _checked_msvc_language_pack = False
@@ -1110,23 +1113,6 @@ c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
 """)
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
-
-
-def addBinaryBlobSection(env, blob_filename, section_name):
-    # spell-checker: ignore linkflags, sectcreate
-
-    if isMacOS():
-        env.Append(
-            LINKFLAGS=[
-                "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
-                % {
-                    "section_name": section_name,
-                    "blob_filename": blob_filename,
-                }
-            ]
-        )
-    else:
-        assert False
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):

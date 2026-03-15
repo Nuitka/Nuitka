@@ -166,6 +166,9 @@ if isMacOS():
         blob_filename=os.path.join(env.source_dir, "__payload.bin"),
         resource_desc=("mac_section", "default on macOS"),
     )
+    env.resource_mode = "mac_section"
+else:
+    env.resource_mode = None
 
 # Indicate, that the common code is used to build an executable.
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])

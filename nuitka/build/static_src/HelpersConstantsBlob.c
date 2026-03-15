@@ -21,10 +21,12 @@
 #define CONST_CONSTANT const
 #endif
 
-#if defined(_NUITKA_CONSTANTS_FROM_LINKER)
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ)
 // Symbol as provided by the linker, different for C++ and C11 mode.
 #ifdef __cplusplus
 extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
+#elif defined(_MSC_VER)
+extern CONST_CONSTANT unsigned char constant_bin_data[];
 #else
 extern CONST_CONSTANT unsigned char constant_bin_data[0];
 #endif

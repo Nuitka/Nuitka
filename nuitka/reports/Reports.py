@@ -45,9 +45,11 @@ from nuitka.options.Options import (
     getOnefileTempDirSpec,
     isOnefileMode,
     isOnefileTempDirMode,
+    isStandaloneMode,
     shallCreateDiffableCompilationReport,
 )
 from nuitka.OutputDirectories import (
+    getResultFullpath,
     getResultRunFilename,
     getSourceDirectoryPath,
     hasMainModule,
@@ -72,6 +74,7 @@ from nuitka.utils.Distributions import (
     isDistributionVendored,
 )
 from nuitka.utils.FileOperations import (
+    getFileSize,
     getNormalizedPath,
     getReportPath,
     putBinaryFileContents,
@@ -273,6 +276,35 @@ def _getReportInputData(aborted):
         output_run_filename = os.path.abspath(
             getResultRunFilename(onefile=isOnefileMode())
         )
+        backend_executable = os.path.abspath(
+            getResultFullpath(onefile=False, real=True)
+        )
+        if os.path.exists(backend_executable):
+            backend_executable_size = getFileSize(backend_executable)
+        else:
+            backend_executable_size = None
+
+        if isOnefileMode():
+            onefile_executable = os.path.abspath(
+                getResultFullpath(onefile=True, real=True)
+            )
+            if os.path.exists(onefile_executable):
+                onefile_executable_size = getFileSize(onefile_executable)
+            else:
+                onefile_executable_size = None
+
+            onefile_source_dir = getSourceDirectoryPath(onefile=True, create=False)
+            if onefile_source_dir is not None:
+                onefile_resource_mode = getSconsReportValue(
+                    onefile_source_dir, "resource_mode", default=None
+                )
+            else:
+                onefile_resource_mode = None
+        else:
+            onefile_executable = None
+            onefile_executable_size = None
+            onefile_resource_mode = None
+
         scons_error_report_data = readSconsErrorReport(
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
@@ -285,6 +317,11 @@ def _getReportInputData(aborted):
         scons_resource_usage_data = {}
         scons_ccache_stats = {}
         output_run_filename = "failed too early"
+        backend_executable = "failed too early"
+        backend_executable_size = None
+        onefile_executable = None
+        onefile_executable_size = None
+        onefile_resource_mode = None
 
     source_dir = (
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
@@ -296,12 +333,17 @@ def _getReportInputData(aborted):
         cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
         cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
         ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
+
+        backend_resource_mode = getSconsReportValue(
+            source_dir, "resource_mode", default=None
+        )
     else:
         cpp_flags = None
         c_flags = None
         cc_flags = None
         cxx_flags = None
         ld_flags = None
+        backend_resource_mode = None
 
     del source_dir
 
@@ -856,6 +898,48 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                         filename=item,
                         **item_value
                     )
+
+    if report_input_data["backend_executable"] != "failed too early":
+        python_binary_xml_node = appendTreeElement(
+            root,
+            "python_binary",
+            filename=(
+                os.path.basename(report_input_data["backend_executable"])
+                if isStandaloneMode()
+                else _getCompilationReportPath(report_input_data["backend_executable"])
+            ),
+        )
+
+        if report_input_data["backend_resource_mode"] is not None:
+            python_binary_xml_node.attrib["backend_resource_mode"] = report_input_data[
+                "backend_resource_mode"
+            ]
+
+        if diffable:
+            python_binary_xml_node.attrib["size"] = "volatile"
+        elif report_input_data["backend_executable_size"] is not None:
+            python_binary_xml_node.attrib["size"] = str(
+                report_input_data["backend_executable_size"]
+            )
+
+    if report_input_data.get("onefile_executable") is not None:
+        onefile_binary_xml_node = appendTreeElement(
+            root,
+            "onefile_binary",
+            filename=os.path.basename(report_input_data["onefile_executable"]),
+        )
+
+        if report_input_data.get("onefile_resource_mode") is not None:
+            onefile_binary_xml_node.attrib["onefile_resource_mode"] = report_input_data[
+                "onefile_resource_mode"
+            ]
+
+        if diffable:
+            onefile_binary_xml_node.attrib["size"] = "volatile"
+        elif report_input_data.get("onefile_executable_size") is not None:
+            onefile_binary_xml_node.attrib["size"] = str(
+                report_input_data["onefile_executable_size"]
+            )
 
     options_xml_node = appendTreeElement(
         root,

@@ -34,7 +34,6 @@ from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
 from .SconsUtils import (
-    addBinaryBlobSection,
     addToPATH,
     createEnvironment,
     decideArchMismatch,
@@ -56,6 +55,7 @@ from .SconsUtils import (
     setEnvironmentVariable,
     setupScons,
 )
+from .WindowsObjGenerator import generateWindowsCoffObject
 
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
@@ -633,6 +633,9 @@ def decideConstantsBlobResourceMode(env):
         if env.clangcl_mode and getMsvcVersion(env) >= (14, 3):
             resource_mode = "c23_embed"
             reason = "default for ClangCL"
+        elif env.msvc_mode:
+            resource_mode = "coff_obj"
+            reason = "default for MSVC"
         else:
             resource_mode = "win_resource"
             reason = "default for Windows"
@@ -672,41 +675,37 @@ def decideConstantsBlobResourceMode(env):
         "mac_section",
         "code",
         "c23_embed",
+        "coff_obj",
     ), resource_mode
 
+    env.resource_mode = resource_mode
     return resource_mode, reason
 
 
-def addConstantBlobFile(env, blob_filename, resource_desc):
-    resource_mode, reason = resource_desc
+def _addConstantBlobFileCoffObj(env, blob_filename):
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
 
-    assert blob_filename.endswith(".bin"), blob_filename
+    obj_filename = blob_filename + ".obj"
 
-    scons_details_logger.info(
-        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
+    generateWindowsCoffObject(
+        in_filename=blob_filename,
+        out_filename=obj_filename,
+        symbol_name="constant_bin_data",
+        architecture=env.target_arch,
     )
 
-    if resource_mode == "win_resource":
-        # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-    elif resource_mode == "mac_section":
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
+    # Link the generated object file
+    env.Append(LINKFLAGS=[obj_filename])
 
-        addBinaryBlobSection(
-            env=env,
-            blob_filename=blob_filename,
-            section_name=os.path.basename(blob_filename)[:-4].lstrip("_"),
-        )
-    elif resource_mode == "incbin":
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
-        constants_generated_filename = os.path.join(
-            env.source_dir, "__constants_data.c"
-        )
+def _addConstantBlobFileIncbin(env, blob_filename):
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
-        putTextFileContents(
-            constants_generated_filename,
-            contents=r"""
+    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+
+    putTextFileContents(
+        constants_generated_filename,
+        contents=r"""
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_LOCAL
@@ -722,66 +721,67 @@ unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
 """ % {"blob_filename": blob_filename},
-        )
+    )
 
-    elif resource_mode == "linker":
-        # Indicate "linker" resource mode.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
-        # For MinGW the symbol name to be used is more low level.
-        constant_bin_link_name = "constant_bin_data"
-        if env.mingw_mode:
-            constant_bin_link_name = "_" + constant_bin_link_name
+def _addConstantBlobFileLinker(env, blob_filename):
+    # Indicate "linker" resource mode.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
-        # At least some gcc versions need this path to contain a path element,
-        # but it's normalized when it gets to here.
-        if env.source_dir == ".":
-            blob_filename = "./%s" % blob_filename
+    # For MinGW the symbol name to be used is more low level.
+    constant_bin_link_name = "constant_bin_data"
+    if env.mingw_mode:
+        constant_bin_link_name = "_" + constant_bin_link_name
 
-        env.Append(
-            LINKFLAGS=[
-                "-Wl,-b",
-                "-Wl,binary",
-                "-Wl,%s" % blob_filename,
-                "-Wl,-b",
-                "-Wl,%s"
-                % getLinkerArch(
-                    target_arch=env.target_arch,
-                    mingw_mode=env.mingw_mode or isPosixWindows(),
-                ),
-                "-Wl,-defsym",
-                "-Wl,%s=_binary_%s___constants_bin_start"
-                % (
-                    constant_bin_link_name,
-                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
-                ),
-            ]
-        )
-    elif resource_mode in ("code", "c23_embed"):
-        # Indicate "code" resource mode.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
+    # At least some gcc versions need this path to contain a path element,
+    # but it's normalized when it gets to here.
+    if env.source_dir == ".":
+        blob_filename = "./%s" % blob_filename
 
-        constants_generated_filename = os.path.join(
-            env.source_dir, "__constants_data.c"
-        )
+    env.Append(
+        LINKFLAGS=[
+            "-Wl,-b",
+            "-Wl,binary",
+            "-Wl,%s" % blob_filename,
+            "-Wl,-b",
+            "-Wl,%s"
+            % getLinkerArch(
+                target_arch=env.target_arch,
+                mingw_mode=env.mingw_mode or isPosixWindows(),
+            ),
+            "-Wl,-defsym",
+            "-Wl,%s=_binary_%s___constants_bin_start"
+            % (
+                constant_bin_link_name,
+                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
+            ),
+        ]
+    )
 
-        def writeConstantsDataSource():
-            with openTextFile(constants_generated_filename, "w") as output:
-                if not env.c11_mode:
-                    output.write('extern "C" {')
 
-                output.write("""\
+def _addConstantBlobFileCode(env, blob_filename, resource_mode):
+    # Indicate "code" resource mode.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
+
+    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+
+    def writeConstantsDataSource():
+        with openTextFile(constants_generated_filename, "w") as output:
+            if not env.c11_mode:
+                output.write('extern "C" {')
+
+            output.write("""\
 // Constant data for the program.
 """)
 
-                if env.clang_mode or env.clangcl_mode:
-                    output.write("""
+            if env.clang_mode or env.clangcl_mode:
+                output.write("""
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
 #endif
 """)
 
-                output.write("""
+            output.write("""
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -791,31 +791,79 @@ const
 unsigned char constant_bin_data[] =\n{\n
 """)
 
-                if resource_mode == "code":
-                    with open(blob_filename, "rb") as f:
-                        content = f.read()
-                    for count, stream_byte in enumerate(content):
-                        if count % 16 == 0:
-                            if count > 0:
-                                output.write("\n")
+            if resource_mode == "code":
+                with open(blob_filename, "rb") as f:
+                    content = f.read()
+                for count, stream_byte in enumerate(content):
+                    if count % 16 == 0:
+                        if count > 0:
+                            output.write("\n")
 
-                            output.write("   ")
+                        output.write("   ")
 
-                        if str is bytes:
-                            stream_byte = ord(stream_byte)
+                    if str is bytes:
+                        stream_byte = ord(stream_byte)
 
-                        output.write(" 0x%02x," % stream_byte)
-                else:
-                    output.write('#embed "%s"\n' % blob_filename)
+                    output.write(" 0x%02x," % stream_byte)
+            else:
+                output.write('#embed "%s"\n' % blob_filename)
 
-                output.write("\n};\n")
+            output.write("\n};\n")
 
-                if not env.c11_mode:
-                    output.write("}")
+            if not env.c11_mode:
+                output.write("}")
 
-        writeConstantsDataSource()
+    writeConstantsDataSource()
+
+
+def _addConstantBlobFileWinResource(env):
+    # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+
+
+def _addConstantBlobFileMacSection(env, blob_filename):
+    assert isMacOS()
+
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
+
+    section_name = os.path.basename(blob_filename)[:-4].lstrip("_")
+
+    # spell-checker: ignore linkflags, sectcreate
+    env.Append(
+        LINKFLAGS=[
+            "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
+            % {
+                "section_name": section_name,
+                "blob_filename": blob_filename,
+            }
+        ]
+    )
+
+
+def addConstantBlobFile(env, blob_filename, resource_desc):
+    resource_mode, reason = resource_desc
+    env.resource_mode = resource_mode
+
+    assert blob_filename.endswith(".bin"), blob_filename
+
+    scons_details_logger.info(
+        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
+    )
+
+    if resource_mode == "coff_obj":
+        _addConstantBlobFileCoffObj(env, blob_filename)
+    elif resource_mode == "win_resource":
+        _addConstantBlobFileWinResource(env)
+    elif resource_mode == "mac_section":
+        _addConstantBlobFileMacSection(env, blob_filename)
+    elif resource_mode == "incbin":
+        _addConstantBlobFileIncbin(env, blob_filename)
+    elif resource_mode == "linker":
+        _addConstantBlobFileLinker(env, blob_filename)
+    elif resource_mode in ("code", "c23_embed"):
+        _addConstantBlobFileCode(env, blob_filename, resource_mode)
     else:
-        scons_logger.sysexit(
+        return scons_logger.sysexit(
             "Error, illegal resource mode '%s' specified" % resource_mode
         )
 
