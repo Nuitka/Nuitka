@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     file \
     ca-certificates \
+    gpg \
     && rm -rf -- /var/lib/apt/lists/*
 
 # Install Nuitka's Python dependencies for the build.
