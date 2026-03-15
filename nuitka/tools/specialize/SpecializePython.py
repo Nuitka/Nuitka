@@ -782,15 +782,15 @@ def makeChildrenHavingMixinNodes():
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python, withFileOpenedAndAutoFormattedWithClaim(
         filename_python2,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python2, withFileOpenedAndAutoFormattedWithClaim(
         filename_python3,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python3:
 
@@ -815,7 +815,7 @@ def makeChildrenHavingMixinNodes():
         emit("# Loop unrolling over child names, pylint: disable=too-many-branches")
 
         emit1("""
-from nuitka.nodes.Checkers import (
+from .Checkers import (
     checkStatementsSequenceOrNone,
     convertNoneConstantToNone,
     convertEmptyStrConstantToNone
@@ -823,7 +823,7 @@ from nuitka.nodes.Checkers import (
 """)
 
         emit3("""
-from nuitka.nodes.Checkers import (
+from .Checkers import (
     checkStatementsSequenceOrNone, \
     checkStatementsSequence,
     convertNoneConstantToNone
