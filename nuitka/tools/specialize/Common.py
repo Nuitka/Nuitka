@@ -382,21 +382,34 @@ def check():
 check()
 
 
+check_only = False
+
+
+def enableCheckOnlyMode():
+    global check_only
+    check_only = True
+
+
 @contextlib.contextmanager
 def withFileOpenedAndAutoFormattedWithClaim(filename, claim, ignore_errors=False):
     """Context manager for opening a file, auto-formatting it, and adding a copyright claim."""
+
+    def addCopyrightClaimComments(tmp_filename):
+        if claim:
+            attachLeadingComment(
+                filename=tmp_filename,
+                effective_filename=filename,
+                comments=getCopyrightClaim(filename=filename, claim=claim),
+            )
+
     with withFileOpenedAndAutoFormatted(
         filename=filename,
+        effective_filename=filename,
         ignore_errors=ignore_errors,
+        check_only=check_only,
+        post_format_hook=addCopyrightClaimComments,
     ) as output:
         yield output
-
-    if claim:
-        attachLeadingComment(
-            filename=filename,
-            effective_filename=filename,
-            comments=getCopyrightClaim(filename=filename, claim=claim),
-        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

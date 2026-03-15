@@ -44,10 +44,12 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.utils.FileOperations import getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
+    enableCheckOnlyMode,
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
@@ -1127,6 +1129,19 @@ hard_import_node_classes = {}
 
 
 def main():
+    parser = makeOptionsParser(usage=None, epilog=None)
+    parser.add_option(
+        "--check",
+        action="store_true",
+        dest="check_only",
+        default=False,
+        help="""Check only, do not write files. Default is %default.""",
+    )
+    options, _positional_args = parser.parse_args()
+
+    if options.check_only:
+        enableCheckOnlyMode()
+
     makeHardImportNodes()
     makeAttributeNodes()
     makeBuiltinOperationNodes()

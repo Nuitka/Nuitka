@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     withPreserveFileMode,
     withTemporaryFile,
+    withTemporaryFilename,
 )
 from nuitka.utils.PrivatePipSpace import (
     getMdformatBinaryPath,
@@ -514,24 +515,33 @@ def autoFormatFile(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
+def withFileOpenedAndAutoFormatted(
+    filename,
+    effective_filename,
+    ignore_errors=False,
+    check_only=False,
+    post_format_hook=None,
+):
     """Context manager for opening a file and auto-formatting it on close.
 
     Args:
         filename: path to the file
+        effective_filename: str - filename to use for formatting decisions
         ignore_errors: bool - if errors should be ignored
+        check_only: bool - if true, check for diff without modifying the file
+        post_format_hook: callable - optional hook called with tmp_filename before diff check
     """
 
-    tmp_filename = filename + ".tmp"
-
-    try:
+    with withTemporaryFilename(
+        prefix=os.path.basename(filename), suffix=".tmp"
+    ) as tmp_filename:
         with openTextFile(tmp_filename, "w") as output:
             yield output
 
         autoFormatFile(
             filename=tmp_filename,
             git_stage=False,
-            effective_filename=filename,
+            effective_filename=effective_filename,
             trace=False,
             ignore_errors=ignore_errors,
             assume_yes_for_downloads=True,
@@ -541,7 +551,20 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             autoFormatFile(
                 filename=tmp_filename,
                 git_stage=False,
-                effective_filename=filename,
+                effective_filename=effective_filename,
+                trace=False,
+                ignore_errors=ignore_errors,
+                assume_yes_for_downloads=True,
+            )
+
+        if post_format_hook is not None:
+            post_format_hook(tmp_filename)
+
+            # The hook might have added something that messes with the formatting, so run it again
+            autoFormatFile(
+                filename=tmp_filename,
+                git_stage=False,
+                effective_filename=effective_filename,
                 trace=False,
                 ignore_errors=ignore_errors,
                 assume_yes_for_downloads=True,
@@ -550,10 +573,13 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
         if not os.path.exists(filename) or getFileContents(
             tmp_filename, mode="rb"
         ) != getFileContents(filename, mode="rb"):
+            if check_only:
+                tools_logger.sysexit(
+                    "Error, generated code for %s would change." % effective_filename
+                )
+
             with withPreserveFileMode(filename):
                 shutil.copy(tmp_filename, filename)
-    finally:
-        deleteFile(tmp_filename, must_exist=False)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
