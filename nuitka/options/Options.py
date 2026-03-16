@@ -519,6 +519,12 @@ def parseArgs():
 Error, for macOS there is not automatic download of zig (the 'ziglang' PyPI doesn't yet \
 offer it), set the 'CC' environment variable or add it to PATH.""")
 
+    if isWin32Windows() and options.mingw64 and options.clang:
+        return options_logger.sysexit("""\
+Error, conflicting options '--mingw64' and '--clang'. Note that Clang is no \
+longer part of Winlibs and therefore no more available this way. Use only \
+--clang to use it from a MSVC installation.""")
+
     if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
         return options_logger.sysexit(
             "Error, cannot use '--mingw64' on Python version 3.13 or higher."

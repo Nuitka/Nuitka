@@ -636,6 +636,9 @@ def decideConstantsBlobResourceMode(env):
         elif env.msvc_mode:
             resource_mode = "coff_obj"
             reason = "default for MSVC"
+        elif env.mingw_mode:
+            resource_mode = "c23_embed"
+            reason = "default for MinGW"
         else:
             resource_mode = "win_resource"
             reason = "default for Windows"
