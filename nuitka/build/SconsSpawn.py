@@ -502,6 +502,7 @@ it or using '--clang' option.""" % env.the_compiler)
             and env.collect_resources
         ):
             writeSconsResourceUsageReport(
+                source_dir=env.source_dir,
                 source_filename=os.path.basename(source_filename),
                 rusage=spawn_result.rusage,
             )

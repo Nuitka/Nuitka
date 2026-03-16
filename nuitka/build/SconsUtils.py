@@ -750,8 +750,10 @@ def readSconsErrorReport(source_dir):
     return _scons_error_reports[source_dir]
 
 
-def writeSconsResourceUsageReport(source_filename, rusage):
-    json_filename = os.path.splitext(source_filename)[0] + ".resource-usage.json"
+def writeSconsResourceUsageReport(source_dir, source_filename, rusage):
+    json_filename = getNormalizedPathJoin(
+        source_dir, os.path.splitext(source_filename)[0] + ".resource-usage.json"
+    )
 
     rusage_dict = rusage.asDict()
     normalized_rusage = {"cpu": {}, "memory": {}, "system-events": {}}
