@@ -682,7 +682,26 @@ def decideConstantsBlobResourceMode(env):
     return resource_mode, reason
 
 
-def _addConstantBlobFileCoffObj(env, blob_filename):
+def _getSymbolName(blob_filename):
+    blob_filename = os.path.basename(blob_filename)
+    assert blob_filename.endswith(".bin") and blob_filename.startswith(
+        "__"
+    ), blob_filename
+
+    # TODO: Get rid of the strip, it ought not to be needed, but right now there
+    # is a disconnect between symbol names and the filename.
+    return blob_filename[2:-4] + "_bin"
+
+
+def _getBlobNameCamelCase(blob_filename):
+    symbol_name = _getSymbolName(blob_filename)
+    return (
+        "".join(word.title() for word in symbol_name.split("_") if word != "bin")
+        + "Blob"
+    )
+
+
+def _addConstantBlobFileCoffObj(env, blob_filename, export_size):
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
 
     obj_filename = blob_filename + ".obj"
@@ -690,18 +709,37 @@ def _addConstantBlobFileCoffObj(env, blob_filename):
     generateWindowsCoffObject(
         in_filename=blob_filename,
         out_filename=obj_filename,
-        symbol_name="constant_bin_data",
+        symbol_name=_getSymbolName(blob_filename) + "_data",
         architecture=env.target_arch,
+        export_size=export_size,
     )
 
     # Link the generated object file
     env.Append(LINKFLAGS=[obj_filename])
 
 
-def _addConstantBlobFileIncbin(env, blob_filename):
+def _addConstantBlobFileIncbin(env, blob_filename, export_size):
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
     constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+
+    symbol_name = _getSymbolName(blob_filename)
+    camel_name = _getBlobNameCamelCase(blob_filename)
+    # The incbin macro creates style symbols like `symbol_name_size`.
+    # But C variables initialized from them will give "initializer element is not constant"
+    # because they are `extern const unsigned int`, not macro sizes.
+    # Therefore we expose it via a function.
+    size_export_code = """
+#ifdef __cplusplus
+extern "C" {
+#endif
+unsigned long long get%(camel_name)sSize(void) {
+    return %(symbol_name)s_size;
+}
+#ifdef __cplusplus
+}
+#endif
+""" % {"symbol_name": symbol_name, "camel_name": camel_name} if export_size else ""
 
     putTextFileContents(
         constants_generated_filename,
@@ -715,21 +753,28 @@ def _addConstantBlobFileIncbin(env, blob_filename):
 
 #include "nuitka/incbin.h"
 
-INCBIN(constant_bin, "%(blob_filename)s");
+INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
-unsigned char const *getConstantsBlobData(void) {
-    return constant_bin_data;
+unsigned char const *get%(camel_name)sData(void) {
+    return %(symbol_name)s_data;
 }
-""" % {"blob_filename": blob_filename},
+%(size_export_code)s
+"""
+        % {
+            "blob_filename": blob_filename,
+            "symbol_name": symbol_name,
+            "camel_name": camel_name,
+            "size_export_code": size_export_code,
+        },
     )
 
 
-def _addConstantBlobFileLinker(env, blob_filename):
+def _addConstantBlobFileLinker(env, blob_filename, export_size):
     # Indicate "linker" resource mode.
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
     # For MinGW the symbol name to be used is more low level.
-    constant_bin_link_name = "constant_bin_data"
+    constant_bin_link_name = _getSymbolName(blob_filename) + "_data"
     if env.mingw_mode:
         constant_bin_link_name = "_" + constant_bin_link_name
 
@@ -750,16 +795,28 @@ def _addConstantBlobFileLinker(env, blob_filename):
                 mingw_mode=env.mingw_mode or isPosixWindows(),
             ),
             "-Wl,-defsym",
-            "-Wl,%s=_binary_%s___constants_bin_start"
+            "-Wl,%s=_binary_%s_start"
             % (
                 constant_bin_link_name,
-                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
+                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
             ),
         ]
     )
 
+    if export_size:
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-defsym",
+                "-Wl,%s_size_value=_binary_%s_size"
+                % (
+                    constant_bin_link_name.replace("_data", ""),
+                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
+                ),
+            ]
+        )
 
-def _addConstantBlobFileCode(env, blob_filename, resource_mode):
+
+def _addConstantBlobFileCode(env, blob_filename, resource_mode, export_size):
     # Indicate "code" resource mode.
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
@@ -788,8 +845,9 @@ extern "C"
 #if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
 const
 #endif
-unsigned char constant_bin_data[] =\n{\n
-""")
+unsigned char %s_data[] =
+{
+""" % _getSymbolName(blob_filename))
 
             if resource_mode == "code":
                 with open(blob_filename, "rb") as f:
@@ -809,6 +867,17 @@ unsigned char constant_bin_data[] =\n{\n
                 output.write('#embed "%s"\n' % blob_filename)
 
             output.write("\n};\n")
+
+            if export_size:
+                output.write("""
+#ifdef __cplusplus
+extern "C" {
+#endif
+const unsigned long long %s_size_value = sizeof(%s_data);
+#ifdef __cplusplus
+}
+#endif
+""" % (_getSymbolName(blob_filename), _getSymbolName(blob_filename)))
 
             if not env.c11_mode:
                 output.write("}")
@@ -840,7 +909,7 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     )
 
 
-def addConstantBlobFile(env, blob_filename, resource_desc):
+def addConstantBlobFile(env, blob_filename, resource_desc, export_size):
     resource_mode, reason = resource_desc
     env.resource_mode = resource_mode
 
@@ -851,17 +920,17 @@ def addConstantBlobFile(env, blob_filename, resource_desc):
     )
 
     if resource_mode == "coff_obj":
-        _addConstantBlobFileCoffObj(env, blob_filename)
+        _addConstantBlobFileCoffObj(env, blob_filename, export_size)
     elif resource_mode == "win_resource":
         _addConstantBlobFileWinResource(env)
     elif resource_mode == "mac_section":
         _addConstantBlobFileMacSection(env, blob_filename)
     elif resource_mode == "incbin":
-        _addConstantBlobFileIncbin(env, blob_filename)
+        _addConstantBlobFileIncbin(env, blob_filename, export_size)
     elif resource_mode == "linker":
-        _addConstantBlobFileLinker(env, blob_filename)
+        _addConstantBlobFileLinker(env, blob_filename, export_size)
     elif resource_mode in ("code", "c23_embed"):
-        _addConstantBlobFileCode(env, blob_filename, resource_mode)
+        _addConstantBlobFileCode(env, blob_filename, resource_mode, export_size)
     else:
         return scons_logger.sysexit(
             "Error, illegal resource mode '%s' specified" % resource_mode

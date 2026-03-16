@@ -174,8 +174,53 @@ static unsigned char const *payload_data = NULL;
 static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
 
-#ifdef __APPLE__
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+// Symbol as provided by the linker, code, or incbin, different for C++ and C11
+// mode.
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER)
+#ifdef __cplusplus
+extern "C" const unsigned char payload_bin_data[];
+extern "C" const unsigned char payload_bin_size_value[];
+#else
+extern const unsigned char payload_bin_data[];
+extern const unsigned char payload_bin_size_value[];
+#endif
+#define GET_PAYLOAD_BIN_SIZE() ((unsigned long long)&payload_bin_size_value)
+#elif defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+#ifdef __cplusplus
+extern "C" unsigned const char *getPayloadBlobData(void);
+extern "C" unsigned long long getPayloadBlobSize(void);
+#else
+extern unsigned const char *getPayloadBlobData(void);
+extern unsigned long long getPayloadBlobSize(void);
+#endif
+#define GET_PAYLOAD_BIN_SIZE() getPayloadBlobSize()
+#else
+#ifdef __cplusplus
+extern "C" const unsigned char payload_bin_data[];
+extern "C" const unsigned long long payload_bin_size_value;
+#else
+extern const unsigned char payload_bin_data[];
+extern const unsigned long long payload_bin_size_value;
+#endif
+#define GET_PAYLOAD_BIN_SIZE() payload_bin_size_value
+#endif
 
+// We have no sizing here, but it's first reading length anyway.
+static void initPayloadData2(void) {
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+    payload_data = getPayloadBlobData();
+#else
+    payload_data = payload_bin_data;
+#endif
+    payload_current = payload_data;
+    payload_size = GET_PAYLOAD_BIN_SIZE();
+}
+
+static void closePayloadData(void) {}
+
+#elif defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
@@ -197,8 +242,7 @@ static void initPayloadData2(void) {
 
 static void closePayloadData(void) {}
 
-#elif defined(_WIN32)
-
+#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 static void initPayloadData2(void) {
     HRSRC windows_resource = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
 
@@ -212,48 +256,10 @@ static void initPayloadData2(void) {
 static void closePayloadData(void) {}
 
 #else
-
-static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
-    char buffer[1024] = "Error, couldn't find attached data:";
-    appendStringSafe(buffer, erroring_function, sizeof(buffer));
-
-    fatalIOError(buffer, error_code);
-}
-
-static struct MapFileToMemoryInfo exe_file_mapped;
-
-static void initPayloadData2(void) {
-    exe_file_mapped = mapFileToMemory(getBinaryPath());
-
-    if (exe_file_mapped.error) {
-        fatalErrorFindAttachedData(exe_file_mapped.erroring_function, exe_file_mapped.error_code);
-    }
-
-    payload_data = exe_file_mapped.data;
-    payload_current = payload_data;
-}
-
-static void closePayloadData(void) { unmapFileFromMemory(&exe_file_mapped); }
-
+#error "Unknown resource mode"
 #endif
 
-static void initPayloadData(void) {
-    initPayloadData2();
-
-#if !defined(__APPLE__) && !defined(_WIN32)
-    const off_t size_end_offset = exe_file_mapped.file_size;
-
-    NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
-
-    assert(sizeof(payload_size) == sizeof(unsigned long long));
-    memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
-
-    unsigned long long start_pos = size_end_offset - sizeof(payload_size) - payload_size;
-
-    payload_current += start_pos;
-    payload_data += start_pos;
-#endif
-}
+static void initPayloadData(void) { initPayloadData2(); }
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 

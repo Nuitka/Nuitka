@@ -14,7 +14,37 @@ import struct
 from nuitka.utils.FileOperations import getFileSize
 
 
-def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architecture):
+def _createCoffStringTable(symbol_bytes, symbol_size_bytes):
+    string_table_data = b""
+
+    if len(symbol_bytes) <= 8:
+        sym_name_field = symbol_bytes.ljust(8, b"\x00")
+    else:
+        # String table format: 4-byte total size (including size field),
+        # followed by null-terminated strings.
+        offset = 4 + len(string_table_data)
+        string_table_data += symbol_bytes + b"\x00"
+        sym_name_field = struct.pack("<II", 0, offset)
+
+    if len(symbol_size_bytes) <= 8:
+        sym_name_size_field = symbol_size_bytes.ljust(8, b"\x00")
+    else:
+        offset = 4 + len(string_table_data)
+        string_table_data += symbol_size_bytes + b"\x00"
+        sym_name_size_field = struct.pack("<II", 0, offset)
+
+    if not string_table_data:
+        string_table = b""
+    else:
+        string_table_size = 4 + len(string_table_data)
+        string_table = struct.pack("<I", string_table_size) + string_table_data
+
+    return sym_name_field, sym_name_size_field, string_table
+
+
+def generateWindowsCoffObject(
+    in_filename, out_filename, symbol_name, architecture, export_size
+):
     """Generate a valid MSVC COFF .obj file containing the given payload.
 
     Args:
@@ -31,40 +61,29 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
         "arm64": 0xAA64,  # IMAGE_FILE_MACHINE_ARM64
     }
 
-    machine = arch_map.get(architecture.lower())
-    if not machine:
-        raise ValueError(
-            "Unsupported architecture for COFF object generation: %s" % architecture
-        )
+    machine = arch_map[architecture]
 
     # For 32-bit x86, MSVC conventions require a leading underscore on C symbols.
-    if architecture.lower() == "x86" and not symbol_name.startswith("_"):
+    if architecture == "x86" and not symbol_name.startswith("_"):
         symbol_name = "_" + symbol_name
 
-    if type(symbol_name) is bytes:
-        symbol_bytes = symbol_name
-    else:
+    symbol_bytes = symbol_name
+    if str is not bytes:
         symbol_bytes = symbol_name.encode("utf8")
 
-    if len(symbol_bytes) <= 8:
-        sym_name_field = symbol_bytes.ljust(8, b"\x00")
-        string_table = b""
-    else:
-        # String table format: 4-byte total size (including size field),
-        # followed by null-terminated strings.
-        string_table_data = symbol_bytes + b"\x00"
-        string_table_size = 4 + len(string_table_data)
-        string_table = struct.pack("<I", string_table_size) + string_table_data
+    symbol_size_bytes = symbol_bytes.replace(b"_data", b"_size_value")
 
-        # In the 8-byte Name field for long symbols:
-        # 0 (4 bytes), offset in string table (4 bytes)
-        # The offset is 4 because the first string starts right after the 4-byte size field.
-        sym_name_field = struct.pack("<II", 0, 4)
+    sym_name_field, sym_name_size_field, string_table = _createCoffStringTable(
+        symbol_bytes, symbol_size_bytes
+    )
 
     payload_size = getFileSize(in_filename)
 
+    size_bytes_data = struct.pack("<Q", payload_size) if export_size else b""
+    section_data_size = payload_size + len(size_bytes_data)
+
     # 4-byte alignment padding for the symbol table
-    padding_len = (4 - (payload_size % 4)) % 4
+    padding_len = (4 - (section_data_size % 4)) % 4
     padding = b"\x00" * padding_len
 
     # Header sizes
@@ -72,7 +91,7 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
     section_header_size = 40
 
     pointer_to_raw_data = file_header_size + section_header_size
-    pointer_to_symbol_table = pointer_to_raw_data + payload_size + padding_len
+    pointer_to_symbol_table = pointer_to_raw_data + section_data_size + padding_len
 
     # 1. PE File Header
     file_header = struct.pack(
@@ -81,7 +100,7 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
         1,  # NumberOfSections
         0,  # TimeDateStamp (0 for reproducibility)
         pointer_to_symbol_table,
-        1,  # NumberOfSymbols
+        2 if export_size else 1,  # NumberOfSymbols
         0,  # SizeOfOptionalHeader
         0,  # Characteristics
     )
@@ -100,7 +119,7 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
         section_name,
         0,  # VirtualSize (0 for obj)
         0,  # VirtualAddress (0 for obj)
-        payload_size,
+        section_data_size,
         pointer_to_raw_data,
         0,  # PointerToRelocations
         0,  # PointerToLinenumbers
@@ -125,6 +144,16 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
         0,  # NumberOfAuxSymbols
     )
 
+    symbol_table_entry2 = struct.pack(
+        "<8sIhHBB",
+        sym_name_size_field,
+        payload_size,  # Value (offset within section)
+        1,  # SectionNumber
+        0,  # Type
+        2,  # StorageClass (IMAGE_SYM_CLASS_EXTERNAL)
+        0,  # NumberOfAuxSymbols
+    )
+
     with open(out_filename, "wb") as f_out:
         f_out.write(file_header)
         f_out.write(section_header)
@@ -132,9 +161,17 @@ def generateWindowsCoffObject(in_filename, out_filename, symbol_name, architectu
         with open(in_filename, "rb") as f_in:
             shutil.copyfileobj(f_in, f_out)
 
+        if export_size:
+            f_out.write(size_bytes_data)
+
         f_out.write(padding)
         f_out.write(symbol_table_entry)
-        f_out.write(string_table)
+
+        if export_size:
+            f_out.write(symbol_table_entry2)
+
+        if string_table:
+            f_out.write(string_table)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

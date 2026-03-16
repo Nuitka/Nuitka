@@ -80,7 +80,7 @@ def _runDataComposer(source_dir):
 
 
 def getConstantBlobFilename(source_dir):
-    return getNormalizedPathJoin(source_dir, "__constants.bin")
+    return getNormalizedPathJoin(source_dir, "__constant.bin")
 
 
 def deriveModuleConstantsBlobName(filename):

@@ -28,10 +28,10 @@ extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
 #elif defined(_MSC_VER)
 extern CONST_CONSTANT unsigned char constant_bin_data[];
 #else
-extern CONST_CONSTANT unsigned char constant_bin_data[0];
+extern CONST_CONSTANT unsigned char constant_bin_data[];
 #endif
 
-unsigned char const *constant_bin = &constant_bin_data[0];
+unsigned char const *constant_bin = constant_bin_data;
 
 #elif defined(_NUITKA_CONSTANTS_FROM_CODE)
 #ifdef __cplusplus
@@ -40,14 +40,14 @@ extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
 extern CONST_CONSTANT unsigned char constant_bin_data[];
 #endif
 
-unsigned char const *constant_bin = &constant_bin_data[0];
+unsigned char const *constant_bin = constant_bin_data;
 #else
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-extern unsigned const char *getConstantsBlobData(void);
+extern unsigned const char *getConstantBlobData(void);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -1394,7 +1394,7 @@ unsigned char *findMacOSBinarySection(void) {
 #endif
 
     unsigned long size;
-    return getsectiondata(header, "constants", "constants", &size);
+    return getsectiondata(header, "constant", "constant", &size);
 }
 
 #endif
@@ -1410,7 +1410,7 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-        constant_bin = getConstantsBlobData();
+        constant_bin = getConstantBlobData();
 #elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 #if _NUITKA_EXE_MODE
         // Using NULL as this indicates running program.

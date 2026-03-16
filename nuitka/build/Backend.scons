@@ -401,6 +401,7 @@ addConstantBlobFile(
     env=env,
     resource_desc=decideConstantsBlobResourceMode(env=env),
     blob_filename=getConstantBlobFilename(env.source_dir),
+    export_size=False,
 )
 
 

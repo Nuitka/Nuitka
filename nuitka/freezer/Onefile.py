@@ -14,6 +14,7 @@ from nuitka.build.SconsInterface import (
     provideStaticSourceFilesOnefile,
     runScons,
 )
+from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.options.Options import (
     getJobLimit,
     getOnefileTempDirSpec,
@@ -78,7 +79,7 @@ def packDistFolderToOnefile(dist_dir):
     onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(onefile_compression, onefile_archive):
+def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode):
     scons_options, env_values = getCommonSconsOptions()
 
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
@@ -101,6 +102,10 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
+
+    # TODO: The None check can go away once all platforms are supported.
+    if backend_resource_mode is not None:
+        scons_options["backend_resource_mode"] = backend_resource_mode
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
@@ -223,9 +228,12 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     # Now need to append to payload it, potentially compressing it.
     compressor_python = getCompressorPython()
 
+    backend_source_dir = getSourceDirectoryPath(onefile=False, create=False)
+    backend_resource_mode = getSconsReportValue(backend_source_dir, "resource_mode")
+
     # Decide if we need the payload during build already, or if it should be
     # attached.
-    payload_used_in_build = isMacOS()
+    payload_used_in_build = backend_resource_mode != "win_resource"
 
     if payload_used_in_build:
         runOnefileCompressor(
@@ -239,6 +247,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
         onefile_archive=shallOnefileAsArchive(),
+        backend_resource_mode=backend_resource_mode,
     )
 
     if isWin32Windows():

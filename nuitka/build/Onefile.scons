@@ -29,7 +29,6 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
-from nuitka.utils.Utils import isMacOS
 
 from .SconsCompilerSettings import (
     addConstantBlobFile,
@@ -160,15 +159,15 @@ env.Append(
     ],
 )
 
-if isMacOS():
-    addConstantBlobFile(
-        env=env,
-        blob_filename=os.path.join(env.source_dir, "__payload.bin"),
-        resource_desc=("mac_section", "default on macOS"),
-    )
-    env.resource_mode = "mac_section"
-else:
-    env.resource_mode = None
+addConstantBlobFile(
+    env=env,
+    blob_filename=os.path.join(env.source_dir, "__payload.bin"),
+    resource_desc=(
+        getArgumentRequired("backend_resource_mode"),
+        "inherited from backend",
+    ),
+    export_size=True,
+)
 
 # Indicate, that the common code is used to build an executable.
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
