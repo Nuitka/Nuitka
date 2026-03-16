@@ -125,7 +125,7 @@ def _parseArgs():
 
     if options.diff or options.un_pushed:
         if options.from_commit:
-            tools_logger.sysexit(
+            return tools_logger.sysexit(
                 "Error, no --from-commit argument allowed in git diff mode."
             )
 
@@ -135,104 +135,116 @@ def _parseArgs():
     return options, positional_args
 
 
+def formatFilenames(filenames, options):
+    result = 0
+
+    for filename in wrapWithProgressBar(filenames, stage="Auto format", unit="file"):
+        try:
+            if autoFormatFile(
+                filename,
+                git_stage=False,
+                check_only=options.check_only,
+                limit_yaml=options.yaml,
+                limit_c=options.c,
+                limit_python=options.python,
+                limit_rst=options.rst,
+                limit_md=options.md,
+                limit_json=options.json,
+                assume_yes_for_downloads=options.assume_yes_for_downloads,
+            ):
+                result += 1
+        except Exception as e:
+            tools_logger.warning(f"Error formatting {filename}: {e}")
+            raise
+
+    # Tool is named without separator, spellchecker: ignore autoformat
+
+    if options.check_only and result > 0:
+        return tools_logger.sysexit(
+            """Error, 'bin/autoformat-nuitka-source' would make changes to %d files, \
+make sure to have commit hook installed or run it manually.""" % result
+        )
+    elif result > 0:
+        tools_logger.info("autoformat: Changes to formatting of %d files" % result)
+    else:
+        tools_logger.info("autoformat: No files needed formatting changes.")
+
+
+def _formatFromCommit(options):
+    for git_stage in getCheckoutFileChangeDesc(staged=True):
+        autoFormatFile(
+            git_stage["src_path"],
+            git_stage=git_stage,
+            assume_yes_for_downloads=options.assume_yes_for_downloads,
+        )
+
+
+def _formatFromGitPaths(options, positional_args):
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
+            "bin",
+            "lib",
+            "misc",
+            "nuitka",
+            "rpm",
+            "setup.py",
+            "tests",
+            ".github",
+        ),
+    )
+
+    if not positional_args:
+        return tools_logger.sysexit("No files found.")
+
+    if options.check_only:
+        my_print("Checking:", ", ".join(positional_args))
+    else:
+        my_print("Working on:", ", ".join(positional_args))
+
+    positional_args = sum(
+        (
+            resolveShellPatternToFilenames(positional_arg)
+            for positional_arg in positional_args
+        ),
+        [],
+    )
+
+    filenames = list(
+        scanTargets(
+            positional_args,
+            suffixes=(
+                ".py",
+                ".scons",
+                ".rst",
+                ".txt",
+                ".j2",
+                ".md",
+                ".c",
+                ".h",
+                ".yml",
+                ".json",
+                ".cursorrules",
+            ),
+        )
+    )
+    if options.verbose:
+        my_print("Selected:", ", ".join(filenames))
+
+    if not filenames:
+        return tools_logger.sysexit("No files found.")
+
+    formatFilenames(filenames, options)
+
+
 def main():
     options, positional_args = _parseArgs()
 
     if options.from_commit:
-        for git_stage in getCheckoutFileChangeDesc(staged=True):
-            autoFormatFile(
-                git_stage["src_path"],
-                git_stage=git_stage,
-                assume_yes_for_downloads=options.assume_yes_for_downloads,
-            )
+        _formatFromCommit(options)
     else:
-        positional_args = getGitPaths(
-            options=options,
-            positional_args=positional_args,
-            default_positional_args=(
-                "bin",
-                "lib",
-                "misc",
-                "nuitka",
-                "rpm",
-                "setup.py",
-                "tests",
-                ".github",
-            ),
-        )
-
-        if not positional_args:
-            tools_logger.sysexit("No files found.")
-
-        my_print("Working on:", ", ".join(positional_args))
-
-        positional_args = sum(
-            (
-                resolveShellPatternToFilenames(positional_arg)
-                for positional_arg in positional_args
-            ),
-            [],
-        )
-
-        filenames = list(
-            scanTargets(
-                positional_args,
-                suffixes=(
-                    ".py",
-                    ".scons",
-                    ".rst",
-                    ".txt",
-                    ".j2",
-                    ".md",
-                    ".c",
-                    ".h",
-                    ".yml",
-                    ".json",
-                    ".cursorrules",
-                ),
-            )
-        )
-        if options.verbose:
-            my_print("Selected:", ", ".join(filenames))
-
-        if not filenames:
-            tools_logger.sysexit("No files found.")
-
-        result = 0
-
-        for filename in wrapWithProgressBar(
-            filenames, stage="Auto format", unit="file"
-        ):
-            try:
-                if autoFormatFile(
-                    filename,
-                    git_stage=False,
-                    check_only=options.check_only,
-                    limit_yaml=options.yaml,
-                    limit_c=options.c,
-                    limit_python=options.python,
-                    limit_rst=options.rst,
-                    limit_md=options.md,
-                    limit_json=options.json,
-                    assume_yes_for_downloads=options.assume_yes_for_downloads,
-                ):
-                    result += 1
-            except Exception as e:
-                tools_logger.warning(f"Error formatting {filename}: {e}")
-                raise
-
-        # Tool is named without separator, spellchecker: ignore autoformat
-
-        if options.check_only and result > 0:
-            tools_logger.sysexit(
-                """Error, 'bin/autoformat-nuitka-source' would make changes to %d files, \
-make sure to have commit hook installed or run it manually."""
-                % result
-            )
-        elif result > 0:
-            tools_logger.info("autoformat: Changes to formatting of %d files" % result)
-        else:
-            tools_logger.info("autoformat: No files needed formatting changes.")
+        _formatFromGitPaths(options, positional_args)
 
 
 if __name__ == "__main__":
