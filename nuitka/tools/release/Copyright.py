@@ -142,9 +142,9 @@ def _formatComments(filename, comments):
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]
     elif filename.endswith(".j2"):
-        comments = [(b"{# %-76s #}" % comment) for comment in comments[:-1]] + [
-            b"{# %-76s -#}" % comments[-1]
-        ]
+        max_len = max(75, max(len(comment.strip()) for comment in comments))
+        template = b"{#-  %%-%ds -#}" % max_len
+        comments = [(template % comment.strip()) for comment in comments]
     elif (
         filename.endswith(".txt")
         and "tests/commercial" in filename
