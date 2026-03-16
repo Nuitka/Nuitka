@@ -17,6 +17,7 @@ import stat
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
+from nuitka.tools.release.Release import getGitDir
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
@@ -79,8 +80,10 @@ def main():
 
     goHome()
 
+    git_dir = getGitDir()
+
     for hook in os.listdir(".githooks"):
-        hook_target = os.path.join(".git/hooks/", hook)
+        hook_target = os.path.join(git_dir, "hooks", hook)
 
         if hook == "pre-commit" and not options.pre_commit:
             if os.path.exists(hook_target):

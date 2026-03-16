@@ -13,6 +13,7 @@ from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileFirstLine,
+    getNormalizedPath,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -20,14 +21,24 @@ from nuitka.utils.Utils import isLinux
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionTuple
 
 
+def getGitDir():
+    git_dir = getNormalizedPath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", ".git")
+    )
+
+    if os.path.isdir(git_dir):
+        return git_dir
+
+    line = getFileFirstLine(git_dir, "r").strip()
+    return getNormalizedPath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", line[8:])
+    )
+
+
 def checkAtHome(expected="Nuitka Staging"):
     assert os.path.isfile("setup.py")
 
-    if os.path.isdir(".git"):
-        git_dir = ".git"
-    else:
-        line = getFileFirstLine(".git", "r").strip()
-        git_dir = line[8:]
+    git_dir = getGitDir()
 
     git_description_filename = os.path.join(git_dir, "description")
     description = getFileContents(git_description_filename).strip()
