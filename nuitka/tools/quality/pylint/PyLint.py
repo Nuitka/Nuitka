@@ -255,9 +255,12 @@ def _executePylint(filenames, pylint_options, extra_options):
         + filenames
     )
 
+    env = dict(os.environ)
+    env["PYTHONWARNINGS"] = "ignore"
+
     process_result = executeProcess(
         command,
-        env={"PYTHONWARNINGS": "ignore"},
+        env=env,
     )
 
     if process_result.exit_code == -11:
