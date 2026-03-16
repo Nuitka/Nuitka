@@ -55,7 +55,7 @@ try:
     os.makedirs("chroot/var/cache/apt/archives")
 
     os.makedirs("chroot/etc/apt.conf.d")
-    with open("chroot/etc/apt.conf.d/75mine", "w") as output_file:
+    with open("chroot/etc/apt.conf.d/75mine", "w", encoding="utf8") as output_file:
         output_file.write('Acquire::Languages "none";\n')
 
     target_filename = codename + ".tgz"

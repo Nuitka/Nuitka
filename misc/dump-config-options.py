@@ -1,6 +1,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Dump Python sysconfig options."""
+
 import sysconfig
 
 print(sysconfig.get_config_var("CONFIG_ARGS"))

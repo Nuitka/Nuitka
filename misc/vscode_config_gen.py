@@ -152,7 +152,7 @@ def getMSVCInfo():
     return compiler_path, sdk_version
 
 
-def getPluginIncludePaths(repo_root):
+def getPluginIncludePaths():
     """Scans for plugin directories containing C/C++ header files."""
     plugin_includes = []
     base_plugins_dir = os.path.join(repo_root, "nuitka", "plugins")
@@ -210,7 +210,7 @@ def main():
         print(f"Windows SDK Version: {sdk_version}")
     print(f"IntelliSense Mode: {intelliSenseMode}")
 
-    plugin_include_paths = getPluginIncludePaths(repo_root)
+    plugin_include_paths = getPluginIncludePaths()
     print(f"Found {len(plugin_include_paths)} plugins with headers.")
 
     template_path = os.path.join(repo_root, ".vscode", "c_cpp_properties.json.j2")
