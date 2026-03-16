@@ -34,6 +34,7 @@ from .Utils import (
     isAlpineLinux,
     isBSD,
     isCoffUsingPlatform,
+    isDebianBasedLinux,
     isElfUsingPlatform,
     isLinux,
     isMacOS,
@@ -472,7 +473,7 @@ Error, standalone mode on %s requires 'patchelf' to be \
 installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
     )
 
-    if output.split() == b"0.18.0":
+    if output.split() == b"0.18.0" and not isDebianBasedLinux():
         return logger.sysexit(
             "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
         )
