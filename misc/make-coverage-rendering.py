@@ -38,23 +38,39 @@ def main():
 
         paths.append(values["NUITKA_SOURCE_DIR"])
 
+    # spell-checker: ignore coveragerc
     coverage_path = os.path.abspath(".coveragerc")
 
-    with open(coverage_path, "w") as coverage_rcfile:
-        coverage_rcfile.write("[paths]\n")
-        coverage_rcfile.write("source = \n")
+    with open(coverage_path, "w") as coverage_rc_file:
+        coverage_rc_file.write("[paths]\n")
+        coverage_rc_file.write("source = \n")
 
         for path in paths:
-            coverage_rcfile.write("   " + path + "\n")
+            coverage_rc_file.write("   " + path + "\n")
 
     subprocess.call(
-        [sys.executable, "-m", "coverage", "combine", "--rcfile", coverage_path]
+        # spell-checker: ignore rcfile
+        [
+            sys.executable,
+            "-m",
+            "coverage",
+            "combine",
+            "--rcfile",
+            coverage_path,
+        ]
     )
 
     assert os.path.exists(coverage_path)
 
     subprocess.call(
-        [sys.executable, "-m", "coverage", "html", "--rcfile", coverage_path]
+        [
+            sys.executable,
+            "-m",
+            "coverage",
+            "html",
+            "--rcfile",
+            coverage_path,
+        ]
     )
 
     # Clean up after ourselves again.
