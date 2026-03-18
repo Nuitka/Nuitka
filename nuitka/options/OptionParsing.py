@@ -1317,6 +1317,18 @@ count unless low memory mode is activated, then it defaults to 1.""",
 )
 
 c_compiler_group.add_option(
+    "--reproducible",
+    action="store",
+    dest="reproducible",
+    metavar="choice",
+    default="auto",
+    choices=("yes", "no", "auto"),
+    help="""\
+Enable reproducible builds. Allowed values are "yes", "no", and "auto"
+(where it's "no" on Windows and "yes" otherwise). Defaults to "auto".""",
+)
+
+c_compiler_group.add_option(
     "--lto",
     action="store",
     dest="lto",
