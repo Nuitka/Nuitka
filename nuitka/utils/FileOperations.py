@@ -1233,7 +1233,10 @@ def withMadeWritableFileMode(filenames):
 
     with withPreserveFileMode(filenames):
         for filename in filenames:
-            os.chmod(filename, int("644", 8))
+            old_stat = os.stat(filename)
+            mode = old_stat.st_mode
+            if not mode & stat.S_IWUSR:
+                os.chmod(filename, mode | stat.S_IWUSR)
 
         yield
 

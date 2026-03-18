@@ -47,10 +47,13 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
+    getFileList,
     getNormalizedPathJoin,
+    getSubDirectories,
     isFilenameBelowPath,
     makePath,
     relpath,
+    withMadeWritableFileMode,
 )
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -259,15 +262,19 @@ def signDistributionMacOS(
     dist_dir, data_file_paths, main_standalone_entry_point, copy_standalone_entry_points
 ):
     # Make all top level directories symlinks for signing issues with MacOS
-    # bundles. This is complex, because we also need to handle the need to
-    # symlink and track information. pylint: disable=too-many-locals
+    # bundles. Also strip all extended attributes. This is complex, because we
+    # also need to handle the need to symlink and track information.
+    # pylint: disable=too-many-locals
 
-    # spell-checker: ignore xattr
-    executeToolChecked(
-        logger=inclusion_logger,
-        command=("/usr/bin/xattr", "-cr", dist_dir),
-        absence_message="needs 'xattr' to remove extended attributes",
-    )
+    filenames_to_make_writable = getFileList(dist_dir) + getSubDirectories(dist_dir)
+
+    with withMadeWritableFileMode(filenames_to_make_writable):
+        # spell-checker: ignore xattr
+        executeToolChecked(
+            logger=inclusion_logger,
+            command=("/usr/bin/xattr", "-cr", dist_dir),
+            absence_message="needs 'xattr' to remove extended attributes",
+        )
 
     translations = OrderedSet()
     symlinks = OrderedSet()
