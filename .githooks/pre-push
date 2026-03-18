@@ -56,7 +56,7 @@ do
             *.py.j2)
                 py_j2_files="$py_j2_files $file"
                 ;;
-            *.yml|*.yaml)
+            *.nuitka-package.config.yml)
                 yaml_files="$yaml_files $file"
                 ;;
         esac
@@ -70,12 +70,14 @@ do
 
     if [ -n "$all_files" ]
     then
+        OPTIONS="--check --assume-yes-for-downloads"
+
         if [ -f "bin/autoformat-nuitka-source" ]
         then
-            ./bin/autoformat-nuitka-source --check $all_files
+            ./bin/autoformat-nuitka-source $OPTIONS $all_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         else
-            python -m pipenv run python Nuitka-develop/bin/autoformat-nuitka-source --check $all_files
+            python -m pipenv run python Nuitka-develop/bin/autoformat-nuitka-source $OPTIONS $all_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         fi
     fi
