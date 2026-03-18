@@ -298,12 +298,17 @@ def _getReportInputData(aborted):
                 onefile_resource_mode = getSconsReportValue(
                     onefile_source_dir, "resource_mode", default=None
                 )
+                onefile_reproducible = getSconsReportValue(
+                    onefile_source_dir, "reproducible", default=None
+                )
             else:
                 onefile_resource_mode = None
+                onefile_reproducible = None
         else:
             onefile_executable = None
             onefile_executable_size = None
             onefile_resource_mode = None
+            onefile_reproducible = None
 
         scons_error_report_data = readSconsErrorReport(
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
@@ -337,6 +342,9 @@ def _getReportInputData(aborted):
         backend_resource_mode = getSconsReportValue(
             source_dir, "resource_mode", default=None
         )
+        backend_reproducible = getSconsReportValue(
+            source_dir, "reproducible", default=None
+        )
     else:
         cpp_flags = None
         c_flags = None
@@ -344,6 +352,7 @@ def _getReportInputData(aborted):
         cxx_flags = None
         ld_flags = None
         backend_resource_mode = None
+        backend_reproducible = None
 
     del source_dir
 
@@ -915,6 +924,11 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 "backend_resource_mode"
             ]
 
+        if report_input_data["backend_reproducible"] is not None:
+            python_binary_xml_node.attrib["reproducible"] = report_input_data[
+                "backend_reproducible"
+            ]
+
         if diffable:
             python_binary_xml_node.attrib["size"] = "volatile"
         elif report_input_data["backend_executable_size"] is not None:
@@ -932,6 +946,11 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         if report_input_data.get("onefile_resource_mode") is not None:
             onefile_binary_xml_node.attrib["onefile_resource_mode"] = report_input_data[
                 "onefile_resource_mode"
+            ]
+
+        if report_input_data.get("onefile_reproducible") is not None:
+            onefile_binary_xml_node.attrib["reproducible"] = report_input_data[
+                "onefile_reproducible"
             ]
 
         if diffable:

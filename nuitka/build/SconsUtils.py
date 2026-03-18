@@ -615,6 +615,7 @@ def writeSconsReport(env, target):
         print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
 
         print("resource_mode=%s" % env.resource_mode, file=report_file)
+        print("reproducible=%s" % env.reproducible_mode, file=report_file)
 
 
 _checked_msvc_language_pack = False
