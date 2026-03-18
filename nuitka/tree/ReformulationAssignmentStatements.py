@@ -21,6 +21,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import (
@@ -28,6 +29,11 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionRef,
+    makeExpressionFunctionCreation,
+)
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -68,6 +74,7 @@ from nuitka.nodes.VariableNameNodes import (
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
+from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
@@ -1228,10 +1235,65 @@ def buildTypeParamSpec(node, source_ref):
     return ExpressionParameterSpecification(node.name, source_ref=source_ref)
 
 
+def _makeTypeExpressionFactory(provider, function_name, type_expression, source_ref):
+    parameters = ParameterSpec(
+        ps_name=function_name,
+        ps_normal_args=(),
+        ps_list_star_arg=None,
+        ps_dict_star_arg=None,
+        ps_default_count=0,
+        ps_kw_only_args=(),
+        ps_pos_only_args=(),
+    )
+    parent_module = provider.getParentModule()
+    code_object = CodeObjectSpec(
+        co_name=function_name,
+        co_qualname=function_name,
+        co_kind="Function",
+        co_varnames=parameters.getParameterNames(),
+        co_freevars=(),
+        co_argcount=parameters.getArgumentCount(),
+        co_posonlyargcount=parameters.getPosOnlyParameterCount(),
+        co_kwonlyargcount=parameters.getKwOnlyParameterCount(),
+        co_has_starlist=parameters.getStarListArgumentName() is not None,
+        co_has_stardict=parameters.getStarDictArgumentName() is not None,
+        co_filename=parent_module.getRunTimeFilename(),
+        co_lineno=source_ref.getLineNumber(),
+        future_spec=parent_module.getFutureSpec(),
+    )
+
+    body = ExpressionFunctionBody(
+        provider=provider,
+        name=function_name,
+        code_object=code_object,
+        flags=set(),
+        doc=None,
+        parameters=parameters,
+        auto_release=None,
+        code_prefix="function",
+        source_ref=source_ref,
+    )
+
+    body.setChildBody(
+        makeStatementsSequenceFromStatement(
+            StatementReturn(type_expression, source_ref)
+        )
+    )
+
+    return makeExpressionFunctionCreation(
+        function_ref=ExpressionFunctionRef(
+            function_body=body,
+            source_ref=source_ref,
+        ),
+        defaults=(),
+        kw_defaults=None,
+        annotations=None,
+        source_ref=source_ref,
+    )
+
+
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
-
-    type_alias_name = mangleName(node.name.id, provider)
 
     def createTypeExpression():
         helper_name = "create_type_expression"
@@ -1243,7 +1305,7 @@ def buildTypeAliasNode(provider, node, source_ref):
         assignments = []
         for type_param in node.type_params:
             type_var = buildNode(
-                provider=provider, node=type_param, source_ref=source_ref
+                provider=outline_body, node=type_param, source_ref=source_ref
             )
 
             assign = StatementAssignmentVariableName(
@@ -1254,26 +1316,33 @@ def buildTypeAliasNode(provider, node, source_ref):
             )
             assignments.append(assign)
 
-        type_alias_node = ExpressionTypeAlias(
-            name=ExpressionVariableNameRef(
-                provider=provider, variable_name=type_alias_name, source_ref=source_ref
-            ),
-            type_params=buildNodeTuple(outline_body, node.type_params, source_ref),
-            value=buildNode(outline_body, node.value, source_ref),
-            source_ref=source_ref,
-        )
         body = makeStatementsSequenceFromStatements(
             assignments,
-            StatementReturn(expression=type_alias_node, source_ref=source_ref),
+            StatementReturn(
+                expression=buildNode(outline_body, node.value, source_ref),
+                source_ref=source_ref,
+            ),
         )
         outline_body.setChildBody(body)
 
         return outline_body
 
+    type_alias_name = mangleName(node.name.id, provider)
+    type_alias_node = ExpressionTypeAlias(
+        name=ExpressionVariableNameRef(
+            provider=provider, variable_name=type_alias_name, source_ref=source_ref
+        ),
+        type_params=buildNodeTuple(provider, node.type_params, source_ref),
+        value=_makeTypeExpressionFactory(
+            provider, type_alias_name, createTypeExpression(), source_ref
+        ),
+        source_ref=source_ref,
+    )
+
     return StatementAssignmentVariableName(
         provider=provider,
         variable_name=type_alias_name,
-        source=createTypeExpression(),
+        source=type_alias_node,
         source_ref=source_ref,
     )
 
