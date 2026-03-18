@@ -35,6 +35,11 @@ def onModuleInitialSet():
     return Plugins.onModuleInitialSet()
 
 
+def considerIncompleteModuleSet():
+    """The module set is incomplete, giving plugins a chance to add more."""
+    Plugins.considerIncompleteModuleSet()
+
+
 def onModuleCompleteSet():
     """Called after the final module set is complete."""
     return Plugins.onModuleCompleteSet()

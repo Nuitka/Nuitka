@@ -6135,10 +6135,29 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'sentry_sdk' # checksum: 758a715a
+- module-name: 'sentry_sdk.integrations' # checksum: 3f626871
+  variables:
+    setup_code:
+      - 'import sentry_sdk.integrations'
+    declarations:
+      'sentry_sdk_default_integrations': 'tuple(integration.rsplit(".", 1)[0] for integration in sentry_sdk.integrations._DEFAULT_INTEGRATIONS)'
+
+  anti-bloat:
+    - description: "Don't include dependencies automatically"
+      limit-auto-follow:
+        - 'sentry_sdk'
+    - description: 'Disable metadata checking'
+      change_function:
+        '_check_minimum_version': "'(lambda integration, package, version: None)'"
   implicit-imports:
     - depends:
-        - 'sentry_sdk.integrations.*'
+        - 'get_variable("sentry_sdk_default_integrations")'
+
+- module-name: 'sentry_sdk.integrations.strawberry' # checksum: 9a6111a4
+  anti-bloat:
+    - description: "Don't include dependencies automatically"
+      conditional-auto-follow:
+        'strawberry': 'strawberry'
 
 - module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:

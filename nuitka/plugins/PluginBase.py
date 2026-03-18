@@ -809,11 +809,26 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         # Virtual method, pylint: disable=no-self-use
         return ()
 
+    def onIncompleteModuleSet(self, module_names):
+        """Provide extra modules during the optimization module loop.
+
+        Args:
+            module_names - tuple of module names
+        Returns:
+            Iterable yielding `config_module_name, module_to_add`
+        Notes:
+            You can use this to conditionally add modules inside optimization passes,
+            but for dependencies of modules, use getImplicitImports, to assign the
+            dependency to the module that uses it.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def onModuleCompleteSet(self, module_set):
         """Provide extra modules to the initial root module set.
 
         Args:
-            module_set - tuple of module objects
+            module_set - tuple of modules
         Returns:
             None
         Notes:

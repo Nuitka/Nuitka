@@ -2155,6 +2155,9 @@ def isZig():
 
 def getMsvcVersion():
     """:returns: str derived from ``--msvc`` on Windows, otherwise None"""
+    if options is None:
+        return None
+
     if isWin32Windows():
         return options.msvc_version
     else:

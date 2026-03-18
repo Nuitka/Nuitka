@@ -21,6 +21,7 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.Hooks import (
     considerImplicitImports,
+    considerIncompleteModuleSet,
     getModuleSysPathAdditions,
 )
 from nuitka.Progress import (
@@ -300,7 +301,13 @@ def _makeOptimizationPass():
                 main_module = None
                 continue
 
-            break
+            # plugins might add items to the unresolved module set
+            considerIncompleteModuleSet()
+
+            current_module = ModuleRegistry.nextModule()
+
+            if current_module is None:
+                break
 
         if current_module.isMainModule() and not stdlib_phase_done:
             main_module = current_module

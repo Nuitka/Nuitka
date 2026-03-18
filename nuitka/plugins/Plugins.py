@@ -30,7 +30,12 @@ from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
-from nuitka.ModuleRegistry import addUsedModule
+from nuitka.ModuleRegistry import (
+    addUsedModule,
+    getDoneModules,
+    getModuleByName,
+    hasDoneModule,
+)
 from nuitka.options.CommandLineOptionsTools import OurOptionGroup
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -1116,10 +1121,13 @@ through implicit import by '%s' plugin encountered."""
 Error, follow decision '%s' for module '%s' of plugin '%s' does not match other plugin '%s' decision '%s'."""
                         % (
                             must_recurse[0],
+                            module_name,
+                            plugin.plugin_name,
                             ".".join(
                                 deciding_plugin.plugin_name
                                 for deciding_plugin in deciding_plugins
                             ),
+                            result[0],
                         )
                     )
 
@@ -1232,9 +1240,81 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
                 addRootModule(module)
 
     @staticmethod
+    def considerIncompleteModuleSet():
+        """The module set is incomplete, giving plugins a chance to add more."""
+
+        module_names = tuple(module.getFullName() for module in getDoneModules())
+
+        modules_to_add = OrderedDict()
+
+        # First ask all plugins for the names to follow now.
+        for plugin in getActivePlugins():
+            for (
+                config_module_name,
+                module_namespace_to_add,
+            ) in plugin.onIncompleteModuleSet(module_names):
+                module_namespace_to_add = ModuleName(module_namespace_to_add)
+                modules_to_add[module_namespace_to_add] = (plugin, config_module_name)
+
+        # Now remove sub-namespaces.
+        for module_namespace_to_add in tuple(modules_to_add):
+            package_name = module_namespace_to_add.getPackageName()
+
+            if package_name is not None and package_name.hasOneOfNamespaces(
+                *modules_to_add
+            ):
+                del modules_to_add[module_namespace_to_add]
+
+        for module in getDoneModules():
+            for module_usage_attempt in module.getUsedModules():
+                if module_usage_attempt.filename is not None:
+                    used_module_name = module_usage_attempt.module_name
+
+                    if not hasDoneModule(used_module_name):
+                        for module_namespace_to_add, (
+                            plugin,
+                            config_module_name,
+                        ) in modules_to_add.items():
+                            if used_module_name.hasNamespace(module_namespace_to_add):
+                                config_module = getModuleByName(config_module_name)
+                                assert config_module is not None, config_module_name
+
+                                try:
+                                    new_module = recurseTo(
+                                        module_name=used_module_name,
+                                        module_filename=module_usage_attempt.filename,
+                                        module_kind=module_usage_attempt.module_kind,
+                                        source_ref=module_usage_attempt.source_ref,
+                                        reason=module_usage_attempt.reason,
+                                        using_module_name=config_module_name,
+                                    )
+                                except NuitkaForbiddenImportEncounter as e:
+                                    plugin.sysexit(
+                                        """\
+Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' \
+through incomplete set import by '%s' plugin encountered."""
+                                        % (
+                                            e.args[0],
+                                            e.args[1],
+                                            config_module_name,
+                                            plugin.plugin_name,
+                                        )
+                                    )
+
+                                if new_module:
+                                    addUsedModule(
+                                        module=new_module,
+                                        using_module=config_module,
+                                        usage_tag="conditional-auto-follow",
+                                        reason=module_usage_attempt.reason,
+                                        source_ref=module_usage_attempt.source_ref,
+                                    )
+
+                                break
+
+    @staticmethod
     def onModuleCompleteSet():
         """The final set of modules is determined, this is only for inspection, cannot change."""
-        from nuitka.ModuleRegistry import getDoneModules
 
         # Make sure it's immutable.
         module_set = tuple(getDoneModules())
