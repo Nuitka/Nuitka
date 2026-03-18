@@ -116,11 +116,23 @@ def _getPrivatePipBinaryPath(
     binary_name,
     package_name,
     module_name,
-    version,
+    dependencies,
     assume_yes_for_downloads,
     reject_message,
 ):
-    """Get the path of a binary from the private pip space."""
+    """Get the path of a binary from the private pip space or globally.
+
+    This first checks the system PATH for the binary. If found, it checks if its
+    version and its dependencies' versions match the requirements. If they match,
+    it returns the global binary.
+
+    Otherwise, it downloads the package and its dependencies into the private pip
+    space, verifies the installed binary there, and returns its path.
+    """
+    # Complex code, pylint: disable=too-many-locals
+
+    version = getRequiredVersion(logger, package_name)
+
     candidate_bin_paths = _getCandidateBinPaths(logger=logger, site_packages=None)
 
     # Construct an extra_dir for search
@@ -134,7 +146,10 @@ def _getPrivatePipBinaryPath(
 
         with withPrivatePipSitePackagesPathAdded(logger=logger):
             ok, _message = _checkRequiredVersion(
-                logger=logger, tool=binary_name, tool_call=[binary_path]
+                logger=logger,
+                tool=binary_name,
+                tool_call=[binary_path],
+                dependencies=dependencies,
             )
         if ok:
             return binary_path, None, assume_yes_for_downloads
@@ -151,6 +166,16 @@ def _getPrivatePipBinaryPath(
     )
 
     if site_packages_folder:
+        for dep_package_name, dep_module_name, dep_reject_message in dependencies:
+            _, assume_yes_for_downloads = tryDownloadPackageName(
+                logger=logger,
+                package_name=dep_package_name,
+                module_name=dep_module_name,
+                package_version=getRequiredVersion(logger, dep_package_name),
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                reject_message=dep_reject_message,
+            )
+
         # Check standard locations in the downloaded environment.
         for candidate in _getCandidateBinPaths(
             logger=logger, site_packages=site_packages_folder
@@ -163,7 +188,10 @@ def _getPrivatePipBinaryPath(
                 if version is not None:
                     with withPrivatePipSitePackagesPathAdded(logger=logger):
                         ok, _message = _checkRequiredVersion(
-                            logger=logger, tool=binary_name, tool_call=[possible]
+                            logger=logger,
+                            tool=binary_name,
+                            tool_call=[possible],
+                            dependencies=dependencies,
                         )
                     if not ok:
                         continue
@@ -479,7 +507,7 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
             binary_name="clang-format",
             package_name="clang-format",
             module_name="clang_format",
-            version=getRequiredVersion(logger, "clang-format"),
+            dependencies=(),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -495,7 +523,7 @@ def getBlackBinaryPath(logger, assume_yes_for_downloads):
             binary_name="black",
             package_name="black",
             module_name="black",
-            version=getRequiredVersion(logger, "black"),
+            dependencies=(),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'black'.",
         )
@@ -511,7 +539,7 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
             binary_name="isort",
             package_name="isort",
             module_name="isort",
-            version=getRequiredVersion(logger, "isort"),
+            dependencies=(),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'isort'.",
         )
@@ -521,43 +549,36 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
 
 def getMdformatBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the mdformat binary from the private pip space."""
-    mdformat_path, site_packages_folder, assume_yes_for_downloads = (
+
+    dependencies = (
+        (
+            "mdformat-gfm",
+            "mdformat_gfm",
+            "Markdown formatting needs to use 'mdformat-gfm'.",
+        ),
+        (
+            "mdformat-frontmatter",
+            "mdformat_frontmatter",
+            "Markdown formatting needs to use 'mdformat-frontmatter'.",
+        ),
+        (
+            "mdformat-footnote",
+            "mdformat_footnote",
+            "Markdown formatting needs to use 'mdformat-footnote'.",
+        ),
+    )
+
+    mdformat_path, _site_packages_folder, _assume_yes_for_downloads = (
         _getPrivatePipBinaryPath(
             logger=logger,
             binary_name="mdformat",
             package_name="mdformat",
             module_name="mdformat",
-            version=getRequiredVersion(logger, "mdformat"),
+            dependencies=dependencies,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat'.",
         )
     )
-
-    if mdformat_path and site_packages_folder:
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-gfm",
-            module_name="mdformat_gfm",
-            package_version=getRequiredVersion(logger, "mdformat-gfm"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-gfm'.",
-        )
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-frontmatter",
-            module_name="mdformat_frontmatter",
-            package_version=getRequiredVersion(logger, "mdformat-frontmatter"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-frontmatter'.",
-        )
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-footnote",
-            module_name="mdformat_footnote",
-            package_version=getRequiredVersion(logger, "mdformat-footnote"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-footnote'.",
-        )
 
     return mdformat_path
 
@@ -570,7 +591,7 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
             binary_name="rstfmt",
             package_name="rstfmt",
             module_name="rstfmt",
-            version=getRequiredVersion(logger, "rstfmt"),
+            dependencies=(),
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
         )
@@ -698,8 +719,10 @@ def getRequiredVersion(logger, tool):
 _check_required_version_cache = {}
 
 
-def _checkRequiredVersion(logger, tool, tool_call):
+def _checkRequiredVersion(logger, tool, tool_call, dependencies):
     """Check if the version of a tool matches the requirement."""
+
+    # Complex code, pylint: disable=too-many-branches,too-many-locals
     required_version = getRequiredVersion(logger=logger, tool=tool)
 
     tool_call = tuple(list(tool_call) + ["--version"])
@@ -716,6 +739,25 @@ def _checkRequiredVersion(logger, tool, tool_call):
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
+
+    if dependencies:
+        for dep_package_name, _dep_module_name, _dep_reject_message in dependencies:
+            plugin_ver = getRequiredVersion(logger, dep_package_name)
+            if plugin_ver:
+                search_name_1 = dep_package_name
+                search_name_2 = dep_package_name.replace("-", "_")
+
+                if not any(
+                    "%s %s" % (name, plugin_ver) in version_output
+                    for name in (search_name_1, search_name_2)
+                ):
+                    result = (
+                        False,
+                        "Missing or mismatched dependency '%s %s' in '%s'."
+                        % (dep_package_name, plugin_ver, tool),
+                    )
+                    _check_required_version_cache[tool_call] = result
+                    return result
 
     actual_version = None
     for line in version_output.splitlines():
