@@ -2205,6 +2205,15 @@ def getJobLimit():
     return result
 
 
+def isReproducibleBuild():
+    """:returns: bool derived from ``--reproducible`` or defaults to true on non-Windows."""
+    if options.reproducible == "auto":
+        # The AVs are going to hate you otherwise.
+        return not isWin32Windows()
+
+    return options.reproducible == "yes"
+
+
 def getLtoMode():
     """:returns: bool derived from ``--lto``"""
     return options.lto

@@ -280,6 +280,9 @@ Enforce the use of specific MSVC version on Windows. Allowed values are e.g. "14
 \fB\-\-jobs\fR=\fI\,N\/\fR
 Specify the allowed number of parallel C compiler jobs. Negative values are system CPU minus the given value. Defaults to the full system CPU count unless low memory mode is activated, then it defaults to 1.
 .TP
+\fB\-\-reproducible\fR=\fI\,choice\/\fR
+Enable reproducible builds. Allowed values are "yes", "no", and "auto" (where it's "no" on Windows and "yes" otherwise). Defaults to "auto".
+.TP
 \fB\-\-lto\fR=\fI\,choice\/\fR
 Use link time optimizations (MSVC, gcc, clang). Allowed values are "yes", "no", and "auto" (when it's known to work). Defaults to "auto".
 .TP
