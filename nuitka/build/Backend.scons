@@ -541,6 +541,22 @@ def createBuildDefinitionsFile():
         main_module_name != "__main__"
     )
 
+    if env.forced_stdout_path is not None:
+        if env.forced_stdout_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
+        elif env.forced_stdout_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDOUT_PATH"] = env.forced_stdout_path
+
+    if env.forced_stderr_path is not None:
+        if env.forced_stderr_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
+        elif env.forced_stderr_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDERR_PATH"] = env.forced_stderr_path
+
     createDefinitionsFile(env.source_dir, "build_definitions.h", env.build_definitions)
 
 

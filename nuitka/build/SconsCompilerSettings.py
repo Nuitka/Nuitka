@@ -943,6 +943,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # good with the compiler in question.
     lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
+    # Reproducible mode
+    reproducible_mode = getArgumentBool("reproducible_mode", False)
+
     # PGO mode: Use profile guided optimization of C compiler if available.
     pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
@@ -1061,6 +1064,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
     env.lto_mode = lto_mode
+    env.reproducible_mode = reproducible_mode
     env.pgo_mode = pgo_mode
     env.job_count = job_count
     env.frozen_modules = frozen_modules
@@ -1113,14 +1117,15 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
 
-    # Make sure we use a fixed date for macros like "__DATE__" to ensure
-    # reproducibility.
-    if env.gcc_mode:
-        setEnvironmentVariable(env, "SOURCE_DATE_EPOCH", "0")
+    if env.reproducible_mode:
+        # Make sure we use a fixed date for macros like "__DATE__" to ensure
+        # reproducibility.
+        if env.gcc_mode:
+            setEnvironmentVariable(env, "SOURCE_DATE_EPOCH", "0")
 
-    # Ask the MSVC linker to be reproducible.
-    if env.clangcl_mode or env.msvc_mode:
-        env.Append(LINKFLAGS=["/Brepro"])  # spell-checker: ignore Brepro
+        # Ask the MSVC linker to be reproducible.
+        if env.clangcl_mode or env.msvc_mode:
+            env.Append(LINKFLAGS=["/Brepro"])  # spell-checker: ignore Brepro
 
     if env.gcc_mode or env.zig_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
@@ -1179,14 +1184,22 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
                 ]
             )
 
-            if env.clang_mode or env.gcc_version >= (4, 6):
+            if (
+                isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+            ):
                 env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
         if env.msvc_mode:
             env.Append(CCFLAGS=["/WX"])
     else:
         if env.gcc_mode or env.zig_mode:
-            if env.clang_mode or (env.gcc_version and env.gcc_version >= (4, 6)):
+            if (
+                isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
+            ):
                 env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
