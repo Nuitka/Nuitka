@@ -1,8 +1,7 @@
 <!--     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -->
 
 ---
-description: Create a Minimally Reproducible Example (MRE) from a larger file 
-  triggering a Nuitka bug.
+description: Create a Minimally Reproducible Example (MRE) from a larger file triggering a Nuitka bug.
 ---
 
 # MRE Extraction Workflow
@@ -12,23 +11,29 @@ a specific bug (e.g., a compiler crash).
 
 ## 1. Setup and Verification
 
-- **Identify the target file** to reduce.
-- **Identify the specific command** that triggers the issue (e.g., `python bin/nuitka Target.py`).
-- **Run the reproduction command** immediately to confirm the issue exists and capture the exact
-  error message/output.
+- **Identify the target file** to reduce. If this file is deep inside an installed library (e.g., in
+  `site-packages`), **copy it to your local working directory** (like `MRE.py`) to avoid
+  accidentally corrupting your Python environment during the destructive reduction process.
+- **Identify the specific command** that triggers the issue if possible.
+- **Run the reproduction command** to confirm the issue. If the crash occurs during a massive
+  standalone build, it's highly recommended to pipe the output to a file (`> out.txt 2>&1`) to
+  easily search for the crash location, or to reliably inspect `nuitka-crash-report.xml` if it is
+  generated.
 
 ### Handling Standalone Optimization Crashes
 
 If the crash happens during optimization in standalone mode (often a Python traceback below
 `nuitka/optimizations`:
 
-1. **Check the output** for lines starting with `Problem with statement at ...`.
-2. **Identify the filename** mentioned in the next line.
-3. **Run Nuitka in module mode** on that specific file (e.g.,
-   `python bin/nuitka --mode=module --generate-c-only path/to/ProblematicFile.py`). *Note*: Use
-   `--generate-c-only` to skip the C compilation phase, which is unnecessary if the crash occurs
-   during Nuitka's optimization (Python) phase. This significantly speeds up the reduction cycle.
-4. **If the crash reproduces**, specific reduction in module mode as described below is the best
+1. **Check the output** or `out.txt` for lines starting with `Problem with statement at ...`, or
+   look at the root `<exception>` tag in `nuitka-crash-report.xml`.
+2. **Identify the filename** involved.
+3. **Copy that file locally** (e.g. `cp /path/to/ProblematicFile.py MRE.py`).
+4. **Run Nuitka in module mode** on that copied file (e.g.,
+   `python bin/nuitka --mode=module --generate-c-only MRE.py`). *Note*: Use `--generate-c-only` to
+   skip the C compilation phase, which is unnecessary if the crash occurs during Nuitka's
+   optimization (Python) phase. This significantly speeds up the reduction cycle.
+5. **If the crash reproduces**, specific reduction in module mode as described below is the best
    path forward.
 
 ## 2. Analysis
@@ -54,6 +59,16 @@ Repeat this process until the file is minimal:
      complex scope analysis.
    - *Strategy 6*: Remove default arguments from functions. This simplifies the function signature
      and can help isolate issues related to default value evaluation or parameter handling.
+   - *Strategy 7*: **Structural and Scoping Mutations**. When dealing with compiler/optimization
+     crashes, the bug is sometimes tied to the *shape* of the AST or variable scoping. Test subtle
+     structural changes:
+     - Replace attribute lookups in decorators (e.g., `@module.decorator`) with direct names
+       (`@decorator`).
+     - Remove or simplify `locals()` or `globals()` updates.
+     - Simplify variable capturing in `lambda` functions, especially inside list/dict
+       comprehensions.
+     - Replace generator expressions with equivalent `for` loops to see if the implicit function
+       scope is the trigger.
    - *Consider Simplification*: Don't assume the entire block must be removed.
      - Replace complex expressions with constants/literals.
      - Replace variable usage with direct values.
