@@ -40,6 +40,7 @@ from nuitka.options.Options import (
     isMingw64,
     isOnefileMode,
     isOnefileTempDirMode,
+    isReproducibleBuild,
     isShowScons,
     isStandaloneMode,
     isUnstripped,
@@ -658,6 +659,8 @@ def getCommonSconsOptions():
 
     if getLtoMode() != "auto":
         scons_options["lto_mode"] = getLtoMode()
+
+    scons_options["reproducible_mode"] = asBoolStr(isReproducibleBuild())
 
     if not isElfUsingPlatform():
         scons_options["noelf_mode"] = asBoolStr(True)

@@ -66,7 +66,12 @@ def printError(message):
 
 
 def flushStandardOutputs():
+    if hasattr(sys.stdout, "flush_buffer"):
+        sys.stdout.flush_buffer()
     sys.stdout.flush()
+
+    if hasattr(sys.stderr, "flush_buffer"):
+        sys.stderr.flush_buffer()
     sys.stderr.flush()
 
 
@@ -694,13 +699,17 @@ class LineBufferedStreamRedirector(object):
         # for the newline to print it.
         self.original_stream.flush()
 
-    def __del__(self):
+    def flush_buffer(self):
         if self.buffer:
             try:
                 self.original_stream.write(self.buffer)
                 self.original_stream.flush()
+                self.buffer = ""
             except Exception:  # pylint: disable=broad-except
                 pass
+
+    def __del__(self):
+        self.flush_buffer()
 
     def isatty(self):
         return self.original_stream.isatty()
