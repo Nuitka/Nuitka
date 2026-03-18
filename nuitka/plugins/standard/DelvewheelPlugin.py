@@ -109,6 +109,14 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
                 detection_value=delvewheel_version,
             )
 
+        # Disable the load-order file mechanism for Anaconda Python, we don't
+        # need it, and it's not working.
+        if "is_conda_cpython =" in source_code:
+            source_code = re.sub(
+                r"is_conda_cpython = .*", "is_conda_cpython = False", source_code
+            )
+            return source_code
+
     def getModuleSpecificDllPaths(self, module_name):
         if module_name in self.dll_directories:
             yield self.dll_directories[module_name]
