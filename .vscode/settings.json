@@ -526,8 +526,12 @@
       ]
     }
   ],
+  "yaml.maxItemsComputed": 10000,
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.formatOnSave": false
+  },
   "yaml.schemas": {
     "nuitka/package_config/nuitka-package-config-schema.json": "*.nuitka-package.config.{yml,yaml}"
-  },
-  "yaml.maxItemsComputed": 10000
+  }
 }
