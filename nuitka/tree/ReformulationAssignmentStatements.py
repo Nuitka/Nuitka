@@ -1292,40 +1292,41 @@ def _makeTypeExpressionFactory(provider, function_name, type_expression, source_
     )
 
 
+def _createTypeExpression(provider, node, source_ref):
+    helper_name = "create_type_expression"
+
+    outline_body = ExpressionOutlineFunction(
+        provider=provider, name=helper_name, source_ref=source_ref
+    )
+
+    statements = []
+    for type_param in node.type_params:
+        type_var = buildNode(
+            provider=outline_body, node=type_param, source_ref=source_ref
+        )
+
+        assign = StatementAssignmentVariableName(
+            provider=outline_body,
+            variable_name=type_param.name,
+            source=type_var,
+            source_ref=source_ref,
+        )
+        statements.append(assign)
+
+    statements.append(
+        StatementReturn(
+            expression=buildNode(outline_body, node.value, source_ref),
+            source_ref=source_ref,
+        )
+    )
+    body = makeStatementsSequenceFromStatements(*statements)
+    outline_body.setChildBody(body)
+
+    return outline_body
+
+
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
-
-    def createTypeExpression():
-        helper_name = "create_type_expression"
-
-        outline_body = ExpressionOutlineFunction(
-            provider=provider, name=helper_name, source_ref=source_ref
-        )
-
-        assignments = []
-        for type_param in node.type_params:
-            type_var = buildNode(
-                provider=outline_body, node=type_param, source_ref=source_ref
-            )
-
-            assign = StatementAssignmentVariableName(
-                provider=outline_body,
-                variable_name=type_param.name,
-                source=type_var,
-                source_ref=source_ref,
-            )
-            assignments.append(assign)
-
-        body = makeStatementsSequenceFromStatements(
-            assignments,
-            StatementReturn(
-                expression=buildNode(outline_body, node.value, source_ref),
-                source_ref=source_ref,
-            ),
-        )
-        outline_body.setChildBody(body)
-
-        return outline_body
 
     type_alias_name = mangleName(node.name.id, provider)
     type_alias_node = ExpressionTypeAlias(
@@ -1334,7 +1335,12 @@ def buildTypeAliasNode(provider, node, source_ref):
         ),
         type_params=buildNodeTuple(provider, node.type_params, source_ref),
         value=_makeTypeExpressionFactory(
-            provider, type_alias_name, createTypeExpression(), source_ref
+            provider=provider,
+            function_name=type_alias_name,
+            type_expression=_createTypeExpression(
+                provider=provider, node=node, source_ref=source_ref
+            ),
+            source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
