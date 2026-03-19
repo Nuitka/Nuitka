@@ -349,6 +349,15 @@ else:
 
 scripts = []
 
+if sdist_mode or (os.name != "nt" and not isMacOS()):
+    scripts.append("bin/compile-python-for-nuitka-linux.sh")
+
+if sdist_mode or isMacOS():
+    scripts.append("bin/compile-python-for-nuitka-mac.sh")
+
+if sdist_mode or os.name == "nt":
+    scripts.append("bin/compile-python-for-nuitka-windows.cmd")
+
 # For Windows, there are CMD batch files to launch Nuitka.
 if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.cmd", "misc/nuitka-run.cmd"]

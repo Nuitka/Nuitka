@@ -19,6 +19,9 @@ set EXTERNALS_FLAG=
 set EXTERNALS_DIR=%CD%\python-externals-%PY_VER%
 set BUILD_TARGET=Build
 
+set INSTALL_PREFIX=
+set CLEANUP=false
+
 :parse_args
 if "%~1"=="--debug" (
     set BUILD_CONFIG=Debug
@@ -28,11 +31,46 @@ if "%~1"=="--debug" (
     shift
     goto parse_args
 )
-
 if "%~1"=="--rebuild" (
     set BUILD_TARGET=Rebuild
     shift
     goto parse_args
+)
+if "%~1"=="--version" (
+    set PY_VER=%~2
+    set TARBALL=Python-%~2.tgz
+    set SOURCE_DIR=Python-%~2
+    shift
+    shift
+    goto parse_args
+)
+if "%~1"=="--prefix" (
+    set INSTALL_PREFIX=%~2
+    shift
+    shift
+    goto parse_args
+)
+if "%~1"=="--cleanup" (
+    set CLEANUP=true
+    shift
+    goto parse_args
+)
+if "%~1"=="--help" (
+    echo Usage: %~nx0 [OPTIONS]
+    echo.
+    echo Options:
+    echo   --help           Show this help message and exit
+    echo   --version ^<ver^>  Specify the Python version to build (default: 3.14.0^)
+    echo   --prefix ^<dir^>   Install the compiled Python layout to the specified directory
+    echo   --debug          Build with pydebug and without PGO
+    echo   --rebuild        Clean existing build before compiling
+    echo   --cleanup        Remove the downloaded archive and source directory after successful build
+    exit /b 0
+)
+if not "%~1"=="" (
+    echo Unknown parameter passed: %~1
+    echo Use --help for usage information.
+    exit /b 1
 )
 
 echo --- Starting Python %PY_VER% build for Nuitka on Windows ---
@@ -105,7 +143,25 @@ echo wheel >> reqs.txt
 del reqs.txt
 
 echo --- Build Complete ---
-echo The uninstalled self-compiled Python is located at "%CD%\%PYTHON_BINARY%"
+
+if not "%INSTALL_PREFIX%"=="" (
+    echo Installing compiled Python to %INSTALL_PREFIX%...
+    %PYTHON_BINARY% PC\layout --copy "%INSTALL_PREFIX%" || (
+        echo Error: Failed to install Python layout
+        exit /b 1
+    )
+    echo The installed self-compiled Python is located at "%INSTALL_PREFIX%\python.exe"
+) else (
+    echo The uninstalled self-compiled Python is located at "%CD%\%PYTHON_BINARY%"
+)
+
+cd ..
+
+if "%CLEANUP%"=="true" (
+    echo --- Cleaning up ---
+    rmdir /s /q "%SOURCE_DIR%" 2>nul
+    del /q "%TARBALL%" 2>nul
+)
 
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.
