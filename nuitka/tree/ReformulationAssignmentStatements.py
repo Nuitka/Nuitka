@@ -1235,7 +1235,7 @@ def buildTypeParamSpec(node, source_ref):
     return ExpressionParameterSpecification(node.name, source_ref=source_ref)
 
 
-def _makeTypeExpressionFactory(provider, function_name, type_expression, source_ref):
+def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),
@@ -1272,6 +1272,10 @@ def _makeTypeExpressionFactory(provider, function_name, type_expression, source_
         auto_release=None,
         code_prefix="function",
         source_ref=source_ref,
+    )
+
+    type_expression = _createTypeExpression(
+        provider=body, node=node, source_ref=source_ref
     )
 
     body.setChildBody(
@@ -1319,7 +1323,7 @@ def _createTypeExpression(provider, node, source_ref):
             source_ref=source_ref,
         )
     )
-    body = makeStatementsSequenceFromStatements(*statements)
+    body = makeStatementsSequenceFromStatements(statements)
     outline_body.setChildBody(body)
 
     return outline_body
@@ -1337,9 +1341,7 @@ def buildTypeAliasNode(provider, node, source_ref):
         value=_makeTypeExpressionFactory(
             provider=provider,
             function_name=type_alias_name,
-            type_expression=_createTypeExpression(
-                provider=provider, node=node, source_ref=source_ref
-            ),
+            node=node,
             source_ref=source_ref,
         ),
         source_ref=source_ref,
