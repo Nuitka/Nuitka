@@ -2,13 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Configure C Extension",
+      "label": "Export Selected Interpreter",
       "type": "shell",
-      "command": "${command:python.interpreterPath}",
-      "args": [
-        "${workspaceFolder}/misc/vscode_config_gen.py"
-      ],
       "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Set-Content -Path .vscode/.python_alias_path -Value '${command:python.interpreterPath}'"
+        ],
         "options": {
           "shell": {
             "executable": "cmd.exe",
@@ -19,12 +21,50 @@
           }
         }
       },
+      "linux": {
+        "command": "echo \"${command:python.interpreterPath}\" > .vscode/.python_alias_path"
+      },
+      "osx": {
+        "command": "echo \"${command:python.interpreterPath}\" > .vscode/.python_alias_path"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "showReuseMessage": false,
+        "close": true
+      }
+    },
+    {
+      "label": "Configure C Extension",
+      "type": "shell",
+      "windows": {
+        "command": "call \"${command:python.interpreterPath}\" \"${workspaceFolder}/misc/vscode_config_gen.py\" || pause",
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/d",
+              "/c"
+            ]
+          }
+        }
+      },
+      "linux": {
+        "command": "\"${command:python.interpreterPath}\" \"${workspaceFolder}/misc/vscode_config_gen.py\" || (echo \"Press Enter to continue...\" && read -r)"
+      },
+      "osx": {
+        "command": "\"${command:python.interpreterPath}\" \"${workspaceFolder}/misc/vscode_config_gen.py\" || (echo \"Press Enter to continue...\" && read -r)"
+      },
       "problemMatcher": [],
       "runOptions": {
         "runOn": "folderOpen"
       },
       "presentation": {
-        "reveal": "silent"
+        "reveal": "silent",
+        "showReuseMessage": false,
+        "close": true
       }
     },
     {

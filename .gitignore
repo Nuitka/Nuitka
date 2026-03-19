@@ -73,6 +73,7 @@ doxygen-*
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+.vscode/.python_alias_path
 .vscode/c_cpp_properties.json
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
