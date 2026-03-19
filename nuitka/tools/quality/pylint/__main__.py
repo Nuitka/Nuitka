@@ -213,7 +213,8 @@ def main():
     filenames = _resolveFilenames(options=options, positional_args=positional_args)
 
     if not filenames:
-        return tools_logger.sysexit("No matching files found.")
+        tools_logger.info("No matching files found that require PyLint.")
+        return 0
 
     exit_code = executePyLint(
         filenames=filenames,
