@@ -94,7 +94,8 @@
     "xstring": "c",
     "cstdint": "c",
     "hash_map": "c",
-    "list": "c"
+    "list": "c",
+    "**/tests/syntax/*Test*.py": "plaintext"
   },
   "python.analysis.autoSearchPaths": false,
   "python.analysis.extraPaths": [
@@ -506,6 +507,7 @@
     "debian",
     "rpm/*.spec",
     "tests/scratch",
+    "tests/syntax/*Test*.py*",
     "tests/CPython*",
     "doc/*.1",
     "*.containerfile",
