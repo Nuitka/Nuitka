@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withTemporaryDirectory,
 )
+from nuitka.utils.Jinja2 import renderTemplateFromString
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 
 from .Podman import getPodmanExecutablePath
@@ -319,6 +320,9 @@ def _checkContainerArgument(options, default_container_directory):
         if container_file_path.endswith(".in"):
             container_file_path_template = container_file_path
             container_file_path = container_file_path[:-3]
+        elif container_file_path.endswith(".j2"):
+            container_file_path_template = container_file_path
+            container_file_path = container_file_path[:-3]
         else:
             container_file_path_template = None
 
@@ -329,9 +333,41 @@ def _checkContainerArgument(options, default_container_directory):
         container_file_path = os.path.join(
             default_container_directory, options.container_id + ".containerfile"
         )
-        container_file_path_template = container_file_path + ".in"
+        if os.path.isfile(container_file_path + ".j2"):
+            container_file_path_template = container_file_path + ".j2"
+        else:
+            container_file_path_template = container_file_path + ".in"
 
     return container_file_path_template, container_file_path
+
+
+def renderContainerTemplate(
+    container_file_path_template, container_file_path, default_container_directory
+):
+    if container_file_path_template.endswith(".j2"):
+        template_str = getFileContents(container_file_path_template)
+        output = renderTemplateFromString(template_str)
+
+        if str is not bytes and type(output) is bytes:
+            output = output.decode("utf8")
+
+        putTextFileContents(container_file_path, output, encoding="utf8")
+    else:
+        # Check requirement.
+        cpp_path = getCppPath()
+        command = [
+            cpp_path,
+            "-E",
+            "-I",
+            default_container_directory,
+            container_file_path_template,
+        ]
+
+        output = check_output(command, shell=False)
+        if str is not bytes:
+            output = output.decode("utf8")
+
+        putTextFileContents(container_file_path, output, encoding="utf8")
 
 
 def main():
@@ -354,21 +390,11 @@ def main():
     if container_file_path_template is not None and os.path.isfile(
         container_file_path_template
     ):
-        # Check requirement.
-        cpp_path = getCppPath()
-        command = [
-            cpp_path,
-            "-E",
-            "-I",
-            default_container_directory,
-            container_file_path_template,
-        ]
-
-        output = check_output(command, shell=False)
-        if str is not bytes:
-            output = output.decode("utf8")
-
-        putTextFileContents(container_file_path, output, encoding="utf8")
+        renderContainerTemplate(
+            container_file_path_template=container_file_path_template,
+            container_file_path=container_file_path,
+            default_container_directory=default_container_directory,
+        )
 
     if not os.path.isfile(container_file_path):
         containers_logger.sysexit(
