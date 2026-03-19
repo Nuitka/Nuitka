@@ -19,7 +19,7 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import isPythonWithGil
+from nuitka.PythonVersions import displayRecommendedVersion, isPythonWithGil
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -82,6 +82,18 @@ parser.add_option(
     require_compiling=False,
     help="""\
 Show version information and important details for bug reports, then exit. Defaults to off.""",
+)
+
+parser.add_option(
+    "--recommended-python-version",
+    action="store",
+    type="choice",
+    choices=("supported", "commercial", "working"),
+    dest="recommended_python_version_kind",
+    default=None,
+    require_compiling=False,
+    github_action=False,
+    help=SUPPRESS_HELP,
 )
 
 parser.add_option(
@@ -2656,6 +2668,10 @@ pass them to the compiled program execution.""")
 
 
 def runSpecialCommandsFromOptions(options):
+    if options.recommended_python_version_kind is not None:
+        displayRecommendedVersion(options.recommended_python_version_kind)
+        sys.exit(0)
+
     if options.plugin_list:
         from nuitka.plugins.Plugins import listPlugins
 

@@ -521,6 +521,29 @@ def isPythonIdentifier(name):
     return bool(re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name))
 
 
+def getRecommendedSupportedVersion():
+    return "3.13"
+
+
+def getRecommendedWorkingVersion():
+    return "3.14"
+
+
+def getRecommendedCommercialVersion():
+    return "3.12"
+
+
+def displayRecommendedVersion(kind):
+    if kind == "supported":
+        print(getRecommendedSupportedVersion())
+    elif kind == "working":
+        print(getRecommendedWorkingVersion())
+    elif kind == "commercial":
+        print(getRecommendedCommercialVersion())
+    else:
+        assert False, kind
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
