@@ -16,6 +16,7 @@ from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.options.Options import (
     isCompileTimeProfile,
+    isExperimental,
     isShowMemory,
     isShowProgress,
 )
@@ -110,7 +111,11 @@ def optimizeCompiledPythonModule(module):
 
         Graphs.onModuleOptimizationStep(module)
 
-        if unchanged_count == 1 and tag_set:
+        if (
+            unchanged_count == 1
+            and tag_set
+            and not isExperimental("ignore-extra-micro-pass")
+        ):
             optimization_logger.sysexit(
                 """\
 Changes made after there were already no changes for module '%s' \
