@@ -8,7 +8,11 @@ import sys
 
 from nuitka.options.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonFlavors import isHomebrewPython
+from nuitka.PythonFlavors import (
+    getHomebrewInstallPath,
+    isHomebrewPython,
+    isPyenvHomebrewPython,
+)
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -18,17 +22,6 @@ from nuitka.utils.Utils import isMacOS, isWin32Windows
 def _isTkInterModule(module):
     full_name = module.getFullName()
     return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
-
-
-def _getHomebrewPrefix(logger):
-    result = os.path.normpath(
-        os.path.join(getSystemPrefixPath(), "..", "..", "..", "..", "..", "..", "..")
-    )
-
-    if not os.path.isdir(result):
-        logger.sysexit("Error, failed to determine Homebrew prefix, report this bug.")
-
-    return result
 
 
 class NuitkaPluginTkinter(NuitkaPluginBase):
@@ -161,10 +154,10 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
             yield "/usr/lib/tcl%s" % self.tk_inter_version
 
-        if isHomebrewPython():
+        if isHomebrewPython() or isPyenvHomebrewPython():
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tcl%s" % self.tk_inter_version,
                 )
@@ -174,7 +167,7 @@ The Tcl library dir. See comments for Tk library dir.""",
             # be the version 9.
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tcl9",
                 )
@@ -209,10 +202,10 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
             yield "/usr/lib/tk%s" % self.tk_inter_version
 
-        if isHomebrewPython():
+        if isHomebrewPython() or isPyenvHomebrewPython():
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tk%s" % self.tk_inter_version,
                 )
@@ -223,7 +216,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                 # be the version 9.
                 yield os.path.normpath(
                     os.path.join(
-                        _getHomebrewPrefix(self),
+                        getHomebrewInstallPath(),
                         "lib",
                         "tk9.0",
                     )

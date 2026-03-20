@@ -40,6 +40,7 @@ from nuitka.PythonFlavors import (
     isHomebrewPython,
     isMonolithPy,
     isMSYS2MingwPython,
+    isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -357,7 +358,7 @@ def _reduceToPythonPath(used_dll_paths):
     if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
         inside_paths.insert(0, getSystemPrefixPath())
 
-    if isHomebrewPython():
+    if isHomebrewPython() or isPyenvHomebrewPython():
         inside_paths.insert(0, getHomebrewInstallPath())
 
     if isMSYS2MingwPython():

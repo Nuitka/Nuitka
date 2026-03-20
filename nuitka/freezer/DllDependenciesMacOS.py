@@ -18,6 +18,7 @@ from nuitka.PythonFlavors import (
     isCPythonOfficialPackage,
     isHomebrewPython,
     isMonolithPy,
+    isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
@@ -64,7 +65,7 @@ def _detectPythonRpaths():
     if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
-    if isHomebrewPython():
+    if isHomebrewPython() or isPyenvHomebrewPython():
         result.extend(
             os.path.join(getHomebrewInstallPath(), directory)
             for directory in getSubDirectories(

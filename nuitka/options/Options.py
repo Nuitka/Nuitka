@@ -34,6 +34,7 @@ from nuitka.PythonFlavors import (
     isManyLinuxPython,
     isMonolithPy,
     isMSYS2MingwPython,
+    isPyenvHomebrewPython,
     isPyenvPython,
     isPythonBuildStandalonePython,
     isTermuxPython,
@@ -1932,7 +1933,7 @@ def _couldUseStaticLibPython():
     if isMonolithPy():
         return True, "MonolithPy is unexpectedly broken."
 
-    if isHomebrewPython():
+    if isHomebrewPython() or isPyenvHomebrewPython():
         return True, "Homebrew Python is unexpectedly broken."
 
     # Debian packages with are usable if the OS is new enough

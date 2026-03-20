@@ -94,6 +94,35 @@ def isApplePython():
     return False
 
 
+_is_pyenv_homebrew_python = None
+
+
+def isPyenvHomebrewPython():
+    """Detect if this is a Pyenv Python built with Homebrew dependencies."""
+    # Singleton, pylint: disable=global-statement
+    global _is_pyenv_homebrew_python
+
+    if _is_pyenv_homebrew_python is None:
+        if not isMacOS() or not isPyenvPython():
+            _is_pyenv_homebrew_python = False
+        else:
+            _is_pyenv_homebrew_python = False
+            import sysconfig
+
+            for var_value in sysconfig.get_config_vars().values():
+                if var_value is not None:
+                    var_value_str = str(var_value)
+                    if (
+                        "/opt/homebrew" in var_value_str
+                        or "/usr/local/opt" in var_value_str
+                        or "/usr/local/Homebrew" in var_value_str
+                    ):
+                        _is_pyenv_homebrew_python = True
+                        break
+
+    return _is_pyenv_homebrew_python
+
+
 def isHomebrewPython():
     # spell-checker: ignore sitecustomize
     if not isMacOS():
@@ -117,7 +146,7 @@ def isHomebrewPython():
 
 
 def getHomebrewInstallPath():
-    assert isHomebrewPython()
+    assert isHomebrewPython() or isPyenvHomebrewPython()
 
     candidate = getSystemPrefixPath()
 
@@ -126,6 +155,15 @@ def getHomebrewInstallPath():
             return candidate
 
         candidate = os.path.dirname(candidate)
+
+    # Expect above to work, except for when pyenv is installing to outside of it.
+    assert isPyenvHomebrewPython()
+
+    if os.path.isdir("/opt/homebrew/Cellar"):
+        return "/opt/homebrew"
+
+    if os.path.isdir("/usr/local/Cellar"):
+        return "/usr/local"
 
     sys.exit("Error, failed to locate homebrew installation path.")
 
@@ -405,6 +443,10 @@ def getPythonFlavorName():
         return "Alpine Python"
     elif isGithubActionsPython():
         return "GitHub Actions Python"
+    elif isPyenvHomebrewPython():
+        return "PyEnv on Homebrew Python"
+    elif isPyenvPython():
+        return "PyEnv Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isRyePython():
@@ -413,8 +455,6 @@ def getPythonFlavorName():
         return "Python Build Standalone"
     elif isApplePython():
         return "Apple Python"
-    elif isPyenvPython():
-        return "pyenv"
     elif isPosixWindows():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():
