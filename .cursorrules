@@ -22,7 +22,7 @@ and maintain the Nuitka compiler.
   - Do NOT use keyword-only arguments separator `*` (e.g. `def foo(a, *, b)`) - *required for Python
     2 compatibility*.
   - Do NOT use positional-only arguments separator `/` (e.g. `def foo(a, /, b)`) - *required for
-    Python \< 3.8 compatibility*.
+    Python < 3.8 compatibility*.
 - **Coding Preferences:**
   - **Preferred:** List comprehensions are preferred over `map`, `filter`, and `apply` for
     readability.
@@ -64,6 +64,8 @@ and maintain the Nuitka compiler.
 
 - **Coding Practices:**
 
+  - **Comments:** Comments shall only state information that is not available in the code it
+    comments on.
   - **List Contractions:** PREFERRED over `map`, `filter`, `apply`.
   - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
   - **Imports:** Sort imports using `isort` (handled by auto-format).
