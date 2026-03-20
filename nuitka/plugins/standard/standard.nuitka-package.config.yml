@@ -3712,13 +3712,7 @@
         prefixes:
           - ''
 
-- module-name: 'openvino.inference_engine' # checksum: 9100f948
-  dlls:
-    - from_filenames:
-        relative_path: '../libs'
-        prefixes:
-          - ''
-
+- module-name: 'openvino.inference_engine' # checksum: 22b5ffdd
   implicit-imports:
     - depends:
         - 'openvino.inference_engine.ie_api'
@@ -5156,66 +5150,75 @@
       replacements_plain:
         "not all('/site-packages/' in p for p in __path__[1:])": 'False'
 
-- module-name: 'pyscf.agf2._agf2' # checksum: c57648ff
+- module-name: 'pyscf.agf2._agf2' # checksum: cc497dd6
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libagf2'
 
-- module-name: 'pyscf.ao2mo' # checksum: b1eae599
+- module-name: 'pyscf.ao2mo' # checksum: f35142c0
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libao2mo'
 
-- module-name: 'pyscf.cc._ccsd' # checksum: 2f8edb26
+- module-name: 'pyscf.cc._ccsd' # checksum: 85a737bf
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcc'
 
-- module-name: 'pyscf.df.df_jk' # checksum: 9c821128
+- module-name: 'pyscf.df.df_jk' # checksum: 36abfdb1
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libri'
 
-- module-name: 'pyscf.dft' # checksum: 2f70b34e
+- module-name: 'pyscf.dft' # checksum: a609b142
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libdft'
 
-- module-name: 'pyscf.dft.libxc' # checksum: f3d52af4
+- module-name: 'pyscf.dft.libxc' # checksum: d01eb819
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libxc_itrf'
 
-- module-name: 'pyscf.dft.xcfun' # checksum: c7fd93f9
+- module-name: 'pyscf.dft.xcfun' # checksum: 29062389
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libxcfun_itrf'
 
-- module-name: 'pyscf.fci' # checksum: 3285ffbc
+- module-name: 'pyscf.fci' # checksum: bbfcfdb0
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libfci'
 
-- module-name: 'pyscf.gto' # checksum: 251ddee
+- module-name: 'pyscf.gto' # checksum: b6ee8c7
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcgto'
 
@@ -5230,31 +5233,35 @@
         prefixes:
           - 'libnp_helper'
 
-- module-name: 'pyscf.mcscf' # checksum: a8cbc5fd
+- module-name: 'pyscf.mcscf' # checksum: ea7062a4
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libmcscf'
 
-- module-name: 'pyscf.mrpt.nevpt2' # checksum: a8cbc5fd
+- module-name: 'pyscf.mrpt.nevpt2' # checksum: ea7062a4
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libmcscf'
 
-- module-name: 'pyscf.pbc' # checksum: d3e0f821
+- module-name: 'pyscf.pbc' # checksum: 5a99fa2d
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libpbc'
 
-- module-name: 'pyscf.scf._vhf' # checksum: 801ef150
+- module-name: 'pyscf.scf._vhf' # checksum: 8921c479
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcvhf'
 

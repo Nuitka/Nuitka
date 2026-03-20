@@ -24,6 +24,7 @@ from nuitka.utils.FileOperations import (
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
@@ -108,7 +109,7 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
-        # A lot of details here, pylint: disable=too-many-locals
+        # A lot of details here, pylint: disable=too-many-branches,too-many-locals
 
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
@@ -126,18 +127,25 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             single_value=True,
         )
 
-        module_filename = self.locateModule(full_name)
+        relative_to = dll_config.get("relative_to")
+
+        if relative_to is not None:
+            base_module_name = ModuleName(relative_to)
+        else:
+            base_module_name = full_name
+
+        module_filename = self.locateModule(base_module_name)
 
         if os.path.isdir(module_filename):
             module_directory = module_filename
 
             if dest_path is None:
-                dest_path = os.path.join(full_name.asPath(), relative_path)
+                dest_path = os.path.join(base_module_name.asPath(), relative_path)
         else:
             module_directory = os.path.dirname(module_filename)
 
             if dest_path is None:
-                dest_path = os.path.join(full_name.asPath(), "..", relative_path)
+                dest_path = os.path.join(base_module_name.asPath(), "..", relative_path)
 
         dll_dir = os.path.normpath(os.path.join(module_directory, relative_path))
 

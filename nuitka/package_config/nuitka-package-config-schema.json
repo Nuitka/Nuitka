@@ -1,8 +1,29 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "definitions": {
     "non-empty-string": {
       "type": "string",
       "minLength": 1
+    },
+    "module-name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s/\\\\*+]+(\\.[^\\s/\\\\*+]+)*$"
+    },
+    "module-pattern": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s/\\\\+]+(\\.[^\\s/\\\\+]+)*$"
+    },
+    "module-pattern-or-expression": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/module-pattern"
+        },
+        {
+          "$ref": "#/definitions/python-expression"
+        }
+      ]
     },
     "python-expression": {
       "$ref": "#/definitions/non-empty-string"
@@ -14,8 +35,7 @@
     "additionalProperties": false,
     "properties": {
       "module-name": {
-        "$ref": "#/definitions/non-empty-string",
-        "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
+        "$ref": "#/definitions/module-name"
       },
       "parameters": {
         "type": "array",
@@ -170,6 +190,9 @@
                 "relative_path": {
                   "type": "string"
                 },
+                "relative_to": {
+                  "$ref": "#/definitions/module-name"
+                },
                 "prefixes": {
                   "type": "array",
                   "items": {
@@ -243,6 +266,9 @@
             },
             "replacements_plain": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/non-empty-string"
+              },
               "additionalProperties": {
                 "type": "string"
               }
@@ -261,6 +287,9 @@
             },
             "global_replacements_plain": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/non-empty-string"
+              },
               "additionalProperties": {
                 "type": "string"
               }
@@ -303,12 +332,18 @@
             },
             "no-follow": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/module-pattern"
+              },
               "additionalProperties": {
                 "$ref": "#/definitions/non-empty-string"
               }
             },
             "no-auto-follow": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/module-name"
+              },
               "additionalProperties": {
                 "$ref": "#/definitions/non-empty-string"
               }
@@ -316,19 +351,31 @@
             "limit-auto-follow": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/non-empty-string"
+                "$ref": "#/definitions/module-pattern"
               }
             },
             "conditional-auto-follow": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/module-name"
+              },
               "additionalProperties": {
-                "$ref": "#/definitions/non-empty-string"
+                "$ref": "#/definitions/module-name"
               }
             },
             "bloat-mode-overrides": {
               "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/module-name"
+              },
               "additionalProperties": {
-                "$ref": "#/definitions/non-empty-string"
+                "type": "string",
+                "enum": [
+                  "error",
+                  "warning",
+                  "nofollow",
+                  "allow"
+                ]
               }
             },
             "annotations": {
@@ -370,7 +417,7 @@
             "depends": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/module-pattern-or-expression"
               }
             },
             "pre-import-code": {
@@ -459,7 +506,7 @@
             "package-paths": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/module-name"
               }
             },
             "package-dirs": {
@@ -471,7 +518,7 @@
             "find-dlls-near-module": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/module-name"
               }
             },
             "acceptable-missing-dlls": {

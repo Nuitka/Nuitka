@@ -113,6 +113,41 @@ path, with '/' style slashes not '%s'.""" % (filename, module_name, section, k, 
     return True
 
 
+def _checkRelativePosixPath(logger, filename, module_name, section, k, value):
+    """Check if a value is a relative POSIX path and log error if not."""
+    if not _checkNormalizedPosixPath(logger, filename, module_name, section, k, value):
+        return False
+
+    if value.startswith("/"):
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, not an absolute path, not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    if ".." in value.split("/"):
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, without '..' paths, not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    if ":" in value:
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, without drive letters, not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
 def checkSectionValues(logger, filename, module_name, section, value):
     """Check values of the YAML file."""
     # many checks of course, pylint: disable=too-many-branches,too-many-statements
@@ -159,10 +194,33 @@ def checkSectionValues(logger, filename, module_name, section, value):
                     ):
                         result = False
 
-            if k in ("dest_path", "relative_path") and not _checkNormalizedPosixPath(
+            if k == "dest_path" and not _checkNormalizedPosixPath(
                 logger, filename, module_name, section, k, v
             ):
                 result = False
+
+            if k == "relative_path" and not _checkRelativePosixPath(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
+
+            if k == "relative_to":
+                if not checkModuleName(v):
+                    logger.info(
+                        """\
+%s: module '%s' config value of '%s' '%s' should be a valid module name, not '%s'."""
+                        % (filename, module_name, section, k, v),
+                        keep_format=True,
+                    )
+                    result = False
+                elif v == module_name:
+                    logger.info(
+                        """\
+%s: module '%s' config value of '%s' '%s' should not be the module name itself, s that's the default, not '%s'."""
+                        % (filename, module_name, section, k, v),
+                        keep_format=True,
+                    )
+                    result = False
 
             if k in ("dirs", "raw_dirs", "empty_dirs"):
                 for e in v:
