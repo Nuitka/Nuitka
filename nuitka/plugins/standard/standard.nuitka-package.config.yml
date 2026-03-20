@@ -3699,10 +3699,15 @@
       replacements_plain:
         'opentelemetry.util._importlib_metadata': 'importlib_metadata'
 
-- module-name: 'openvino' # checksum: 4e2c2404
+- module-name: 'openvino' # checksum: 3c2ae57e
   data-files:
     - dirs:
         - 'libs'
+  dlls:
+    - from_filenames:
+        relative_path: 'libs'
+        prefixes:
+          - ''
 
 - module-name: 'openvino.inference_engine' # checksum: 9100f948
   dlls:
