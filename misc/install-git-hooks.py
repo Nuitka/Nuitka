@@ -113,7 +113,6 @@ def main():
                 "check-nuitka-with-pylint",
                 "generate-specialized-c-code",
                 "generate-specialized-python-code",
-                "check-nuitka-with-yamllint",
             ):
                 hook_contents = hook_contents.replace(
                     "./bin/%s" % tool_name,

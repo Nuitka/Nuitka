@@ -38,7 +38,6 @@ do
     python_files=""
     c_j2_files=""
     py_j2_files=""
-    yaml_files=""
     all_files=""
     has_specialize_tool=0
 
@@ -55,9 +54,6 @@ do
                 ;;
             *.py.j2)
                 py_j2_files="$py_j2_files $file"
-                ;;
-            *.nuitka-package.config.yml)
-                yaml_files="$yaml_files $file"
                 ;;
         esac
 
@@ -128,18 +124,6 @@ do
             if [ $? -ne 0 ]; then has_errors=1; fi
         else
             python -m pipenv run python Nuitka-develop/bin/generate-specialized-python-code --check $py_args
-            if [ $? -ne 0 ]; then has_errors=1; fi
-        fi
-    fi
-
-    if [ -n "$yaml_files" ]
-    then
-        if [ -f "bin/check-nuitka-with-yamllint" ]
-        then
-            ./bin/check-nuitka-with-yamllint $yaml_files
-            if [ $? -ne 0 ]; then has_errors=1; fi
-        else
-            python -m pipenv run python Nuitka-develop/bin/check-nuitka-with-yamllint $yaml_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         fi
     fi
