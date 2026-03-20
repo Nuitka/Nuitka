@@ -1420,11 +1420,44 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
     }
 
     if (result != NULL) {
+        PyObject *parent_module = NULL;
+        PyObject *base_name_obj = NULL;
+        PyObject *parent_name_obj = NULL;
+
+        // Python's import machinery normally handles sys.modules placement and parent package binding
+        // strictly after the loader finishes executing. However, post-load hooks execute before the
+        // loader returns. We must temporarily emulate these bindings so that post-load code using
+        // standard `import x` or `sys.modules["x"]` operates on the fully constructed target module.
+        if (Nuitka_GetModule(tstate, module_name) == NULL) {
+            if (isVerbose()) {
+                PySys_WriteStderr("Adding module '%s' to sys.modules temporarily for -postLoad.\n", name);
+            }
+            Nuitka_SetModule(module_name, result);
+        }
+
+        char const *dot = strrchr(name, '.');
+        if (dot != NULL) {
+            parent_name_obj = Nuitka_String_FromStringAndSize(name, dot - name);
+            parent_module = Nuitka_GetModule(tstate, parent_name_obj);
+
+            if (parent_module != NULL) {
+                base_name_obj = Nuitka_String_FromString(dot + 1);
+
+                if (isVerbose()) {
+                    PySys_WriteStderr("Binding submodule '%s' to parent module temporarily for -postLoad.\n", name);
+                }
+                SET_ATTRIBUTE(tstate, parent_module, base_name_obj, result);
+            }
+        }
+
         // Execute the "postLoad" code produced for the module potentially. This
         // is from plugins typically, that want to modify the module immediately
         // after loading, to e.g. set a plug-in path, or do some monkey patching
         // in order to make things compatible.
         loadTriggeredModule(tstate, name, "-postLoad");
+
+        Py_XDECREF(parent_name_obj);
+        Py_XDECREF(base_name_obj);
 
         return result;
     }
