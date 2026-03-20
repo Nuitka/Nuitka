@@ -2643,6 +2643,14 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="late")
 
+    if os.getenv("OPTPARSE_AUTO_COMPLETE"):
+        from nuitka.utils.Importing import importFromInlineCopy
+
+        # spell-checker: ignore optcomplete
+        opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
+        if opt_complete is not None:
+            opt_complete.autocomplete(parser)
+
     options, positional_args = parser.parse_args()
 
     if (

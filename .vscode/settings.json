@@ -111,6 +111,23 @@
   },
   "python.analysis.typeCheckingMode": "off",
   "python.terminal.activateEnvironment": true,
+  "terminal.integrated.profiles.linux": {
+    "Nuitka Bash": {
+      "path": "bash",
+      "args": [
+        "--rcfile",
+        "${workspaceFolder}/.vscode/bash-env/rcfile"
+      ],
+      "icon": "terminal-bash"
+    },
+    "Nuitka Zsh": {
+      "path": "zsh",
+      "env": {
+        "ZDOTDIR": "${workspaceFolder}/.vscode/zsh-env"
+      },
+      "icon": "terminal-tmux"
+    }
+  },
   "cSpell.words": [
     "__abstractmethods__",
     "__aenter__",

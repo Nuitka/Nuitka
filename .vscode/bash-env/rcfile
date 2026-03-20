@@ -1,0 +1,10 @@
+# Source the user's primary .bashrc
+if [[ -f $HOME/.bashrc ]]; then
+    source $HOME/.bashrc
+fi
+
+# Source Nuitka completion if available
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [[ -f "$DIR/../../misc/nuitka-completion.bash" ]]; then
+    source "$DIR/../../misc/nuitka-completion.bash"
+fi

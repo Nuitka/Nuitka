@@ -20,6 +20,8 @@ include bin/nuitka
 include bin/nuitka-run
 
 include misc/*.cmd
+include misc/nuitka-completion.bash
+include misc/nuitka-completion.zsh
 include tests/run-tests
 
 include nuitka/plugins/standard/*.yml
