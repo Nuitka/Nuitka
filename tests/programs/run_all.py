@@ -162,15 +162,15 @@ def main():
             my_print("Applying extra PYTHONPATH %r." % extra_python_path)
 
         with withPythonPathChange(extra_python_path):
+            test_variants = OrderedDict((("", extra_flags),))
+
+            if extra_variant:
+                test_variants["variant"] = extra_flags + extra_variant
+
             compareWithCPython(
                 dirname=filename,
                 filename=filename_main,
-                extra_flags=OrderedDict(
-                    (
-                        ("", extra_flags),
-                        ("variant", extra_flags + extra_variant),
-                    )
-                ),
+                extra_flags=test_variants,
                 search_mode=search_mode,
             )
 
