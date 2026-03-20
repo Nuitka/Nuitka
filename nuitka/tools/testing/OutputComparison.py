@@ -324,6 +324,7 @@ def compareOutput(
         from_date,
         to_date,
         n=3,
+        lineterm="",  # spell-checker: ignore lineterm
     )
 
     if canUseColor(sys.stdout):
@@ -334,7 +335,7 @@ def compareOutput(
     if result:
         if trace_result:
             for line in result:
-                my_print(line, end="\n" if not line.startswith("---") else "")
+                my_print(line)
 
         return 1
     else:
