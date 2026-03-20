@@ -89,7 +89,7 @@ def _checkValues(logger, filename, effective_filename):
     """
     yaml = PackageConfigYaml(
         logger=logger,
-        name=filename,
+        name=effective_filename,
         file_data=getFileContents(filename, mode="rb"),
         assume_yes_for_downloads=False,
         check_checksums=False,
@@ -102,7 +102,7 @@ def _checkValues(logger, filename, effective_filename):
 
         for section, section_config in config.items():
             if not checkSectionValues(
-                logger, filename, module_name, section, section_config
+                logger, effective_filename, module_name, section, section_config
             ):
                 result = False
 
@@ -110,7 +110,7 @@ def _checkValues(logger, filename, effective_filename):
         logger.info("OK, manual value tests passed.", style="blue")
     else:
         return logger.sysexit(
-            "Error, manual value checks for '%s' are not clean." % effective_filename
+            "Error, coded checks for '%s' are not clean." % effective_filename
         )
 
 
