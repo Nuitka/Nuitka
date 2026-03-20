@@ -740,8 +740,12 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
     for fullpath, filename in listDir(path):
         for pattern in pattern_list:
             if fnmatch.fnmatch(filename, pattern):
-                if not isWin32OrPosixWindows() and not os.access(fullpath, os.X_OK):
-                    continue
+                if not isWin32OrPosixWindows():
+                    if not isPathExecutable(fullpath):
+                        continue
+
+                    if getDllBasename(fullpath) is not None:
+                        continue
 
                 yield fullpath, filename
                 break
