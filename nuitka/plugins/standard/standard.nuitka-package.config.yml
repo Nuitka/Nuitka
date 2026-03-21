@@ -3243,7 +3243,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: cfff3d48
+- module-name: 'numpy' # checksum: 2b67913d
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3279,6 +3279,9 @@
       no-auto-follow:
         'charset_normalizer': 'ignore'
     - description: 'disable bug hiding'
+      no-auto-follow:
+        'typing_extensions': 'ignore'
+    - description: 'avoid typing_extensions dependency'
       replacements_plain:
         'raise ImportError(msg) from e': 'raise e'
   implicit-imports:
