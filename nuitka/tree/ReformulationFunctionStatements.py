@@ -16,9 +16,13 @@ from nuitka.nodes.AsyncgenNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
+    ExpressionBuiltinIterForUnpack,
     StatementSpecialUnpackCheck,
 )
-from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
+from nuitka.nodes.BuiltinNextNodes import (
+    ExpressionBuiltinNext1,
+    ExpressionSpecialUnpack,
+)
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinExceptionRef,
     makeExpressionBuiltinTypeRef,
@@ -39,6 +43,7 @@ from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
     makeExpressionFunctionCreation,
 )
 from nuitka.nodes.GeneratorNodes import (
@@ -69,6 +74,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
+from .InternalModule import (
+    internal_source_ref,
+    makeInternalHelperFunctionBody,
+    once_decorator,
+)
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
@@ -728,6 +738,66 @@ def makeDeferredAnnotateFunctionObject(provider, keys, values, source_ref):
     )
 
 
+@once_decorator
+def getParameterAnnotationUnpackingHelper():
+    helper_name = "_unpack_parameter_annotation"
+
+    result = makeInternalHelperFunctionBody(
+        name=helper_name,
+        parameters=ParameterSpec(
+            ps_name=helper_name,
+            ps_normal_args=("unpack",),
+            ps_list_star_arg=None,
+            ps_dict_star_arg=None,
+            ps_default_count=0,
+            ps_kw_only_args=(),
+            ps_pos_only_args=(),
+        ),
+    )
+
+    unpacked_variable = result.allocateTempVariable(
+        temp_scope=None, name="unpacked", temp_type="object"
+    )
+
+    unpack_variable = result.getVariableForAssignment(variable_name="unpack")
+
+    tried = makeStatementsSequenceFromStatements(
+        makeStatementAssignmentVariable(
+            variable=unpacked_variable,
+            source=ExpressionBuiltinNext1(
+                value=ExpressionBuiltinIterForUnpack(
+                    value=ExpressionVariableRef(
+                        variable=unpack_variable,
+                        source_ref=internal_source_ref,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
+        StatementReturn(
+            expression=ExpressionTempVariableRef(
+                variable=unpacked_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+    )
+
+    result.setChildBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyReleaseStatement(
+                provider=result,
+                tried=tried,
+                variables=(unpacked_variable,),
+                source_ref=internal_source_ref,
+            )
+        )
+    )
+
+    return result
+
+
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
@@ -752,10 +822,39 @@ def buildParameterAnnotations(provider, node, source_ref):
             assert arg.annotation is None
         elif getKind(arg) == "arg":
             if arg.annotation is not None:
-                addAnnotation(
-                    key=arg.arg,
-                    value=buildAnnotationNode(provider, arg.annotation, source_ref),
-                )
+                if python_version >= 0x3B0 and getKind(arg.annotation) == "Starred":
+                    value = buildAnnotationNode(
+                        provider, arg.annotation.value, source_ref
+                    )
+
+                    result = makeExpressionFunctionCall(
+                        function=makeExpressionFunctionCreation(
+                            function_ref=ExpressionFunctionRef(
+                                function_body=getParameterAnnotationUnpackingHelper(),
+                                source_ref=source_ref,
+                            ),
+                            defaults=(),
+                            kw_defaults=None,
+                            annotations=None,
+                            source_ref=source_ref,
+                        ),
+                        values=(value,),
+                        source_ref=source_ref,
+                    )
+
+                    result.setCompatibleSourceReference(
+                        value.getCompatibleSourceReference()
+                    )
+
+                    addAnnotation(
+                        key=arg.arg,
+                        value=result,
+                    )
+                else:
+                    addAnnotation(
+                        key=arg.arg,
+                        value=buildAnnotationNode(provider, arg.annotation, source_ref),
+                    )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
                 extractArgAnnotation(sub_arg)
