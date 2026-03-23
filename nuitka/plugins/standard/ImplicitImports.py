@@ -15,6 +15,7 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionsFromModuleName,
@@ -785,13 +786,16 @@ According to Yaml 'overridden-environment-variables' configuration."""
     )
 
     def decideCompilation(self, module_name):
-        if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
+        if module_name.hasOneOfNamespaces(
+            self.unworthy_namespaces
+        ) and not isExperimental("no-unworthy"):
             return "bytecode"
 
         is_match, _reason = module_name.matchesToShellPatterns(
             self.unworthy_modulename_patterns
         )
-        if is_match:
+
+        if is_match and not isExperimental("no-unworthy"):
             return "bytecode"
 
     def onModuleUsageLookAhead(
