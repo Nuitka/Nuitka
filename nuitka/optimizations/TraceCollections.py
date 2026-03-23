@@ -474,12 +474,7 @@ class TraceCollectionBase(object):
         if self.has_unescaped_variables:
             for variable in self.variable_escapable:
                 if variable in self.variable_actives:
-                    # Fast path: if version mod 3 is already 2, the variable
-                    # is already in "unknown" state and no work is needed.
-                    # This avoids the virtual method dispatch overhead for the
-                    # ~99% of iterations that are no-ops (mostly module vars).
-                    if self.variable_actives[variable] % 3 != 2:
-                        variable.onControlFlowEscape(self)
+                    variable.onControlFlowEscape(self)
 
             self.has_unescaped_variables = False
 
@@ -772,11 +767,11 @@ class TraceCollectionBase(object):
         if states.is_debug:
             # They must have the same content only or else some bug occurred.
             if len(collection1.variable_actives) != len(collection2.variable_actives):
-                for variable, version in collection1.variable_actives.items():
+                for variable, version in iterItems(collection1.variable_actives):
                     if variable not in collection2.variable_actives:
                         print("Only in collection1", variable, version)
 
-                for variable, version in collection2.variable_actives.items():
+                for variable, version in iterItems(collection2.variable_actives):
                     if variable not in collection1.variable_actives:
                         print("Only in collection2", variable, version)
 
@@ -787,7 +782,7 @@ class TraceCollectionBase(object):
         )
         new_actives = {}
 
-        for variable, version in collection1.variable_actives.items():
+        for variable, version in iterItems(collection1.variable_actives):
             other_version = collection2.variable_actives[variable]
 
             if version != other_version:
