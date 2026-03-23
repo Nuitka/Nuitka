@@ -892,6 +892,11 @@ def scanSourceDir(env, dirname, plugins):
     filenames = sorted(os.listdir(dirname))
 
     for filename_base in filenames:
+        if filename_base.endswith(".h") and plugins and not added_path:
+            # Adding path for source paths on the fly, spell-checker: ignore cpppath
+            env.Append(CPPPATH=[dirname])
+            added_path = True
+
         # Only C files are of interest here.
         if not hasFilenameExtension(filename_base, (".c", ".cpp")):
             continue
@@ -899,11 +904,6 @@ def scanSourceDir(env, dirname, plugins):
         # If we have a C file, but a C++ file exists too, use that.
         if filename_base.endswith(".c") and (filename_base[:-2] + ".cpp") in filenames:
             continue
-
-        if filename_base.endswith(".h") and plugins and not added_path:
-            # Adding path for source paths on the fly, spell-checker: ignore cpppath
-            env.Append(CPPPATH=[dirname])
-            added_path = True
 
         filename = getNormalizedPathJoin(dirname, filename_base)
 

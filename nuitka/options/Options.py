@@ -56,7 +56,6 @@ from nuitka.Tracing import (
     doNotBreakSpaces,
     general,
     inclusion_logger,
-    onefile_logger,
     optimization_logger,
     options_logger,
     progress_logger,
@@ -100,11 +99,8 @@ from nuitka.utils.Utils import (
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-from .OptionParsing import (
-    parseOptions,
-    run_time_variable_names,
-    runSpecialCommandsFromOptions,
-)
+from .OptionParsing import parseOptions, runSpecialCommandsFromOptions
+from .PathSpecs import checkPathSpec
 
 options = None
 positional_args = None
@@ -115,153 +111,6 @@ is_nuitka_run = None
 def getUserOptions():
     """Accessor the options, only for use in managing plugin options."""
     return options
-
-
-def _convertOldStylePathSpecQuotes(value):
-    quote = None
-
-    result = ""
-    for c in value:
-        if c == "%":
-            if quote is None:
-                quote = "{"
-                result += quote
-            elif quote == "{":
-                result += "}"
-                quote = None
-        else:
-            result += c
-
-    return result
-
-
-def checkPathSpec(value, arg_name, allow_disable):
-    # There are never enough checks here and sysexit is returned,
-    # pylint: disable=too-many-branches,too-many-return-statements
-    old = value
-    value = _convertOldStylePathSpecQuotes(value)
-    if old != value:
-        options_logger.warning(
-            "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
-            % (arg_name, old, value)
-        )
-
-    # This changes the '/' to '\' on Windows at least.
-    value = getUserInputNormalizedPath(value)
-
-    if "\n" in value or "\r" in value:
-        return options_logger.sysexit(
-            "Using a new line in value '%s=%r' value is not allowed."
-            % (arg_name, value)
-        )
-
-    if "{NONE}" in value:
-        if not allow_disable:
-            return options_logger.sysexit(
-                "Using value '{NONE}' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "{NONE}":
-            return options_logger.sysexit(
-                "Using value '{NONE}' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "{NULL}" in value:
-        if not allow_disable:
-            return options_logger.sysexit(
-                "Using value '{NULL}' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "{NULL}":
-            return options_logger.sysexit(
-                "Using value '{NULL}' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "{COMPANY}" in value and not getCompanyName():
-        return options_logger.sysexit(
-            "Using value '{COMPANY}' in '%s=%s' value without '--company-name' being specified."
-            % (arg_name, value)
-        )
-
-    if "{PRODUCT}" in value and not getProductName():
-        return options_logger.sysexit(
-            "Using value '{PRODUCT}' in '%s=%s' value without '--product-name' being specified."
-            % (arg_name, value)
-        )
-
-    if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
-        return options_logger.sysexit(
-            "Using value '{VERSION}' in '%s=%s' value without '--product-version' or '--file-version' being specified."
-            % (arg_name, value)
-        )
-
-    if value.count("{") != value.count("}"):
-        return options_logger.sysexit("""Unmatched '{}' is wrong for '%s=%s' and may \
-definitely not do what you want it to do.""" % (arg_name, value))
-
-    # Catch nested or illegal variable names.
-    var_name = None
-    for c in value:
-        if c in "{":
-            if var_name is not None:
-                return options_logger.sysexit(
-                    """Nested '{' is wrong for '%s=%s'.""" % (arg_name, value)
-                )
-            var_name = ""
-        elif c == "}":
-            if var_name is None:
-                return options_logger.sysexit(
-                    """Stray '}' is wrong for '%s=%s'.""" % (arg_name, value)
-                )
-
-            if var_name not in run_time_variable_names:
-                return onefile_logger.sysexit(
-                    "Found unknown variable name '%s' in for '%s=%s'."
-                    "" % (var_name, arg_name, value)
-                )
-
-            var_name = None
-        else:
-            if var_name is not None:
-                var_name += c
-
-    for candidate in (
-        "{PROGRAM}",
-        "{PROGRAM_BASE}",
-        "{PROGRAM_DIR}",
-        "{CACHE_DIR}",
-        "{HOME}",
-        "{TEMP}",
-    ):
-        if candidate in value[1:]:
-            return options_logger.sysexit("""\
-Absolute run time paths of '%s' can only be at the start of \
-'%s=%s', using it in the middle of it is not allowed.""" % (candidate, arg_name, value))
-
-        if candidate == value:
-            return options_logger.sysexit("""Cannot use folder '%s', may only be the \
-start of '%s=%s', using that alone is not allowed.""" % (candidate, arg_name, value))
-
-        if value.startswith(candidate) and candidate != "{PROGRAM_BASE}":
-            if value[len(candidate)] != os.path.sep:
-                return options_logger.sysexit(
-                    """Cannot use general system folder %s, without a path \
-separator '%s=%s', just appending to these is not allowed, needs to be \
-below them.""" % (candidate, arg_name, value)
-                )
-
-    is_legal, reason = isLegalPath(value)
-    if not is_legal:
-        return options_logger.sysexit(
-            """Cannot use illegal paths '%s=%s', due to %s."""
-            % (arg_name, value, reason)
-        )
-
-    return value
 
 
 def _checkOnefileTargetSpec():

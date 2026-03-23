@@ -1016,6 +1016,14 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
             } else if (wcsicmp(var_name, L"VERSION") == 0) {
                 appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
 #endif
+#ifdef NUITKA_FILE_VERSION
+            } else if (wcsicmp(var_name, L"FILE_VERSION") == 0) {
+                appendWStringSafeW(target, L"" NUITKA_FILE_VERSION, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_VERSION
+            } else if (wcsicmp(var_name, L"PRODUCT_VERSION") == 0) {
+                appendWStringSafeW(target, L"" NUITKA_PRODUCT_VERSION, buffer_size);
+#endif
             } else if (wcsicmp(var_name, L"RANDOM") == 0) {
                 environment_char_t const *environment_value = NULL;
 
@@ -1323,6 +1331,14 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 #ifdef NUITKA_VERSION_COMBINED
             } else if (strcasecmp(var_name, "VERSION") == 0) {
                 appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
+#endif
+#ifdef NUITKA_FILE_VERSION
+            } else if (strcasecmp(var_name, "FILE_VERSION") == 0) {
+                appendStringSafe(target, NUITKA_FILE_VERSION, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_VERSION
+            } else if (strcasecmp(var_name, "PRODUCT_VERSION") == 0) {
+                appendStringSafe(target, NUITKA_PRODUCT_VERSION, buffer_size);
 #endif
             } else if (strcasecmp(var_name, "RANDOM") == 0) {
                 environment_char_t const *environment_value = NULL;

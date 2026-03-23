@@ -739,6 +739,12 @@ def getCommonSconsOptions():
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
+    if product_version:
+        env_values["NUITKA_PRODUCT_VERSION"] = product_version
+
+    if file_version:
+        env_values["NUITKA_FILE_VERSION"] = file_version
+
     if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig

@@ -2252,6 +2252,8 @@ run_time_variable_names = (
     "COMPANY",
     "PRODUCT",
     "VERSION",
+    "FILE_VERSION",
+    "PRODUCT_VERSION",
     "HOME",
     "NONE",
     "NULL",
