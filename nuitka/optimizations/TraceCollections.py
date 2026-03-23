@@ -472,15 +472,13 @@ class TraceCollectionBase(object):
         # to be considered escaped, pylint: disable=unused-argument
 
         if self.has_unescaped_variables:
-            variable_actives = self.variable_actives
-
             for variable in self.variable_escapable:
-                if variable in variable_actives:
+                if variable in self.variable_actives:
                     # Fast path: if version mod 3 is already 2, the variable
                     # is already in "unknown" state and no work is needed.
                     # This avoids the virtual method dispatch overhead for the
                     # ~99% of iterations that are no-ops (mostly module vars).
-                    if variable_actives[variable] % 3 != 2:
+                    if self.variable_actives[variable] % 3 != 2:
                         variable.onControlFlowEscape(self)
 
             self.has_unescaped_variables = False
@@ -789,16 +787,11 @@ class TraceCollectionBase(object):
         )
         new_actives = {}
 
-        # Cache attribute lookups outside the loop.
-        c2_actives = collection2.variable_actives
-        variable_traces_all = self.variable_traces
-        addVariableMergeMultipleTrace = self.addVariableMergeMultipleTrace
-
         for variable, version in collection1.variable_actives.items():
-            other_version = c2_actives[variable]
+            other_version = collection2.variable_actives[variable]
 
             if version != other_version:
-                variable_traces = variable_traces_all[variable]
+                variable_traces = self.variable_traces[variable]
 
                 trace1 = variable_traces[version]
                 trace2 = variable_traces[other_version]
@@ -808,7 +801,7 @@ class TraceCollectionBase(object):
                 elif other_version % 3 == 1 and trace2.previous is trace1:
                     version = other_version
                 else:
-                    version = addVariableMergeMultipleTrace(
+                    version = self.addVariableMergeMultipleTrace(
                         variable,
                         (
                             trace1,
@@ -849,18 +842,12 @@ class TraceCollectionBase(object):
                 has_unescaped_variables = True
                 break
 
-        # Cache attribute lookups for the inner loop.
-        collections_actives = [c.variable_actives for c in collections]
-        rest_actives = collections_actives[1:]
-        variable_traces_all = self.variable_traces
-        addVariableMergeMultipleTrace = self.addVariableMergeMultipleTrace
-
-        for variable, first_version in collections_actives[0].items():
+        for variable, first_version in collections[0].variable_actives.items():
             # Fast path: check if all collections agree on the version
             # without building a set. This is the common case.
             all_same = True
-            for actives in rest_actives:
-                if actives[variable] != first_version:
+            for collection in collections[1:]:
+                if collection.variable_actives[variable] != first_version:
                     all_same = False
                     break
 
@@ -869,14 +856,14 @@ class TraceCollectionBase(object):
             else:
                 # Slow path: collect unique versions.
                 versions = {first_version}
-                for actives in rest_actives:
-                    versions.add(actives[variable])
+                for collection in collections[1:]:
+                    versions.add(collection.variable_actives[variable])
 
                 traces = []
                 escaped = set()
                 winner_version = None
 
-                variable_traces = variable_traces_all[variable]
+                variable_traces = self.variable_traces[variable]
 
                 for version in sorted(versions):
                     trace = variable_traces[version]
@@ -898,7 +885,7 @@ class TraceCollectionBase(object):
                     version = winner_version
                     assert winner_version is not None
                 else:
-                    version = addVariableMergeMultipleTrace(
+                    version = self.addVariableMergeMultipleTrace(
                         variable,
                         traces,
                     )
