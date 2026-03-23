@@ -65,7 +65,7 @@
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
 #define _NUITKA_ONEFILE_TEMP_BOOL 0
 #define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
-#define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME}"
+#define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}"
 
 #define _NUITKA_AUTO_UPDATE_BOOL 1
 #define _NUITKA_AUTO_UPDATE_DEBUG_BOOL 1
@@ -1102,13 +1102,7 @@ int main(int argc, char **argv) {
             process_role = NULL;
         }
 
-        // Do not inherit these from another onefile binary.
-        if (process_role == NULL) {
-            NUITKA_PRINT_TIMING("ONEFILE: Removing other onefile environment.");
-
-            unsetEnvironmentVariable("NUITKA_ONEFILE_PARENT");
-            unsetEnvironmentVariable("NUITKA_ONEFILE_START");
-        } else {
+        if (process_role != NULL) {
             NUITKA_PRINT_TIMING("ONEFILE: Decided we child environment.");
         }
     }
@@ -1123,6 +1117,12 @@ int main(int argc, char **argv) {
     // might change it by the time the child looks at its parent and we will use it
     // for calculating the template path potentially as well.
     if (process_role == NULL) {
+        NUITKA_PRINT_TIMING("ONEFILE: Removing other onefile environment.");
+
+        unsetEnvironmentVariable("NUITKA_ONEFILE_START");
+        unsetEnvironmentVariable("NUITKA_ONEFILE_TIME_US");
+        unsetEnvironmentVariable("NUITKA_ONEFILE_RANDOM");
+
 #if defined(_WIN32)
         setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
 #else

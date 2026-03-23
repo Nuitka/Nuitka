@@ -2352,6 +2352,8 @@ def isDynamicSpec(spec):
     for candidate in (
         "{PID}",
         "{TIME}",
+        "{TIME_US}",
+        "{RANDOM}",
         "{PROGRAM}",
         "{PROGRAM_BASE}",
         "{PROGRAM_DIR}",
@@ -2445,7 +2447,7 @@ def getOnefileTempDirSpec():
 
     if result is None:
         if options.onefile_cached_mode in ("auto", "temporary"):
-            parts = ("{TEMP}", "onefile_{PID}_{TIME}")
+            parts = ("{TEMP}", "onefile_{PID}_{TIME_US}_{RANDOM}")
         else:
             parts = ("{CACHE_DIR}", "{COMPANY}", "{PRODUCT}", "{VERSION}")
 

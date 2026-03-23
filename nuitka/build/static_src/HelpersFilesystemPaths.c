@@ -840,6 +840,24 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 }
 #endif
 
+static void generateXorShift32RandomBytes(unsigned int state, unsigned char *buffer, size_t length) {
+    /* Xorshift breaks if the state is exactly 0.
+       While astronomically unlikely here, it's safe to enforce a non-zero start. */
+    if (state == 0) {
+        state = 1;
+    }
+
+    /* Fill the buffer using a local, inline Xorshift32 PRNG */
+    for (size_t i = 0; i < length; i++) {
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+
+        /* The lower bits of Xorshift are high quality, so direct casting is safe */
+        buffer[i] = (unsigned char)state;
+    }
+}
+
 #if defined(_WIN32)
 
 // Note: Keep this separate line, must be included before other Windows headers.
@@ -868,6 +886,42 @@ static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_
     appendWStringSafeW(target, path_buffer, buffer_size);
 
     return true;
+}
+
+static void getSecureRandomBytes(unsigned char *buffer, size_t length) {
+    LARGE_INTEGER li;
+    QueryPerformanceCounter(&li);
+
+    unsigned int folded_time = (unsigned int)(li.QuadPart ^ (li.QuadPart >> 32));
+
+#ifdef _WIN64
+    unsigned int folded_ptr = (unsigned int)(((size_t)&li) ^ (((size_t)&li) >> 32));
+#else
+    unsigned int folded_ptr = (unsigned int)((size_t)&li);
+#endif
+
+    unsigned int seed = folded_time ^ folded_ptr ^ GetCurrentProcessId();
+
+    generateXorShift32RandomBytes(seed, buffer, length);
+}
+
+static void formatRandomBase64URLW(unsigned char const *rand_bytes, wchar_t *random_buffer) {
+    wchar_t const *alphabet = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+    random_buffer[0] = alphabet[(rand_bytes[0] >> 2)];
+    random_buffer[1] = alphabet[(((rand_bytes[0] & 0x3) << 4) | (rand_bytes[1] >> 4))];
+    random_buffer[2] = alphabet[(((rand_bytes[1] & 0xF) << 2) | (rand_bytes[2] >> 6))];
+    random_buffer[3] = alphabet[(rand_bytes[2] & 0x3F)];
+
+    random_buffer[4] = alphabet[(rand_bytes[3] >> 2)];
+    random_buffer[5] = alphabet[(((rand_bytes[3] & 0x3) << 4) | (rand_bytes[4] >> 4))];
+    random_buffer[6] = alphabet[(((rand_bytes[4] & 0xF) << 2) | (rand_bytes[5] >> 6))];
+    random_buffer[7] = alphabet[(rand_bytes[5] & 0x3F)];
+
+    random_buffer[8] = alphabet[(rand_bytes[6] >> 2)];
+    random_buffer[9] = alphabet[(((rand_bytes[6] & 0x3) << 4) | (rand_bytes[7] >> 4))];
+    random_buffer[10] = alphabet[((rand_bytes[7] & 0xF) << 2)];
+    random_buffer[11] = L'\0';
 }
 
 bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
@@ -962,6 +1016,53 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
             } else if (wcsicmp(var_name, L"VERSION") == 0) {
                 appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
 #endif
+            } else if (wcsicmp(var_name, L"RANDOM") == 0) {
+                environment_char_t const *environment_value = NULL;
+
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_RANDOM");
+#endif
+
+                if (environment_value != NULL) {
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_RANDOM"), buffer_size);
+                } else {
+                    unsigned char rand_bytes[8];
+                    getSecureRandomBytes(rand_bytes, sizeof(rand_bytes));
+
+                    wchar_t random_buffer[12];
+                    formatRandomBase64URLW(rand_bytes, random_buffer);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_RANDOM", random_buffer);
+#endif
+
+                    appendWStringSafeW(target, random_buffer, buffer_size);
+                }
+            } else if (wcsicmp(var_name, L"TIME_US") == 0) {
+                environment_char_t const *environment_value = NULL;
+
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_TIME_US");
+#endif
+
+                if (environment_value != NULL) {
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_TIME_US"), buffer_size);
+                } else {
+                    wchar_t time_buffer[128];
+
+                    __int64 time = 0;
+                    assert(sizeof(time) == sizeof(FILETIME));
+                    GetSystemTimeAsFileTime((LPFILETIME)&time);
+
+                    long usec = (long)((time / 10) % 1000000);
+                    swprintf(time_buffer, sizeof(time_buffer), L"%06ld", usec);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_TIME_US", time_buffer);
+#endif
+
+                    appendWStringSafeW(target, time_buffer, buffer_size);
+                }
             } else if (wcsicmp(var_name, L"TIME") == 0) {
                 environment_char_t const *environment_value = NULL;
 
@@ -1032,6 +1133,66 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 }
 
 #else
+
+#if defined(__i386__) || defined(__x86_64__)
+#include <x86intrin.h>
+#endif
+
+static uint64_t getCpuCycleCounter(void) {
+#if defined(__i386__) || defined(__x86_64__)
+    return __rdtsc();
+#elif defined(__aarch64__)
+    uint64_t val;
+    __asm__ volatile("mrs %0, cntvct_el0" : "=r"(val));
+    return val;
+#else
+    return 0;
+#endif
+}
+
+static void getSecureRandomBytes(unsigned char *buffer, size_t length) {
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd != -1) {
+        ssize_t res = read(fd, buffer, length);
+        close(fd);
+        if (res == (ssize_t)length) {
+            return;
+        }
+    }
+
+    uint64_t cycles = getCpuCycleCounter();
+
+    unsigned int folded_time = (unsigned int)(cycles ^ (cycles >> 32));
+
+#ifdef __LP64__
+    unsigned int folded_ptr = (unsigned int)(((size_t)&cycles) ^ (((size_t)&cycles) >> 32));
+#else
+    unsigned int folded_ptr = (unsigned int)((size_t)&cycles);
+#endif
+
+    unsigned int seed = folded_time ^ folded_ptr;
+
+    generateXorShift32RandomBytes(seed, buffer, length);
+}
+
+static void formatRandomBase64URL(unsigned char const *rand_bytes, char *random_buffer) {
+    char const *alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+    random_buffer[0] = alphabet[(rand_bytes[0] >> 2)];
+    random_buffer[1] = alphabet[(((rand_bytes[0] & 0x3) << 4) | (rand_bytes[1] >> 4))];
+    random_buffer[2] = alphabet[(((rand_bytes[1] & 0xF) << 2) | (rand_bytes[2] >> 6))];
+    random_buffer[3] = alphabet[(rand_bytes[2] & 0x3F)];
+
+    random_buffer[4] = alphabet[(rand_bytes[3] >> 2)];
+    random_buffer[5] = alphabet[(((rand_bytes[3] & 0x3) << 4) | (rand_bytes[4] >> 4))];
+    random_buffer[6] = alphabet[(((rand_bytes[4] & 0xF) << 2) | (rand_bytes[5] >> 6))];
+    random_buffer[7] = alphabet[(rand_bytes[5] & 0x3F)];
+
+    random_buffer[8] = alphabet[(rand_bytes[6] >> 2)];
+    random_buffer[9] = alphabet[(((rand_bytes[6] & 0x3) << 4) | (rand_bytes[7] >> 4))];
+    random_buffer[10] = alphabet[((rand_bytes[7] & 0xF) << 2)];
+    random_buffer[11] = '\0';
+}
 
 bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
     target[0] = 0;
@@ -1163,6 +1324,51 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
             } else if (strcasecmp(var_name, "VERSION") == 0) {
                 appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
 #endif
+            } else if (strcasecmp(var_name, "RANDOM") == 0) {
+                environment_char_t const *environment_value = NULL;
+
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_RANDOM");
+#endif
+
+                if (environment_value != NULL) {
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_RANDOM"), buffer_size);
+                } else {
+                    unsigned char rand_bytes[8];
+                    getSecureRandomBytes(rand_bytes, sizeof(rand_bytes));
+
+                    char random_buffer[12];
+                    formatRandomBase64URL(rand_bytes, random_buffer);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_RANDOM", random_buffer);
+#endif
+
+                    appendStringSafe(target, random_buffer, buffer_size);
+                }
+            } else if (strcasecmp(var_name, "TIME_US") == 0) {
+                environment_char_t const *environment_value = NULL;
+
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_TIME_US");
+#endif
+
+                if (environment_value != NULL) {
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_TIME_US"), buffer_size);
+                } else {
+                    char time_buffer[128];
+
+                    struct timeval current_time;
+                    gettimeofday(&current_time, NULL);
+
+                    snprintf(time_buffer, sizeof(time_buffer), "%06ld", (long)current_time.tv_usec);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_TIME_US", time_buffer);
+#endif
+
+                    appendStringSafe(target, time_buffer, buffer_size);
+                }
             } else if (strcasecmp(var_name, "TIME") == 0) {
                 environment_char_t const *environment_value = NULL;
 

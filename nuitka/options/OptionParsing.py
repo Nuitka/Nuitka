@@ -468,9 +468,9 @@ onefile_group.add_option(
     default=None,
     help="""\
 Use this as a folder to unpack to in onefile mode. Defaults to
-'{TEMP}/onefile_{PID}_{TIME}', i.e. user temporary directory
-and being non-static it's removed. Use e.g. a string like
-'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
+'{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}', i.e. user temporary
+directory and being non-static it's removed. Use e.g. a string
+like '{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
 static cache path, this will then not be removed.""",
 )
 
@@ -2243,6 +2243,8 @@ run_time_variable_names = (
     "TEMP",
     "PID",
     "TIME",
+    "TIME_US",
+    "RANDOM",
     "PROGRAM",
     "PROGRAM_BASE",
     "PROGRAM_DIR",
