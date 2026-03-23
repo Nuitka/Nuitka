@@ -13,6 +13,16 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+// Most often used modes per OS, more exist and could be used of course.
+#if defined(_WIN32)
+#define _NUITKA_CONSTANTS_FROM_COFF_OBJ 1
+#elif defined(__APPLE__)
+#define _NUITKA_CONSTANTS_FROM_MACOS_SECTION 1
+#else
+#define _NUITKA_CONSTANTS_FROM_CODE 1
+#endif
+
 #endif
 
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
