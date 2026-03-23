@@ -833,12 +833,10 @@ class TraceCollectionBase(object):
         #     print("Reduced multi %d to %d for %s" % (len(collections), len(new_collections), self))
         #     assert False
 
-        merge_size = len(collections)
-
-        if merge_size == 1:
+        if len(collections) == 1:
             self.replaceBranch(collections[0])
             return
-        elif merge_size == 2:
+        elif len(collections) == 2:
             return self.mergeBranches(*collections)
 
         _merge_counts[len(collections)] += 1
@@ -864,9 +862,7 @@ class TraceCollectionBase(object):
                     continue
 
                 # Slow path: collect unique versions.
-                versions = {first_version}
-                for collection in collections[1:]:
-                    versions.add(collection.variable_actives[variable])
+                versions = {c.variable_actives[variable] for c in collections}
 
                 traces = []
                 escaped = set()
