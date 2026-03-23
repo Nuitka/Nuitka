@@ -450,7 +450,8 @@ def executePASS3():
             "--nofollow-import-to=SCons",
             "--nofollow-import-to=pip",
             "--report=compilation-report-pass3.xml",
-            "nuitka-runner.py",
+            "--main=nuitka-runner.py",
+            "--main=nuitka/tools/data_composer/DataComposer.py",
         ]
 
         my_print("Command: ", " ".join(command))

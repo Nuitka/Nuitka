@@ -61,14 +61,29 @@ def _runDataComposer(source_dir):
 
     with withEnvironmentVarsOverridden(mapping):
         try:
-            subprocess.check_call(
-                [
+            is_compiled = hasattr(sys.modules.get("__main__"), "__compiled__")
+
+            if is_compiled:
+                command = (
+                    "DataComposer",
+                    source_dir,
+                    blob_filename,
+                    stats_filename,
+                )
+                executable = sys.executable
+            else:
+                command = (
                     sys.executable,
                     data_composer_path,
                     source_dir,
                     blob_filename,
                     stats_filename,
-                ],
+                )
+                executable = None
+
+            subprocess.check_call(
+                command,
+                executable=executable,
                 shell=False,
             )
         except subprocess.CalledProcessError:
