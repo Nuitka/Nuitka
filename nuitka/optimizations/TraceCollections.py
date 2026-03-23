@@ -819,6 +819,20 @@ class TraceCollectionBase(object):
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work, and length 2 has dedicated code as it's so frequent.
 
+        # collection_levels = set()
+        # new_collections = []
+
+        # for collection in collections:
+        #     if collection.variable_actives_level not in collection_levels:
+        #         collection_levels.add(collection.variable_actives_level)
+        #         new_collections.append(collection)
+
+        # collections = new_collections
+
+        # if len(collections) != len(new_collections):
+        #     print("Reduced multi %d to %d for %s" % (len(collections), len(new_collections), self))
+        #     assert False
+
         merge_size = len(collections)
 
         if merge_size == 1:
@@ -892,8 +906,8 @@ class TraceCollectionBase(object):
             self.variable_actives = new_actives
             self.variable_actives_needs_copy = False
 
-            # TODO: This could be avoided, if we detect no actual changes being
-            # present, but it might be more costly.
+            # TODO: This could be avoided, if we detect no actual changes being present, but it might
+            # be more costly.
             self.has_unescaped_variables = has_unescaped_variables
 
     def replaceBranch(self, collection_replace):
