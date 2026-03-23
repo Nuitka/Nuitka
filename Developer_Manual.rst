@@ -28,8 +28,10 @@ well as private conversations or issue tracker.
    CPython 3.0 to 3.3 releases.
 
    This milestone was reached. Dropping support for Python 2.6 is an
-   option, should this prove to be any benefit. Currently it is not, as
-   it extends the test coverage only.
+   option, should this prove to be any benefit. At this time, the
+   benefits are small still, as keeping it extends the test coverage and
+   gives a minimal environment for large scale changes to test with only
+   a subset of functionality that needs to be implemented immediately.
 
 #. Create the most efficient native code from this. This means to be
    fast with the basic Python object handling.
