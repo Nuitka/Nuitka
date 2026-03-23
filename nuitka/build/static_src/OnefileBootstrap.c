@@ -1467,7 +1467,19 @@ int main(int argc, char **argv) {
         // Make sure, we use the absolute program path for argv[0]
         argv[0] = (char *)getBinaryPath();
 
-        execv(fork_binary, argv);
+        // On WSL, the AVs can cause this, not sure about Linux in general, but
+        // we can wait for a bit.
+        int retry_count = 0;
+        while (retry_count < 10) {
+            execv(fork_binary, argv);
+
+            if (errno == ETXTBSY) {
+                usleep(100000); // 100ms delay
+                retry_count++;
+            } else {
+                break;
+            }
+        }
 
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
         exit_code = 2;
@@ -1487,6 +1499,18 @@ int main(int argc, char **argv) {
         cleanupChildProcess(false);
     }
 
+#endif
+
+#if _NUITKA_AUTO_UPDATE_BOOL
+    extern volatile bool auto_update_in_progress;
+
+    while (auto_update_in_progress) {
+#if defined(_WIN32)
+        Sleep(100);
+#else
+        usleep(100000);
+#endif
+    }
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Exiting.");
