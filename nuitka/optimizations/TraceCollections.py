@@ -862,7 +862,7 @@ class TraceCollectionBase(object):
                     continue
 
                 # Slow path: collect unique versions.
-                versions = {c.variable_actives[variable] for c in collections}
+                versions = set(c.variable_actives[variable] for c in collections)
 
                 traces = []
                 escaped = set()
