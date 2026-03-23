@@ -98,7 +98,18 @@ def withTemporaryDirectory(
     Yields:
         The path of the temporary directory.
     """
-    temp_dir = tempfile.mkdtemp(prefix=prefix, suffix=suffix, dir=directory)
+    # Python2 will raise an error if None is passed for prefix or suffix,
+    # whereas Python3 uses defaults gracefully. We build kwargs to avoid
+    # passing None and rely on tempfile's built-in defaults.
+    kwargs = {}
+    if prefix is not None:
+        kwargs["prefix"] = prefix
+    if suffix is not None:
+        kwargs["suffix"] = suffix
+    if directory is not None:
+        kwargs["dir"] = directory
+
+    temp_dir = tempfile.mkdtemp(**kwargs)
 
     try:
         yield temp_dir
