@@ -109,8 +109,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
-        # A lot of details here, pylint: disable=too-many-branches,too-many-locals
-
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
             full_name=full_name, condition=dll_config.get("when", "True")
@@ -174,39 +172,42 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 for prefix in dll_config.get("prefixes", ())
             )
 
-            for prefix in prefixes:
-                if exe:
-                    for exe_filename, filename in listExeFilesFromDirectory(
-                        dll_dir, prefix=prefix, suffixes=suffixes
-                    ):
-                        yield self.makeExeEntryPoint(
-                            source_path=exe_filename,
-                            dest_path=os.path.normpath(
-                                os.path.join(
-                                    dest_path,
-                                    filename,
-                                )
-                            ),
-                            module_name=full_name,
-                            package_name=full_name,
-                            reason="Yaml config of '%s'" % full_name.asString(),
-                        )
-                else:
-                    for dll_filename, filename in listDllFilesFromDirectory(
-                        dll_dir, prefix=prefix, suffixes=suffixes
-                    ):
-                        yield self.makeDllEntryPoint(
-                            source_path=dll_filename,
-                            dest_path=os.path.normpath(
-                                os.path.join(
-                                    dest_path,
-                                    filename,
-                                )
-                            ),
-                            module_name=full_name,
-                            package_name=full_name,
-                            reason="Yaml config of '%s'" % full_name.asString(),
-                        )
+            for entry_point in self._yieldDllsFromDirectory(
+                dll_dir=dll_dir,
+                dest_path=dest_path,
+                exe=exe,
+                prefixes=prefixes,
+                suffixes=suffixes,
+                full_name=full_name,
+            ):
+                yield entry_point
+
+    def _yieldDllsFromDirectory(
+        self, dll_dir, dest_path, exe, prefixes, suffixes, full_name
+    ):
+        for prefix in prefixes:
+            if exe:
+                for exe_filename, filename in listExeFilesFromDirectory(
+                    dll_dir, prefix=prefix, suffixes=suffixes
+                ):
+                    yield self.makeExeEntryPoint(
+                        source_path=exe_filename,
+                        dest_path=os.path.normpath(os.path.join(dest_path, filename)),
+                        module_name=full_name,
+                        package_name=full_name,
+                        reason="Yaml config of '%s'" % full_name.asString(),
+                    )
+            else:
+                for dll_filename, filename in listDllFilesFromDirectory(
+                    dll_dir, prefix=prefix, suffixes=suffixes
+                ):
+                    yield self.makeDllEntryPoint(
+                        source_path=dll_filename,
+                        dest_path=os.path.normpath(os.path.join(dest_path, filename)),
+                        module_name=full_name,
+                        package_name=full_name,
+                        reason="Yaml config of '%s'" % full_name.asString(),
+                    )
 
     def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
         # Expecting absolute paths internally for DLL sources.
