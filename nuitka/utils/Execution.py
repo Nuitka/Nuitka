@@ -17,7 +17,7 @@ from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
-from .FileOperations import getExternalUsePath
+from .FileOperations import getExternalUsePath, hasFilenameExtension
 from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 
 # Cache, so we avoid repeated command lookups.
@@ -564,6 +564,19 @@ def _checkEnvironment(env):
             )
 
 
+def expandProcessCallForWindows(command, shell):
+    """On Windows, if the command is a batch file, we need to run
+    it with cmd.exe and our own flags to disable auto-run
+    and other side effects.
+    """
+    # spell-checker: ignore COMSPEC
+    if not shell and isWin32Windows() and type(command) in (list, tuple):
+        if hasFilenameExtension(command[0], (".cmd", ".bat")):
+            return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
+
+    return command
+
+
 def createProcess(
     command,
     env=None,
@@ -574,10 +587,13 @@ def createProcess(
     external_cwd=False,
     new_group=False,
 ):
+    assert command
+
     if not env:
         env = os.environ
-
     _checkEnvironment(env)
+
+    command = expandProcessCallForWindows(command=command, shell=shell)
 
     kw_args = {}
     if new_group:

@@ -904,7 +904,7 @@ def callExecPython(args, add_path, uac):
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
 
-    callExecProcess(args, uac=uac)
+    callExecProcess(args, shell=uac)
 
 
 def _executeMain(binary_filename):

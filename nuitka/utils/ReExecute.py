@@ -12,8 +12,10 @@ spell-checker: ignore execl, Popen
 import os
 import sys
 
+from .Execution import expandProcessCallForWindows
 
-def callExecProcess(args, uac):
+
+def callExecProcess(args, shell):
     """Do exec in a portable way preserving exit code.
 
     On Windows, unfortunately there is no real exec, so we have to spawn
@@ -31,9 +33,11 @@ def callExecProcess(args, uac):
         args = list(args)
         del args[1]
 
+        args = expandProcessCallForWindows(command=args, shell=shell)
+
         try:
             # Context manager is not available on all Python versions, pylint: disable=consider-using-with
-            process = subprocess.Popen(args=args, shell=uac)
+            process = subprocess.Popen(args=args, shell=shell)
             process.communicate()
             # No point in cleaning up, just exit the hard way.
             try:
@@ -134,7 +138,7 @@ def reExecuteNuitka(pgo_filename):
     setLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION", "1")
 
     # Does not return:
-    callExecProcess(args, uac=False)
+    callExecProcess(args, shell=False)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
