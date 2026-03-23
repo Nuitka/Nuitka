@@ -114,10 +114,9 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, NULL, 0, NULL);
 
             CHECK_OBJECT_X(result);
@@ -534,10 +533,9 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 1, NULL);
 
             CHECK_OBJECT_X(result);
@@ -987,10 +985,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 1, NULL);
 
             CHECK_OBJECT_X(result);
@@ -1414,10 +1411,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 2, NULL);
 
             CHECK_OBJECT_X(result);
@@ -1848,10 +1844,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 2, NULL);
 
             CHECK_OBJECT_X(result);
@@ -2252,10 +2247,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 3, NULL);
 
             CHECK_OBJECT_X(result);
@@ -2686,10 +2680,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 3, NULL);
 
             CHECK_OBJECT_X(result);
@@ -3090,10 +3083,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 4, NULL);
 
             CHECK_OBJECT_X(result);
@@ -3524,10 +3516,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 4, NULL);
 
             CHECK_OBJECT_X(result);
@@ -3928,10 +3919,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 5, NULL);
 
             CHECK_OBJECT_X(result);
@@ -4362,10 +4352,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 5, NULL);
 
             CHECK_OBJECT_X(result);
@@ -4766,10 +4755,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 6, NULL);
 
             CHECK_OBJECT_X(result);
@@ -5200,10 +5188,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 6, NULL);
 
             CHECK_OBJECT_X(result);
@@ -5604,10 +5591,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 7, NULL);
 
             CHECK_OBJECT_X(result);
@@ -6038,10 +6024,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 7, NULL);
 
             CHECK_OBJECT_X(result);
@@ -6442,10 +6427,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 8, NULL);
 
             CHECK_OBJECT_X(result);
@@ -6876,10 +6860,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 8, NULL);
 
             CHECK_OBJECT_X(result);
@@ -7280,10 +7263,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 9, NULL);
 
             CHECK_OBJECT_X(result);
@@ -7714,10 +7696,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 9, NULL);
 
             CHECK_OBJECT_X(result);
@@ -8118,10 +8099,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 10, NULL);
 
             CHECK_OBJECT_X(result);
@@ -8552,10 +8532,9 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
             result = func(called, args, 10, NULL);
 
             CHECK_OBJECT_X(result);

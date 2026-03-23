@@ -167,10 +167,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
         PyObject *result;
 
-        if (!(flags & METH_VARARGS)) {
-            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 
-            assert(func != NULL);
+        if (func != NULL) {
 {% if args_count == 0 %}
             result = func(called, NULL, 0, NULL);
 {% else %}
