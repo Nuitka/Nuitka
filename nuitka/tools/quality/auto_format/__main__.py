@@ -154,7 +154,7 @@ def formatFilenames(filenames, options):
             ):
                 result += 1
         except Exception as e:
-            tools_logger.warning(f"Error formatting {filename}: {e}")
+            tools_logger.warning("Error formatting %s: %s" % (filename, e))
             raise
 
     # Tool is named without separator, spellchecker: ignore autoformat
