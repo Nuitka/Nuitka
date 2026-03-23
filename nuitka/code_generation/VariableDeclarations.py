@@ -136,6 +136,7 @@ class VariableStorage(object):
         "variable_declarations_closure",
         "variable_declarations_locals",
         "exception_variable_name",
+        "_top_declarations_index",
     )
 
     def __init__(self, heap_name):
@@ -148,6 +149,9 @@ class VariableStorage(object):
         self.variable_declarations_locals = []
 
         self.exception_variable_name = None
+
+        # Dict index for O(1) lookup by code_name in getVariableDeclarationTop.
+        self._top_declarations_index = {}
 
     @contextmanager
     def withLocalStorage(self):
@@ -165,15 +169,7 @@ class VariableStorage(object):
         self.variable_declarations_locals.pop()
 
     def getVariableDeclarationTop(self, code_name):
-        for variable_declaration in self.variable_declarations_main:
-            if variable_declaration.code_name == code_name:
-                return variable_declaration
-
-        for variable_declaration in self.variable_declarations_heap:
-            if variable_declaration.code_name == code_name:
-                return variable_declaration
-
-        return None
+        return self._top_declarations_index.get(code_name)
 
     def getVariableDeclarationClosure(self, closure_index):
         return self.variable_declarations_closure[closure_index]
@@ -229,6 +225,7 @@ class VariableStorage(object):
         result = VariableDeclaration(c_type, code_name, init_value, None)
 
         self.variable_declarations_main.append(result)
+        self._top_declarations_index[code_name] = result
 
         return result
 
@@ -239,6 +236,8 @@ class VariableStorage(object):
             self.variable_declarations_heap.append(result)
         else:
             self.variable_declarations_main.append(result)
+
+        self._top_declarations_index[code_name] = result
 
         return result
 
