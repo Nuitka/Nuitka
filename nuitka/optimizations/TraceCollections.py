@@ -829,26 +829,26 @@ class TraceCollectionBase(object):
 
         _merge_counts[len(collections)] += 1
 
-        new_actives = {}
+        with TimerReport(
+            message="Running merge for %s took %%.2f seconds" % collections,
+            decider=False,
+            include_sleep_time=False,
+            use_perf_counters=False,
+        ):
+            new_actives = {}
 
-        has_unescaped_variables = False
-        for collection in collections:
-            if collection.has_unescaped_variables:
-                has_unescaped_variables = True
-                break
+            has_unescaped_variables = any(
+                collection.has_unescaped_variables for collection in collections
+            )
 
-        for variable, first_version in collections[0].variable_actives.items():
-            # Fast path: check if all collections agree on the version
-            # without building a set. This is the common case.
-            all_same = True
-            for collection in collections[1:]:
-                if collection.variable_actives[variable] != first_version:
-                    all_same = False
-                    break
+            for variable, first_version in collections[0].variable_actives.items():
+                for collection in collections[1:]:
+                    if collection.variable_actives[variable] != first_version:
+                        break
+                else:
+                    new_actives[variable] = first_version
+                    continue
 
-            if all_same:
-                new_actives[variable] = first_version
-            else:
                 # Slow path: collect unique versions.
                 versions = {first_version}
                 for collection in collections[1:]:
@@ -889,12 +889,12 @@ class TraceCollectionBase(object):
 
                 new_actives[variable] = version
 
-        self.variable_actives = new_actives
-        self.variable_actives_needs_copy = False
+            self.variable_actives = new_actives
+            self.variable_actives_needs_copy = False
 
-        # TODO: This could be avoided, if we detect no actual changes being
-        # present, but it might be more costly.
-        self.has_unescaped_variables = has_unescaped_variables
+            # TODO: This could be avoided, if we detect no actual changes being
+            # present, but it might be more costly.
+            self.has_unescaped_variables = has_unescaped_variables
 
     def replaceBranch(self, collection_replace):
         self.variable_actives = collection_replace.variable_actives
