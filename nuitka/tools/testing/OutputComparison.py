@@ -45,7 +45,7 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
-did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
+did_you_mean_re = re.compile(r"\. Did you mean:? '.*?'\?")
 # spell-checker:enable
 
 

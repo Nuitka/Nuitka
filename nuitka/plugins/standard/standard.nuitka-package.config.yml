@@ -328,6 +328,12 @@
           - 'AutoIt'
       when: 'win32'
 
+- module-name: 'av' # checksum: 1bc92d85
+  anti-bloat:
+    - description: 'remove cython usage'
+      no-auto-follow:
+        'cython': 'ignore'
+
 - module-name: 'av.audio.frame' # checksum: f3ef0d81
   implicit-imports:
     - depends:
@@ -3237,7 +3243,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: cfff3d48
+- module-name: 'numpy' # checksum: e8a53225
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3272,6 +3278,9 @@
     - description: 'avoid charset_normalizer dependency'
       no-auto-follow:
         'charset_normalizer': 'ignore'
+    - description: 'avoid typing_extensions dependency'
+      no-auto-follow:
+        'typing_extensions': 'ignore'
     - description: 'disable bug hiding'
       replacements_plain:
         'raise ImportError(msg) from e': 'raise e'
@@ -3693,10 +3702,15 @@
       replacements_plain:
         'opentelemetry.util._importlib_metadata': 'importlib_metadata'
 
-- module-name: 'openvino' # checksum: 4e2c2404
+- module-name: 'openvino' # checksum: 3c2ae57e
   data-files:
     - dirs:
         - 'libs'
+  dlls:
+    - from_filenames:
+        relative_path: 'libs'
+        prefixes:
+          - ''
 
 - module-name: 'openvino.inference_engine' # checksum: 9100f948
   dlls:
