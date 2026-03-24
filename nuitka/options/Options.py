@@ -1675,6 +1675,11 @@ def isCompileTimeProfile():
     return options.devel_profile_compilation
 
 
+def isDevelPerformanceCounts():
+    """:returns: bool derived from ``--devel-performance-counts``"""
+    return options.devel_performance_counts
+
+
 def shallGenerateReadableCode():
     """:returns: bool derived from ``--devel-generate-readable-code``"""
     return options.devel_generate_readable_code or _isDebug()

@@ -1227,6 +1227,17 @@ Enable cProfile based profiling of time spent during compilation. Defaults to of
 )
 
 development_group.add_option(
+    "--devel-performance-counts",
+    action="store_true",
+    dest="devel_performance_counts",
+    default=False,
+    github_action=False,
+    help="""\
+Enable this to produce a fatal error if performance counters cannot be \
+used, but are attempted to be used.""",
+)
+
+development_group.add_option(
     "--devel-generate-readable-code",
     action="store_true",
     dest="devel_generate_readable_code",
