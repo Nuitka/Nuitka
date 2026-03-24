@@ -358,6 +358,83 @@ def _getReportInputData(aborted):
 
     compilation_mode = getCompilationMode()
 
+    performance_totals = {
+        "optimization_passes": {},
+        "code_generation": {
+            "time": 0.0,
+            "count": 0,
+            "cpu_instr": None,
+            "cpu_cycles": None,
+        },
+        "all_passes": {"time": 0.0, "count": 0, "cpu_instr": None, "cpu_cycles": None},
+    }
+
+    _total_all_passes_module_set = set()
+
+    for _module_name, _timing_infos in module_timing_infos.items():
+        if _timing_infos:
+            _total_all_passes_module_set.add(_module_name)
+        for _timing_info in _timing_infos:
+            _pass_num = _timing_info.pass_number
+            if _pass_num not in performance_totals["optimization_passes"]:
+                performance_totals["optimization_passes"][_pass_num] = {
+                    "time": 0.0,
+                    "count": 0,
+                    "cpu_instr": None,
+                    "cpu_cycles": None,
+                }
+            performance_totals["optimization_passes"][_pass_num][
+                "time"
+            ] += _timing_info.time_used
+            performance_totals["optimization_passes"][_pass_num]["count"] += 1
+            performance_totals["all_passes"]["time"] += _timing_info.time_used
+
+            if _timing_info.cpu_instr_count is not None:
+                if (
+                    performance_totals["optimization_passes"][_pass_num]["cpu_instr"]
+                    is None
+                ):
+                    performance_totals["optimization_passes"][_pass_num][
+                        "cpu_instr"
+                    ] = 0
+                    performance_totals["optimization_passes"][_pass_num][
+                        "cpu_cycles"
+                    ] = 0
+                performance_totals["optimization_passes"][_pass_num][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["optimization_passes"][_pass_num][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
+
+                if performance_totals["all_passes"]["cpu_instr"] is None:
+                    performance_totals["all_passes"]["cpu_instr"] = 0
+                    performance_totals["all_passes"]["cpu_cycles"] = 0
+                performance_totals["all_passes"][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["all_passes"][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
+
+    performance_totals["all_passes"]["count"] = len(_total_all_passes_module_set)
+
+    for _module_name, _timing_info in module_generation_timing_infos.items():
+        if _timing_info is not None:
+            performance_totals["code_generation"]["time"] += _timing_info.time_used
+            performance_totals["code_generation"]["count"] += 1
+
+            if getattr(_timing_info, "cpu_instr_count", None) is not None:
+                if performance_totals["code_generation"]["cpu_instr"] is None:
+                    performance_totals["code_generation"]["cpu_instr"] = 0
+                    performance_totals["code_generation"]["cpu_cycles"] = 0
+                performance_totals["code_generation"][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["code_generation"][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
+
     return dict(
         (var_name, var_value)
         for var_name, var_value in locals().items()
@@ -907,6 +984,77 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                         filename=item,
                         **item_value
                     )
+
+    performance_totals = report_input_data["performance_totals"]
+
+    performance_totals_node = appendTreeElement(
+        root,
+        "performance-totals",
+    )
+
+    for pass_num in sorted(performance_totals["optimization_passes"]):
+        timing_xml_node = appendTreeElement(
+            performance_totals_node,
+            "optimization-time",
+        )
+        timing_xml_node.attrib["pass"] = str(pass_num)
+        timing_xml_node.attrib["time"] = (
+            "volatile"
+            if diffable
+            else "%.2f" % performance_totals["optimization_passes"][pass_num]["time"]
+        )
+        timing_xml_node.attrib["module_count"] = str(
+            performance_totals["optimization_passes"][pass_num]["count"]
+        )
+        if performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None:
+            if not diffable:
+                timing_xml_node.attrib["cpu_instr"] = str(
+                    performance_totals["optimization_passes"][pass_num]["cpu_instr"]
+                )
+                timing_xml_node.attrib["cpu_cycles"] = str(
+                    performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
+                )
+
+    timing_xml_node = appendTreeElement(
+        performance_totals_node,
+        "optimization-time",
+    )
+    timing_xml_node.attrib["pass"] = "all"
+    timing_xml_node.attrib["time"] = (
+        "volatile" if diffable else "%.2f" % performance_totals["all_passes"]["time"]
+    )
+    timing_xml_node.attrib["module_count"] = str(
+        performance_totals["all_passes"]["count"]
+    )
+    if performance_totals["all_passes"]["cpu_instr"] is not None:
+        if not diffable:
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["all_passes"]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["all_passes"]["cpu_cycles"]
+            )
+
+    timing_xml_node = appendTreeElement(
+        performance_totals_node,
+        "code-generation-time",
+    )
+    timing_xml_node.attrib["time"] = (
+        "volatile"
+        if diffable
+        else "%.2f" % performance_totals["code_generation"]["time"]
+    )
+    timing_xml_node.attrib["module_count"] = str(
+        performance_totals["code_generation"]["count"]
+    )
+    if performance_totals["code_generation"]["cpu_instr"] is not None:
+        if not diffable:
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["code_generation"]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["code_generation"]["cpu_cycles"]
+            )
 
     if report_input_data["backend_executable"] != "failed too early":
         python_binary_xml_node = appendTreeElement(
