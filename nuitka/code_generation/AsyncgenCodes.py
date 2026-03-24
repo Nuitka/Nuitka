@@ -118,7 +118,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
 
     return template_asyncgen_object_body % {
         "function_identifier": function_identifier,
-        "function_body": indented(function_codes.codes),
+        "function_body": indented(function_codes),
         "heap_declaration": indented(heap_declaration),
         "has_heap_declaration": 1 if heap_declaration != "" else 0,
         "function_local_types": indented(local_type_decl),

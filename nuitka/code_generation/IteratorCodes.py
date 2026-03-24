@@ -23,7 +23,6 @@ from .ErrorCodes import (
     getFrameVariableTypeDescriptionCode,
     getReleaseCode,
 )
-from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import template_loop_break_next
@@ -99,11 +98,9 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
             "to_name": to_name,
             "break_indicator_code": break_indicator_code,
             "break_target": break_target,
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            "release_temps": getErrorExitReleaseCode(context),
+            "var_description_code": getFrameVariableTypeDescriptionCode(context),
+            "line_number_code": getErrorLineNumberUpdateCode(context),
             "exception_target": context.getExceptionEscape(),
             "exception_state_name": exception_state_name,
         }

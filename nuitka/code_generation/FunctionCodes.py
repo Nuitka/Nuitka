@@ -649,7 +649,7 @@ def _getFunctionCode(
         reason="Return statement must have exited already.", emit=emit
     )
 
-    function_exit = indented(emit.codes) + "\n\n"
+    function_exit = indented(emit) + "\n\n"
     del emit
 
     if needs_exception_exit:
@@ -694,7 +694,7 @@ def _getFunctionCode(
             "function_identifier": function_identifier,
             "direct_call_arg_spec": ", ".join(parameter_objects_decl),
             "function_locals": indented(function_locals),
-            "function_body": indented(function_codes.codes),
+            "function_body": indented(function_codes),
             "function_exit": function_exit,
         }
     else:
@@ -702,7 +702,7 @@ def _getFunctionCode(
             "function_identifier": function_identifier,
             "parameter_objects_decl": ", ".join(parameter_objects_decl),
             "function_locals": indented(function_locals),
-            "function_body": indented(function_codes.codes),
+            "function_body": indented(function_codes),
             "function_exit": function_exit,
         }
 

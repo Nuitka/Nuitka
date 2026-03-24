@@ -143,7 +143,7 @@ def _getVariableDictUpdateCode(
                 "dict_name": target_name,
                 "var_name": context.getConstantCode(constant=variable.getName()),
                 "test_code": test_code,
-                "access_code": indented(access_code.codes),
+                "access_code": indented(access_code),
             }
         )
     else:

@@ -188,24 +188,24 @@ def getModuleCode(
 
     # If no constants are present.
     if constants_count > 0:
-        module_constants_decl = indented(
+        module_constants_decl = "\n".join(
             "PyObject *%s;" % name for name in context.getConstantNames()
         )
 
-        module_constants_check_hash = indented(
+        module_constants_check_hash = "\n".join(
             "mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"
             % {"index": count, "name": name}
             for count, name in enumerate(context.getConstantNames())
         )
 
-        module_constants_check_object = indented(
+        module_constants_check_object = "\n".join(
             """\
 assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s));
 CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
             for count, name in enumerate(context.getConstantNames())
         )
     else:
-        module_constants_decl = "    PyObject *empty;"
+        module_constants_decl = "PyObject *empty;"
         module_constants_check_hash = ""
         module_constants_check_object = ""
 
@@ -227,7 +227,7 @@ CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
         "module_variable_accessors": indented(module_variable_accessor_codes),
         "module_variable_accessors_count": len(module_variable_accessor_codes),
         "module_init_codes": indented(module_init_codes),
-        "module_codes": indented(module_codes.codes),
+        "module_codes": indented(module_codes),
         "module_exit": module_exit,
         "module_code_objects_decl": indented(module_code_objects_decl),
         "module_code_objects_init": indented(module_code_objects_init),

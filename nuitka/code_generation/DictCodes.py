@@ -167,7 +167,7 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
     with withCleanupFinally(
         "dict_build", to_name, needs_exception_exit, emit, context
     ) as guarded_emit:
-        emit = guarded_emit.emit
+        emit = guarded_emit
 
         for count, pair in enumerate(pairs):
             if count > 0:

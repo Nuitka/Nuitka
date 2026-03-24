@@ -63,7 +63,7 @@ def generateListCreationCode(to_name, expression, emit, context):
         with withCleanupFinally(
             "list_build", result_name, needs_exception_exit, emit, context
         ) as guarded_emit:
-            emit = guarded_emit.emit
+            emit = guarded_emit
 
             for count, element in enumerate(elements):
                 if count > 0:

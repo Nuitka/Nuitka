@@ -208,7 +208,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
         if is_dict:
             template = template_read_locals_dict_with_fallback
-            fallback_codes = indented(fallback_emit.codes)
+            fallback_codes = indented(fallback_emit)
 
             emit(
                 template
@@ -231,7 +231,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             else:
                 template = template_read_locals_mapping_with_fallback_no_ref
 
-            fallback_codes = indented(fallback_emit.codes)
+            fallback_codes = indented(fallback_emit)
 
             (
                 exception_state_name,

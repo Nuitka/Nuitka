@@ -74,7 +74,7 @@ def getTupleCreationCode(to_name, elements, emit, context):
         with withCleanupFinally(
             "tuple_build", to_name, needs_exception_exit, emit, context
         ) as guarded_emit:
-            emit = guarded_emit.emit
+            emit = guarded_emit
 
             for count, element in enumerate(elements):
                 if count > 0:

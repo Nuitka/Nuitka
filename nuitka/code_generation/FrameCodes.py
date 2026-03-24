@@ -138,7 +138,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         getFrameGuardGeneratorCode(
             frame_node=statement_sequence,
             code_identifier=code_object_access_code,
-            codes=local_emit.codes,
+            codes=local_emit,
             parent_exception_exit=parent_exception_exit,
             frame_exception_exit=frame_exception_exit,
             parent_return_exit=parent_return_exit,
@@ -154,7 +154,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             parent_return_exit=parent_return_exit,
             frame_exception_exit=frame_exception_exit,
             frame_return_exit=frame_return_exit,
-            codes=local_emit.codes,
+            codes=local_emit,
             needs_preserve=needs_preserve,
             emit=emit,
             context=context,
