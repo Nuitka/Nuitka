@@ -15,14 +15,15 @@ from .Indentation import indented
 
 
 class SourceCodeCollector(object):
+    __slots__ = ("codes",)
+
     def __init__(self):
         self.codes = []
 
     def __call__(self, code):
-        self.emit(code)
+        self.codes.append(code)
 
-    def emit(self, code):
-        self.codes.extend(code.split("\n"))
+    emit = __call__
 
     def emitTo(self, emit):
         for code in self.codes:
