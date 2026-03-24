@@ -907,6 +907,9 @@ class TraceCollectionBase(object):
 
     def replaceBranch(self, collection_replace):
         self.variable_actives = collection_replace.variable_actives
+        self.variable_actives_needs_copy = (
+            collection_replace.variable_actives_needs_copy
+        )
         self.has_unescaped_variables = collection_replace.has_unescaped_variables
 
         # Make the old one unusable.
