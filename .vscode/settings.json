@@ -276,6 +276,7 @@
     "HINSTANCE",
     "HKLM",
     "hotfixes",
+    "HRESULT",
     "HRSRC",
     "HWND",
     "ibitand",
