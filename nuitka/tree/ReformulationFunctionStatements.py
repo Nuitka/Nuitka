@@ -43,7 +43,6 @@ from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
-    makeExpressionFunctionCall,
     makeExpressionFunctionCreation,
 )
 from nuitka.nodes.GeneratorNodes import (
@@ -74,11 +73,6 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
-from .InternalModule import (
-    internal_source_ref,
-    makeInternalHelperFunctionBody,
-    once_decorator,
-)
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
