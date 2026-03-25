@@ -15,7 +15,7 @@ sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
 
 """
 
-from .Utils import isLinux
+from .Utils import isLinux, isLinuxWSL
 
 # isort: start
 
@@ -89,8 +89,9 @@ else:
 
     # See 'man perf_event_open' for details
     PERF_TYPE_HARDWARE = 0
-    PERF_COUNT_HW_REF_CPU_CYCLES = 9
+    PERF_COUNT_HW_CPU_CYCLES = 0
     PERF_COUNT_HW_INSTRUCTIONS = 1
+    PERF_COUNT_HW_REF_CPU_CYCLES = 9
 
     class _PerfEventAttrUnion(ctypes.Union):
         _fields_ = [
@@ -111,7 +112,7 @@ else:
             ("sample_type", ctypes.c_uint64),
             ("read_format", ctypes.c_uint64),
             ("flags", ctypes.c_uint64),
-            # More fields for the union
+            # More fields for the union size to match are needed.
             ("wakeup_events", ctypes.c_uint32),
             ("wakeup_watermark", ctypes.c_uint32),
             ("bp_type", ctypes.c_uint32),
@@ -172,10 +173,20 @@ else:
     class PerfCounters(object):
         def __init__(self):
             # Create the instruction counter as the group leader.
-            self.instr_counter = PerfCounter(config=PERF_COUNT_HW_INSTRUCTIONS)
+            self.instr_counter = PerfCounter(
+                config=PERF_COUNT_HW_INSTRUCTIONS,
+            )
+
+            if isLinuxWSL():
+                # On WSL2, REF_CPU_CYCLES is not supported.
+                cycle_config = PERF_COUNT_HW_CPU_CYCLES
+            else:
+                cycle_config = PERF_COUNT_HW_REF_CPU_CYCLES
+
             # Create the cycle counter as a member of the same group.
             self.cycle_counter = PerfCounter(
-                config=PERF_COUNT_HW_REF_CPU_CYCLES, group_fd=self.instr_counter.fd
+                config=cycle_config,
+                group_fd=self.instr_counter.fd,
             )
 
         def start(self):
