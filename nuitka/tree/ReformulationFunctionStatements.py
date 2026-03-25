@@ -766,15 +766,13 @@ def buildParameterAnnotations(provider, node, source_ref):
                         source_ref=source_ref,
                     )
 
-                    addAnnotation(
-                        key=arg.arg,
-                        value=result,
-                    )
                 else:
-                    addAnnotation(
-                        key=arg.arg,
-                        value=buildAnnotationNode(provider, arg.annotation, source_ref),
-                    )
+                    result = buildAnnotationNode(provider, arg.annotation, source_ref)
+
+                addAnnotation(
+                    key=arg.arg,
+                    value=result,
+                )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
                 extractArgAnnotation(sub_arg)
