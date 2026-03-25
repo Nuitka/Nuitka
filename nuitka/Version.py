@@ -4,7 +4,7 @@
 """Nuitka version related stuff."""
 
 version_string = """\
-Nuitka V4.1rc6
+Nuitka V4.1rc7
 Copyright (C) 2026 Kay Hayen."""
 
 
