@@ -827,23 +827,9 @@ def buildParameterAnnotations(provider, node, source_ref):
                         provider, arg.annotation.value, source_ref
                     )
 
-                    result = makeExpressionFunctionCall(
-                        function=makeExpressionFunctionCreation(
-                            function_ref=ExpressionFunctionRef(
-                                function_body=getParameterAnnotationUnpackingHelper(),
-                                source_ref=source_ref,
-                            ),
-                            defaults=(),
-                            kw_defaults=None,
-                            annotations=None,
-                            source_ref=source_ref,
-                        ),
-                        values=(value,),
+                    result = ExpressionBuiltinNext1(
+                        value=ExpressionBuiltinIterForUnpack(value, source_ref),
                         source_ref=source_ref,
-                    )
-
-                    result.setCompatibleSourceReference(
-                        value.getCompatibleSourceReference()
                     )
 
                     addAnnotation(
