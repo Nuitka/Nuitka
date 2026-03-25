@@ -19,7 +19,7 @@ from nuitka.utils.FileOperations import (
 
 def _optimizePNGs(pngList):
     for png in pngList:
-        check_call(["optipng", "-o2", "%s.png" % png])
+        check_call(["optipng", "-quiet", "-o2", "%s.png" % png])
 
 
 def makeLogoImages():
