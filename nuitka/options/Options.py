@@ -120,10 +120,15 @@ def _checkOnefileTargetSpec():
         allow_disable=False,
     )
 
+    if options.onefile_tempdir_spec.startswith("{PROGRAM_DIR}"):
+        options.onefile_tempdir_spec = options.onefile_tempdir_spec[
+            len("{PROGRAM_DIR}") :
+        ].lstrip("/\\")
+
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
         return options_logger.sysexit("""\
-Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
-you cannot unpack the onefile payload into the same directory as the binary,
+Error, using '.' as a value for '--onefile-tempdir-spec' is not supported, \
+you cannot unpack the onefile payload into the same directory as the binary, \
 as that would overwrite it and cause locking issues as well.""")
 
     if options.onefile_tempdir_spec.count("{") == 0:
@@ -138,19 +143,17 @@ done if your program absolutely needs to be in the same path always: '%s'"""
             """\
 Using an absolute path should be avoided unless you are targeting a \
 very well known environment: anchoring it with e.g. '{TEMP}', \
-'{CACHE_DIR}' is recommended: You seemingly gave the value '%s'"""
+'{CACHE_DIR}' is recommended: You seemingly gave the value '%s'."""
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
         ("{TEMP}", "{HOME}", "{CACHE_DIR}", "{PROGRAM_DIR}")
     ):
-        options_logger.warning(
-            """\
+        options_logger.warning("""\
 Using a path relative to the onefile executable should be avoided \
 unless you are targeting a very well known environment, anchoring \
-it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
-            % options.onefile_tempdir_spec
-        )
+it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: You seemingly \
+gave the value '%s'.""" % options.onefile_tempdir_spec)
 
     # Trigger checks done in that function as well.
     isOnefileTempDirMode()
