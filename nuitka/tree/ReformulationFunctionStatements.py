@@ -732,69 +732,6 @@ def makeDeferredAnnotateFunctionObject(provider, keys, values, source_ref):
     )
 
 
-# TODO: Not sure if this body is still needed.
-# A standalone unpacking operation should be directly equivalent.
-#
-# @once_decorator
-# def getParameterAnnotationUnpackingHelper():
-#     helper_name = "_unpack_parameter_annotation"
-#
-#     result = makeInternalHelperFunctionBody(
-#         name=helper_name,
-#         parameters=ParameterSpec(
-#             ps_name=helper_name,
-#             ps_normal_args=("unpack",),
-#             ps_list_star_arg=None,
-#             ps_dict_star_arg=None,
-#             ps_default_count=0,
-#             ps_kw_only_args=(),
-#             ps_pos_only_args=(),
-#         ),
-#     )
-#
-#     unpacked_variable = result.allocateTempVariable(
-#         temp_scope=None, name="unpacked", temp_type="object"
-#     )
-#
-#     unpack_variable = result.getVariableForAssignment(variable_name="unpack")
-#
-#     tried = makeStatementsSequenceFromStatements(
-#         makeStatementAssignmentVariable(
-#             variable=unpacked_variable,
-#             source=ExpressionBuiltinNext1(
-#                 value=ExpressionBuiltinIterForUnpack(
-#                     value=ExpressionVariableRef(
-#                         variable=unpack_variable,
-#                         source_ref=internal_source_ref,
-#                     ),
-#                     source_ref=internal_source_ref,
-#                 ),
-#                 source_ref=internal_source_ref,
-#             ),
-#             source_ref=internal_source_ref,
-#         ),
-#         StatementReturn(
-#             expression=ExpressionTempVariableRef(
-#                 variable=unpacked_variable, source_ref=internal_source_ref
-#             ),
-#             source_ref=internal_source_ref,
-#         ),
-#     )
-#
-#     result.setChildBody(
-#         makeStatementsSequenceFromStatement(
-#             makeTryFinallyReleaseStatement(
-#                 provider=result,
-#                 tried=tried,
-#                 variables=(unpacked_variable,),
-#                 source_ref=internal_source_ref,
-#             )
-#         )
-#     )
-#
-#     return result
-
-
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
