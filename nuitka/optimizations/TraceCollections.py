@@ -782,6 +782,7 @@ class TraceCollectionBase(object):
             collection1.has_unescaped_variables or collection2.has_unescaped_variables
         )
         new_actives = {}
+
         for variable, version in iterItems(collection1.variable_actives):
             other_version = collection2.variable_actives[variable]
 
@@ -816,6 +817,8 @@ class TraceCollectionBase(object):
         self.has_unescaped_variables = has_unescaped_variables
 
     def mergeMultipleBranches(self, collections):
+        # pylint: disable=too-many-locals
+
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work, and length 2 has dedicated code as it's so frequent.
 
@@ -855,46 +858,58 @@ class TraceCollectionBase(object):
                 collection.has_unescaped_variables for collection in collections
             )
 
-            for variable in collections[0].variable_actives:
+            for variable, first_collection_version in iterItems(
+                collections[0].variable_actives
+            ):
+                # Attempt optimistically that a variable is not influenced at
+                # all by any of the branches we merge.
+                for collection in collections[1:]:
+                    if (
+                        collection.variable_actives[variable]
+                        != first_collection_version
+                    ):
+                        break
+                else:
+                    new_actives[variable] = first_collection_version
+                    continue
+
+                # Slow path: collect unique versions, they are different.
                 versions = set(
                     collection.variable_actives[variable] for collection in collections
                 )
 
-                if len(versions) == 1:
-                    (version,) = versions
-                else:
-                    traces = []
-                    escaped = []
-                    winner_version = None
+                traces = []
+                escaped = []
+                winner_version = None
 
-                    variable_traces = self.variable_traces[variable]
+                variable_traces = self.variable_traces[variable]
 
-                    for version in sorted(versions):
-                        trace = variable_traces[version]
+                for version in sorted(versions):
+                    trace = variable_traces[version]
 
-                        if version % 3 == 1:
-                            winner_version = version
-                            escaped_trace = trace.previous
+                    if version % 3 == 1:
+                        winner_version = version
+                        escaped_trace = trace.previous
 
-                            if escaped_trace in traces:
-                                traces.remove(trace.previous)
+                        if escaped_trace in traces:
+                            traces.remove(trace.previous)
 
-                            escaped.append(escaped)
-                            traces.append(trace)
-                        else:
-                            if trace not in escaped:
-                                traces.append(trace)
-
-                    if len(traces) == 1:
-                        version = winner_version
-                        assert winner_version is not None
+                        escaped.append(escaped)
+                        traces.append(trace)
                     else:
-                        version = self.addVariableMergeMultipleTrace(
-                            variable,
-                            traces,
-                        )
+                        if trace not in escaped:
+                            traces.append(trace)
 
-                        has_unescaped_variables = True
+                if len(traces) == 1:
+                    version = winner_version
+                    assert winner_version is not None
+                else:
+                    version = self.addVariableMergeMultipleTrace(
+                        variable,
+                        traces,
+                    )
+
+                    has_unescaped_variables = True
 
                 new_actives[variable] = version
 
