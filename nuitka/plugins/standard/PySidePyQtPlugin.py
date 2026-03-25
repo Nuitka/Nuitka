@@ -776,6 +776,12 @@ class OurQApplication(orig_QApplication):
 
         self.setWindowIcon(icon)
 
+OurQApplication.__module__ = orig_QApplication.__module__
+OurQApplication.__name__ = orig_QApplication.__name__
+if str is not bytes:
+    OurQApplication.__qualname__ = orig_QApplication.__qualname__
+OurQApplication.__doc__ = orig_QApplication.__doc__
+
 %(binding_name)s.QtWidgets.QApplication = OurQApplication
 """ % {"binding_name": self.binding_name}
 
