@@ -879,7 +879,7 @@ class TraceCollectionBase(object):
                 )
 
                 traces = []
-                escaped = []
+                escaped = set()
                 winner_version = None
 
                 variable_traces = self.variable_traces[variable]
@@ -892,9 +892,9 @@ class TraceCollectionBase(object):
                         escaped_trace = trace.previous
 
                         if escaped_trace in traces:
-                            traces.remove(trace.previous)
+                            traces.remove(escaped_trace)
 
-                        escaped.append(escaped)
+                        escaped.add(escaped_trace)
                         traces.append(trace)
                     else:
                         if trace not in escaped:
