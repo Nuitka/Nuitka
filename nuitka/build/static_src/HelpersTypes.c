@@ -373,9 +373,9 @@ static PyTypeObject *_getTypeGenericAliasType(void) {
 
     if (type_generic_alias_type == NULL) {
 
-        PyObject *types_module = IMPORT_HARD_TYPES();
+        PyObject *types_module = IMPORT_HARD_TYPING();
 
-        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(types_module, "GenericAlias");
+        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(types_module, "_GenericAlias");
         CHECK_OBJECT(type_generic_alias_type);
     }
 
