@@ -217,9 +217,15 @@ def buildClassNode3(provider, node, source_ref):
     class_locals_scope.registerProvidedVariable(class_variable)
 
     if python_version >= 0x3C0:
-        type_params_expressions = buildNodeTuple(
-            provider=outline_body, nodes=node.type_params, source_ref=source_ref
-        )
+        type_params_expressions = []
+        for _, type_param_var in type_variables:
+            type_params_expressions.append(
+                ExpressionTempVariableRef(
+                    variable=type_param_var,
+                    source_ref=source_ref,
+                )
+            )
+        type_params_expressions = tuple(type_params_expressions)
     else:
         type_params_expressions = ()
 
