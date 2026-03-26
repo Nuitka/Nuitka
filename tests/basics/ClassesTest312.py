@@ -62,6 +62,19 @@ try:
 except NameError:
     print("!!!")
 
+
+class Base[T, V]: ...
+
+
+class Sub[Silly](Base[Silly, str]): ...
+
+
+print("Base parameters", Base.__parameters__)
+print("Base bases", Base.__bases__, Base.__orig_bases__)
+print("Subclass parameters", Sub.__parameters__)
+print("Subclass bases", Sub.__bases__, Sub.__orig_bases__)
+print("Subclass with param", Sub[int], type(Sub[int]))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
