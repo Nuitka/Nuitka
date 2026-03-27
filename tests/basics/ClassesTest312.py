@@ -75,6 +75,22 @@ print("Subclass parameters", Sub.__parameters__)
 print("Subclass bases", Sub.__bases__, Sub.__orig_bases__)
 print("Subclass with param", Sub[int], type(Sub[int]))
 
+
+class FullyBound(Base[str, str]): ...
+
+
+print(
+    "FullyBound fields",
+    FullyBound.__parameters__,
+    FullyBound.__bases__,
+    FullyBound.__orig_bases__,
+)
+
+try:
+    FullyBound[int]
+except Exception as error:
+    print("Caught exception trying to pass parameters to FullyBound", type(error))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
