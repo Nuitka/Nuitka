@@ -442,11 +442,7 @@ def findModule(module_name, parent_package, level, logger):
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
-            for module_filename in preloaded_path:
-                if os.path.exists(module_filename):
-                    break
-            else:
-                module_filename = None
+            module_filename = preloaded_path[0]
 
             return full_name, full_name.getPackageName(), module_filename, "py", "pth"
 
@@ -481,11 +477,7 @@ def findModule(module_name, parent_package, level, logger):
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
-            for module_filename in preloaded_path:
-                if os.path.exists(module_filename):
-                    break
-            else:
-                module_filename = None
+            module_filename = preloaded_path[0]
 
             return module_name, package_name, module_filename, "py", "pth"
 
@@ -1019,24 +1011,7 @@ def locateModule(module_name, parent_package, level, logger=None):
 
     if module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
-
-        if found_module_name == "distutils":
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                module_filename
-            )
-            module_name = found_module_name
-        else:
-            module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
-            module_name = ModuleName.makeModuleNameInPackage(
-                module_name, module_package
-            )
-
-            if states.is_debug:
-                assert module_name == found_module_name, (
-                    module_name,
-                    found_module_name,
-                    parent_package,
-                )
+        module_name = found_module_name
 
     elif finding == "not-found":
         if parent_package is not None:
