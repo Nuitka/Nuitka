@@ -18,6 +18,7 @@ from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
     getSconsReportValue,
     readSconsErrorReport,
+    readSconsObjectSizes,
     readSconsReport,
     readSconsResourceUsageReports,
 )
@@ -598,6 +599,8 @@ def makeSourceDirectory():
         assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
+    return module_filenames
+
 
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
@@ -995,7 +998,7 @@ def compileTree():
             logger=code_generation_logger,
             enabled=isCompileTimeProfile(),
         ):
-            makeSourceDirectory()
+            module_filenames = makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -1013,12 +1016,16 @@ def compileTree():
         )
 
     else:
+        # Too hard to come by this information, and it's only for optional parts
+        # of the reporting at this time.
+        module_filenames = {}
+
         source_dir = OutputDirectories.getSourceDirectoryPath(
             onefile=False, create=False
         )
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
-            general.sysexit("Error, no previous build directory exists.")
+            return general.sysexit("Error, no previous build directory exists.")
 
     reportMemoryUsage(
         "before_running_scons",
@@ -1051,6 +1058,13 @@ def compileTree():
 
     # Run the Scons to build things.
     result, scons_options = runSconsBackend()
+
+    if result:
+        readSconsObjectSizes(
+            source_dir=source_dir,
+            module_filenames=module_filenames,
+            module_mode=shallMakeModule(),
+        )
 
     return result, scons_options
 

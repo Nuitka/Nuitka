@@ -26,6 +26,7 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContentByLine,
     getFilenameExtension,
+    getFileSize,
     getNormalizedPath,
     getNormalizedPathJoin,
     getWindowsShortPathName,
@@ -816,6 +817,41 @@ def readSconsResourceUsageReports(source_dir):
         _scons_resource_usage_reports[source_dir] = results
 
     return _scons_resource_usage_reports[source_dir]
+
+
+_scons_object_sizes = {}
+
+
+def readSconsObjectSizes(source_dir, module_filenames, module_mode):
+    if source_dir not in _scons_object_sizes:
+        results = {}
+
+        # spell-checker: ignore OBJSUFFIX,SHOBJSUFFIX
+        if module_mode:
+            target_suffix = getSconsReportValue(source_dir, "SHOBJSUFFIX")
+        else:
+            target_suffix = getSconsReportValue(source_dir, "OBJSUFFIX")
+
+        if not target_suffix:
+            _scons_object_sizes[source_dir] = {}
+            return _scons_object_sizes[source_dir]
+
+        for module, c_filename in module_filenames.items():
+            assert c_filename.endswith(".c"), c_filename
+
+            obj_filename = changeFilenameExtension(c_filename, target_suffix)
+            try:
+                results[module.getFullName()] = getFileSize(obj_filename)
+            except FileNotFoundError:
+                pass
+
+        _scons_object_sizes[source_dir] = results
+
+    return _scons_object_sizes[source_dir]
+
+
+def getSconsObjectSizes(source_dir):
+    return _scons_object_sizes.get(source_dir, {})
 
 
 def addClangClPathFromMSVC(env):
