@@ -14,6 +14,8 @@ as a global instance.
 class GlobalState(object):
     """The global state of Nuitka compilation."""
 
+    # pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "is_debug",
         "is_non_debug",
@@ -22,6 +24,7 @@ class GlobalState(object):
         "report_missing_trust",
         "is_verbose",
         "data_composer_verbose",
+        "show_plugin_usage",
     )
 
     def __init__(self):
@@ -32,6 +35,7 @@ class GlobalState(object):
         self.report_missing_trust = None
         self.is_verbose = None
         self.data_composer_verbose = None
+        self.show_plugin_usage = None
 
 
 states = GlobalState()

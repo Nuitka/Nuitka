@@ -272,6 +272,9 @@ instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
         # Cache execution context for anti-bloat configs.
         self.context_codes = {}
 
+        # Precompute this for getCacheContributionValues to avoid sorting each time
+        self.handled_modules_hash = str(tuple(sorted(self.handled_modules.items())))
+
     def getEvaluationConditionControlTags(self):
         return self.control_tags
 
@@ -284,7 +287,7 @@ instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
             # TODO: Until we can change the evaluation to tell us exactly what
             # control tag values were used, we have to make this one. We sort
             # the values, to try and have order changes in code not matter.
-            yield str(tuple(sorted(self.handled_modules.items())))
+            yield self.handled_modules_hash
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -809,7 +812,7 @@ class %(class_name)s:
 
         return None
 
-    def decideAsserts(self, module_name):
+    def decideAssertions(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
         for _config_module_name, asserts_config_value in self.getYamlConfigItem(
@@ -1052,7 +1055,7 @@ slow down compilation."""
             return "compiled"
 
     def onIncompleteModuleSet(self, module_names):
-        for module_name in list(module_names):
+        for module_name in module_names:
             for (
                 config_of_module_name,
                 module_to_check,

@@ -153,6 +153,13 @@ def decideCompilation(module_name):
     return Plugins.decideCompilation(module_name=module_name)
 
 
+def registerDecisionCompilation(plugin_name, module_name, decision):
+    """Let plugins register a decision whether to C compile a module or include as bytecode."""
+    return Plugins.registerDecisionCompilation(
+        plugin_name=plugin_name, module_name=module_name, decision=decision
+    )
+
+
 def decideRecompileExtensionModules(module_name):
     """Let plugins decide whether to re-compile an extension module from source code.
 

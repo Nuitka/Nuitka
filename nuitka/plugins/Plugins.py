@@ -28,7 +28,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
-from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import (
     addUsedModule,
@@ -74,9 +74,15 @@ from nuitka.utils.ModuleNames import (
 from nuitka.Version import getCommercialVersion
 
 from .PluginBase import NuitkaPluginBase, control_tags
+from .PluginsUsage import counted_plugin_method
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
+active_plugins_with_implicit_imports = []
+active_plugins_with_decide_compilation = []
+active_plugins_with_decide_annotations = []
+active_plugins_with_decide_doc_strings = []
+active_plugins_with_decide_assertions = []
 plugin_name2plugin_classes = {}
 plugin_options = OrderedDict()
 plugin_values = {}
@@ -138,6 +144,30 @@ def _addActivePlugin(plugin_class, args, force=False):
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
 
     active_plugins[plugin_name] = plugin_instance
+
+    if (
+        type(plugin_instance).getImplicitImports
+        is not NuitkaPluginBase.getImplicitImports
+    ):
+        active_plugins_with_implicit_imports.append(plugin_instance)
+
+    if (
+        type(plugin_instance).decideCompilation
+        is not NuitkaPluginBase.decideCompilation
+    ):
+        active_plugins_with_decide_compilation.append(plugin_instance)
+
+    if (
+        type(plugin_instance).decideAnnotations
+        is not NuitkaPluginBase.decideAnnotations
+    ):
+        active_plugins_with_decide_annotations.append(plugin_instance)
+
+    if type(plugin_instance).decideDocStrings is not NuitkaPluginBase.decideDocStrings:
+        active_plugins_with_decide_doc_strings.append(plugin_instance)
+
+    if type(plugin_instance).decideAssertions is not NuitkaPluginBase.decideAssertions:
+        active_plugins_with_decide_assertions.append(plugin_instance)
 
     is_gui_toolkit_plugin = getattr(plugin_class, "plugin_gui_toolkit", False)
 
@@ -430,6 +460,7 @@ class Plugins(object):
     extra_scan_paths_cache = {}
 
     @staticmethod
+    @counted_plugin_method
     def _considerImplicitImports(plugin, module):
         result = []
 
@@ -479,7 +510,9 @@ class Plugins(object):
                 continue
 
             try:
-                module_filename = plugin.locateModule(full_name)
+                _module_name, module_filename, module_kind, _finding = locateModule(
+                    module_name=full_name, parent_package=None, level=0
+                )
             except Exception:
                 plugin.warning(
                     "Problem locating '%s' for implicit imports of '%s'."
@@ -496,7 +529,7 @@ class Plugins(object):
 
                 continue
 
-            result.append((full_name, module_filename))
+            result.append((full_name, module_filename, module_kind))
 
         if result and isShowInclusion():
             plugin.info(
@@ -507,12 +540,9 @@ class Plugins(object):
         return result
 
     @staticmethod
+    @counted_plugin_method
     def _reportImplicitImports(plugin, module, implicit_imports):
-        for full_name, module_filename in implicit_imports:
-            # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
-            _module_name2, module_kind = getModuleNameAndKindFromFilename(
-                module_filename
-            )
+        for full_name, module_filename, module_kind in implicit_imports:
 
             # This will get back to all other plugins allowing them to inhibit it though.
             decision, decision_reason = decideRecursion(
@@ -533,7 +563,7 @@ class Plugins(object):
                         using_module_name=module.module_name,
                     )
                 except NuitkaForbiddenImportEncounter as e:
-                    plugin.sysexit(
+                    return plugin.sysexit(
                         """\
 Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' \
 through implicit import by '%s' plugin encountered."""
@@ -561,6 +591,7 @@ through implicit import by '%s' plugin encountered."""
                     yield path
 
     @classmethod
+    @counted_plugin_method
     def getPackageExtraScanPaths(cls, package_name, package_dir):
         key = package_name, package_dir
 
@@ -579,6 +610,7 @@ through implicit import by '%s' plugin encountered."""
         return cls.extra_scan_paths_cache[key]
 
     @classmethod
+    @counted_plugin_method
     def considerImplicitImports(cls, module):
         """Let plugins add implicit imports for a module.
 
@@ -588,7 +620,7 @@ through implicit import by '%s' plugin encountered."""
             iterable of module names
         """
 
-        for plugin in getActivePlugins():
+        for plugin in active_plugins_with_implicit_imports:
             key = (module.getFullName(), plugin)
 
             if key not in cls.implicit_imports_cache:
@@ -597,11 +629,12 @@ through implicit import by '%s' plugin encountered."""
                         cls._considerImplicitImports(plugin=plugin, module=module)
                     )
 
-            cls._reportImplicitImports(
-                plugin=plugin,
-                module=module,
-                implicit_imports=cls.implicit_imports_cache[key],
-            )
+            if cls.implicit_imports_cache[key]:
+                cls._reportImplicitImports(
+                    plugin=plugin,
+                    module=module,
+                    implicit_imports=cls.implicit_imports_cache[key],
+                )
 
         # Pre and post load code may have been created, if so indicate it's used.
         full_name = module.getFullName()
@@ -635,6 +668,7 @@ through implicit import by '%s' plugin encountered."""
                 )
 
     @staticmethod
+    @counted_plugin_method
     def onCopiedDLLs(dist_dir, standalone_entry_points):
         """Lets the plugins modify entry points on disk."""
         for entry_point in standalone_entry_points:
@@ -648,12 +682,14 @@ through implicit import by '%s' plugin encountered."""
                     plugin.onCopiedDLL(dll_path)
 
     @staticmethod
+    @counted_plugin_method
     def onBeforeCodeParsing():
         """Let plugins prepare for code parsing"""
         for plugin in getActivePlugins():
             plugin.onBeforeCodeParsing()
 
     @staticmethod
+    @counted_plugin_method
     def onStandaloneDistributionFinished(dist_dir, standalone_binary):
         """Let plugins post-process the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
@@ -663,24 +699,28 @@ through implicit import by '%s' plugin encountered."""
             plugin.onStandaloneBinary(standalone_binary)
 
     @staticmethod
+    @counted_plugin_method
     def onGeneratedSourceCode(source_dir, onefile):
         """Let plugins modify the generated source code"""
         for plugin in getActivePlugins():
             plugin.onGeneratedSourceCode(source_dir, onefile)
 
     @staticmethod
+    @counted_plugin_method
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
             plugin.onOnefileFinished(filename)
 
     @staticmethod
+    @counted_plugin_method
     def onBootstrapBinary(filename):
         """Let plugins add to bootstrap binary in some way"""
         for plugin in getActivePlugins():
             plugin.onBootstrapBinary(filename)
 
     @staticmethod
+    @counted_plugin_method
     def onFinalResult(filename):
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():
@@ -724,6 +764,7 @@ through implicit import by '%s' plugin encountered."""
         return result
 
     @staticmethod
+    @counted_plugin_method
     def getModuleSpecificDllPaths(module_name):
         """Provide a list of directories, where DLLs should be searched for this package (or module).
 
@@ -741,6 +782,7 @@ through implicit import by '%s' plugin encountered."""
     _uncompiled_decorator_names = None
 
     @classmethod
+    @counted_plugin_method
     def getUncompiledDecoratorNames(cls):
         """Provide a list of decorators that should cause a function to be uncompiled.
 
@@ -761,6 +803,7 @@ through implicit import by '%s' plugin encountered."""
     sys_path_additions_cache = {}
 
     @classmethod
+    @counted_plugin_method
     def getModuleSysPathAdditions(cls, module_name):
         """Provide a list of directories, that should be considered in 'PYTHONPATH' when this module is used.
 
@@ -780,6 +823,7 @@ through implicit import by '%s' plugin encountered."""
         return cls.sys_path_additions_cache[module_name]
 
     @staticmethod
+    @counted_plugin_method
     def removeDllDependencies(dll_filename, dll_filenames):
         """Create list of removable shared libraries by scanning through the plugins.
 
@@ -838,11 +882,13 @@ through implicit import by '%s' plugin encountered."""
                     yield included_datafile
 
     @staticmethod
+    @counted_plugin_method
     def onDataFileTags(included_datafile):
         for plugin in getActivePlugins():
             plugin.onDataFileTags(included_datafile)
 
     @staticmethod
+    @counted_plugin_method
     def onDllTags(included_entry_point):
         for plugin in getActivePlugins():
             plugin.onDllTags(included_entry_point)
@@ -1061,6 +1107,7 @@ through implicit import by '%s' plugin encountered."""
                 cls.onModuleDiscovered(fake_module)
 
     @staticmethod
+    @counted_plugin_method
     def onModuleSourceCode(module_name, source_filename, source_code):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
@@ -1083,6 +1130,7 @@ through implicit import by '%s' plugin encountered."""
         return source_code, contributing_plugins
 
     @staticmethod
+    @counted_plugin_method
     def onFrozenModuleBytecode(module_name, is_package, bytecode):
         assert type(module_name) is ModuleName
         assert bytecode.__class__.__name__ == "code"
@@ -1094,6 +1142,7 @@ through implicit import by '%s' plugin encountered."""
         return bytecode
 
     @staticmethod
+    @counted_plugin_method
     def onModuleEncounter(using_module_name, module_name, module_filename, module_kind):
         result = None
         deciding_plugins = []
@@ -1151,8 +1200,6 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
         # Do parent package look ahead first.
         parent_package_name = module_name.getPackageName()
         if parent_package_name is not None:
-            from nuitka.importing.Importing import locateModule
-
             (
                 _parent_package_name,
                 parent_module_filename,
@@ -1208,6 +1255,7 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
             pass
 
     @staticmethod
+    @counted_plugin_method
     def onModuleRecursion(
         module_name, module_filename, module_kind, using_module_name, source_ref, reason
     ):
@@ -1222,6 +1270,7 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
             )
 
     @staticmethod
+    @counted_plugin_method
     def onCompilationStartChecks():
         """The compilation is setup, locating modules if expected to work."""
 
@@ -1230,6 +1279,7 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
                 plugin.onCompilationStartChecks()
 
     @staticmethod
+    @counted_plugin_method
     def onModuleInitialSet():
         """The initial set of root modules is complete, plugins may add more."""
 
@@ -1240,6 +1290,7 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
                 addRootModule(module)
 
     @staticmethod
+    @counted_plugin_method
     def considerIncompleteModuleSet():
         """The module set is incomplete, giving plugins a chance to add more."""
 
@@ -1265,6 +1316,11 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
             ):
                 del modules_to_add[module_namespace_to_add]
 
+        if modules_to_add:
+            Plugins._addIncompleteModules(modules_to_add)
+
+    @staticmethod
+    def _addIncompleteModules(modules_to_add):
         for module in getDoneModules():
             for module_usage_attempt in module.getUsedModules():
                 if module_usage_attempt.filename is not None:
@@ -1313,6 +1369,7 @@ through incomplete set import by '%s' plugin encountered."""
                                 break
 
     @staticmethod
+    @counted_plugin_method
     def onModuleCompleteSet():
         """The final set of modules is determined, this is only for inspection, cannot change."""
 
@@ -1323,6 +1380,7 @@ through incomplete set import by '%s' plugin encountered."""
             plugin.onModuleCompleteSet(module_set)
 
     @staticmethod
+    @counted_plugin_method
     def suppressUnknownImportWarning(importing, source_ref, module_name):
         """Let plugins decide whether to suppress import warnings for an unknown module.
 
@@ -1343,26 +1401,42 @@ through incomplete set import by '%s' plugin encountered."""
 
         return False
 
-    @staticmethod
-    def decideCompilation(module_name):
+    registered_compilation_decisions = {}
+
+    @classmethod
+    def registerDecisionCompilation(cls, plugin_name, module_name, decision):
+        if type(module_name) is str:
+            module_name = ModuleName(module_name)
+
+        if module_name not in cls.registered_compilation_decisions:
+            cls.registered_compilation_decisions[module_name] = OrderedDict()
+
+        cls.registered_compilation_decisions[module_name][plugin_name] = decision
+
+    @classmethod
+    @counted_plugin_method
+    def decideCompilation(cls, module_name):
         """Let plugins decide whether to C compile a module or include as bytecode.
 
         Notes:
-            The decision is made by the first plugin not returning None.
+            The decision is made by plugins answering, with collision checks
+            if multiple plugins provide conflicting decisions.
 
         Returns:
             "compiled" (default) or "bytecode".
         """
-        for plugin in getActivePlugins():
-            value = plugin.decideCompilation(module_name)
-
-            if value is not None:
-                assert value in ("compiled", "bytecode")
-                return value
-
-        return None
+        return cls._decideWithoutDisagreement(
+            method_name="decideCompilation",
+            call_per_plugin=lambda plugin: plugin.decideCompilation(module_name),
+            legal_values=("compiled", "bytecode", None),
+            abstain_values=(None,),
+            default_value=None,
+            plugins_list=active_plugins_with_decide_compilation,
+            registered_values=cls.registered_compilation_decisions.get(module_name),
+        )
 
     @staticmethod
+    @counted_plugin_method
     def decideRecompileExtensionModules(module_name):
         """Let plugins decide whether to re-compile an extension module from source code.
 
@@ -1399,6 +1473,7 @@ through incomplete set import by '%s' plugin encountered."""
     preprocessor_symbols = None
 
     @classmethod
+    @counted_plugin_method
     def getPreprocessorSymbols(cls):
         """Let plugins provide C defines to be used in compilation.
 
@@ -1433,6 +1508,7 @@ through incomplete set import by '%s' plugin encountered."""
     build_definitions = None
 
     @classmethod
+    @counted_plugin_method
     def getBuildDefinitions(cls):
         """Let plugins provide C source defines to be used in compilation.
 
@@ -1465,6 +1541,7 @@ through incomplete set import by '%s' plugin encountered."""
     extra_include_directories = None
 
     @classmethod
+    @counted_plugin_method
     def getExtraIncludeDirectories(cls):
         """Let plugins extra directories to use for C includes in compilation.
 
@@ -1487,6 +1564,7 @@ through incomplete set import by '%s' plugin encountered."""
         return cls.extra_include_directories
 
     @staticmethod
+    @counted_plugin_method
     def _getExtraCodeFiles(for_onefile):
         result = OrderedDict()
 
@@ -1539,6 +1617,7 @@ through incomplete set import by '%s' plugin encountered."""
     extra_link_libraries = None
 
     @classmethod
+    @counted_plugin_method
     def getExtraLinkLibraries(cls):
         if cls.extra_link_libraries is None:
             cls.extra_link_libraries = OrderedSet()
@@ -1558,6 +1637,7 @@ through incomplete set import by '%s' plugin encountered."""
     extra_link_directories = None
 
     @classmethod
+    @counted_plugin_method
     def getExtraLinkDirectories(cls):
         if cls.extra_link_directories is None:
             cls.extra_link_directories = OrderedSet()
@@ -1575,11 +1655,13 @@ through incomplete set import by '%s' plugin encountered."""
         return cls.extra_link_directories
 
     @classmethod
+    @counted_plugin_method
     def onDataComposerRun(cls):
         for plugin in getActivePlugins():
             plugin.onDataComposerRun()
 
     @classmethod
+    @counted_plugin_method
     def onDataComposerResult(cls, blob_filename):
         for plugin in getActivePlugins():
             plugin.onDataComposerResult(blob_filename)
@@ -1591,6 +1673,7 @@ through incomplete set import by '%s' plugin encountered."""
         return cls.encodeDataComposerName(result)
 
     @classmethod
+    @counted_plugin_method
     def encodeDataComposerName(cls, name):
         # Encoding needs to match generated source code output.
         if str is not bytes:
@@ -1606,6 +1689,7 @@ through incomplete set import by '%s' plugin encountered."""
         return name
 
     @classmethod
+    @counted_plugin_method
     def onFunctionBodyParsing(cls, provider, function_name, body):
         module_name = provider.getParentModule().getFullName()
 
@@ -1622,6 +1706,7 @@ through incomplete set import by '%s' plugin encountered."""
             )
 
     @classmethod
+    @counted_plugin_method
     def onClassBodyParsing(cls, provider, class_name, node):
         module_name = provider.getParentModule().getFullName()
 
@@ -1634,15 +1719,26 @@ through incomplete set import by '%s' plugin encountered."""
                 node=node,
             )
 
+    cache_contribution_values_cache = {}
+
     @classmethod
+    @counted_plugin_method
     def getPluginsCacheContributionValues(cls, module_name):
         """Let plugins provide values that need to be taken into account for caching."""
 
-        for plugin in getActivePlugins():
-            for value in plugin.getCacheContributionValues(module_name):
-                yield value
+        if module_name not in cls.cache_contribution_values_cache:
+            result = []
+
+            for plugin in getActivePlugins():
+                for value in plugin.getCacheContributionValues(module_name):
+                    result.append(value)
+
+            cls.cache_contribution_values_cache[module_name] = tuple(result)
+
+        return cls.cache_contribution_values_cache[module_name]
 
     @classmethod
+    @counted_plugin_method
     def getExtraConstantDefaultPopulation(cls):
         for plugin in getActivePlugins():
             for value in plugin.getExtraConstantDefaultPopulation():
@@ -1655,34 +1751,53 @@ through incomplete set import by '%s' plugin encountered."""
         call_per_plugin,
         legal_values,
         abstain_values,
-        get_default_value,
+        default_value,
+        plugins_list,
+        registered_values,
     ):
-        result = abstain_values[0]
-        plugin_name = None
+        per_plugin_decisions = []
 
-        for plugin in getActivePlugins():
+        if registered_values is not None:
+            for deciding_plugin_name, value in registered_values.items():
+                if value not in legal_values:
+                    return plugins_logger.sysexit(
+                        "Error, can only register '%s' for '%s' not %r"
+                        % (legal_values, method_name, value)
+                    )
+
+                if value not in abstain_values:
+                    per_plugin_decisions.append(
+                        (deciding_plugin_name, value, plugins_logger)
+                    )
+
+        for plugin in plugins_list:
             value = call_per_plugin(plugin)
 
             if value not in legal_values:
-                plugin.sysexit(
+                return plugin.sysexit(
                     "Error, can only return '%s' from '%s' not %r"
                     % (legal_values, method_name, value)
                 )
 
-            if value in abstain_values:
-                continue
+            if value not in abstain_values:
+                per_plugin_decisions.append((plugin.plugin_name, value, plugin))
 
+        result = abstain_values[0]
+        plugin_name = None
+
+        for deciding_plugin_name, value, deciding_plugin_logger in per_plugin_decisions:
             if value != result:
                 if result in abstain_values:
                     result = value
-                    plugin_name = plugin.plugin_name
+                    plugin_name = deciding_plugin_name
                 else:
-                    plugin.sysexit(
+                    return deciding_plugin_logger.sysexit(
                         "Error, conflicting value '%s' with plug-in '%s' value '%s'."
                         % (value, plugin_name, result)
                     )
+
         if result in abstain_values:
-            result = get_default_value()
+            result = default_value
 
         return result
 
@@ -1691,17 +1806,23 @@ through incomplete set import by '%s' plugin encountered."""
     @classmethod
     def decideAnnotations(cls, module_name):
         # For Python2 it's not a thing.
-        if str is bytes:
-            return False
-
         if module_name not in cls.decide_annotations_cache:
-            cls.decide_annotations_cache[module_name] = cls._decideWithoutDisagreement(
-                call_per_plugin=lambda plugin: plugin.decideAnnotations(module_name),
-                legal_values=(None, True, False),
-                abstain_values=(None,),
-                method_name="decideAnnotations",
-                get_default_value=lambda: not hasPythonFlagNoAnnotations(),
-            )
+            if str is bytes:
+                cls.decide_annotations_cache[module_name] = False
+            else:
+                cls.decide_annotations_cache[module_name] = (
+                    cls._decideWithoutDisagreement(
+                        call_per_plugin=lambda plugin: plugin.decideAnnotations(
+                            module_name
+                        ),
+                        legal_values=(None, True, False),
+                        abstain_values=(None,),
+                        method_name="decideAnnotations",
+                        default_value=not hasPythonFlagNoAnnotations(),
+                        plugins_list=active_plugins_with_decide_annotations,
+                        registered_values=None,
+                    )
+                )
 
         return cls.decide_annotations_cache[module_name]
 
@@ -1715,7 +1836,9 @@ through incomplete set import by '%s' plugin encountered."""
                 legal_values=(None, True, False),
                 abstain_values=(None,),
                 method_name="decideDocStrings",
-                get_default_value=lambda: not hasPythonFlagNoDocStrings(),
+                default_value=not hasPythonFlagNoDocStrings(),
+                plugins_list=active_plugins_with_decide_doc_strings,
+                registered_values=None,
             )
 
         return cls.decide_doc_strings_cache[module_name]
@@ -1730,12 +1853,15 @@ through incomplete set import by '%s' plugin encountered."""
                 legal_values=(None, True, False),
                 abstain_values=(None,),
                 method_name="decideAssertions",
-                get_default_value=lambda: not hasPythonFlagNoAsserts(),
+                default_value=not hasPythonFlagNoAsserts(),
+                plugins_list=active_plugins_with_decide_assertions,
+                registered_values=None,
             )
 
         return cls.decide_assertions_cache[module_name]
 
     @classmethod
+    @counted_plugin_method
     def decideAllowOutsideDependencies(cls, module_name):
         result = None
         plugin_name = None
@@ -1747,7 +1873,7 @@ through incomplete set import by '%s' plugin encountered."""
 
             if value is True:
                 if result is False:
-                    plugin.sysexit(
+                    return plugin.sysexit(
                         "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
                         % plugin_name
                     )
@@ -1757,7 +1883,7 @@ through incomplete set import by '%s' plugin encountered."""
 
             elif value is False:
                 if result is False:
-                    plugin.sysexit(
+                    return plugin.sysexit(
                         "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
                         % plugin_name
                     )
@@ -1765,7 +1891,7 @@ through incomplete set import by '%s' plugin encountered."""
                 result = False
                 plugin_name = plugin.plugin_name
             elif value is not None:
-                plugin.sysexit(
+                return plugin.sysexit(
                     "Error, can only return True, False, None from 'decideAllowOutsideDependencies' not %r"
                     % value
                 )
@@ -1773,6 +1899,7 @@ through incomplete set import by '%s' plugin encountered."""
         return result
 
     @classmethod
+    @counted_plugin_method
     def isAcceptableMissingDLL(cls, package_name, filename):
         dll_basename = getDllBasename(os.path.basename(filename))
 
@@ -1791,7 +1918,7 @@ through incomplete set import by '%s' plugin encountered."""
 
             if value is True:
                 if result is False:
-                    plugin.sysexit(
+                    return plugin.sysexit(
                         "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
                         % plugin_name
                     )
@@ -1801,7 +1928,7 @@ through incomplete set import by '%s' plugin encountered."""
 
             elif value is False:
                 if result is False:
-                    plugin.sysexit(
+                    return plugin.sysexit(
                         "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
                         % plugin_name
                     )
@@ -1809,7 +1936,7 @@ through incomplete set import by '%s' plugin encountered."""
                 result = False
                 plugin_name = plugin.plugin_name
             elif value is not None:
-                plugin.sysexit(
+                return plugin.sysexit(
                     "Error, can only return True, False, None from 'isAcceptableMissingDLL' not %r"
                     % value
                 )
@@ -1889,7 +2016,7 @@ def loadUserPlugin(plugin_filename):
         None
     """
     if not os.path.exists(plugin_filename):
-        plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
+        return plugins_logger.sysexit("Error, cannot find '%s'." % plugin_filename)
 
     user_plugin_module = importFileAsModule(plugin_filename)
 
@@ -1908,7 +2035,9 @@ def loadUserPlugin(plugin_filename):
             break  # do not look for more in that module
 
     if not valid_file:  # this is not a plugin file ...
-        plugins_logger.sysexit("Error, '%s' is not a plugin file." % plugin_filename)
+        return plugins_logger.sysexit(
+            "Error, '%s' is not a plugin file." % plugin_filename
+        )
 
     return plugin_class
 
@@ -1997,12 +2126,12 @@ def activatePlugins():
     # ensure plugin is known and not both, enabled and disabled
     for plugin_name in getPluginsEnabled() + getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
-            plugins_logger.sysexit(
+            return plugins_logger.sysexit(
                 "Error, unknown plug-in '%s' referenced." % plugin_name
             )
 
         if plugin_name in getPluginsEnabled() and plugin_name in getPluginsDisabled():
-            plugins_logger.sysexit(
+            return plugins_logger.sysexit(
                 "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
             )
 
@@ -2081,7 +2210,7 @@ def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
                         e.option_id in other_plugin_option._long_opts
                         or other_plugin_option._short_opts
                     ):
-                        plugins_logger.sysexit(
+                        return plugins_logger.sysexit(
                             "Plugin '%s' failed to add options due to conflict with '%s' from plugin '%s."
                             % (plugin_name, e.option_id, other_plugin_name)
                         )
@@ -2159,7 +2288,7 @@ def getPluginOptions(plugin_name):
 
         if "[REQUIRED]" in option.help:
             if not arg_value:
-                plugins_logger.sysexit(
+                return plugins_logger.sysexit(
                     "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
                     % (option_name, plugin_name)
                 )

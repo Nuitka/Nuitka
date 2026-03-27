@@ -127,6 +127,7 @@ from nuitka.plugins.Hooks import (
     onStandaloneDistributionFinished,
     writeExtraCodeFiles,
 )
+from nuitka.plugins.PluginsUsage import printPluginUsageStats
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
     closeProgressBar,
@@ -1213,6 +1214,8 @@ def _main():
         if isShowMemory():
             showMemoryTrace()
 
+        printPluginUsageStats()
+
         sys.exit(0)
 
     executePostProcessing(scons_options["result_exe"])
@@ -1330,6 +1333,7 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
         createDmgFile(general)
 
     writeCompilationReports(aborted=False)
+    printPluginUsageStats()
 
     run_filename = OutputDirectories.getResultRunFilename(onefile=isOnefileMode())
 
