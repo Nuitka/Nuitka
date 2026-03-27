@@ -13,7 +13,11 @@ _future_specs = []
 
 
 def pushFutureSpec(module_name):
-    _future_specs.append(FutureSpec(use_annotations=decideAnnotations(module_name)))
+    _future_specs.append(
+        FutureSpec(
+            use_annotations=decideAnnotations(module_name),
+        )
+    )
 
 
 def getFutureSpec():
