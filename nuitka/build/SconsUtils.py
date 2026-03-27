@@ -701,6 +701,12 @@ def readSconsReport(source_dir):
 
 
 def getSconsReportValue(source_dir, key, default=Ellipsis):
+    """Get a value from the SCons report.
+
+    Note: The default value is only used if the report does not exist,
+    e.g. due to an error in compilation. If the report exists but is
+    missing the key, no default is used and `None` is returned.
+    """
     try:
         return readSconsReport(source_dir).get(key)
     except FileNotFoundError:
