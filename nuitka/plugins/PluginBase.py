@@ -110,7 +110,12 @@ from nuitka.utils.Utils import (
     withNoWarning,
 )
 
-from .Hooks import decideAnnotations, decideAssertions, decideDocStrings
+from .Hooks import (
+    decideAnnotations,
+    decideAssertions,
+    decideDocStrings,
+    registerDecisionCompilation,
+)
 
 _warned_unused_plugins = set()
 
@@ -1218,6 +1223,20 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def registerDecisionCompilation(self, module_name, decision):
+        """Register a decision whether to C compile a module or include as bytecode.
+
+        Notes:
+            Registers the decision statically to be considered during compilation.
+
+        Args:
+            module_name: (str) name of module
+            decision: "compiled" or "bytecode"
+        """
+        registerDecisionCompilation(
+            plugin_name=self.plugin_name, module_name=module_name, decision=decision
+        )
 
     def decideRecompileExtensionModules(self, module_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument

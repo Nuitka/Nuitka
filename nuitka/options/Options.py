@@ -448,6 +448,7 @@ longer part of Winlibs and therefore no more available this way. Use only \
 
     states.is_verbose = options.verbose
     states.data_composer_verbose = options.data_composer_verbose
+    states.show_plugin_usage = options.show_plugin_usage
 
     optimization_logger.is_quiet = not options.verbose
 
@@ -2091,6 +2092,11 @@ def isShowMemory():
 def isShowInclusion():
     """:returns: bool derived from ``--show-modules``"""
     return options.show_inclusion
+
+
+def isShowPluginUsage():
+    """:returns: bool derived from ``--show-plugin-usage``"""
+    return options is not None and options.show_plugin_usage
 
 
 def isRemoveBuildDir():
