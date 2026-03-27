@@ -36,7 +36,11 @@ else:
     import struct
 
     def hasPerfProfilingSupport():
-        return isLinux() and getPerfFileHandle(PERF_COUNT_HW_INSTRUCTIONS) is not None
+        return (
+            isLinux()
+            and SYS_perf_event_open is not None
+            and getPerfFileHandle(PERF_COUNT_HW_INSTRUCTIONS) is not None
+        )
 
     # The syscall number for perf_event_open varies by architecture.
     ARCH_MAP = {
@@ -46,19 +50,24 @@ else:
         "armv7l": 364,
     }
 
+    SYS_perf_event_open = ARCH_MAP.get(platform.machine())
+
+    _syscall = None
+
+    def _getLibcSyscall():
+        # Singleton, avoid repeated expensive lookup
+        global _syscall  # pylint: disable=global-statement
+
+        if _syscall is None:
+            # --- Load libc and define syscall function ---
+            libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+            _syscall = libc.syscall
+            _syscall.restype = ctypes.c_long
+
+        return _syscall
+
     def getPerfFileHandle(config, group_fd=-1, read_format=0):
-        SYS_perf_event_open = ARCH_MAP.get(platform.machine())
-
-        if SYS_perf_event_open is None:
-            # This is not a hard error, we just cannot do perf.
-            return None
-
-        # --- Load libc and define syscall function ---
-        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-
-        syscall = libc.syscall
-        syscall.restype = ctypes.c_long
-
         attr = PerfEventAttr(
             type=PERF_TYPE_HARDWARE,
             size=ctypes.sizeof(PerfEventAttr),
@@ -73,7 +82,7 @@ else:
 
         # We must explicitly cast every argument to its correct 64-bit C type to
         # satisfy the variadic nature of the syscall ABI.
-        fd = syscall(
+        fd = _getLibcSyscall()(
             ctypes.c_long(SYS_perf_event_open),
             ctypes.byref(attr),
             ctypes.c_long(0),  # pid
