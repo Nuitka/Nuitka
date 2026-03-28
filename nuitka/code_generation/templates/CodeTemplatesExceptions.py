@@ -28,7 +28,7 @@ if (%(condition)s) {
 }"""
 
 template_error_catch_exception = """\
-if (%(condition)s) {
+if (unlikely(%(condition)s)) {
     assert(HAS_ERROR_OCCURRED(tstate));
 
     FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
@@ -40,7 +40,7 @@ if (%(condition)s) {
 }"""
 
 template_error_format_string_exception = """\
-if (%(condition)s) {
+if (unlikely(%(condition)s)) {
 %(release_temps)s
 %(set_exception)s
 
