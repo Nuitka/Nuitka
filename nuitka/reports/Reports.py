@@ -566,7 +566,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             # Going via attrib, because pass is a keyword in Python.
             timing_xml_node.attrib["pass"] = str(timing_info.pass_number)
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.micro_passes:
@@ -599,7 +599,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.cpu_instr_count is not None:
@@ -1015,7 +1015,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         timing_xml_node.attrib["time"] = (
             "volatile"
             if diffable
-            else "%.2f" % performance_totals["optimization_passes"][pass_num]["time"]
+            else "%.4f" % performance_totals["optimization_passes"][pass_num]["time"]
         )
         timing_xml_node.attrib["module_count"] = str(
             performance_totals["optimization_passes"][pass_num]["count"]
@@ -1035,7 +1035,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
     timing_xml_node.attrib["pass"] = "all"
     timing_xml_node.attrib["time"] = (
-        "volatile" if diffable else "%.2f" % performance_totals["all_passes"]["time"]
+        "volatile" if diffable else "%.4f" % performance_totals["all_passes"]["time"]
     )
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["all_passes"]["count"]
@@ -1056,7 +1056,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["time"] = (
         "volatile"
         if diffable
-        else "%.2f" % performance_totals["code_generation"]["time"]
+        else "%.4f" % performance_totals["code_generation"]["time"]
     )
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["code_generation"]["count"]
