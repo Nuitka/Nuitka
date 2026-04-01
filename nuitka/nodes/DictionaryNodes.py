@@ -491,6 +491,9 @@ class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
+        if self.known_hashable_key is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     # TODO: These turn this into dictionary item removals, as value is unused.
@@ -578,6 +581,9 @@ class ExpressionDictOperationSetdefault2(ExpressionDictOperationSetdefault2Base)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
+        if self.known_hashable_key is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -634,6 +640,9 @@ class ExpressionDictOperationSetdefault3(ExpressionDictOperationSetdefault3Base)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
+        if self.known_hashable_key is None:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):
