@@ -1,43 +1,21 @@
 #     Copyright 2026, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
-"""Details see below in class definition."""
+"""Deprecated eventlet plugin."""
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginEventlet(NuitkaPluginBase):
-    """This class represents the main logic of the plugin."""
+    """This plugin is now not doing anything anymore."""
 
     plugin_name = "eventlet"
-    plugin_desc = "Required by 'eventlet' package."
-    plugin_category = "package-support"
+    plugin_desc = "Deprecated, was once required by 'eventlet' package."
+    plugin_category = "package-support,obsolete"
 
-    # TODO: Change this to Yaml configuration.
-
-    @staticmethod
-    def isAlwaysEnabled():
+    @classmethod
+    def isDeprecated(cls):
         return True
-
-    def getImplicitImports(self, module):
-        full_name = module.getFullName()
-
-        if full_name == "eventlet":
-            yield self.locateModules("dns")
-            yield "eventlet.hubs"
-
-        elif full_name == "eventlet.hubs":
-            yield "eventlet.hubs.epolls"
-            yield "eventlet.hubs.hub"
-            yield "eventlet.hubs.kqueue"
-            yield "eventlet.hubs.poll"
-            yield "eventlet.hubs.pyevent"
-            yield "eventlet.hubs.selects"
-            yield "eventlet.hubs.timer"
-
-    def decideCompilation(self, module_name):
-        if module_name.hasNamespace("dns"):
-            return "bytecode"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -736,6 +736,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "numpy.distutils",  # Largely unused, and a lot of modules.
         "numpy.f2py",  # Mostly unused, only numpy.distutils import it.
         "numpy.testing",  # Useless.
+        "dns",  # Not performance relevant.
         "nose",  # Not performance relevant.
         "coverage",  # Not performance relevant.
         "docutils",  # Not performance relevant.
