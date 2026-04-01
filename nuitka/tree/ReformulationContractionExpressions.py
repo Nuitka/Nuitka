@@ -337,7 +337,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     code_body.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=frame_node_class(
-                statements=mergeStatements(statements, False),
+                statements=mergeStatements(statements),
                 code_object=code_object,
                 owner_code_name=code_body.getCodeName(),
                 source_ref=source_ref,
@@ -560,7 +560,7 @@ def _buildContractionBodyNode(
             )
 
         current_body = StatementsSequence(
-            statements=mergeStatements(nested_statements, False), source_ref=source_ref
+            statements=mergeStatements(nested_statements), source_ref=source_ref
         )
 
     statements.append(current_body)
@@ -652,7 +652,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         body = makeStatementsSequenceFromStatements(
             assign_iter_statement,
             StatementsFrameGenerator(
-                statements=mergeStatements(statements, False),
+                statements=mergeStatements(statements),
                 code_object=code_object,
                 owner_code_name=function_body.getCodeName(),
                 source_ref=source_ref,

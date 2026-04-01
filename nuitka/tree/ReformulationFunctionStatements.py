@@ -231,7 +231,6 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
                 )
             ),
         ),
-        allow_none=False,
         source_ref=source_ref,
     )
 

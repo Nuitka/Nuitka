@@ -216,10 +216,8 @@ from .TreeHelpers import (
     getKind,
     makeModuleFrame,
     makeReraiseExceptionStatement,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
-    mergeStatements,
     parseSourceCodeToAst,
     setBuildingDispatchers,
 )
@@ -306,17 +304,8 @@ def buildTryNode(provider, node, source_ref):
 
     return buildTryFinallyNode(
         provider=provider,
-        build_tried=lambda: makeStatementsSequence(
-            statements=mergeStatements(
-                (
-                    buildTryExceptionNode(
-                        provider=provider, node=node, source_ref=source_ref
-                    ),
-                ),
-                allow_none=True,
-            ),
-            allow_none=True,
-            source_ref=source_ref,
+        build_tried=lambda: buildTryExceptionNode(
+            provider=provider, node=node, source_ref=source_ref
         ),
         node=node,
         source_ref=source_ref,
@@ -338,17 +327,8 @@ def buildTryStarNode(provider, node, source_ref):
 
     return buildTryFinallyNode(
         provider=provider,
-        build_tried=lambda: makeStatementsSequence(
-            statements=mergeStatements(
-                (
-                    buildTryStarExceptionNode(
-                        provider=provider, node=node, source_ref=source_ref
-                    ),
-                ),
-                allow_none=True,
-            ),
-            allow_none=True,
-            source_ref=source_ref,
+        build_tried=lambda: buildTryStarExceptionNode(
+            provider=provider, node=node, source_ref=source_ref
         ),
         node=node,
         source_ref=source_ref,

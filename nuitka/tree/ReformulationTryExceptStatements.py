@@ -41,10 +41,9 @@ from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeReraiseExceptionStatement,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
-    mergeStatements,
+    makeStatementsSequenceWithNone,
 )
 
 
@@ -60,8 +59,8 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
         temp_scope=temp_scope, name="unhandled_indicator", temp_type="bool"
     )
 
-    statements = mergeStatements(
-        (
+    handling = makeStatementsSequenceWithNone(
+        statements=(
             makeStatementAssignmentVariable(
                 variable=tmp_handler_indicator_variable,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
@@ -69,10 +68,8 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
             ),
             handling,
         ),
-        allow_none=True,
+        source_ref=no_raise.getSourceReference(),
     )
-
-    handling = StatementsSequence(statements=statements, source_ref=source_ref)
 
     return makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
@@ -272,8 +269,8 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                 ),
             ]
 
-        handler_body = makeStatementsSequence(
-            statements=statements, allow_none=True, source_ref=source_ref
+        handler_body = makeStatementsSequenceWithNone(
+            statements=statements, source_ref=source_ref
         )
 
         exception_types = buildNode(

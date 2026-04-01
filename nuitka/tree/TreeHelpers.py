@@ -27,7 +27,10 @@ from nuitka.nodes.KeyValuePairNodes import (
     makeKeyValuePairExpressionsFromKwArgs,
 )
 from nuitka.nodes.NodeBases import NodeBase
-from nuitka.nodes.NodeMakingHelpers import mergeStatements
+from nuitka.nodes.NodeMakingHelpers import (
+    mergeStatements,
+    mergeStatementsWithNone,
+)
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.options.Options import hasPythonFlagNoDocStrings
 from nuitka.PythonVersions import python_version
@@ -554,15 +557,22 @@ def makeStatementsSequenceOrStatement(statements, source_ref):
         return statements[0]
 
 
-def makeStatementsSequence(statements, allow_none, source_ref):
-    if allow_none:
-        statements = tuple(
-            statement for statement in statements if statement is not None
+def makeStatementsSequence(statements, source_ref):
+    if statements:
+        return StatementsSequence(
+            statements=mergeStatements(statements),
+            source_ref=source_ref,
         )
+    else:
+        return None
+
+
+def makeStatementsSequenceWithNone(statements, source_ref):
+    statements = mergeStatementsWithNone(statements)
 
     if statements:
         return StatementsSequence(
-            statements=mergeStatements(statements, allow_none=allow_none),
+            statements=statements,
             source_ref=source_ref,
         )
     else:
@@ -570,17 +580,20 @@ def makeStatementsSequence(statements, allow_none, source_ref):
 
 
 def makeStatementsSequenceFromStatement(statement):
-    return StatementsSequence(
-        statements=mergeStatements((statement,)),
-        source_ref=statement.getSourceReference(),
-    )
+    if statement is not None:
+        return StatementsSequence(
+            statements=mergeStatementsWithNone((statement,)),
+            source_ref=statement.getSourceReference(),
+        )
+    else:
+        return None
 
 
 def makeStatementsSequenceFromStatements(*statements):
     assert statements
     assert None not in statements
 
-    statements = mergeStatements(statements, allow_none=False)
+    statements = mergeStatementsWithNone(statements)
 
     return StatementsSequence(
         statements=statements, source_ref=statements[0].getSourceReference()
@@ -629,7 +642,6 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
 def getStatementsAppended(statement_sequence, statements):
     return makeStatementsSequence(
         statements=(statement_sequence, statements),
-        allow_none=False,
         source_ref=statement_sequence.getSourceReference(),
     )
 
@@ -637,7 +649,6 @@ def getStatementsAppended(statement_sequence, statements):
 def getStatementsPrepended(statement_sequence, statements):
     return makeStatementsSequence(
         statements=(statements, statement_sequence),
-        allow_none=False,
         source_ref=statement_sequence.getSourceReference(),
     )
 

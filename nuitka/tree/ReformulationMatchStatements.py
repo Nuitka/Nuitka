@@ -49,6 +49,7 @@ from .TreeHelpers import (
     buildStatementsNode,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceWithNone,
 )
 
 
@@ -434,7 +435,6 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
                 condition=class_conditions,
                 yes_branch=makeStatementsSequence(
                     statements=class_assignments,
-                    allow_none=False,
                     source_ref=source_ref,
                 ),
                 no_branch=makeStatementReturnConstant(
@@ -474,7 +474,6 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
                     ),
                     makeStatementReturnConstant(constant=False, source_ref=source_ref),
                 ),
-                allow_none=False,
                 source_ref=source_ref,
             ),
             no_branch=None,
@@ -488,9 +487,7 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         ),
     ]
 
-    body = makeStatementsSequence(
-        statements=statements, allow_none=False, source_ref=source_ref
-    )
+    body = makeStatementsSequence(statements=statements, source_ref=source_ref)
 
     outline_body.setChildBody(body)
 
@@ -553,7 +550,7 @@ def _buildMatchOr(provider, pattern, make_against, source_ref):
                 body = makeStatementConditional(
                     condition=or_condition,
                     yes_branch=makeStatementsSequence(
-                        statements=statements, allow_none=False, source_ref=source_ref
+                        statements=statements, source_ref=source_ref
                     ),
                     no_branch=makeStatementReturnConstant(
                         constant=False, source_ref=source_ref
@@ -564,7 +561,7 @@ def _buildMatchOr(provider, pattern, make_against, source_ref):
                 body = makeStatementConditional(
                     condition=or_condition,
                     yes_branch=makeStatementsSequence(
-                        statements=statements, allow_none=False, source_ref=source_ref
+                        statements=statements, source_ref=source_ref
                     ),
                     no_branch=body,
                     source_ref=source_ref,
@@ -695,7 +692,7 @@ def buildMatchNode(provider, node, source_ref):
         # Set indicator variable at end of branch code, unless it's last branch
         # where there would be no usage of it.
         if case is not cases[-1]:
-            branch_code = makeStatementsSequence(
+            branch_code = makeStatementsSequenceWithNone(
                 statements=(
                     branch_code,
                     makeStatementAssignmentVariable(
@@ -706,7 +703,6 @@ def buildMatchNode(provider, node, source_ref):
                         source_ref=source_ref,
                     ),
                 ),
-                allow_none=True,
                 source_ref=source_ref,
             )
 
@@ -720,9 +716,8 @@ def buildMatchNode(provider, node, source_ref):
 
         del guard
 
-        branch_code = makeStatementsSequence(
+        branch_code = makeStatementsSequenceWithNone(
             statements=(assignments, branch_code),
-            allow_none=True,
             source_ref=source_ref,
         )
 
@@ -776,7 +771,6 @@ def buildMatchNode(provider, node, source_ref):
                 source_ref=source_ref,
             ),
         ),
-        allow_none=False,
         source_ref=source_ref,
     )
 

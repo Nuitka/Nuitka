@@ -78,7 +78,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
     if type(final) in (tuple, list):
         if final:
             final = StatementsSequence(
-                statements=mergeStatements(final, False), source_ref=source_ref
+                statements=mergeStatements(final), source_ref=source_ref
             )
         else:
             final = None
@@ -183,7 +183,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
         return result
     else:
         return makeStatementsSequence(
-            statements=(result, getFinal()), allow_none=False, source_ref=source_ref
+            statements=(result, getFinal()), source_ref=source_ref
         )
 
 
@@ -192,7 +192,9 @@ def buildTryFinallyNode(provider, build_tried, node, source_ref):
         # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")
         final = buildStatementsNode(
-            provider=provider, nodes=node.finalbody, source_ref=source_ref
+            provider=provider,
+            nodes=node.finalbody,  # spell-checker: ignore finalbody
+            source_ref=source_ref,
         )
         popBuildContext()
 
