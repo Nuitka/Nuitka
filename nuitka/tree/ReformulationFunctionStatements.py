@@ -16,9 +16,13 @@ from nuitka.nodes.AsyncgenNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
+    ExpressionBuiltinIterForUnpack,
     StatementSpecialUnpackCheck,
 )
-from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
+from nuitka.nodes.BuiltinNextNodes import (
+    ExpressionBuiltinNext1,
+    ExpressionSpecialUnpack,
+)
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinExceptionRef,
     makeExpressionBuiltinTypeRef,
@@ -752,9 +756,22 @@ def buildParameterAnnotations(provider, node, source_ref):
             assert arg.annotation is None
         elif getKind(arg) == "arg":
             if arg.annotation is not None:
+                if python_version >= 0x3B0 and getKind(arg.annotation) == "Starred":
+                    value = buildAnnotationNode(
+                        provider, arg.annotation.value, source_ref
+                    )
+
+                    result = ExpressionBuiltinNext1(
+                        value=ExpressionBuiltinIterForUnpack(value, source_ref),
+                        source_ref=source_ref,
+                    )
+
+                else:
+                    result = buildAnnotationNode(provider, arg.annotation, source_ref)
+
                 addAnnotation(
                     key=arg.arg,
-                    value=buildAnnotationNode(provider, arg.annotation, source_ref),
+                    value=result,
                 )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
