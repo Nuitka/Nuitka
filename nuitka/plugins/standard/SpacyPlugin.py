@@ -91,6 +91,7 @@ No language models included. Use the option '--spacy-language-model=language_mod
 include one. Use 'all' to include all downloaded ones, or select from the list of installed \
 ones: %s""" % ",".join(self._getInstalledSpaceLanguageModels()))
 
+            # TODO: Can we not just return the OrderedSet.
             for used_language_model_name in self.used_language_model_names:
                 yield used_language_model_name
 
