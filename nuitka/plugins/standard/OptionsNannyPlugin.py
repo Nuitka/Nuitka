@@ -118,9 +118,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 full_name, "macos_bundle_onefile_mode", macos_bundle_as_onefile
             )
 
-    # TODO: Definitely the wrong function to use, but we migrated this out of
-    # implicit imports, where it was done there.
-    def getImplicitImports(self, module):
+    def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
         for options_config in self.config.get(full_name, section="options"):
@@ -147,8 +145,6 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                                 "macos_bundle_as_onefile", "no"
                             ),
                         )
-
-        return ()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
