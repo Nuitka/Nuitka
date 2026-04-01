@@ -1621,9 +1621,6 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     def onFunctionBodyParsing(cls, provider, function_name, body):
-        if not active_plugins_with_function_body_parsing:
-            return
-
         module_name = provider.getParentModule().getFullName()
 
         function_qualname = provider.getChildQualname(function_name)
@@ -1638,9 +1635,6 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     def onClassBodyParsing(cls, provider, class_name, node):
-        if not active_plugins_with_class_body_parsing:
-            return
-
         module_name = provider.getParentModule().getFullName()
 
         for plugin in active_plugins_with_class_body_parsing:
