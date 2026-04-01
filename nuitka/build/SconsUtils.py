@@ -813,6 +813,8 @@ def readSconsResourceUsageReports(source_dir):
                     module_name = source_filename[7:-2]
 
                     results[module_name] = data["rusage"]
+                elif source_filename == "@linker":
+                    results["@linker"] = data["rusage"]
 
         _scons_resource_usage_reports[source_dir] = results
 

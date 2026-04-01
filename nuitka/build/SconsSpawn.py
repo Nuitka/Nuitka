@@ -498,14 +498,20 @@ it or using '--clang' option.""" % env.the_compiler)
         if (
             spawn_result.exit_code == 0
             and spawn_result.rusage is not None
-            and source_filename is not None
             and env.collect_resources
         ):
-            writeSconsResourceUsageReport(
-                source_dir=env.source_dir,
-                source_filename=os.path.basename(source_filename),
-                rusage=spawn_result.rusage,
-            )
+            if source_filename is not None:
+                writeSconsResourceUsageReport(
+                    source_dir=env.source_dir,
+                    source_filename=os.path.basename(source_filename),
+                    rusage=spawn_result.rusage,
+                )
+            elif "-o" in args:
+                writeSconsResourceUsageReport(
+                    source_dir=env.source_dir,
+                    source_filename="@linker",
+                    rusage=spawn_result.rusage,
+                )
 
         return spawn_result.exit_code
 

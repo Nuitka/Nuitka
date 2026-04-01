@@ -888,6 +888,23 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         root=root, report_input_data=report_input_data, diffable=diffable
     )
 
+    if report_input_data["scons_resource_usage_data"]:
+        linker_rusage = report_input_data["scons_resource_usage_data"].get("@linker")
+
+        if not diffable and linker_rusage:
+            linker_xml_node = appendTreeElement(root, "linker-resources")
+            for group_name, group_data in linker_rusage.items():
+                group_xml_node = appendTreeElement(
+                    linker_xml_node,
+                    group_name,
+                )
+                for key, value in group_data.items():
+                    if type(value) is float:
+                        value = "%.4f" % value
+                    else:
+                        value = str(value)
+                    group_xml_node.attrib[key] = value
+
     if report_input_data["memory_infos"]:
         performance_xml_node = appendTreeElement(
             root,
