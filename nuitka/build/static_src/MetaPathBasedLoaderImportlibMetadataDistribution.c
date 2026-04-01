@@ -47,14 +47,16 @@ if sys.version_info >= (3, 8):\n\
 else:\n\
     from importlib_metadata import Distribution,distribution\n\
 class nuitka_distribution(Distribution):\n\
-    def __init__(self, path, metadata, entry_points):\n\
-        self._path = path; self.metadata_data = metadata\n\
-        self.entry_points_data = entry_points\n\
+    def __init__(self, package_name, path, metadata, entry_points):\n\
+        self.package_name = package_name; self._path = path\n\
+        self.metadata_data = metadata; self.entry_points_data = entry_points\n\
     def read_text(self, filename):\n\
         if filename == 'METADATA':\n\
             return self.metadata_data\n\
         elif filename == 'entry_points.txt':\n\
             return self.entry_points_data\n\
+        elif filename == 'top_level.txt':\n\
+            return self.package_name + '\\n'\n\
     def locate_file(self, path):\n\
         return os.path.join(self._path, path)\n\
 ";
@@ -102,8 +104,8 @@ class nuitka_distribution(Distribution):\n\
             return NULL;
         }
 
-        PyObject *args[3] = {getModuleDirectory(tstate, entry), metadata, entry_points};
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, nuitka_distribution_type, args);
+        PyObject *args[4] = {package_name, getModuleDirectory(tstate, entry), metadata, entry_points};
+        PyObject *result = CALL_FUNCTION_WITH_ARGS4(tstate, nuitka_distribution_type, args);
         CHECK_OBJECT(result);
         return result;
     }
