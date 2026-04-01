@@ -1027,23 +1027,6 @@ def locateModule(module_name, parent_package, level, logger=None):
     return module_name, module_filename, module_kind, finding
 
 
-def locateModules(package_name):
-    """Determine child module names.
-
-    Return:
-        generator of ModuleName objects
-    """
-    package_name = ModuleName(package_name)
-
-    module_filename = locateModule(
-        module_name=ModuleName(package_name), parent_package=None, level=0
-    )[1]
-
-    if module_filename is not None:
-        for sub_module in iter_modules([module_filename]):
-            yield package_name.getChildNamed(sub_module.name)
-
-
 def hasModule(module_name):
     """Tell if a module exists in the installation."""
 

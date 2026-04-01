@@ -1513,6 +1513,23 @@
         'self.add_batch = types.MethodType(': 'self.add_batch = self.add_batch.__class__('
         'self.add = types.MethodType(': 'self.add = self.add.__class__('
 
+- module-name: 'eventlet' # checksum: 9042efed
+  implicit-imports:
+    - depends:
+        - 'eventlet.hubs'
+        - 'dns.*'
+
+- module-name: 'eventlet.hubs' # checksum: b5ba53e2
+  implicit-imports:
+    - depends:
+        - 'eventlet.hubs.epolls'
+        - 'eventlet.hubs.hub'
+        - 'eventlet.hubs.kqueue'
+        - 'eventlet.hubs.poll'
+        - 'eventlet.hubs.pyevent'
+        - 'eventlet.hubs.selects'
+        - 'eventlet.hubs.timer'
+
 - module-name: 'exchangelib' # checksum: 9f83fa1b
   implicit-imports:
     - depends:

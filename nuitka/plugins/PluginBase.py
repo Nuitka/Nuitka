@@ -892,20 +892,6 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
         return module_filename
 
-    @staticmethod
-    def locateModules(module_name):
-        """Provide a filename / -path for a to-be-imported module.
-
-        Args:
-            module_name: (str or ModuleName) full name of module
-        Returns:
-            list of ModuleName
-        """
-
-        from nuitka.importing.Importing import locateModules
-
-        return locateModules(module_name)
-
     @classmethod
     def locateDLL(cls, dll_name):
         """Locate a DLL by name."""
