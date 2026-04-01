@@ -312,19 +312,32 @@ def makeStatementExpressionOnlyReplacementNode(expression, node):
     )
 
 
-def mergeStatements(statements, allow_none=False):
+def mergeStatements(statements):
     """Helper function that merges nested statement sequences."""
     merged_statements = []
 
     for statement in statements:
-        if statement is None and allow_none:
+        if type(statement) in (tuple, list):
+            merged_statements += mergeStatements(statement)
+        elif statement.isStatementsSequenceButNotFrame():
+            merged_statements.extend(statement.subnode_statements)
+        else:
+            merged_statements.append(statement)
+
+    return tuple(merged_statements)
+
+
+def mergeStatementsWithNone(statements):
+    """Helper function that merges nested statement sequences filtering out None statements."""
+    merged_statements = []
+
+    for statement in statements:
+        if statement is None:
             pass
         elif type(statement) in (tuple, list):
-            merged_statements += mergeStatements(statement, allow_none)
-        elif statement.isStatementsFrame():
-            merged_statements.append(statement)
-        elif statement.isStatementsSequence():
-            merged_statements.extend(mergeStatements(statement.subnode_statements))
+            merged_statements += mergeStatementsWithNone(statement)
+        elif statement.isStatementsSequenceButNotFrame():
+            merged_statements.extend(statement.subnode_statements)
         else:
             merged_statements.append(statement)
 

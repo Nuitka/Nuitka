@@ -49,7 +49,7 @@ from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeReraiseExceptionStatement,
-    makeStatementsSequence,
+    makeStatementsSequenceWithNone,
 )
 
 
@@ -90,8 +90,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         body,
     )
 
-    with_body = makeStatementsSequence(
-        statements=statements, allow_none=True, source_ref=source_ref
+    with_body = makeStatementsSequenceWithNone(
+        statements=statements, source_ref=source_ref
     )
 
     if body and python_version < 0x3A0:

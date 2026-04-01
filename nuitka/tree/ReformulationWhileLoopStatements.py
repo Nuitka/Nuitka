@@ -52,8 +52,8 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatements,
+    makeStatementsSequenceWithNone,
     popBuildContext,
     pushBuildContext,
 )
@@ -67,7 +67,7 @@ def buildWhileLoopNode(provider, node, source_ref):
 
     else_block = buildStatementsNode(
         provider=provider,
-        nodes=node.orelse if node.orelse else None,
+        nodes=node.orelse if node.orelse else None,  # spell-checker: ignore orelse
         source_ref=source_ref,
     )
 
@@ -98,7 +98,7 @@ def buildWhileLoopNode(provider, node, source_ref):
 
     # The loop body contains a conditional statement at the start that breaks
     # the loop if it fails.
-    loop_body = makeStatementsSequence(
+    loop_body = makeStatementsSequenceWithNone(
         statements=(
             makeStatementConditional(
                 condition=ExpressionOperationNot(
@@ -113,7 +113,6 @@ def buildWhileLoopNode(provider, node, source_ref):
             ),
             loop_statements,
         ),
-        allow_none=True,
         source_ref=source_ref,
     )
 

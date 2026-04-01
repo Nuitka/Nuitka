@@ -30,6 +30,7 @@ from .TreeHelpers import (
     buildStatementsNode,
     makeStatementsSequence,
     makeStatementsSequenceFromStatements,
+    makeStatementsSequenceWithNone,
     popBuildContext,
     pushBuildContext,
 )
@@ -81,9 +82,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     statements.append(StatementLoopBreak(source_ref=source_ref))
 
-    handler_body = makeStatementsSequence(
-        statements=statements, allow_none=False, source_ref=source_ref
-    )
+    handler_body = makeStatementsSequence(statements=statements, source_ref=source_ref)
 
     if sync:
         next_node = ExpressionBuiltinNext1(
@@ -128,8 +127,8 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
     popBuildContext()
 
-    loop_body = makeStatementsSequence(
-        statements=statements, allow_none=True, source_ref=source_ref
+    loop_body = makeStatementsSequenceWithNone(
+        statements=statements, source_ref=source_ref
     )
 
     cleanup_variables = (

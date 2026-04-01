@@ -29,7 +29,7 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementSetLocalsDictionary,
 )
 from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
-from nuitka.nodes.NodeMakingHelpers import mergeStatements
+from nuitka.nodes.NodeMakingHelpers import mergeStatementsWithNone
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
@@ -145,7 +145,7 @@ def buildClassNode2(provider, node, source_ref):
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
             provider=function_body,
-            tried=mergeStatements(statements, True),
+            tried=mergeStatementsWithNone(statements),
             final=StatementReleaseLocals(
                 locals_scope=locals_scope, source_ref=source_ref
             ),
@@ -256,9 +256,7 @@ def buildClassNode2(provider, node, source_ref):
         )
 
     select_metaclass.setChildBody(
-        makeStatementsSequence(
-            statements=statements, allow_none=False, source_ref=source_ref
-        )
+        makeStatementsSequence(statements=statements, source_ref=source_ref)
     )
 
     statements = [

@@ -677,7 +677,7 @@ class StatementReleaseLocals(StatementBase):
             ]
 
             result = makeStatementsSequence(
-                statements=statements, allow_none=False, source_ref=self.source_ref
+                statements=statements, source_ref=self.source_ref
             )
 
             return (

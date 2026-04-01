@@ -77,10 +77,10 @@ from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
     getKind,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
+    makeStatementsSequenceWithNone,
     mangleName,
 )
 
@@ -640,9 +640,7 @@ def buildAnnAssignNode(provider, node, source_ref):
             if node.simple:
                 provider.getVariableForAssignment(variable_name)
 
-    return makeStatementsSequence(
-        statements=statements, allow_none=True, source_ref=source_ref
-    )
+    return makeStatementsSequenceWithNone(statements=statements, source_ref=source_ref)
 
 
 def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):

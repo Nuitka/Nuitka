@@ -65,7 +65,7 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
-    mergeStatements,
+    mergeStatementsWithNone,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OutlineNodes import (
@@ -473,7 +473,7 @@ def buildClassNode3(provider, node, source_ref):
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
             provider=class_creation_function,
-            tried=mergeStatements(statements, True),
+            tried=mergeStatementsWithNone(statements),
             final=StatementReleaseLocals(
                 locals_scope=locals_scope, source_ref=source_ref
             ),

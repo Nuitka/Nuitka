@@ -829,7 +829,6 @@ if python_version < 0x300:
                         source_ref=source_ref,
                     ),
                 ),
-                allow_none=False,
                 source_ref=source_ref,
             )
 
@@ -986,7 +985,7 @@ def eval_extractor(node):
         )
 
         tried = makeStatementsSequence(
-            statements=(tried,) + statements, allow_none=False, source_ref=source_ref
+            statements=(tried,) + statements, source_ref=source_ref
         )
 
         outline_body.setChildBody(
@@ -1045,7 +1044,6 @@ if python_version >= 0x300:
                         source_ref=source_ref,
                     ),
                 ),
-                allow_none=False,
                 source_ref=source_ref,
             )
 
