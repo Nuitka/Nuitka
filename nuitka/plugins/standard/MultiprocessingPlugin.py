@@ -117,41 +117,19 @@ ForkingPickler.register(type(C().f), _reduce_compiled_method)
 if str is bytes:
     ForkingPickler.register(type(C.f), _reduce_compiled_method)
 
-try:
+if str is not bytes:
     import multiprocessing.spawn
-except ImportError:
-    pass
-else:
+
     if not hasattr(multiprocessing.spawn, "__nuitka_original_fixup_main_from_path"):
         multiprocessing.spawn.__nuitka_original_fixup_main_from_path = multiprocessing.spawn._fixup_main_from_path
 
         def _fixup_main_from_path_for_nuitka(main_path):
-            if main_path is not None:
-                try:
-                    # Compiled children must never execute the source path via
-                    # runpy.run_path(), even if it still exists next to an
-                    # accelerated binary.
-                    if "__compiled__" in globals():
-                        main_path_exists = False
-                    else:
-                        main_path_exists = os.path.exists(main_path)
-                except Exception:
-                    main_path_exists = False
+            assert main_path is not None
 
-                if not main_path_exists:
-                    try:
-                        parents_main = sys.modules["__parents_main__"]
-                    except KeyError:
-                        try:
-                            import __parents_main__ as parents_main
-                        except ImportError:
-                            return
+            import __parents_main__ as parents_main
 
-                    sys.modules["__main__"] = parents_main
-                    sys.modules["__mp_main__"] = parents_main
-                    return
-
-            return multiprocessing.spawn.__nuitka_original_fixup_main_from_path(main_path)
+            sys.modules["__main__"] = parents_main
+            sys.modules["__mp_main__"] = parents_main
 
         multiprocessing.spawn._fixup_main_from_path = _fixup_main_from_path_for_nuitka
 """,
