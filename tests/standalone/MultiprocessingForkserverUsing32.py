@@ -16,11 +16,11 @@ if __name__ == "__main__":
     pool = context.Pool(1)
 
     try:
-        async_result = pool.apply_async(poolTask, (41,))
+        async_result = pool.apply_async(poolTask, (9,))
         result = async_result.get(timeout=10)
     finally:
         pool.close()
         pool.join()
 
-    assert result == 42, result
+    assert result == 10, result
     print("OK")
