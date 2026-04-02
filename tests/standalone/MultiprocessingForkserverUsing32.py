@@ -2,6 +2,8 @@
 
 # nuitka-project: --mode=standalone
 
+# nuitka-skip-unless-expression: os.name != "nt"
+
 from __future__ import print_function
 
 import multiprocessing as mp
