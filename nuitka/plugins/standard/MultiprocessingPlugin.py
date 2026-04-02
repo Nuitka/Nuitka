@@ -100,6 +100,9 @@ try:
 except ImportError:
     from multiprocessing.reduction import ForkingPickler
 
+import os
+import sys
+
 class C:
    def f():
        pass
@@ -125,14 +128,11 @@ else:
         def _fixup_main_from_path_for_nuitka(main_path):
             if main_path is not None:
                 try:
-                    import os
                     main_path_exists = os.path.exists(main_path)
                 except Exception:
                     main_path_exists = False
 
                 if not main_path_exists:
-                    import sys
-
                     try:
                         parents_main = sys.modules["__parents_main__"]
                     except KeyError:
@@ -183,7 +183,6 @@ def __nuitka_freeze_support():
     # This is a variant of freeze_support that will work for multiprocessing and
     # joblib equally well.
     kwds = {}
-    args = []
 
     if not hasattr(builtins, "__nuitka_original_args"):
         return
@@ -206,7 +205,7 @@ def __nuitka_freeze_support():
     # Otherwise main module names will not work.
     sys.modules["__main__"] = sys.modules["__parents_main__"]
 
-    multiprocessing.spawn.spawn_main(*args, **kwds)
+    multiprocessing.spawn.spawn_main(**kwds)
 __nuitka_freeze_support()
 """
         else:
