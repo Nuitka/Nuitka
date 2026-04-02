@@ -16,6 +16,7 @@ from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsCaching import getCcacheModuleStats
 from nuitka.build.SconsUtils import (
+    getSconsObjectSizes,
     getSconsReportValue,
     readSconsErrorReport,
     readSconsResourceUsageReports,
@@ -354,6 +355,8 @@ def _getReportInputData(aborted):
         backend_resource_mode = None
         backend_reproducible = None
 
+    module_object_sizes = getSconsObjectSizes(source_dir) if source_dir else {}
+
     del source_dir
 
     compilation_mode = getCompilationMode()
@@ -563,7 +566,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             # Going via attrib, because pass is a keyword in Python.
             timing_xml_node.attrib["pass"] = str(timing_info.pass_number)
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.micro_passes:
@@ -596,7 +599,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.cpu_instr_count is not None:
@@ -620,7 +623,11 @@ def _addModulesToReport(root, report_input_data, diffable):
         else:
             ccache_info = None
 
-        if not diffable and (compile_rusage or ccache_info is not None):
+        module_object_size = report_input_data["module_object_sizes"].get(module_name)
+
+        if not diffable and (
+            compile_rusage or ccache_info is not None or module_object_size is not None
+        ):
             compile_xml_node = appendTreeElement(
                 module_xml_node,
                 "c-compilation-resources",
@@ -638,6 +645,13 @@ def _addModulesToReport(root, report_input_data, diffable):
                     compile_xml_node,
                     "c-cache",
                     tech="none",
+                )
+
+            if module_object_size is not None:
+                appendTreeElement(
+                    compile_xml_node,
+                    "object-file",
+                    size=str(module_object_size),
                 )
 
             if compile_rusage:
@@ -1001,7 +1015,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         timing_xml_node.attrib["time"] = (
             "volatile"
             if diffable
-            else "%.2f" % performance_totals["optimization_passes"][pass_num]["time"]
+            else "%.4f" % performance_totals["optimization_passes"][pass_num]["time"]
         )
         timing_xml_node.attrib["module_count"] = str(
             performance_totals["optimization_passes"][pass_num]["count"]
@@ -1021,7 +1035,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
     timing_xml_node.attrib["pass"] = "all"
     timing_xml_node.attrib["time"] = (
-        "volatile" if diffable else "%.2f" % performance_totals["all_passes"]["time"]
+        "volatile" if diffable else "%.4f" % performance_totals["all_passes"]["time"]
     )
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["all_passes"]["count"]
@@ -1042,7 +1056,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     timing_xml_node.attrib["time"] = (
         "volatile"
         if diffable
-        else "%.2f" % performance_totals["code_generation"]["time"]
+        else "%.4f" % performance_totals["code_generation"]["time"]
     )
     timing_xml_node.attrib["module_count"] = str(
         performance_totals["code_generation"]["count"]

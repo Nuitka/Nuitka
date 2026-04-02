@@ -1657,6 +1657,15 @@ Obsolete: You should use '--report' file instead. Defaults to off.""",
 )
 
 tracing_group.add_option(
+    "--show-plugin-usage",
+    action="store_true",
+    dest="show_plugin_usage",
+    github_action=False,
+    default=False,
+    help="""Provide information on plugin usage. Defaults to off.""",
+)
+
+tracing_group.add_option(
     "--show-modules-output",
     action="store",
     dest="show_inclusion_output",

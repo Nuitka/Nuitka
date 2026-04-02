@@ -38,7 +38,9 @@ def detectPreLoadedPackagePaths():
     result = {}
 
     for package_name, module in getLoadedPackages():
-        result[package_name] = list(module.__path__)
+        paths = tuple(p for p in module.__path__ if os.path.exists(p))
+        if paths:
+            result[package_name] = paths
 
     return result
 

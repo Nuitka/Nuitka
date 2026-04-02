@@ -18,6 +18,7 @@ from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
     getSconsReportValue,
     readSconsErrorReport,
+    readSconsObjectSizes,
     readSconsReport,
     readSconsResourceUsageReports,
 )
@@ -127,6 +128,7 @@ from nuitka.plugins.Hooks import (
     onStandaloneDistributionFinished,
     writeExtraCodeFiles,
 )
+from nuitka.plugins.PluginsUsage import printPluginUsageStats
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
     closeProgressBar,
@@ -597,6 +599,8 @@ def makeSourceDirectory():
         assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
+    return module_filenames
+
 
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
@@ -994,7 +998,7 @@ def compileTree():
             logger=code_generation_logger,
             enabled=isCompileTimeProfile(),
         ):
-            makeSourceDirectory()
+            module_filenames = makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -1012,12 +1016,16 @@ def compileTree():
         )
 
     else:
+        # Too hard to come by this information, and it's only for optional parts
+        # of the reporting at this time.
+        module_filenames = {}
+
         source_dir = OutputDirectories.getSourceDirectoryPath(
             onefile=False, create=False
         )
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
-            general.sysexit("Error, no previous build directory exists.")
+            return general.sysexit("Error, no previous build directory exists.")
 
     reportMemoryUsage(
         "before_running_scons",
@@ -1050,6 +1058,8 @@ def compileTree():
 
     # Run the Scons to build things.
     result, scons_options = runSconsBackend()
+
+    readSconsObjectSizes(source_dir, module_filenames)
 
     return result, scons_options
 
@@ -1213,6 +1223,8 @@ def _main():
         if isShowMemory():
             showMemoryTrace()
 
+        printPluginUsageStats()
+
         sys.exit(0)
 
     executePostProcessing(scons_options["result_exe"])
@@ -1330,6 +1342,7 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
         createDmgFile(general)
 
     writeCompilationReports(aborted=False)
+    printPluginUsageStats()
 
     run_filename = OutputDirectories.getResultRunFilename(onefile=isOnefileMode())
 
