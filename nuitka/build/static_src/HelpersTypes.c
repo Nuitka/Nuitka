@@ -216,7 +216,7 @@ static PyTypeObject *getTypeAliasType(void) {
     return type_alias_type;
 }
 
-PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value, PyObject *module_name) {
+PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value, PyObject *module_name) {
     // TODO: For Python 3.13 we can use the intrinsic.
 
     typealiasobject *ta = Nuitka_GC_New(getTypeAliasType());
@@ -225,8 +225,8 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value
     // only code, so we can use it here.
     ta->name = Py_NewRef(name);
     ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
-    ta->compute_value = NULL;
-    ta->value = Py_XNewRef(value);
+    ta->compute_value = Py_NewRef(compute_value);
+    ta->value = NULL;
     ta->module = Py_NewRef(module_name);
 
     Nuitka_GC_Track(ta);
