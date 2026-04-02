@@ -113,6 +113,41 @@ def _reduce_compiled_method(m):
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
 if str is bytes:
     ForkingPickler.register(type(C.f), _reduce_compiled_method)
+
+try:
+    import multiprocessing.spawn
+except ImportError:
+    pass
+else:
+    if not hasattr(multiprocessing.spawn, "__nuitka_original_fixup_main_from_path"):
+        multiprocessing.spawn.__nuitka_original_fixup_main_from_path = multiprocessing.spawn._fixup_main_from_path
+
+        def _fixup_main_from_path_for_nuitka(main_path):
+            if main_path is not None:
+                try:
+                    import os
+                    main_path_exists = os.path.exists(main_path)
+                except Exception:
+                    main_path_exists = False
+
+                if not main_path_exists:
+                    import sys
+
+                    try:
+                        parents_main = sys.modules["__parents_main__"]
+                    except KeyError:
+                        try:
+                            import __parents_main__ as parents_main
+                        except ImportError:
+                            return
+
+                    sys.modules["__main__"] = parents_main
+                    sys.modules["__mp_main__"] = parents_main
+                    return
+
+            return multiprocessing.spawn.__nuitka_original_fixup_main_from_path(main_path)
+
+        multiprocessing.spawn._fixup_main_from_path = _fixup_main_from_path_for_nuitka
 """,
                 """\
 Monkey patching "multiprocessing" for compiled methods.""",
@@ -145,18 +180,16 @@ def __nuitka_freeze_support():
     import sys
     import builtins
 
-    # Not needed, and can crash from minor "__file__" differences, depending on invocation
-    import multiprocessing.spawn
-    multiprocessing.spawn._fixup_main_from_path = lambda mod_name : None
-
     # This is a variant of freeze_support that will work for multiprocessing and
     # joblib equally well.
     kwds = {}
     args = []
 
-    if hasattr(builtins, "__nuitka_original_args"):
-        sys.argv = builtins.__nuitka_original_args
-        del builtins.__nuitka_original_args
+    if not hasattr(builtins, "__nuitka_original_args"):
+        return
+
+    sys.argv = builtins.__nuitka_original_args
+    del builtins.__nuitka_original_args
 
     for arg in sys.argv[2:]:
         try:
@@ -180,9 +213,11 @@ __nuitka_freeze_support()
             source_code += """
 def __nuitka_freeze_support():
     import __builtin__, sys
-    if hasattr(__builtin__, "__nuitka_original_args"):
-        sys.argv = __builtin__.__nuitka_original_args
-        del __builtin__.__nuitka_original_args
+    if not hasattr(__builtin__, "__nuitka_original_args"):
+        return
+
+    sys.argv = __builtin__.__nuitka_original_args
+    del __builtin__.__nuitka_original_args
 
     sys.modules["__main__"] = sys.modules[__name__]
     __import__("multiprocessing.forking").forking.freeze_support()
