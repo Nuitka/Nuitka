@@ -77,6 +77,8 @@ from .PluginBase import NuitkaPluginBase, control_tags
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
+active_plugins_with_function_body_parsing = []
+active_plugins_with_class_body_parsing = []
 plugin_name2plugin_classes = {}
 plugin_options = OrderedDict()
 plugin_values = {}
@@ -138,6 +140,18 @@ def _addActivePlugin(plugin_class, args, force=False):
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
 
     active_plugins[plugin_name] = plugin_instance
+
+    if (
+        type(plugin_instance).onFunctionBodyParsing
+        is not NuitkaPluginBase.onFunctionBodyParsing
+    ):
+        active_plugins_with_function_body_parsing.append(plugin_instance)
+
+    if (
+        type(plugin_instance).onClassBodyParsing
+        is not NuitkaPluginBase.onClassBodyParsing
+    ):
+        active_plugins_with_class_body_parsing.append(plugin_instance)
 
     is_gui_toolkit_plugin = getattr(plugin_class, "plugin_gui_toolkit", False)
 
@@ -1611,9 +1625,7 @@ through incomplete set import by '%s' plugin encountered."""
 
         function_qualname = provider.getChildQualname(function_name)
 
-        for plugin in getActivePlugins():
-            # TODO: Could record what functions got modified by what plugin
-            # and in what way checking the return value
+        for plugin in active_plugins_with_function_body_parsing:
             plugin.onFunctionBodyParsing(
                 module_name=module_name,
                 function_qualname=function_qualname,
@@ -1625,9 +1637,7 @@ through incomplete set import by '%s' plugin encountered."""
     def onClassBodyParsing(cls, provider, class_name, node):
         module_name = provider.getParentModule().getFullName()
 
-        for plugin in getActivePlugins():
-            # TODO: Could record what classes got modified by what plugin
-            # and in what way checking the return value
+        for plugin in active_plugins_with_class_body_parsing:
             plugin.onClassBodyParsing(
                 module_name=module_name,
                 class_name=class_name,
