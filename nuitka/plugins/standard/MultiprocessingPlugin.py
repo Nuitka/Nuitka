@@ -128,7 +128,13 @@ else:
         def _fixup_main_from_path_for_nuitka(main_path):
             if main_path is not None:
                 try:
-                    main_path_exists = os.path.exists(main_path)
+                    # Compiled children must never execute the source path via
+                    # runpy.run_path(), even if it still exists next to an
+                    # accelerated binary.
+                    if "__compiled__" in globals():
+                        main_path_exists = False
+                    else:
+                        main_path_exists = os.path.exists(main_path)
                 except Exception:
                     main_path_exists = False
 
@@ -179,6 +185,7 @@ Monkey patching "multiprocessing" for compiled methods.""",
 def __nuitka_freeze_support():
     import sys
     import builtins
+    import multiprocessing.spawn
 
     # This is a variant of freeze_support that will work for multiprocessing and
     # joblib equally well.
