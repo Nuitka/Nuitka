@@ -2,9 +2,6 @@
 
 # nuitka-project: --mode=standalone
 
-# nuitka-skip-unless-expression: hasattr(__import__("multiprocessing"), "get_all_start_methods") and "forkserver" in __import__("multiprocessing").get_all_start_methods()
-
-
 from __future__ import print_function
 
 import multiprocessing as mp
