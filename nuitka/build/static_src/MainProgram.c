@@ -507,6 +507,13 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
         if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+            // The multiprocessing resource tracker can launch like this.
+            if (scanFilename(argv[i + 1],
+                             FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1) {
+                break;
+            }
+
             // The joblib loky resource tracker is launched like this.
             if (scanFilename(argv[i + 1],
                              FILENAME_EMPTY_STR
