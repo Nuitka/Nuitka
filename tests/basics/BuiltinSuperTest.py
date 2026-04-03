@@ -139,6 +139,7 @@ if sys.version_info >= (3, 6):
 makeSuperCall(type, None)
 makeSuperCall(type, 1)
 
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

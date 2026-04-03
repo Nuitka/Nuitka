@@ -653,6 +653,52 @@ class ExpressionLocalsDictRef(ExpressionBuiltinLocalsRef):
         return True
 
 
+class StatementLocalsDictOperationSetClassCell(StatementBase):
+    kind = "STATEMENT_LOCALS_DICT_OPERATION_SET_CLASS_CELL"
+
+    __slots__ = ("locals_scope", "class_variable")
+
+    def __init__(self, locals_scope, class_variable, source_ref):
+        StatementBase.__init__(self, source_ref=source_ref)
+
+        self.locals_scope = locals_scope
+        self.class_variable = class_variable
+
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+
+    def computeStatement(self, trace_collection):
+        return self, None, None
+
+    def getDetails(self):
+        return {
+            "locals_scope": self.locals_scope,
+            "class_variable": self.class_variable,
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "locals_scope": self.locals_scope.getCodeName(),
+            "class_variable": self.class_variable.getName(),
+        }
+
+    def getLocalsDictScope(self):
+        return self.locals_scope
+
+    def getClassVariable(self):
+        return self.class_variable
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # Might be a mapping, not a dict, so SetItem could fail.
+        return True
+
+    @staticmethod
+    def getStatementNiceName():
+        return "locals dictionary __classcell__ set statement"
+
+
 class StatementReleaseLocals(StatementBase):
     kind = "STATEMENT_RELEASE_LOCALS"
 

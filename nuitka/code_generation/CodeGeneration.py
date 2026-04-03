@@ -243,6 +243,7 @@ from .ListCodes import (
 )
 from .LocalsDictCodes import (
     generateLocalsDictDelCode,
+    generateLocalsDictSetClassCellCode,
     generateLocalsDictSetCode,
     generateLocalsDictVariableCheckCode,
     generateLocalsDictVariableRefCode,
@@ -1084,6 +1085,7 @@ setStatementDispatchDict(
         "STATEMENT_DICT_OPERATION_SET": generateDictOperationSetCode,
         "STATEMENT_DICT_OPERATION_SET_KEY_VALUE": generateDictOperationSetCodeKeyValue,
         "STATEMENT_LOCALS_DICT_OPERATION_SET": generateLocalsDictSetCode,
+        "STATEMENT_LOCALS_DICT_OPERATION_SET_CLASS_CELL": generateLocalsDictSetClassCellCode,
         "STATEMENT_LOCALS_DICT_OPERATION_DEL": generateLocalsDictDelCode,
         "STATEMENT_LOOP": generateLoopCode,
         "STATEMENT_LOOP_BREAK": generateLoopBreakCode,
