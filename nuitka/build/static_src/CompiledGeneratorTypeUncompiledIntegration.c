@@ -23,6 +23,22 @@ static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
                                                  struct Nuitka_ExceptionPreservationItem *exception_state);
 #endif
 
+#if PYTHON_VERSION >= 0x3d0
+static void Nuitka_PyErr_ChainStackItem(PyThreadState *tstate) {
+    _PyErr_StackItem *exc_info = tstate->exc_info;
+
+    if (exc_info->exc_value == NULL || exc_info->exc_value == Py_None) {
+        return;
+    }
+
+    PyObject *current_exception = tstate->current_exception;
+    tstate->current_exception = NULL;
+
+    PyErr_SetObject((PyObject *)Py_TYPE(current_exception), current_exception);
+    Py_DECREF(current_exception);
+}
+#endif
+
 #if PYTHON_VERSION >= 0x300
 static PyBaseExceptionObject *Nuitka_BaseExceptionSingleArg_new(PyThreadState *tstate, PyTypeObject *type,
                                                                 PyObject *arg) {
@@ -1633,7 +1649,11 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
         return PYGEN_ERROR;
     }
 
+#if PYTHON_VERSION >= 0x3d0
+    assert(gen->gi_frame_state == FRAME_CREATED || FRAME_STATE_SUSPENDED(gen->gi_frame_state));
+#else
     assert(gen->gi_frame_state < FRAME_EXECUTING);
+#endif
 
     // Put arg on the frame's stack
     result = arg ? arg : Py_None;
