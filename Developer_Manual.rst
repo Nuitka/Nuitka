@@ -2396,6 +2396,86 @@ use special references, that access the C++ and don't go via
 This means, that the different handlers and their catching run time
 behavior are all explicit and reduced the branches.
 
+Exception Groups
+----------------
+
+Starting in Python 3.11, exception groups can be caught using
+``except*`` syntax. For example:
+
+.. code:: python
+
+   try:
+      block()
+   except* (A, B) as eg:
+      handlerAorB(eg)
+   except* (B) as eg:
+      handlerB(eg)
+
+To handle this correctly when ``block()`` raises an exception, we need
+to match the raised exception with the specified exception. If a match
+is made, the result will be stored in an ``ExceptionGroup`` object,
+which will be passed as ``eg``. If there were more exceptions that
+weren't caught by the handler, we need to reraise them after executing
+the handler. Subsequent handlers may catch the reraised exception as
+well.
+
+Currently, the behavior looks like this:
+
+.. code:: python
+
+   # In reality, this is a C function called EXCEPTION_GROUP_MATCH, but we
+   # could make it pure-Python someday.
+   def exception_group_match(exc_info, match_type):
+      # We assume that the exception is normalized
+      exc_value = exc_info[1]
+      if isinstance(exc_value, match_type):
+         # If the exception is already an exception group, we directly
+         # return it. Otherwise, we create a new exception group that wraps it.
+         if isinstance(exc_value, BaseExceptionGroup):
+            match = exc_value
+         else:
+            match = ExceptionGroup("", [exc_value])
+
+         return match, None
+
+      if isinstance(exc_value, BaseExceptionGroup):
+         # If the raised exception was an exception group object, we call the
+         # split() method to get the match and remaining exceptions.
+         pair = exc_value.split((match_type,))
+         if type(pair) is not tuple:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a tuple, "
+               f" not {type(pair).__name__}"
+            )
+
+         if len(pair) < 2:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a "
+               f" 2-tuple, got tuple of size {len(pair)}"
+            )
+
+         return pair
+
+      # No match
+      return None, exc_value
+
+.. code:: python
+
+   try:
+       block()
+   except:
+      try:
+         match, rest = exception_group_match(sys.exc_info(), (A, B))
+         if match is not None:
+            handlerAorB(match)
+
+         if rest is not None:
+            raise rest
+      except:
+         match, rest = exception_group_match(sys.exc_info(), B)
+         if match is not None:
+            handlerB()
+
 Statement ``try``/``except`` with ``else``
 ------------------------------------------
 
