@@ -285,9 +285,22 @@ def isWinPython():
     return _is_win_python
 
 
+_is_debian_package_python = None
+
+
 def isDebianPackagePython():
     """Is this Python from a debian package."""
 
+    # singleton, pylint: disable=global-statement
+    global _is_debian_package_python
+
+    if _is_debian_package_python is None:
+        _is_debian_package_python = _isDebianPackagePython()
+
+    return _is_debian_package_python
+
+
+def _isDebianPackagePython():
     # spell-checker: ignore multiarch
 
     if not isLinux():
@@ -295,7 +308,13 @@ def isDebianPackagePython():
 
     if python_version < 0x300:
         return hasattr(sys, "_multiarch")
-    elif python_version < 0x3C0:
+    else:
+        import sysconfig
+
+        # Need to check there for Debian patch.
+        if "deb_system" in getattr(sysconfig, "_INSTALL_SCHEMES", {}):
+            return True
+
         with withNoDeprecationWarning():
             try:
                 from distutils.dir_util import _multiarch
@@ -303,11 +322,6 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
-    else:
-        import sysconfig
-
-        # Need to check there for Debian patch, pylint: disable=protected-access
-        return "deb_system" in sysconfig._INSTALL_SCHEMES
 
 
 def isFedoraPackagePython():
