@@ -1206,6 +1206,7 @@ working. Expect errors.""")
         and not shallMakeModule()
         and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
+        and _couldUseStaticLibPython()[0] is not False
         and not shallUsePythonDebug()
     ):
         options_logger.info(
@@ -1787,6 +1788,28 @@ def _couldUseStaticLibPython():
     # many cases and return driven,
     # pylint: disable=too-many-branches,too-many-return-statements
 
+    if (
+        shallMakeDll()
+        and not isWin32Windows()
+        and getArchitecture() in ("x86_64", "aarch64")
+    ):
+        static_lib_path = getSystemStaticLibPythonPath()
+
+        if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
+            try:
+                import sysconfig
+            except ImportError:
+                pass
+            else:
+                py_core_cflags = sysconfig.get_config_var("PY_CORE_CFLAGS") or ""
+
+                if "-fPIC" not in py_core_cflags and "-fPIE" not in py_core_cflags:
+                    return (
+                        False,
+                        "Not used in dll mode on %s since Python static library lacks PIC."
+                        % getArchitecture(),
+                    )
+
     # MonolithPy is good to to static linking.
     if isMonolithPy():
         return True, "MonolithPy is unexpectedly broken."
@@ -1904,7 +1927,7 @@ def shallUseStaticLibPython():
             static_libpython = getSystemStaticLibPythonPath()
 
             if not static_libpython:
-                options_logger.sysexit("""\
+                return options_logger.sysexit("""\
 Automatic detection of static libpython failed. %s Disable with '--static-libpython=no' if you don't \
 want to install it.""" % reason)
 
@@ -2177,7 +2200,7 @@ def requireNoDebugImmortalAssumptions(logger, reason):
         and python_version >= 0x3C0
         and options.debug_immortal is not False
     ):
-        logger.sysexit(
+        return logger.sysexit(
             "Error, need to disable debug partially with '--no-debug-immortal-assumptions' due to %s."
             % reason,
             reporting=False,
@@ -2345,7 +2368,9 @@ def _checkedIconPaths(icon_paths):
 
     for icon_path in icon_paths:
         if not os.path.exists(icon_path):
-            options_logger.sysexit("Error, icon path '%s' does not exist." % icon_path)
+            return options_logger.sysexit(
+                "Error, icon path '%s' does not exist." % icon_path
+            )
 
         checkIconUsage(logger=options_logger, icon_path=icon_path)
 
@@ -2662,14 +2687,14 @@ def getMacOSAppProtectedResourcesAccesses():
 
     for macos_protected_resource in options.macos_protected_resources:
         if ":" not in macos_protected_resource:
-            options_logger.sysexit("""\
+            return options_logger.sysexit("""\
 Wrong format for '--macos-app-protected-resource' value '%s', it \
 needs to contain separator ':' with a description.""" % macos_protected_resource)
 
         resource_description_name, description = macos_protected_resource.split(":", 1)
 
         if resource_description_name not in _macos_protected_resource_entitlements:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 """\
 Wrong key for '--macos-app-protected-resource' value '%s', it \
 needs to be one of the following: %s."""
@@ -2782,7 +2807,9 @@ def _getPythonFlags():
                 elif part in ("-P", "safe_path"):
                     _python_flags.add("safe_path")
                 else:
-                    options_logger.sysexit("Unsupported python flag '%s'." % part)
+                    return options_logger.sysexit(
+                        "Unsupported python flag '%s'." % part
+                    )
 
     return _python_flags
 
@@ -3035,14 +3062,14 @@ def getCompilationReportUserData():
 
     for desc in options.compilation_report_user_data:
         if "=" not in desc:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, user report data must be of key=value form not '%s'." % desc
             )
 
         key, value = desc.split("=", 1)
 
         if key in result and value != result[key]:
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, user report data key '%s' has been given conflicting values '%s' and '%s'."
                 % (
                     key,
@@ -3055,7 +3082,7 @@ def getCompilationReportUserData():
             r"^([_a-z][\w]?|[a-w_yz][\w]{2,}|[_a-z][a-l_n-z\d][\w]+|[_a-z][\w][a-k_m-z\d][\w]*)$",
             key,
         ):
-            options_logger.sysexit(
+            return options_logger.sysexit(
                 "Error, user report data key '%s' is not valid as an XML tag, and therefore cannot be used."
                 % key
             )
@@ -3131,7 +3158,7 @@ def getModuleParameter(module_name, parameter_name):
         try:
             module_option_name, module_option_value = module_option.split("=", 1)
         except ValueError:
-            optimization_logger.sysexit("""\
+            return optimization_logger.sysexit("""\
 Error, must specify module parameter name and value with a separating \
 '=' and not '%s".""" % module_option)
 
