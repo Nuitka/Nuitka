@@ -58,6 +58,7 @@ from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsDictRef,
     StatementLocalsDictOperationSet,
+    StatementLocalsDictOperationSetClassCell,
     StatementReleaseLocals,
     StatementSetLocals,
 )
@@ -335,6 +336,15 @@ def buildClassNode3(provider, node, source_ref):
                 source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
                 ),
+                source_ref=source_ref,
+            )
+        )
+
+    if python_version >= 0x360:
+        statements.append(
+            StatementLocalsDictOperationSetClassCell(
+                locals_scope=locals_scope,
+                class_variable=class_variable,
                 source_ref=source_ref,
             )
         )

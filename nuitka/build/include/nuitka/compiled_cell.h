@@ -9,7 +9,9 @@
 
 extern PyTypeObject Nuitka_Cell_Type;
 
-static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
+static inline bool Nuitka_Cell_Check(PyObject *object) {
+    return Py_TYPE(object) == &Nuitka_Cell_Type || PyCell_Check(object);
+}
 
 struct Nuitka_CellObject {
     /* Python object folklore: */

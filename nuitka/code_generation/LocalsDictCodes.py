@@ -137,6 +137,73 @@ def generateLocalsDictSetCode(statement, emit, context):
         )
 
 
+def generateLocalsDictSetClassCellCode(statement, emit, context):
+    from .c_types.CTypePyObjectPointers import CTypeCellObject
+    from .VariableCodes import getLocalVariableDeclaration
+
+    class_variable = statement.getClassVariable()
+
+    variable_declaration = getLocalVariableDeclaration(
+        context=context, variable=class_variable, variable_trace=None
+    )
+
+    # Only emit __classcell__ storage if the variable is actually a cell.
+    # If no method closes over __class__, no cell exists and no __classcell__
+    # is needed.
+    if variable_declaration.getCType() is not CTypeCellObject:
+        return
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+
+    # Make type.__new__() accepts it.
+    emit("Py_SET_TYPE(%s, &PyCell_Type);" % variable_declaration)
+
+    locals_scope = statement.getLocalsDictScope()
+
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+
+    is_dict = locals_scope.hasShapeDictionaryExact()
+
+    if is_dict:
+        res_name = context.getBoolResName()
+
+        emit(
+            "%s = DICT_SET_ITEM(%s, %s, (PyObject *)%s);"
+            % (
+                res_name,
+                locals_declaration,
+                context.getConstantCode("__classcell__"),
+                variable_declaration,
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+    else:
+        res_name = context.getIntResName()
+
+        emit(
+            "%s = PyObject_SetItem(%s, %s, (PyObject *)%s);"
+            % (
+                res_name,
+                locals_declaration,
+                context.getConstantCode("__classcell__"),
+                variable_declaration,
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
+
+
 def generateLocalsDictDelCode(statement, emit, context):
     locals_scope = statement.getLocalsDictScope()
 
