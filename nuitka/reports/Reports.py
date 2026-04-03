@@ -973,11 +973,15 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "included_" + kind,
             name=os.path.basename(standalone_entry_point.dest_path),
             dest_path=standalone_entry_point.dest_path,
-            source_path=_getCompilationReportPath(standalone_entry_point.source_path),
+            source_path=(
+                "{generated}"
+                if standalone_entry_point.reason == "main binary"
+                else _getCompilationReportPath(standalone_entry_point.source_path)
+            ),
             package=standalone_entry_point.package_name or "",
             ignored="yes" if ignored else "no",
             reason=standalone_entry_point.reason,
-            # TODO: No reason yet.
+            tags=",".join(standalone_entry_point.tags),
         )
 
     for standalone_entry_point, (reason, removed_dll_paths) in getRemovedUsedDllsInfo():
