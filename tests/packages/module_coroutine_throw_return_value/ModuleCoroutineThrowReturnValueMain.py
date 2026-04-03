@@ -19,11 +19,20 @@ exec(
     '        return b"payload"\n\n'
     'async def mid():\n'
     '    body = await leaf()\n'
+    '    return {"body": body}\n\n'
+    'async def leaf_empty():\n'
+    '    try:\n'
+    '        await awaitable()\n'
+    '    except AwaitException:\n'
+    '        return\n\n'
+    'async def mid_empty():\n'
+    '    body = await leaf_empty()\n'
     '    return {"body": body}\n',
     namespace,
 )
 
 mid = namespace["mid"]
+mid_empty = namespace["mid_empty"]
 
 
 def run_until_complete(coro):
@@ -47,7 +56,12 @@ async def top():
     return await mid()
 
 
+async def top_empty():
+    return await mid_empty()
+
+
 print(run_until_complete(top()))
+print(run_until_complete(top_empty()))
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
