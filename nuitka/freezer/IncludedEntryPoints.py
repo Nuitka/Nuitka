@@ -16,6 +16,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.options.Options import (
     getShallNotIncludeDllFilePatterns,
     isShowInclusion,
+    shallMakeDll,
 )
 from nuitka.plugins.Hooks import onDllTags
 from nuitka.Tracing import general, inclusion_logger
@@ -254,13 +255,13 @@ def makeExeEntryPoint(
 def makeMainExecutableEntryPoint(dest_path):
     return _makeDllOrExeEntryPoint(
         logger=general,
-        kind="executable",
+        kind="dll" if shallMakeDll() else "executable",
         source_path=dest_path,
         dest_path=os.path.basename(dest_path),
         module_name=None,
         package_name=None,
         reason="main binary",
-        executable=True,
+        executable=not shallMakeDll(),
         tags=None,
     )
 
@@ -331,9 +332,6 @@ def addIncludedEntryPoint(entry_point):
 
     # Allow configured tags to be applied to it
     entry_point.tags.update(getDllTags(entry_point.dest_path))
-
-    # Allow plugins to tag it
-    onDllTags(entry_point)
 
     for count, standalone_entry_point in enumerate(standalone_entry_points):
         if standalone_entry_point.kind.endswith("_ignored"):
@@ -413,6 +411,11 @@ def addIncludedEntryPoint(entry_point):
         for noinclude_dll_pattern in getShallNotIncludeDllFilePatterns():
             if fnmatch.fnmatch(entry_point.dest_path, noinclude_dll_pattern):
                 entry_point = _makeIgnoredEntryPoint(entry_point)
+                break
+
+    if not entry_point.kind.endswith("_ignored"):
+        # Allow plugins to tag it
+        onDllTags(entry_point)
 
     standalone_entry_points.append(entry_point)
 
@@ -424,6 +427,8 @@ def addIncludedEntryPoints(entry_points):
 
 def addMainEntryPoint(binary_filename):
     entry_point = makeMainExecutableEntryPoint(binary_filename)
+
+    onDllTags(entry_point)
 
     standalone_entry_points.insert(0, entry_point)
 
