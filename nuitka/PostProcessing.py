@@ -38,6 +38,7 @@ from nuitka.OutputDirectories import (
     getResultRunFilename,
     getSourceDirectoryPath,
 )
+from nuitka.plugins.Hooks import onPostProcessingResources
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.States import states
@@ -403,6 +404,8 @@ def executePostProcessingResources(result_filename, manifest, onefile):
             res_name=28,
             logger=postprocessing_logger,
         )
+
+    onPostProcessingResources(result_filename=result_filename, onefile=onefile)
 
 
 def _createModulePyiFile():

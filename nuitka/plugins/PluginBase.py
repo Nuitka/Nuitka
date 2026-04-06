@@ -1163,6 +1163,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onPostProcessingResources(self, result_filename, onefile):
+        """Called during post-processing to embed Windows resources or similar attachments.
+
+        Args:
+            result_filename: the created binary (module, accelerated exe, dist exe, onefile exe)
+            onefile: (bool) whether it is the onefile bootstrap
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onFinalResult(self, filename):
         """Called after successfully finishing a compilation.
 

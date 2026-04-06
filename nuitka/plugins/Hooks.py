@@ -67,6 +67,13 @@ def onStandaloneDistributionFinished(dist_dir, standalone_binary):
     )
 
 
+def onPostProcessingResources(result_filename, onefile):
+    """Called when post-processing attached resources to the binary."""
+    return Plugins.onPostProcessingResources(
+        result_filename=result_filename, onefile=onefile
+    )
+
+
 def onFinalResult(filename):
     """Called after the final result has been created."""
     return Plugins.onFinalResult(filename=filename)

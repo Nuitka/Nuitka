@@ -721,6 +721,13 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def onPostProcessingResources(result_filename, onefile):
+        """Let plugins act on resource addition for the executable."""
+        for plugin in getActivePlugins():
+            plugin.onPostProcessingResources(result_filename, onefile)
+
+    @staticmethod
+    @counted_plugin_method
     def onFinalResult(filename):
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():
