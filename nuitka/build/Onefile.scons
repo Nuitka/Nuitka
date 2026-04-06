@@ -31,7 +31,7 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
 
 from .SconsCompilerSettings import (
-    addConstantBlobFile,
+    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
     reportCCompiler,
     setupCCompiler,
@@ -159,14 +159,9 @@ env.Append(
     ],
 )
 
-addConstantBlobFile(
+addConstantBlobFiles(
     env=env,
-    blob_filename=os.path.join(env.source_dir, "__payload.bin"),
-    resource_desc=(
-        getArgumentRequired("backend_resource_mode"),
-        "inherited from backend",
-    ),
-    export_size=True,
+    source_dir=env.source_dir,
 )
 
 # Indicate, that the common code is used to build an executable.

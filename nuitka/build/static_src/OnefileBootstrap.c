@@ -118,6 +118,8 @@
 #include "extra_onefile_includes.h"
 #endif
 
+#include "nuitka/blobs.h"
+
 #include "HelpersChecksumTools.c"
 #include "HelpersEnvironmentVariablesSystem.c"
 #include "HelpersFilesystemPaths.c"
@@ -184,84 +186,25 @@ static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
 
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
-    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-// Symbol as provided by the linker, code, or incbin, different for C++ and C11
-// mode.
-#if defined(_NUITKA_CONSTANTS_FROM_LINKER)
-#ifdef __cplusplus
-extern "C" const unsigned char payload_bin_data[];
-extern "C" const unsigned char payload_bin_size_value[];
-#else
-extern const unsigned char payload_bin_data[];
-extern const unsigned char payload_bin_size_value[];
-#endif
-#define GET_PAYLOAD_BIN_SIZE() ((unsigned long long)&payload_bin_size_value)
-#elif defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-#ifdef __cplusplus
-extern "C" unsigned const char *getPayloadBlobData(void);
-extern "C" unsigned long long getPayloadBlobSize(void);
-#else
-extern unsigned const char *getPayloadBlobData(void);
-extern unsigned long long getPayloadBlobSize(void);
-#endif
-#define GET_PAYLOAD_BIN_SIZE() getPayloadBlobSize()
-#else
-#ifdef __cplusplus
-extern "C" const unsigned char payload_bin_data[];
-extern "C" const unsigned long long payload_bin_size_value;
-#else
-extern const unsigned char payload_bin_data[];
-extern const unsigned long long payload_bin_size_value;
-#endif
-#define GET_PAYLOAD_BIN_SIZE() payload_bin_size_value
-#endif
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
+    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_RESOURCE) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+
+NUITKA_DECLARE_CONSTANT_BLOB_SIZED(payload_bin, PayloadBlob, const, 27)
 
 // We have no sizing here, but it's first reading length anyway.
 static void initPayloadData2(void) {
-#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
     payload_data = getPayloadBlobData();
-#else
-    payload_data = payload_bin_data;
-#endif
     payload_current = payload_data;
-    payload_size = GET_PAYLOAD_BIN_SIZE();
+    payload_size = getPayloadBlobSize();
 }
 
 static void closePayloadData(void) {}
 
-#elif defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
-#include <mach-o/getsect.h>
-#include <mach-o/ldsyms.h>
+#elif _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 0
+// Note: External payload is used.
+static void initPayloadData2(void) {}
 
-#ifdef __LP64__
-#define mach_header_arch mach_header_64
-#else
-#define mach_header_arch mach_header
-#endif
-
-static void initPayloadData2(void) {
-    const struct mach_header_arch *header = &_mh_execute_header;
-
-    unsigned long section_size;
-
-    payload_data = getsectiondata(header, "payload", "payload", &section_size);
-    payload_current = payload_data;
-    payload_size = section_size;
-}
-
-static void closePayloadData(void) {}
-
-#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-static void initPayloadData2(void) {
-    HRSRC windows_resource = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
-
-    payload_data = (const unsigned char *)LockResource(LoadResource(NULL, windows_resource));
-    payload_current = payload_data;
-
-    payload_size = SizeofResource(NULL, windows_resource);
-}
-
-// Note: it appears unlocking the resource is not actually foreseen.
 static void closePayloadData(void) {}
 
 #else
@@ -979,7 +922,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         return EXIT_FAILURE;
     }
 
-    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **);
+    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
 
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(hGetProcIDDLL, "run_code");
 
@@ -989,9 +932,9 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         return EXIT_FAILURE;
     }
 
-    return (*nuitka_dll_function)(argc, argv);
+    return (*nuitka_dll_function)(argc, argv, dll_filename);
 #else
-    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **);
+    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **, filename_char_t const *);
 
     void *handle = dlopen(dll_filename, RTLD_LOCAL | RTLD_NOW);
 
@@ -1009,7 +952,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)dlsym(handle, "run_code");
     assert(nuitka_dll_function);
 
-    return (*nuitka_dll_function)(argc, argv);
+    return (*nuitka_dll_function)(argc, argv, dll_filename);
 #endif
 }
 #endif
@@ -1151,10 +1094,26 @@ int main(int argc, char **argv) {
     }
 #endif
 
+#if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
     initPayloadData();
+#endif
 
-    static filename_char_t first_filename[1024] = {0};
+    static filename_char_t first_filename[4096] = {0};
+
+#ifdef _NUITKA_ONEFILE_MAIN_FILENAME
+    appendStringSafeFilename(first_filename, payload_path, sizeof(first_filename) / sizeof(filename_char_t));
+    appendCharSafeFilename(first_filename, FILENAME_SEP_CHAR, sizeof(first_filename) / sizeof(filename_char_t));
+    appendStringSafeFilename(first_filename, _NUITKA_ONEFILE_MAIN_FILENAME,
+                             sizeof(first_filename) / sizeof(filename_char_t));
+
+    // Run the Python code DLL if we are the child process, no unpacking needed
+#if _NUITKA_ONEFILE_DLL_MODE
+    if (process_role != NULL) {
+        return runPythonCodeDLL(first_filename, argc, argv);
+    }
+#endif
+#endif
 
     if (unlikely(bool_res == false)) {
         fatalErrorSpec(pattern);
@@ -1181,6 +1140,7 @@ int main(int argc, char **argv) {
     checkAutoUpdates();
 #endif
 
+#if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
     NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
 
     char header[3];
@@ -1353,6 +1313,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Finishing decompression, cleanup payload.");
 
     closePayloadData();
+#endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL
     exe_file_updatable = true;

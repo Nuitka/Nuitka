@@ -479,6 +479,14 @@ def getStandaloneEntryPoints():
     return tuple(standalone_entry_points)
 
 
+def getStandaloneMainEntryPoint():
+    for standalone_entry_point in standalone_entry_points:
+        if standalone_entry_point.reason == "main binary":
+            return standalone_entry_point
+
+    return None
+
+
 def getStandaloneEntryPointForSourceFile(source_path, package_name):
     for standalone_entry_point in standalone_entry_points:
         if standalone_entry_point.package_name == package_name and areSamePaths(

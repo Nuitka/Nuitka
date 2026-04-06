@@ -72,7 +72,8 @@
 // Get path of the running binary.
 extern filename_char_t const *getBinaryPath(void);
 
-// Get the DLL directory as wide characters.
+// Get the DLL directory, set the DLL filename if necessary..
+extern void setDllFilename(filename_char_t const *filename);
 extern filename_char_t const *getDllDirectory(void);
 
 extern FILE_HANDLE openFileForReading(filename_char_t const *filename);

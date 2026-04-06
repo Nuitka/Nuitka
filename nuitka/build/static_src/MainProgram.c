@@ -1148,9 +1148,11 @@ static void Nuitka_Py_Initialize(void) {
     config.safe_path = 1;
 #endif
 
-    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling Py_InitializeFromConfig.");
+    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling 'Py_InitializeFromConfig'.");
 
     status = Py_InitializeFromConfig(&config);
+    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): 'Py_InitializeFromConfig' returned.");
+
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
     }
@@ -2134,7 +2136,11 @@ int main(int argc, char **argv) {
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) {
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv, filename_char_t const *dll_filename) {
+    if (dll_filename != NULL) {
+        setDllFilename(dll_filename);
+    }
+
     // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }

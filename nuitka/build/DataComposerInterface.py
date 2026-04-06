@@ -16,6 +16,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileSize,
     getNormalizedPathJoin,
+    makeContainingPath,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 
@@ -95,7 +96,9 @@ def _runDataComposer(source_dir):
 
 
 def getConstantBlobFilename(source_dir):
-    return getNormalizedPathJoin(source_dir, "__constant.bin")
+    result = getNormalizedPathJoin(source_dir, "blobs", "__constant.bin")
+    makeContainingPath(result)
+    return result
 
 
 def deriveModuleConstantsBlobName(filename):

@@ -26,39 +26,20 @@
 #endif
 
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
-#define CONST_CONSTANT
+#define CONSTANT_BIN_CONSTANT
 #else
-#define CONST_CONSTANT const
+#define CONSTANT_BIN_CONSTANT const
 #endif
 
-#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ)
-// Symbol as provided by the linker, different for C++ and C11 mode.
-#ifdef __cplusplus
-extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
-#elif defined(_MSC_VER)
-extern CONST_CONSTANT unsigned char constant_bin_data[];
-#else
-extern CONST_CONSTANT unsigned char constant_bin_data[];
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
+    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_RESOURCE) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+NUITKA_DECLARE_CONSTANT_BLOB(constant_bin, ConstantBlob, CONSTANT_BIN_CONSTANT, 3);
 #endif
 
-unsigned char const *constant_bin = constant_bin_data;
-
-#elif defined(_NUITKA_CONSTANTS_FROM_CODE)
-#ifdef __cplusplus
-extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
-#else
-extern CONST_CONSTANT unsigned char constant_bin_data[];
-#endif
-
-unsigned char const *constant_bin = constant_bin_data;
-#else
 // Symbol to be assigned locally.
 unsigned char const *constant_bin = NULL;
-#endif
-
-#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
-extern unsigned const char *getConstantBlobData(void);
-#endif
 
 #if PYTHON_VERSION < 0x300
 static PyObject *int_cache = NULL;
@@ -1356,59 +1337,6 @@ static void unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsign
     _unpackBlobConstants(tstate, output, data, count);
 }
 
-#if _NUITKA_CONSTANTS_FROM_MACOS_SECTION
-
-#include <mach-o/getsect.h>
-#include <mach-o/ldsyms.h>
-
-#if !_NUITKA_EXE_MODE
-static int findMacOSDllImageId(void) {
-    Dl_info where;
-    int res = dladdr((void *)findMacOSDllImageId, &where);
-    assert(res != 0);
-
-    char const *dll_filename = where.dli_fname;
-
-    unsigned long image_count = _dyld_image_count();
-
-    for (int i = 0; i < image_count; i++) {
-        // Ignore entries without a header.
-        struct mach_header const *header = _dyld_get_image_header(i);
-        if (header == NULL) {
-            continue;
-        }
-
-        if (strcmp(dll_filename, _dyld_get_image_name(i)) == 0) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-#endif
-
-#ifdef __LP64__
-#define mach_header_arch mach_header_64
-#else
-#define mach_header_arch mach_header
-#endif
-
-unsigned char *findMacOSBinarySection(void) {
-#if _NUITKA_EXE_MODE
-    const struct mach_header_arch *header = &_mh_execute_header;
-#else
-    int image_id = findMacOSDllImageId();
-    assert(image_id != -1);
-
-    const struct mach_header_arch *header = (const struct mach_header_arch *)_dyld_get_image_header(image_id);
-#endif
-
-    unsigned long size;
-    return getsectiondata(header, "constant", "constant", &size);
-}
-
-#endif
-
 void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *name) {
     static bool init_done = false;
 
@@ -1419,24 +1347,11 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
         printf("loadConstantsBlob '%s' one time init\n", name);
 #endif
 
-#if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
+#if defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_LINKER) ||                                \
+    defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                                \
+    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_RESOURCE) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
         constant_bin = getConstantBlobData();
-#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-#if _NUITKA_EXE_MODE
-        // Using NULL as this indicates running program.
-        HMODULE handle = NULL;
-#else
-        HMODULE handle = getDllModuleHandle();
-#endif
-
-        constant_bin = (const unsigned char *)LockResource(
-            LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
-
-        assert(constant_bin);
-#elif _NUITKA_CONSTANTS_FROM_MACOS_SECTION
-        constant_bin = findMacOSBinarySection();
-
-        assert(constant_bin);
 #endif
         NUITKA_PRINT_TIMING("loadConstantsBlob(): Found blob, decoding now.");
         DECODE(constant_bin);

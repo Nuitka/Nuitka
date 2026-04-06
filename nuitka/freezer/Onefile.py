@@ -48,9 +48,11 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
     getFileContents,
+    makeContainingPath,
     removeDirectory,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.Json import writeJsonToFilename
 from nuitka.utils.SharedLibraries import cleanupHeaderForAndroid
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Utils import (
@@ -62,6 +64,11 @@ from nuitka.utils.Utils import (
 from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
+from .IncludedDataFiles import getIncludedDataFiles
+from .IncludedEntryPoints import (
+    getStandaloneEntryPoints,
+    getStandaloneMainEntryPoint,
+)
 
 
 def packDistFolderToOnefile(dist_dir):
@@ -102,6 +109,14 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
+    env_values["_NUITKA_ONEFILE_HAS_PAYLOAD_BOOL"] = "1" if hasOnefilePayload() else "0"
+
+    main_filename_in_payload = hasOnefilePayloadMainEntry()
+
+    if not main_filename_in_payload:
+        env_values["_NUITKA_ONEFILE_MAIN_FILENAME"] = (
+            getStandaloneMainEntryPoint().dest_path
+        )
 
     # TODO: The None check can go away once all platforms are supported.
     if backend_resource_mode is not None:
@@ -122,6 +137,15 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
 
 
 _compressor_python = None
+
+
+def hasOnefilePayload():
+    return True
+
+
+def hasOnefilePayloadMainEntry():
+    # Folder mode inherently separates the main entry point from any potential payload
+    return "copy" in getStandaloneMainEntryPoint().tags
 
 
 def getCompressorPython():
@@ -152,7 +176,7 @@ among other things depends on it.""")
 
 
 def runOnefileCompressor(
-    compressor_python, dist_dir, onefile_output_filename, start_binary
+    compressor_python, dist_dir, onefile_output_filename, start_binary, expected_files
 ):
     file_checksums = not isOnefileTempDirMode()
     win_path_sep = isWin32OrPosixWindows()
@@ -168,6 +192,7 @@ def runOnefileCompressor(
             dist_dir=dist_dir,
             onefile_output_filename=onefile_output_filename,
             start_binary=start_binary,
+            include_start_binary=hasOnefilePayloadMainEntry(),
             expect_compression=compressor_python is not None,
             as_archive=shallOnefileAsArchive(),
             use_compression_cache=not shallDisableCompressionCacheUsage(),
@@ -175,8 +200,14 @@ def runOnefileCompressor(
             win_path_sep=win_path_sep,
             low_memory=isLowMemory(),
             job_limit=getJobLimit(),
+            expected_files=expected_files,
         )
     else:
+        expected_files_filename = os.path.join(
+            getSourceDirectoryPath(onefile=True, create=False), "expected_files.json"
+        )
+        writeJsonToFilename(expected_files_filename, expected_files)
+
         onefile_compressor_path = os.path.normpath(
             os.path.join(os.path.dirname(__file__), "..", "tools", "onefile_compressor")
         )
@@ -202,12 +233,14 @@ def runOnefileCompressor(
                     dist_dir,
                     getExternalUsePath(onefile_output_filename, only_dirname=True),
                     start_binary,
+                    str(hasOnefilePayloadMainEntry()),
                     str(file_checksums),
                     str(win_path_sep),
                     str(isLowMemory()),
                     str(shallOnefileAsArchive()),
                     str(not shallDisableCompressionCacheUsage()),
                     str(getJobLimit()),
+                    expected_files_filename,
                 ],
                 shell=False,
             )
@@ -223,7 +256,8 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     cleanSconsDirectory(source_dir)
 
     # Used only in some configurations
-    onefile_payload_filename = os.path.join(source_dir, "__payload.bin")
+    onefile_payload_filename = os.path.join(source_dir, "blobs", "__payload.bin")
+    makeContainingPath(onefile_payload_filename)
 
     # Now need to append to payload it, potentially compressing it.
     compressor_python = getCompressorPython()
@@ -231,16 +265,27 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     backend_source_dir = getSourceDirectoryPath(onefile=False, create=False)
     backend_resource_mode = getSconsReportValue(backend_source_dir, "resource_mode")
 
-    # Decide if we need the payload during build already, or if it should be
-    # attached.
-    payload_used_in_build = backend_resource_mode != "win_resource"
+    # We might not even have a payload due to commercial file embedding.
+    has_payload = hasOnefilePayload()
 
-    if payload_used_in_build:
+    if has_payload:
+        expected_files = []
+        for data_file in getIncludedDataFiles():
+            if "copy" in data_file.tags:
+                expected_files.append(data_file.dest_path)
+
+        for entry_point in getStandaloneEntryPoints():
+            if "copy" in entry_point.tags:
+                expected_files.append(entry_point.dest_path)
+
+        expected_files = tuple(expected_files)
+
         runOnefileCompressor(
             compressor_python=compressor_python,
             dist_dir=dist_dir,
             onefile_output_filename=onefile_payload_filename,
             start_binary=start_binary,
+            expected_files=expected_files,
         )
 
     # Create the bootstrap binary for unpacking.
@@ -264,29 +309,21 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
         addMacOSCodeSignature(
             filenames=[onefile_output_filename], entitlements_filename=None
         )
-        assert payload_used_in_build
 
-    if not payload_used_in_build:
-        runOnefileCompressor(
-            compressor_python=compressor_python,
-            dist_dir=dist_dir,
-            onefile_output_filename=(
-                onefile_payload_filename
-                if isWin32Windows()
-                else onefile_output_filename
-            ),
-            start_binary=start_binary,
+    if (
+        has_payload
+        and getSconsReportValue(source_dir, "resource_mode") == "win_resource"
+    ):
+        assert isWin32Windows()
+
+        addResourceToFile(
+            target_filename=onefile_output_filename,
+            data=getFileContents(onefile_payload_filename, mode="rb"),
+            resource_kind=RT_RCDATA,
+            lang_id=0,
+            res_name=27,
+            logger=postprocessing_logger,
         )
-
-        if isWin32Windows():
-            addResourceToFile(
-                target_filename=onefile_output_filename,
-                data=getFileContents(onefile_payload_filename, mode="rb"),
-                resource_kind=RT_RCDATA,
-                lang_id=0,
-                res_name=27,
-                logger=postprocessing_logger,
-            )
 
     if isRemoveBuildDir():
         onefile_logger.info("Removing onefile build directory '%s'." % source_dir)

@@ -16,6 +16,15 @@
 
 extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
 
+// We define a macro that declares the external symbols and provides accessor functions.
+// For INCBIN/C23, the generating C file already defines these functions, so we just declare them.
+// For Linker/Code/CoffObj, we provide inline functions that map to the C arrays.
+#if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
+#define CONST_CONSTANT
+#endif
+
+#include "nuitka/blobs.h"
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

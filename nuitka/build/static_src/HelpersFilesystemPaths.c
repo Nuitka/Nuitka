@@ -42,6 +42,13 @@
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+static filename_char_t const *_pseudo_dll_filename = NULL;
+
+void setDllFilename(filename_char_t const *filename) { _pseudo_dll_filename = filename; }
+
+#endif
+
 void normalizePath(filename_char_t *filename) {
     filename_char_t *w = filename;
 
@@ -690,13 +697,13 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
         HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
                                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-        if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
-            abort();
-        }
-
         // In case, the Windows API for symlinks does not yet exist, just used
         // the unresolved one.
         copyStringSafeW(resolved_filename, filename, resolved_filename_size);
+
+        if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
+            return;
+        }
 
         // Resolve the path, get the result with a drive letter
         DWORD len = Nuitka_GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
@@ -766,8 +773,15 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
     assert(sizeof(binary_filename) == sizeof(binary_filename_resolved));
 
     if (buffer[0] == 0) {
-        DWORD res = GetModuleFileNameW(NULL, buffer, sizeof(binary_filename) / sizeof(wchar_t));
-        assert(res != 0);
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+        if (_pseudo_dll_filename != NULL) {
+            copyStringSafeW(buffer, _pseudo_dll_filename, sizeof(binary_filename) / sizeof(wchar_t));
+        } else
+#endif
+        {
+            DWORD res = GetModuleFileNameW(NULL, buffer, sizeof(binary_filename) / sizeof(wchar_t));
+            assert(res != 0);
+        }
 
         // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
@@ -1454,6 +1468,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 #endif
 
 #if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+
 #if defined(_WIN32)
 // Small helper function to get current DLL handle, spell-checker: ignore lpcstr
 static HMODULE getDllModuleHandle(void) {
@@ -1476,6 +1491,10 @@ static HMODULE getDllModuleHandle(void) {
 #endif
 
 static filename_char_t const *getDllFilename(void) {
+    if (_pseudo_dll_filename != NULL) {
+        return _pseudo_dll_filename;
+    }
+
 #if defined(_WIN32)
     static WCHAR dll_filename[MAXPATHLEN + 1] = {0};
 

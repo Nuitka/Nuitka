@@ -20,6 +20,7 @@ from nuitka.Tracing import onefile_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import areSamePaths, getFileList, getFileSize
 from nuitka.utils.Hashing import Hash, HashCRC32
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     decoratorRetries,
     isWin32OrPosixWindows,
@@ -230,24 +231,60 @@ def _getCacheFilename(binary_filename, low_memory):
     return os.path.join(cache_dir, hash_value.asHexDigest())
 
 
-def _getInputFileList(dist_dir, start_binary):
+def _getInputFileList(dist_dir, start_binary, include_start_binary, expected_files):
     file_list = getFileList(dist_dir, normalize=False)
     file_list_size = len(file_list)
     file_list = [
         filename for filename in file_list if not areSamePaths(filename, start_binary)
     ]
-    file_list.insert(0, start_binary)
+
+    if expected_files is not None:
+        expected_files_set = set(
+            os.path.normcase(os.path.normpath(f)) for f in expected_files
+        )
+
+        start_binary_relative_norm = os.path.normcase(
+            os.path.normpath(os.path.relpath(start_binary, dist_dir))
+        )
+        if start_binary_relative_norm in expected_files_set:
+            expected_files_set.remove(start_binary_relative_norm)
+
+        for filename in file_list:
+            filename_relative = os.path.relpath(filename, dist_dir)
+            filename_relative_norm = os.path.normcase(
+                os.path.normpath(filename_relative)
+            )
+
+            if filename_relative_norm not in expected_files_set:
+                onefile_logger.warning(
+                    """\
+Distribution folder contains unexpected file '%s', this file will be ignored in future release."""
+                    % filename_relative
+                )
+            else:
+                expected_files_set.remove(filename_relative_norm)
+
+        for missing_file in expected_files_set:
+            onefile_logger.warning(
+                """\
+Distribution folder is missing expected file '%s'. This might cause issues."""
+                % missing_file
+            )
+
+    if include_start_binary:
+        file_list.insert(0, start_binary)
 
     # If this fails, above code failed to find the start binary.
-    assert file_list_size == len(file_list)
+    assert file_list_size == len(file_list) + (0 if include_start_binary else 1)
 
     return tuple(file_list)
 
 
-def attachOnefilePayload(
+def attachOnefilePayload(  # pylint: disable=too-many-arguments
     dist_dir,
     onefile_output_filename,
     start_binary,
+    include_start_binary,
     expect_compression,
     as_archive,
     use_compression_cache,
@@ -255,6 +292,7 @@ def attachOnefilePayload(
     win_path_sep,
     low_memory,
     job_limit,
+    expected_files,
 ):
     compression_indicator, compressor = getCompressorFunction(
         expect_compression=expect_compression,
@@ -276,7 +314,12 @@ def attachOnefilePayload(
             output_file.write(b"KA" + compression_indicator)
 
             # Move the binary to start immediately to the start position
-            file_list = _getInputFileList(dist_dir=dist_dir, start_binary=start_binary)
+            file_list = _getInputFileList(
+                dist_dir=dist_dir,
+                start_binary=start_binary,
+                include_start_binary=include_start_binary,
+                expected_files=expected_files,
+            )
 
             if isWin32Windows():
                 filename_encoding = "utf-16le"
@@ -370,12 +413,16 @@ def main():
     dist_dir = sys.argv[1]
     onefile_output_filename = sys.argv[2]
     start_binary = os.path.normpath(sys.argv[3])  # Might switch from MSYS2 to CPython
-    file_checksums = sys.argv[4] == "True"
-    win_path_sep = sys.argv[5] == "True"
-    low_memory = sys.argv[6] == "True"
-    as_archive = sys.argv[7] == "True"
-    use_compression_cache = sys.argv[8] == "True"
-    job_limit = int(sys.argv[9])
+    include_start_binary = sys.argv[4] == "True"
+    file_checksums = sys.argv[5] == "True"
+    win_path_sep = sys.argv[6] == "True"
+    low_memory = sys.argv[7] == "True"
+    as_archive = sys.argv[8] == "True"
+    use_compression_cache = sys.argv[9] == "True"
+    job_limit = int(sys.argv[10])
+    expected_files_filename = sys.argv[11]
+
+    expected_files = tuple(loadJsonFromFilename(expected_files_filename))
 
     enableProgressBar(os.getenv("NUITKA_PROGRESS_BAR", "none"))
 
@@ -383,6 +430,7 @@ def main():
         dist_dir=dist_dir,
         onefile_output_filename=onefile_output_filename,
         start_binary=start_binary,
+        include_start_binary=include_start_binary,
         # We wouldn't be here, if that was not the case.
         expect_compression=True,
         as_archive=as_archive,
@@ -391,6 +439,7 @@ def main():
         win_path_sep=win_path_sep,
         low_memory=low_memory,
         job_limit=job_limit,
+        expected_files=expected_files,
     )
 
     sys.exit(0)

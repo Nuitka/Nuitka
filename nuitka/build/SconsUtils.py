@@ -995,9 +995,13 @@ def createDefinitionsFile(source_dir, filename, definitions):
                 if type(value) is bool:
                     value = int(value)
                 f.write("#define %s %s\n" % (key, value))
-            elif type(value) in (str, unicode) and key.endswith("_WIDE_STRING"):
+            elif key.endswith("_WIDE_STRING") or (
+                key.endswith("_FILENAME") and isWin32Windows()
+            ):
+                assert type(value) in (str, unicode), value
                 f.write("#define %s L%s\n" % (key, makeCLiteral(value)))
             else:
+                assert type(value) in (str, unicode), value
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
 

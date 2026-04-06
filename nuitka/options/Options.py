@@ -147,7 +147,7 @@ very well known environment: anchoring it with e.g. '{TEMP}', \
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
-        ("{TEMP}", "{HOME}", "{CACHE_DIR}", "{PROGRAM_DIR}")
+        ("{TEMP}", "{HOME}", "{CACHE_DIR}")
     ):
         options_logger.warning("""\
 Using a path relative to the onefile executable should be avoided \

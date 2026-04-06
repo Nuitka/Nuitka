@@ -158,10 +158,17 @@ void checkStringNumber(char const *value) {
 
 void printOSErrorMessage(char const *message, error_code_t error_code) {
 #if defined(_WIN32)
-    LPCTSTR err_buffer;
+    LPTSTR err_buffer;
 
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                  error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&err_buffer, 0, NULL);
+    DWORD res =
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                      error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&err_buffer, 0, NULL);
+    assert(res != 0);
+
+    while (res > 0 && (err_buffer[res - 1] == '\r' || err_buffer[res - 1] == '\n')) {
+        res -= 1;
+        err_buffer[res] = 0;
+    }
 
     fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %s)\n", message, error_code, err_buffer);
 #else

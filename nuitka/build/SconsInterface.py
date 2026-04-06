@@ -586,6 +586,12 @@ def cleanSconsDirectory(source_dir):
             for path, _filename in listDir(plugins_dir):
                 check(path)
 
+        blobs_dir = getNormalizedPathJoin(source_dir, "blobs")
+
+        if os.path.exists(blobs_dir):
+            for path, _filename in listDir(blobs_dir):
+                check(path)
+
 
 def getCommonSconsOptions():
     # Scons gets transported many details, that we express as variables, and

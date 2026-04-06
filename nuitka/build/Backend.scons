@@ -42,11 +42,9 @@ from nuitka.utils.Utils import (
     isMacOS,
 )
 
-from .DataComposerInterface import getConstantBlobFilename
 from .SconsCompilerSettings import (
-    addConstantBlobFile,
+    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
-    decideConstantsBlobResourceMode,
     enableWindowsStackSize,
     reportCCompiler,
     setupCCompiler,
@@ -397,11 +395,9 @@ if (
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-addConstantBlobFile(
+addConstantBlobFiles(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(env=env),
-    blob_filename=getConstantBlobFilename(env.source_dir),
-    export_size=False,
+    source_dir=env.source_dir,
 )
 
 

@@ -17,6 +17,7 @@ from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     getReportPath,
+    listDir,
     openTextFile,
     putTextFileContents,
 )
@@ -618,7 +619,18 @@ as described in the documentation.""",
     return env
 
 
-def decideConstantsBlobResourceMode(env):
+_supported_resource_modes = (
+    "c23_embed",
+    "linker",
+    "incbin",
+    "coff_obj",
+    "win_resource",
+    "mac_section",
+    "code",
+)
+
+
+def _decideBlobResourceMode(env):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
     # pylint: disable=too-many-branches
@@ -641,7 +653,7 @@ def decideConstantsBlobResourceMode(env):
             reason = "default for MinGW"
         else:
             resource_mode = "win_resource"
-            reason = "default for Windows"
+            reason = "default for Windows on old MSVC or ClangCL"
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
@@ -671,15 +683,36 @@ def decideConstantsBlobResourceMode(env):
         resource_mode = "incbin"
         reason = "default"
 
-    assert resource_mode in (
-        "incbin",
-        "linker",
-        "win_resource",
-        "mac_section",
-        "code",
-        "c23_embed",
-        "coff_obj",
-    ), resource_mode
+    if resource_mode not in _supported_resource_modes:
+        return scons_logger.sysexit(
+            "Unknown resource mode '%s', supported modes are: %s"
+            % (resource_mode, _supported_resource_modes),
+            env=env,
+        )
+
+    if resource_mode in ("linker", "incbin") and env.msvc_mode:
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
+            env=env,
+        )
+
+    if resource_mode == "mac_section" and not isMacOS():
+        return scons_logger.sysexit(
+            "Resource mode 'mac_section' is not supported on non-macOS platforms.",
+            env=env,
+        )
+
+    if resource_mode == "win_resource" and not isWin32Windows():
+        return scons_logger.sysexit(
+            "Resource mode 'win_resource' is not supported on non-Windows platforms.",
+            env=env,
+        )
+
+    if resource_mode == "coff_obj" and not isWin32Windows():
+        return scons_logger.sysexit(
+            "Resource mode 'coff_obj' is not supported on non-Windows platforms.",
+            env=env,
+        )
 
     env.resource_mode = resource_mode
     return resource_mode, reason
@@ -752,14 +785,17 @@ unsigned long long get%(camel_name)sSize(void) {
 #define INCBIN_LOCAL
 #ifdef _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define INCBIN_OUTPUT_SECTION ".data"
+#define CONST_CONSTANT
+#else
+#define CONST_CONSTANT const
 #endif
 
 #include "nuitka/incbin.h"
 
 INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
-unsigned char const *get%(camel_name)sData(void) {
-    return %(symbol_name)s_data;
+unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
+    return (unsigned CONST_CONSTANT char *)%(symbol_name)s_data;
 }
 %(size_export_code)s
 """
@@ -819,7 +855,7 @@ def _addConstantBlobFileLinker(env, blob_filename, export_size):
         )
 
 
-def _addConstantBlobFileCode(env, blob_filename, resource_mode, export_size):
+def _addConstantBlobFileCode(env, blob_filename, export_size):
     # Indicate "code" resource mode.
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
@@ -852,7 +888,7 @@ unsigned char %s_data[] =
 {
 """ % _getSymbolName(blob_filename))
 
-            if resource_mode == "code":
+            if env.resource_mode == "code":
                 with open(blob_filename, "rb") as f:
                     content = f.read()
                 for count, stream_byte in enumerate(content):
@@ -898,7 +934,7 @@ def _addConstantBlobFileMacSection(env, blob_filename):
 
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
 
-    section_name = os.path.basename(blob_filename)[:-4].lstrip("_")
+    section_name = _getSymbolName(blob_filename)
 
     # spell-checker: ignore linkflags, sectcreate
     env.Append(
@@ -912,32 +948,51 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     )
 
 
-def addConstantBlobFile(env, blob_filename, resource_desc, export_size):
-    resource_mode, reason = resource_desc
-    env.resource_mode = resource_mode
-
+def addConstantBlobFile(env, blob_filename, export_size):
     assert blob_filename.endswith(".bin"), blob_filename
 
-    scons_details_logger.info(
-        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
-    )
+    if env.resource_mode == "absent":
+        env.resource_mode, reason = _decideBlobResourceMode(env)
 
-    if resource_mode == "coff_obj":
+        scons_details_logger.info(
+            "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
+        )
+
+    if env.resource_mode == "coff_obj":
         _addConstantBlobFileCoffObj(env, blob_filename, export_size)
-    elif resource_mode == "win_resource":
+    elif env.resource_mode == "win_resource":
         _addConstantBlobFileWinResource(env)
-    elif resource_mode == "mac_section":
+    elif env.resource_mode == "mac_section":
         _addConstantBlobFileMacSection(env, blob_filename)
-    elif resource_mode == "incbin":
+    elif env.resource_mode == "incbin":
         _addConstantBlobFileIncbin(env, blob_filename, export_size)
-    elif resource_mode == "linker":
+    elif env.resource_mode == "linker":
         _addConstantBlobFileLinker(env, blob_filename, export_size)
-    elif resource_mode in ("code", "c23_embed"):
-        _addConstantBlobFileCode(env, blob_filename, resource_mode, export_size)
+    elif env.resource_mode in ("code", "c23_embed"):
+        _addConstantBlobFileCode(env, blob_filename, export_size)
     else:
         return scons_logger.sysexit(
-            "Error, illegal resource mode '%s' specified" % resource_mode
+            "Error, illegal resource mode '%s' specified" % env.resource_mode,
+            env=env,
         )
+
+
+def addConstantBlobFiles(env, source_dir):
+    env.resource_mode = "absent"
+
+    blobs_dir = os.path.join(source_dir, "blobs")
+    if not os.path.exists(blobs_dir):
+        return
+
+    for filename_full, filename in listDir(blobs_dir):
+        if filename.endswith(".bin"):
+            export_size = filename == "__payload.bin"
+
+            addConstantBlobFile(
+                env=env,
+                blob_filename=filename_full,
+                export_size=export_size,
+            )
 
 
 def _enableMacOSTargetSettings(env):
