@@ -256,10 +256,12 @@ def getCallableNameDescBody():
         no_branch = makeStatementConditional(
             condition=ExpressionBuiltinIsinstance(
                 instance=ExpressionVariableRef(
-                    variable=called_variable, source_ref=internal_source_ref
+                    variable=called_variable,
+                    source_ref=internal_source_ref,
                 ),
                 classes=ExpressionBuiltinAnonymousRef(
-                    builtin_name="classobj", source_ref=internal_source_ref
+                    builtin_name="classobj",  # spell-checker: ignore classobj
+                    source_ref=internal_source_ref,
                 ),
                 source_ref=internal_source_ref,
             ),
@@ -269,6 +271,7 @@ def getCallableNameDescBody():
         )
 
     if python_version < 0x300:
+        # spell-checker: ignore instancemethod
         normal_cases = ("function", "builtin_function_or_method", "instancemethod")
     else:
         normal_cases = ("function", "builtin_function_or_method")
