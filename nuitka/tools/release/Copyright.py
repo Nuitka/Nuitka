@@ -123,6 +123,7 @@ def _formatComments(filename, comments):
             ".yml",
             ".cfg",
             ".toml",
+            ".ps1",
             ".containerfile",
         )
     ) or isPlainFileWithCopyright(filename):
