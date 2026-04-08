@@ -1470,6 +1470,84 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3c0
+    if (PyFloat_CheckExact(result)) {
+        double f_result = PyFloat_AS_DOUBLE(result);
+        double c = 0.0;
+        Py_SETREF(result, NULL);
+
+        for (;;) {
+            bool finished;
+            item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
+
+            if (finished) {
+                if (c && Py_IS_FINITE(c)) {
+                    f_result += c;
+                }
+
+                return PyFloat_FromDouble(f_result);
+            } else if (item == NULL) {
+                return NULL;
+            }
+
+            CHECK_OBJECT(item);
+
+            if (PyFloat_CheckExact(item)) {
+                /* Improved Kahan-Babuska algorithm by Arnold Neumaier. */
+                double x = PyFloat_AS_DOUBLE(item);
+                double t = f_result + x;
+
+                if (fabs(f_result) >= fabs(x)) {
+                    c += (f_result - t) + x;
+                } else {
+                    c += (x - t) + f_result;
+                }
+
+                f_result = t;
+                _Py_DECREF_SPECIALIZED(item, _PyFloat_ExactDealloc);
+
+                continue;
+            }
+
+            if (PyLong_Check(item)) {
+                long value;
+                int overflow;
+
+                value = PyLong_AsLongAndOverflow(item, &overflow);
+
+                if (!overflow) {
+                    f_result += (double)value;
+                    Py_DECREF(item);
+
+                    continue;
+                }
+            }
+
+            if (c && Py_IS_FINITE(c)) {
+                f_result += c;
+            }
+
+            result = PyFloat_FromDouble(f_result);
+
+            if (result == NULL) {
+                Py_DECREF(item);
+                return NULL;
+            }
+
+            PyObject *temp2 = PyNumber_Add(result, item);
+            Py_DECREF(result);
+            Py_DECREF(item);
+            result = temp2;
+
+            if (unlikely(result == NULL)) {
+                return NULL;
+            }
+
+            break;
+        }
+    }
+#endif
+
     for (;;) {
         CHECK_OBJECT(result);
 
