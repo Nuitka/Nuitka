@@ -1970,7 +1970,7 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
             return -1;
         }
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
         Py_INCREF(key);
         Py_INCREF(value);
@@ -2085,7 +2085,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
 
         assert(checkKeywordType(key));
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
 #if PYTHON_VERSION < 0x380
         Py_ssize_t kw_arg_start = 0;
@@ -3062,7 +3062,7 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
             return -1;
         }
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
 #if PYTHON_VERSION < 0x380
         Py_ssize_t kw_arg_start = 0;

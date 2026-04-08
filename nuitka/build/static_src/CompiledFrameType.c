@@ -1016,8 +1016,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
         PyObject *empty_code_module_object = Py_CompileString(
             "def empty(): raise RuntimeError('Compiled function bytecode used')", "<exec>", Py_file_input);
-        NUITKA_MAY_BE_UNUSED PyObject *module =
-            PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
+        PyObject *module = PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
         CHECK_OBJECT(module);
 
         PyObject *empty_function = PyObject_GetAttrString(module, "empty");
