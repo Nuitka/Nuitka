@@ -12,9 +12,9 @@ pylint == 4.0.5 ; python_version >= '3.11'
 astroid == 4.0.4 ; python_version >= '3.11'
 
 # linting rest code snippets
-restructuredtext-lint==1.4.0 ; python_version >= '3.11'
-Pygments == 2.15.1 ; python_version >= '3.11'
-rstcheck == 6.2.0 ; python_version >= '3.11'
+restructuredtext-lint==2.0.2 ; python_version >= '3.11'
+Pygments == 2.20.0 ; python_version >= '3.11'
+rstcheck == 6.2.5 ; python_version >= '3.11'
 
 # Auto-format needs and private pip space requirements
 -r nuitka/utils/requirements-private.txt
