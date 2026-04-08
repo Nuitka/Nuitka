@@ -1646,6 +1646,12 @@
         'install_flet_package': 'un-callable'
       when: 'standalone'
 
+- module-name: 'flet_desktop' # checksum: 13c9ee8d
+  data-files:
+    - raw_dirs:
+        - 'app'
+      when: 'win32'
+
 - module-name: 'folium' # checksum: 2e123618
   data-files:
     - dirs:
