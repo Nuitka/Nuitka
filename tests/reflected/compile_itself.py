@@ -260,7 +260,8 @@ def executePASS1():
         "--nofollow-imports",
         "--output-dir=.",
         "--python-flag=no_site",
-        "nuitka-runner.py",
+        "--main=nuitka-runner.py",
+        "--main=nuitka/tools/data_composer/DataComposer.py",
     ]
     command += os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
