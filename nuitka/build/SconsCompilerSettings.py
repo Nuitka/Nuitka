@@ -60,7 +60,7 @@ from .WindowsObjGenerator import generateWindowsCoffObject
 
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode
+# spell-checker: ignore -fwrapv,-Wunused,-ftrack,-fvisibility,-municode
 # spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
 # spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS,CCVERSION
 
@@ -1438,10 +1438,14 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
-    # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it. TODO: Does this cause a performance loss?
+    # The var-tracking only improves GDB debugging information, but it does
+    # not scale for Nuitka generated C code in terms of memory and compile
+    # time. Since it has zero impact on runtime performance, we disable it.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-fno-var-tracking"])
+
+        if env.gcc_mode and env.gcc_version >= (4, 4):
+            env.Append(CCFLAGS=["-fno-var-tracking-assignments"])
 
     # For large files, these can issue warnings about disabling
     # itself, while we do not need it really.
@@ -1455,7 +1459,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Disable output of notes, e.g. on struct alignment layout changes for
     # some arches, we don't care.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
-        env.Append(CCFLAGS=["-fcompare-debug-second"])
+        env.Append(CCFLAGS=["-Wno-psabi"])
 
     # Prevent using LTO when told not to use it, causes errors with some
     # static link libraries.
