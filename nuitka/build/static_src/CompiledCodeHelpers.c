@@ -1504,7 +1504,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
                 }
 
                 f_result = t;
-                _Py_DECREF_SPECIALIZED(item, _PyFloat_ExactDealloc);
+                Py_DECREF(item);
 
                 continue;
             }

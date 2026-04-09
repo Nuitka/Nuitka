@@ -355,9 +355,15 @@ print("Float sum of [0.1] * 10 starting with 0.0 is", repr(sum(values, 0.0)))
 
 values = [1, 0.1] * 5
 print("Float sum of [1, 0.1] * 5 is", repr(sum(values)))
+print("Float sum of generator [1, 0.1] * 5 is", repr(sum(v for v in values)))
+print("Float sum of [1, 0.1] * 5 starting with 0.0 is", repr(sum(values, 0.0)))
+
+values = [10**100, 0.1] * 5
+print("Float sum of [10**100, 0.1] * 5 is", repr(sum(values)))
 
 values = [True, 0.1] * 5
 print("Float sum of [True, 0.1] * 5 is", repr(sum(values)))
+print("Float sum of generator [True, 0.1] * 5 is", repr(sum(v for v in values)))
 
 values = [float("inf"), float("inf")]
 print("Float sum of [inf, inf] is", repr(sum(values)))
