@@ -2,6 +2,8 @@
 
 """Exercise cleanup after exact list add MemoryError."""
 
+# nuitka-skip-unless-expression: sys.platform.startswith("linux") and os.path.exists("/proc/self/status") and hasattr(__import__("resource"), "RLIMIT_AS")
+
 import gc
 import resource
 
@@ -21,30 +23,44 @@ def churn_dict_items(rounds):
         gc.collect(1)
 
 
-gc.set_threshold(1, 1, 1)
+def exercise_list_add_memory_error(name, inplace):
+    gc.set_threshold(1, 1, 1)
 
-a = [None] * 2_000_000
-b = [None] * 2_000_000
+    a = [None] * 2_000_000
+    b = [None] * 2_000_000
 
-churn_dict_items(16)
+    churn_dict_items(16)
 
-current_vm = current_vm_bytes()
-resource.setrlimit(
-    resource.RLIMIT_AS,
-    (current_vm + 1024 * 1024, current_vm + 1024 * 1024),
-)
+    current_vm = current_vm_bytes()
+    old_soft_limit, old_hard_limit = resource.getrlimit(resource.RLIMIT_AS)
+    target_soft_limit = current_vm + 1024 * 1024
 
-try:
-    _ = a + b
-except MemoryError:
-    print("memory-error")
+    if old_hard_limit not in (-1, resource.RLIM_INFINITY):
+        target_soft_limit = min(target_soft_limit, old_hard_limit)
 
-    del a
-    del b
+    resource.setrlimit(resource.RLIMIT_AS, (target_soft_limit, old_hard_limit))
 
-    gc.collect()
-    churn_dict_items(128)
+    try:
+        try:
+            if inplace:
+                a += b
+            else:
+                _ = a + b
+        except MemoryError:
+            print(name, "memory-error")
 
-    print("post-gc-ok")
-else:
-    print("concat-succeeded")
+            del a
+            del b
+
+            gc.collect()
+            churn_dict_items(128)
+
+            print(name, "post-gc-ok")
+        else:
+            print(name, "concat-succeeded")
+    finally:
+        resource.setrlimit(resource.RLIMIT_AS, (old_soft_limit, old_hard_limit))
+
+
+exercise_list_add_memory_error("add", inplace=False)
+exercise_list_add_memory_error("iadd", inplace=True)
