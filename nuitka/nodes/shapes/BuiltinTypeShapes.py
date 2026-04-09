@@ -27,6 +27,7 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionFullEscape,
     ControlFlowDescriptionLshiftUnsupported,
     ControlFlowDescriptionMatmultUnsupported,
+    ControlFlowDescriptionMemoryErrorNoEscape,
     ControlFlowDescriptionModUnsupported,
     ControlFlowDescriptionMulUnsupported,
     ControlFlowDescriptionNoEscape,
@@ -1922,6 +1923,10 @@ operation_result_bytearray_noescape = tshape_bytearray, ControlFlowDescriptionNo
 
 operation_result_dict_noescape = tshape_dict, ControlFlowDescriptionNoEscape
 operation_result_dict_valueerror = tshape_dict, ControlFlowDescriptionValueErrorNoEscape
+operation_result_list_memoryerror = (
+    tshape_list,
+    ControlFlowDescriptionMemoryErrorNoEscape,
+)
 
 
 operation_result_bool_element_based = (
@@ -3564,7 +3569,7 @@ add_shapes_list.update(
         tshape_bytearray: operation_result_unsupported_add,
         tshape_unicode: operation_result_unsupported_add,
         tshape_tuple: operation_result_unsupported_add,
-        tshape_list: operation_result_list_noescape,
+        tshape_list: operation_result_list_memoryerror,
         tshape_set: operation_result_unsupported_add,
         tshape_frozenset: operation_result_unsupported_add,
         tshape_dict: operation_result_unsupported_add,
@@ -3594,7 +3599,7 @@ iadd_shapes_list.update(
         tshape_bytearray: operation_result_list_noescape,
         tshape_unicode: operation_result_list_noescape,
         tshape_tuple: operation_result_list_noescape,
-        tshape_list: operation_result_list_noescape,
+        tshape_list: operation_result_list_memoryerror,
         tshape_set: operation_result_list_noescape,
         tshape_frozenset: operation_result_list_noescape,
         tshape_dict: operation_result_list_noescape,

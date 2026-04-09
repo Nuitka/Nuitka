@@ -69,6 +69,12 @@ class ControlFlowDescriptionValueErrorNoEscape(ControlFlowDescriptionNoEscape):
         return ValueError
 
 
+class ControlFlowDescriptionMemoryErrorNoEscape(ControlFlowDescriptionNoEscape):
+    @staticmethod
+    def getExceptionExit():
+        return MemoryError
+
+
 class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionNoEscape):
     @staticmethod
     def getExceptionExit():
