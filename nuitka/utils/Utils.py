@@ -232,6 +232,26 @@ def isLinux():
     return getOS() == "Linux"
 
 
+_is_linux_wsl = None
+
+
+def isLinuxWSL():
+    """Is it WSL (Windows Subsystem for Linux)."""
+    if not isLinux():
+        return False
+
+    # Avoid repeated file system lookup, pylint: disable=global-statement
+    global _is_linux_wsl
+
+    if _is_linux_wsl is None:
+        from .FileOperations import getFileContents
+
+        version_info = getFileContents("/proc/version").lower()
+        _is_linux_wsl = "microsoft" in version_info or "wsl" in version_info
+
+    return _is_linux_wsl
+
+
 def isMacOS():
     """The macOS platform."""
     return getOS() == "Darwin"

@@ -36,7 +36,16 @@ else:
     import struct
 
     def hasPerfProfilingSupport():
-        return isLinux() and getPerfFileHandle(PERF_COUNT_HW_INSTRUCTIONS) is not None
+        if SYS_perf_event_open is None:
+            return False
+
+        fd = getPerfFileHandle(PERF_COUNT_HW_INSTRUCTIONS)
+
+        if fd is not None:
+            os.close(fd)
+            return True
+
+        return False
 
     # The syscall number for perf_event_open varies by architecture.
     ARCH_MAP = {
@@ -46,19 +55,24 @@ else:
         "armv7l": 364,
     }
 
+    SYS_perf_event_open = ARCH_MAP.get(platform.machine())
+
+    _syscall = None
+
+    def _getLibcSyscall():
+        # Singleton, avoid repeated expensive lookup
+        global _syscall  # pylint: disable=global-statement
+
+        if _syscall is None:
+            # --- Load libc and define syscall function ---
+            libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+            _syscall = libc.syscall
+            _syscall.restype = ctypes.c_long
+
+        return _syscall
+
     def getPerfFileHandle(config, group_fd=-1, read_format=0):
-        SYS_perf_event_open = ARCH_MAP.get(platform.machine())
-
-        if SYS_perf_event_open is None:
-            # This is not a hard error, we just cannot do perf.
-            return None
-
-        # --- Load libc and define syscall function ---
-        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-
-        syscall = libc.syscall
-        syscall.restype = ctypes.c_long
-
         attr = PerfEventAttr(
             type=PERF_TYPE_HARDWARE,
             size=ctypes.sizeof(PerfEventAttr),
@@ -73,7 +87,7 @@ else:
 
         # We must explicitly cast every argument to its correct 64-bit C type to
         # satisfy the variadic nature of the syscall ABI.
-        fd = syscall(
+        fd = _getLibcSyscall()(
             ctypes.c_long(SYS_perf_event_open),
             ctypes.byref(attr),
             ctypes.c_long(0),  # pid
@@ -89,8 +103,9 @@ else:
 
     # See 'man perf_event_open' for details
     PERF_TYPE_HARDWARE = 0
-    PERF_COUNT_HW_REF_CPU_CYCLES = 9
+    PERF_COUNT_HW_CPU_CYCLES = 0
     PERF_COUNT_HW_INSTRUCTIONS = 1
+    PERF_COUNT_HW_REF_CPU_CYCLES = 9
 
     class _PerfEventAttrUnion(ctypes.Union):
         _fields_ = [
@@ -111,7 +126,7 @@ else:
             ("sample_type", ctypes.c_uint64),
             ("read_format", ctypes.c_uint64),
             ("flags", ctypes.c_uint64),
-            # More fields for the union
+            # More fields for the union size to match are needed.
             ("wakeup_events", ctypes.c_uint32),
             ("wakeup_watermark", ctypes.c_uint32),
             ("bp_type", ctypes.c_uint32),
@@ -142,11 +157,20 @@ else:
         """
 
         def __init__(self, config, group_fd=-1, read_format=0):
-            self.fd = getPerfFileHandle(
-                config, group_fd=group_fd, read_format=read_format
-            )
+            if type(config) is tuple:
+                for c in config:
+                    self.fd = getPerfFileHandle(
+                        c, group_fd=group_fd, read_format=read_format
+                    )
 
-            assert self.fd is not None
+                    if self.fd is not None:
+                        break
+            else:
+                self.fd = getPerfFileHandle(
+                    config, group_fd=group_fd, read_format=read_format
+                )
+
+            assert self.fd is not None, config
 
         def reset(self):
             fcntl.ioctl(self.fd, PERF_EVENT_IOC_RESET, 0)
@@ -172,10 +196,14 @@ else:
     class PerfCounters(object):
         def __init__(self):
             # Create the instruction counter as the group leader.
-            self.instr_counter = PerfCounter(config=PERF_COUNT_HW_INSTRUCTIONS)
+            self.instr_counter = PerfCounter(
+                config=PERF_COUNT_HW_INSTRUCTIONS,
+            )
+
             # Create the cycle counter as a member of the same group.
             self.cycle_counter = PerfCounter(
-                config=PERF_COUNT_HW_REF_CPU_CYCLES, group_fd=self.instr_counter.fd
+                config=(PERF_COUNT_HW_REF_CPU_CYCLES, PERF_COUNT_HW_CPU_CYCLES),
+                group_fd=self.instr_counter.fd,
             )
 
         def start(self):

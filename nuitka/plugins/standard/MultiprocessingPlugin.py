@@ -100,6 +100,9 @@ try:
 except ImportError:
     from multiprocessing.reduction import ForkingPickler
 
+import os
+import sys
+
 class C:
    def f():
        pass
@@ -113,6 +116,22 @@ def _reduce_compiled_method(m):
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
 if str is bytes:
     ForkingPickler.register(type(C.f), _reduce_compiled_method)
+
+if str is not bytes:
+    import multiprocessing.spawn
+
+    if not hasattr(multiprocessing.spawn, "__nuitka_original_fixup_main_from_path"):
+        multiprocessing.spawn.__nuitka_original_fixup_main_from_path = multiprocessing.spawn._fixup_main_from_path
+
+        def _fixup_main_from_path_for_nuitka(main_path):
+            assert main_path is not None
+
+            import __parents_main__ as parents_main
+
+            sys.modules["__main__"] = parents_main
+            sys.modules["__mp_main__"] = parents_main
+
+        multiprocessing.spawn._fixup_main_from_path = _fixup_main_from_path_for_nuitka
 """,
                 """\
 Monkey patching "multiprocessing" for compiled methods.""",
@@ -144,19 +163,17 @@ Monkey patching "multiprocessing" for compiled methods.""",
 def __nuitka_freeze_support():
     import sys
     import builtins
-
-    # Not needed, and can crash from minor "__file__" differences, depending on invocation
     import multiprocessing.spawn
-    multiprocessing.spawn._fixup_main_from_path = lambda mod_name : None
 
     # This is a variant of freeze_support that will work for multiprocessing and
     # joblib equally well.
     kwds = {}
-    args = []
 
-    if hasattr(builtins, "__nuitka_original_args"):
-        sys.argv = builtins.__nuitka_original_args
-        del builtins.__nuitka_original_args
+    if not hasattr(builtins, "__nuitka_original_args"):
+        return
+
+    sys.argv = builtins.__nuitka_original_args
+    del builtins.__nuitka_original_args
 
     for arg in sys.argv[2:]:
         try:
@@ -173,16 +190,18 @@ def __nuitka_freeze_support():
     # Otherwise main module names will not work.
     sys.modules["__main__"] = sys.modules["__parents_main__"]
 
-    multiprocessing.spawn.spawn_main(*args, **kwds)
+    multiprocessing.spawn.spawn_main(**kwds)
 __nuitka_freeze_support()
 """
         else:
             source_code += """
 def __nuitka_freeze_support():
     import __builtin__, sys
-    if hasattr(__builtin__, "__nuitka_original_args"):
-        sys.argv = __builtin__.__nuitka_original_args
-        del __builtin__.__nuitka_original_args
+    if not hasattr(__builtin__, "__nuitka_original_args"):
+        return
+
+    sys.argv = __builtin__.__nuitka_original_args
+    del __builtin__.__nuitka_original_args
 
     sys.modules["__main__"] = sys.modules[__name__]
     __import__("multiprocessing.forking").forking.freeze_support()
