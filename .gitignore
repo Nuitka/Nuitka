@@ -74,6 +74,7 @@ doxygen-*
 .vscode/tags
 .vscode/.ropeproject
 .vscode/c_cpp_properties.json
+.vscode/.python_alias_path
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
 nuitka/build/inline_copy/downloads

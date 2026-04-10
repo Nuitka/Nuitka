@@ -135,7 +135,7 @@ PermissionError = (  # pylint: disable=redefined-builtin
 
 # Make it available for Python2 as well
 FileNotFoundError = (  # pylint: disable=redefined-builtin
-    FileNotFoundError if str is not bytes else IOError
+    FileNotFoundError if str is not bytes else (OSError, IOError)
 )
 
 if not hasattr(pkgutil, "ModuleInfo"):
