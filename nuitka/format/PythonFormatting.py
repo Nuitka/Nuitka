@@ -218,18 +218,20 @@ def _cleanupImportSortOrder(
     if os.path.exists(cache_filename):
         # Restore from cache
         isort_output = getFileContents(cache_filename, mode="rb")
-        if getFileContents(filename, mode="rb") != isort_output:
-            putBinaryFileContents(filename, isort_output)
 
-        # Restore the original complete contents if we had split them out
-        if start_index is not None:
-            contents = getFileContents(filename, encoding="utf8")
-            contents = (
-                "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
-            )
-            putTextFileContents(filename, contents=contents, encoding="utf8")
+        if isort_output or not contents:
+            if getFileContents(filename, mode="rb") != isort_output:
+                putBinaryFileContents(filename, isort_output)
 
-        return
+            # Restore the original complete contents if we had split them out
+            if start_index is not None:
+                contents = getFileContents(filename, encoding="utf8")
+                contents = (
+                    "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
+                )
+                putTextFileContents(filename, contents=contents, encoding="utf8")
+
+            return
 
     with withPrivatePipSitePackagesPathAdded(logger=logger):
         isort_output = check_output(isort_call + isort_args + [filename])
@@ -380,11 +382,15 @@ def formatPython(
             logger, "black", black_args, old_contents
         )
 
+        black_cache_hit = False
         if os.path.exists(cache_filename):
             black_output = getFileContents(cache_filename, mode="rb")
-            if old_contents != black_output:
-                putBinaryFileContents(filename, black_output)
-        else:
+            if black_output or not old_contents:
+                if old_contents != black_output:
+                    putBinaryFileContents(filename, black_output)
+                black_cache_hit = True
+
+        if not black_cache_hit:
             try:
                 with withPrivatePipSitePackagesPathAdded(logger=logger):
                     check_call(black_call)
