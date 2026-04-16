@@ -22,6 +22,7 @@ from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
+from nuitka.utils.Diffs import getUnifiedDiff
 from nuitka.utils.FileOperations import (
     getReportPath,
     hasFilenameExtension,
@@ -152,16 +153,13 @@ see http://python.org/dev/peps/pep-0263/ for details"""
 
 
 def getSourceCodeDiff(source_code, source_code_modified):
-    import difflib
 
-    diff = difflib.unified_diff(
-        source_code.splitlines(),
-        source_code_modified.splitlines(),
-        "original",
-        "modified",
-        "",
-        "",
-        n=3,
+    diff = getUnifiedDiff(
+        old_lines=source_code.splitlines(),
+        new_lines=source_code_modified.splitlines(),
+        old_filename="original",
+        new_filename="modified",
+        num_lines=3,
     )
 
     return list(diff)

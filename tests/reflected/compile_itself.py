@@ -22,10 +22,8 @@ sys.path.insert(
 
 # isort:start
 
-import difflib
 import shutil
 import subprocess
-import time
 
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
@@ -40,11 +38,11 @@ from nuitka.tools.testing.Common import (
     test_logger,
     withPythonPathChange,
 )
+from nuitka.utils.Diffs import compareDirectories
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     copyTree,
     deleteFile,
-    getFileContents,
     getFileList,
     getSubDirectories,
     listDir,
@@ -89,105 +87,6 @@ if not getCommercialVersion():
     PACKAGE_LIST.remove("nuitka/plugins/commercial")
 
 exe_suffix = ".exe" if os.name == "nt" else ".bin"
-
-
-def readSource(filename):
-    if str is bytes:
-        return getFileContents(filename, mode="rb")
-    else:
-        return getFileContents(filename, encoding="latin1")
-
-
-def diffRecursive(dir1, dir2):
-    # Complex in nature, pylint: disable=too-many-branches
-
-    done = set()
-
-    result = False
-
-    for path1, filename in listDir(dir1):
-        if "cache-" in path1:
-            continue
-
-        path2 = os.path.join(dir2, filename)
-
-        done.add(path1)
-
-        # Skip these binary files and scons build database of course.
-        # TODO: Temporary ignore ".bin", until we have something better than marshal which behaves
-        # differently in compiled Nuitka:
-        # spell-checker: ignore dblite,sconsign
-        if filename.endswith(
-            (
-                ".o",
-                ".os",
-                ".obj",
-                ".dblite",
-                ".tmp",
-                ".sconsign",
-                ".txt",
-                ".bin",
-                ".const",
-                ".exp",
-            )
-        ):
-            continue
-
-        if "scons-debug" in filename:
-            continue
-
-        if not os.path.exists(path2):
-            test_logger.warning("Only in %s: %s" % (dir1, filename))
-            result = False
-            continue
-
-        if os.path.isdir(path1):
-            r = diffRecursive(path1, path2)
-            if r:
-                result = True
-        elif os.path.isfile(path1):
-            from_date = time.ctime(os.stat(path1).st_mtime)
-            to_date = time.ctime(os.stat(path2).st_mtime)
-
-            # spell-checker: ignore tofile,fromfiledate,tofiledate
-            diff = difflib.unified_diff(
-                a=readSource(path1).splitlines(),
-                b=readSource(path2).splitlines(),
-                fromfile=path1,
-                tofile=path2,
-                fromfiledate=from_date,
-                tofiledate=to_date,
-                n=3,
-            )
-
-            diff_list = list(diff)
-
-            if diff_list:
-                for line in diff_list:
-                    try:
-                        my_print(line)
-                    except UnicodeEncodeError:
-                        my_print(repr(line))
-
-                result = True
-        else:
-            assert False, path1
-
-    for path1, filename in listDir(dir2):
-        if "cache-" in path1:
-            continue
-
-        path2 = os.path.join(dir2, filename)
-
-        if path1 in done:
-            continue
-
-        if not os.path.exists(path1):
-            test_logger.warning("Only in %s: %s" % (dir2, filename))
-            result = False
-            continue
-
-    return result
 
 
 def _traceCompilation(path, pass_number):
@@ -373,7 +272,29 @@ def compileAndCompareWith(nuitka, pass_number):
                     my_print("An error exit %s occurred, aborting." % exit_nuitka)
                     sys.exit(exit_nuitka)
 
-                has_diff = diffRecursive(os.path.join(package, target), target_dir)
+                has_diff = compareDirectories(
+                    logger=test_logger,
+                    my_print=my_print,
+                    dir1=os.path.join(package, target),
+                    dir2=target_dir,
+                    ignore_suffixes=(
+                        ".o",
+                        ".os",
+                        ".obj",
+                        ".dblite",  # spell-checker: ignore dblite
+                        ".tmp",
+                        ".sconsign",  # spell-checker: ignore sconsign
+                        ".txt",
+                        ".bin",
+                        ".const",
+                        ".exp",
+                        ".scons",
+                    ),
+                    ignore_substrings=(
+                        "cache-",
+                        "scons-debug",
+                    ),
+                )
 
                 if has_diff:
                     sys.exit("There were differences!")

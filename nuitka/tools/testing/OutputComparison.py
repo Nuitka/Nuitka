@@ -9,12 +9,12 @@ an example.
 
 """
 
-import difflib
 import os
 import re
 import sys
 
 from nuitka.Tracing import canUseColor, my_print, wrapWithStyles
+from nuitka.utils.Diffs import getUnifiedDiff
 
 # spell-checker:disable
 ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
@@ -313,17 +313,12 @@ def colorizeDiff(lines):
 def compareOutput(
     kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
 ):
-    from_date = ""
-    to_date = ""
-
-    diff = difflib.unified_diff(
-        makeDiffable(out_cpython, ignore_warnings, syntax_errors),
-        makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
-        "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
-        "{program} ({detail})".format(program="nuitka", detail=kind),
-        from_date,
-        to_date,
-        n=3,
+    diff = getUnifiedDiff(
+        old_lines=makeDiffable(out_cpython, ignore_warnings, syntax_errors),
+        new_lines=makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
+        old_filename="%s (%s)" % (os.environ["PYTHON"], kind),
+        new_filename="%s (%s)" % ("nuitka", kind),
+        num_lines=3,
         lineterm="",  # spell-checker: ignore lineterm
     )
 

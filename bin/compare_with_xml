@@ -13,9 +13,8 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 # isort:start
 
-import difflib
-
 from nuitka.tools.testing.Common import my_print
+from nuitka.utils.Diffs import getUnifiedDiff
 from nuitka.utils.Execution import executeProcess
 
 nuitka1 = sys.argv[1]
@@ -56,14 +55,12 @@ def makeDiffable(output):
 
 
 def compareOutput(kind, out1, out2):
-    diff = difflib.unified_diff(
-        makeDiffable(out1),
-        makeDiffable(out2),
-        "{program} ({detail})".format(program="nuitka1 " + filename, detail=kind),
-        "{program} ({detail})".format(program="nuitka2 " + filename, detail=kind),
-        None,
-        None,
-        n=3,
+    diff = getUnifiedDiff(
+        old_lines=makeDiffable(out1),
+        new_lines=makeDiffable(out2),
+        old_filename="%s (%s)" % ("nuitka1 " + filename, kind),
+        new_filename="%s (%s)" % ("nuitka2 " + filename, kind),
+        num_lines=3,
     )
 
     result = list(diff)
