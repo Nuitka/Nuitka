@@ -8,8 +8,8 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # Using a specific, stable patch release is recommended.
 PY_VER="3.11.9"
 
-# Set the desired installation path.
-INSTALL_PREFIX="/opt/python-for-nuitka-${PY_VER}"
+# Default set after arguments if not provided
+INSTALL_PREFIX=""
 
 PY_MAJOR_MINOR=$(echo "$PY_VER" | cut -d. -f1-2) # e.g., 3.11
 TARBALL="Python-$PY_VER.tar.xz"
@@ -23,6 +23,13 @@ CLEANUP=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        --*=*) # Convert --key=value to --key value
+            KEY="${1%%=*}"
+            VALUE="${1#*=}"
+            shift 1
+            set -- "$KEY" "$VALUE" "$@"
+            continue
+            ;;
         --debug)
             BUILD_CONFIG="Debug"
             # In debug mode, we disable PGO/LTO and enable pydebug, which includes assertions
@@ -33,15 +40,20 @@ while [[ "$#" -gt 0 ]]; do
             BUILD_TARGET="Rebuild"
             shift
             ;;
-        --version)
+        --version|--python-version)
             PY_VER="$2"
-            INSTALL_PREFIX="/opt/python-for-nuitka-${PY_VER}"
             TARBALL="Python-$PY_VER.tar.xz"
             SOURCE_DIR="Python-$PY_VER"
             shift 2
             ;;
         --prefix)
-            INSTALL_PREFIX="$2"
+            if [[ "$2" == /* ]]; then
+                INSTALL_PREFIX="$2"
+            elif [[ "$2" == ~* ]]; then
+                INSTALL_PREFIX="${2/#\~/$HOME}"
+            else
+                INSTALL_PREFIX="$PWD/$2"
+            fi
             shift 2
             ;;
         --cleanup)
@@ -68,6 +80,10 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
+if [ -z "$INSTALL_PREFIX" ]; then
+    INSTALL_PREFIX="/opt/python-for-nuitka-${PY_VER}"
+fi
+
 echo "--- Starting static Python $PY_VER build for Nuitka ---"
 echo "Configuration: $BUILD_CONFIG"
 if [[ "$BUILD_CONFIG" == "Release" ]]; then
@@ -89,7 +105,11 @@ if [[ "$(uname)" == "Darwin" ]]; then
     export CONFIGURE_OPTS="--with-openssl=$(brew --prefix openssl@3)"
     export MAKE_JOBS=$(sysctl -n hw.ncpu)
 
-    export PYTHON_BINARY=./$SOURCE_DIR/python.exe
+    if [ -n "$INSTALL_PREFIX" ]; then
+        export PYTHON_BINARY="$INSTALL_PREFIX/bin/python3"
+    else
+        export PYTHON_BINARY="$PWD/$SOURCE_DIR/python.exe"
+    fi
 
     export MACOSX_DEPLOYMENT_TARGET=10.9
 else
@@ -145,8 +165,14 @@ if [ ! -f "Makefile" ]; then
     # --prefix:         Install location
     # --disable-shared: CRITICAL. This prevents building libpython.so/dylib
     #                   and builds only libpythonX.Y.a
+    if [ -n "$INSTALL_PREFIX" ]; then
+        CONFIGURE_PREFIX_OPTS="--prefix=$INSTALL_PREFIX"
+    else
+        CONFIGURE_PREFIX_OPTS=""
+    fi
+
     ./configure \
-        --prefix="$INSTALL_PREFIX" \
+        $CONFIGURE_PREFIX_OPTS \
         --disable-shared \
         $EXTRA_CONFIGURE_OPTS \
         $CONFIGURE_OPTS
@@ -157,7 +183,10 @@ fi
 # --- 4. Build and Install ---
 echo "Building Python... This will take a long time due to PGO."
 make -j$MAKE_JOBS
-cd -
+if [ -n "$INSTALL_PREFIX" ]; then
+    make install
+fi
+cd ..
 
 echo "--- Installing ensurepip and requirements ---"
 $PYTHON_BINARY -m ensurepip

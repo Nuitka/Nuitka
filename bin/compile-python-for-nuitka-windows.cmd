@@ -146,7 +146,7 @@ echo --- Build Complete ---
 
 if not "%INSTALL_PREFIX%"=="" (
     echo Installing compiled Python to %INSTALL_PREFIX%...
-    %PYTHON_BINARY% PC\layout --copy "%INSTALL_PREFIX%" || (
+    %PYTHON_BINARY% PC\layout --copy "%INSTALL_PREFIX%" --include-dev || (
         echo Error: Failed to install Python layout
         exit /b 1
     )

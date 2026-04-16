@@ -8,8 +8,8 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # Using a specific, stable patch release is recommended.
 PY_VER="3.11.9"
 
-# Set the desired installation path.
-INSTALL_PREFIX="/opt/python${PY_VER}"
+# Default set after arguments if not provided
+INSTALL_PREFIX=""
 
 PY_MAJOR_MINOR=$(echo "$PY_VER" | cut -d. -f1-2) # e.g., 3.11
 TARBALL="Python-$PY_VER.tar.xz"
@@ -23,6 +23,13 @@ CLEANUP=false
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        --*=*) # Convert --key=value to --key value
+            KEY="${1%%=*}"
+            VALUE="${1#*=}"
+            shift 1
+            set -- "$KEY" "$VALUE" "$@"
+            continue
+            ;;
         --debug)
             BUILD_CONFIG="Debug"
             # In debug mode, we disable PGO/LTO and enable pydebug, which includes assertions
@@ -33,15 +40,20 @@ while [[ "$#" -gt 0 ]]; do
             BUILD_TARGET="Rebuild"
             shift
             ;;
-        --version)
+        --version|--python-version)
             PY_VER="$2"
-            INSTALL_PREFIX="/opt/python${PY_VER}"
             TARBALL="Python-$PY_VER.tar.xz"
             SOURCE_DIR="Python-$PY_VER"
             shift 2
             ;;
         --prefix)
-            INSTALL_PREFIX="$2"
+            if [[ "$2" == /* ]]; then
+                INSTALL_PREFIX="$2"
+            elif [[ "$2" == ~* ]]; then
+                INSTALL_PREFIX="${2/#\~/$HOME}"
+            else
+                INSTALL_PREFIX="$PWD/$2"
+            fi
             shift 2
             ;;
         --cleanup)
@@ -98,7 +110,11 @@ if [[ "$(uname)" == "Linux" ]]; then
 
     # Set flags for Linux if needed
     export MAKE_JOBS=$(nproc)
-    export PYTHON_BINARY=$INSTALL_PREFIX/bin/python3
+    if [ -n "$INSTALL_PREFIX" ]; then
+        export PYTHON_BINARY="$INSTALL_PREFIX/bin/python3"
+    else
+        export PYTHON_BINARY="$PWD/$SOURCE_DIR/python"
+    fi
 else
     echo "Unsupported OS: $(uname)"
     exit 1
@@ -151,8 +167,14 @@ if [ ! -f "Makefile" ]; then
         fi
     fi
 
+    if [ -n "$INSTALL_PREFIX" ]; then
+        CONFIGURE_PREFIX_OPTS="--prefix=$INSTALL_PREFIX"
+    else
+        CONFIGURE_PREFIX_OPTS=""
+    fi
+
     ./configure \
-        --prefix="$INSTALL_PREFIX" \
+        $CONFIGURE_PREFIX_OPTS \
         --disable-shared \
         --enable-ipv6 \
         LDFLAGS="-Xlinker -export-dynamic -rdynamic" \
@@ -164,7 +186,13 @@ fi
 # --- 4. Build and Install ---
 echo "Building Python... This will take a long time due to PGO."
 make -j$MAKE_JOBS LDFLAGS="-Xlinker -export-dynamic -rdynamic"
-$SUDO make install
+if [ -n "$INSTALL_PREFIX" ]; then
+    if [ -w "$INSTALL_PREFIX" ] || [ -w "$(dirname "$INSTALL_PREFIX")" ]; then
+        make install
+    else
+        $SUDO make install
+    fi
+fi
 
 cd ..
 
