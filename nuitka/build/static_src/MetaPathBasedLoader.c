@@ -707,8 +707,9 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 // yet.
 #if PYTHON_VERSION >= 0x3c0
     // spell-checker: ignore pkgcontext
-    const char *old_context = _PyRuntime.imports.pkgcontext;
-    _PyRuntime.imports.pkgcontext = new_context;
+    struct _import_runtime_state *imports = Nuitka_PyRuntime__imports;
+    const char *old_context = imports->pkgcontext;
+    imports->pkgcontext = new_context;
 #if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API)
     pkgcontext = new_context;
 #endif

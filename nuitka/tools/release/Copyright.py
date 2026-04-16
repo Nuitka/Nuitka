@@ -58,6 +58,7 @@ _plain_files = (
     "nuitka-linux-container",
     "generate-specialized-c-code",
     "generate-specialized-python-code",
+    "generate-specialized-offsets-code",
     "sort-nuitka-import-statements",
     "find_sxs_modules",
     "find-module",

@@ -64,6 +64,7 @@ env.debug_mode = False
 env.debugger_mode = False
 env.unstripped_mode = False
 env.console_mode = "force"
+env.resource_mode = "absent"
 
 # The directory used for building.
 
@@ -177,7 +178,7 @@ link_module_libs = addPythonHaclLib(env, link_module_libs=link_module_libs)
 # TODO: Make backend libpython handling reusable.
 if env.gcc_mode and env.static_libpython:
     env.Append(LIBS=[env.File(env.static_libpython)])
-else:
+elif os.name == "nt":
     addWin32PythonLib(env)
 
 # The static include files reside in Nuitka installation, which may be where

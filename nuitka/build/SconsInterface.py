@@ -53,6 +53,7 @@ from nuitka.options.Options import (
     shallMakeExe,
     shallMakeModule,
     shallRunInDebugger,
+    shallUsePythonDebug,
 )
 from nuitka.plugins.Hooks import (
     getExtraIncludeDirectories,
@@ -69,8 +70,10 @@ from nuitka.PythonFlavors import (
 from nuitka.PythonVersions import (
     getSconsSupportingVersions,
     getSystemPrefixPath,
+    getTargetPythonIncludePath,
     isPythonWithGil,
     python_version,
+    python_version_full_str,
     python_version_str,
 )
 from nuitka.reports.Reports import getCompilationReportFilename
@@ -152,13 +155,6 @@ def provideStaticSourceFilesOnefile(source_dir):
 
     if getWindowsSplashScreen():
         filenames.append("OnefileSplashScreen.cpp")
-
-    _provideStaticSourceFiles(source_dir, filenames)
-
-
-def provideStaticSourceFilesOffsets(source_dir):
-    """Provide static source files for the offsets calculation."""
-    filenames = ["GenerateHeadersMain.c"]
 
     _provideStaticSourceFiles(source_dir, filenames)
 
@@ -603,8 +599,14 @@ def getCommonSconsOptions():
     scons_options["nuitka_src"] = getSconsDataPath()
 
     scons_options["python_version"] = python_version_str
+    scons_options["python_version_full_str"] = python_version_full_str
 
     scons_options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
+    scons_options["python_include_path"] = getTargetPythonIncludePath(
+        logger=scons_logger,
+        python_debug=shallUsePythonDebug(),
+        self_compiled_python_uninstalled=isSelfCompiledPythonUninstalled(),
+    )
 
     scons_options["experimental"] = ",".join(getExperimentalIndications())
 

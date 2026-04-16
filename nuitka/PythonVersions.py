@@ -259,15 +259,124 @@ def isStaticallyLinkedPython():
     return result
 
 
-def getPythonABI():
+_target_python_include_path = {}
+
+
+def getTargetPythonIncludePath(
+    logger,
+    python_debug,
+    self_compiled_python_uninstalled,
+):
+    python_abi_version = python_version_str + getPythonABI(python_debug=python_debug)
+    python_prefix_external = getSystemPrefixPath()
+
+    key = (
+        python_debug,
+        self_compiled_python_uninstalled,
+        python_abi_version,
+        python_prefix_external,
+    )
+
+    if key not in _target_python_include_path:
+        _target_python_include_path[key] = _getTargetPythonIncludePath(
+            logger=logger,
+            python_debug=python_debug,
+            python_abi_version=python_abi_version,
+            python_prefix_external=python_prefix_external,
+            self_compiled_python_uninstalled=self_compiled_python_uninstalled,
+        )
+
+    return _target_python_include_path[key]
+
+
+def _getTargetPythonIncludePath(
+    logger,
+    python_debug,
+    python_abi_version,
+    python_prefix_external,
+    self_compiled_python_uninstalled,
+):
+
+    if os.name == "nt":
+        candidates = [
+            # On Windows, the CPython official installation layout is relatively fixed,
+            os.path.join(python_prefix_external, "include"),
+            # On MSYS2 with MinGW64 Python, it is also the other form.
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+            # For self-built Python on Windows, need to also add the "PC" directory,
+            # that a normal install won't have.
+            os.path.join(python_prefix_external, "PC"),
+        ]
+    else:
+        # The python header path is a combination of python version and debug
+        # indication, we make sure the headers are found by adding it to the C
+        # include path.
+
+        candidates = [
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+            # CPython source code checkout
+            os.path.join(python_prefix_external, "Include"),
+            # Haiku specific paths:
+            os.path.join(
+                python_prefix_external,
+                "develop/headers",
+                "python" + python_abi_version,
+            ),
+        ]
+
+        # Not all Python versions, have the ABI version to use for the debug version.
+        if python_debug and "d" in python_abi_version:
+            candidates.append(
+                os.path.join(
+                    python_prefix_external,
+                    "include",
+                    "python" + python_abi_version.replace("d", ""),
+                )
+            )
+
+    search = ["Python.h"]
+    if self_compiled_python_uninstalled:
+        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
+
+    for candidate in candidates:
+        for s in tuple(search):
+            found = False
+            if os.path.exists(os.path.join(candidate, s)):
+                search.remove(s)
+                found = True
+
+            if found:
+                return candidate
+
+        if not search:
+            break
+    else:
+        if os.name == "nt":
+            return logger.sysexit("""\
+Error, you seem to be using the unsupported embeddable CPython distribution \
+use a full Python instead.""")
+        else:
+            return logger.sysexit(
+                """\
+Error, no 'Python.h' %s headers can be found at '%s', dependency \
+not satisfied!"""
+                % (
+                    "debug" if python_debug else "development",
+                    candidates,
+                )
+            )
+
+
+def getPythonABI(python_debug):
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
 
-        # Cyclic dependency here.
-        from nuitka.options.Options import shallUsePythonDebug
-
         # spell-checker: ignore getobjects
-        if shallUsePythonDebug() or hasattr(sys, "getobjects"):
+        if python_debug or hasattr(sys, "getobjects"):
             if not abiflags.startswith("d"):
                 abiflags = "d" + abiflags
     else:
@@ -447,9 +556,9 @@ def getInstalledPythonRegistryPaths(version):
     from nuitka.__past__ import WindowsError
 
     if str is bytes:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+        import _winreg as winreg  # type: ignore # pylint: disable=I0021,import-error,no-name-in-module
     else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
+        import winreg  # type: ignore # pylint: disable=I0021,import-error,no-name-in-module
 
     for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):

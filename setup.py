@@ -178,6 +178,7 @@ package_data = {
         "include/*.h",
         "include/*/*.h",
         "include/*/*/*.h",
+        "python_internal_offset/offsets_*.json",
     ]
     + inline_copy_files,
     "nuitka.code_generation": ["templates_c/*.j2"],

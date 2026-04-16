@@ -553,7 +553,8 @@
     "tests/CPython*",
     "doc/*.1",
     "*.containerfile",
-    "Containerfile"
+    "Containerfile",
+    "nuitka/tools/general/generate_header/offsets_*.json"
   ],
   "cSpell.languageSettings": [
     {

@@ -13,6 +13,7 @@ a distribution folder.
 import os
 import sys
 
+from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
@@ -719,6 +720,12 @@ def runSconsBackend():
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
         onefile=False, create=False
     )
+
+    # We might need to adapt the Python header files for some setups to work correctly.
+    adapted_dir = createAdaptedPythonHeaderFiles(scons_options["source_dir"])
+    if adapted_dir:
+        scons_options["adapted_python_header_files_dir"] = adapted_dir
+
     scons_options["monolithpy"] = asBoolStr(isMonolithPy())
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
@@ -747,7 +754,9 @@ def runSconsBackend():
             scons_options["main_module_name"] = main_module_name
 
     if shallUseStaticLibPython():
-        scons_options["static_libpython"] = getSystemStaticLibPythonPath()
+        scons_options["static_libpython"] = getSystemStaticLibPythonPath(
+            python_debug=shallUsePythonDebug()
+        )
 
     if isDebianPackagePython():
         scons_options["debian_python"] = asBoolStr(True)
@@ -831,7 +840,7 @@ def runSconsBackend():
     if hasPythonFlagIsolated():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
-    abiflags = getPythonABI()
+    abiflags = getPythonABI(python_debug=shallUsePythonDebug())
     if abiflags:
         scons_options["abiflags"] = abiflags
 

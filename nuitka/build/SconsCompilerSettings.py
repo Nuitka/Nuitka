@@ -6,7 +6,7 @@
 import os
 import re
 
-from SCons.Script import (  # pylint: disable=I0021,import-error
+from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
     GetOption,
@@ -302,7 +302,6 @@ def checkWindowsCompilerFound(
     msvc_version,
     download_ok,
     assume_yes_for_downloads,
-    experimental_flags,
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
@@ -433,7 +432,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
         the_cc_name = os.path.basename(compiler_path)
 
         if isGccName(the_cc_name):
-            if "force-accept-windows-gcc" not in experimental_flags:
+            if "force-accept-windows-gcc" not in env.experimental_flags:
                 scons_logger.info(
                     "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
                     % (compiler_path,)
@@ -447,7 +446,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     # rejected and MSVC is not enforced.
 
     if compiler_path is None and msvc_version is None:
-        if env.python_version < (3, 13):
+        if env.python_version < (3, 13) or "force-mingw64" in env.experimental_flags:
             scons_details_logger.info(
                 "No usable C compiler, attempt fallback to winlibs gcc."
             )
@@ -456,7 +455,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 download_ok=download_ok,
-                experimental="winlibs-new" in experimental_flags,
+                experimental="winlibs-new" in env.experimental_flags,
             )
         elif target_arch != "x86" and not mingw_mode:
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
@@ -473,14 +472,23 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             addToPATH(env=env, dirname=os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
-                mingw_mode=env.python_version < (3, 13),
+                mingw_mode=env.python_version < (3, 13)
+                or "force-mingw64" in env.experimental_flags,
                 msvc_version=None,
                 clang_mode=False,
                 clangcl_mode=False,
-                zig_exe_path=None if env.python_version < (3, 13) else compiler_path,
+                zig_exe_path=(
+                    None
+                    if (
+                        env.python_version < (3, 13)
+                        or "force-mingw64" in env.experimental_flags
+                    )
+                    else compiler_path
+                ),
                 target_arch=target_arch,
                 consider_environ_variables=False,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
+                experimental_flags=env.experimental_flags,
                 source_dir=env.source_dir,
             )
 
@@ -519,6 +527,7 @@ def createEnvironmentAndCheckCompiler(
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
 
@@ -530,7 +539,6 @@ def createEnvironmentAndCheckCompiler(
         msvc_version=msvc_version,
         download_ok=download_ok,
         assume_yes_for_downloads=assume_yes_for_downloads,
-        experimental_flags=experimental_flags,
     )
 
     env.the_compiler = env["CC"] or env["CXX"]
@@ -562,6 +570,7 @@ def createEnvironmentAndCheckCompiler(
         and not env.msvc_mode
         and not env.zig_mode
         and env.python_version >= (3, 13)
+        and "force-mingw64" not in env.experimental_flags
     ):
         return scons_logger.sysexit(
             """\
@@ -1221,7 +1230,6 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.macos_min_version = macos_min_version
     env.macos_target_arch = macos_target_arch
     env.target_arch = target_arch
-    env.experimental = experimental_flags
     env.no_deployment = no_deployment
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
@@ -1459,7 +1467,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Disable output of notes, e.g. on struct alignment layout changes for
     # some arches, we don't care.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
-        env.Append(CCFLAGS=["-Wno-psabi"])
+        env.Append(CCFLAGS=["-Wno-psabi"])  # spell-checker: ignore psabi
 
     # Prevent using LTO when told not to use it, causes errors with some
     # static link libraries.
@@ -1735,6 +1743,8 @@ def _enableDebugSystemSettings(env):
 
             if not env.clangcl_mode and not isMacOS():
                 env.Append(LINKFLAGS=["-s"])
+        elif env.msvc_mode:
+            env.Append(LINKFLAGS=["/DEBUG:NONE"])
 
 
 def switchFromGccToGpp(env):

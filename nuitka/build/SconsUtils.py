@@ -218,6 +218,7 @@ def createEnvironment(
     target_arch,
     consider_environ_variables,
     assume_yes_for_downloads,
+    experimental_flags,
     source_dir,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
@@ -388,6 +389,7 @@ def createEnvironment(
     env.python_version_str = getArgumentDefaulted("python_version", None)
     if env.python_version_str is not None:
         env.python_version = tuple(int(d) for d in env.python_version_str.split("."))
+        env.python_version_full_str = getArgumentRequired("python_version_full_str")
 
         # Do we have a GIL build, or no-GIL (free-threading)
         env.gil_mode = getArgumentBool("gil_mode")
@@ -476,6 +478,7 @@ def createEnvironment(
     env.forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 
     env.build_definitions = {}
+    env.experimental_flags = experimental_flags
 
     return env
 

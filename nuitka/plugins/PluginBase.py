@@ -56,6 +56,7 @@ from nuitka.options.Options import (
     shallMakeDll,
     shallMakeModule,
     shallShowExecutedCommands,
+    shallUsePythonDebug,
 )
 from nuitka.PythonFlavors import (
     isAnacondaPython,
@@ -209,7 +210,10 @@ def _getEvaluationContext():
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
             # Technical requirements
-            "static_libpython": getSystemStaticLibPythonPath() is not None,
+            "static_libpython": getSystemStaticLibPythonPath(
+                python_debug=shallUsePythonDebug()
+            )
+            is not None,
             # Builtins
             "True": True,
             "False": False,

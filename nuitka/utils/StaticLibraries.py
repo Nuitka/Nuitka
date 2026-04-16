@@ -107,11 +107,11 @@ def _getSysConfigVarLIBPL():
         return None
 
 
-def _getSystemStaticLibPythonPath():
+def _getSystemStaticLibPythonPath(python_debug):
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
 
     sys_prefix = getSystemPrefixPath()
-    python_abi_version = python_version_str + getPythonABI()
+    python_abi_version = python_version_str + getPythonABI(python_debug=python_debug)
 
     if isMonolithPy():
         # MonolithPy has this.
@@ -224,11 +224,13 @@ def _getSystemStaticLibPythonPath():
     return None
 
 
-def getSystemStaticLibPythonPath():
+def getSystemStaticLibPythonPath(python_debug):
     global _static_lib_python_path  # singleton, pylint: disable=global-statement
 
     if _static_lib_python_path is False:
-        _static_lib_python_path = _getSystemStaticLibPythonPath()
+        _static_lib_python_path = _getSystemStaticLibPythonPath(
+            python_debug=python_debug
+        )
 
     return _static_lib_python_path
 

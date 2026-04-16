@@ -379,9 +379,10 @@ longer part of Winlibs and therefore no more available this way. Use only \
 --clang to use it from a MSVC installation.""")
 
     if isWin32Windows() and options.mingw64 and python_version >= 0x3D0:
-        return options_logger.sysexit(
-            "Error, cannot use '--mingw64' on Python version 3.13 or higher."
-        )
+        if not isExperimental("force-mingw64"):
+            return options_logger.sysexit(
+                "Error, cannot use '--mingw64' on Python version 3.13 or higher."
+            )
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         setQuiet()
@@ -853,7 +854,10 @@ Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
 options instead.""" % pattern)
 
-    if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
+    if (
+        options.static_libpython == "yes"
+        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is None
+    ):
         usable, reason = _couldUseStaticLibPython()
 
         return options_logger.sysexit(
@@ -866,7 +870,10 @@ this Python (%s) installation: %s"""
             )
         )
 
-    if shallUseStaticLibPython() and getSystemStaticLibPythonPath() is None:
+    if (
+        shallUseStaticLibPython()
+        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is None
+    ):
         return options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
 might be missing required packages. Disable with --static-libpython=no" if you don't \
@@ -1205,7 +1212,7 @@ working. Expect errors.""")
         options.static_libpython == "auto"
         and not shallMakeModule()
         and not shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath() is not None
+        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is not None
         and _couldUseStaticLibPython()[0] is not False
         and not shallUsePythonDebug()
     ):
@@ -1793,7 +1800,9 @@ def _couldUseStaticLibPython():
         and not isWin32Windows()
         and getArchitecture() in ("x86_64", "aarch64")
     ):
-        static_lib_path = getSystemStaticLibPythonPath()
+        static_lib_path = getSystemStaticLibPythonPath(
+            python_debug=shallUsePythonDebug()
+        )
 
         if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
             try:
@@ -1924,7 +1933,9 @@ def shallUseStaticLibPython():
         _shall_use_static_lib_python, reason = _shallUseStaticLibPython()
 
         if _shall_use_static_lib_python and reason:
-            static_libpython = getSystemStaticLibPythonPath()
+            static_libpython = getSystemStaticLibPythonPath(
+                python_debug=shallUsePythonDebug()
+            )
 
             if not static_libpython:
                 return options_logger.sysexit("""\

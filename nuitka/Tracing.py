@@ -247,12 +247,25 @@ def _aliasStyle(style):
         return "bold"
     if style == "link":
         return "blue"
-    if style == "warning":
+    if style in (
+        "warning",
+        "scons-unexpected",
+        "tool-fallback",
+    ):
         return "yellow"
-    if style == "scons-unexpected":
-        return "yellow"
-    if style == "error":
+    if style in (
+        "error",
+        "tool-error",
+    ):
         return "red"
+    if style == "tool-success":
+        return "green"
+    if style == "tool-progress":
+        return "blue"
+    if style == "tool-info":
+        return "bold"
+    if style == "tool-heavy":
+        return "pink"
     else:
         return style
 

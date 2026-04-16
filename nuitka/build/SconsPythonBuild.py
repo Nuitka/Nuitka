@@ -8,99 +8,38 @@ import os
 from nuitka.Tracing import scons_logger
 from nuitka.utils.Utils import isLinux, isMacOS
 
+from .SconsUtils import getArgumentDefaulted, getArgumentRequired
+
 # spell-checker: ignore cppdefines,cpppath,linkflags,libpath
 
 
-def _detectPythonHeaderPath(env):
-    # Many cases to deal with due to flavor peculiarities, pylint: disable=too-many-branches
+def _addPythonIncludePaths(env):
+    python_include_paths = []
 
-    if os.name == "nt":
-        candidates = [
-            # On Windows, the CPython official installation layout is relatively fixed,
-            os.path.join(env.python_prefix_external, "include"),
-            # On MSYS2 with MinGW64 Python, it is also the other form.
-            os.path.join(
-                env.python_prefix_external, "include", "python" + env.python_abi_version
-            ),
-            # For self-built Python on Windows, need to also add the "PC" directory,
-            # that a normal install won't have.
-            os.path.join(env.python_prefix_external, "PC"),
-        ]
-    else:
-        # The python header path is a combination of python version and debug
-        # indication, we make sure the headers are found by adding it to the C
-        # include path.
+    adapted_python_header_files_dir = getArgumentDefaulted(
+        "adapted_python_header_files_dir", ""
+    )
+    if adapted_python_header_files_dir:
+        python_include_paths.append(adapted_python_header_files_dir)
+        env.Append(CPPDEFINES=["_NUITKA_ADAPTED_PYTHON_HEADERS"])
 
-        candidates = [
-            os.path.join(
-                env.python_prefix_external, "include", "python" + env.python_abi_version
-            ),
-            # CPython source code checkout
-            os.path.join(env.python_prefix_external, "Include"),
-            # Haiku specific paths:
-            os.path.join(
-                env.python_prefix_external,
-                "develop/headers",
-                "python" + env.python_abi_version,
-            ),
-        ]
-
-        # Not all Python versions, have the ABI version to use for the debug version.
-        if env.python_debug and "d" in env.python_abi_version:
-            candidates.append(
-                os.path.join(
-                    env.python_prefix_external,
-                    "include",
-                    "python" + env.python_abi_version.replace("d", ""),
-                )
-            )
-
-    search = ["Python.h"]
-    if env.self_compiled_python_uninstalled:
-        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
-
-    for candidate in candidates:
-        for s in tuple(search):
-            found = False
-            if os.path.exists(os.path.join(candidate, s)):
-                search.remove(s)
-                found = True
-
-            if found:
-                yield candidate
-
-        if not search:
-            break
-    else:
-        if os.name == "nt":
-            scons_logger.sysexit(
-                """\
-Error, you seem to be using the unsupported embeddable CPython distribution \
-use a full Python instead.""",
-                exit_code=27,  # Fatal error exit for scons
-            )
-        else:
-            scons_logger.sysexit(
-                """\
-Error, no 'Python.h' %s headers can be found at '%s', dependency \
-not satisfied!"""
-                % (
-                    "debug" if env.python_debug else "development",
-                    candidates,
-                ),
-                exit_code=27,  # Fatal error exit for scons
-            )
+    python_include_path = getArgumentRequired("python_include_path")
+    python_include_paths.append(python_include_path)
 
     if env.python_version >= (3, 13):
         # spell-checker: ignore mimalloc
-        yield os.path.join(candidate, "internal", "mimalloc")
+        python_include_paths.append(
+            os.path.join(python_include_path, "internal", "mimalloc")
+        )
 
     if env.self_compiled_python_uninstalled:
-        yield env.python_prefix_external
+        python_include_paths.append(env.python_prefix_external)
+
+    env.Append(CPPPATH=python_include_paths)
 
 
 def applyPythonBuildSettings(env):
-    env.Append(CPPPATH=list(_detectPythonHeaderPath(env)))
+    _addPythonIncludePaths(env)
 
     if env.monolithpy:
         env.Append(CPPDEFINES=["_MONOLITHPY"])

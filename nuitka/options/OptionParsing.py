@@ -1207,9 +1207,9 @@ for small test cases. Defaults to off.""",
 )
 
 development_group.add_option(
-    "--devel-generate-ming64-header",
+    "--devel-generate-python-internal-offsets",
     action="store_true",
-    dest="generate_mingw64_header",
+    dest="generate_python_internal_offsets",
     default=False,
     require_compiling=False,
     github_action=False,
@@ -2757,7 +2757,7 @@ def runSpecialCommandsFromOptions(options):
         )
         sys.exit(0)
 
-    if options.generate_mingw64_header:
+    if options.generate_python_internal_offsets:
         from nuitka.tools.general.generate_header.GenerateHeader import (
             generateHeader,
         )

@@ -6,6 +6,7 @@
 Mostly used on Windows, for dependency walker and ccache binaries.
 """
 
+import contextlib
 import os
 
 from nuitka.Progress import withNuitkaDownloadProgressBar
@@ -70,7 +71,8 @@ Fully automatic, cached. Proceed and download""" % (message,),
     return True
 
 
-def getDownload(name, url, download_path):
+@contextlib.contextmanager
+def withUrlOpen(url):
     if python_version < 0x300:
         from urllib2 import (  # pylint: disable=I0021,import-error
             Request,
@@ -95,60 +97,66 @@ def getDownload(name, url, download_path):
     # Be fair and provide a user agent
     request_headers = {"User-Agent": "Nuitka Downloader/%s" % getNuitkaVersion()}
 
-    def _performDownload(current_url, current_ssl_context, report_hook):
-        req = Request(current_url, headers=request_headers)
+    req = Request(url, headers=request_headers)
 
-        with urlopen(req, context=current_ssl_context, timeout=30.0) as response:
-            # Try to get the total size from headers
+    try:
+        if python_version < 0x300:
+            response = urlopen(req, timeout=30.0)
+            yield response
+            response.close()
+        else:
+            with urlopen(req, context=ssl_context, timeout=30.0) as response:
+                yield response
+    except Exception:  # pylint: disable=broad-except
+        if url.startswith("https://"):
+            http_url = "http://" + url[len("https://") :]
+            req_fallback = Request(http_url, headers=request_headers)
+
             if python_version < 0x300:
-                total_size_header = response.info().getheader("Content-Length")
+                response = urlopen(req_fallback, timeout=30.0)
+                yield response
+                response.close()
             else:
-                total_size_header = response.getheader("Content-Length")
+                with urlopen(req_fallback, context=None, timeout=30.0) as response:
+                    yield response
+        else:
+            raise
 
-            total_size = (
-                int(total_size_header)
-                if total_size_header and total_size_header.isdigit()
-                else -1
-            )
-            block_size_for_reading = 8192
 
-            # Initial call for progress bar to set total size.
-            if report_hook is not None:
-                report_hook(0, 1, total_size)
-
-            copied_size = 0
-
-            # Actual file writing
-            with open(download_path, "wb") as out_file:
-                while True:
-                    chunk = response.read(block_size_for_reading)
-                    if not chunk:
-                        break
-                    out_file.write(chunk)
-                    copied_size += len(chunk)
-
-                    if report_hook is not None:
-                        report_hook(copied_size, 1, total_size)
-
-    with withNuitkaDownloadProgressBar(
-        desc="Download %s" % name
-    ) as report_hook_fn_outer:
+def getDownload(name, url, download_path):
+    with withNuitkaDownloadProgressBar(desc="Download %s" % name) as report_hook:
         try:
-            try:
-                _performDownload(
-                    url,
-                    ssl_context,
-                    report_hook_fn_outer,
-                )
-            except Exception:  # pylint: disable=broad-except
-                if url.startswith("https://"):
-                    http_url = "http://" + url[len("https://") :]
+            with withUrlOpen(url) as response:
+                # Try to get the total size from headers
+                if python_version < 0x300:
+                    total_size_header = response.info().getheader("Content-Length")
+                else:
+                    total_size_header = response.getheader("Content-Length")
 
-                    _performDownload(
-                        http_url,
-                        None,
-                        report_hook_fn_outer,
-                    )
+                total_size = (
+                    int(total_size_header)
+                    if total_size_header and total_size_header.isdigit()
+                    else -1
+                )
+                block_size_for_reading = 8192
+
+                # Initial call for progress bar to set total size.
+                if report_hook is not None:
+                    report_hook(0, 1, total_size)
+
+                copied_size = 0
+
+                # Actual file writing
+                with open(download_path, "wb") as out_file:
+                    while True:
+                        chunk = response.read(block_size_for_reading)
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
+                        copied_size += len(chunk)
+
+                        if report_hook is not None:
+                            report_hook(copied_size, 1, total_size)
         except BaseException:
             deleteFile(download_path, must_exist=False)
             raise

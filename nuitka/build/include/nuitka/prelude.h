@@ -217,6 +217,16 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #endif
 
+#ifdef _NUITKA_ADAPTED_PYTHON_HEADERS
+/* Cross-compiler offset access and runtime abstraction layer */
+#include "nuitka/python_internals_access.h"
+#else
+#if PYTHON_VERSION >= 0x3c0
+#define Nuitka_PyRuntime__imports (&_PyRuntime.imports)
+#define Nuitka_PyRuntime__static_objects (&_PyRuntime.static_objects)
+#endif
+#endif
+
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
