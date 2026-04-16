@@ -22,7 +22,8 @@ def _getBiomeBinaryPath(assume_yes_for_downloads):
     Returns:
         str or None: path to the biome executable or None if not supported
     """
-    # Many branches used to map OS and arch, pylint: disable=too-many-branches
+    # Many branches used to map OS and arch and we got to give up more often
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     # singleton, pylint: disable=global-statement
     global _biome_path
@@ -45,7 +46,17 @@ def _getBiomeBinaryPath(assume_yes_for_downloads):
         if architecture == "x86_64":
             arch_name = "x64"
         elif architecture == "x86":
-            arch_name = "ia32"
+            # 32-bit Python might run on 64-bit OS. Biome does not provide ia32 builds,
+            # so we explicitly check if the host allows x64 execution.
+            #
+            # Strange variable name, but it's what Windows uses. spell-checker: ignore ARCHITEW
+            if (
+                os.getenv("PROCESSOR_ARCHITEW6432") == "AMD64"
+                or os.getenv("PROCESSOR_ARCHITECTURE") == "AMD64"
+            ):
+                arch_name = "x64"
+            else:
+                return None
         elif architecture == "arm64":
             arch_name = "arm64"
         else:
