@@ -490,6 +490,22 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
     for variable, variable_traces in iterItems(new_traces):
         variable.setTracesForUserUpdate(owner, variable_traces)
 
+        if variable in old_traces:
+            for version, new_trace in iterItems(variable_traces):
+                old_trace = old_traces[variable].get(version)
+                if old_trace is not None:
+                    if (
+                        old_trace.hasNoMergeOrNameUsage() is False
+                        and new_trace.hasNoMergeOrNameUsage() is True
+                    ):
+                        # pylint: disable=cell-var-from-loop
+                        new_collection.signalChange(
+                            "var_usage",
+                            source_ref,
+                            lambda: "Variable '%s' usage ceased." % variable.getName(),
+                        )
+                        break
+
     for variable in old_traces:
         # Remove traces for variables that are not in the new collection unless
         # they are finalized, then we don't need to update them.

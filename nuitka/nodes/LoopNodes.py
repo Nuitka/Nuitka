@@ -257,6 +257,14 @@ class StatementLoop(StatementLoopBase):
                     del self.loop_previous_resume[loop_variable]
                     del self.loop_start[loop_variable]
 
+                    # pylint: disable=cell-var-from-loop
+                    trace_collection.signalChange(
+                        "loop_analysis",
+                        self.source_ref,
+                        lambda: "Loop variable '%s' proven to not be changed in loop."
+                        % loop_variable.getName(),
+                    )
+
                     continue
 
                 # Keep this as a loop variable
