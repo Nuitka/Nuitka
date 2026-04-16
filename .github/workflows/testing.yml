@@ -395,3 +395,89 @@ jobs:
           Get-ChildItem env:
           python -m nuitka --version
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+
+  windows-arm:
+    needs: linux
+    runs-on: windows-11-arm
+    strategy:
+      matrix:
+        python_version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+    name: Windows ARM Python ${{ matrix.python_version }}
+    steps:
+      - name: 🛎️ Checkout (Attempt 1)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
+
+      - name: 🐍 Use Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: Verbose scons output in compilation
+        run: |
+          set -x
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
+
+      - name: Archive compilation reports for empty modules
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
+          path: |
+            *.xml
+
+      - name: Run Nuitka test suite
+        run: |
+          Get-ChildItem env:
+          python -m nuitka --version
+          python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
