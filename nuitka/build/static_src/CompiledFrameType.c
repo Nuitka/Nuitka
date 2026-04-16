@@ -930,7 +930,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #if PYTHON_VERSION >= 0x3b0
     if (function_qualname) {
         CHECK_OBJECT(function_qualname);
-        PyUnicode_CheckExact(function_qualname);
+        assert(PyUnicode_CheckExact(function_qualname));
     }
 #endif
 
