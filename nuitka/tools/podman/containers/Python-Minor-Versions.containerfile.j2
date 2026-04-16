@@ -1,20 +1,23 @@
 {#-  Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -#}
 
-FROM debian:buster
+FROM debian:11
 
 COPY bin/compile-python-for-nuitka-linux.sh /usr/local/bin/compile-python-for-nuitka-linux.sh
 RUN chmod +x /usr/local/bin/compile-python-for-nuitka-linux.sh
 
 # Install dependencies
 # spell-checker: ignore libncurses libgdbm libnss libreadline
-RUN apt-get update && apt-get install -y curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev
-libssl-dev libreadline-dev libffi-dev gdb ccache
+RUN apt-get update && \
+apt-get install -y curl wget build-essential zlib1g-dev \
+libncurses5-dev libgdbm-dev libnss3-dev \
+libssl-dev libreadline-dev libffi-dev gdb \
+ccache
 
-{% set versions = ["3.7.3", "3.7.4", "3.12.6", "3.12.7"] %}
+{% set versions = ["3.7.3", "3.7.4", "3.12.6", "3.12.7", "3.13.11", "3.13.12"] %}
 {% for version in versions %}
 # Install Python {{ version }}
-RUN /usr/local/bin/compile-python-for-nuitka-linux.sh --version {{ version }} \
-&& rm -rf Python-{{ version }} Python-{{ version }}.tar.xz
+RUN /usr/local/bin/compile-python-for-nuitka-linux.sh --version {{ version }} --prefix /opt/python{{ version }}
+--cleanup
 {% endfor %}
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}

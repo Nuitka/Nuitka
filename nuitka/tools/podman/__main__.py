@@ -7,7 +7,7 @@ Podman and Docker should both work, but the first one is recommended.
 """
 
 import os
-import shutil
+import re
 import sys
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -25,6 +25,8 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    copyFile,
+    copyTree,
     getFileContents,
     makePath,
     putTextFileContents,
@@ -158,6 +160,24 @@ def isPodman(podman_path):
     return "podman" in os.path.normcase(os.path.basename(podman_path))
 
 
+def _copyContainerReferences(container_content, repo_root, build_context_dir):
+    for match in re.finditer(
+        r"^\s*COPY\s+(?:--[a-z-]+\S+\s+)*([^\s]+)", container_content, re.MULTILINE
+    ):
+        source_path = match.group(1)
+        full_source_path = os.path.join(repo_root, source_path)
+
+        if os.path.exists(full_source_path):
+            dest_path = os.path.join(build_context_dir, source_path)
+            makePath(os.path.dirname(dest_path))
+
+            if os.path.isdir(full_source_path):
+                if not os.path.exists(dest_path):
+                    copyTree(full_source_path, dest_path)
+            else:
+                copyFile(full_source_path, dest_path)
+
+
 def updateContainer(podman_path, container_tag_name, container_file_path, quiet):
     requirements_file = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
@@ -180,20 +200,26 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
     # Use a temporary directory for the build context.
     with withTemporaryDirectory(containers_logger) as build_context_dir:
         # Copy requirements-devel.txt
-        shutil.copy(
+        copyFile(
             requirements_file, os.path.join(build_context_dir, "requirements-devel.txt")
         )
 
         # Copy nuitka/utils/requirements-private.txt
         requirements_private_dest = os.path.join(build_context_dir, "nuitka", "utils")
         makePath(requirements_private_dest)
-        shutil.copy(
+        copyFile(
             requirements_private_file,
             os.path.join(requirements_private_dest, "requirements-private.txt"),
         )
 
         # Read original container file
         container_content = getFileContents(container_file_path)
+
+        _copyContainerReferences(
+            container_content=container_content,
+            repo_root=os.path.dirname(requirements_file),
+            build_context_dir=build_context_dir,
+        )
 
         # Append new instructions
         container_content += "\n# Automatic requirements caching\n"
