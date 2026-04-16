@@ -13,6 +13,7 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
+    CTypePyCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
 )
@@ -252,9 +253,23 @@ def _getVariableCodeName(in_context, variable):
         return "var_" + variable.getVariableCodeName()
 
 
+if python_version >= 0x360:
+
+    def _pickCellCType(variable):
+        if variable.getName() == "__class__":
+            return CTypePyCellObject
+        else:
+            return CTypeCellObject
+
+else:
+
+    def _pickCellCType(variable):
+        # Not relevant before Python 3.6, pylint: disable=unused-argument
+        return CTypeCellObject
+
+
 def getPickedCType(variable, context):
     """Return type to use for specific context."""
-
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
 
@@ -262,8 +277,7 @@ def getPickedCType(variable, context):
         if variable.isSharedTechnically():
             # TODO: That need not really be an impedient, we could share pointers to
             # everything.
-
-            result = CTypeCellObject
+            return _pickCellCType(variable)
         else:
             shapes = variable.getTypeShapes()
 
@@ -277,11 +291,11 @@ def getPickedCType(variable, context):
 
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
-            result = CTypeCellObject
+            return _pickCellCType(variable)
         else:
             result = CTypePyObjectPtrPtr
     else:
-        result = CTypeCellObject
+        return _pickCellCType(variable)
 
     return result
 

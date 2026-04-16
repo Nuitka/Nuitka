@@ -197,6 +197,9 @@ def getConstantDefaultPopulation():
     if shallMakeModule():
         result.append("loader")
 
+    if python_version >= 0x360:
+        result.append("__classcell__")
+
     # Resource reader files interface, including for backport
     if python_version >= 0x390:
         result.append("as_file")

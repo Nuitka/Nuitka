@@ -17,6 +17,7 @@ from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
+    CTypePyCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
 )
@@ -93,6 +94,8 @@ class VariableDeclaration(object):
             return CTypePyObjectPtr
         elif c_type == "struct Nuitka_CellObject *":
             return CTypeCellObject
+        elif c_type == "PyCellObject *":
+            return CTypePyCellObject
         elif c_type == "PyObject **":
             return CTypePyObjectPtrPtr
         elif c_type == "nuitka_bool":

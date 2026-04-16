@@ -1,6 +1,13 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Test builtin super() function.
+
+This test checks the behavior of the builtin super() function in
+Python 2 and Python 3, with enhanced usage for Python 3.6+ where
+it's supposed to work earlier.
+"""
+
 from __future__ import print_function
 
 import sys
@@ -10,11 +17,11 @@ __class__ = "Using module level __class__ variable, would be wrong for Python3"
 
 
 class ClassWithUnderClassClosure:
-    def g(self):
-        def h():
+    def someMethodUsingDunderClass(self):
+        def someLocalFunctionTakingClassClosure():
             print("Variable __class__ in ClassWithUnderClassClosure is", __class__)
 
-        h()
+        someLocalFunctionTakingClassClosure()
 
         try:
             print(
@@ -26,11 +33,11 @@ class ClassWithUnderClassClosure:
 
 
 print("Class with a method that has a local function accessing __class__:")
-ClassWithUnderClassClosure().g()
+ClassWithUnderClassClosure().someMethodUsingDunderClass()
 
 
 class ClassWithoutUnderClassClosure:
-    def g(self):
+    def someMethodAssigningDunderClass(self):
         __class__ = "Providing __class__ ourselves, then it must be used"
         print(__class__)
 
@@ -40,7 +47,7 @@ class ClassWithoutUnderClassClosure:
             print("ClassWithoutUnderClassClosure: Occurred during super call", repr(e))
 
 
-ClassWithoutUnderClassClosure().g()
+ClassWithoutUnderClassClosure().someMethodAssigningDunderClass()
 
 # For Python2 only.
 __class__ = "Global __class__"
@@ -56,7 +63,7 @@ def deco(C):
 
 
 @deco
-class X:
+class SomeClassAssigningDunderClass:
     __class__ = "some string"
 
     def f1(self):
@@ -72,15 +79,13 @@ class X:
 
     def f4(self):
         print("f4", self)
-        self = X()
+        self = SomeClassAssigningDunderClass()
         print("f4", self)
 
         try:
             print("f4", super())
             print("f4", super().__self__)
         except TypeError:
-            import sys
-
             assert sys.version_info < (3,)
 
     f5 = lambda x: __class__
@@ -89,16 +94,12 @@ class X:
         try:
             print("f6", super())
         except TypeError:
-            import sys
-
             assert sys.version_info < (3,)
 
     def f7(self):
         try:
             yield super()
         except TypeError:
-            import sys
-
             assert sys.version_info < (3,)
 
     print("Early pre-class calls begin")
@@ -110,7 +111,7 @@ class X:
     del __class__
 
 
-x = X()
+x = SomeClassAssigningDunderClass()
 x.f1()
 x.f2()
 x.f4()
@@ -138,6 +139,34 @@ if sys.version_info >= (3, 6):
 
 makeSuperCall(type, None)
 makeSuperCall(type, 1)
+
+
+if sys.version_info >= (3, 6):
+    print(
+        "Testing super() with __init_subclass__ and class decorator requiring __classcell__:"
+    )
+
+    def makeClassDecorator(cls):
+        def __init__(self):
+            cls.__self_init__(self)
+
+        cls.__init__ = __init__
+        return cls
+
+    class ClassWithInitSubclassSuperParent:
+        def __init__(self):
+            print("ClassWithInitSubclassSuper Parent Initialized")
+
+        def __init_subclass__(cls, decorator):
+            decorator(cls)()
+
+    class ClassWithInitSubclassSuperChild(
+        ClassWithInitSubclassSuperParent,
+        decorator=makeClassDecorator,
+    ):
+        def __self_init__(self):
+            super().__init__()
+
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

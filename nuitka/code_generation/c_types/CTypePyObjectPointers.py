@@ -12,6 +12,9 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
     template_del_local_tolerant,
+    template_del_py_cell_intolerant,
+    template_del_py_cell_known,
+    template_del_py_cell_tolerant,
     template_del_shared_intolerant,
     template_del_shared_known,
     template_del_shared_tolerant,
@@ -24,6 +27,9 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_write_local_inplace,
     template_write_local_unclear_ref0,
     template_write_local_unclear_ref1,
+    template_write_py_cell_inplace,
+    template_write_py_cell_unclear_ref0,
+    template_write_py_cell_unclear_ref1,
     template_write_shared_clear_ref0,
     template_write_shared_clear_ref1,
     template_write_shared_inplace,
@@ -40,6 +46,13 @@ make_list_constant_hinted_threshold = 13
 
 
 class CPythonPyObjectPtrBase(CTypeBase):
+    @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "%s %s NULL" % (
+            cls.emitValueAccessCode(value_name=value_name, emit=None, context=None),
+            "==" if inverted else "!=",
+        )
+
     @classmethod
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
@@ -319,10 +332,6 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             return init_from
 
     @classmethod
-    def getInitTestConditionCode(cls, value_name, inverted):
-        return "%s %s NULL" % (value_name, "==" if inverted else "!=")
-
-    @classmethod
     def emitReInitCode(cls, value_name, emit):
         emit("%s = NULL;" % value_name)
 
@@ -415,10 +424,6 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
-
-    @classmethod
-    def getInitTestConditionCode(cls, value_name, inverted):
-        return "*%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
@@ -552,6 +557,87 @@ class CTypeCellObject(CTypeBase):
     @classmethod
     def emitReleaseAssertionCode(cls, value_name, emit):
         emit("CHECK_OBJECT(%s);" % value_name)
+
+
+class CTypePyCellObject(CTypeCellObject):
+    c_type = "PyCellObject *"
+
+    @classmethod
+    def getInitValue(cls, init_from):
+        if init_from is not None:
+            return "(PyCellObject *)PyCell_New(%s)" % init_from
+        else:
+            return "(PyCellObject *)PyCell_New(NULL)"
+
+    @classmethod
+    def getInitTestConditionCode(cls, value_name, inverted):
+        return "PyCell_GET((PyObject *)%s) %s NULL" % (
+            value_name,
+            "==" if inverted else "!=",
+        )
+
+    @classmethod
+    def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
+        emit(
+            "%s = (struct Nuitka_CellObject *)%s;"
+            % (target_cell_code, variable_code_name)
+        )
+
+        emit("Py_INCREF(%s);" % (target_cell_code))
+
+    @classmethod
+    def emitVariableAssignCode(
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
+    ):
+        if inplace:
+            template = template_write_py_cell_inplace
+
+        else:
+            if ref_count:
+                template = template_write_py_cell_unclear_ref0
+                context.removeCleanupTempName(tmp_name)
+            else:
+                template = template_write_py_cell_unclear_ref1
+
+        emit(template % {"identifier": value_name, "tmp_name": tmp_name})
+
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        from ..VariableDeclarations import VariableDeclaration
+
+        return VariableDeclaration(
+            "PyObject *", "PyCell_GET((PyObject *)%s)" % value_name, None, None
+        )
+
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "PyCell_SET((PyObject *)%(to_name)s, (%(condition)s) ? Py_True : Py_False);"
+            % {"to_name": to_name, "condition": condition}
+        )
+
+    @classmethod
+    def getDeleteObjectCode(
+        cls, to_name, value_name, needs_check, tolerant, emit, context
+    ):
+        if not needs_check:
+            emit(template_del_py_cell_known % {"identifier": value_name})
+        elif tolerant:
+            emit(template_del_py_cell_tolerant % {"identifier": value_name})
+        else:
+            emit(
+                template_del_py_cell_intolerant
+                % {"identifier": value_name, "result": to_name}
+            )
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit):
+        emit("CHECK_OBJECT(PyCell_GET((PyObject *)%s));" % value_name)
+
+    @classmethod
+    def emitReleaseAssertionCode(cls, value_name, emit):
+        emit("CHECK_OBJECT(%s);" % value_name)
+        emit("assert(PyCell_Check((PyObject *)%s));" % value_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

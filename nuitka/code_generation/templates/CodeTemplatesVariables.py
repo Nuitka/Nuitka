@@ -367,6 +367,55 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
 }
 """
 
+template_write_py_cell_inplace = """\
+PyCell_SET((PyObject *)%(identifier)s, %(tmp_name)s);
+"""
+
+template_write_py_cell_unclear_ref0 = """\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(identifier)s);
+    PyCell_SET((PyObject *)%(identifier)s, %(tmp_name)s);
+    Py_XDECREF(old);
+}
+"""
+
+template_write_py_cell_unclear_ref1 = """\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(identifier)s);
+    PyCell_SET((PyObject *)%(identifier)s, %(tmp_name)s);
+    Py_INCREF(%(tmp_name)s);
+    Py_XDECREF(old);
+}
+"""
+
+template_del_py_cell_tolerant = """\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(identifier)s);
+    PyCell_SET((PyObject *)%(identifier)s, NULL);
+    Py_XDECREF(old);
+}
+"""
+
+template_del_py_cell_intolerant = """\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(identifier)s);
+    PyCell_SET((PyObject *)%(identifier)s, NULL);
+    Py_XDECREF(old);
+
+    %(result)s = old != NULL;
+}
+"""
+
+template_del_py_cell_known = """\
+{
+    PyObject *old = PyCell_GET((PyObject *)%(identifier)s);
+    PyCell_SET((PyObject *)%(identifier)s, NULL);
+
+    CHECK_OBJECT(old);
+    Py_DECREF(old);
+}
+"""
+
 from . import TemplateDebugWrapper  # isort:skip
 
 TemplateDebugWrapper.checkDebug(globals())

@@ -15,6 +15,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingMetaclassBasesMixin,
 )
 from .ExpressionBases import ExpressionBase
+from .ExpressionBasesGenerated import ExpressionCallMetaclassBase
 from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
@@ -277,6 +278,43 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
+    kind = "EXPRESSION_CALL_METACLASS"
+
+    named_children = ("metaclass", "name", "bases", "dict_arg", "class_decl_dict")
+    node_attributes = ("class_variable",)
+
+    def __init__(
+        self,
+        metaclass,
+        name,
+        bases,
+        dict_arg,
+        class_decl_dict,
+        class_variable,
+        source_ref,
+    ):
+        ExpressionCallMetaclassBase.__init__(
+            self,
+            metaclass=metaclass,
+            name=name,
+            bases=bases,
+            dict_arg=dict_arg,
+            class_decl_dict=class_decl_dict,
+            class_variable=class_variable,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        # Any exception may be raised by metaclass call.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

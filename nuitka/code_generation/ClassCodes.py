@@ -15,6 +15,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .VariableCodes import getLocalVariableDeclaration
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
@@ -133,6 +134,61 @@ def generateTypeOperationPrepareCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name,
             release_names=(type_name, args_name, kwargs_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateCallMetaclassCode(to_name, expression, emit, context):
+    (
+        metaclass_name,
+        name_name,
+        bases_name,
+        dict_name,
+        class_decl_dict_name,
+    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
+
+    class_var_name = getLocalVariableDeclaration(
+        context, expression.class_variable, None
+    )
+
+    if python_version >= 0x360 and expression.class_variable.isSharedTechnically():
+        # In Python 3.6+, type.__new__ requires "__classcell__" to be populated in the class dictionary
+        # if there are methods capturing it.
+        emit(
+            "DICT_SET_ITEM(%s, const_str_plain___classcell__, (PyObject *)%s);"
+            % (dict_name, class_var_name)
+        )
+
+    args_name = context.allocateTempName("metaclass_args")
+    emit(
+        "%s = MAKE_TUPLE3(tstate, %s, %s, %s);"
+        % (args_name, name_name, bases_name, dict_name)
+    )
+    context.addCleanupTempName(args_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "metaclass_result", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = CALL_FUNCTION(tstate, %s, %s, %s);"
+            % (
+                value_name,
+                metaclass_name,
+                args_name,
+                "NULL" if class_decl_dict_name is None else class_decl_dict_name,
+            )
+        )
+
+        release_names = [metaclass_name, name_name, bases_name, dict_name, args_name]
+        if class_decl_dict_name is not None:
+            release_names.append(class_decl_dict_name)
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=release_names,
             emit=emit,
             context=context,
         )

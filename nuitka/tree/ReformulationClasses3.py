@@ -19,6 +19,7 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
+    ExpressionCallMetaclass,
     ExpressionClassDictBody,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
@@ -443,27 +444,23 @@ def buildClassNode3(provider, node, source_ref):
     statements += (
         makeStatementAssignmentVariable(
             variable=class_variable,
-            source=makeExpressionCall(
-                called=ExpressionTempVariableRef(
+            source=ExpressionCallMetaclass(
+                metaclass=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
-                args=makeExpressionMakeTuple(
-                    elements=(
-                        makeConstantRefNode(
-                            constant=node.name,
-                            source_ref=source_ref,
-                            user_provided=True,
-                        ),
-                        makeBasesRef(),
-                        ExpressionLocalsDictRef(
-                            locals_scope=locals_scope, source_ref=source_ref
-                        ),
-                    ),
+                name=makeConstantRefNode(
+                    constant=node.name,
                     source_ref=source_ref,
+                    user_provided=True,
                 ),
-                kw=ExpressionTempVariableRef(
+                bases=makeBasesRef(),
+                dict_arg=ExpressionLocalsDictRef(
+                    locals_scope=locals_scope, source_ref=source_ref
+                ),
+                class_decl_dict=ExpressionTempVariableRef(
                     variable=tmp_class_decl_dict, source_ref=source_ref
                 ),
+                class_variable=class_variable,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,

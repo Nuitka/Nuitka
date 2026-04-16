@@ -2049,6 +2049,217 @@ class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
 ExpressionListOperationCountBase = ChildrenHavingListArgValueFinalNoRaiseMixin
 
 
+class ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
+    ExpressionBase
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionCallMetaclass
+
+    def __init__(
+        self,
+        metaclass,
+        name,
+        bases,
+        dict_arg,
+        class_decl_dict,
+        class_variable,
+        source_ref,
+    ):
+        metaclass.parent = self
+
+        self.subnode_metaclass = metaclass
+
+        name.parent = self
+
+        self.subnode_name = name
+
+        bases.parent = self
+
+        self.subnode_bases = bases
+
+        dict_arg.parent = self
+
+        self.subnode_dict_arg = dict_arg
+
+        class_decl_dict.parent = self
+
+        self.subnode_class_decl_dict = class_decl_dict
+
+        self.class_variable = class_variable
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "class_variable": self.class_variable,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_metaclass,
+            self.subnode_name,
+            self.subnode_bases,
+            self.subnode_dict_arg,
+            self.subnode_class_decl_dict,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("metaclass", self.subnode_metaclass),
+            ("name", self.subnode_name),
+            ("bases", self.subnode_bases),
+            ("dict_arg", self.subnode_dict_arg),
+            ("class_decl_dict", self.subnode_class_decl_dict),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_metaclass
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_metaclass = new_node
+
+            return
+
+        value = self.subnode_name
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        value = self.subnode_bases
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_bases = new_node
+
+            return
+
+        value = self.subnode_dict_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_dict_arg = new_node
+
+            return
+
+        value = self.subnode_class_decl_dict
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_class_decl_dict = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "metaclass": self.subnode_metaclass.makeClone(),
+            "name": self.subnode_name.makeClone(),
+            "bases": self.subnode_bases.makeClone(),
+            "dict_arg": self.subnode_dict_arg.makeClone(),
+            "class_decl_dict": self.subnode_class_decl_dict.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_metaclass.finalize()
+        del self.subnode_metaclass
+        self.subnode_name.finalize()
+        del self.subnode_name
+        self.subnode_bases.finalize()
+        del self.subnode_bases
+        self.subnode_dict_arg.finalize()
+        del self.subnode_dict_arg
+        self.subnode_class_decl_dict.finalize()
+        del self.subnode_class_decl_dict
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoComputeExpressionRaw(self, trace_collection):
+        for child in self.getVisitableNodes():
+            child.undoComputeExpressionRaw(trace_collection)
+
+        self.undoComputeExpression()
+
+    # For overload only
+    @staticmethod
+    def undoComputeExpression():
+        pass
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_metaclass.collectVariableAccesses(emit_variable)
+        self.subnode_name.collectVariableAccesses(emit_variable)
+        self.subnode_bases.collectVariableAccesses(emit_variable)
+        self.subnode_dict_arg.collectVariableAccesses(emit_variable)
+        self.subnode_class_decl_dict.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionCallMetaclassBase = (
+    ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin
+)
+
+
 class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

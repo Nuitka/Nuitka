@@ -73,6 +73,7 @@ from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import (
     generateBuiltinSuper1Code,
     generateBuiltinSuperCode,
+    generateCallMetaclassCode,
     generateSelectMetaclassCode,
     generateTypeOperationPrepareCode,
 )
@@ -658,6 +659,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_SUM2": generateBuiltinSum2Code,
         "EXPRESSION_BUILTIN_TYPE1": generateBuiltinType1Code,
         "EXPRESSION_BUILTIN_TYPE3": generateBuiltinType3Code,
+        "EXPRESSION_CALL_METACLASS": generateCallMetaclassCode,
         "EXPRESSION_BUILTIN_IMPORT": generateBuiltinImportCode,
         "EXPRESSION_BUILTIN_BOOL": generateBuiltinBoolCode,
         "EXPRESSION_BUILTIN_BYTEARRAY1": generateBuiltinBytearray1Code,

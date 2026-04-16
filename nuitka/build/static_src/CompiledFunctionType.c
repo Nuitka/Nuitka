@@ -1264,11 +1264,13 @@ PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *functio
 
     if (closure != Py_None) {
         for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(closure); i++) {
-            struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)PyTuple_GET_ITEM(closure, i);
+            PyObject *cell = PyTuple_GET_ITEM(closure, i);
+            assert(Nuitka_CellOrPyCell_Check(cell));
 
-            assert(Nuitka_Cell_Check((PyObject *)cell));
+            PyObject *cell_value = Nuitka_CellOrPyCell_GET(cell);
+            CHECK_OBJECT(cell_value);
 
-            PyTuple_SET_ITEM0(closure, i, cell->ob_ref);
+            PyTuple_SET_ITEM0(closure, i, cell_value);
         }
     }
 

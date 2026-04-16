@@ -201,11 +201,13 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-                assert(Nuitka_Cell_Check((PyObject *)value));
+                assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
                 CHECK_OBJECT(value);
 
-                if (value->ob_ref != NULL) {
-                    DICT_SET_ITEM(result, *var_names, value->ob_ref);
+                PyObject *cell_value = Nuitka_CellOrPyCell_GET((PyObject *)value);
+
+                if (cell_value != NULL) {
+                    DICT_SET_ITEM(result, *var_names, cell_value);
                 }
 
                 t += sizeof(struct Nuitka_CellObject *);
@@ -385,7 +387,7 @@ static void _Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-                assert(Nuitka_Cell_Check((PyObject *)value));
+                assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
                 CHECK_OBJECT(value);
 
                 Py_DECREF(value);
@@ -528,7 +530,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
         }
         case NUITKA_TYPE_DESCRIPTION_CELL: {
             struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-            assert(Nuitka_Cell_Check((PyObject *)value));
+            assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
             CHECK_OBJECT(value);
 
             Py_VISIT(value);
@@ -1196,9 +1198,9 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
         }
         case NUITKA_TYPE_DESCRIPTION_CELL: {
             struct Nuitka_CellObject *value = va_arg(ap, struct Nuitka_CellObject *);
-            assert(Nuitka_Cell_Check((PyObject *)value));
+            assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
             CHECK_OBJECT(value);
-            CHECK_OBJECT_X(value->ob_ref);
+            CHECK_OBJECT_X(Nuitka_CellOrPyCell_GET((PyObject *)value));
 
             memcpy(t, &value, sizeof(struct Nuitka_CellObject *));
             // TODO: Reference count must become wrong here, should

@@ -10,6 +10,9 @@
 extern PyTypeObject Nuitka_Cell_Type;
 
 static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
+static inline bool Nuitka_CellOrPyCell_Check(PyObject *object) {
+    return Nuitka_Cell_Check(object) || PyCell_Check(object);
+}
 
 struct Nuitka_CellObject {
     /* Python object folklore: */
@@ -31,6 +34,13 @@ extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 #define Nuitka_Cell_GET(cell)                                                                                          \
     (CHECK_OBJECT(cell), assert(Nuitka_Cell_Check((PyObject *)cell)), (((struct Nuitka_CellObject *)(cell))->ob_ref))
 #endif
+
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CellOrPyCell_GET(PyObject *cell) {
+    CHECK_OBJECT(cell);
+    assert(Nuitka_CellOrPyCell_Check(cell));
+
+    return ((struct Nuitka_CellObject *)cell)->ob_ref;
+}
 
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Cell_Type;
