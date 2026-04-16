@@ -428,6 +428,15 @@ def _removeUnwantedArtifacts(scons_created_exe):
 
             deleteFile(linker_left_over, must_exist=False)
 
+        if not isUnstripped():
+            pdb_filename = changeFilenameExtension(scons_created_exe, ".pdb")
+
+            if os.path.exists(pdb_filename):
+                return scons_logger.sysexit(
+                    "Error, unwanted '.pdb' file '%s' was created during the build. Report the bug."
+                    % pdb_filename
+                )
+
 
 def runScons(scons_options, env_values, scons_filename):
     # We are handling quite a few error cases, as this contains transfer of

@@ -633,9 +633,6 @@ Apply encryption to standard error.
 .TP
 \fB\-\-encrypt\-debug\-init\fR
 In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.
-.TP
-\fB\-\-encrypt\-crypto\-package\fR=\fI\,CRYPTO_PACKAGE\/\fR
-These are two very similar packages that can both do the encryption, and to avoid duplication in case one of your packages requires the other, you get to select which one to use by the plugin code. By default "pycryptodomex" is used and only legacy code uses that. However it will fallback to "pycryptodome" if that's the only one installed, and you can enforce Nuitka choice if both are for some reason.
 .IP
 Plugin options of 'upx' (categories: integration):
 .TP

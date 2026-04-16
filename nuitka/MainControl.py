@@ -214,6 +214,18 @@ from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
+def _deleteResultFile(filename):
+    deleteFile(
+        path=filename,
+        must_exist=False,
+    )
+    if isWin32Windows():
+        deleteFile(
+            path=changeFilenameExtension(filename, ".pdb"),
+            must_exist=False,
+        )
+
+
 def _createMainModule():
     """Create a node tree.
 
@@ -277,15 +289,10 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
-    deleteFile(
-        path=OutputDirectories.getResultFullpath(onefile=False, real=True),
-        must_exist=False,
-    )
+    _deleteResultFile(OutputDirectories.getResultFullpath(onefile=False, real=True))
+
     if isOnefileMode():
-        deleteFile(
-            path=OutputDirectories.getResultFullpath(onefile=True, real=True),
-            must_exist=False,
-        )
+        _deleteResultFile(OutputDirectories.getResultFullpath(onefile=True, real=True))
 
         # Also make sure we inform the user in case the compression is not possible.
         getCompressorPython()
