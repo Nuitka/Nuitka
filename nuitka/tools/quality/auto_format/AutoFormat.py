@@ -534,7 +534,8 @@ def withFileOpenedAndAutoFormatted(
     """
 
     with withTemporaryFilename(
-        prefix=os.path.basename(filename), suffix=".tmp"
+        prefix=os.path.basename(filename),
+        suffix=getFilenameExtension(filename) or ".tmp",
     ) as tmp_filename:
         with openTextFile(tmp_filename, "w") as output:
             yield output
