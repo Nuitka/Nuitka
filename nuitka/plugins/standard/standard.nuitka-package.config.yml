@@ -3132,19 +3132,17 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'multiprocess.util' # checksum: bbf4504b
+- module-name: 'multiprocess.util' # checksum: df30b465
   anti-bloat:
-    - description: 'remove unittest reference'
-      change_function:
-        '_cleanup_tests': 'un-callable'
-      when: 'not use_unittest'
+    - description: 'avoid test module usage'
+      no-auto-follow:
+        'test': 'ignore'
 
-- module-name: 'multiprocessing.util' # checksum: bbf4504b
+- module-name: 'multiprocessing.util' # checksum: df30b465
   anti-bloat:
-    - description: 'remove unittest reference'
-      change_function:
-        '_cleanup_tests': 'un-callable'
-      when: 'not use_unittest'
+    - description: 'avoid test module usage'
+      no-auto-follow:
+        'test': 'ignore'
 
 - module-name: 'nacl._sodium' # checksum: ff2e6560
   implicit-imports:
