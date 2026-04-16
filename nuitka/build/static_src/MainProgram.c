@@ -573,12 +573,13 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
-        if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
-            (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+        if ((i + 1 < argc) && ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
+                               (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0))) {
             fprintf(stderr,
-                    "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
+                    "Error, the program tried to call itself with '" FILENAME_FORMAT_STR
+                    "' argument: '" FILENAME_FORMAT_STR "'. Disable with "
                     "'--no-deployment-flag=self-execution'.\n",
-                    argv[i]);
+                    argv[i], argv[i + 1]);
             exit(2);
         }
 #endif
