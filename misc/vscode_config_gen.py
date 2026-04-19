@@ -23,6 +23,7 @@ import sysconfig
 
 from nuitka.utils.FileOperations import getFileContents, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplateFromString
+from nuitka.utils.Utils import isMacOS
 
 
 def getPythonInfo():
@@ -177,17 +178,16 @@ def getCompilerInfo():
         compiler_path, sdk_version = getMSVCInfo()
         return compiler_path, sdk_version, "msvc-x64"
     else:
-        # Linux and macOS detection
-        compiler_path = "/usr/bin/gcc"
-        if not os.path.exists(compiler_path):
+        if isMacOS():
+            mode = "macos-clang-x64"
             compiler_path = "/usr/bin/clang"
-
-        if sys.platform == "darwin":
-            mode = "macos-clang-x64"  # Default to clang on macOS
-            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/clang"):
-                compiler_path = "/usr/bin/clang"
+            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/gcc"):
+                compiler_path = "/usr/bin/gcc"
         else:
             mode = "linux-gcc-x64"
+            compiler_path = "/usr/bin/gcc"
+            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/clang"):
+                compiler_path = "/usr/bin/clang"
 
         return compiler_path, "", mode
 
