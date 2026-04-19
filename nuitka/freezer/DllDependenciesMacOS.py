@@ -87,6 +87,7 @@ def detectBinaryPathDLLsMacOS(
     keep_unresolved,
     recursive,
     recursive_dlls=None,
+    parent_rpaths=None,
 ):
     assert os.path.exists(binary_filename), binary_filename
 
@@ -96,22 +97,22 @@ def detectBinaryPathDLLsMacOS(
     if _detected_python_rpaths is None:
         _detected_python_rpaths = _detectPythonRpaths()
 
-    package_specific_dirs = getLdLibraryPath(
-        package_name=package_name,
-        python_rpaths=_detected_python_rpaths,
-        original_dir=original_dir,
+    # This is recursive potentially and might add more and more.
+    paths = _parseOtoolListingOutput(
+        output=getOtoolDependencyOutput(binary_filename),
     )
 
-    # This is recursive potentially and might add more and more.
-    stdout = getOtoolDependencyOutput(binary_filename)
-    paths = _parseOtoolListingOutput(stdout)
-
-    had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
+    had_self, resolved_result, rpaths = _resolveBinaryPathDLLsMacOS(
         original_dir=original_dir,
         binary_filename=binary_filename,
         paths=paths,
-        package_specific_dirs=package_specific_dirs,
+        package_specific_dirs=getLdLibraryPath(
+            package_name=package_name,
+            python_rpaths=_detected_python_rpaths,
+            original_dir=original_dir,
+        ),
         package_name=package_name,
+        parent_rpaths=parent_rpaths,
     )
 
     if recursive:
@@ -122,7 +123,6 @@ def detectBinaryPathDLLsMacOS(
         if recursive_dlls is None:
             recursive_dlls = set([binary_filename])
         else:
-            recursive_dlls = set(recursive_dlls)
             recursive_dlls.add(binary_filename)
 
         for sub_dll_filename in resolved_result:
@@ -136,6 +136,7 @@ def detectBinaryPathDLLsMacOS(
                 keep_unresolved=True,
                 recursive=True,
                 recursive_dlls=recursive_dlls,
+                parent_rpaths=rpaths,
             )
 
             merged_result.update(sub_result)
@@ -211,8 +212,16 @@ def _getNonVersionedDllFilenames(dll_filename, package_name):
                 yield filename
 
 
+_package_rpaths = {}
+
+
 def _resolveBinaryPathDLLsMacOS(
-    original_dir, binary_filename, paths, package_specific_dirs, package_name
+    original_dir,
+    binary_filename,
+    paths,
+    package_specific_dirs,
+    package_name,
+    parent_rpaths,
 ):
     # Quite a few variations to consider
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -222,6 +231,21 @@ def _resolveBinaryPathDLLsMacOS(
     result = OrderedDict()
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
+    if parent_rpaths:
+        rpaths.update(parent_rpaths)
+
+    if package_name is not None:
+        package_name_str = (
+            package_name.asString()
+            if hasattr(package_name, "asString")
+            else str(package_name)
+        )
+        if package_name_str not in _package_rpaths:
+            _package_rpaths[package_name_str] = OrderedSet()
+
+        rpaths.update(_package_rpaths[package_name_str])
+        _package_rpaths[package_name_str].update(rpaths)
+
     rpaths.update(package_specific_dirs)
 
     for path in paths:
@@ -395,7 +419,7 @@ Error, failed to find path '%s' (resolved DLL to '%s') for binary '%s' from pack
 
         result[resolved_path] = path
 
-    return had_self, result
+    return had_self, result, rpaths
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
