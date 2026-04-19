@@ -385,7 +385,7 @@ def withWarningRemoved(category):
         # are not to care about.
         if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
-                from pkg_resources import PkgResourcesDeprecationWarning
+                from pkg_resources import PkgResourcesDeprecationWarning  # type: ignore
             except ImportError:
                 pass
             else:
