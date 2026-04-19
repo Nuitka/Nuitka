@@ -64,9 +64,19 @@ class OurOptionParser(OptionParser):
             opt = self._match_long_opt(arg)
             option = self._long_opt[opt]
             if option.takes_value():
-                self.error(
-                    "The '%s' option requires an argument with '%s='." % (opt, opt)
-                )
+                if getattr(option, "choices", None):
+                    self.error(
+                        "The '%s' option requires an argument with '%s=' (available choices: %s)."
+                        % (
+                            opt,
+                            opt,
+                            ", ".join("'%s'" % choice for choice in option.choices),
+                        )
+                    )
+                else:
+                    self.error(
+                        "The '%s' option requires an argument with '%s='." % (opt, opt)
+                    )
 
         return OptionParser._process_long_opt(self, rargs, values)
 
