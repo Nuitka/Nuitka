@@ -5,7 +5,7 @@
 
 
 def case1_pop3_unknown_key(key, **kwargs):
-    """Walrus with 'kwargs.pop(key, None)' where key hashability is unknown."""
+    """Walrus with 'kwargs.pop(key, None)' where key hash-ability is unknown."""
 
     if (value := kwargs.pop(key, None)) is not None:
         return value
@@ -36,7 +36,7 @@ def case3_pop3_nested_walrus(key, **kwargs):
 
 
 def case4_setdefault3_unknown_key(key, **kwargs):
-    """Walrus with 'kwargs.setdefault(key, 123)' for unknown key hashability."""
+    """Walrus with 'kwargs.setdefault(key, 123)' for unknown key hash-ability."""
 
     if (value := kwargs.setdefault(key, 123)) is not None:
         return value
