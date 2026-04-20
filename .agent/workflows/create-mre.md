@@ -10,28 +10,44 @@ a specific bug (e.g., a compiler crash).
 ## 1. Setup and Verification
 
 - **Identify the target file** to reduce. If this file is deep inside an installed library (e.g., in
-  `site-packages`), **copy it to your local working directory** (like `MRE.py`) to avoid
-  accidentally corrupting your Python environment during the destructive reduction process.
+  `site-packages`), **copy it to `tests/scratch/`** (e.g. `tests/scratch/MRE.py`) to avoid
+  accidentally corrupting your Python environment during the destructive reduction process and to
+  keep temporary reduction artifacts out of the repository root.
 - **Identify the specific command** that triggers the issue if possible.
+- **Augment the reproduction command** so it always writes
+  `--report=tests/scratch/compilation-report.xml`. If the command already uses `--report=...`,
+  redirect it to this path. Keep the rest of the invocation as close as possible to the original
+  failure as you can.
+- **Define the reproduction oracle** before reducing. For crash bugs, this can be the same exception
+  type, the same failing statement location, or the same relevant `<exception>` entry in
+  `tests/scratch/compilation-report.xml`. For non-crash bugs, this should be a specific preserved
+  signal such as an output line, warning text, optimization message, exit code, or diff against
+  expected output. The oracle does not need to be byte-for-byte identical output; it needs to
+  reliably indicate that the same bug is still present. For example, an extra-pass bug may use
+  `Module(s) '__main__' necessitate pass 3` as the oracle.
 - **Run the reproduction command** to confirm the issue. If the crash occurs during a massive
-  standalone build, it's highly recommended to pipe the output to a file (`> out.txt 2>&1`) to
-  easily search for the crash location, or to reliably inspect `nuitka-crash-report.xml` if it is
-  generated.
+  standalone build, it's highly recommended to pipe the output to a file
+  (`> tests/scratch/out.txt 2>&1`) to easily search for the crash location while also inspecting
+  `tests/scratch/compilation-report.xml`.
 
 ### Handling Standalone Optimization Crashes
 
 If the crash happens during optimization in standalone mode (often a Python traceback below
-`nuitka/optimizations`:
+`nuitka/optimizations`):
 
-1. **Check the output** or `out.txt` for lines starting with `Problem with statement at ...`, or
-   look at the root `<exception>` tag in `nuitka-crash-report.xml`.
+1. **Check the output** or `tests/scratch/out.txt` for lines starting with
+   `Problem with statement at ...`, or inspect the `<exception>` tag in
+   `tests/scratch/compilation-report.xml`.
 2. **Identify the filename** involved.
-3. **Copy that file locally** (e.g. `cp /path/to/ProblematicFile.py MRE.py`).
+3. **Copy that file to `tests/scratch/`** (e.g.
+   `cp /path/to/ProblematicFile.py tests/scratch/MRE.py`).
 4. **Run Nuitka in module mode** on that copied file (e.g.,
-   `python bin/nuitka --mode=module --generate-c-only MRE.py`). *Note*: Use `--generate-c-only` to
-   skip the C compilation phase, which is unnecessary if the crash occurs during Nuitka's
-   optimization (Python) phase. This significantly speeds up the reduction cycle.
-5. **If the crash reproduces**, specific reduction in module mode as described below is the best
+   `bin/nuitka --mode=module --generate-c-only --report=tests/scratch/compilation-report.xml tests/scratch/MRE.py`).
+   Preserve the original failing invocation as closely as possible while reducing, while keeping the
+   report output in `tests/scratch/`. *Note*: Use `--generate-c-only` to skip the C compilation
+   phase, which is unnecessary if the crash occurs during Nuitka's optimization (Python) phase. This
+   significantly speeds up the reduction cycle.
+5. **If the oracle still matches**, specific reduction in module mode as described below is the best
    path forward.
 
 ## 2. Analysis
@@ -74,12 +90,13 @@ Repeat this process until the file is minimal:
    - *Avoid Confounding Variables*: Ensure you are changing only one thing at a time. (e.g., don't
      remove an import *and* a global assignment in one step).
 2. **Apply the change**.
-3. **Run the reproduction command**.
+3. **Run the reproduction command** and re-check the same reproduction oracle.
 4. **Evaluate result**:
-   - **If the exact same error persists**: Great! The removed code was irrelevant.
+   - **If the oracle still matches**: Great! The removed code was irrelevant.
 
-   - **If the error disappears or changes**: The removed code was relevant. **IMMEDIATELY REVERT**
-     the change.
+   - **If the oracle no longer matches, disappears, or becomes ambiguous**: The removed code was
+     relevant. **IMMEDIATELY REVERT** the change to the scratch copy only. Never reset unrelated
+     repository changes.
 
    - **Validation**:
 
