@@ -512,20 +512,27 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
         if variable not in new_traces and hasattr(variable, "users"):
             variable.removeTracesForUser(owner)
 
-    if old_collection.loop_variables != new_collection.loop_variables:
-        new_collection.signalChange(
-            "var_usage",
-            source_ref,
-            lambda: "Loop variable '%s' usage ceased."
-            % ",".join(
-                sorted(
-                    variable.getName()
-                    for variable in (
-                        old_collection.loop_variables - new_collection.loop_variables
-                    )
-                )
-            ),
+    for variable, old_loop_nodes in iterItems(old_collection.loop_variables):
+        removed_loop_nodes = old_loop_nodes - new_collection.loop_variables.get(
+            variable, set()
         )
+
+        if removed_loop_nodes:
+            # pylint: disable=cell-var-from-loop
+            new_collection.signalChange(
+                "var_usage",
+                source_ref,
+                lambda: "Loop variable '%s' usage ceased for loop(s) at %s."
+                % (
+                    variable.getName(),
+                    ",".join(
+                        sorted(
+                            loop_node.getSourceReference().getAsString()
+                            for loop_node in removed_loop_nodes
+                        )
+                    ),
+                ),
+            )
 
 
 def removeVariablesFromCollection(old_collection):

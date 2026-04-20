@@ -122,9 +122,9 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         self.outline_functions = None
 
-        # What loop variables were there, them going away is something we want
-        # to know.
-        self.loop_variables = set()
+        # What loop nodes a variable was part of, them going away is something
+        # we want to know.
+        self.loop_variables = defaultdict(set)
 
         self.delayed_work = []
 
@@ -442,6 +442,8 @@ class TraceCollectionBase(object):
         self.variable_traces[variable][version] = result
 
         self.markCurrentVariableTrace(variable, version)
+
+        self.loop_variables[variable].add(loop_node)
 
         return result
 
