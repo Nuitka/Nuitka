@@ -184,7 +184,8 @@ def _detectBinaryDLLs(
             binary_filename=original_filename,
             package_name=package_name,
             keep_unresolved=False,
-            recursive=True,
+            recursive_dlls=OrderedSet(),
+            parent_rpaths=OrderedSet(),
         )
     else:
         # Support your platform above, for many platforms the POSIX branch will
