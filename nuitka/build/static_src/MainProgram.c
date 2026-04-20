@@ -507,22 +507,30 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
         if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+            // Make parameter variable to allow strip of potential imports.
+            filename_char_t const *cmd_arg = argv[i + 1];
+
+            // Newer Python versions added this for forkserver, but lets do it
+            // for all, just in case this gets added some more.
+            if (strncmpFilename(cmd_arg, FILENAME_EMPTY_STR "import sys; ", 12) == 0) {
+                cmd_arg += 12;
+            }
+
             // The multiprocessing resource tracker can launch like this.
-            if (scanFilename(argv[i + 1],
-                             FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
+            if (scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
                              &multiprocessing_resource_tracker_arg) == 1) {
                 break;
             }
 
             // The joblib loky resource tracker is launched like this.
-            if (scanFilename(argv[i + 1],
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR
                              "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
                              &loky_resource_tracker_arg)) {
                 break;
             }
 
-            if (scanFilename(argv[i + 1],
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR
                              "from multiprocessing.forkserver import main; main(%i, %i, ['__main__'],",
                              &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
@@ -531,13 +539,13 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
             }
 
 #if defined(_WIN32)
-            if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
+            if (strcmpFilename(cmd_arg, FILENAME_EMPTY_STR
                                "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
                 is_joblib_popen_loky_win32 = true;
                 break;
             }
 
-            if (scanFilename(argv[i + 1],
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR "from joblib.externals.loky.backend.popen_loky_win32 import main; "
                                                 "main(pipe_handle=%i, parent_pid=%i)",
                              &loky_joblib_pipe_handle_arg, &loky_joblib_parent_pid_arg)) {

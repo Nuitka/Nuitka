@@ -21,6 +21,7 @@
 #define expandTemplatePathFilename expandTemplatePathW
 #define strlenFilename wcslen
 #define strcmpFilename wcscmp
+#define strncmpFilename wcsncmp
 #define strdupFilename wcsdup
 #define scanFilename swscanf
 #define Nuitka_String_FromFilename(filename) NuitkaUnicode_FromWideChar(filename, -1)
@@ -39,6 +40,7 @@
 #define expandTemplatePathFilename expandTemplatePath
 #define strlenFilename strlen
 #define strcmpFilename strcmp
+#define strncmpFilename strncmp
 #define strdupFilename strdup
 #define scanFilename sscanf
 #define Nuitka_String_FromFilename Nuitka_String_FromString
