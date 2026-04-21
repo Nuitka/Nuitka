@@ -157,8 +157,6 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             "-m",
             "pipenv",
             "run",
-            "--python",
-            installed_python.getPythonExe(),
             "python",
         ]
     elif preferred_package_type == "pacman":
