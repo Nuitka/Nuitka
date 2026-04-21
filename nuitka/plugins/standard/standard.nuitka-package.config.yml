@@ -8089,11 +8089,6 @@
     - depends:
         - 'pygments.lexers.css'
 
-- module-name: 'textual.widgets' # checksum: a98bfa19
-  implicit-imports:
-    - depends:
-        - '._*'
-
 - module-name: 'tf_keras.src' # checksum: c552fd3e
   anti-bloat:
     - description: 'remove unittest reference'

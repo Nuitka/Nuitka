@@ -547,6 +547,35 @@ __file__ = (__nuitka_binary_dir + '%s" + "site.py') if '__nuitka_binary_dir' in 
 
                 source_code = source_code.replace("= lazy_load()", " = %r" % toga_info)
 
+        if module_name == "textual.widgets":
+            # Textual has its own lazy loading for widgets.
+            if "def __getattr__(" in source_code:
+                textual_info = self.queryRuntimeInformationSingle(
+                    setup_codes="""\
+import textual.widgets
+from textual.case import camel_to_snake
+""",
+                    value="""\
+tuple(
+    (widget_name, "._" + camel_to_snake(widget_name))
+    for widget_name in textual.widgets.__all__
+)""",
+                    info_name="textual_widgets_lazy_loader",
+                )
+
+                textual_submodule_attrs = {}
+
+                for widget_name, sub_module_name in textual_info:
+                    if sub_module_name not in textual_submodule_attrs:
+                        textual_submodule_attrs[sub_module_name] = []
+                    textual_submodule_attrs[sub_module_name].append(widget_name)
+
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=(),
+                    submodule_attrs=textual_submodule_attrs,
+                )
+
         if module_name == "vllm":  # spell-checker: ignore vllm
             if "def __getattr__(" in source_code:
                 vllm_info = self.queryRuntimeInformationSingle(
