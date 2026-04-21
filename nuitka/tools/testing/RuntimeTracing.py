@@ -14,7 +14,10 @@ import os
 import re
 import sys
 
-from nuitka.freezer.DependsExe import getDependsExePath, parseDependsExeOutput
+from nuitka.freezer.DllDependenciesWin32DependsExe import (
+    getDependsExePath,
+    parseDependsExeOutput,
+)
 from nuitka.utils.Execution import (
     callProcess,
     executeProcess,
@@ -22,7 +25,12 @@ from nuitka.utils.Execution import (
     withEnvironmentVarOverridden,
 )
 from nuitka.utils.FileOperations import deleteFile
-from nuitka.utils.Utils import isFreeBSD, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isFreeBSD,
+    isMacOS,
+    isWin32Windows,
+)
 
 from .Common import traceExecutedCommand
 
@@ -175,6 +183,9 @@ _supports_taking_runtime_traces = None
 
 
 def doesSupportTakingRuntimeTrace():
+    if isWin32Windows() and getArchitecture() == "arm64":
+        return False
+
     if not isMacOS():
         return True
 

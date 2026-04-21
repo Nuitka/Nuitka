@@ -436,7 +436,7 @@ def _resolveBinaryPathDLLsMacOS(
             if not path.startswith(("@", "/")):
                 continue
 
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 """\
 Error, failed to find path '%s' (resolved DLL to '%s') for binary '%s' from package '%s', please report the bug."""
                 % (path, resolved_path, binary_filename, package_name)
@@ -506,7 +506,7 @@ def fixupBinaryDLLPathsMacOS(
                 dist_path = None
 
             if dist_path is None:
-                inclusion_logger.sysexit(
+                return inclusion_logger.sysexit(
                     """\
 Error, problem with dependency scan of '%s' with '%s' please report the bug."""
                     % (getReportPath(original_location), rpath_filename)

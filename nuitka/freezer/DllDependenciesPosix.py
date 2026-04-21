@@ -144,7 +144,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
         # Do not allow relative paths for shared libraries
         if not os.path.isabs(filename):
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
                 + filename
             )

@@ -28,10 +28,15 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withFileLock,
 )
-from nuitka.utils.SharedLibraries import getWindowsRunningProcessDLLPaths
 from nuitka.utils.Utils import getArchitecture
 
-_missing_msvc_redist_dlls = OrderedSet()
+from .DllDependenciesCommon import (
+    addMissingMsvcRedistDLL,
+    attemptToFindNotFoundDLL,
+    isMsvcRedistDllName,
+    reportMissingMsvcRedistDLLs,
+    shallIgnoreMissingDLL,
+)
 
 
 def getDependsExePath():
@@ -62,50 +67,6 @@ to analyze the dependencies of Python extension modules.""",
     )
 
 
-def _attemptToFindNotFoundDLL(dll_filename):
-    """Some heuristics and tricks to find DLLs that dependency walker did not find."""
-
-    # Lets attempt to find it on currently loaded DLLs, this typically should
-    # find the Python DLL.
-    currently_loaded_dlls = getWindowsRunningProcessDLLPaths()
-
-    if dll_filename in currently_loaded_dlls:
-        return currently_loaded_dlls[dll_filename]
-
-    # Lets try the Windows system, spell-checker: ignore systemroot
-    dll_filename = getNormalizedPathJoin(
-        os.environ["SYSTEMROOT"],
-        "System32" if getArchitecture() == "x86_64" else "SysWOW64",
-        dll_filename,
-    )
-    dll_filename = os.path.normcase(dll_filename)
-
-    if os.path.exists(dll_filename):
-        return dll_filename
-
-    return None
-
-
-# Names of MSVC redistributable DLLs to pick up
-# spell-checker: ignore concrt,msvcp,vcruntime,vcamp,vccorlib,codecvt,vcomp
-msvc_redist_dll_names = set(
-    (
-        "concrt140.dll",
-        "msvcp140.dll",
-        "msvcp140_1.dll",
-        "msvcp140_2.dll",
-        "msvcp140_atomic_wait.dll",
-        "msvcp140_codecvt_ids.dll",
-        "vccorlib140.dll",
-        "vcruntime140.dll",
-        "vcruntime140_1.dll",
-        "vcruntime140_threads.dll",
-        "vcamp140.dll",
-        "vcomp140.dll",
-    )
-)
-
-
 def _parseDependsExeOutput2(lines):
     # Many cases to deal with, pylint: disable=too-many-branches
 
@@ -132,6 +93,7 @@ def _parseDependsExeOutput2(lines):
         dll_filename = line[line.find("]") + 2 :].rstrip()
         dll_filename = os.path.normcase(dll_filename)
 
+        # spell-checker: ignore SYSTEMROOT
         if isFilenameBelowPath(
             path=getNormalizedPathJoin(os.environ["SYSTEMROOT"], "WinSxS"),
             filename=dll_filename,
@@ -142,15 +104,16 @@ def _parseDependsExeOutput2(lines):
         if "E" in line[: line.find("]")]:
             continue
 
-        # Try to find missing DLLs for PythonXY.dll and keep track of missing MSVC Redist DLLs.
+        # Try to find missing DLLs for PythonXY.dll and keep track of missing
+        # MSVC Redist DLLs.
         if "?" in line[: line.find("]")]:
-            # Track missing VCRedist DLLs
-            if dll_filename in msvc_redist_dll_names:
-                _missing_msvc_redist_dlls.add(dll_filename)
+            if isMsvcRedistDllName(dll_filename):
+                addMissingMsvcRedistDLL(dll_filename)
 
-            # One exception are "PythonXY.DLL", we try to find them from Windows folder.
+            # One exception are "PythonXY.DLL", we try to find them from
+            # Windows folder.
             if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
-                dll_filename = _attemptToFindNotFoundDLL(dll_filename)
+                dll_filename = attemptToFindNotFoundDLL(dll_filename)
 
                 if dll_filename is None:
                     continue
@@ -174,18 +137,7 @@ def _parseDependsExeOutput2(lines):
 
         dll_name = os.path.basename(dll_filename)
 
-        # Ignore this runtime DLL of Python2, will be coming via manifest.
-        # spell-checker: ignore msvcr90
-        if dll_name in ("msvcr90.dll",):
-            continue
-
-        # Ignore API DLLs, they can come in from PATH, but we do not want to
-        # include them.
-        if dll_name.startswith("api-ms-win-"):
-            continue
-
-        # Ignore UCRT runtime, this must come from OS, spell-checker: ignore ucrtbase
-        if dll_name == "ucrtbase.dll":
+        if shallIgnoreMissingDLL(dll_name):
             continue
 
         assert os.path.isfile(dll_filename), (dll_filename, line)
@@ -199,7 +151,7 @@ def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
 
 
-def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
+def detectDLLsWithDependsExe(binary_filename, source_dir, scan_dirs):
     source_dir = getExternalUsePath(source_dir)
     temp_base_name = os.path.basename(binary_filename)
 
@@ -253,31 +205,19 @@ SxS
         )
 
     if not os.path.exists(output_filename):
-        inclusion_logger.sysexit(
+        return inclusion_logger.sysexit(
             "Error, 'depends.exe' failed to produce expected output for binary '%s'."
             % binary_filename
         )
 
-    # Opening the result under lock, so it is not getting locked by new processes.
-
-    # Note: Do this under lock to avoid forked processes to hold
-    # a copy of the file handle on Windows.
+    # Opening the result under lock, so it is not getting locked by new
+    # processes.
     result = parseDependsExeOutput(output_filename)
 
     deleteFile(output_filename, must_exist=True)
     deleteFile(dwp_filename, must_exist=True)
 
-    if _missing_msvc_redist_dlls:
-        inclusion_logger.warning(
-            """\
-The following Visual C++ Redistributable DLLs were not found: %s. \
-For a fully portable standalone distribution, these DLLs must be \
-available either by installing the Microsoft Visual C++ Redistributable \
-for Visual Studio 2015-2022 on the target system or by bundling them with \
-the application. To bundle them, Visual Studio must be installed on the build machine."""
-            % ", ".join(sorted(_missing_msvc_redist_dlls))
-        )
-        _missing_msvc_redist_dlls.clear()
+    reportMissingMsvcRedistDLLs()
 
     return result
 

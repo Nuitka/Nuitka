@@ -41,12 +41,14 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Json import loadJsonFromFilename
-from nuitka.utils.SharedLibraries import getPEFileUsedDllNames, getPyWin32Dir
+from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 from nuitka.Version import version_string
 
-from .DependsExe import detectDLLsWithDependencyWalker
 from .DllDependenciesCommon import getPackageSpecificDLLDirectories
+from .DllDependenciesWin32DependsExe import detectDLLsWithDependsExe
+from .DllDependenciesWin32PEFile import detectDLLsWithPEFile
+from .DllDependenciesWin32WinDepends import detectDLLsWithWinDepends
 
 _msvc_redist_path = None
 
@@ -242,53 +244,24 @@ def getMSVCRedistPath(logger):
 _scan_dir_cache = {}
 
 
-def detectDLLsWithPEFile(binary_filename, scan_dirs):
-    """Detect DLLs used by a binary using pefile.
+def _decideDependencyTool():
+    # spell-checker: ignore windepends
+    force_pefile = isExperimental("force-dependencies-pefile")
+    force_win_depends = isExperimental("force-dependencies-windepends")
 
-    Args:
-        binary_filename: The binary to check.
-        scan_dirs: Directories to search for DLLs.
+    if force_pefile and force_win_depends:
+        return inclusion_logger.sysexit(
+            "Error, conflicting experimental dependency tool flags, use only one of "
+            "'--experimental=force-dependencies-pefile' or "
+            "'--experimental=force-dependencies-windepends'."
+        )
 
-    Returns:
-        OrderedSet: Set of found DLL filenames.
-    """
-    pe_dll_names = getPEFileUsedDllNames(binary_filename)
-
-    result = OrderedSet()
-
-    # Get DLL imports from PE file
-    for dll_name in pe_dll_names:
-        dll_name = dll_name.lower()
-
-        # Search DLL path from scan dirs
-        for scan_dir in scan_dirs:
-            dll_filename = os.path.normcase(
-                os.path.abspath(getNormalizedPathJoin(scan_dir, dll_name))
-            )
-
-            if os.path.isfile(dll_filename):
-                result.add(dll_filename)
-
-                break
-        else:
-            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
-                continue
-
-            # Ignore this runtime DLL of Python2, will be coming via manifest.
-            # spell-checker: ignore msvcr90
-            if dll_name == "msvcr90.dll":
-                continue
-
-            # Ignore API DLLs, they can come in from PATH, but we do not want to
-            # include them.
-            if dll_name.startswith("api-ms-win-"):
-                continue
-
-            # Ignore UCRT runtime, this must come from OS, spell-checker: ignore ucrtbase
-            if dll_name == "ucrtbase.dll":
-                continue
-
-    return result
+    if force_win_depends:
+        return "win_depends"
+    elif getArchitecture() == "arm64" or force_pefile:
+        return "pefile"
+    else:
+        return "depends_legacy"
 
 
 def detectBinaryPathDLLsWin32(
@@ -318,12 +291,7 @@ def detectBinaryPathDLLsWin32(
     """
     # Caching and tracing cause too many branches, pylint: disable=too-many-branches
 
-    # For ARM64 and on user request, we can use "pefile" for dependency detection.
-    dependency_tool = (
-        "pefile"
-        if (getArchitecture() == "arm64" or isExperimental("force-dependencies-pefile"))
-        else "depends.exe"
-    )
+    dependency_tool = _decideDependencyTool()
 
     # This is the caching mechanism and plugin handling for DLL imports.
     if use_cache or update_cache:
@@ -378,19 +346,37 @@ def detectBinaryPathDLLsWin32(
         use_path=use_path,
     )
 
-    if dependency_tool == "depends.exe":
-        result = detectDLLsWithDependencyWalker(
+    if dependency_tool == "depends_legacy":
+        result = detectDLLsWithDependsExe(
+            binary_filename=binary_filename,
+            source_dir=source_dir,
+            scan_dirs=scan_dirs,
+        )
+    elif dependency_tool == "pefile":
+        result = detectDLLsWithPEFile(
+            binary_filename=binary_filename,
+            scan_dirs=scan_dirs,
+        )
+    elif dependency_tool == "win_depends":
+        result = detectDLLsWithWinDepends(
             binary_filename=binary_filename,
             source_dir=source_dir,
             scan_dirs=scan_dirs,
         )
     else:
-        result = detectDLLsWithPEFile(
-            binary_filename=binary_filename,
-            scan_dirs=scan_dirs,
-        )
+        assert False, dependency_tool
 
     if update_cache:
+        cache_filename = _getCacheFilename(
+            dependency_tool=dependency_tool,
+            is_main_executable=is_main_executable,
+            source_dir=source_dir,
+            original_dir=original_dir,
+            binary_filename=binary_filename,
+            package_name=package_name,
+            use_path=use_path,
+        )
+
         if isShowProgress():
             inclusion_logger.info(
                 "Writing cache for dependencies of '%s' to '%s', ignoring."
@@ -495,7 +481,7 @@ def shallIncludeWindowsRuntimeDLLs():
         msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
         if msvc_redist_path is None:
-            inclusion_logger.sysexit("""\
+            return inclusion_logger.sysexit("""\
 Error, cannot find Windows Runtime DLLs to include, but '--include-windows-runtime-dlls=yes' \
 make sure to install Visual Studio as that is the only provider of those DLLs with license \
 terms that allow redistribution.""")

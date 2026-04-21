@@ -105,7 +105,11 @@ def _parsePythonVersionOutput(python_binary):
             """\
 import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
-print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(\
+("x86_64" if "AMD64" in sys.version else (\
+"arm64" if "ARM64" in sys.version else "x86"))\
+if os.name == "nt" else os.uname()[4]\
+);\
 print(sys.executable);\
 print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown");\
 print(hasattr(sys, "gettotalrefcount"))\

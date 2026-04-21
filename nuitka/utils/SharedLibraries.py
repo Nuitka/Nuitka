@@ -971,13 +971,23 @@ def getPEFileUsedDllNames(filename):
     except pefile.PEFormatError:
         return None
 
-    # TODO: Check arch with pefile as well and ignore wrong arches if asked to.
-
-    # TODO: The decoding cannot expect ASCII, but also surely is not UTF8.
-    return OrderedSet(
-        dll_entry.dll.decode("utf8")
-        for dll_entry in getattr(pe_info, "DIRECTORY_ENTRY_IMPORT", ())
+    pe_info.parse_data_directories(
+        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"],),
+        import_dllnames_only=True,
     )
+    pe_info.parse_data_directories(
+        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],)
+    )
+
+    result = OrderedSet()
+
+    for entry_name in ("DIRECTORY_ENTRY_IMPORT", "DIRECTORY_ENTRY_DELAY_IMPORT"):
+        for dll_entry in getattr(pe_info, entry_name, ()):
+            # TODO: The PE/COFF docs describe these names as ASCII, but
+            # they do not actually specify the encoding here.
+            result.add(dll_entry.dll.decode("utf8"))
+
+    return result
 
 
 def getDllExportedSymbols(logger, filename):

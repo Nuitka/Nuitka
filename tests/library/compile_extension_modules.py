@@ -41,7 +41,10 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
-from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
+from nuitka.tools.testing.RuntimeTracing import (
+    doesSupportTakingRuntimeTrace,
+    getRuntimeTraceOfLoadedFiles,
+)
 from nuitka.utils.Execution import NuitkaCalledProcessError
 from nuitka.utils.FileOperations import (
     getFileContents,
@@ -70,37 +73,116 @@ if isMacOS():
     ignore_packages += ("PyQt6",)
 
 
+_done_modules = set()
+
+
+def decide(root, filename):
+    for ignore_package in ignore_packages:
+        if (
+            root.endswith(os.path.sep + ignore_package)
+            or os.path.sep + ignore_package + os.path.sep in root
+        ):
+            return False
+
+    # This is a DLL only
+    if filename.endswith("linux-gnu_d.so"):
+        return False
+
+    first_part = filename.split(".")[0]
+    if first_part in _done_modules:
+        return False
+    _done_modules.add(first_part)
+
+    return filename.endswith((".so", ".pyd")) and not filename.startswith("libpython")
+
+
+def _writeImporterTestFile(filename, module_name):
+    with openTextFile(filename, "w") as output:
+        plugin_names = set(["pylint-warnings"])
+        if module_name.hasNamespace("PySide2"):
+            plugin_names.add("pyside2")
+        elif module_name.hasNamespace("PySide6"):
+            plugin_names.add("pyside6")
+        elif module_name.hasNamespace("PyQt5"):
+            plugin_names.add("pyqt5")
+        elif module_name.hasNamespace("PyQt6"):
+            plugin_names.add("pyqt6")
+        else:
+            plugin_names.add("no-qt")
+
+        for plugin_name in plugin_names:
+            output.write("# nuitka-project: --enable-plugin=%s\n" % plugin_name)
+
+        # Make it an error to find unwanted bloat compiled in.
+        output.write("# nuitka-project: --noinclude-default-mode=error\n")
+
+        # TODO: This won't be bloat for long anymore.
+        output.write("# nuitka-project: --noinclude-numba-mode=warning\n")
+
+        output.write("# nuitka-project: --mode=standalone\n")
+
+        if isMacOS():
+            output.write("# nuitka-project: --macos-create-app-bundle\n")
+
+            if module_name.hasNamespace("PyQt5"):
+                output.write("# nuitka-project: --mode=onefile\n")
+
+        output.write("import " + module_name.asString() + "\n")
+        output.write("print('OK.')")
+
+
+def _checkCompilationResults(
+    stage_dir, filename, report_filename, search_mode, command, output
+):
+    compilation_report = parseCompilationReport(report_filename)
+
+    binary_filename = getCompilationOutputBinary(
+        compilation_report=compilation_report,
+        prefixes=(("${cwd}", os.getcwd()),),
+    )
+
+    outside_accesses = []
+
+    if doesSupportTakingRuntimeTrace():
+        with withDirectoryChange(stage_dir):
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                logger=test_logger,
+                command=[binary_filename],
+            )
+
+        outside_accesses = checkLoadedFileAccesses(
+            loaded_filenames=loaded_filenames, current_dir=stage_dir
+        )
+    else:
+        test_logger.info("Runtime traces are not possible on this machine.")
+
+    if outside_accesses:
+        displayError(None, filename)
+        displayRuntimeTraces(test_logger, binary_filename)
+
+        test_logger.warning("Should not access these file(s): '%r'." % outside_accesses)
+
+        search_mode.onErrorDetected(1)
+
+    if output[-1] != b"OK.":
+        my_print(" ".join(command))
+        my_print(filename)
+        my_print(output)
+        test_logger.sysexit("FAIL.")
+
+    my_print("OK.")
+
+    assert not outside_accesses, outside_accesses
+
+    if os.path.exists(filename[:-3] + ".dist"):
+        shutil.rmtree(filename[:-3] + ".dist")
+
+
 def main():
     setup(suite="extension_modules", needs_io_encoding=True)
     search_mode = createSearchMode()
 
     tmp_dir = getTempDir()
-
-    done = set()
-
-    def decide(root, filename):
-        for ignore_package in ignore_packages:
-            if (
-                root.endswith(os.path.sep + ignore_package)
-                or os.path.sep + ignore_package + os.path.sep in root
-            ):
-                return False
-
-        # This is a DLL only
-        if filename.endswith("linux-gnu_d.so"):
-            return False
-
-        first_part = filename.split(".")[0]
-        if first_part in done:
-            return False
-        done.add(first_part)
-
-        return filename.endswith((".so", ".pyd")) and not filename.startswith(
-            "libpython"
-        )
-
-    current_dir = os.path.normpath(os.getcwd())
-    current_dir = os.path.normcase(current_dir)
 
     def action(stage_dir, root, path):
         report_filename = "test-compilation-report.xml"
@@ -126,38 +208,7 @@ def main():
 
         module_name = ModuleName(module_name)
 
-        with openTextFile(filename, "w") as output:
-            plugin_names = set(["pylint-warnings"])
-            if module_name.hasNamespace("PySide2"):
-                plugin_names.add("pyside2")
-            elif module_name.hasNamespace("PySide6"):
-                plugin_names.add("pyside6")
-            elif module_name.hasNamespace("PyQt5"):
-                plugin_names.add("pyqt5")
-            elif module_name.hasNamespace("PyQt6"):
-                plugin_names.add("pyqt6")
-            else:
-                plugin_names.add("no-qt")
-
-            for plugin_name in plugin_names:
-                output.write("# nuitka-project: --enable-plugin=%s\n" % plugin_name)
-
-            # Make it an error to find unwanted bloat compiled in.
-            output.write("# nuitka-project: --noinclude-default-mode=error\n")
-
-            # TODO: This won't be bloat for long anymore.
-            output.write("# nuitka-project: --noinclude-numba-mode=warning\n")
-
-            output.write("# nuitka-project: --mode=standalone\n")
-
-            if isMacOS():
-                output.write("# nuitka-project: --macos-create-app-bundle\n")
-
-                if module_name.hasNamespace("PyQt5"):
-                    output.write("# nuitka-project: --mode=onefile\n")
-
-            output.write("import " + module_name.asString() + "\n")
-            output.write("print('OK.')")
+        _writeImporterTestFile(filename, module_name)
 
         command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
@@ -175,45 +226,14 @@ def main():
             except Exception:
                 raise
             else:
-                compilation_report = parseCompilationReport(report_filename)
-
-                binary_filename = getCompilationOutputBinary(
-                    compilation_report=compilation_report,
-                    prefixes=(("${cwd}", os.getcwd()),),
+                _checkCompilationResults(
+                    stage_dir=stage_dir,
+                    filename=filename,
+                    report_filename=report_filename,
+                    search_mode=search_mode,
+                    command=command,
+                    output=output,
                 )
-
-                with withDirectoryChange(stage_dir):
-                    loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                        logger=test_logger,
-                        command=[binary_filename],
-                    )
-
-                outside_accesses = checkLoadedFileAccesses(
-                    loaded_filenames=loaded_filenames, current_dir=stage_dir
-                )
-
-                if outside_accesses:
-                    displayError(None, filename)
-                    displayRuntimeTraces(test_logger, binary_filename)
-
-                    test_logger.warning(
-                        "Should not access these file(s): '%r'." % outside_accesses
-                    )
-
-                    search_mode.onErrorDetected(1)
-
-                if output[-1] != b"OK.":
-                    my_print(" ".join(command))
-                    my_print(filename)
-                    my_print(output)
-                    test_logger.sysexit("FAIL.")
-
-                my_print("OK.")
-
-                assert not outside_accesses, outside_accesses
-
-                if os.path.exists(filename[:-3] + ".dist"):
-                    shutil.rmtree(filename[:-3] + ".dist")
         else:
             my_print("SKIP (does not work with CPython)")
 
