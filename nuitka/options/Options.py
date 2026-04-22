@@ -397,7 +397,7 @@ longer part of Winlibs and therefore no more available this way. Use only \
                 if os.path.exists(value) and isNonLocalPath(arg):
                     value = getReportPath(value)
 
-                if " " in value:
+                if " " in value or value == "":
                     value = '"%s"' % value
 
                 return "%s=%s" % (arg_name, value)
