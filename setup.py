@@ -118,6 +118,8 @@ if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
     addInlineCopy("clcache")
     addInlineCopy("colorama")
+
+if (os.name == "nt" and sys.version_info >= (3, 6)) or sdist_mode:
     addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
