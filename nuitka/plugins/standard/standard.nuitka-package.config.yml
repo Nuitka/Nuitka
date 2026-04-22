@@ -2696,7 +2696,7 @@
     - depends:
         - 'numpy.core.multiarray'
 
-- module-name: 'lxml' # checksum: 1528e581
+- module-name: 'lxml' # checksum: d4275afa
   implicit-imports:
     - depends:
         - '.builder'
@@ -2706,6 +2706,8 @@
         - '._elementpath'
   import-hacks:
     - recompile-extensions: 'no'
+    - package-system-dlls: 'yes'
+      when: 'debian_python'
 
 - module-name: 'lxml.etree' # checksum: dfaed226
   implicit-imports:
