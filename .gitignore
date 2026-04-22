@@ -70,6 +70,7 @@ doxygen-*
 .coverage*
 *.tmp
 *.dat
+.codex
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
