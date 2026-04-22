@@ -26,6 +26,7 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectory,
+    makeIncludedFrameworkDirectory,
     makeIncludedGeneratedDataFile,
     makeIncludedPackageDataFiles,
 )
@@ -1073,6 +1074,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             only_suffixes=only_suffixes,
             normalize=normalize,
             raw=raw,
+        )
+
+    def makeIncludedFrameworkDirectory(self, source_path, dest_path, reason, tags=""):
+        return makeIncludedFrameworkDirectory(
+            self,
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tags=tags,
         )
 
     def makeIncludedEmptyDirectory(self, dest_path, reason, tags):

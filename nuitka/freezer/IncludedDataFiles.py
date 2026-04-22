@@ -386,6 +386,49 @@ def makeIncludedDataDirectory(
         yield included_datafile
 
 
+_included_framework_directories = {}
+
+
+def _registerIncludedFrameworkDirectory(logger, source_path, dest_path):
+    source_path = getNormalizedPath(source_path)
+    dest_path = getNormalizedPath(dest_path)
+
+    old_dest_path = _included_framework_directories.get(source_path)
+
+    if old_dest_path is None:
+        _included_framework_directories[source_path] = dest_path
+    elif old_dest_path != dest_path:
+        return logger.sysexit(
+            "Error, framework directory '%s' cannot be included for both '%s' and '%s'."
+            % (source_path, old_dest_path, dest_path)
+        )
+
+
+def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags):
+    assert isMacOS(), source_path
+    assert os.path.isdir(source_path), source_path
+    assert os.path.basename(source_path).endswith(".framework"), source_path
+    assert os.path.basename(dest_path).endswith(".framework"), dest_path
+
+    tags = decodeDataFileTags(tags)
+    tags.add("framework")
+
+    _registerIncludedFrameworkDirectory(
+        logger=logger,
+        source_path=source_path,
+        dest_path=dest_path,
+    )
+
+    return makeIncludedDataDirectory(
+        source_path=source_path,
+        dest_path=dest_path,
+        reason=reason,
+        tracer=logger,
+        tags=tags,
+        raw=True,
+    )
+
+
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     """Create an included data file from generated data.
 
@@ -472,6 +515,38 @@ def getIncludedDataFiles():
         list: List of IncludedDataFile objects.
     """
     return _included_data_files
+
+
+def getIncludedFrameworkDistPathFromSourcePath(source_path):
+    """Get destination path of an included framework file from source path.
+
+    Args:
+        source_path: Original filename of the framework file.
+
+    Returns:
+        Relative destination path in the distribution, or None if not included
+        as part of an included framework directory.
+    """
+    framework_source_path = source_path
+
+    while not framework_source_path.endswith(".framework"):
+        parent_path = os.path.dirname(framework_source_path)
+
+        if parent_path == framework_source_path:
+            return None
+
+        framework_source_path = parent_path
+
+    framework_dest_path = _included_framework_directories.get(framework_source_path)
+
+    if framework_dest_path is None:
+        return None
+
+    return getNormalizedPath(
+        os.path.join(
+            framework_dest_path, os.path.relpath(source_path, framework_source_path)
+        )
+    )
 
 
 def checkProjectExpectedDataFiles():
@@ -574,14 +649,25 @@ def _addIncludedDataFilesFromFileOptions():
     for source_path, dest_path in getShallIncludeRawDirs():
         count = 0
 
-        for included_datafile in makeIncludedDataDirectory(
-            source_path=source_path,
-            dest_path=os.path.normpath(dest_path),
-            reason="specified raw dir '%s' on command line" % source_path,
-            tracer=options_logger,
-            tags="user",
-            raw=True,
-        ):
+        if isMacOS() and os.path.basename(source_path).endswith(".framework"):
+            included_datafiles = makeIncludedFrameworkDirectory(
+                options_logger,
+                source_path=source_path,
+                dest_path=os.path.normpath(dest_path),
+                reason="specified framework dir '%s' on command line" % source_path,
+                tags="user",
+            )
+        else:
+            included_datafiles = makeIncludedDataDirectory(
+                source_path=source_path,
+                dest_path=os.path.normpath(dest_path),
+                reason="specified raw dir '%s' on command line" % source_path,
+                tracer=options_logger,
+                tags="user",
+                raw=True,
+            )
+
+        for included_datafile in included_datafiles:
             yield included_datafile
 
             count += 1

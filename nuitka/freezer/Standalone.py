@@ -77,6 +77,7 @@ from .DllDependenciesWin32 import (
     detectBinaryPathDLLsWin32,
     shallIncludeVCRedistDLL,
 )
+from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
 from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
@@ -289,6 +290,7 @@ def signDistributionMacOS(
 
     if shallCreateAppBundle():
         app_path = getNormalizedPathJoin(dist_dir, "..", "..")
+        frameworks_dir = getNormalizedPathJoin(dist_dir, "..", "Frameworks")
         resources_dir = getNormalizedPathJoin(dist_dir, "..", "Resources")
 
         def getNotSignableDirectoryPart(filename):
@@ -315,22 +317,26 @@ def signDistributionMacOS(
 
             filename = not_signable_part[len("Contents/MacOS/") :]
             not_signable_path = getNormalizedPathJoin(app_path, not_signable_part)
-            resources_path = getNormalizedPathJoin(resources_dir, filename)
+            if filename.endswith(".framework"):
+                relocated_path = getNormalizedPathJoin(frameworks_dir, filename)
+                symlink_target = getNormalizedPathJoin("..", "Frameworks", filename)
+            else:
+                relocated_path = getNormalizedPathJoin(resources_dir, filename)
+                symlink_target = getNormalizedPathJoin("..", "Resources", filename)
 
-            if resources_path in symlinks:
+            if relocated_path in symlinks:
                 continue
 
-            makePath(os.path.dirname(resources_path))
-            os.rename(not_signable_path, resources_path)
+            makePath(os.path.dirname(relocated_path))
+            os.rename(not_signable_path, relocated_path)
 
-            symlink_target = getNormalizedPathJoin("..", "Resources", filename)
             for _i in range(filename.count("/")):
                 symlink_target = getNormalizedPathJoin("..", symlink_target)
 
             os.symlink(symlink_target, not_signable_path)
 
-            symlinks.add(resources_path)
-            translations.add((not_signable_path, resources_path))
+            symlinks.add(relocated_path)
+            translations.add((not_signable_path, relocated_path))
 
     addMacOSCodeSignature(
         filenames=[
@@ -481,6 +487,10 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
         used_dll_paths = used_dll_paths - removed_dlls
 
         for used_dll_path in used_dll_paths:
+            # Ignore frameworks dependencies on macOS, we don't add those automatically.
+            if isMacOS() and getIncludedFrameworkDistPathFromSourcePath(used_dll_path):
+                continue
+
             extension_standalone_entry_point = getIncludedExtensionModule(used_dll_path)
             if extension_standalone_entry_point is not None:
                 # Sometimes an extension module is used like a DLL, make sure to

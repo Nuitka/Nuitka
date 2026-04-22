@@ -17,6 +17,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.Utils import isMacOS
 
 
 class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
@@ -150,14 +151,32 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 source_path = os.path.join(module_folder, raw_dir)
 
                 if os.path.isdir(source_path):
-                    yield self.makeIncludedDataDirectory(
-                        source_path=source_path,
-                        dest_path=os.path.normpath(os.path.join(target_dir, raw_dir)),
-                        reason="package raw directory '%s' for %r"
-                        % (raw_dir, module_name.asString()),
-                        tags="config",
-                        raw=True,
-                    )
+                    if isMacOS() and os.path.basename(source_path).endswith(
+                        ".framework"
+                    ):
+                        included_datafiles = self.makeIncludedFrameworkDirectory(
+                            source_path=source_path,
+                            dest_path=os.path.normpath(
+                                os.path.join(target_dir, raw_dir)
+                            ),
+                            reason="package raw directory '%s' for %r"
+                            % (raw_dir, module_name.asString()),
+                            tags="config",
+                        )
+                    else:
+                        included_datafiles = self.makeIncludedDataDirectory(
+                            source_path=source_path,
+                            dest_path=os.path.normpath(
+                                os.path.join(target_dir, raw_dir)
+                            ),
+                            reason="package raw directory '%s' for %r"
+                            % (raw_dir, module_name.asString()),
+                            tags="config",
+                            raw=True,
+                        )
+
+                    for included_datafile in included_datafiles:
+                        yield included_datafile
 
         include_pyi_file = data_file_config.get("include-pyi-file")
 

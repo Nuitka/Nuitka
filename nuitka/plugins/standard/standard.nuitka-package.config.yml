@@ -5065,7 +5065,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: 83b57769
+- module-name: 'pypylon' # checksum: b6d023e2
   data-files:
     - patterns:
         - '**/*.sig'
@@ -5076,8 +5076,7 @@
         - '**/*.omc'
         - '**/*.hotc'
       when: 'not macos'
-    - dest_path: '.'
-      raw_dirs:
+    - raw_dirs:
         - 'pylon.framework'
       when: 'macos'
   dlls:

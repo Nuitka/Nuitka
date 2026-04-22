@@ -42,6 +42,7 @@ from nuitka.utils.SharedLibraries import (
 from nuitka.utils.Utils import getArchitecture
 
 from .DllDependenciesCommon import getLdLibraryPath
+from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
 
 # Detected Python rpath is cached.
 _detected_python_rpaths = None
@@ -503,7 +504,11 @@ def fixupBinaryDLLPathsMacOS(
                     dist_path = standalone_entry_point.dest_path
                     break
             else:
-                dist_path = None
+                # Might be a framework, which is internally treated as data
+                # files.
+                dist_path = getIncludedFrameworkDistPathFromSourcePath(
+                    source_path=resolved_filename
+                )
 
             if dist_path is None:
                 return inclusion_logger.sysexit(
