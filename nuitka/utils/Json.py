@@ -7,12 +7,18 @@ from __future__ import absolute_import
 
 import json
 
-from .FileOperations import getFileContents, openTextFile
+from .FileOperations import getFileContents, openTextFile, stripFileContentsBOM
 
 
 def loadJsonFromFilename(filename):
     try:
-        return json.loads(getFileContents(filename))
+        contents = getFileContents(filename, mode="rb")
+        contents, _bom = stripFileContentsBOM(contents)
+
+        if type(contents) is bytes:
+            contents = contents.decode("utf8")
+
+        return json.loads(contents)
     except ValueError:
         return None
 

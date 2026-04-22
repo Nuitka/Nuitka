@@ -7,6 +7,7 @@ Reading is tremendously more complex than one might think, due to encoding
 issues and version differences of Python versions.
 """
 
+import codecs
 import os
 import re
 import sys
@@ -27,6 +28,7 @@ from nuitka.utils.FileOperations import (
     getReportPath,
     hasFilenameExtension,
     putTextFileContents,
+    stripFileContentsBOM,
 )
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
@@ -48,8 +50,6 @@ def _installFutureFStrings():
 
     # TODO: Not supporting anything before that.
     if python_version >= 0x360:
-        import codecs
-
         # Play trick for of "future_strings" PyPI package support. It's not needed,
         # but some people use it even on newer Python.
         try:
@@ -86,8 +86,9 @@ def _detectEncoding2(source_file):
     encoding = "ascii"
 
     line1 = source_file.readline()
+    line1, bom = stripFileContentsBOM(line1)
 
-    if line1.startswith(b"\xef\xbb\xbf"):
+    if bom:
         # BOM marker makes it clear.
         encoding = "utf-8"
     else:

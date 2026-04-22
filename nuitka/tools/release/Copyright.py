@@ -8,9 +8,11 @@ import os
 
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.utils.FileOperations import (
+    addFileContentsBOM,
     getFileContentByLine,
     getFileContents,
     openTextFile,
+    stripFileContentsBOM,
 )
 from nuitka.Version import getNuitkaVersionYear
 
@@ -177,13 +179,9 @@ def _formatComments(filename, comments):
 def attachLeadingComment(filename, effective_filename, comments, replacements=()):
     # Many details and complicated algorithm, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    old_lines = getFileContents(filename, mode="rb").splitlines()
-
-    if old_lines and old_lines[0].startswith(b"\xef\xbb\xbf"):
-        old_lines[0] = old_lines[0][3:]
-        bom = True
-    else:
-        bom = False
+    old_contents = getFileContents(filename, mode="rb")
+    old_contents, bom = stripFileContentsBOM(old_contents)
+    old_lines = old_contents.splitlines()
 
     if comments and os.path.basename(effective_filename) != os.path.basename(__file__):
         assert b'Part of "Nuitka"' not in b"".join(old_lines), filename
@@ -272,7 +270,7 @@ def attachLeadingComment(filename, effective_filename, comments, replacements=()
     lines = old_lines_head + pre_comments + old_lines + post_comments
 
     if bom:
-        lines[0] = b"\xef\xbb\xbf" + lines[0]
+        lines[0] = addFileContentsBOM(lines[0])
 
     def replace(line):
         for src, dest in replacements:

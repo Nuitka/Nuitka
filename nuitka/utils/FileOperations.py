@@ -1103,6 +1103,37 @@ def getFileContents(filename, mode="r", encoding=None, errors=None):
             return f.read()
 
 
+def stripFileContentsBOM(contents):
+    """Strip UTF-8 BOM from byte contents.
+
+    Args:
+        contents: Byte contents to normalize.
+
+    Returns:
+        tuple: Stripped contents, indicator if BOM was removed.
+    """
+
+    if contents.startswith(codecs.BOM_UTF8):
+        return contents[len(codecs.BOM_UTF8) :], True
+
+    return contents, False
+
+
+def addFileContentsBOM(contents):
+    """Add UTF-8 BOM to byte contents.
+
+    Args:
+        contents: Byte contents to normalize.
+
+    Returns:
+        bytes: Contents with BOM prefix.
+    """
+
+    contents, _bom = stripFileContentsBOM(contents)
+
+    return codecs.BOM_UTF8 + contents
+
+
 def getFileFirstLine(filename, mode="r", encoding=None):
     """Get the contents of a file.
 
