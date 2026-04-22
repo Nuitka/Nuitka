@@ -202,32 +202,19 @@ def buildClassNode3(provider, node, source_ref):
 
     class_body_class = _selectClassBody(static_qualname)
 
-    class_creation_function = class_body_class(
+    class_dict_creation_function = class_body_class(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
-    class_locals_scope = class_creation_function.getLocalsScope()
+    class_locals_scope = class_dict_creation_function.getLocalsScope()
 
     # Only local variable, for provision to methods.
     class_variable = class_locals_scope.getLocalVariable(
-        owner=class_creation_function,
+        owner=class_dict_creation_function,
         variable_name="__class__",
     )
 
     class_locals_scope.registerProvidedVariable(class_variable)
-
-    if python_version >= 0x3C0:
-        type_params_expressions = []
-        for _, type_param_var in type_variables:
-            type_params_expressions.append(
-                ExpressionTempVariableRef(
-                    variable=type_param_var,
-                    source_ref=source_ref,
-                )
-            )
-        type_params_expressions = tuple(type_params_expressions)
-    else:
-        type_params_expressions = ()
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
@@ -252,7 +239,7 @@ def buildClassNode3(provider, node, source_ref):
     )
 
     body = buildFrameNode(
-        provider=class_creation_function,
+        provider=class_dict_creation_function,
         nodes=class_statement_nodes,
         code_object=code_object,
         source_ref=source_ref,
@@ -264,7 +251,7 @@ def buildClassNode3(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref
 
-    locals_scope = class_creation_function.getLocalsScope()
+    locals_scope = class_dict_creation_function.getLocalsScope()
 
     statements = [
         StatementSetLocals(
@@ -275,7 +262,7 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=source_ref,
         ),
         StatementAssignmentVariableName(
-            provider=class_creation_function,
+            provider=class_dict_creation_function,
             variable_name="__module__",
             source=ExpressionModuleAttributeNameRef(
                 variable=parent_module.getVariableForReference("__name__"),
@@ -288,7 +275,7 @@ def buildClassNode3(provider, node, source_ref):
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
-                provider=class_creation_function,
+                provider=class_dict_creation_function,
                 variable_name="__doc__",
                 source=makeConstantRefNode(
                     constant=class_doc, source_ref=source_ref, user_provided=True
@@ -299,7 +286,7 @@ def buildClassNode3(provider, node, source_ref):
 
     # The "__qualname__" attribute has a dedicated node.
     qualname_ref = ExpressionFunctionQualnameRef(
-        function_body=class_creation_function, source_ref=source_ref
+        function_body=class_dict_creation_function, source_ref=source_ref
     )
 
     statements.append(
@@ -317,7 +304,7 @@ def buildClassNode3(provider, node, source_ref):
     if python_version >= 0x3D0:
         statements.append(
             StatementAssignmentVariableName(
-                provider=class_creation_function,
+                provider=class_dict_creation_function,
                 variable_name="__firstlineno__",
                 source=ExpressionConstantIntRef(
                     constant=node.lineno,
@@ -327,7 +314,10 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
+    if (
+        python_version >= 0x360
+        and class_dict_creation_function.needsAnnotationsDictionary()
+    ):
         statements.append(
             StatementLocalsDictOperationSet(
                 locals_scope=locals_scope,
@@ -342,7 +332,7 @@ def buildClassNode3(provider, node, source_ref):
     for type_param, type_param_var in type_variables:
         statements.append(
             StatementAssignmentVariableName(
-                provider=class_creation_function,
+                provider=class_dict_creation_function,
                 source=ExpressionTempVariableRef(
                     variable=type_param_var,
                     source_ref=source_ref,
@@ -357,10 +347,10 @@ def buildClassNode3(provider, node, source_ref):
     if python_version >= 0x3D0:
         statements.append(
             StatementAssignmentVariableName(
-                provider=class_creation_function,
+                provider=class_dict_creation_function,
                 variable_name="__static_attributes__",
                 source=ExpressionConstantTupleRef(
-                    constant=class_creation_function.getStaticAttributes(),
+                    constant=class_dict_creation_function.getStaticAttributes(),
                     user_provided=False,
                     source_ref=source_ref,
                 ),
@@ -370,7 +360,8 @@ def buildClassNode3(provider, node, source_ref):
 
     needs_orig_bases = _needsOrigBases(static_qualname)
 
-    has_bases = node.bases or type_params_expressions
+    has_type_params = bool(type_variables)
+    has_bases = node.bases or has_type_params
 
     if has_bases:
         tmp_bases = outline_body.allocateTempVariable(
@@ -418,6 +409,37 @@ def buildClassNode3(provider, node, source_ref):
 
         needs_orig_bases = False
 
+    new_statements = []
+    if has_type_params:
+        tmp_type_params = outline_body.allocateTempVariable(
+            temp_scope=temp_scope, name="type_params", temp_type="object"
+        )
+        new_statements.append(
+            makeStatementAssignmentVariable(
+                variable=tmp_type_params,
+                source=makeExpressionMakeTuple(
+                    elements=tuple(
+                        ExpressionTempVariableRef(
+                            variable=type_param_var, source_ref=source_ref
+                        )
+                        for _, type_param_var in type_variables
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_dict_creation_function,
+                variable_name="__type_params__",
+                source=ExpressionTempVariableRef(
+                    variable=tmp_type_params, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     statements += (
         makeStatementAssignmentVariable(
             variable=class_variable,
@@ -449,36 +471,10 @@ def buildClassNode3(provider, node, source_ref):
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
     )
 
-    new_statements = []
-    if type_params_expressions:
-        tmp_type_params = outline_body.allocateTempVariable(
-            temp_scope=temp_scope, name="type_params", temp_type="object"
-        )
-        new_statements.append(
-            makeStatementAssignmentVariable(
-                variable=tmp_type_params,
-                source=makeExpressionMakeTuple(
-                    elements=type_params_expressions,
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-        )
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=class_creation_function,
-                variable_name="__type_params__",
-                source=ExpressionTempVariableRef(
-                    variable=tmp_type_params, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
     # TODO: Is this something similar to makeTryFinallyReleaseStatement
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
-            provider=class_creation_function,
+            provider=class_dict_creation_function,
             tried=mergeStatements(statements, True),
             final=StatementReleaseLocals(
                 locals_scope=locals_scope, source_ref=source_ref
@@ -489,13 +485,13 @@ def buildClassNode3(provider, node, source_ref):
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
-    class_creation_function.setChildBody(body)
+    class_dict_creation_function.setChildBody(body)
 
     # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
     # contained.
 
-    decorated_body = class_creation_function
+    decorated_body = class_dict_creation_function
 
     for decorator in buildNodeTuple(
         provider, reversed(node.decorator_list), source_ref
@@ -545,7 +541,7 @@ def buildClassNode3(provider, node, source_ref):
                 provider=provider, elements=node.bases, source_ref=source_ref
             )
 
-        if type_params_expressions:
+        if has_type_params:
             bases_value = makeBinaryOperationNode(
                 operator="Add",
                 left=bases_value,
@@ -816,14 +812,14 @@ def buildClassNode3(provider, node, source_ref):
     )
 
     if python_version >= 0x300:
-        class_creation_function.qualname_setup = node.name, qualname_assign
+        class_dict_creation_function.qualname_setup = node.name, qualname_assign
 
     tmp_variables = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
     if has_bases:
         tmp_variables.insert(0, tmp_bases)
         if needs_orig_bases:
             tmp_variables.insert(0, tmp_bases_orig)
-    if type_params_expressions:
+    if has_type_params:
         tmp_variables.append(tmp_type_params)
     for _, type_temp_var in type_variables:
         tmp_variables.append(type_temp_var)
