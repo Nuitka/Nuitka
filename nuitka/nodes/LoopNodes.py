@@ -130,9 +130,6 @@ class StatementLoop(StatementLoopBase):
             current = trace_collection.getVariableCurrentTrace(loop_variable)
 
             if all_first_pass:
-                if current.isAssignTraceVeryTrusted():
-                    continue
-
                 first_pass = True
                 restarted = False
 
@@ -142,9 +139,6 @@ class StatementLoop(StatementLoopBase):
                 self.loop_start[loop_variable] = current
             else:
                 if not self.loop_start[loop_variable].compareValueTrace(current):
-                    if current.isAssignTraceVeryTrusted():
-                        continue
-
                     first_pass = True
                     restarted = True
                     self.loop_start[loop_variable] = current
