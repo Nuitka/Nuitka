@@ -26,8 +26,11 @@ from .Execution import (
 )
 from .FileOperations import (
     areSamePaths,
+    deleteFile,
     getFileContentByLine,
     getNormalizedPathJoin,
+    putBinaryFileContents,
+    withTemporaryFilename,
 )
 from .Hashing import HashCRC32
 from .Importing import withTemporarySysPathExtension
@@ -111,12 +114,50 @@ def _getCandidateBinPaths(logger, site_packages):
     return candidate_bin_paths
 
 
+def _checkPrivatePipBinaryPath(
+    logger,
+    binary_name,
+    binary_path,
+    version,
+    dependencies,
+    check_binary,
+):
+    """Check if a binary path is version compatible and usable."""
+
+    with withPrivatePipSitePackagesPathAdded(logger=logger):
+        if version is None:
+            ok = True
+            message = None
+        else:
+            ok, message = _checkRequiredVersion(
+                logger=logger,
+                tool=binary_name,
+                tool_call=[binary_path],
+                dependencies=dependencies,
+            )
+
+        if ok and check_binary is not None:
+            ok, message = check_binary(
+                logger=logger,
+                binary_path=binary_path,
+            )
+
+    if not ok and logger is not None:
+        logger.info(
+            "Rejecting '%s' binary '%s' due to: %s"
+            % (binary_name, binary_path, message)
+        )
+
+    return ok, message
+
+
 def _getPrivatePipBinaryPath(
     logger,
     binary_name,
     package_name,
     module_name,
     dependencies,
+    check_binary,
     assume_yes_for_downloads,
     reject_message,
 ):
@@ -139,20 +180,22 @@ def _getPrivatePipBinaryPath(
     extra_dir = os.pathsep.join(candidate_bin_paths)
 
     binary_path = getExecutablePath(binary_name, extra_dir=extra_dir)
+    force_package_update = False
 
     if binary_path is not None:
-        if version is None:
-            return binary_path, None, assume_yes_for_downloads
+        ok, _message = _checkPrivatePipBinaryPath(
+            logger=logger,
+            binary_name=binary_name,
+            binary_path=binary_path,
+            version=version,
+            dependencies=dependencies,
+            check_binary=check_binary,
+        )
 
-        with withPrivatePipSitePackagesPathAdded(logger=logger):
-            ok, _message = _checkRequiredVersion(
-                logger=logger,
-                tool=binary_name,
-                tool_call=[binary_path],
-                dependencies=dependencies,
-            )
         if ok:
             return binary_path, None, assume_yes_for_downloads
+
+        force_package_update = True
 
     # Download, avoiding to use the result, which is the site-packages
     # folder
@@ -161,6 +204,7 @@ def _getPrivatePipBinaryPath(
         package_name=package_name,
         module_name=module_name,
         package_version=version,
+        force_update=force_package_update,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
     )
@@ -172,6 +216,7 @@ def _getPrivatePipBinaryPath(
                 package_name=dep_package_name,
                 module_name=dep_module_name,
                 package_version=getRequiredVersion(logger, dep_package_name),
+                force_update=force_package_update,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 reject_message=dep_reject_message,
             )
@@ -185,16 +230,17 @@ def _getPrivatePipBinaryPath(
                 possible += ".exe"
 
             if os.path.exists(possible):
-                if version is not None:
-                    with withPrivatePipSitePackagesPathAdded(logger=logger):
-                        ok, _message = _checkRequiredVersion(
-                            logger=logger,
-                            tool=binary_name,
-                            tool_call=[possible],
-                            dependencies=dependencies,
-                        )
-                    if not ok:
-                        continue
+                ok, _message = _checkPrivatePipBinaryPath(
+                    logger=logger,
+                    binary_name=binary_name,
+                    binary_path=possible,
+                    version=version,
+                    dependencies=dependencies,
+                    check_binary=check_binary,
+                )
+
+                if not ok:
+                    continue
 
                 return possible, site_packages_folder, assume_yes_for_downloads
 
@@ -292,6 +338,7 @@ def tryDownloadPackageName(
     package_name,
     module_name,
     package_version,
+    force_update,
     assume_yes_for_downloads,
     reject_message,
 ):
@@ -300,7 +347,7 @@ def tryDownloadPackageName(
 
     site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
 
-    if site_packages_folder is not None:
+    if site_packages_folder is not None and not force_update:
         candidate = os.path.join(site_packages_folder, module_name)
 
         if os.path.exists(candidate):
@@ -454,6 +501,7 @@ def getPrivatePackage(
             package_name=package_name,
             module_name=module_name.split(".")[0],
             package_version=package_version,
+            force_update=False,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -480,6 +528,7 @@ def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
         package_name="ziglang",
         module_name="ziglang",
         package_version=None,
+        force_update=False,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
     )
@@ -508,6 +557,7 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
             package_name="clang-format",
             module_name="clang_format",
             dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -524,6 +574,7 @@ def getBlackBinaryPath(logger, assume_yes_for_downloads):
             package_name="black",
             module_name="black",
             dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'black'.",
         )
@@ -540,11 +591,35 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
             package_name="isort",
             module_name="isort",
             dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'isort'.",
         )
     )
     return binary_path
+
+
+def _checkMdformatUsability(logger, binary_path):
+    """Check if mdformat can format a minimal markdown file."""
+
+    with withTemporaryFilename(suffix=".md") as temp_filename:
+        try:
+            putBinaryFileContents(temp_filename, b"# smoke\n")
+            check_output([binary_path, "--check", temp_filename], logger=logger)
+        except NuitkaCalledProcessError as e:
+            stderr = e.stderr
+
+            if str is not bytes and stderr is not None:
+                stderr = stderr.decode("utf8", "ignore")
+
+            return (
+                False,
+                "failed to format a test file: %s" % (stderr or e),
+            )
+        finally:
+            deleteFile(temp_filename, must_exist=False)
+
+    return True, None
 
 
 def getMdformatBinaryPath(logger, assume_yes_for_downloads):
@@ -575,6 +650,7 @@ def getMdformatBinaryPath(logger, assume_yes_for_downloads):
             package_name="mdformat",
             module_name="mdformat",
             dependencies=dependencies,
+            check_binary=_checkMdformatUsability,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat'.",
         )
@@ -592,6 +668,7 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
             package_name="rstfmt",
             module_name="rstfmt",
             dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
         )
