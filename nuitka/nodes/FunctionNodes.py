@@ -425,6 +425,9 @@ class ExpressionFunctionBodyBase(
             if module_variable not in self.taken:
                 continue
 
+            if not module_variable.hasEmptyTracesFor(self.trace_collection.owner):
+                continue
+
             self.trace_collection.signalChange(
                 "var_usage",
                 self.source_ref,
