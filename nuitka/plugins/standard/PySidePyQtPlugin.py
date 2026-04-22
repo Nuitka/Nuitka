@@ -1014,21 +1014,23 @@ Prefix = .
         framework_basename = framework_name + ".framework"
         framework_path = getNormalizedPathJoin(source_path, framework_basename)
 
-        for filename in getFileList(framework_path):
-            filename_relative = os.path.relpath(filename, framework_path)
+        # Some Qt wheel layouts do not ship all optional WebEngine dependencies
+        # as frameworks. Before framework directory copying, these were
+        # silently skipped, and we need to preserve that behavior.
+        if not os.path.isdir(framework_path):
+            return None
 
-            yield self.makeIncludedDataFile(
-                source_path=filename,
-                dest_path=getNormalizedPathJoin(
-                    self.binding_name,
-                    "Qt",
-                    "lib",
-                    framework_basename,
-                    filename_relative,
-                ),
-                reason=reason,
-                tags=tags,
-            )
+        return self.makeIncludedFrameworkDirectory(
+            source_path=framework_path,
+            dest_path=getNormalizedPathJoin(
+                self.binding_name,
+                "Qt",
+                "lib",
+                framework_basename,
+            ),
+            reason=reason,
+            tags=tags,
+        )
 
     def _handleWebEngineDataFilesGeneric(self):
         resources_dir = self._getWebEngineResourcesPath()

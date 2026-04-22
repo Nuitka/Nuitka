@@ -224,6 +224,9 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
+        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+            extra_flags.append("ignore_stderr")
+
         if filename.startswith("PyQt6") and isMacOS():
             reportSkip("not currently supported", ".", filename)
             continue
