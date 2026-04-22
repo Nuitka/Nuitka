@@ -24,7 +24,7 @@ _macos_security_usage = (
 )
 
 
-def _filterCodesignErrorOutput(stderr):
+def _filterCodesignErrorOutput(stderr, signing_identity, signing_keychain_filename):
     stderr = b"\n".join(
         line
         for line in stderr.splitlines()
@@ -34,10 +34,25 @@ def _filterCodesignErrorOutput(stderr):
     )
 
     if b"errSecInternalComponent" in stderr:
+        details = []
+
+        if signing_identity is not None:
+            details.append("identity '%s'" % signing_identity)
+
+        if signing_keychain_filename is not None:
+            details.append("keychain '%s'" % signing_keychain_filename)
+
+        if details:
+            details = " Requested %s." % " and ".join(details)
+        else:
+            details = ""
+
         return postprocessing_logger.sysexit("""\
-Access to the specified codesign certificate was not allowed. Please \
-'allow all items' or when compiling with GUI available, enable prompting \
-for the certificate in KeyChain Access application for this certificate.""")
+The macOS codesign step failed with a keychain access error \
+'errSecInternalComponent'. This can mean that the signing identity is \
+missing, incomplete, locked, or not accessible to codesign. Check that the \
+requested identity exists with its private key and that the relevant keychain \
+can be unlocked and used for code signing.%s""" % details)
 
     return None, stderr
 
@@ -102,13 +117,17 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
     # Weak signing.
     identity = getMacOSSigningIdentity()
 
-    if getMacOSSigningCertificateFilename() is not None:
+    signing_keychain_filename = getMacOSSigningCertificateFilename()
+
+    if signing_keychain_filename is not None:
+        signing_keychain_filename = getExternalUsePath(signing_keychain_filename)
+
         command = [
             "security",
             "unlock-keychain",
             "-p",
             getMacOSSigningCertificatePassword() or "",
-            getExternalUsePath(getMacOSSigningCertificateFilename()),
+            signing_keychain_filename,
         ]
 
         executeToolChecked(
@@ -130,6 +149,12 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
         "--deep",
         "--preserve-metadata=entitlements",
     ]
+
+    if signing_keychain_filename is not None:
+        command += [
+            "--keychain",
+            signing_keychain_filename,
+        ]
 
     macos_signed_app_name = getMacOSSignedAppName()
 
@@ -157,6 +182,10 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
             command=command,
             absence_message=_macos_codesign_usage,
             stderr_filter=_filterCodesignErrorOutput,
+            context={
+                "signing_identity": identity,
+                "signing_keychain_filename": signing_keychain_filename,
+            },
         )
 
 
