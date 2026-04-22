@@ -36,11 +36,26 @@ from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
+
+def _getSysArgv():
+    # During early startup on Python2, "sys.argv" may not exist yet.
+    return getattr(sys, "argv", ("__main__.py",))
+
+
+def _getNuitkaBinaryName():
+    argv = _getSysArgv()
+
+    result = os.path.basename(argv[0])
+
+    if result == "__main__.py":
+        result = "%s -m nuitka" % os.path.basename(sys.executable)
+
+    return result
+
+
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-_nuitka_binary_name = os.path.basename(sys.argv[0])
-if _nuitka_binary_name == "__main__.py":
-    _nuitka_binary_name = "%s -m nuitka" % os.path.basename(sys.executable)
+_nuitka_binary_name = _getNuitkaBinaryName()
 is_nuitka_run = _nuitka_binary_name.lower().endswith("-run")
 
 if not is_nuitka_run:
@@ -53,12 +68,14 @@ else:
 
 def _handleHelpModes():
     result = False
-    for count, arg in enumerate(sys.argv[1:], start=1):
+    argv = _getSysArgv()
+
+    for count, arg in enumerate(argv[1:], start=1):
         if arg == "--":
             break
         if arg in ("--help-all", "--help-plugin", "--help-plugins"):
             result = True
-            sys.argv[count] = "--help"
+            argv[count] = "--help"
             break
     return result
 
