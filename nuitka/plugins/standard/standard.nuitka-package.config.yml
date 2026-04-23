@@ -1646,6 +1646,34 @@
         'install_flet_package': 'un-callable'
       when: 'standalone'
 
+- module-name: 'flet_desktop' # checksum: a0d7a541
+  data-files:
+    - dirs:
+        - 'app/flet/data'
+      when: 'win32'
+    - patterns:
+        - 'app/flet/data/**/*.bin'
+        - 'app/flet/data/**/*.so*'
+      when: 'win32'
+    - patterns:
+        - 'app/flet-*.tar.gz'
+      when: 'not win32'
+
+  dlls:
+    # TODO: Add a way to mark these as "external" so DLL dependency analysis
+    # knows which packaged runtime binary they belong to.
+    - from_filenames:
+        relative_path: 'app/flet'
+        prefixes:
+          - ''
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'app/flet'
+        prefixes:
+          - ''
+        executable: 'yes'
+      when: 'win32'
+
 - module-name: 'folium' # checksum: 2e123618
   data-files:
     - dirs:
