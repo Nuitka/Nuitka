@@ -418,7 +418,7 @@ class ExpressionFunctionBodyBase(
 
                 self.removeClosureVariable(closure_variable)
 
-    def optimizeVeryHardHardModuleVariables(self, very_trusted_module_variables):
+    def optimizeUnusedVeryTrustedModuleVariables(self, very_trusted_module_variables):
         """Optimize module variables that are very trusted."""
 
         for module_variable in very_trusted_module_variables:

@@ -650,7 +650,7 @@ class CompiledPythonModule(
             markEntryPointAsComplete(function_body)
 
             if old_collection is not None:
-                function_body.optimizeVeryHardHardModuleVariables(
+                function_body.optimizeUnusedVeryTrustedModuleVariables(
                     old_collection.getVeryTrustedModuleVariables()
                 )
             function_body.optimizeUnusedClosureVariables()
