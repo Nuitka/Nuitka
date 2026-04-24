@@ -28,7 +28,8 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
         %(module_identifier)s,
         %(function_doc)s,
         %(closure_name)s,
-        %(closure_count)d
+        %(closure_count)d,
+        %(type_params)s
     );
 %(constant_return_code)s
 
