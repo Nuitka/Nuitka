@@ -4,6 +4,7 @@
 
 """Main program for PyLint checker tool."""
 
+import os
 import time
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -20,14 +21,30 @@ from nuitka.utils.FileOperations import (
 )
 
 
+def _getPathParts(filename):
+    filename = os.path.normpath(filename)
+
+    if not os.path.isabs(filename):
+        filename = os.path.abspath(filename)
+
+    try:
+        filename = os.path.relpath(filename, getHomePath())
+    except ValueError:
+        pass
+
+    return filename.replace("\\", "/").split("/")
+
+
 def isIgnoredFile(filename):
-    if filename.startswith("Mini"):
+    path_parts = _getPathParts(filename)
+
+    if path_parts[0].startswith("Mini"):
         return True
-    if filename.startswith("examples/"):
+    if path_parts[0] == "examples":
         return True
-    if filename.startswith("tests/") and not filename.endswith("/run_all.py"):
+    if path_parts[0] == "tests" and path_parts[-1] != "run_all.py":
         return True
-    if "inline_copy" in filename:
+    if "inline_copy" in path_parts:
         return True
 
     return False
