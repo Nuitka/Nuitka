@@ -43,6 +43,7 @@ BLACK_SKIP_LIST = [
     "tests/programs/syntax_errors/IndentationErroring.py",
     "tests/syntax/ClosureDel_2.py",
     "tests/syntax/ExecWithNesting_2.py",
+    "tests/syntax/EncodingProblemTest.py",
     "tests/syntax/IndentationError.py",
     "tests/syntax/StarImportExtra.py",
     "tests/syntax/SyntaxError.py",

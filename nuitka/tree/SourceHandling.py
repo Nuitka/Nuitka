@@ -77,8 +77,17 @@ def _readSourceCodeFromFilename3(source_filename):
 
     _installFutureFStrings()
 
-    with tokenize.open(source_filename) as source_file:
-        return source_file.read()
+    try:
+        with tokenize.open(source_filename) as source_file:
+            return source_file.read()
+    except UnicodeDecodeError as e:
+        # Match the parser wording for declared but incompatible source
+        # encodings.
+        raiseSyntaxError(
+            "encoding problem: %s" % e.encoding,
+            makeSourceReferenceFromFilename(source_filename),
+            display_line=False,
+        )
 
 
 def _detectEncoding2(source_file):
