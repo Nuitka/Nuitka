@@ -123,7 +123,7 @@ def kw_only_func(
     b: annotation5() = default3(),
     c: annotation6() = default4(),
     d: annotation7(),
-    **kw: annotation8()
+    **_kw: annotation8()
 ) -> annotation9():
     print(x, y, z, a, b, c, d)
 
@@ -151,7 +151,7 @@ print("kw_only_star_func:", kw_only_star_func(a=8, b=12, k=9, j=7))
 
 def deeplyNestedNonLocalWrite():
     x = 0
-    y = 0
+    _y = 0
 
     def f():
         def g():
@@ -180,7 +180,7 @@ def deletingClosureVariable():
 
         g()
         g()
-    except Exception as e:
+    except NameError as e:
         return repr(e)
 
 

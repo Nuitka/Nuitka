@@ -97,6 +97,37 @@ _python_vendor = None
 _python_debug = None
 
 
+def _getMinVersionSuffixRequirements():
+    result = []
+
+    for python_version_str in getTestExecutionPythonVersions():
+        major, minor = tuple(int(value) for value in python_version_str.split("."))
+
+        # No need for a "26" suffix, every interpreter supported for running
+        # tests is already new enough for it.
+        if (major, minor) == (2, 6):
+            continue
+
+        result.append(("%d%d.py" % (major, minor), (major, minor)))
+
+    return tuple(result)
+
+
+def _getMaxVersionSuffixRequirements():
+    result = []
+
+    for python_version_str in getTestExecutionPythonVersions():
+        major, minor = tuple(int(value) for value in python_version_str.split("."))
+
+        result.append(("_%d%d.py" % (major, minor), (major, minor + 1)))
+
+    return tuple(result)
+
+
+_min_version_suffix_requirements = _getMinVersionSuffixRequirements()
+_max_version_suffix_requirements = _getMaxVersionSuffixRequirements()
+
+
 def _parsePythonVersionOutput(python_binary):
     version_output = check_output(
         (
@@ -312,7 +343,7 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     assert type(filename) is str, repr(filename)
 
@@ -327,21 +358,16 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith(".j2"):
         filename = filename[:-3]
 
-    # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and _python_version < (2, 7):
-        return False
-
     # Skip tests that require Python 2 at maximum.
     if filename.endswith("_2.py") and _python_version >= (3,):
         return False
 
-    # Skip tests that require Python 3.7 at maximum.
-    if filename.endswith("_37.py") and _python_version >= (3, 8):
-        return False
-
-    # Skip tests that require Python 3.11 at maximum.
-    if filename.endswith("_311.py") and _python_version >= (3, 8):
-        return False
+    for version_suffix, max_excluded_version in _max_version_suffix_requirements:
+        if (
+            filename.endswith(version_suffix)
+            and _python_version >= max_excluded_version
+        ):
+            return False
 
     # Skip tests that require Python 3.2 at least.
     if filename.endswith("32.py") and _python_version < (3, 2):
@@ -351,45 +377,9 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("33.py") and _python_version < (3, 3):
         return False
 
-    # Skip tests that require Python 3.4 at least.
-    if filename.endswith("34.py") and _python_version < (3, 4):
-        return False
-
-    # Skip tests that require Python 3.5 at least.
-    if filename.endswith("35.py") and _python_version < (3, 5):
-        return False
-
-    # Skip tests that require Python 3.6 at least.
-    if filename.endswith("36.py") and _python_version < (3, 6):
-        return False
-
-    # Skip tests that require Python 3.7 at least.
-    if filename.endswith("37.py") and _python_version < (3, 7):
-        return False
-
-    # Skip tests that require Python 3.8 at least.
-    if filename.endswith("38.py") and _python_version < (3, 8):
-        return False
-
-    # Skip tests that require Python 3.9 at least.
-    if filename.endswith("39.py") and _python_version < (3, 9):
-        return False
-
-    # Skip tests that require Python 3.10 at least.
-    if filename.endswith("310.py") and _python_version < (3, 10):
-        return False
-
-    # Skip tests that require Python 3.11 at least.
-    if filename.endswith("311.py") and _python_version < (3, 11):
-        return False
-
-    # Skip tests that require Python 3.12 at least.
-    if filename.endswith("312.py") and _python_version < (3, 12):
-        return False
-
-    # Skip tests that require Python 3.13 at least.
-    if filename.endswith("313.py") and _python_version < (3, 13):
-        return False
+    for version_suffix, min_version in _min_version_suffix_requirements:
+        if filename.endswith(version_suffix) and _python_version < min_version:
+            return False
 
     return True
 

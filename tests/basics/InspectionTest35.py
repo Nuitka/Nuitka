@@ -1,16 +1,18 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tests uncompiled functions and compiled functions responses to inspect and isistance."""
+"""Tests uncompiled functions and compiled functions responses to inspect and isinstance."""
 
 import inspect
 import types
 
 # nuitka-project: --python-flag=no_warnings
 
+_x = None
+
 
 async def someCoroutine():
-    async with _x:
+    async with _x:  # pylint: disable=not-async-context-manager
         pass
 
 

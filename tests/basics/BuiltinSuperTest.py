@@ -3,10 +3,12 @@
 
 """Test builtin super() function.
 
-This test checks the behavior of the builtin super() function in
-Python 2 and Python 3, with enhanced usage for Python 3.6+ where
-it's supposed to work earlier.
+This test checks the behavior of the builtin super() function
+shared by Python 2 and Python 3.
 """
+
+# pylint: disable=broad-exception-caught,invalid-name,no-self-argument
+# pylint: disable=no-self-use,no-value-for-parameter,self-cls-assignment
 
 from __future__ import print_function
 
@@ -139,34 +141,6 @@ if sys.version_info >= (3, 6):
 
 makeSuperCall(type, None)
 makeSuperCall(type, 1)
-
-
-if sys.version_info >= (3, 6):
-    print(
-        "Testing super() with __init_subclass__ and class decorator requiring __classcell__:"
-    )
-
-    def makeClassDecorator(cls):
-        def __init__(self):
-            cls.__self_init__(self)
-
-        cls.__init__ = __init__
-        return cls
-
-    class ClassWithInitSubclassSuperParent:
-        def __init__(self):
-            print("ClassWithInitSubclassSuper Parent Initialized")
-
-        def __init_subclass__(cls, decorator):
-            decorator(cls)()
-
-    class ClassWithInitSubclassSuperChild(
-        ClassWithInitSubclassSuperParent,
-        decorator=makeClassDecorator,
-    ):
-        def __self_init__(self):
-            super().__init__()
-
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
