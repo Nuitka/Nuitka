@@ -140,14 +140,23 @@ addInlineCopy("pkg_resources")
 # "scons.py" in bin with respect to versions selection.
 addInlineCopy("bin")
 
-if (os.name == "nt" and sys.version_info < (3, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (3,))
-if (os.name == "nt" and sys.version_info >= (3, 7)) or sdist_mode:
+# Needs to match the version dispatch in "nuitka/build/inline_copy/bin/scons.py".
+# Scons may be executed with a different Python than the one used
+# to install Nuitka, so include the supported inline copies regardless.
+if os.name == "nt" or sdist_mode:
+    addInlineCopy(
+        "lib/scons-4.3.0",
+        do_byte_compile=(3, 5) <= sys.version_info < (3, 7),
+    )
+if os.name == "nt" or sdist_mode:
     addInlineCopy("lib/scons-4.10.1", do_byte_compile=sys.version_info >= (3, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2", do_byte_compile=sys.version_info < (2, 7))
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-3.1.2", do_byte_compile=sys.version_info >= (2, 7))
+    addInlineCopy(
+        "lib/scons-3.1.2",
+        do_byte_compile=os.name != "nt" and sys.version_info >= (2, 7),
+    )
 
 nuitka_packages = findNuitkaPackages()
 
