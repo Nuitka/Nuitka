@@ -4,17 +4,30 @@ import os
 import shutil
 import sys
 
-from nuitka.tools.release.Debian import cleanupTarfileForDebian, runPy2dsc
+from nuitka.tools.release.DebianPackage import (
+    cleanupTarfileForDebian,
+    runPy2dsc,
+)
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    cleanupSourceDistributionState,
+)
 from nuitka.Tracing import my_print
+from nuitka.utils.FileOperations import listDir
 
 
 def main():
     branch_name = checkBranchName()
     assert branch_name == "main"
 
+    shutil.rmtree("dist", ignore_errors=True)
+    shutil.rmtree("build", ignore_errors=True)
+
+    cleanupSourceDistributionState()
+
     checkReleaseDocumentation()
+
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")
@@ -32,12 +45,14 @@ def main():
 
     # Then run "py2dsc" on it.
 
-    for filename in os.listdir("."):
+    for _fullname, filename in listDir("."):
         if filename.endswith(".tar.gz"):
             new_name = filename[:-7] + "+ds.tar.gz"
 
             cleanupTarfileForDebian(
-                codename="sid", filename=filename, new_name=new_name
+                codename="sid",
+                filename=filename,
+                new_name=new_name,
             )
 
             entry = runPy2dsc(filename, new_name)

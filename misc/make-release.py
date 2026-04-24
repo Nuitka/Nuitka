@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 import shutil
 from optparse import OptionParser
 
-from nuitka.tools.release.Debian import checkChangeLog
+from nuitka.tools.release.DebianPackage import checkChangeLog
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import (
     checkAtHome,

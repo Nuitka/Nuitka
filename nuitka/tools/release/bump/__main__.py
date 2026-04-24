@@ -8,7 +8,7 @@ import sys
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
-from nuitka.tools.release.Debian import updateDebianChangelog
+from nuitka.tools.release.DebianPackage import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
 from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import openTextFile

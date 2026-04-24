@@ -7,18 +7,23 @@ import shutil
 import sys
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
-from nuitka.tools.release.Debian import (
+from nuitka.tools.release.DebianPackage import (
     checkChangeLog,
     cleanupTarfileForDebian,
     runPy2dsc,
     shallNotIncludeInlineCopy,
 )
-from nuitka.tools.release.Release import checkBranchName, getBranchCategory
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    cleanupSourceDistributionState,
+    getBranchCategory,
+)
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     copyTree,
     getFileList,
+    listDir,
     putTextFileContents,
     resolveShellPatternToFilenames,
     withDirectoryChange,
@@ -119,6 +124,8 @@ def main():
     copyTree(options.src, "/var/tmp/src")
     os.chdir("/var/tmp/src")
 
+    cleanupSourceDistributionState()
+
     fixupPermissionsInplace(
         "debian", int("644", 8), int("755", 8), ignore_filenames=("rules",)
     )
@@ -129,7 +136,8 @@ def main():
     # being added to sdist for the Debian that do not need it.
     # spell-checker: ignore gztar
     with withEnvironmentVarOverridden(
-        "NUITKA_NO_INLINE_COPY", "1" if shallNotIncludeInlineCopy(codename) else "0"
+        "NUITKA_NO_INLINE_COPY",
+        "1" if shallNotIncludeInlineCopy(codename) else "0",
     ):
         tools_logger.info("Creating dist archive.", style="blue")
         check_call([sys.executable, "setup.py", "sdist", "--formats=gztar"])
@@ -142,7 +150,7 @@ def main():
             #   issues)
             # - the inline copy of scons (not wanted for Debian)
 
-            for filename in os.listdir("."):
+            for _fullname, filename in listDir("."):
                 if filename.endswith(".tar.gz"):
                     new_name = filename[:-7] + "+ds.tar.gz"
 

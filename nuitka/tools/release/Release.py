@@ -11,9 +11,12 @@ from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
+    deleteFile,
     getFileContents,
     getFileFirstLine,
     getNormalizedPath,
+    listDir,
+    removeDirectory,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -156,6 +159,26 @@ def _makeDistFilenameBase(nuitka_version):
             return "dist/nuitka-%d.%d.%d" % nuitka_version[:3]
 
 
+def cleanupSourceDistributionState():
+    """Remove cached source distribution metadata from the checkout.
+
+    Persistent release worker checkouts can keep an outdated 'MANIFEST' or
+    project '.egg-info' directory around. That may cause 'setup.py sdist' to
+    omit newly added non-code files from the next source archive.
+    """
+
+    deleteFile("MANIFEST", must_exist=False)
+
+    for fullpath, filename in listDir("."):
+        if filename.lower().endswith(".egg-info") and os.path.isdir(fullpath):
+            removeDirectory(
+                path=fullpath,
+                logger=tools_logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
+
+
 def makeNuitkaSourceDistribution(formats=None, sign=True):
     # spell-checker: ignore bztar,gztar
     if formats is None:
@@ -167,6 +190,8 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
         python_versions=("3.10", "3.11", "3.12"),
         module_specs=None,
     )
+
+    cleanupSourceDistributionState()
 
     # Avoid strange permissions in archive
     os.system("umask 0022 && chmod -R a+rX .")

@@ -13,7 +13,10 @@ import sys
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    cleanupSourceDistributionState,
+)
 from nuitka.Tracing import tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
@@ -25,6 +28,8 @@ def main():
 
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
+
+    cleanupSourceDistributionState()
 
     checkReleaseDocumentation()
     # spell-checker: ignore gztar
