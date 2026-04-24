@@ -458,15 +458,19 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-#if PYTHON_VERSION < 0x3e0 || !defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
+#if PYTHON_VERSION < 0x3e0
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
 #else
-        if (function->m_annotate == NULL) {
-            return MAKE_DICT_EMPTY(tstate);
-        }
-        function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
-        if (function->m_annotations == NULL) {
-            return NULL;
+        if (function->m_annotate == NULL || function->m_annotate == Py_None) {
+            function->m_annotations = MAKE_DICT_EMPTY(tstate);
+            if (function->m_annotations == NULL) {
+                return NULL;
+            }
+        } else {
+            function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
+            if (function->m_annotations == NULL) {
+                return NULL;
+            }
         }
 #endif
     }
@@ -496,12 +500,47 @@ static int Nuitka_Function_set_annotations(PyObject *self, PyObject *value, void
     function->m_annotations = value;
     Py_XDECREF(old);
 
+#if PYTHON_VERSION >= 0x3e0
+    old = function->m_annotate;
+    CHECK_OBJECT_X(old);
+
+    function->m_annotate = NULL;
+    Py_XDECREF(old);
+#endif
+
     return 0;
 }
 
 #endif
 
 #if PYTHON_VERSION >= 0x3e0
+static PyObject *Nuitka_Function_annotateFromMaterialized(PyObject *self, PyObject *format) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
+    CHECK_OBJECT(format);
+
+    PyObject *two = Nuitka_PyLong_FromLong(2);
+    int needs_forward_ref_annotations = PyObject_RichCompareBool(format, two, Py_GT);
+    Py_DECREF(two);
+
+    if (unlikely(needs_forward_ref_annotations == -1)) {
+        return NULL;
+    }
+
+    if (needs_forward_ref_annotations == 1) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_NotImplementedError);
+        return NULL;
+    }
+
+    return Nuitka_Function_get_annotations(self, NULL);
+}
+
+static PyMethodDef Nuitka_Function_annotate_from_materialized_method = {
+    "__annotate__", (PyCFunction)Nuitka_Function_annotateFromMaterialized, METH_O, NULL};
+
 static PyObject *Nuitka_Function_get_annotate(PyObject *self, void *data) {
     CHECK_OBJECT(self);
     assert(Nuitka_Function_Check(self));
@@ -512,6 +551,11 @@ static PyObject *Nuitka_Function_get_annotate(PyObject *self, void *data) {
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
+
+    if (function->m_annotate == Py_None) {
+        return PyCFunction_NewEx(&Nuitka_Function_annotate_from_materialized_method, self, NULL);
+    }
+
     CHECK_OBJECT(function->m_annotate);
 
     Py_INCREF(function->m_annotate);
@@ -542,6 +586,14 @@ static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *d
     Py_XINCREF(value);
     function->m_annotate = value;
     Py_XDECREF(old);
+
+    if (value != NULL) {
+        old = function->m_annotations;
+        CHECK_OBJECT_X(old);
+
+        function->m_annotations = NULL;
+        Py_XDECREF(old);
+    }
 
     return 0;
 }
@@ -764,18 +816,27 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 
     PyThreadState *tstate = PyThreadState_GET();
 
+    PyObject *annotations = NULL;
+
 #if PYTHON_VERSION >= 0x3e0
-    PyObject *annotations = function->m_annotate;
-#else
-    PyObject *annotations = function->m_annotations;
-    if (annotations != NULL) {
-        if (DICT_SIZE(annotations) != 0) {
-            annotations = DICT_COPY(tstate, annotations);
-        } else {
-            annotations = NULL;
+    bool annotations_explicit_none = function->m_annotate == NULL && function->m_annotations != NULL;
+
+    if (function->m_annotate != NULL && function->m_annotate != Py_None) {
+        annotations = function->m_annotate;
+        Py_INCREF(annotations);
+    } else
+#endif
+    {
+        annotations = function->m_annotations;
+
+        if (annotations != NULL) {
+            if (DICT_SIZE(annotations) != 0) {
+                annotations = DICT_COPY(tstate, annotations);
+            } else {
+                annotations = NULL;
+            }
         }
     }
-#endif
 
     PyObject *kwdefaults = function->m_kwdefaults;
     if (kwdefaults != NULL) {
@@ -797,6 +858,13 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
                             kwdefaults, annotations,
 #endif
                             function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
+
+#if PYTHON_VERSION >= 0x3e0
+    if (annotations_explicit_none && result->m_annotate != NULL) {
+        Py_DECREF(result->m_annotate);
+        result->m_annotate = NULL;
+    }
+#endif
 
     return (PyObject *)result;
 }
@@ -1507,12 +1575,19 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
-    // For simplicity's sake, the annotations parameter doubles as the __annotate__
-    // parameter on 3.14+
-    assert(annotations == NULL || PyCallable_Check(annotations));
-    result->m_annotations = NULL;
-    result->m_annotate = annotations;
+#if PYTHON_VERSION >= 0x3e0
+    if (annotations == NULL) {
+        result->m_annotations = NULL;
+        result->m_annotate = NULL;
+    } else if (PyCallable_Check(annotations)) {
+        result->m_annotations = NULL;
+        result->m_annotate = annotations;
+    } else {
+        assert(PyDict_Check(annotations) && DICT_SIZE(annotations) > 0);
+        result->m_annotations = annotations;
+        Py_INCREF_IMMORTAL(Py_None);
+        result->m_annotate = Py_None;
+    }
 #elif PYTHON_VERSION >= 0x300
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;
