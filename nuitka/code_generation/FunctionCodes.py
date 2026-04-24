@@ -121,6 +121,7 @@ def getFunctionMakerCode(
     kw_defaults_name,
     annotations_name,
     function_doc,
+    type_params_name,
     context,
 ):
     # We really need this many parameters here and functions have many details,
@@ -188,6 +189,7 @@ def getFunctionMakerCode(
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
         "constant_return_code": indented(constant_return_code),
+        "type_params": type_params_name,
     }
 
     # TODO: Make it optional, only dill plugin really uses that table to
@@ -255,6 +257,18 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     else:
         annotations_name = None
 
+    if expression.subnode_type_params:
+        type_params_name = context.allocateTempName("type_params")
+
+        generateExpressionCode(
+            to_name=type_params_name,
+            expression=expression.subnode_type_params,
+            emit=emit,
+            context=context,
+        )
+    else:
+        type_params_name = "NULL"
+
     function_identifier = function_body.getCodeName()
 
     # Creation code needs to be done only once.
@@ -269,6 +283,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
             function_doc=function_body.getDoc(),
+            type_params_name=type_params_name,
             context=context,
         )
 

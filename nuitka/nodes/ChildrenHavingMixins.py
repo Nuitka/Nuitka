@@ -5235,7 +5235,7 @@ class ChildrenHavingDefaultsTupleFunctionRefMixin(object):
 ChildrenExpressionFunctionCreationOldMixin = ChildrenHavingDefaultsTupleFunctionRefMixin
 
 
-class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin(
+class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefTypeParamsOptionalMixin(
     object
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -5250,6 +5250,7 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         kw_defaults,
         annotations,
         function_ref,
+        type_params,
     ):
         assert type(defaults) is tuple
 
@@ -5272,6 +5273,11 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
 
         self.subnode_function_ref = function_ref
 
+        if type_params is not None:
+            type_params.parent = self
+
+        self.subnode_type_params = type_params
+
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
@@ -5288,6 +5294,11 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         else:
             result.append(value)
         result.append(self.subnode_function_ref)
+        value = self.subnode_type_params
+        if value is None:
+            pass
+        else:
+            result.append(value)
         return tuple(result)
 
     def getVisitableNodesNamed(self):
@@ -5301,6 +5312,7 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
             ("kw_defaults", self.subnode_kw_defaults),
             ("annotations", self.subnode_annotations),
             ("function_ref", self.subnode_function_ref),
+            ("type_params", self.subnode_type_params),
         )
 
     def replaceChild(self, old_node, new_node):
@@ -5345,6 +5357,15 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
 
             return
 
+        value = self.subnode_type_params
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_type_params = new_node
+
+            return
+
         raise AssertionError("Didn't find child", old_node, "in", self)
 
     def getCloneArgs(self):
@@ -5366,6 +5387,11 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
                 else None
             ),
             "function_ref": self.subnode_function_ref.makeClone(),
+            "type_params": (
+                self.subnode_type_params.makeClone()
+                if self.subnode_type_params is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -5386,6 +5412,9 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         del self.subnode_annotations
         self.subnode_function_ref.finalize()
         del self.subnode_function_ref
+        if self.subnode_type_params is not None:
+            self.subnode_type_params.finalize()
+        del self.subnode_type_params
 
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -5444,12 +5473,14 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         if subnode_annotations is not None:
             self.subnode_annotations.collectVariableAccesses(emit_variable)
         self.subnode_function_ref.collectVariableAccesses(emit_variable)
+        subnode_type_params = self.subnode_type_params
+
+        if subnode_type_params is not None:
+            self.subnode_type_params.collectVariableAccesses(emit_variable)
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionFunctionCreationMixin = (
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin
-)
+ChildrenExpressionFunctionCreationMixin = ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefTypeParamsOptionalMixin
 
 
 class ChildHavingDictArgMixin(object):

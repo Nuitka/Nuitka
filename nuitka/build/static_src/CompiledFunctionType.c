@@ -626,9 +626,13 @@ static PyObject *Nuitka_Function_get_type_params(PyObject *self, void *data) {
     assert(Nuitka_Function_Check(self));
     assert(_PyObject_GC_IS_TRACKED(self));
 
-    // TODO: Probably not needed anymore?
-    Py_INCREF(const_tuple_empty);
-    return const_tuple_empty;
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+    if (function->m_type_params == NULL) {
+        assert(_Py_IsImmortal(const_tuple_empty));
+        return const_tuple_empty;
+    }
+    Py_INCREF(function->m_type_params);
+    return function->m_type_params;
 }
 #endif
 
@@ -796,7 +800,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 #if PYTHON_VERSION >= 0x300
                             kwdefaults, annotations,
 #endif
-                            function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
+                            function->m_module, function->m_doc, function->m_closure, function->m_closure_given, NULL);
 
     return (PyObject *)result;
 }
@@ -836,7 +840,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
-    Py_DECREF(function->m_type_params);
+    Py_XDECREF(function->m_type_params);
 #endif
 
     // These may actually resurrect the object, not?
@@ -1370,7 +1374,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
 #if PYTHON_VERSION >= 0x300
                             kw_defaults, annotations,
 #endif
-                            module, doc, closure_cells, closure_size);
+                            module, doc, closure_cells, closure_size, NULL);
 
     CHECK_OBJECT(result);
 
@@ -1447,10 +1451,10 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
                                                   PyObject *defaults, PyObject *module, PyObject *doc,
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #else
-struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
-                                                  PyCodeObject *code_object, PyObject *defaults, PyObject *kw_defaults,
-                                                  PyObject *annotations, PyObject *module, PyObject *doc,
-                                                  struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
+struct Nuitka_FunctionObject *
+Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object,
+                    PyObject *defaults, PyObject *kw_defaults, PyObject *annotations, PyObject *module, PyObject *doc,
+                    struct Nuitka_CellObject **closure, Py_ssize_t closure_given, PyObject *type_params)
 #endif
 {
 #if _DEBUG_REFCOUNTS
@@ -1573,8 +1577,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
-    result->m_type_params = const_tuple_empty;
-    assert(_Py_IsImmortal(result->m_type_params));
+    result->m_type_params = type_params;
 #endif
 
     Nuitka_GC_Track(result);

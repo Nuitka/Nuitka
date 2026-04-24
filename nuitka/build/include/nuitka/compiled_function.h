@@ -102,7 +102,7 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
                                                          PyCodeObject *code_object, PyObject *defaults,
                                                          PyObject *kw_defaults, PyObject *annotations, PyObject *module,
                                                          PyObject *doc, struct Nuitka_CellObject **closure,
-                                                         Py_ssize_t closure_given);
+                                                         Py_ssize_t closure_given, PyObject *type_params);
 #endif
 
 extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function);
