@@ -7,7 +7,38 @@ from __future__ import absolute_import
 
 import json
 
+from nuitka.__past__ import unicode
+
 from .FileOperations import getFileContents, openTextFile, stripFileContentsBOM
+
+
+def _convertJsonLoadedValues(value):
+    # return driven, pylint: disable=too-many-return-statements
+
+    if str is not bytes:
+        return value
+
+    if type(value) is unicode:
+        try:
+            return str(value)
+        except UnicodeEncodeError:
+            return value
+
+    if type(value) is list:
+        return [_convertJsonLoadedValues(element) for element in value]
+
+    if type(value) is tuple:
+        return tuple(_convertJsonLoadedValues(element) for element in value)
+
+    if type(value) is dict:
+        result = {}
+
+        for key, element in value.items():
+            result[_convertJsonLoadedValues(key)] = _convertJsonLoadedValues(element)
+
+        return result
+
+    return value
 
 
 def loadJsonFromFilename(filename):
@@ -18,7 +49,7 @@ def loadJsonFromFilename(filename):
         if type(contents) is bytes:
             contents = contents.decode("utf8")
 
-        return json.loads(contents)
+        return _convertJsonLoadedValues(json.loads(contents))
     except ValueError:
         return None
 
