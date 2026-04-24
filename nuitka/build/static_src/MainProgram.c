@@ -433,8 +433,9 @@ static bool is_multiprocessing_forkserver = false;
 static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
 
-// This is a multiprocessing resource tracker if not -1
+// This is a multiprocessing resource or semaphore tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
+static char const *multiprocessing_tracker_module_name = NULL;
 
 // This is a joblib loky fork
 #ifdef _WIN32
@@ -492,6 +493,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
 #else
             multiprocessing_resource_tracker_arg = _wtoi(argv[i + 1]);
 #endif
+            multiprocessing_tracker_module_name = "multiprocessing.resource_tracker";
             break;
         }
 
@@ -518,7 +520,19 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
 
             // The multiprocessing resource tracker can launch like this.
             if (scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1 ||
+                scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main;main(%i)",
                              &multiprocessing_resource_tracker_arg) == 1) {
+                multiprocessing_tracker_module_name = "multiprocessing.resource_tracker";
+                break;
+            }
+
+            // Older Python versions still launch the semaphore tracker like this.
+            if (scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.semaphore_tracker import main; main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1 ||
+                scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.semaphore_tracker import main;main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1) {
+                multiprocessing_tracker_module_name = "multiprocessing.semaphore_tracker";
                 break;
             }
 
@@ -2002,8 +2016,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
 #endif
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
-        NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.resource_tracker", true);
+        char const *tracker_module_name = multiprocessing_tracker_module_name;
+
+        if (tracker_module_name == NULL) {
+            tracker_module_name = "multiprocessing.resource_tracker";
+        }
+
+        NUITKA_PRINTF_TRACE("main(): Launching as '%s'.\n", tracker_module_name);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_module_name, true);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
@@ -2013,7 +2033,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
-        NUITKA_PRINT_TRACE("main(): Calling 'multiprocessing.resource_tracker' Py_Exit.");
+        NUITKA_PRINTF_TRACE("main(): Calling '%s' Py_Exit.\n", tracker_module_name);
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
