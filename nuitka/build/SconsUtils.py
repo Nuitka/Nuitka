@@ -510,7 +510,7 @@ def getExecutablePath(filename, env):
         filename = env[variable_name]
 
         if filename is None:
-            scons_logger.sysexit(
+            return scons_logger.sysexit(
                 """\
 Error, scons environment variable '%s' is not set, this ought to never happen. Please report the bug."""
                 % variable_name
@@ -1062,7 +1062,7 @@ def _getBinaryArch(binary, mingw_mode):
 
         return found
     else:
-        # TODO: Missing for macOS, FreeBSD, other Linux
+        # TODO: Missing for FreeBSD, other Linux
         return None
 
 
