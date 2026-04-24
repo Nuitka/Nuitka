@@ -48,7 +48,6 @@ from nuitka.tools.testing.RuntimeTracing import (
 )
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isMacOS
 
 
 def displayError(dirname, filename):
@@ -87,14 +86,6 @@ def main():
         ]
 
         if filename == "KeyboardInterruptTest.py":
-            if isMacOS():
-                reportSkip(
-                    "Exit code from KeyboardInterrupt on macOS is not yet good.",
-                    ".",
-                    filename,
-                )
-                continue
-
             if python_version < (3,):
                 reportSkip(
                     "Python2 reports KeyboardInterrupt, but too late",
