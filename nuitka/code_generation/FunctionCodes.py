@@ -40,7 +40,11 @@ from .VariableCodes import (
 
 
 def getFunctionCreationArgs(
-    defaults_name, kw_defaults_name, annotations_name, closure_variables
+    defaults_name,
+    kw_defaults_name,
+    annotations_name,
+    closure_variables,
+    type_params_name,
 ):
     result = ["PyThreadState *tstate"]
 
@@ -56,6 +60,9 @@ def getFunctionCreationArgs(
     if closure_variables:
         result.append("struct Nuitka_CellObject **closure")
 
+    if type_params_name is not None:
+        result.append("PyObject *type_params")
+
     return result
 
 
@@ -65,12 +72,14 @@ def getFunctionMakerDecl(
     defaults_name,
     kw_defaults_name,
     annotations_name,
+    type_params_name,
 ):
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        type_params_name=type_params_name,
     )
 
     return template_function_make_declaration % {
@@ -131,6 +140,7 @@ def getFunctionMakerCode(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        type_params_name=type_params_name,
     )
 
     if function_doc is None:
@@ -189,7 +199,7 @@ def getFunctionMakerCode(
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
         "constant_return_code": indented(constant_return_code),
-        "type_params": type_params_name,
+        "type_params": "type_params" if type_params_name else "NULL",
     }
 
     # TODO: Make it optional, only dill plugin really uses that table to
@@ -267,7 +277,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             context=context,
         )
     else:
-        type_params_name = "NULL"
+        type_params_name = None
 
     function_identifier = function_body.getCodeName()
 
@@ -295,6 +305,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             defaults_name=defaults_name,
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
+            type_params_name=type_params_name,
         )
 
         context.addDeclaration(function_identifier, function_decl)
@@ -306,11 +317,13 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=expression.getClosureVariableVersions(),
+        type_params_name=type_params_name,
         emit=emit,
         context=context,
     )
 
     getReleaseCode(release_name=annotations_name, emit=emit, context=context)
+    getReleaseCode(release_name=type_params_name, emit=emit, context=context)
 
 
 def getClosureCopyCode(closure_variables, context):
@@ -352,6 +365,7 @@ def getFunctionCreationCode(
     kw_defaults_name,
     annotations_name,
     closure_variables,
+    type_params_name,
     emit,
     context,
 ):
@@ -374,6 +388,9 @@ def getFunctionCreationCode(
     if closure_name:
         args.append(closure_name)
 
+    if type_params_name:
+        args.append(type_params_name)
+
     function_maker_identifier = _getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
@@ -394,6 +411,8 @@ def getFunctionCreationCode(
         context.removeCleanupTempName(kw_defaults_name)
     if context.needsCleanup(annotations_name):
         context.removeCleanupTempName(annotations_name)
+    if context.needsCleanup(type_params_name):
+        context.removeCleanupTempName(type_params_name)
 
     # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)
