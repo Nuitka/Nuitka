@@ -57,6 +57,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import withNoDeprecationWarning, withWarningRemoved
 
 from .ChildrenHavingMixins import (
     ChildHavingModuleMixin,
@@ -388,7 +389,12 @@ class ExpressionImportModuleHard(
         if self.finding != "not-found" and isHardModuleWithoutSideEffect(
             self.module_name
         ):
-            __import__(self.module_name.asString())
+            if self.module_name == "pkg_resources":
+                with withWarningRemoved(UserWarning):
+                    __import__(self.module_name.asString())
+            else:
+                with withNoDeprecationWarning():
+                    __import__(self.module_name.asString())
             self.module = sys.modules[self.value_name]
 
             self.is_package = hasattr(self.module, "__path__")
