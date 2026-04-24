@@ -11,19 +11,73 @@ or package, that can contain all used modules too.
 # Note: This avoids imports at all costs, such that initial startup doesn't do more
 # than necessary, until re-execution has been decided.
 
-import os
 import sys
+
+_delayed_environment_updates = {}
+ast = None
+os = None
+
+if sys.platform == "win32":
+    import nt as _environment_module  # pylint: disable=I0021,import-error
+else:
+    import os
+
+    _environment_module = os
 
 _cached_process_environments = {}
 
 
+def _getEnv(environment_variable_name, default=None):
+    if environment_variable_name in _delayed_environment_updates:
+        value = _delayed_environment_updates[environment_variable_name]
+
+        if value is None:
+            return default
+
+        return value
+
+    if os is None:
+        return _environment_module.environ.get(environment_variable_name, default)
+
+    return os.environ.get(environment_variable_name, default)
+
+
+def _delEnv(environment_variable_name):
+    if environment_variable_name in _delayed_environment_updates:
+        del _delayed_environment_updates[environment_variable_name]
+
+    if os is None:
+        if environment_variable_name in _environment_module.environ:
+            del _environment_module.environ[environment_variable_name]
+
+        _delayed_environment_updates[environment_variable_name] = None
+        return
+
+    if environment_variable_name in os.environ:
+        del os.environ[environment_variable_name]
+
+
+def _applyDelayedEnvironmentUpdates():
+    if not _delayed_environment_updates:
+        return
+
+    for environment_variable_name, value in _delayed_environment_updates.items():
+        if value is None:
+            if environment_variable_name in os.environ:
+                del os.environ[environment_variable_name]
+        else:
+            os.environ[environment_variable_name] = value
+
+    _delayed_environment_updates.clear()
+
+
 def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
     if environment_variable_name not in _cached_process_environments:
-        _cached_process_environments[environment_variable_name] = os.getenv(
+        _cached_process_environments[environment_variable_name] = _getEnv(
             environment_variable_name
         )
         if _cached_process_environments[environment_variable_name] is not None:
-            del os.environ[environment_variable_name]
+            _delEnv(environment_variable_name)
 
     value = _cached_process_environments[environment_variable_name]
 
@@ -38,19 +92,50 @@ def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
         except ValueError:
             value = None
         else:
-            if os.name != "nt":
+            if sys.platform != "win32":
                 if pid != os.getpid():  # spell-checker: ignore getpid
                     value = None
 
     return value
 
 
+def _restorePythonPath():
+    nuitka_pythonpath_ast = getLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_PYTHONPATH_AST"
+    )
+
+    if nuitka_pythonpath_ast is None:
+        return None
+
+    # Restore the PYTHONPATH gained from the site module, that we chose not
+    # to have imported during compilation. For loading "ast" module, we need
+    # one element, that is not necessarily in our current path, but we use
+    # that to evaluate the current path.
+    sys.path = [nuitka_pythonpath_ast]
+    import ast as result
+
+    sys.path = result.literal_eval(
+        getLaunchingNuitkaProcessEnvironmentValue("NUITKA_PYTHONPATH")
+    )
+
+    return result
+
+
+if __name__ == "__main__":
+    ast = _restorePythonPath()
+
+if sys.platform == "win32":
+    import os
+
+    _applyDelayedEnvironmentUpdates()
+
+
 def main():
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    local_ast = ast
+
     # PyLint for Python3 thinks we import from ourselves if we really
     # import from package, pylint: disable=I0021,no-name-in-module
-
-    # Also high complexity.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     if (
         os.name == "nt"
         and os.path.normcase(os.path.basename(sys.executable)) == "pythonw.exe"
@@ -73,22 +158,10 @@ def main():
     if nuitka_binary_name is not None:
         sys.argv[0] = nuitka_binary_name
 
-    nuitka_pythonpath_ast = getLaunchingNuitkaProcessEnvironmentValue(
-        "NUITKA_PYTHONPATH_AST"
-    )
+    if local_ast is None:
+        local_ast = _restorePythonPath()
 
-    if nuitka_pythonpath_ast is not None:
-        # Restore the PYTHONPATH gained from the site module, that we chose not
-        # to have imported during compilation. For loading "ast" module, we need
-        # one element, that is not necessarily in our current path, but we use
-        # that to evaluate the current path.
-        sys.path = [nuitka_pythonpath_ast]
-        import ast
-
-        sys.path = ast.literal_eval(
-            getLaunchingNuitkaProcessEnvironmentValue("NUITKA_PYTHONPATH")
-        )
-    else:
+    if local_ast is None:
         # Remove path element added for being called via "__main__.py", this can
         # only lead to trouble, having e.g. a "distutils" in sys.path that comes
         # from "nuitka.distutils". Also ignore path elements that do not really
@@ -112,7 +185,7 @@ def main():
     # caching it, and comparing generated source code. While the created binary
     # actually may still use it, during compilation we don't want to. So lets
     # disable it.
-    if os.getenv("PYTHONHASHSEED", "-1") != "0":
+    if _getEnv("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
     # The frozen stdlib modules of Python 3.11 are less compatible than the ones
@@ -189,27 +262,30 @@ sys.exit(user_main.%s())
 
         MemoryUsage.startMemoryTracing()
 
-    if "NUITKA_NAMESPACES" in os.environ:
+    nuitka_namespaces = _getEnv("NUITKA_NAMESPACES")
+    if nuitka_namespaces is not None:
         # Restore the detected name space packages, that were force loaded in
         # site.py, and will need a free pass later on
         from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 
-        setPreloadedPackagePaths(ast.literal_eval(os.environ["NUITKA_NAMESPACES"]))
-        del os.environ["NUITKA_NAMESPACES"]
+        setPreloadedPackagePaths(local_ast.literal_eval(nuitka_namespaces))
+        _delEnv("NUITKA_NAMESPACES")
 
-    if "NUITKA_PTH_IMPORTED" in os.environ:
+    nuitka_pth_imported = _getEnv("NUITKA_PTH_IMPORTED")
+    if nuitka_pth_imported is not None:
         # Restore the packages that the ".pth" files asked to import.
         from nuitka.importing.PreloadedPackages import setPthImportedPackages
 
-        setPthImportedPackages(ast.literal_eval(os.environ["NUITKA_PTH_IMPORTED"]))
-        del os.environ["NUITKA_PTH_IMPORTED"]
+        setPthImportedPackages(local_ast.literal_eval(nuitka_pth_imported))
+        _delEnv("NUITKA_PTH_IMPORTED")
 
-    if "NUITKA_USER_SITE" in os.environ:
+    nuitka_user_site = _getEnv("NUITKA_USER_SITE")
+    if nuitka_user_site is not None:
         from nuitka.utils.Distributions import setUserSiteDirectory
 
-        setUserSiteDirectory(ast.literal_eval(os.environ["NUITKA_USER_SITE"]))
+        setUserSiteDirectory(local_ast.literal_eval(nuitka_user_site))
 
-        del os.environ["NUITKA_USER_SITE"]
+        _delEnv("NUITKA_USER_SITE")
 
     # Now the real main program of Nuitka can take over.
     from nuitka.MainControl import main as nuitka_main  # isort:skip
