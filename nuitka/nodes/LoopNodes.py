@@ -119,7 +119,7 @@ class StatementLoop(StatementLoopBase):
         # Track if we got incomplete knowledge due to loop. If so, we are not done, even
         # if no was optimization done, once we are complete, they can come.
         incomplete_variables = None
-        restarted_incomplete_variables = None
+        late_incomplete_variables = None
 
         # Mark all variables as loop wrap around that are written in the loop and
         # hit a 'continue' and make them become loop merges. We will strive to
@@ -283,27 +283,25 @@ class StatementLoop(StatementLoopBase):
                 self.loop_resume[loop_variable] = minimizeShapes(shapes)
 
                 if (
-                    restarted
-                    and self.loop_resume[loop_variable]
+                    self.loop_resume[loop_variable]
                     != self.loop_previous_resume[loop_variable]
                 ):
-                    if restarted_incomplete_variables is None:
-                        restarted_incomplete_variables = set()
+                    if late_incomplete_variables is None:
+                        late_incomplete_variables = set()
 
-                    restarted_incomplete_variables.add(loop_variable)
+                    late_incomplete_variables.add(loop_variable)
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
 
-        if restarted_incomplete_variables:
-            # A loop restart due to improved entry traces can already discover new
-            # resume shapes in this pass. Report that immediately instead of one
-            # full optimization pass later.
+        if late_incomplete_variables:
+            # Resume shapes can change while computing the loop body. Report that
+            # immediately instead of one full optimization pass later.
             if incomplete_variables is None:
                 incomplete_variables = set()
 
-            incomplete_variables.update(restarted_incomplete_variables)
+            incomplete_variables.update(late_incomplete_variables)
 
         if incomplete_variables:
             self.incomplete_count += 1
