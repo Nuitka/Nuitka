@@ -9158,6 +9158,11 @@
     - depends:
         - '.*'
 
+- module-name: 'ultralytics' # checksum: 5e065a8c
+  data-files:
+    - patterns:
+        - 'cfg/default.yaml'
+
 - module-name: 'unstructured' # checksum: e17b7f4d
   data-files:
     - patterns:
