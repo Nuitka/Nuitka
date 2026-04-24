@@ -30,6 +30,7 @@ from .FileOperations import (
     getFileContentByLine,
     getNormalizedPathJoin,
     putBinaryFileContents,
+    removeDirectory,
     withTemporaryFilename,
 )
 from .Hashing import HashCRC32
@@ -114,6 +115,165 @@ def _getCandidateBinPaths(logger, site_packages):
     return candidate_bin_paths
 
 
+def _normalizePrivatePipPackageName(package_name):
+    """Normalize a package name to the dist-info naming convention."""
+    return re.sub(r"[-_.]+", "_", package_name)
+
+
+def _clearRequiredVersionCheckCache(binary_path):
+    """Invalidate cached version checks for a private pip binary path."""
+    _check_required_version_cache.pop((binary_path, "--version"), None)
+
+
+def _removePrivatePipInstalledPath(logger, path):
+    """Remove a private pip installation path if it exists."""
+    if not os.path.lexists(path):
+        return False
+
+    if os.path.isdir(path) and not os.path.islink(path):
+        removeDirectory(
+            path=path,
+            logger=logger,
+            ignore_errors=False,
+            extra_recommendation="Please remove the private pip cache folder manually and retry",
+        )
+    else:
+        deleteFile(path, must_exist=False)
+
+    return True
+
+
+def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
+    """Remove stale module files for a package refresh."""
+    removed = False
+
+    if site_packages_folder is not None and os.path.isdir(site_packages_folder):
+        module_path = getNormalizedPathJoin(
+            site_packages_folder, module_name.replace(".", os.path.sep)
+        )
+
+        for candidate in (
+            module_path,
+            module_path + ".py",
+            module_path + ".pyc",
+            module_path + ".pyo",
+        ):
+            if _removePrivatePipInstalledPath(logger=logger, path=candidate):
+                removed = True
+
+        pycache_dir = getNormalizedPathJoin(os.path.dirname(module_path), "__pycache__")
+        if os.path.isdir(pycache_dir):
+            module_basename = os.path.basename(module_path)
+
+            for filename in os.listdir(pycache_dir):
+                if filename.startswith(module_basename + ".") and filename.endswith(
+                    ".pyc"
+                ):
+                    if _removePrivatePipInstalledPath(
+                        logger=logger,
+                        path=os.path.join(pycache_dir, filename),
+                    ):
+                        removed = True
+
+    return removed
+
+
+def _cleanupPrivatePipMetadataState(logger, site_packages_folder, package_name):
+    """Remove stale package metadata for a package refresh."""
+    removed = False
+
+    if site_packages_folder is not None and os.path.isdir(site_packages_folder):
+        dist_info_prefix = _normalizePrivatePipPackageName(package_name) + "-"
+
+        for filename in os.listdir(site_packages_folder):
+            if filename.startswith(dist_info_prefix) and filename.endswith(
+                (".dist-info", ".egg-info")
+            ):
+                if _removePrivatePipInstalledPath(
+                    logger=logger,
+                    path=os.path.join(site_packages_folder, filename),
+                ):
+                    removed = True
+
+    return removed
+
+
+def _getPrivatePipBinaryCleanupPaths(candidate_bin_path, binary_name):
+    """Get the binary wrapper paths to replace during a refresh."""
+    if isWin32Windows():
+        return (
+            os.path.join(candidate_bin_path, binary_name + ".exe"),
+            os.path.join(candidate_bin_path, binary_name + ".exe.manifest"),
+            os.path.join(candidate_bin_path, binary_name + ".cmd"),
+            os.path.join(candidate_bin_path, binary_name + "-script.py"),
+            os.path.join(candidate_bin_path, binary_name + "-script.pyw"),
+        )
+    else:
+        return (os.path.join(candidate_bin_path, binary_name),)
+
+
+def _cleanupPrivatePipBinaryState(logger, site_packages_folder, binary_names):
+    """Remove stale binary wrappers for a package refresh."""
+    removed = False
+    seen_bin_paths = set()
+
+    for candidate_bin_path in _getCandidateBinPaths(
+        logger=logger, site_packages=site_packages_folder
+    ):
+        if candidate_bin_path in seen_bin_paths:
+            continue
+
+        seen_bin_paths.add(candidate_bin_path)
+
+        for binary_name in binary_names:
+            binary_paths = _getPrivatePipBinaryCleanupPaths(
+                candidate_bin_path=candidate_bin_path,
+                binary_name=binary_name,
+            )
+
+            _clearRequiredVersionCheckCache(binary_paths[0])
+
+            for binary_path in binary_paths:
+                if _removePrivatePipInstalledPath(logger=logger, path=binary_path):
+                    removed = True
+
+    return removed
+
+
+def _cleanupPrivatePipPackageState(
+    logger,
+    site_packages_folder,
+    package_name,
+    module_name,
+    binary_names,
+):
+    """Remove stale package metadata, modules, and scripts before a refresh."""
+
+    removed = _cleanupPrivatePipModuleState(
+        logger=logger,
+        site_packages_folder=site_packages_folder,
+        module_name=module_name,
+    )
+    removed = (
+        _cleanupPrivatePipMetadataState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+        )
+        or removed
+    )
+    removed = (
+        _cleanupPrivatePipBinaryState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            binary_names=binary_names,
+        )
+        or removed
+    )
+
+    return removed
+
+
 def _checkPrivatePipBinaryPath(
     logger,
     binary_name,
@@ -196,6 +356,35 @@ def _getPrivatePipBinaryPath(
             return binary_path, None, assume_yes_for_downloads
 
         force_package_update = True
+
+    if force_package_update:
+        site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
+
+        cleaned_private_pip = _cleanupPrivatePipPackageState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+            module_name=module_name,
+            binary_names=(binary_name,),
+        )
+
+        for dep_package_name, dep_module_name, _dep_reject_message in dependencies:
+            cleaned_private_pip = (
+                _cleanupPrivatePipPackageState(
+                    logger=logger,
+                    site_packages_folder=site_packages_folder,
+                    package_name=dep_package_name,
+                    module_name=dep_module_name,
+                    binary_names=(),
+                )
+                or cleaned_private_pip
+            )
+
+        if cleaned_private_pip and logger is not None:
+            logger.info(
+                "Removed stale private pip package state for '%s' before refresh."
+                % binary_name
+            )
 
     # Download, avoiding to use the result, which is the site-packages
     # folder
