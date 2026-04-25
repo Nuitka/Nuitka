@@ -43,7 +43,8 @@ static PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject
     return (PyObject *)result;
 }
 
-// Needed for offsetof
+// Needed for offsetof, LONG_MIN and LONG_MAX.
+#include <limits.h>
 #include <stddef.h>
 
 #if PYTHON_VERSION < 0x3c0
@@ -202,6 +203,84 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
 
 // Our "PyLong_FromLong" replacement.
 PyObject *Nuitka_PyLong_FromLong(long ival) { return Nuitka_LongFromCLong(ival); }
+
+// Our "PyLong_AsLongAndOverflow" replacement with a fast path for exact long values.
+long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow) {
+    CHECK_OBJECT(value);
+    assert(overflow != NULL);
+
+    *overflow = 0;
+
+    if (value == Py_False) {
+        return 0;
+    }
+
+    if (value == Py_True) {
+        return 1;
+    }
+
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(value)) {
+        return PyInt_AS_LONG(value);
+    }
+#endif
+
+    if (PyLong_CheckExact(value)) {
+        Py_ssize_t digit_count = Nuitka_LongGetDigitSize(value);
+
+        if (digit_count == 0) {
+            return 0;
+        }
+
+        if (digit_count == 1) {
+            return (long)MEDIUM_VALUE(value);
+        }
+
+        digit const *digits = Nuitka_LongGetDigitPointer(value);
+        unsigned long result = 0;
+        bool negative = Nuitka_LongIsNegative(value);
+
+        for (Py_ssize_t i = digit_count; i > 0; i--) {
+            if (result > (ULONG_MAX >> PyLong_SHIFT)) {
+                *overflow = negative ? -1 : 1;
+                return -1;
+            }
+
+            result <<= PyLong_SHIFT;
+
+            if (result > ULONG_MAX - digits[i - 1]) {
+                *overflow = negative ? -1 : 1;
+                return -1;
+            }
+
+            result += digits[i - 1];
+        }
+
+        if (negative) {
+            unsigned long const negative_limit = (unsigned long)LONG_MAX + 1UL;
+
+            if (result > negative_limit) {
+                *overflow = -1;
+                return -1;
+            }
+
+            if (result == negative_limit) {
+                return LONG_MIN;
+            }
+
+            return -(long)result;
+        }
+
+        if (result > (unsigned long)LONG_MAX) {
+            *overflow = 1;
+            return -1;
+        }
+
+        return (long)result;
+    }
+
+    return PyLong_AsLongAndOverflow(value, overflow);
+}
 
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     assert(Py_REFCNT(*value) == 1);

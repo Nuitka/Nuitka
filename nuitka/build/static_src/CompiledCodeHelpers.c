@@ -1419,7 +1419,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
 #if PYTHON_VERSION >= 0x270
         if (PyLong_CheckExact(item)) {
             int overflow;
-            long b = PyLong_AsLongAndOverflow(item, &overflow);
+            long b = Nuitka_PyLong_AsLongAndOverflow(item, &overflow);
 
             if (overflow) {
                 break;
@@ -1485,7 +1485,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
                     f_result += c;
                 }
 
-                return PyFloat_FromDouble(f_result);
+                return MAKE_FLOAT_FROM_DOUBLE(f_result);
             } else if (item == NULL) {
                 return NULL;
             }
@@ -1510,13 +1510,24 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
             }
 
             if (PyLong_Check(item)) {
-                long value;
                 int overflow;
-
-                value = PyLong_AsLongAndOverflow(item, &overflow);
+                long value = Nuitka_PyLong_AsLongAndOverflow(item, &overflow);
 
                 if (!overflow) {
+#if PYTHON_VERSION >= 0x3e0
+                    double x = (double)value;
+                    double t = f_result + x;
+
+                    if (fabs(f_result) >= fabs(x)) {
+                        c += (f_result - t) + x;
+                    } else {
+                        c += (x - t) + f_result;
+                    }
+
+                    f_result = t;
+#else
                     f_result += (double)value;
+#endif
                     Py_DECREF(item);
 
                     continue;
@@ -1527,7 +1538,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
                 f_result += c;
             }
 
-            result = PyFloat_FromDouble(f_result);
+            result = MAKE_FLOAT_FROM_DOUBLE(f_result);
 
             if (result == NULL) {
                 Py_DECREF(item);
