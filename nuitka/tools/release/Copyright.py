@@ -176,6 +176,38 @@ def _formatComments(filename, comments):
     return comments
 
 
+def _isEncodingIndicatorLine(line):
+    return (
+        line.startswith(b"# -*-")
+        or line.startswith(b"# coding:")
+        or line.startswith(b"# encoding:")
+    )
+
+
+def _pickLeadingLines(old_lines):
+    old_lines_head = []
+
+    if old_lines and (
+        old_lines[0].startswith(b"#!") or old_lines[0].startswith(b"@echo")
+    ):
+        old_lines_head = old_lines[0:1]
+        old_lines = old_lines[1:]
+
+    if old_lines and _isEncodingIndicatorLine(old_lines[0]):
+        old_lines_head += old_lines[0:1]
+        old_lines = old_lines[1:]
+    elif (
+        not old_lines_head
+        and len(old_lines) >= 2
+        and old_lines[0].startswith(b"#")
+        and _isEncodingIndicatorLine(old_lines[1])
+    ):
+        old_lines_head = old_lines[0:2]
+        old_lines = old_lines[2:]
+
+    return old_lines_head, old_lines
+
+
 def attachLeadingComment(filename, effective_filename, comments, replacements=()):
     # Many details and complicated algorithm, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
@@ -250,17 +282,7 @@ def attachLeadingComment(filename, effective_filename, comments, replacements=()
             if bottom_function:
                 post_comments.insert(0, b"")
 
-    if old_lines and (
-        old_lines[0].startswith(b"#!")
-        or old_lines[0].startswith(b"# -*-")
-        or old_lines[0].startswith(b"@echo")
-        or old_lines[0].startswith(b"# coding:")
-        or old_lines[0].startswith(b"# encoding:")
-    ):
-        old_lines_head = old_lines[0:1]
-        old_lines = old_lines[1:]
-    else:
-        old_lines_head = []
+    old_lines_head, old_lines = _pickLeadingLines(old_lines=old_lines)
 
     if pre_comments:
         while old_lines and old_lines[0].strip() in (b"", b"#"):
