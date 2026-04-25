@@ -42,6 +42,7 @@ def getCoroutineObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_coroutine_object_maker % {
@@ -122,6 +123,7 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_coroutine_object_body % {

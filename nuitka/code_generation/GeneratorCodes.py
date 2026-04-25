@@ -39,6 +39,7 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_generator_context_maker_decl % {
@@ -122,6 +123,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_generator_context_body_template % {
