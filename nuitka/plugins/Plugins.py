@@ -83,6 +83,8 @@ active_plugins_with_decide_compilation = []
 active_plugins_with_decide_annotations = []
 active_plugins_with_decide_doc_strings = []
 active_plugins_with_decide_assertions = []
+active_plugins_with_function_body_parsing = []
+active_plugins_with_class_body_parsing = []
 plugin_name2plugin_classes = {}
 plugin_options = OrderedDict()
 plugin_values = {}
@@ -145,29 +147,21 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     active_plugins[plugin_name] = plugin_instance
 
-    if (
-        type(plugin_instance).getImplicitImports
-        is not NuitkaPluginBase.getImplicitImports
+    plugin_type = type(plugin_instance)
+
+    for callback_name, plugin_collection in (
+        ("getImplicitImports", active_plugins_with_implicit_imports),
+        ("decideCompilation", active_plugins_with_decide_compilation),
+        ("decideAnnotations", active_plugins_with_decide_annotations),
+        ("decideDocStrings", active_plugins_with_decide_doc_strings),
+        ("decideAssertions", active_plugins_with_decide_assertions),
+        ("onFunctionBodyParsing", active_plugins_with_function_body_parsing),
+        ("onClassBodyParsing", active_plugins_with_class_body_parsing),
     ):
-        active_plugins_with_implicit_imports.append(plugin_instance)
-
-    if (
-        type(plugin_instance).decideCompilation
-        is not NuitkaPluginBase.decideCompilation
-    ):
-        active_plugins_with_decide_compilation.append(plugin_instance)
-
-    if (
-        type(plugin_instance).decideAnnotations
-        is not NuitkaPluginBase.decideAnnotations
-    ):
-        active_plugins_with_decide_annotations.append(plugin_instance)
-
-    if type(plugin_instance).decideDocStrings is not NuitkaPluginBase.decideDocStrings:
-        active_plugins_with_decide_doc_strings.append(plugin_instance)
-
-    if type(plugin_instance).decideAssertions is not NuitkaPluginBase.decideAssertions:
-        active_plugins_with_decide_assertions.append(plugin_instance)
+        if getattr(plugin_type, callback_name) is not getattr(
+            NuitkaPluginBase, callback_name
+        ):
+            plugin_collection.append(plugin_instance)
 
     is_gui_toolkit_plugin = getattr(plugin_class, "plugin_gui_toolkit", False)
 
@@ -1702,9 +1696,7 @@ through incomplete set import by '%s' plugin encountered."""
 
         function_qualname = provider.getChildQualname(function_name)
 
-        for plugin in getActivePlugins():
-            # TODO: Could record what functions got modified by what plugin
-            # and in what way checking the return value
+        for plugin in active_plugins_with_function_body_parsing:
             plugin.onFunctionBodyParsing(
                 module_name=module_name,
                 function_qualname=function_qualname,
@@ -1717,9 +1709,7 @@ through incomplete set import by '%s' plugin encountered."""
     def onClassBodyParsing(cls, provider, class_name, node):
         module_name = provider.getParentModule().getFullName()
 
-        for plugin in getActivePlugins():
-            # TODO: Could record what classes got modified by what plugin
-            # and in what way checking the return value
+        for plugin in active_plugins_with_class_body_parsing:
             plugin.onClassBodyParsing(
                 module_name=module_name,
                 class_name=class_name,
