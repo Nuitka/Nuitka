@@ -8,26 +8,32 @@ class AwaitException(Exception):
 namespace = {"AwaitException": AwaitException}
 
 exec(
-    'import types\n\n'
-    '@types.coroutine\n'
-    'def awaitable():\n'
-    '    yield ("throw",)\n\n'
-    'async def leaf():\n'
-    '    try:\n'
-    '        await awaitable()\n'
-    '    except AwaitException:\n'
-    '        return b"payload"\n\n'
-    'async def mid():\n'
-    '    body = await leaf()\n'
-    '    return {"body": body}\n\n'
-    'async def leaf_empty():\n'
-    '    try:\n'
-    '        await awaitable()\n'
-    '    except AwaitException:\n'
-    '        return\n\n'
-    'async def mid_empty():\n'
-    '    body = await leaf_empty()\n'
-    '    return {"body": body}\n',
+    """import types
+
+@types.coroutine
+def awaitable():
+    yield ("throw",)
+
+async def leaf():
+    try:
+        await awaitable()
+    except AwaitException:
+        return b"payload"
+
+async def mid():
+    body = await leaf()
+    return {"body": body}
+
+async def leaf_empty():
+    try:
+        await awaitable()
+    except AwaitException:
+        return
+
+async def mid_empty():
+    body = await leaf_empty()
+    return {"body": body}
+""",
     namespace,
 )
 
