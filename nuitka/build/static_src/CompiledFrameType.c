@@ -246,6 +246,52 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
     }
 }
 
+// Attach an exposed locals mapping to a compiled frame, with Python2 class fallback.
+void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject *locals_value) {
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
+    CHECK_OBJECT((PyObject *)frame_object);
+    CHECK_OBJECT(locals_value);
+
+#if PYTHON_VERSION < 0x300
+    NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = &frame_object->m_frame;
+#else
+    _PyInterpreterFrame *locals_owner = &frame_object->m_interpreter_frame;
+#endif
+
+    assert(locals_owner->f_locals == NULL);
+
+#if PYTHON_VERSION < 0x300
+    if (PyModule_Check(locals_value)) {
+        // Class frames in Python2 expose a minimal locals dict with "__module__".
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, locals_value)};
+
+        locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
+        return;
+    }
+#endif
+
+    locals_owner->f_locals = locals_value;
+    Py_INCREF(locals_owner->f_locals);
+}
+
+// Drop an exposed locals mapping from a compiled frame.
+void Nuitka_Frame_ClearLocals(struct Nuitka_FrameObject *frame_object) {
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
+    CHECK_OBJECT((PyObject *)frame_object);
+
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = &frame_object->m_frame;
+#else
+    _PyInterpreterFrame *locals_owner = &frame_object->m_interpreter_frame;
+#endif
+
+    Py_CLEAR(locals_owner->f_locals);
+}
+
 static PyObject *_Nuitka_Frame_get_lineno(PyObject *self, void *data) {
     assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT(self);
@@ -887,11 +933,8 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObje
 
 struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
                                             PyObject *f_locals, Py_ssize_t locals_size) {
-    // The frame template sets f_locals on usage itself, need not create it that way.
-    if (f_locals == NULL) {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, module)};
-        f_locals = MAKE_DICT(kw_pairs, 1);
-    } else {
+    // The frame template sets f_locals on usage itself.
+    if (f_locals != NULL) {
         Py_INCREF(f_locals);
     }
 
