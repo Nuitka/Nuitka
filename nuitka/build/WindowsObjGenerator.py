@@ -4,7 +4,7 @@
 """Windows COFF Object generation for payload embedding.
 
 This module provides a pure-Python generator for PE/COFF .obj files
-containing a single binary payload representing an "rdata" section.
+containing a single binary payload representing a data section.
 It is used to bypass MSVC's lack of #embed.
 """
 
@@ -43,7 +43,7 @@ def _createCoffStringTable(symbol_bytes, symbol_size_bytes):
 
 
 def generateWindowsCoffObject(
-    in_filename, out_filename, symbol_name, architecture, export_size
+    in_filename, out_filename, symbol_name, architecture, export_size, writeable
 ):
     """Generate a valid MSVC COFF .obj file containing the given payload.
 
@@ -51,7 +51,9 @@ def generateWindowsCoffObject(
         in_filename (str): Path to the input binary payload.
         out_filename (str): Path to write the resulting .obj file.
         symbol_name (str): The C symbol name to export.
-        architecture (str): 'x86', 'x64', or 'arm64'
+        architecture (str): 'x86', 'x86_64', or 'arm64'.
+        export_size (bool): Export payload size information as a second symbol.
+        writeable (bool): Use a writable '.data' section instead of '.rdata'.
     """
 
     # pylint: disable=too-many-locals
@@ -105,14 +107,24 @@ def generateWindowsCoffObject(
         0,  # Characteristics
     )
 
-    # 2. Section Header (.rdata), spell-checker: ignore rdata
-    section_name = b".rdata\x00\x00"
+    # 2. Section Header
+    if writeable:
+        section_name = b".data\x00\x00\x00"
 
-    # Characteristics flags:
-    # IMAGE_SCN_CNT_INITIALIZED_DATA = 0x00000040
-    # IMAGE_SCN_ALIGN_16BYTES        = 0x00500000
-    # IMAGE_SCN_MEM_READ             = 0x40000000
-    section_characteristics = 0x40500040
+        # Characteristics flags:
+        # IMAGE_SCN_CNT_INITIALIZED_DATA = 0x00000040
+        # IMAGE_SCN_ALIGN_16BYTES        = 0x00500000
+        # IMAGE_SCN_MEM_READ             = 0x40000000
+        # IMAGE_SCN_MEM_WRITE            = 0x80000000
+        section_characteristics = 0xC0500040
+    else:
+        section_name = b".rdata\x00\x00"  # spell-checker: ignore rdata
+
+        # Characteristics flags:
+        # IMAGE_SCN_CNT_INITIALIZED_DATA = 0x00000040
+        # IMAGE_SCN_ALIGN_16BYTES        = 0x00500000
+        # IMAGE_SCN_MEM_READ             = 0x40000000
+        section_characteristics = 0x40500040
 
     section_header = struct.pack(
         "<8sIIIIIIHHI",  # spell-checker: ignore IIIIIIHHI

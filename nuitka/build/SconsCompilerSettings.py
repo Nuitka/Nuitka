@@ -746,6 +746,12 @@ def _getBlobNameCamelCase(blob_filename):
     )
 
 
+def _isWriteableConstantsBlob(env, blob_filename):
+    return (
+        env.writeable_constants and os.path.basename(blob_filename) == "__constant.bin"
+    )
+
+
 def _addConstantBlobFileCoffObj(env, blob_filename, export_size):
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
 
@@ -757,6 +763,7 @@ def _addConstantBlobFileCoffObj(env, blob_filename, export_size):
         symbol_name=_getSymbolName(blob_filename) + "_data",
         architecture=env.target_arch,
         export_size=export_size,
+        writeable=_isWriteableConstantsBlob(env, blob_filename),
     )
 
     # Link the generated object file
@@ -1010,15 +1017,26 @@ def _enableMacOSTargetSettings(env):
 
     setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-    # TODO: The zig doesn't support the option given, not having "arm64" as a
-    # valid architecture.
-    if not env.zig_mode:
+    if env.zig_mode:
+        zig_target_arch = env.macos_target_arch
+
+        if zig_target_arch == "arm64":
+            zig_target_arch = "aarch64"
+
+        # Zig does not accept the Clang style "--target=arm64-apple-macos11"
+        # form, but it does accept versioned macOS target triples of its own.
+        target_flag = "--target=%s-macos.%s-none" % (
+            zig_target_arch,
+            env.macos_min_version,
+        )
+    else:
         target_flag = "--target=%s-apple-macos%s" % (
             env.macos_target_arch,
             env.macos_min_version,
         )
-        env.Append(CCFLAGS=[target_flag])
-        env.Append(LINKFLAGS=[target_flag])
+
+    env.Append(CCFLAGS=[target_flag])
+    env.Append(LINKFLAGS=[target_flag])
 
 
 def _enableAIXTargetSettings(env):
