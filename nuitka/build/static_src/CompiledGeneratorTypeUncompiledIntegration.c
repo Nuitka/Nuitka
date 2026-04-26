@@ -23,22 +23,6 @@ static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
                                                  struct Nuitka_ExceptionPreservationItem *exception_state);
 #endif
 
-#if PYTHON_VERSION >= 0x3d0
-static void Nuitka_PyErr_ChainStackItem(PyThreadState *tstate) {
-    _PyErr_StackItem *exc_info = tstate->exc_info;
-
-    if (exc_info->exc_value == NULL || exc_info->exc_value == Py_None) {
-        return;
-    }
-
-    PyObject *current_exception = tstate->current_exception;
-    tstate->current_exception = NULL;
-
-    PyErr_SetObject((PyObject *)Py_TYPE(current_exception), current_exception);
-    Py_DECREF(current_exception);
-}
-#endif
-
 #if PYTHON_VERSION >= 0x300
 static PyBaseExceptionObject *Nuitka_BaseExceptionSingleArg_new(PyThreadState *tstate, PyTypeObject *type,
                                                                 PyObject *arg) {
