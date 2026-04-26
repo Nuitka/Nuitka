@@ -4458,6 +4458,11 @@
       no-auto-follow:
         'pydoc': 'ignore'
 
+- module-name: 'pip._vendor.rich._unicode_data' # checksum: de94d9e0
+  implicit-imports:
+    - depends:
+        - '[m for m in iterate_modules("pip._vendor.rich._unicode_data") if m.rsplit(".", 1)[-1].startswith("unicode")]'
+
 - module-name: 'pip._vendor.rich.jupyter' # checksum: b346e77
   # See rich.jupyter
   anti-bloat:
@@ -5799,6 +5804,11 @@
   data-files:
     - patterns:
         - 'syntax_rfc3987.lark'
+
+- module-name: 'rich._unicode_data' # checksum: da973d02
+  implicit-imports:
+    - depends:
+        - '[m for m in iterate_modules("rich._unicode_data") if m.rsplit(".", 1)[-1].startswith("unicode")]'
 
 - module-name: 'rich.jupyter' # checksum: b346e77
   anti-bloat:
