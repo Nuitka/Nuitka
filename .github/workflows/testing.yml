@@ -273,13 +273,34 @@ jobs:
       - name: Verbose scons output in compilation
         run: |
           set -x
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+
+          cleanupEmptyModuleOutputs() {
+            rm -rf EmptyModuleTest EmptyModuleTest.*
+          }
+
+          retryMacCompileCommand() {
+            cleanupEmptyModuleOutputs
+
+            if "$@"; then
+              return 0
+            fi
+
+            echo "Retrying once after 30 seconds to tolerate a transient macOS runner failure."
+            sleep 30
+
+            cleanupEmptyModuleOutputs
+
+            "$@"
+            return $?
+          }
+
+          retryMacCompileCommand python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          retryMacCompileCommand python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          retryMacCompileCommand python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          retryMacCompileCommand python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
           # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          retryMacCompileCommand python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Archive compilation reports for empty modules
