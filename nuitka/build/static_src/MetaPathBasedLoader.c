@@ -1281,15 +1281,22 @@ static void _fixupSpecAttribute(PyThreadState *tstate, PyObject *module) {
 // Pointers to bytecode data.
 static char **_bytecode_data = NULL;
 
+#if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
+    !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
+static void raiseExcludedModuleImportError(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    PyErr_Format(PyExc_ImportError,
+                 "Module '%s' was actively excluded from Nuitka compilation. Disable with "
+                 "'--no-deployment-flag=excluded-module-usage': %s",
+                 entry->name, (char const *)entry->python_init_func);
+}
+#endif
+
 static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *module_name,
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
 #if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
     !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
     if ((entry->flags & NUITKA_EXCLUDED_MODULE_FLAG) != 0) {
-        PyErr_Format(PyExc_ImportError,
-                     "Module '%s' was actively excluded from Nuitka compilation. Disable with "
-                     "'--no-deployment-flag=excluded-module-usage': %s",
-                     entry->name, (char const *)entry->python_init_func);
+        raiseExcludedModuleImportError(entry);
         return NULL;
     }
 #endif
@@ -1906,6 +1913,14 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
         PySys_WriteStderr("import %s # claimed responsibility (%s)\n", Nuitka_String_AsString(module_name),
                           getEntryModeString(entry));
     }
+
+#if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
+    !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
+    if ((entry->flags & NUITKA_EXCLUDED_MODULE_FLAG) != 0) {
+        raiseExcludedModuleImportError(entry);
+        return NULL;
+    }
+#endif
 
     return createModuleSpec(tstate, module_name, getModuleFileValue(tstate, entry),
                             (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
