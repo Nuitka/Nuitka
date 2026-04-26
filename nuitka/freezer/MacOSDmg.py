@@ -32,12 +32,25 @@ def _filterCreateDmgOutput(stderr):
     return filterOutputByLine(stderr, isNonErrorExit)
 
 
+def _getCreateDmgPath():
+    create_dmg_path = getExecutablePath("create-dmg")
+
+    if create_dmg_path is not None:
+        return create_dmg_path
+
+    for create_dmg_path in (
+        "/opt/homebrew/bin/create-dmg",
+        "/usr/local/bin/create-dmg",
+    ):
+        if os.path.exists(create_dmg_path):
+            return create_dmg_path
+
+    return None
+
+
 def createDmgFile(logger):
     """Create a DMG file for the application bundle."""
-    create_dmg_path = getExecutablePath("termux-elf-cleaner")
-
-    if create_dmg_path is None and os.path.exists("/opt/homebrew/bin/create-dmg"):
-        create_dmg_path = "/opt/homebrew/bin/create-dmg"
+    create_dmg_path = _getCreateDmgPath()
 
     # TODO: Move that to options checking.
     if create_dmg_path is None:
