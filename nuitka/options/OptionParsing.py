@@ -2657,19 +2657,20 @@ def parseOptions(logger):
 
     sys.argv = [sys.argv[0]] + getBuildConfigurationOptions(logger) + sys.argv[1:]
 
-    for count, arg in enumerate(sys.argv):
-        if count == 0:
-            continue
+    if "--project" not in sys.argv[1:]:
+        for count, arg in enumerate(sys.argv):
+            if count == 0:
+                continue
 
-        if arg.startswith(("--main=", "--script-name=")):
-            filename_args.append(arg.split("=", 1)[1])
+            if arg.startswith(("--main=", "--script-name=")):
+                filename_args.append(arg.split("=", 1)[1])
 
-        if arg in ("--mode=module", "--mode=module", "--module=package"):
-            module_mode = True
+            if arg in ("--mode=module", "--mode=module", "--module=package"):
+                module_mode = True
 
-        if arg[0] != "-":
-            filename_args.append(arg)
-            break
+            if arg[0] != "-":
+                filename_args.append(arg)
+                break
 
     for filename in filename_args:
         sys.argv = (
@@ -2705,6 +2706,13 @@ def parseOptions(logger):
         return logger.sysexit("""\
 Error, need filename argument with python module, package directory or main
 program.""")
+
+    if options.is_project_mode and (options.mains or positional_args):
+        parser.print_help()
+
+        return logger.sysexit("""\
+Error, with '--project' do not provide '--main' or a positional main program.
+The entry points need to come from the project configuration.""")
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
