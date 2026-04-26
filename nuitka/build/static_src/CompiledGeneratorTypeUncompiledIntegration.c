@@ -2081,11 +2081,19 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
         if (!_PyFrameHasCompleted(f)) {
             return result;
         }
+
         assert(result == Py_None || !PyAsyncGen_CheckExact(gen));
-        if (result == Py_None && !PyAsyncGen_CheckExact(gen) && !arg) {
-            // TODO: Add Py_CLEAR_IMMORTAL maybe
-            Py_CLEAR(result);
+        if (PyAsyncGen_CheckExact(gen)) {
+            assert(result == Py_None);
+            SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
+        } else if (result == Py_None) {
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
+        } else {
+            Nuitka_SetStopIterationValue(tstate, result);
         }
+
+        // TODO: Add Py_CLEAR_IMMORTAL maybe
+        Py_CLEAR(result);
     } else {
         if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
             const char *msg = "generator raised StopIteration";
@@ -2244,7 +2252,9 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 #endif
             Py_DECREF(ret);
 
-#if PYTHON_VERSION >= 0x360
+#if PYTHON_VERSION < 0x360
+            gen->gi_frame->f_lasti += 1;
+#elif PYTHON_VERSION < 0x3a0
             gen->gi_frame->f_lasti += sizeof(_Py_CODEUNIT);
 #else
             gen->gi_frame->f_lasti += 1;
