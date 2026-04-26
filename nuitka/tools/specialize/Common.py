@@ -390,6 +390,10 @@ def enableCheckOnlyMode():
     check_only = True
 
 
+def isCheckOnlyMode():
+    return check_only
+
+
 def parseOptions():
     parser = makeOptionsParser(usage=None, epilog=None)
     parser.add_option(
