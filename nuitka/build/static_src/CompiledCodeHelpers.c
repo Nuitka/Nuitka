@@ -1419,7 +1419,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
 #if PYTHON_VERSION >= 0x270
         if (PyLong_CheckExact(item)) {
             int overflow;
-            long b = PyLong_AsLongAndOverflow(item, &overflow);
+            long b = Nuitka_PyLong_AsLongAndOverflow(item, &overflow);
 
             if (overflow) {
                 break;
@@ -1469,6 +1469,95 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
     if (unlikely(result == NULL)) {
         return NULL;
     }
+
+#if PYTHON_VERSION >= 0x3c0
+    if (PyFloat_CheckExact(result)) {
+        double f_result = PyFloat_AS_DOUBLE(result);
+        double c = 0.0;
+        Py_SETREF(result, NULL);
+
+        for (;;) {
+            bool finished;
+            item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
+
+            if (finished) {
+                if (c && Py_IS_FINITE(c)) {
+                    f_result += c;
+                }
+
+                return MAKE_FLOAT_FROM_DOUBLE(f_result);
+            } else if (item == NULL) {
+                return NULL;
+            }
+
+            CHECK_OBJECT(item);
+
+            if (PyFloat_CheckExact(item)) {
+                /* Improved Kahan-Babuska algorithm by Arnold Neumaier. */
+                double x = PyFloat_AS_DOUBLE(item);
+                double t = f_result + x;
+
+                if (fabs(f_result) >= fabs(x)) {
+                    c += (f_result - t) + x;
+                } else {
+                    c += (x - t) + f_result;
+                }
+
+                f_result = t;
+                Py_DECREF(item);
+
+                continue;
+            }
+
+            if (PyLong_Check(item)) {
+                int overflow;
+                long value = Nuitka_PyLong_AsLongAndOverflow(item, &overflow);
+
+                if (!overflow) {
+#if PYTHON_VERSION >= 0x3e0
+                    double x = (double)value;
+                    double t = f_result + x;
+
+                    if (fabs(f_result) >= fabs(x)) {
+                        c += (f_result - t) + x;
+                    } else {
+                        c += (x - t) + f_result;
+                    }
+
+                    f_result = t;
+#else
+                    f_result += (double)value;
+#endif
+                    Py_DECREF(item);
+
+                    continue;
+                }
+            }
+
+            if (c && Py_IS_FINITE(c)) {
+                f_result += c;
+            }
+
+            result = MAKE_FLOAT_FROM_DOUBLE(f_result);
+
+            if (result == NULL) {
+                Py_DECREF(item);
+                return NULL;
+            }
+
+            PyObject *temp2 = PyNumber_Add(result, item);
+            Py_DECREF(result);
+            Py_DECREF(item);
+            result = temp2;
+
+            if (unlikely(result == NULL)) {
+                return NULL;
+            }
+
+            break;
+        }
+    }
+#endif
 
     for (;;) {
         CHECK_OBJECT(result);
