@@ -441,7 +441,7 @@ def _removeUnwantedArtifacts(scons_created_exe):
 def runScons(scons_options, env_values, scons_filename):
     # We are handling quite a few error cases, as this contains transfer of
     # exceptions, workarounds for non-encodable filenames, and other error
-    # handling. pylint: disable=too-many-branches
+    # handling. pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -472,6 +472,11 @@ def runScons(scons_options, env_values, scons_filename):
 
         if "zig_exe_path" in scons_options and "CC" not in env_values:
             env_values["CC"] = scons_options["zig_exe_path"]
+
+        # Avoid Visual Studio developer shell telemetry from leaking to build
+        # output. spell-checker: ignore VSCMD_SKIP_SENDTELEMETRY
+        if isWin32Windows():
+            env_values["VSCMD_SKIP_SENDTELEMETRY"] = "1"
 
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
