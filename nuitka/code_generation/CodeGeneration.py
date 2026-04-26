@@ -113,7 +113,7 @@ from .CoroutineCodes import (
     getCoroutineObjectCode,
     getCoroutineObjectDeclCode,
 )
-from .CtypesCodes import generateCtypesCdllCallCode
+from .CtypesCodes import generateCtypesCdllCallCode, generateCtypesCIntCallCode
 from .DictCodes import (
     generateBuiltinDictCode,
     generateDictionaryCreationCode,
@@ -971,6 +971,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
+        "EXPRESSION_CTYPES_C_INT_CALL": generateCtypesCIntCallCode,
         "EXPRESSION_PKGUTIL_GET_DATA_CALL": generatePkglibGetDataCallCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": generatePkgResourcesRequireCallCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL": generatePkgResourcesGetDistributionCallCode,
