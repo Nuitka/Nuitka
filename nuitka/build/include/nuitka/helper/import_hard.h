@@ -77,6 +77,21 @@ extern PyObject *IMPORT_HARD_NTPATH(void);
 /* C helper for hard import of module "os" import. */
 extern PyObject *IMPORT_HARD_OS(void);
 
+/* C helper for hard import of module "pathlib" import. */
+#if PYTHON_VERSION >= 0x3d0
+extern PyObject *IMPORT_HARD_PATHLIB(void);
+#endif
+
+/* C helper for hard import of module "pathlib._abc" import. */
+#if PYTHON_VERSION >= 0x3d0
+extern PyObject *IMPORT_HARD_PATHLIB___ABC(void);
+#endif
+
+/* C helper for hard import of module "pathlib._local" import. */
+#if PYTHON_VERSION >= 0x3d0
+extern PyObject *IMPORT_HARD_PATHLIB___LOCAL(void);
+#endif
+
 /* C helper for hard import of module "pkg_resources" import. */
 extern PyObject *IMPORT_HARD_PKG_RESOURCES(void);
 
