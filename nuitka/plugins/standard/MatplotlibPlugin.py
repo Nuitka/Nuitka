@@ -158,7 +158,7 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
             line = line.rstrip()
 
             # omit meaningless lines
-            if not line or line.lstrip().startswith("#"):
+            if line.startswith("#") and matplotlib_info.matplotlib_version < "3":
                 continue
 
             new_lines.append(line)
