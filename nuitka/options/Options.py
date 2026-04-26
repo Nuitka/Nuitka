@@ -75,7 +75,10 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Images import checkIconUsage
 from nuitka.utils.Importing import getInlineCopyFolder
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
-from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
+from nuitka.utils.StaticLibraries import (
+    getStaticLinkLibraryProblem,
+    getSystemStaticLibPythonPath,
+)
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
@@ -854,26 +857,25 @@ Error, directory '%s' given to '--include-plugin-directory' must not be a \
 standard library path. Use '--include-module' or '--include-package' \
 options instead.""" % pattern)
 
-    if (
-        options.static_libpython == "yes"
-        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is None
-    ):
+    static_libpython_path = getSystemStaticLibPythonPath(
+        python_debug=shallUsePythonDebug()
+    )
+
+    if options.static_libpython == "yes":
         usable, reason = _couldUseStaticLibPython()
 
-        return options_logger.sysexit(
-            """\
+        if static_libpython_path is None or usable is False:
+            return options_logger.sysexit(
+                """\
 Error, a static libpython is either not found or not supported for \
 this Python (%s) installation: %s"""
-            % (
-                getPythonFlavorName(),
-                (reason if not usable else "unknown reason"),
+                % (
+                    getPythonFlavorName(),
+                    (reason or "unknown reason"),
+                )
             )
-        )
 
-    if (
-        shallUseStaticLibPython()
-        and getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug()) is None
-    ):
+    if shallUseStaticLibPython() and static_libpython_path is None:
         return options_logger.sysexit(
             """Error, usable static libpython is not found for this Python installation. You \
 might be missing required packages. Disable with --static-libpython=no" if you don't \
@@ -1795,15 +1797,13 @@ def _couldUseStaticLibPython():
     # many cases and return driven,
     # pylint: disable=too-many-branches,too-many-return-statements
 
+    static_lib_path = getSystemStaticLibPythonPath(python_debug=shallUsePythonDebug())
+
     if (
         shallMakeDll()
         and not isWin32Windows()
         and getArchitecture() in ("x86_64", "aarch64")
     ):
-        static_lib_path = getSystemStaticLibPythonPath(
-            python_debug=shallUsePythonDebug()
-        )
-
         if static_lib_path is not None and not static_lib_path.endswith("-pic.a"):
             try:
                 import sysconfig
@@ -1818,6 +1818,11 @@ def _couldUseStaticLibPython():
                         "Not used in dll mode on %s since Python static library lacks PIC."
                         % getArchitecture(),
                     )
+
+    static_link_library_problem = getStaticLinkLibraryProblem(static_lib_path)
+
+    if static_link_library_problem is not None:
+        return False, static_link_library_problem
 
     # MonolithPy is good to to static linking.
     if isMonolithPy():
