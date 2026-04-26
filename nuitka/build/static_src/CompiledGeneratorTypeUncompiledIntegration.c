@@ -270,6 +270,47 @@ static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3d0
+// TODO: For performance, expand this for pre-3.13 as well
+static void Nuitka_PyErr_ChainStackItem(PyThreadState *tstate) {
+    assert(HAS_ERROR_OCCURRED(tstate));
+
+    _PyErr_StackItem *exc_info = tstate->exc_info;
+    PyObject *handled_exception = exc_info->exc_value;
+
+    if (handled_exception == NULL || handled_exception == Py_None) {
+        return;
+    }
+
+    PyObject *current_exception = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(current_exception);
+
+    if (handled_exception == current_exception) {
+        return;
+    }
+
+    PyObject *chain_exception = current_exception;
+
+    while (true) {
+        PyObject *context = Nuitka_Exception_GetContext(chain_exception);
+        if (context == NULL) {
+            break;
+        }
+
+        CHECK_OBJECT(context);
+
+        if (context == handled_exception) {
+            Nuitka_Exception_DeleteContext(chain_exception);
+            break;
+        }
+
+        chain_exception = context;
+    }
+
+    Nuitka_Exception_SetContext(current_exception, handled_exception);
+}
+#endif
+
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
 // what it does. It's unrelated to compiled generators, and used from coroutines
@@ -1613,18 +1654,9 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     tstate->exc_info = &gen->gi_exc_state;
 
     if (exc) {
-        assert(_PyErr_Occurred(tstate));
+        assert(HAS_ERROR_OCCURRED(tstate));
 #if PYTHON_VERSION >= 0x3d0
-        {
-            _PyErr_StackItem *exc_info = tstate->exc_info;
-
-            if (exc_info->exc_value != NULL && exc_info->exc_value != Py_None) {
-                PyObject *current_exception = tstate->current_exception;
-
-                PyErr_SetObject((PyObject *)Py_TYPE(current_exception), current_exception);
-                Py_DECREF(current_exception);
-            }
-        }
+        Nuitka_PyErr_ChainStackItem(tstate);
 #else
         _PyErr_ChainStackItem(NULL);
 #endif
@@ -1648,7 +1680,11 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     assert(frame->previous == NULL);
 #endif
     if (result != NULL) {
-        if (gen->gi_frame_state == FRAME_SUSPENDED) {
+        if (gen->gi_frame_state == FRAME_SUSPENDED
+#if PYTHON_VERSION >= 0x3d0
+            || gen->gi_frame_state == FRAME_SUSPENDED_YIELD_FROM
+#endif
+        ) {
             *result_ptr = result;
             return PYGEN_NEXT;
         }
