@@ -120,9 +120,10 @@ def _normalizePrivatePipPackageName(package_name):
     return re.sub(r"[-_.]+", "_", package_name)
 
 
-def _clearRequiredVersionCheckCache(binary_path):
-    """Invalidate cached version checks for a private pip binary path."""
+def _clearPrivatePipBinaryCheckCache(binary_path):
+    """Invalidate cached checks for a private pip binary path."""
     _check_required_version_cache.pop((binary_path, "--version"), None)
+    _check_mdformat_usability_cache.pop(binary_path, None)
 
 
 def _removePrivatePipInstalledPath(logger, path):
@@ -231,7 +232,7 @@ def _cleanupPrivatePipBinaryState(logger, site_packages_folder, binary_names):
                 binary_name=binary_name,
             )
 
-            _clearRequiredVersionCheckCache(binary_paths[0])
+            _clearPrivatePipBinaryCheckCache(binary_paths[0])
 
             for binary_path in binary_paths:
                 if _removePrivatePipInstalledPath(logger=logger, path=binary_path):
@@ -790,25 +791,33 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
 
 def _checkMdformatUsability(logger, binary_path):
     """Check if mdformat can format a minimal markdown file."""
+    # Not logging these calls, pylint: disable=unused-argument
+
+    if binary_path in _check_mdformat_usability_cache:
+        return _check_mdformat_usability_cache[binary_path]
+
+    result = True, None
 
     with withTemporaryFilename(suffix=".md") as temp_filename:
         try:
             putBinaryFileContents(temp_filename, b"# smoke\n")
-            check_output([binary_path, "--check", temp_filename], logger=logger)
+            check_output([binary_path, "--check", temp_filename])
         except NuitkaCalledProcessError as e:
             stderr = e.stderr
 
             if str is not bytes and stderr is not None:
                 stderr = stderr.decode("utf8", "ignore")
 
-            return (
+            result = (
                 False,
                 "failed to format a test file: %s" % (stderr or e),
             )
         finally:
             deleteFile(temp_filename, must_exist=False)
 
-    return True, None
+    _check_mdformat_usability_cache[binary_path] = result
+
+    return result
 
 
 def getMdformatBinaryPath(logger, assume_yes_for_downloads):
@@ -983,6 +992,7 @@ def getRequiredVersion(logger, tool):
 
 
 _check_required_version_cache = {}
+_check_mdformat_usability_cache = {}
 
 
 def _checkRequiredVersion(logger, tool, tool_call, dependencies):
