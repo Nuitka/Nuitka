@@ -8,7 +8,7 @@ import os
 from nuitka.Tracing import scons_logger
 from nuitka.utils.Utils import isLinux, isMacOS
 
-from .SconsUtils import getArgumentDefaulted, getArgumentRequired
+from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
 # spell-checker: ignore cppdefines,cpppath,linkflags,libpath
 
@@ -38,8 +38,66 @@ def _addPythonIncludePaths(env):
     env.Append(CPPPATH=python_include_paths)
 
 
+def _addPythonWarningSettings(env):
+    if env.debug_mode:
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
+                    # which are unfounded, so disable them.
+                    "-Wno-error=strict-aliasing",
+                    "-Wno-strict-aliasing",
+                    # At least for self-compiled Python3.2, and MinGW this happens
+                    # and has little use anyway.
+                    "-Wno-error=format",
+                    "-Wno-format",
+                ]
+            )
+
+            if isGccName(env.the_cc_name):
+                # Some Linux distro hardening injects "-Werror=format-security",
+                # which would otherwise conflict with disabling format warnings.
+                # spell-checker: ignore Werror
+                env.Append(
+                    CCFLAGS=[
+                        "-Wno-error=format-security",
+                    ]
+                )
+
+        elif env.msvc_mode:
+            # Disable warnings that system headers already show.
+            env.Append(
+                CCFLAGS=[
+                    "/W4",
+                    "/wd4505",
+                    "/wd4127",
+                    "/wd4100",
+                    "/wd4702",
+                    "/wd4189",
+                    "/wd4211",
+                    "/wd4115",
+                ]
+            )
+
+            # Disable warnings, that CPython headers already show.
+            if env.python_version >= (3,):
+                env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+
+            if env.python_version >= (3, 13):
+                env.Append(CCFLAGS=["/wd4324"])
+
+            # We use null arrays in our structure Python declarations, which C11 does
+            # not really allow, but should work.
+            env.Append(CCFLAGS=["/wd4200"])
+
+            # Do not show deprecation warnings, we will use methods for as long
+            # as they work.
+            env.Append(CCFLAGS=["/wd4996"])
+
+
 def applyPythonBuildSettings(env):
     _addPythonIncludePaths(env)
+    _addPythonWarningSettings(env)
 
     if env.monolithpy:
         env.Append(CPPDEFINES=["_MONOLITHPY"])
