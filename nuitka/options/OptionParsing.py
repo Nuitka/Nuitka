@@ -2619,6 +2619,36 @@ def _considerGithubWorkflowOptions(phase):
     )
 
 
+def _extractMainArguments(args):
+    mains = []
+    main_entry_points = []
+
+    expect_main = False
+    expect_main_entry_point = False
+
+    for arg in args:
+        if expect_main:
+            mains.append(arg)
+            expect_main = False
+            continue
+
+        if expect_main_entry_point:
+            main_entry_points.append(arg)
+            expect_main_entry_point = False
+            continue
+
+        if arg in ("--main", "--script-name"):
+            expect_main = True
+        elif arg == "--main-entry-point":
+            expect_main_entry_point = True
+        elif arg.startswith(("--main=", "--script-name=")):
+            mains.append(arg.split("=", 1)[1])
+        elif arg.startswith("--main-entry-point="):
+            main_entry_points.append(arg.split("=", 1)[1])
+
+    return mains, main_entry_points
+
+
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
     # well as integrating with plugins and run modes. pylint: disable=too-many-branches
@@ -2655,21 +2685,27 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="early")
 
-    sys.argv = [sys.argv[0]] + getBuildConfigurationOptions(logger) + sys.argv[1:]
+    build_configuration_options = getBuildConfigurationOptions(logger)
+    project_mains, project_main_entry_points = _extractMainArguments(
+        build_configuration_options
+    )
 
-    for count, arg in enumerate(sys.argv):
-        if count == 0:
-            continue
+    sys.argv = [sys.argv[0]] + build_configuration_options + sys.argv[1:]
 
-        if arg.startswith(("--main=", "--script-name=")):
-            filename_args.append(arg.split("=", 1)[1])
+    if "--project" not in sys.argv[1:]:
+        for count, arg in enumerate(sys.argv):
+            if count == 0:
+                continue
 
-        if arg in ("--mode=module", "--mode=module", "--module=package"):
-            module_mode = True
+            if arg.startswith(("--main=", "--script-name=")):
+                filename_args.append(arg.split("=", 1)[1])
 
-        if arg[0] != "-":
-            filename_args.append(arg)
-            break
+            if arg in ("--mode=module", "--mode=module", "--module=package"):
+                module_mode = True
+
+            if arg[0] != "-":
+                filename_args.append(arg)
+                break
 
     for filename in filename_args:
         sys.argv = (
@@ -2705,6 +2741,18 @@ def parseOptions(logger):
         return logger.sysexit("""\
 Error, need filename argument with python module, package directory or main
 program.""")
+
+    if options.is_project_mode and (
+        positional_args
+        or sorted(options.mains) != sorted(project_mains)
+        or sorted(options.main_entry_points) != sorted(project_main_entry_points)
+    ):
+        parser.print_help()
+
+        return logger.sysexit("""\
+Error, with '--project' do not provide '--main', '--main-entry-point', \
+or a positional main program. The entry points need to come from the project \
+configuration.""")
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
