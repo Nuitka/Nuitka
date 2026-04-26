@@ -371,6 +371,66 @@ PyObject *IMPORT_HARD_OS(void) {
     return module_import_hard_os;
 }
 
+/* C helper for hard import of module "pathlib" import. */
+#if PYTHON_VERSION >= 0x3d0
+PyObject *IMPORT_HARD_PATHLIB(void) {
+    static PyObject *module_import_hard_pathlib = NULL;
+
+    if (module_import_hard_pathlib == NULL) {
+        module_import_hard_pathlib = PyImport_ImportModule("pathlib");
+
+        if (unlikely(module_import_hard_pathlib == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'pathlib'");
+        }
+    }
+
+    return module_import_hard_pathlib;
+}
+#endif
+
+/* C helper for hard import of module "pathlib._abc" import. */
+#if PYTHON_VERSION >= 0x3d0
+PyObject *IMPORT_HARD_PATHLIB___ABC(void) {
+    static PyObject *module_import_hard_pathlib___abc = NULL;
+
+    if (module_import_hard_pathlib___abc == NULL) {
+        module_import_hard_pathlib___abc = PyImport_ImportModule("pathlib._abc");
+
+        if (unlikely(module_import_hard_pathlib___abc == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'pathlib._abc'");
+        }
+    }
+
+    return module_import_hard_pathlib___abc;
+}
+#endif
+
+/* C helper for hard import of module "pathlib._local" import. */
+#if PYTHON_VERSION >= 0x3d0
+PyObject *IMPORT_HARD_PATHLIB___LOCAL(void) {
+    static PyObject *module_import_hard_pathlib___local = NULL;
+
+    if (module_import_hard_pathlib___local == NULL) {
+        module_import_hard_pathlib___local = PyImport_ImportModule("pathlib._local");
+
+        if (unlikely(module_import_hard_pathlib___local == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'pathlib._local'");
+        }
+    }
+
+    return module_import_hard_pathlib___local;
+}
+#endif
+
 /* C helper for hard import of module "pkg_resources" import. */
 PyObject *IMPORT_HARD_PKG_RESOURCES(void) {
     static PyObject *module_import_hard_pkg_resources = NULL;
