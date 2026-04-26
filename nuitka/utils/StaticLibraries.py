@@ -23,7 +23,13 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general
 
-from .Execution import executeToolChecked
+from .Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    executeToolChecked,
+    getExecutablePath,
+    isExecutableCommand,
+)
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
@@ -72,6 +78,7 @@ def _locateStaticLinkLibrary(dll_name):
 
 
 _static_lib_python_path = False
+_static_lib_problem_cache = {}
 
 
 def isDebianSuitableForStaticLinking():
@@ -233,6 +240,36 @@ def getSystemStaticLibPythonPath(python_debug):
         )
 
     return _static_lib_python_path
+
+
+def _detectStaticLinkLibraryProblem(static_library_path):
+    if static_library_path is None or isWin32Windows():
+        return None
+
+    if not isExecutableCommand("nm"):
+        return None
+
+    try:
+        output = check_output((getExecutablePath("nm"), "-u", static_library_path))
+    except (NuitkaCalledProcessError, OSError):
+        return None
+
+    if b"__warn_memset_zero_len" in output:
+        return (
+            "Static link library '%s' contains the broken undefined symbol "
+            "'__warn_memset_zero_len'." % static_library_path
+        )
+
+    return None
+
+
+def getStaticLinkLibraryProblem(static_library_path):
+    if static_library_path not in _static_lib_problem_cache:
+        _static_lib_problem_cache[static_library_path] = (
+            _detectStaticLinkLibraryProblem(static_library_path)
+        )
+
+    return _static_lib_problem_cache[static_library_path]
 
 
 _nm_usage = "nm is used to detect symbols of static link libraries"
