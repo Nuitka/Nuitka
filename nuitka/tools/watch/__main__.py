@@ -184,7 +184,7 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         run_command
         + [
             nuitka_binary,
-            os.path.join(case_dir, case_data["filename"]),
+            relpath(os.path.join(case_dir, case_data["filename"])),
             "--assume-yes-for-downloads",
             "--report=%s" % report_filename,
             "--report-diffable",
