@@ -266,6 +266,17 @@ exceeded while calling a Python object' in \
         if "XType: Using static font registry" in line:
             continue
 
+        # Ignore macOS system log noise emitted by GUI backends such as
+        # matplotlib. This contains timestamp, process name, and ids that are
+        # expected to differ between CPython and compiled binaries.
+        if (
+            "NSXPCSharedListener endpointForReply:withListenerName:replyErrorCode"
+            in line
+            and "ClientCallsAuxiliary" in line
+            and "Connection interrupted" in line
+        ):
+            continue
+
         if re.search(r"Gtk-WARNING.*cannot open display", line):
             continue
 
