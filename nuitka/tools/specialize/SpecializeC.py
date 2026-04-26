@@ -68,6 +68,7 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
+    isCheckOnlyMode,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -1610,7 +1611,8 @@ def _writeCompiledOffsetsHeader(template_groups):
     ) as output_c:
         output_c.write(header_c_code)
 
-    tools_logger.info("Generated C header at %s" % out_path)
+    if not isCheckOnlyMode():
+        tools_logger.info("Generated C header at %s" % out_path)
 
 
 def main():
