@@ -215,6 +215,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             package_name=main_standalone_entry_point.package_name,
             original_location=main_standalone_entry_point.source_path,
             standalone_entry_points=standalone_entry_points,
+            removed_dll_paths=getRemovedUsedDllPaths(main_standalone_entry_point),
         )
 
     # After dependency detection, we can change the RPATH for main binary.
@@ -249,6 +250,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
                 package_name=standalone_entry_point.package_name,
                 original_location=standalone_entry_point.source_path,
                 standalone_entry_points=standalone_entry_points,
+                removed_dll_paths=getRemovedUsedDllPaths(standalone_entry_point),
             )
 
     closeProgressBar()
@@ -401,6 +403,16 @@ _removed_dll_usages = {}
 
 def getRemovedUsedDllsInfo():
     return _removed_dll_usages.items()
+
+
+def getRemovedUsedDllPaths(standalone_entry_point):
+    removed_dll_info = _removed_dll_usages.get(standalone_entry_point)
+
+    if removed_dll_info is None:
+        return ()
+    else:
+        _reason, removed_dll_paths = removed_dll_info
+        return removed_dll_paths
 
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
