@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+import inspect
 import pprint
 
 
@@ -141,6 +142,50 @@ class ClosureLocalizer:
 
 print("Class with a name from module level renamed to local", ClosureLocalizer.function)
 print("Class method decorated", ClosureLocalizer().x.decorated)
+
+
+class MethodDispatcher(object):
+    def __init__(self, name):
+        self.name = name
+        self.types = []
+
+    def add(self, types, func):
+        self.types.append(types)
+
+
+def dispatch(*types):
+    def _decorator(func):
+        name = func.__name__
+        class_locals = inspect.currentframe().f_back.f_locals
+        dispatcher = class_locals.get(name, MethodDispatcher(name))
+        dispatcher.add(types, func)
+        return dispatcher
+
+    return _decorator
+
+
+class A(object):
+    pass
+
+
+class B(object):
+    pass
+
+
+class FrameLocalsDecoratorClass(object):
+    @dispatch(A)
+    def run(self, value):
+        return "A"
+
+    @dispatch(B)
+    def run(self, value):
+        return "B"
+
+
+print(
+    "Class frame locals decorators",
+    [types[0].__name__ for types in FrameLocalsDecoratorClass.run.types],
+)
 
 print("Class with decorator and meta class:")
 

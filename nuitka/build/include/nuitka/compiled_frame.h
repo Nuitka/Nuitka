@@ -43,6 +43,8 @@ extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyC
                                                       Py_ssize_t locals_size);
 extern struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
                                                    PyObject *f_locals, Py_ssize_t locals_size);
+extern void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject *locals_value);
+extern void Nuitka_Frame_ClearLocals(struct Nuitka_FrameObject *frame_object);
 
 // Create a code object for the given filename and function name
 

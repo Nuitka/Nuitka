@@ -239,40 +239,41 @@ def getFrameGuardHeavyCode(
     # Expose the locals dictionary with the frame locals if it exists.
     if frame_node.isStatementsFrameClass():
         attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
-
-        use_locals_dict = (
-            frame_node.getLocalsScope().getCodeName() in context.getLocalsDictNames()
+        module_identifier = getModuleAccessCode(context)
+        locals_dict_name = context.variable_storage.getVariableDeclarationTop(
+            frame_node.getLocalsScope().getCodeName()
         )
+        use_locals_dict = locals_dict_name in context.getLocalsDictNames()
 
         make_frame_code = (
-            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_dict_name)s, %(locals_size)s)"""
+            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, NULL, %(locals_size)s)"""
             % {
                 "code_identifier": code_identifier,
-                "module_identifier": getModuleAccessCode(context),
+                "module_identifier": module_identifier,
                 "locals_size": getFrameLocalsStorageSize(
                     context.getFrameVariableTypeDescriptions()
-                ),
-                "locals_dict_name": (
-                    frame_node.getLocalsScope().getCodeName()
-                    if use_locals_dict
-                    else "NULL"
                 ),
             }
         )
 
         if use_locals_dict:
-            # TODO: Have a function that clears an optional existing reference and assigns a new
-            # value taking a reference.
             frame_init_code = """\
-assert(%(frame_identifier)s->m_frame.f_locals == NULL);
-%(frame_identifier)s->m_frame.f_locals = %(locals_dict)s;
-Py_INCREF(%(frame_identifier)s->m_frame.f_locals);
+Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(locals_dict)s);
 """ % {
                 "frame_identifier": frame_identifier,
-                "locals_dict": frame_node.getLocalsScope().getCodeName(),
+                "locals_dict": locals_dict_name,
             }
-            frame_exit_code = """
-Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
+        elif python_version < 0x300:
+            frame_init_code = """\
+Nuitka_Frame_AssignLocals(%(frame_identifier)s, %(module_identifier)s);
+""" % {
+                "frame_identifier": frame_identifier,
+                "module_identifier": module_identifier,
+            }
+
+        if use_locals_dict or python_version < 0x300:
+            frame_exit_code = """\
+Nuitka_Frame_ClearLocals(%(frame_identifier)s);
 """ % {
                 "frame_identifier": frame_identifier,
             }
