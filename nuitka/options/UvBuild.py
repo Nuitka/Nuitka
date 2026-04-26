@@ -86,13 +86,23 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         # Parse tool.uv configuration
         uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
+        uv_build_config = dict(uv_config.pop("build-backend", {}))
 
-        module_root = uv_config.pop("module-root", None)
+        module_root = uv_build_config.pop("module-root", None)
         if module_root is not None:
             if module_root != "":
                 addMainScriptDirectory(os.path.abspath(module_root))
         elif os.path.exists("src"):
             addMainScriptDirectory(os.path.abspath("src"))
+
+        if uv_build_config:
+            for unhandled_key in uv_build_config:
+                logger.warning(
+                    """\
+Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
+'pyproject.toml', we might have to ignore list or handle it: %s"""
+                    % (unhandled_key, uv_build_config[unhandled_key])
+                )
 
         if uv_config:
             for unhandled_key in uv_config:
