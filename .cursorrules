@@ -66,6 +66,9 @@ and maintain the Nuitka compiler.
 
   - **Comments:** Comments shall only state information that is not available in the code it
     comments on.
+  - **Strings:** Do not create long strings by implicitly concatenating multiple smaller strings
+    across lines or using backslashes between string fragments. Use triple-quoted strings
+    (`"""..."""`) for long strings, using `\` escapes inside them if lines become too long.
   - **List Contractions:** PREFERRED over `map`, `filter`, `apply`.
   - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
   - **Imports:** Sort imports using `isort` (handled by auto-format).
