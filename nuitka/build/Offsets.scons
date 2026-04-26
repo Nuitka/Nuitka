@@ -54,7 +54,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore cflags,ccflags,cppdefines,cpppath,libpath
+# spell-checker: ignore cppdefines,cpppath,libpath
 
 # Set up the basic stuff.
 # Set up the basic stuff.
@@ -103,50 +103,6 @@ cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 link_module_libs = getArgumentList("link_module_libs", "")
-if env.debug_mode:
-    if env.gcc_mode:
-        env.Append(
-            CCFLAGS=[
-                # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
-                # which are unfounded, so disable them.
-                "-Wno-error=strict-aliasing",
-                "-Wno-strict-aliasing",
-                # At least for self-compiled Python3.2, and MinGW this happens
-                # and has little use anyway.
-                "-Wno-error=format",
-                "-Wno-format",
-            ]
-        )
-
-    elif env.msvc_mode:
-        # Disable warnings that system headers already show.
-        env.Append(
-            CCFLAGS=[
-                "/W4",
-                "/wd4505",
-                "/wd4127",
-                "/wd4100",
-                "/wd4702",
-                "/wd4189",
-                "/wd4211",
-                "/wd4115",
-            ]
-        )
-
-        # Disable warnings, that CPython headers already show.
-        if python_version >= (3,):
-            env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
-
-        if python_version >= (3, 13):
-            env.Append(CCFLAGS=["/wd4324"])
-
-        # We use null arrays in our structure Python declarations, which C11 does
-        # not really allow, but should work.
-        env.Append(CCFLAGS=["/wd4200"])
-
-        # Do not show deprecation warnings, we will use methods for as long
-        # as they work.
-        env.Append(CCFLAGS=["/wd4996"])
 
 if not env.msvc_mode:
     env.Append(LIBS=["m"])
