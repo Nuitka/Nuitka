@@ -481,7 +481,11 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
 
 
 def fixupBinaryDLLPathsMacOS(
-    binary_filename, package_name, original_location, standalone_entry_points
+    binary_filename,
+    package_name,
+    original_location,
+    standalone_entry_points,
+    removed_dll_paths,
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
     try:
@@ -511,11 +515,17 @@ def fixupBinaryDLLPathsMacOS(
                 )
 
             if dist_path is None:
-                return inclusion_logger.sysexit(
-                    """\
+                for removed_dll_path in removed_dll_paths:
+                    if areSamePaths(resolved_filename, removed_dll_path):
+                        break
+                else:
+                    return inclusion_logger.sysexit(
+                        """\
 Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                    % (getReportPath(original_location), rpath_filename)
-                )
+                        % (getReportPath(original_location), rpath_filename)
+                    )
+
+                continue
 
             mapping.append((rpath_filename, "@executable_path/" + dist_path))
 
