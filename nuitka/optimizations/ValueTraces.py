@@ -166,6 +166,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isStartTrace():
+        return False
+
+    @staticmethod
     def isAssignTraceVeryTrusted():
         return False
 
@@ -268,6 +272,58 @@ class ValueTraceBase(object):
         return True
 
 
+def _getAttributeNodeVeryTrustedMatching(trace, visited):
+    # return driven, pylint: disable=too-many-return-statements
+    if trace is None:
+        return None
+
+    trace_id = id(trace)
+
+    if trace_id in visited:
+        return Ellipsis
+
+    if trace.isMergeTrace() or trace.isLoopTrace():
+        visited.add(trace_id)
+
+        result = Ellipsis
+
+        for previous in trace.previous:
+            previous = _getAttributeNodeVeryTrustedMatching(previous, visited)
+
+            if previous is Ellipsis:
+                continue
+
+            if previous is None:
+                visited.remove(trace_id)
+                return None
+
+            if result is Ellipsis:
+                result = previous
+            elif result is not previous:
+                visited.remove(trace_id)
+                return None
+
+        visited.remove(trace_id)
+
+        if result is Ellipsis:
+            return None
+
+        return result
+
+    if trace.isStartTrace():
+        return None
+
+    if trace.isUnknownTrace() or trace.isEscapeTrace():
+        visited.add(trace_id)
+
+        result = _getAttributeNodeVeryTrustedMatching(trace.previous, visited)
+        visited.remove(trace_id)
+
+        return result
+
+    return trace.getAttributeNodeVeryTrusted()
+
+
 class ValueTraceUnassignedBase(ValueTraceBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
@@ -301,6 +357,10 @@ class ValueTraceUnassignedBase(ValueTraceBase):
 class ValueTraceStartMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
+
+    @staticmethod
+    def isStartTrace():
+        return True
 
     def addUsage(self):
         self.usage_count += 1
@@ -873,6 +933,15 @@ class ValueTraceMergeBase(ValueTraceBase):
     def isUsingTrace(self):
         # Checking definite is enough, the merges, we shall see them as well.
         return self.usage_count
+
+    def getAttributeNode(self):
+        return _getAttributeNodeVeryTrustedMatching(self, set())
+
+    def getAttributeNodeTrusted(self):
+        return _getAttributeNodeVeryTrustedMatching(self, set())
+
+    def getAttributeNodeVeryTrusted(self):
+        return _getAttributeNodeVeryTrustedMatching(self, set())
 
 
 class ValueTraceMerge(ValueTraceMergeBase):
