@@ -1702,8 +1702,7 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     if (result != NULL) {
 #if PYTHON_VERSION >= 0x3d0
         // Match published CPython 3.13+/3.14 suspended states, including YIELD_FROM.
-        if (gen->gi_frame_state == FRAME_SUSPENDED ||
-            gen->gi_frame_state == FRAME_SUSPENDED_YIELD_FROM) {
+        if (gen->gi_frame_state == FRAME_SUSPENDED || gen->gi_frame_state == FRAME_SUSPENDED_YIELD_FROM) {
 #else
         if (gen->gi_frame_state == FRAME_SUSPENDED) {
 #endif
