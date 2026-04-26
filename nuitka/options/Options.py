@@ -362,19 +362,6 @@ def parseArgs():
                 "Error, conflicting options '--zig' and '--msvc'."
             )
 
-        if isMacOS():
-            # TODO: Keep an eye on macOS, it might become available via ziglang
-            # too, and keep this synchronized with the options check.
-            if "CC" not in os.environ:
-                zig_path = getExecutablePath("zig")
-
-                if zig_path is not None:
-                    os.environ["CC"] = getExecutablePath("zig")
-                else:
-                    return options_logger.sysexit("""\
-Error, for macOS there is not automatic download of zig (the 'ziglang' PyPI doesn't yet \
-offer it), set the 'CC' environment variable or add it to PATH.""")
-
     if isWin32Windows() and options.mingw64 and options.clang:
         return options_logger.sysexit("""\
 Error, conflicting options '--mingw64' and '--clang'. Note that Clang is no \
@@ -2028,11 +2015,16 @@ def getLtoMode():
 
 
 def isClang():
-    """:returns: bool derived from ``--clang`` or enforced by platform, e.g. macOS or FreeBSD some targets."""
+    """:returns: bool derived from ``--clang`` or auto-enabled by platform when no other compiler was selected."""
+
+    if options.clang:
+        return True
+
+    if options.zig or options.mingw64 or options.msvc_version:
+        return False
 
     return (
-        options.clang
-        or isMacOS()
+        isMacOS()
         or isOpenBSD()
         or (isFreeBSD() and getArchitecture() != "powerpc")
         or isTermuxPython()

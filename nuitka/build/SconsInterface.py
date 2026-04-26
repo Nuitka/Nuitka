@@ -470,6 +470,9 @@ def runScons(scons_options, env_values, scons_filename):
         env_values = OrderedDict(env_values)
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
+        if "zig_exe_path" in scons_options and "CC" not in env_values:
+            env_values["CC"] = scons_options["zig_exe_path"]
+
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
 
@@ -653,11 +656,16 @@ def getCommonSconsOptions():
 
     if isZig():
         if "CC" not in os.environ:
-            scons_options["zig_exe_path"] = getZigBinaryPath(
-                logger=scons_logger,
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
-            )
+            zig_exe_path = getExecutablePath("zig")
+
+            if zig_exe_path is None:
+                zig_exe_path = getZigBinaryPath(
+                    logger=scons_logger,
+                    assume_yes_for_downloads=assumeYesForDownloads(),
+                    reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+                )
+
+            scons_options["zig_exe_path"] = zig_exe_path
 
             if scons_options["zig_exe_path"] is None:
                 scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
