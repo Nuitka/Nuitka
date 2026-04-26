@@ -9,6 +9,7 @@ binaries (needed for exec) and run them capturing outputs.
 
 import errno
 import os
+import select
 import shlex
 from contextlib import contextmanager
 
@@ -736,7 +737,22 @@ class Process(object):
                 proc=self.process, process_input=process_input
             )
         else:
-            stdout, stderr = self.process.communicate(input=process_input)
+            try:
+                stdout, stderr = self.process.communicate(
+                    input=process_input, **kw_args
+                )
+            except subprocess.TimeoutExpired as e:
+                if hasattr(self.process, "kill"):
+                    self.process.kill()
+                else:
+                    self.process.terminate()
+
+                stdout, stderr = self.process.communicate()
+                e.output = stdout
+                e.stdout = stdout
+                e.stderr = stderr
+                raise
+
             exit_code = self.process.wait()
             rusage = None
 
@@ -755,12 +771,93 @@ def _communicateWithRusage(proc, process_input):
     This version uses the high-level 'selectors' module for robust I/O handling.
     """
 
-    # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
+    # Complex code to replace communicate of Python,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    if selectors is None or not hasattr(os, "wait4"):
+    if not hasattr(os, "wait4"):
         stdout, stderr = proc.communicate(input=process_input)
         exit_code = proc.wait()
         rusage = None
+    elif selectors is None:
+        if process_input is None:
+            process_input = b""
+
+        stdout_chunks = []
+        stderr_chunks = []
+
+        read_fds = []
+        chunk_lists = {}
+        file_objects = {}
+
+        if proc.stdout:
+            stdout_fd = proc.stdout.fileno()
+            read_fds.append(stdout_fd)
+            chunk_lists[stdout_fd] = stdout_chunks
+            file_objects[stdout_fd] = proc.stdout
+
+        if proc.stderr:
+            stderr_fd = proc.stderr.fileno()
+            read_fds.append(stderr_fd)
+            chunk_lists[stderr_fd] = stderr_chunks
+            file_objects[stderr_fd] = proc.stderr
+
+        write_fds = []
+        stdin_file = None
+
+        if proc.stdin:
+            if process_input:
+                stdin_file = proc.stdin
+                write_fds.append(proc.stdin.fileno())
+            else:
+                proc.stdin.close()
+
+        input_offset = 0
+
+        while read_fds or write_fds:
+            try:
+                ready_to_read, ready_to_write, _unused = select.select(
+                    read_fds, write_fds, ()
+                )
+            except (select.error, OSError) as e:
+                if e.args and e.args[0] == errno.EINTR:  # spell-checker: ignore EINTR
+                    continue
+
+                raise
+
+            for fd in ready_to_read:
+                chunk = os.read(fd, 8192)
+
+                if not chunk:
+                    read_fds.remove(fd)
+                    file_objects[fd].close()
+                else:
+                    chunk_lists[fd].append(chunk)
+
+            for fd in ready_to_write:
+                chunk = process_input[input_offset : input_offset + 8192]
+                bytes_written = os.write(fd, chunk)
+                input_offset += bytes_written
+
+                if input_offset >= len(process_input):
+                    write_fds.remove(fd)
+                    stdin_file.close()
+
+        try:
+            _pid, status, raw_rusage = os.wait4(proc.pid, 0)
+            exit_code = os.WEXITSTATUS(status)
+
+            rusage = makeProcessResourceUsage(raw_rusage)
+        except OSError as e:
+            if e.errno == errno.ECHILD:
+                exit_code = proc.wait()
+                rusage = None
+            else:
+                raise
+
+        proc.returncode = exit_code
+
+        stdout = b"".join(stdout_chunks)
+        stderr = b"".join(stderr_chunks)
     else:
         # Use the best selector available for the current OS
         with selectors.DefaultSelector() as selector:
@@ -769,12 +866,16 @@ def _communicateWithRusage(proc, process_input):
                 selector.register(proc.stdout, selectors.EVENT_READ)
             if proc.stderr:
                 selector.register(proc.stderr, selectors.EVENT_READ)
-            if proc.stdin and process_input:
-                selector.register(proc.stdin, selectors.EVENT_WRITE)
 
             input_offset = 0
             if process_input is None:
                 process_input = b""
+
+            if proc.stdin:
+                if process_input:
+                    selector.register(proc.stdin, selectors.EVENT_WRITE)
+                else:
+                    proc.stdin.close()
 
             stdout_chunks = []
             stderr_chunks = []
