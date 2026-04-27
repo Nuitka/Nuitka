@@ -34,6 +34,7 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
     makeConstantRefNode,
 )
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
@@ -404,6 +405,14 @@ def buildFunctionNode(provider, node, source_ref):
 
     annotations = buildParameterAnnotations(function_provider, node, source_ref)
 
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_tuple = ExpressionMakeTuple(
+            elements=buildNodeTuple(provider, node.type_params, source_ref),
+            source_ref=source_ref,
+        )
+    else:
+        type_params_tuple = None
+
     function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=function_body, source_ref=source_ref
@@ -411,6 +420,7 @@ def buildFunctionNode(provider, node, source_ref):
         defaults=defaults,
         kw_defaults=kw_defaults,
         annotations=annotations,
+        type_params=type_params_tuple,
         source_ref=source_ref,
     )
 
