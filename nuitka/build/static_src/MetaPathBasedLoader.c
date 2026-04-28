@@ -192,37 +192,65 @@ static PyObject *_makeDunderPathObject(PyThreadState *tstate, PyObject *module_p
     return path_list;
 }
 
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
 static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *module, PyCodeObject *code_object,
-                                          char const *name, bool is_package) {
+                                          struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
     assert(code_object != NULL);
+
+    char const *name = entry->name;
+    bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
 
     {
         NUITKA_MAY_BE_UNUSED bool b_res = Nuitka_SetModuleString(name, module);
         assert(b_res != false);
     }
 
-    char buffer[MAXPATHLEN + 1] = {0};
-
     PyObject *module_path_entry = NULL;
+    PyObject *module_path;
 
-    if (is_package) {
-        appendModuleNameAsPath(buffer, name, sizeof(buffer));
-        PyObject *module_path_entry_base = Nuitka_String_FromString(buffer);
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+    if (entry->file_path != NULL) {
+        module_path = getModuleFileValue(tstate, entry);
 
-        module_path_entry = MAKE_RELATIVE_PATH(module_path_entry_base);
-        Py_DECREF(module_path_entry_base);
+        if (unlikely(module_path == NULL)) {
+            return NULL;
+        }
 
-        appendCharSafe(buffer, SEP, sizeof(buffer));
-        appendStringSafe(buffer, "__init__.py", sizeof(buffer));
-    } else {
-        appendModuleNameAsPath(buffer, name, sizeof(buffer));
-        appendStringSafe(buffer, ".py", sizeof(buffer));
+        if (is_package) {
+            module_path_entry = getModuleDirectory(tstate, entry);
+
+            if (unlikely(module_path_entry == NULL)) {
+                Py_DECREF(module_path);
+
+                return NULL;
+            }
+        }
+    } else
+#endif
+    {
+        char buffer[MAXPATHLEN + 1] = {0};
+
+        if (is_package) {
+            appendModuleNameAsPath(buffer, name, sizeof(buffer));
+            PyObject *module_path_entry_base = Nuitka_String_FromString(buffer);
+
+            module_path_entry = MAKE_RELATIVE_PATH(module_path_entry_base);
+            Py_DECREF(module_path_entry_base);
+
+            appendCharSafe(buffer, SEP, sizeof(buffer));
+            appendStringSafe(buffer, "__init__.py", sizeof(buffer));
+        } else {
+            appendModuleNameAsPath(buffer, name, sizeof(buffer));
+            appendStringSafe(buffer, ".py", sizeof(buffer));
+        }
+
+        PyObject *module_path_name = Nuitka_String_FromString(buffer);
+
+        module_path = MAKE_RELATIVE_PATH(module_path_name);
+        Py_DECREF(module_path_name);
     }
-
-    PyObject *module_path_name = Nuitka_String_FromString(buffer);
-
-    PyObject *module_path = MAKE_RELATIVE_PATH(module_path_name);
-    Py_DECREF(module_path_name);
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
