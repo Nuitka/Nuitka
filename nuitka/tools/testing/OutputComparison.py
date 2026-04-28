@@ -40,6 +40,10 @@ tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 
+gcc_in_function_re = re.compile(r".*: In function '.*':$")
+gcc_var_tracking_size_limit_message = """\
+variable tracking size limit exceeded with -fvar-tracking-assignments, retrying without"""
+
 # Python3.11 style traceback carets are not done by Nuitka (yet?)
 syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
@@ -88,6 +92,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
                 lines = [line]
                 break
 
+    skip_gcc_source_context = False
+
     for index, line in enumerate(lines):
         if type(line) is not str:
             try:
@@ -97,6 +103,12 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         if line.endswith("\r"):
             line = line[:-1]
+
+        if skip_gcc_source_context:
+            skip_gcc_source_context = False
+
+            if line.startswith(" "):
+                continue
 
         if line.startswith("REFCOUNTS"):
             if "[" in line:
@@ -108,6 +120,13 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
 
         if ignore_warnings and logging_warning_re.match(line):
+            continue
+
+        if gcc_var_tracking_size_limit_message in line:
+            if result and gcc_in_function_re.match(result[-1]):
+                result.pop()
+
+            skip_gcc_source_context = True
             continue
 
         # Infos are always ignored.
