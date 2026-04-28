@@ -687,8 +687,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
 
         Returns:
             None (does not apply, default)
-            tuple (code, reason)
-            tuple (code, reason, flags)
+            FakeModuleDescription(module_name, source_code, source_filename, reason)
+            tuple(module_name, source_code, source_filename, reason)
+            iterable of those
         """
         # Virtual method, pylint: disable=unused-argument
         return None

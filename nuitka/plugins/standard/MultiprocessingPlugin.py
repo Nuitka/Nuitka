@@ -12,6 +12,7 @@ The issue applies to accelerated and standalone mode alike.
 spell-checker: ignore joblib,anyio
 """
 
+from nuitka.importing.FakeModules import makeFakeModuleDescription
 from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
@@ -208,11 +209,11 @@ def __nuitka_freeze_support():
 __nuitka_freeze_support()
 """
 
-        yield (
-            module_name,
-            source_code,
-            root_module.getCompileTimeFilename(),
-            "Auto enable multiprocessing freeze support",
+        yield makeFakeModuleDescription(
+            module_name=module_name,
+            source_code=source_code,
+            source_filename=root_module.getCompileTimeFilename(),
+            reason="Auto enable multiprocessing freeze support",
         )
 
     def onModuleEncounter(

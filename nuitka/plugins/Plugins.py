@@ -23,11 +23,13 @@ from optparse import OptionConflictError
 import nuitka.plugins.Hooks
 from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
+from nuitka.importing.FakeModules import FakeModuleDescription, addFakeModule
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import (
@@ -97,6 +99,8 @@ post_modules = {}
 post_modules_reasons = {}
 fake_modules = {}
 has_active_gui_toolkit_plugin = False
+
+FakeModuleInfo = makeNamedtupleClass("FakeModuleInfo", ("module", "plugin", "reason"))
 
 
 @contextmanager
@@ -652,12 +656,12 @@ through implicit import by '%s' plugin encountered."""
             )
 
         if full_name in fake_modules:
-            for fake_module, plugin, reason in fake_modules[full_name]:
+            for fake_module_info in fake_modules[full_name]:
                 addUsedModule(
-                    module=fake_module,
+                    module=fake_module_info.module,
                     using_module=module,
                     usage_tag="plugins",
-                    reason=reason,
+                    reason=fake_module_info.reason,
                     source_ref=module.source_ref,
                 )
 
@@ -986,12 +990,20 @@ through implicit import by '%s' plugin encountered."""
                 description = tuple(description)
 
             if description:
-                if type(description[0]) not in (tuple, list):
-                    description = [description]
+                if isinstance(description, FakeModuleDescription):
+                    description = (description,)
+                elif type(description[0]) in (tuple, list) or isinstance(
+                    description[0], FakeModuleDescription
+                ):
+                    pass
+                else:
+                    description = (description,)
 
                 for desc in description:
-                    assert len(desc) == 4, desc
-                    yield plugin, desc[0], desc[1], desc[2], desc[3]
+                    if not isinstance(desc, FakeModuleDescription):
+                        desc = FakeModuleDescription(*desc)
+
+                    yield plugin, desc
 
         pre_module_load_descriptions = []
         post_module_load_descriptions = []
@@ -1019,6 +1031,9 @@ through implicit import by '%s' plugin encountered."""
             fake_module_descriptions.extend(
                 _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
+
+        for _plugin, fake_module_description in fake_module_descriptions:
+            addFakeModule(fake_module_description.module_name)
 
         def combineLoadCodes(module_load_descriptions):
             future_imports_code = []
@@ -1080,29 +1095,29 @@ through implicit import by '%s' plugin encountered."""
 
             from nuitka.tree.Building import buildModule
 
-            for (
-                plugin,
-                fake_module_name,
-                source_code,
-                fake_filename,
-                reason,
-            ) in fake_module_descriptions:
+            for plugin, fake_module_description in fake_module_descriptions:
                 fake_module = buildModule(
-                    module_filename=fake_filename,
-                    module_name=fake_module_name,
+                    module_filename=fake_module_description.source_filename,
+                    module_name=fake_module_description.module_name,
                     reason="fake",
-                    source_code=source_code,
+                    source_code=fake_module_description.source_code,
                     is_top=False,
                     is_main=False,
                     module_kind="py",
-                    is_fake=fake_module_name,
+                    is_fake=fake_module_description.module_name,
                     hide_syntax_error=False,
                 )
 
                 if fake_module.getCompilationMode() == "bytecode":
-                    fake_module.setSourceCode(source_code)
+                    fake_module.setSourceCode(fake_module_description.source_code)
 
-                fake_modules[full_name].append((fake_module, plugin, reason))
+                fake_modules[full_name].append(
+                    FakeModuleInfo(
+                        module=fake_module,
+                        plugin=plugin,
+                        reason=fake_module_description.reason,
+                    )
+                )
 
                 # Main modules do not get added to the import cache, but plugins get to see it.
                 cls.onModuleDiscovered(fake_module)
@@ -1221,7 +1236,7 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
         # Lazy load the source code if a plugin wants it, the pre_load caches
         # the result for later usage.
         def getModuleSourceCode():
-            if module_kind != "py":
+            if module_kind != "py" or module_filename is None:
                 return None
 
             from nuitka.tree.SourceHandling import readSourceCodeFromFilename

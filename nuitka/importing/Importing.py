@@ -74,7 +74,9 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
 )
 
+from .FakeModules import locateFakeModule
 from .IgnoreListing import isIgnoreListedNotExistingModule
+from .ImportingResults import makeFindModuleResult
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .StandardLibrary import isStandardLibraryPath
 
@@ -384,7 +386,38 @@ def normalizePackageName(module_name):
 
 
 # Avoid creating this over and over
-_find_module_not_found = (None, None, None, None, "not-found")
+_find_module_not_found = makeFindModuleResult(
+    found_module_name=None,
+    module_package=None,
+    module_filename=None,
+    module_kind=None,
+    finding="not-found",
+)
+
+
+def _locateFakeModule(module_name, logger, log_message):
+    fake_result = locateFakeModule(module_name)
+
+    if fake_result is None:
+        return None
+
+    try:
+        _found_module_name, module_filename, _module_kind = _findModule(
+            module_name=module_name,
+            logger=None,
+        )
+    except ImportError:
+        pass
+    else:
+        return recursion_logger.sysexit(
+            "Error, fake module name '%s' collides with real module in '%s'."
+            % (module_name, module_filename)
+        )
+
+    if fake_result is not None and logger is not None:
+        logger.info(log_message)
+
+    return fake_result
 
 
 def findModule(module_name, parent_package, level, logger):
@@ -394,9 +427,7 @@ def findModule(module_name, parent_package, level, logger):
     as with "__import__" built-in. Warnings are optional.
 
     Returns:
-        Returns a triple of package name the module is in, filename of
-        it, which can be a directory for packages, and the location
-        method used.
+        FindModuleResult namedtuple describing the located module.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches,too-many-return-statements
@@ -439,12 +470,28 @@ def findModule(module_name, parent_package, level, logger):
 
         full_name = normalizePackageName(full_name)
 
+        fake_result = _locateFakeModule(
+            module_name=full_name,
+            logger=logger,
+            log_message="findModule: Relative imported fake module '%s' as '%s'."
+            % (module_name, full_name),
+        )
+
+        if fake_result is not None:
+            return fake_result
+
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
             module_filename = preloaded_path[0]
 
-            return full_name, full_name.getPackageName(), module_filename, "py", "pth"
+            return makeFindModuleResult(
+                found_module_name=full_name,
+                module_package=full_name.getPackageName(),
+                module_filename=module_filename,
+                module_kind="py",
+                finding="pth",
+            )
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -461,16 +508,25 @@ def findModule(module_name, parent_package, level, logger):
                     % (module_name, full_name, module_filename)
                 )
 
-            return (
-                found_module_name,
-                full_name.getPackageName(),
-                module_filename,
-                module_kind,
-                "relative",
+            return makeFindModuleResult(
+                found_module_name=found_module_name,
+                module_package=full_name.getPackageName(),
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding="relative",
             )
 
     if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
+
+        fake_result = _locateFakeModule(
+            module_name=module_name,
+            logger=logger,
+            log_message="findModule: Found fake imported module '%s'." % module_name,
+        )
+
+        if fake_result is not None:
+            return fake_result
 
         package_name = module_name.getPackageName()
 
@@ -479,7 +535,13 @@ def findModule(module_name, parent_package, level, logger):
         if preloaded_path is not None:
             module_filename = preloaded_path[0]
 
-            return module_name, package_name, module_filename, "py", "pth"
+            return makeFindModuleResult(
+                found_module_name=module_name,
+                module_package=package_name,
+                module_filename=module_filename,
+                module_kind="py",
+                finding="pth",
+            )
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -496,12 +558,12 @@ def findModule(module_name, parent_package, level, logger):
                     % (found_module_name, module_filename)
                 )
 
-            return (
-                found_module_name,
-                package_name,
-                module_filename,
-                module_kind,
-                "absolute",
+            return makeFindModuleResult(
+                found_module_name=found_module_name,
+                module_package=package_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding="absolute",
             )
 
     return _find_module_not_found

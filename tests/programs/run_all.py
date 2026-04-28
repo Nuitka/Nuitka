@@ -25,6 +25,10 @@ sys.path.insert(
 # isort:start
 
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.reports.CompilationReportReader import (
+    extractModulesUsedByModule,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     checkTestRequirements,
     compareWithCPython,
@@ -35,6 +39,17 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
+
+
+def checkMultiprocessingUsingReport(filename):
+    compilation_report = parseCompilationReport("compilation-report-%s.xml" % filename)
+
+    modules_used = extractModulesUsedByModule(
+        compilation_report=compilation_report,
+        module_name="multiprocessing-postLoad",
+    )
+
+    assert modules_used["__parents_main__"]["finding"] == "fake", modules_used
 
 
 def main():
@@ -140,6 +155,8 @@ def main():
             if sys.platform == "darwin" and python_version >= (3, 8):
                 reportSkip("Hangs for unknown reasons", ".", filename)
                 continue
+
+            extra_flags.append("--report=compilation-report-%s.xml" % filename)
         else:
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
@@ -173,6 +190,9 @@ def main():
                 extra_flags=test_variants,
                 search_mode=search_mode,
             )
+
+            if filename == "multiprocessing_using":
+                checkMultiprocessingUsingReport(filename)
 
     search_mode.finish()
 

@@ -488,6 +488,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         addToPythonPath(os.path.dirname(os.path.abspath(filename)))
 
     if report:
+        report = os.path.abspath(report)
         extra_options.append("--report=%s" % report)
         deleteFile(report, must_exist=False)
 
