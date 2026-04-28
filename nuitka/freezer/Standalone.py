@@ -56,12 +56,17 @@ from nuitka.utils.FileOperations import (
     relpath,
     withMadeWritableFileMode,
 )
-from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
+from nuitka.utils.SharedLibraries import (
+    copyDllFile,
+    getStandaloneEntryPointRPATHs,
+    setSharedLibraryRPATH,
+)
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
     getOS,
     isDebianBasedLinux,
+    isElfUsingPlatform,
     isMacOS,
     isPosixWindows,
     isRPathUsingPlatform,
@@ -220,9 +225,22 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     # After dependency detection, we can change the RPATH for main binary.
     if isRPathUsingPlatform():
+        main_binary_rpath = "$ORIGIN"
+
+        if isElfUsingPlatform():
+            # Allow basename based "dlopen()" calls from the program to find
+            # copied shared libraries below the distribution root.
+            main_binary_rpath = ":".join(
+                getStandaloneEntryPointRPATHs(
+                    dest_path=standalone_entry_points[0].dest_path,
+                    other_entry_points=copy_standalone_entry_points,
+                    rpath_mode="dirs",
+                )
+            )
+
         setSharedLibraryRPATH(
             getNormalizedPathJoin(dist_dir, standalone_entry_points[0].dest_path),
-            "$ORIGIN",
+            main_binary_rpath,
         )
 
     setupProgressBar(

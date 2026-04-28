@@ -782,27 +782,11 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
     if isElfUsingPlatform():
-        # Path must be normalized for this to be correct, but entry points enforced that.
-        count = dest_path.count(os.path.sep)
-
-        # TODO: This ought to depend even more on actual presence of used DLLs
-        # in middle paths and not just do it, but maybe there is not much harm
-        # in it.
-
-        rpaths = OrderedSet()
-        for c in range(count, -1, -1):
-            if c > 0:
-                dest_path_candidate = os.path.normpath(
-                    os.path.join(dest_path, *([".."] * c))
-                )
-
-                if all(
-                    os.path.dirname(other_entry_point.dest_path) != dest_path_candidate
-                    for other_entry_point in other_entry_points
-                ):
-                    continue
-
-            rpaths.add(os.path.join("$ORIGIN", *([".."] * c)))
+        rpaths = getStandaloneEntryPointRPATHs(
+            dest_path=dest_path,
+            other_entry_points=other_entry_points,
+            rpath_mode="parents",
+        )
 
         # Make sure, sub-folders use by the original DLL are actually still
         # included.
@@ -832,6 +816,56 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
 
     if executable:
         addFileExecutablePermission(target_filename)
+
+
+def getStandaloneEntryPointRPATHs(dest_path, other_entry_points, rpath_mode):
+    rpaths = OrderedSet()
+    rpaths.add("$ORIGIN")
+
+    if rpath_mode == "parents":
+        # Path must be normalized for this to be correct, but entry points
+        # enforced that.
+        count = dest_path.count(os.path.sep)
+
+        # TODO: This ought to depend even more on actual presence of used DLLs
+        # in middle paths and not just do it, but maybe there is not much harm
+        # in it.
+        for c in range(count, 0, -1):
+            dest_path_candidate = os.path.normpath(
+                os.path.join(dest_path, *([".."] * c))
+            )
+
+            if all(
+                os.path.dirname(other_entry_point.dest_path) != dest_path_candidate
+                for other_entry_point in other_entry_points
+            ):
+                continue
+
+            rpaths.add(os.path.join("$ORIGIN", *([".."] * c)))
+    elif rpath_mode == "dirs":
+        current_dir = os.path.dirname(dest_path)
+
+        if not current_dir:
+            current_dir = "."
+
+        for other_entry_point in other_entry_points:
+            other_dir = os.path.dirname(other_entry_point.dest_path)
+
+            if not other_dir:
+                continue
+
+            relative_dir = os.path.relpath(other_dir, current_dir)
+
+            if relative_dir == ".":
+                rpath = "$ORIGIN"
+            else:
+                rpath = os.path.normpath(os.path.join("$ORIGIN", relative_dir))
+
+            rpaths.add(rpath)
+    else:
+        assert False, rpath_mode
+
+    return rpaths
 
 
 def getDLLVersion(filename):
@@ -973,7 +1007,7 @@ def getPEFileUsedDllNames(filename):
 
     pe_info.parse_data_directories(
         directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"],),
-        import_dllnames_only=True,
+        import_dllnames_only=True,  # spell-checker: ignore import_dllnames_only
     )
     pe_info.parse_data_directories(
         directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],)
