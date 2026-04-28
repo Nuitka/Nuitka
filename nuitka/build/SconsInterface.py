@@ -72,6 +72,7 @@ from nuitka.PythonVersions import (
     getSystemPrefixPath,
     getTargetPythonIncludePath,
     isPythonWithGil,
+    isRunningInInterpreter,
     python_version,
     python_version_full_str,
     python_version_str,
@@ -165,12 +166,71 @@ def _getSconsInlinePath():
     return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
 
 
+def _getInlineSconsVersionForPythonVersion(python_version_info):
+    if os.name == "nt" and python_version_info < (3, 5):
+        return scons_logger.sysexit(
+            "Error, on Windows scons must be run with Python 3.5 or higher."
+        )
+
+    if (3, 0) <= python_version_info < (3, 5):
+        return scons_logger.sysexit(
+            "Error, scons must not be run with Python3 older than 3.5."
+        )
+
+    if python_version_info < (2, 7):
+        # Non-Windows, Python 2.6, mostly older RHEL
+        return "scons-2.3.2"
+    elif os.name == "nt" and python_version_info >= (3, 7):
+        # Windows can use latest, supported MSVC 2026 this way
+        return "scons-4.10.1"
+    elif os.name == "nt" and python_version_info >= (3, 5):
+        # Windows can use latest, supported MSVC 2022 this way
+        return "scons-4.3.0"
+    else:
+        # Everything else 2.7 or higher works with this.
+        return "scons-3.1.2"
+
+
+def getInlineSconsVersion():
+    """Return Scons inline copy version for current Python runtime."""
+
+    return _getInlineSconsVersionForPythonVersion(sys.version_info)
+
+
+def getInlineSconsLibPath():
+    """Return path to inline copy of selected Scons package."""
+
+    return getNormalizedPathJoin(_getSconsInlinePath(), "lib", getInlineSconsVersion())
+
+
+def _getCompiledSconsBinaryCall():
+    if isRunningInInterpreter():
+        return None
+
+    executable = sys.modules["__main__"].__compiled__.original_argv0
+    executable_dir = os.path.dirname(executable)
+    _binary_name, binary_ext = os.path.splitext(os.path.basename(executable))
+
+    scons_binary = os.path.join(executable_dir, "scons" + binary_ext)
+
+    if os.path.exists(scons_binary):
+        return [scons_binary]
+
+    return None
+
+
 def _getSconsBinaryCall():
     """Return a way to execute Scons.
 
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
     """
+
+    # Handle the case where we are running from a compiled binary,
+    # and Scons is included as multidist binary.
+    compiled_scons_command = _getCompiledSconsBinaryCall()
+    if compiled_scons_command is not None:
+        return compiled_scons_command
 
     inline_path = getNormalizedPathJoin(_getSconsInlinePath(), "bin", "scons.py")
 
@@ -245,9 +305,9 @@ def _setupSconsEnvironment2():
             old_pythonhome = os.environ["PYTHONHOME"]
             del os.environ["PYTHONHOME"]
 
-    import nuitka
-
-    os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
+    os.environ["NUITKA_PACKAGE_DIR"] = os.path.normpath(
+        os.path.join(getSconsDataPath(), "..")
+    )
 
     # When downloading in Scons, use the external path.
     if isWin32Windows():

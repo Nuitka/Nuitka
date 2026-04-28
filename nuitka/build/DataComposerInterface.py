@@ -9,6 +9,7 @@ import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
+from nuitka.PythonVersions import isRunningInInterpreter
 from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
@@ -62,16 +63,14 @@ def _runDataComposer(source_dir):
 
     with withEnvironmentVarsOverridden(mapping):
         try:
-            is_compiled = hasattr(sys.modules.get("__main__"), "__compiled__")
-
-            if is_compiled:
+            if not isRunningInInterpreter():
+                executable = sys.modules["__main__"].__compiled__.original_argv0
                 command = (
                     "DataComposer",
                     source_dir,
                     blob_filename,
                     stats_filename,
                 )
-                executable = sys.executable
             else:
                 command = (
                     sys.executable,

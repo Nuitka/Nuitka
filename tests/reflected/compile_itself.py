@@ -25,6 +25,8 @@ sys.path.insert(
 import shutil
 import subprocess
 
+from nuitka.build.SconsInterface import getInlineSconsLibPath
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
     parseCompilationReport,
@@ -87,10 +89,213 @@ if not getCommercialVersion():
     PACKAGE_LIST.remove("nuitka/plugins/commercial")
 
 exe_suffix = ".exe" if os.name == "nt" else ".bin"
+nuitka_runner_binary = "nuitka-runner" + exe_suffix
+data_composer_main = "DataComposer.py"
+scons_main = "scons.py"
+pass_numbers = (1, 2, 3, 4, 5)
 
 
 def _traceCompilation(path, pass_number):
     test_logger.info("Compiling '%s' (PASS %d)." % (path, pass_number))
+
+
+def _updateDataComposerMain(filename, use_checkout_path):
+    with open(filename, "w") as output_file:
+        if use_checkout_path:
+            output_file.write("""\
+#!/usr/bin/env python
+
+import os
+import sys
+
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+
+from nuitka.tools.data_composer.DataComposer import main
+
+del sys.path[0]
+
+sys.path = [
+    path_element
+    for path_element in sys.path
+    if os.path.dirname(os.path.abspath(__file__)) != path_element
+]
+
+main()
+""")
+        else:
+            output_file.write("""\
+#!/usr/bin/env python
+
+from nuitka.tools.data_composer.DataComposer import main
+
+main()
+""")
+
+
+def _updateNuitkaRunnerMain():
+    with open("nuitka-runner.py", "w") as output_file:
+        output_file.write("""\
+#!/usr/bin/env python
+
+\"\"\"Launcher for reflected Nuitka compiler runs.\"\"\"
+
+import os
+import sys
+
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+
+import nuitka.__main__  # false alarm, pylint: disable=I0021,no-name-in-module
+
+del sys.path[0]
+
+sys.path = [
+    path_element
+    for path_element in sys.path
+    if os.path.dirname(os.path.abspath(__file__)) != path_element
+]
+
+nuitka.__main__.main()
+""")
+
+
+def _updateSconsMain(filename):
+    with open(filename, "w") as output_file:
+        output_file.write("""\
+#!/usr/bin/env python
+
+import os
+
+import SCons
+import SCons.Script
+
+os.environ["SCONS_LIB_DIR"] = os.path.dirname(SCons.__file__)
+
+SCons.Script.main()
+""")
+
+
+def _createMultidistBinaryAlias(binary_path, alias_name):
+    alias_path = os.path.join(os.path.dirname(binary_path), alias_name + exe_suffix)
+
+    deleteFile(alias_path, must_exist=False)
+
+    try:
+        os.link(binary_path, alias_path)
+    except OSError:
+        shutil.copy2(binary_path, alias_path)
+
+    return alias_path
+
+
+def _parsePassNumber(pass_number, option_name):
+    try:
+        pass_number = int(pass_number)
+    except ValueError:
+        return test_logger.sysexit(
+            "The '%s' option got invalid pass number '%s'." % (option_name, pass_number)
+        )
+
+    if pass_number not in pass_numbers:
+        return test_logger.sysexit(
+            "The '%s' option got pass number '%s' outside supported range %d-%d."
+            % (option_name, pass_number, pass_numbers[0], pass_numbers[-1])
+        )
+
+    return pass_number
+
+
+def _parsePassSpec(pass_spec, option_name):
+    result = set()
+
+    for pass_item in pass_spec.split(","):
+        pass_item = pass_item.strip()
+
+        if not pass_item:
+            continue
+
+        if "-" in pass_item:
+            start_pass, stop_pass = pass_item.split("-", 1)
+
+            start_pass = _parsePassNumber(start_pass, option_name)
+            stop_pass = _parsePassNumber(stop_pass, option_name)
+
+            if start_pass > stop_pass:
+                return test_logger.sysexit(
+                    "The '%s' option got descending pass range '%s'."
+                    % (option_name, pass_item)
+                )
+
+            for pass_number in range(start_pass, stop_pass + 1):
+                result.add(pass_number)
+        else:
+            result.add(_parsePassNumber(pass_item, option_name))
+
+    if not result:
+        return test_logger.sysexit(
+            "The '%s' option needs at least one pass number." % option_name
+        )
+
+    return result
+
+
+def _recordPassSelection(option, opt_str, value, parser, operation):
+    pass_selection_operations = parser.values.pass_selection_operations
+
+    if pass_selection_operations is None:
+        pass_selection_operations = []
+        parser.values.pass_selection_operations = pass_selection_operations
+
+    pass_selection_operations.append((operation, _parsePassSpec(value, opt_str)))
+
+
+def _parseArgs():
+    parser = makeOptionsParser(usage=None, epilog=None)
+    parser.error = test_logger.sysexit
+
+    parser.set_defaults(pass_selection_operations=None)
+
+    parser.add_option(
+        "--run-passes",
+        action="callback",
+        type="string",
+        callback=_recordPassSelection,
+        callback_args=("run",),
+        help="""\
+Run only the selected passes, e.g. '1,3-5'. Can be given multiple times.""",
+    )
+
+    parser.add_option(
+        "--skip-passes",
+        action="callback",
+        type="string",
+        callback=_recordPassSelection,
+        callback_args=("skip",),
+        help="""\
+Skip selected passes from the current pass set, e.g. '2,4'. Can be given multiple times.""",
+    )
+
+    options, positional_args = parser.parse_args()
+
+    enabled_passes = set(pass_numbers)
+
+    if options.pass_selection_operations:
+        for operation, selected_passes in options.pass_selection_operations:
+            if operation == "run":
+                enabled_passes = selected_passes
+            else:
+                enabled_passes.difference_update(selected_passes)
+
+    return enabled_passes, positional_args
 
 
 def executePASS1():
@@ -151,7 +356,8 @@ def executePASS1():
 
     _traceCompilation(path=nuitka_main_path, pass_number=1)
 
-    shutil.copyfile(nuitka_main_path, "nuitka-runner.py")
+    _updateNuitkaRunnerMain()
+    _updateDataComposerMain(data_composer_main, use_checkout_path=True)
 
     command = [
         os.environ["PYTHON"],
@@ -160,17 +366,22 @@ def executePASS1():
         "--output-dir=.",
         "--python-flag=no_site",
         "--main=nuitka-runner.py",
-        "--main=nuitka/tools/data_composer/DataComposer.py",
+        "--main=%s" % data_composer_main,
     ]
     command += os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
     my_print("Command: ", " ".join(command))
-    result = subprocess.call(command)
+
+    try:
+        result = subprocess.call(command)
+    finally:
+        deleteFile(path=data_composer_main, must_exist=False)
 
     if result != 0:
         sys.exit(result)
 
-    shutil.move("nuitka-runner" + exe_suffix, "nuitka" + exe_suffix)
+    # Keep the binary name aligned with the multidist entry point name.
+    deleteFile(path="nuitka" + exe_suffix, must_exist=False)
 
     scons_inline_copy_path = os.path.join(base_dir, "nuitka", "build", "inline_copy")
 
@@ -180,6 +391,9 @@ def executePASS1():
     # Copy required data files.
     for filename in (
         "nuitka/build/Backend.scons",
+        "nuitka/build/CCompilerVersion.scons",
+        "nuitka/build/Offsets.scons",
+        "nuitka/build/Onefile.scons",
         "nuitka/plugins/standard/standard.nuitka-package.config.yml",
         "nuitka/plugins/standard/stdlib3.nuitka-package.config.yml",
         "nuitka/plugins/standard/stdlib2.nuitka-package.config.yml",
@@ -323,20 +537,14 @@ def executePASS2():
             addPYTHONPATH(PACKAGE_LIST)
 
         compileAndCompareWith(
-            nuitka=os.path.join(".", "nuitka" + exe_suffix), pass_number=2
+            nuitka=os.path.join(".", nuitka_runner_binary), pass_number=2
         )
 
-    # Cleanup, removing files that will otherwise confuse PASS3.
+    # Cleanup compiled modules that would otherwise confuse PASS3, but keep the
+    # PASS1 ".build" directories as comparison baseline for PASS4 and repeated
+    # late-pass reruns.
     for filename in getFileList("nuitka", only_suffixes=(".so", ".pyd")):
         deleteFile(filename, must_exist=True)
-    for filename in getSubDirectories("nuitka"):
-        if filename.endswith(".build"):
-            removeDirectory(
-                filename,
-                logger=test_logger,
-                ignore_errors=False,
-                extra_recommendation=None,
-            )
 
     test_logger.info("OK.")
 
@@ -356,31 +564,57 @@ def executePASS3():
     if os.path.exists(build_path):
         shutil.rmtree(build_path)
 
+    base_dir = os.path.abspath(os.path.join("..", ".."))
+    helper_dir = os.path.join(tmp_dir, "pass3-main")
+
+    if not os.path.exists(helper_dir):
+        os.makedirs(helper_dir)
+
+    runner_main_path = os.path.join(helper_dir, "nuitka-runner.py")
+    data_composer_main_path = os.path.join(helper_dir, data_composer_main)
+    scons_main_path = os.path.join(helper_dir, scons_main)
+
     path = os.path.join("..", "..", "bin", "nuitka")
 
     _traceCompilation(path=path, pass_number=3)
 
-    with withPythonPathChange(os.path.join("..", "..")):
+    with withPythonPathChange((base_dir, getInlineSconsLibPath())):
+        with open(runner_main_path, "w") as output_file:
+            output_file.write("""\
+#!/usr/bin/env python
+
+\"\"\"Launcher for source-based Nuitka compiler runs.\"\"\"
+
+import nuitka.__main__  # false alarm, pylint: disable=I0021,no-name-in-module
+
+nuitka.__main__.main()
+""")
+
+        _updateDataComposerMain(data_composer_main_path, use_checkout_path=False)
+        _updateSconsMain(scons_main_path)
+
         command = [
             os.environ["PYTHON"],
-            nuitka_main_path,
+            os.path.join(base_dir, "bin", "nuitka"),
             "--output-dir=%s" % tmp_dir,
             "--python-flag=-S",
             "--follow-imports",
             "--include-package=nuitka.plugins.standard",
             "--nofollow-import-to=*-postLoad",
-            "--nofollow-import-to=SCons",
             "--nofollow-import-to=pip",
-            "--report=compilation-report-pass3.xml",
-            "--main=nuitka-runner.py",
-            "--main=nuitka/tools/data_composer/DataComposer.py",
+            "--report=%s" % os.path.abspath("compilation-report-pass3.xml"),
+            "--main=%s" % runner_main_path,
+            "--main=%s" % data_composer_main_path,
+            "--main=%s" % scons_main_path,
         ]
 
         my_print("Command: ", " ".join(command))
-        result = subprocess.call(command)
+        result = subprocess.call(command, cwd=base_dir)
 
     if result != 0:
         sys.exit(result)
+
+    _createMultidistBinaryAlias(exe_path, "scons")
 
     shutil.rmtree(build_path)
 
@@ -397,7 +631,12 @@ def executePASS4():
         prefixes=(("${cwd}", os.getcwd()),),
     )
 
-    with withPythonPathChange(os.path.join("..", "..")):
+    # The source compiler uses the host Python import path for optional
+    # non-stdlib modules like "pkg_resources", so mirror that here to keep
+    # import lowering decisions stable for comparisons.
+    with withPythonPathChange(
+        getPythonSysPath().split(os.pathsep) + [os.path.join("..", "..")]
+    ):
         compileAndCompareWith(exe_path, pass_number=4)
 
     test_logger.info("OK.")
@@ -438,13 +677,29 @@ def executePASS5():
 
 
 def main():
+    enabled_passes, _unused_positional_args = _parseArgs()
+
     setup(needs_io_encoding=True)
 
-    executePASS1()
-    executePASS2()
-    executePASS3()
-    executePASS4()
-    executePASS5()
+    if enabled_passes != set(pass_numbers):
+        selected_passes = (
+            ",".join(str(pass_number) for pass_number in sorted(enabled_passes))
+            or "none"
+        )
+        test_logger.info("Selected passes: %s." % selected_passes)
+
+    for pass_number, pass_function in (
+        (1, executePASS1),
+        (2, executePASS2),
+        (3, executePASS3),
+        (4, executePASS4),
+        (5, executePASS5),
+    ):
+        if pass_number not in enabled_passes:
+            test_logger.info("PASS %d: Skipped by option." % pass_number)
+            continue
+
+        pass_function()
 
 
 if __name__ == "__main__":
