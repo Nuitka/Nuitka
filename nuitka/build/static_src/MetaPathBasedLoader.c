@@ -1294,6 +1294,71 @@ static void loadTriggeredModule(PyThreadState *tstate, char const *name, char co
     }
 }
 
+static void loadPostLoadCode(PyThreadState *tstate, PyObject *module_name, char const *name, PyObject *module) {
+    PyObject *parent_module = NULL;
+    PyObject *base_name_obj = NULL;
+    PyObject *parent_name_obj = NULL;
+
+    // Python's import machinery normally handles sys.modules placement and parent package binding
+    // strictly after the loader finishes executing. However, post-load hooks execute before the
+    // loader returns. We must temporarily emulate these bindings so that post-load code using
+    // standard `import x` or `sys.modules["x"]` operates on the fully constructed target module.
+    if (Nuitka_GetModule(tstate, module_name) == NULL) {
+        if (isVerbose()) {
+            PySys_WriteStderr("Adding module '%s' to sys.modules temporarily for -postLoad.\n", name);
+        }
+
+        Nuitka_SetModule(module_name, module);
+    }
+
+    char const *dot = strrchr(name, '.');
+    if (dot != NULL) {
+        parent_name_obj = Nuitka_String_FromStringAndSize(name, dot - name);
+        parent_module = Nuitka_GetModule(tstate, parent_name_obj);
+
+        if (parent_module != NULL) {
+            base_name_obj = Nuitka_String_FromString(dot + 1);
+
+            if (isVerbose()) {
+                PySys_WriteStderr("Binding submodule '%s' to parent module temporarily for -postLoad.\n", name);
+            }
+
+            SET_ATTRIBUTE(tstate, parent_module, base_name_obj, module);
+        }
+    }
+
+    loadTriggeredModule(tstate, name, "-postLoad");
+
+    Py_XDECREF(parent_name_obj);
+    Py_XDECREF(base_name_obj);
+}
+
+#if PYTHON_VERSION >= 0x350
+static bool executeExtensionModuleDef(PyThreadState *tstate, PyObject *module) {
+    if (unlikely(!PyModule_Check(module))) {
+        return true;
+    }
+
+    PyModuleDef *def = PyModule_GetDef(module);
+    if (def == NULL) {
+        return true;
+    }
+
+    void *state = PyModule_GetState(module);
+    if (state != NULL) {
+        return true;
+    }
+
+    int res = PyModule_ExecDef(module, def);
+
+    if (unlikely(res == -1)) {
+        return false;
+    }
+
+    return true;
+}
+#endif
+
 #if PYTHON_VERSION >= 0x300
 static void _fixupSpecAttribute(PyThreadState *tstate, PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___spec__);
@@ -1353,8 +1418,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
             abort();
         }
 
-        return loadModuleFromCodeObject(tstate, module, code_object, entry->name,
-                                        (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
+        return loadModuleFromCodeObject(tstate, module, code_object, entry);
     } else {
         assert((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0);
         assert(entry->python_init_func);
@@ -1456,44 +1520,26 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
     }
 
     if (result != NULL) {
-        PyObject *parent_module = NULL;
-        PyObject *base_name_obj = NULL;
-        PyObject *parent_name_obj = NULL;
+#if PYTHON_VERSION >= 0x350
+        bool delay_post_load = entry != NULL && (entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0 && module == NULL;
 
-        // Python's import machinery normally handles sys.modules placement and parent package binding
-        // strictly after the loader finishes executing. However, post-load hooks execute before the
-        // loader returns. We must temporarily emulate these bindings so that post-load code using
-        // standard `import x` or `sys.modules["x"]` operates on the fully constructed target module.
-        if (Nuitka_GetModule(tstate, module_name) == NULL) {
-            if (isVerbose()) {
-                PySys_WriteStderr("Adding module '%s' to sys.modules temporarily for -postLoad.\n", name);
-            }
-            Nuitka_SetModule(module_name, result);
-        }
-
-        char const *dot = strrchr(name, '.');
-        if (dot != NULL) {
-            parent_name_obj = Nuitka_String_FromStringAndSize(name, dot - name);
-            parent_module = Nuitka_GetModule(tstate, parent_name_obj);
-
-            if (parent_module != NULL) {
-                base_name_obj = Nuitka_String_FromString(dot + 1);
-
-                if (isVerbose()) {
-                    PySys_WriteStderr("Binding submodule '%s' to parent module temporarily for -postLoad.\n", name);
-                }
-                SET_ATTRIBUTE(tstate, parent_module, base_name_obj, result);
+        if (delay_post_load == false && entry != NULL && (entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0 &&
+            module != NULL) {
+            if (unlikely(executeExtensionModuleDef(tstate, result) == false)) {
+                return NULL;
             }
         }
+#else
+        bool delay_post_load = false;
+#endif
 
-        // Execute the "postLoad" code produced for the module potentially. This
-        // is from plugins typically, that want to modify the module immediately
-        // after loading, to e.g. set a plug-in path, or do some monkey patching
-        // in order to make things compatible.
-        loadTriggeredModule(tstate, name, "-postLoad");
-
-        Py_XDECREF(parent_name_obj);
-        Py_XDECREF(base_name_obj);
+        if (delay_post_load == false) {
+            // Execute the "postLoad" code produced for the module potentially. This
+            // is from plugins typically, that want to modify the module immediately
+            // after loading, to e.g. set a plug-in path, or do some monkey patching
+            // in order to make things compatible.
+            loadPostLoadCode(tstate, module_name, name, result);
+        }
 
         return result;
     }
@@ -2076,27 +2122,16 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
     if ((entry != NULL) && ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0)) {
         Py_INCREF(module);
 
-        if (unlikely(!PyModule_Check(module))) {
-            return module;
-        }
-
-        PyModuleDef *def = PyModule_GetDef(module);
-        if (def == NULL) {
-            return module;
-        }
-
-        void *state = PyModule_GetState(module);
-        if (state != NULL) {
-            return module;
-        }
-
-        res = PyModule_ExecDef(module, def);
-
-        if (unlikely(res == -1)) {
+        if (unlikely(executeExtensionModuleDef(tstate, module) == false)) {
+            Py_DECREF(module_name);
             Py_DECREF(module);
 
             return NULL;
         }
+
+        loadPostLoadCode(tstate, module_name, name, module);
+
+        Py_DECREF(module_name);
 
         CHECK_OBJECT(module);
 
