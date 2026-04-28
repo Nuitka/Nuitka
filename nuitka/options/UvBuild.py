@@ -90,10 +90,11 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         module_root = uv_build_config.pop("module-root", None)
         if module_root is not None:
-            if module_root != "":
-                addMainScriptDirectory(os.path.abspath(module_root))
+            addMainScriptDirectory(os.path.abspath(module_root))
         elif os.path.exists("src"):
             addMainScriptDirectory(os.path.abspath("src"))
+        else:
+            addMainScriptDirectory(os.getcwd())
 
         if uv_build_config:
             for unhandled_key in uv_build_config:
