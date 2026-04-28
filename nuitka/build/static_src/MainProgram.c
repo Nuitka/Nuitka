@@ -306,6 +306,83 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+static char const *getNoSiteBuiltinNameFromException(PyThreadState *tstate, PyObject *exception_value,
+                                                     bool *global_name_error) {
+    PyObject *exception_text = PyObject_Str(exception_value);
+
+    if (unlikely(exception_text == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return NULL;
+    }
+
+    char const *message = Nuitka_String_AsString_Unchecked(exception_text);
+    char const *missing_name = NULL;
+
+    *global_name_error = false;
+
+    if (strcmp(message, "name 'exit' is not defined") == 0) {
+        missing_name = "exit";
+    } else if (strcmp(message, "name 'help' is not defined") == 0) {
+        missing_name = "help";
+    } else if (strcmp(message, "name 'quit' is not defined") == 0) {
+        missing_name = "quit";
+
+#if PYTHON_VERSION < 0x300
+    } else if (strcmp(message, "global name 'exit' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "exit";
+    } else if (strcmp(message, "global name 'help' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "help";
+    } else if (strcmp(message, "global name 'quit' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "quit";
+#endif
+    }
+
+    Py_DECREF(exception_text);
+
+    return missing_name;
+}
+
+static PyObject *makeNoSiteBuiltinNameErrorMessage(char const *missing_name, bool global_name_error) {
+#if PYTHON_VERSION < 0x300
+    char const *message_format =
+        global_name_error
+            ? "global name '%s' is not defined. This standalone program was created with "
+              "'--python-flag=no_site', which omits 'site' module built-ins like 'exit' and 'help'. "
+              "Disable with '--no-deployment-flag=site-builtins'."
+            : "name '%s' is not defined. This standalone program was created with '--python-flag=no_site', "
+              "which omits 'site' module built-ins like 'exit' and 'help'. Disable with "
+              "'--no-deployment-flag=site-builtins'.";
+#else
+    assert(global_name_error == false);
+
+    char const *message_format =
+        "name '%s' is not defined. This standalone program was created with '--python-flag=no_site', "
+        "which omits 'site' module built-ins like 'exit' and 'help'. Disable with "
+        "'--no-deployment-flag=site-builtins'.";
+#endif
+
+    return Nuitka_String_FromFormat(message_format, missing_name);
+}
+
+static void raiseReplacementNameError(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                      PyObject *exception_arg) {
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
+#endif
+
+    struct Nuitka_ExceptionPreservationItem new_exception_state;
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &new_exception_state, PyExc_NameError, exception_arg,
+                                               GET_EXCEPTION_STATE_TRACEBACK(exception_state));
+    Py_INCREF_IMMORTAL(PyExc_NameError);
+
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
+}
+#endif
+
 static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();
@@ -346,19 +423,40 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+            || strcmp(exception_name, "NameError") == 0
+#endif
+        ) {
             struct Nuitka_ExceptionPreservationItem saved_exception;
             FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
 
-            PyObject *exception_arg = PyUnicode_FromFormat("\
+            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+                PyObject *exception_arg = PyUnicode_FromFormat("\
 Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
 and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
 included by default",
-                                                           exception_value);
+                                                               saved_exception.exception_value);
 
-            CHECK_OBJECT(exception_arg);
+                CHECK_OBJECT(exception_arg);
 
-            raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+                raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+            } else {
+                bool global_name_error = false;
+                char const *missing_name =
+                    getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
+
+                if (missing_name != NULL) {
+                    PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
+                    CHECK_OBJECT(exception_arg);
+
+                    raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                } else {
+                    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+                }
+#endif
+            }
         }
 #endif
         // NUITKA_FINALIZE_PROGRAM(tstate);

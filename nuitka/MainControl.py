@@ -820,7 +820,11 @@ def runSconsBackend():
     if sys.flags.bytes_warning:
         scons_options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.getenv("NUITKA_NOSITE_FLAG", hasPythonFlagNoSite())):
+    # TODO: Actually all of sys flags is not for module mode and we should
+    # achieve it to be an error to even attempt to use it.
+    if not shallMakeModule() and int(
+        os.getenv("NUITKA_NOSITE_FLAG", hasPythonFlagNoSite())
+    ):
         scons_options["python_sysflag_no_site"] = asBoolStr(True)
 
     if hasPythonFlagTraceImports():
