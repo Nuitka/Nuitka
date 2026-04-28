@@ -10,6 +10,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import (
     getInstalledPythonRegistryPaths,
+    isRunningInInterpreter,
     python_version_str,
 )
 
@@ -44,7 +45,7 @@ class InstalledPython(object):
         return int(major) * 256 + int(minor) * 16
 
     def isAnacondaPython(self):
-        if self.python_exe == sys.executable:
+        if self.python_exe == sys.executable and isRunningInInterpreter():
             return isAnacondaPython()
 
         # TODO: May not yet work really.
@@ -53,7 +54,7 @@ class InstalledPython(object):
         )
 
     def isMSYS2MingwPython(self):
-        if self.python_exe == sys.executable:
+        if self.python_exe == sys.executable and isRunningInInterpreter():
             return isMSYS2MingwPython()
 
         # TODO: May not yet work really.
@@ -98,7 +99,7 @@ class InstalledPython(object):
 
         test_code += ";print('OK')"
 
-        if self.python_exe != sys.executable:
+        if self.python_exe != sys.executable or not isRunningInInterpreter():
             try:
                 output = check_output([self.python_exe, "-c", test_code])
             except NuitkaCalledProcessError:
@@ -193,7 +194,7 @@ def findPythons(python_version, module_specs=None):
     if python_version not in _installed_pythons:
         result = OrderedSet()
 
-        if python_version == python_version_str:
+        if python_version == python_version_str and isRunningInInterpreter():
             result.add(
                 InstalledPython(
                     python_exe=sys.executable, python_version=python_version

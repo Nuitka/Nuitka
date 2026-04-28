@@ -117,6 +117,10 @@ python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 python_release_level = sys.version_info[3]
 
 
+def isRunningInInterpreter():
+    return not hasattr(sys.modules.get("__main__"), "__compiled__")
+
+
 # TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
