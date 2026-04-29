@@ -18,6 +18,9 @@ include bin/measure-construct-performance
 # Runners, mainly for source distribution.
 include bin/nuitka
 include bin/nuitka-run
+include bin/compile-python-for-nuitka-linux.sh
+include bin/compile-python-for-nuitka-mac.sh
+include bin/compile-python-for-nuitka-windows.cmd
 
 include misc/*.cmd
 include misc/nuitka-completion.bash
