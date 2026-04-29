@@ -754,6 +754,15 @@ it before using it: '%s' (from --output-filename='%s')."""
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
+    if isMonolithPy():
+        unsupported_monolithpy_mode = getCompilationMode()
+
+        if unsupported_monolithpy_mode in ("accelerated", "dll", "module", "package"):
+            return options_logger.sysexit(
+                "Error, unsupported mode '%s' for Python flavor '%s', use standalone or onefile instead."
+                % (unsupported_monolithpy_mode, getPythonFlavorName())
+            )
+
     if isAcceleratedMode() and not hasAcceleratedSupportedFlavor():
         return options_logger.sysexit(
             "Error, unsupported OS or Python flavor '%s' for accelerated mode."
@@ -3191,18 +3200,18 @@ def getCompilationMode():
 
     if isAcceleratedMode():
         return "accelerated"
-    elif shallMakeModule():
-        return "module"
     elif shallMakePackage():
         return "package"
+    elif shallMakeModule():
+        return "module"
     elif shallCreateAppBundle():
         return "app"
     elif isOnefileMode():
         return "onefile"
-    elif isStandaloneMode():
-        return "standalone"
     elif shallMakeDll():
         return "dll"
+    elif isStandaloneMode():
+        return "standalone"
 
 
 def getPyProjectRequiredPackages():
