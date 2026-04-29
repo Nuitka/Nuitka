@@ -100,6 +100,18 @@ def setupImportingFromOptions():
     if states.is_debug and not isMonolithPy():
         _checkRaisingBuiltinComplete()
 
+    if isMonolithPy():
+        from nuitka.HardImportRegistry import (
+            addModuleDynamicBuiltinHard,
+            isHardModule,
+        )
+
+        for builtin_module_name in sorted(builtin_module_names):
+            builtin_module_name = ModuleName(builtin_module_name)
+
+            if not isHardModule(builtin_module_name):
+                addModuleDynamicBuiltinHard(builtin_module_name)
+
     if getOutputFolderName() is not None:
         source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
@@ -885,9 +897,13 @@ def _findModuleInPath(module_name, logger):
 
     # Free pass for built-in modules, they need not exist.
     if package_name is None and isBuiltinModuleName(module_name):
-        return module_name, "built-in", "built-in"
-    if package_name is not None and isBuiltinModuleName(package_name + "." + module_name):
-        return package_name + "." + module_name, "built-in", "built-in"
+        return module_name, None, "built-in"
+
+    if package_name is not None:
+        candidate = package_name.getChildNamed(module_name)
+
+        if isBuiltinModuleName(candidate):
+            return candidate, None, "built-in"
 
     # These are existing in the standard library but are effectively inline
     # already and should be avoided to look at.
@@ -1012,15 +1028,7 @@ def locateModule(module_name, parent_package, level, logger=None):
     ), ("Must not attempt to locate %r" % module_name)
 
     if module_kind == "built-in":
-        from nuitka.HardImportRegistry import (
-            addModuleDynamicHard,
-            isHardModule,
-        )
-        if not isHardModule(found_module_name):
-            # If we encounter an unexpected builtin module,
-            # mark it as a dynamic hard import.
-            addModuleDynamicHard(found_module_name)
-
+        module_name = found_module_name
     elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
         module_name = found_module_name
@@ -1074,7 +1082,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     else:
         main_added = False
 
-    if is_fake or filename == "built-in":
+    if is_fake:
         source_filename = filename
 
         source_ref = makeSourceReferenceFromFilename(filename=filename)

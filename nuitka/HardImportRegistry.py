@@ -397,6 +397,16 @@ def addModuleDynamicHard(module_name):
         hard_modules_trust[module_name] = {}
 
 
+def addModuleDynamicBuiltinHard(module_name):
+    hard_modules.add(module_name)
+    hard_modules_stdlib.add(module_name)
+    hard_modules_dynamic.add(module_name)
+    hard_modules_trust_with_side_effects.add(module_name)
+
+    if module_name not in hard_modules_trust:
+        hard_modules_trust[module_name] = {}
+
+
 def isHardModuleDynamic(module_name):
     return module_name in hard_modules_dynamic
 
