@@ -48,12 +48,17 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.Execution import executeToolChecked
 from nuitka.utils.FileOperations import (
     areInSamePaths,
+    areSamePaths,
+    deleteFile,
     getFileList,
     getNormalizedPathJoin,
     getSubDirectories,
     isFilenameBelowPath,
+    isLink,
+    listDir,
     makePath,
     relpath,
+    removeDirectory,
     withMadeWritableFileMode,
 )
 from nuitka.utils.SharedLibraries import (
@@ -287,9 +292,10 @@ def signDistributionMacOS(
     # Make all top level directories symlinks for signing issues with MacOS
     # bundles. Also strip all extended attributes. This is complex, because we
     # also need to handle the need to symlink and track information.
-    # pylint: disable=too-many-locals
 
     filenames_to_make_writable = getFileList(dist_dir) + getSubDirectories(dist_dir)
+    translations = ()
+    framework_paths = ()
 
     with withMadeWritableFileMode(filenames_to_make_writable):
         # spell-checker: ignore xattr
@@ -299,77 +305,260 @@ def signDistributionMacOS(
             absence_message="needs 'xattr' to remove extended attributes",
         )
 
+        if shallCreateAppBundle():
+            translations, framework_paths = _relocateMacOSAppBundleDirectories(
+                dist_dir=dist_dir, data_file_paths=data_file_paths
+            )
+
+    addMacOSCodeSignature(
+        filenames=_getMacOSCodeSigningPaths(
+            dist_dir=dist_dir,
+            data_file_paths=data_file_paths,
+            translations=translations,
+            framework_paths=framework_paths,
+            main_standalone_entry_point=main_standalone_entry_point,
+            copy_standalone_entry_points=copy_standalone_entry_points,
+        ),
+        entitlements_filename=createEntitlementsInfoFile(),
+    )
+
+
+def _translateMacOSCodeSigningPath(path, translations):
+    for old_path, new_path in translations:
+        if path == old_path:
+            return new_path
+
+        path = path.replace(old_path + "/", new_path + "/", 1)
+
+    return path
+
+
+def _getMacOSNotSignableDirectoryPart(filename):
+    result = []
+
+    for part in os.path.dirname(filename).split("/"):
+        result.append(part)
+        if "." in part:
+            return "/".join(result)
+
+    return None
+
+
+def _relocateMacOSAppBundleDirectories(dist_dir, data_file_paths):
+    app_path = getNormalizedPathJoin(dist_dir, "..", "..")
+    frameworks_dir = getNormalizedPathJoin(dist_dir, "..", "Frameworks")
+    resources_dir = getNormalizedPathJoin(dist_dir, "..", "Resources")
+
     translations = OrderedSet()
     symlinks = OrderedSet()
 
-    def _translatePath(path):
-        for translation in translations:
-            path = path.replace(translation[0] + "/", translation[1] + "/", 1)
+    for data_file_path in sorted(data_file_paths, key=len):
+        data_file_path = _translateMacOSCodeSigningPath(data_file_path, translations)
 
-        return path
+        inside_path = relpath(data_file_path, start=app_path)
 
-    if shallCreateAppBundle():
-        app_path = getNormalizedPathJoin(dist_dir, "..", "..")
-        frameworks_dir = getNormalizedPathJoin(dist_dir, "..", "Frameworks")
-        resources_dir = getNormalizedPathJoin(dist_dir, "..", "Resources")
+        if not inside_path.startswith("Contents/MacOS"):
+            continue
 
-        def getNotSignableDirectoryPart(filename):
-            result = []
+        not_signable_part = _getMacOSNotSignableDirectoryPart(inside_path)
+        if not_signable_part is None:
+            continue
 
-            for part in os.path.dirname(filename).split("/"):
-                result.append(part)
-                if "." in part:
-                    return "/".join(result)
+        filename = not_signable_part[len("Contents/MacOS/") :]
+        not_signable_path = getNormalizedPathJoin(app_path, not_signable_part)
+        if filename.endswith(".framework"):
+            relocated_path = getNormalizedPathJoin(frameworks_dir, filename)
+            symlink_target = getNormalizedPathJoin("..", "Frameworks", filename)
+        else:
+            relocated_path = getNormalizedPathJoin(resources_dir, filename)
+            symlink_target = getNormalizedPathJoin("..", "Resources", filename)
 
-            return None
+        if relocated_path in symlinks:
+            continue
 
-        for data_file_path in sorted(data_file_paths, key=len):
-            data_file_path = _translatePath(data_file_path)
+        makePath(os.path.dirname(relocated_path))
+        os.rename(not_signable_path, relocated_path)
 
-            inside_path = relpath(data_file_path, start=app_path)
+        for _i in range(filename.count("/")):
+            symlink_target = getNormalizedPathJoin("..", symlink_target)
 
-            if not inside_path.startswith("Contents/MacOS"):
-                continue
+        os.symlink(symlink_target, not_signable_path)
 
-            not_signable_part = getNotSignableDirectoryPart(inside_path)
-            if not_signable_part is None:
-                continue
+        symlinks.add(relocated_path)
+        translations.add((not_signable_path, relocated_path))
 
-            filename = not_signable_part[len("Contents/MacOS/") :]
-            not_signable_path = getNormalizedPathJoin(app_path, not_signable_part)
-            if filename.endswith(".framework"):
-                relocated_path = getNormalizedPathJoin(frameworks_dir, filename)
-                symlink_target = getNormalizedPathJoin("..", "Frameworks", filename)
-            else:
-                relocated_path = getNormalizedPathJoin(resources_dir, filename)
-                symlink_target = getNormalizedPathJoin("..", "Resources", filename)
-
-            if relocated_path in symlinks:
-                continue
-
-            makePath(os.path.dirname(relocated_path))
-            os.rename(not_signable_path, relocated_path)
-
-            for _i in range(filename.count("/")):
-                symlink_target = getNormalizedPathJoin("..", symlink_target)
-
-            os.symlink(symlink_target, not_signable_path)
-
-            symlinks.add(relocated_path)
-            translations.add((not_signable_path, relocated_path))
-
-    addMacOSCodeSignature(
-        filenames=[
-            _translatePath(filename)
-            for filename in [
-                getNormalizedPathJoin(dist_dir, standalone_entry_point.dest_path)
-                for standalone_entry_point in [main_standalone_entry_point]
-                + copy_standalone_entry_points
-            ]
-            + data_file_paths
-        ],
-        entitlements_filename=createEntitlementsInfoFile(),
+    return translations, _normalizeMacOSFrameworkBundleLayouts(
+        frameworks_dir=frameworks_dir
     )
+
+
+def _getMacOSCodeSigningPaths(
+    dist_dir,
+    data_file_paths,
+    translations,
+    framework_paths,
+    main_standalone_entry_point,
+    copy_standalone_entry_points,
+):
+    filenames_to_sign = OrderedSet()
+
+    for filename in [
+        getNormalizedPathJoin(dist_dir, standalone_entry_point.dest_path)
+        for standalone_entry_point in [main_standalone_entry_point]
+        + copy_standalone_entry_points
+    ] + data_file_paths:
+        filename = _translateMacOSCodeSigningPath(filename, translations)
+
+        if not os.path.exists(filename):
+            continue
+
+        if framework_paths and isFilenameBelowPath(
+            path=framework_paths, filename=filename
+        ):
+            continue
+
+        if "/_CodeSignature/" in filename:
+            continue
+
+        filenames_to_sign.add(filename)
+
+    for framework_path in sorted(framework_paths, key=len, reverse=True):
+        if os.path.exists(framework_path):
+            filenames_to_sign.add(framework_path)
+
+    return filenames_to_sign
+
+
+def _removeMacOSFrameworkBundlePath(path):
+    if isLink(path) or os.path.isfile(path):
+        deleteFile(path, must_exist=False)
+    elif os.path.isdir(path):
+        removeDirectory(
+            path=path,
+            logger=inclusion_logger,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
+
+
+def _makeMacOSFrameworkBundleSymlink(link_path, link_target):
+    if isLink(link_path) and os.readlink(link_path) == link_target:
+        return
+
+    if os.path.exists(link_path) or isLink(link_path):
+        _removeMacOSFrameworkBundlePath(link_path)
+
+    os.symlink(link_target, link_path)
+
+
+def _detectMacOSFrameworkCurrentVersion(framework_path):
+    framework_name = os.path.basename(framework_path)[: -len(".framework")]
+    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
+
+    if not os.path.isdir(versions_dir):
+        return None, None
+
+    version_candidates = []
+
+    for version_path, version_name in listDir(versions_dir):
+        if version_name == "Current":
+            continue
+
+        if not os.path.isdir(version_path):
+            continue
+
+        if os.path.exists(getNormalizedPathJoin(version_path, framework_name)):
+            version_candidates.append((version_name, version_path))
+
+    if not version_candidates:
+        return None, None
+
+    current_path = getNormalizedPathJoin(versions_dir, "Current")
+
+    if isLink(current_path):
+        current_target_path = getNormalizedPathJoin(
+            versions_dir, os.readlink(current_path)
+        )
+
+        for version_name, version_path in version_candidates:
+            if areSamePaths(version_path, current_target_path):
+                return version_name, version_path
+
+    return version_candidates[0]
+
+
+def _isMacOSFrameworkVersionPath(path, framework_name):
+    return os.path.isdir(path) and os.path.exists(
+        getNormalizedPathJoin(path, framework_name)
+    )
+
+
+def _normalizeMacOSFrameworkBundleLayout(framework_path):
+    framework_name = os.path.basename(framework_path)[: -len(".framework")]
+
+    version_name, version_path = _detectMacOSFrameworkCurrentVersion(
+        framework_path=framework_path
+    )
+
+    if version_name is None:
+        return
+
+    top_level_code_signature_path = getNormalizedPathJoin(
+        framework_path, "_CodeSignature"
+    )
+
+    if os.path.isdir(top_level_code_signature_path):
+        _removeMacOSFrameworkBundlePath(top_level_code_signature_path)
+
+    versions_dir = getNormalizedPathJoin(framework_path, "Versions")
+
+    for version_entry_path, version_entry_name in listDir(versions_dir):
+        if version_entry_name == "Current":
+            continue
+
+        if _isMacOSFrameworkVersionPath(version_entry_path, framework_name):
+            continue
+
+        _removeMacOSFrameworkBundlePath(version_entry_path)
+
+    _makeMacOSFrameworkBundleSymlink(
+        link_path=getNormalizedPathJoin(versions_dir, "Current"),
+        link_target=version_name,
+    )
+
+    versioned_binary_path = getNormalizedPathJoin(version_path, framework_name)
+
+    if os.path.exists(versioned_binary_path):
+        _makeMacOSFrameworkBundleSymlink(
+            link_path=getNormalizedPathJoin(framework_path, framework_name),
+            link_target=getNormalizedPathJoin("Versions", "Current", framework_name),
+        )
+
+    for entry_path, entry_name in listDir(version_path):
+        if entry_name == "_CodeSignature":
+            continue
+
+        if os.path.isdir(entry_path):
+            _makeMacOSFrameworkBundleSymlink(
+                link_path=getNormalizedPathJoin(framework_path, entry_name),
+                link_target=getNormalizedPathJoin("Versions", "Current", entry_name),
+            )
+
+
+def _normalizeMacOSFrameworkBundleLayouts(frameworks_dir):
+    if not os.path.isdir(frameworks_dir):
+        return ()
+
+    framework_paths = [
+        sub_directory
+        for sub_directory in getSubDirectories(frameworks_dir)
+        if sub_directory.endswith(".framework")
+    ]
+
+    for framework_path in framework_paths:
+        _normalizeMacOSFrameworkBundleLayout(framework_path=framework_path)
+
+    return tuple(framework_paths)
 
 
 _excluded_system_dlls = set()

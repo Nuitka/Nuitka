@@ -25,6 +25,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.__past__ import subprocess
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
     getCompilationOutputMode,
@@ -110,6 +111,19 @@ def _checkForLibcBinaries(dist_path):
             "Should not ship glibc libraries with the standalone executable (found %s)"
             % found_glibc_libs
         )
+
+
+def _checkAppBundleCodeSignature(app_bundle_path):
+    test_logger.info(
+        "Checking macOS code signature for app bundle '%s'." % app_bundle_path
+    )
+
+    return (
+        subprocess.call(
+            ("/usr/bin/codesign", "--verify", "--deep", "--strict", app_bundle_path)
+        )
+        == 0
+    )
 
 
 def main():
@@ -258,6 +272,18 @@ def main():
             prefixes=(("${cwd}", os.getcwd()),),
         )
         output_dist_path = os.path.dirname(binary_filename)
+
+        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+            app_bundle_path = os.path.dirname(
+                os.path.dirname(os.path.dirname(binary_filename))
+            )
+
+            if not _checkAppBundleCodeSignature(app_bundle_path):
+                displayError(None, filename)
+                search_mode.onErrorDetected(
+                    "Error, app bundle code signing verification failed."
+                )
+                continue
 
         # Second check if libc libraries haven't been accidentally
         # shipped with the standalone executable
