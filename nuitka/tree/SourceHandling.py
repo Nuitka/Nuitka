@@ -20,7 +20,11 @@ from nuitka.options.Options import (
     shallShowSourceModifications,
 )
 from nuitka.plugins.Hooks import onModuleSourceCode
-from nuitka.PythonVersions import python_version, python_version_str
+from nuitka.PythonVersions import (
+    getSourceDecodeErrorReason2,
+    python_version,
+    python_version_str,
+)
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
 from nuitka.utils.Diffs import getUnifiedDiff
@@ -93,6 +97,7 @@ def _readSourceCodeFromFilename3(source_filename):
 def _detectEncoding2(source_file):
     # Detect the encoding.
     encoding = "ascii"
+    encoding_declared = False
 
     line1 = source_file.readline()
     line1, bom = stripFileContentsBOM(line1)
@@ -100,11 +105,13 @@ def _detectEncoding2(source_file):
     if bom:
         # BOM marker makes it clear.
         encoding = "utf-8"
+        encoding_declared = True
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
 
         if line1_match:
             encoding = line1_match.group(1)
+            encoding_declared = True
         else:
             line2 = source_file.readline()
 
@@ -112,10 +119,11 @@ def _detectEncoding2(source_file):
 
             if line2_match:
                 encoding = line2_match.group(1)
+                encoding_declared = True
 
     source_file.seek(0)
 
-    return encoding
+    return encoding, encoding_declared
 
 
 def _readSourceCodeFromFilename2(source_filename):
@@ -123,41 +131,48 @@ def _readSourceCodeFromFilename2(source_filename):
 
     # Detect the encoding, we do not know it, pylint: disable=unspecified-encoding
     with open(source_filename, "rU") as source_file:
-        encoding = _detectEncoding2(source_file)
+        encoding, encoding_declared = _detectEncoding2(source_file)
 
         source_code = source_file.read()
 
         # Try and detect SyntaxError from missing or wrong encodings.
-        if type(source_code) is not unicode and encoding == "ascii":
+        if type(source_code) is not unicode:
             try:
                 _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
-                lines = source_code.split("\n")
-                so_far = 0
-
-                for count, line in enumerate(lines):
-                    so_far += len(line) + 1
-
-                    if so_far > e.args[2]:
-                        break
+                if encoding_declared:
+                    raiseSyntaxError(
+                        getSourceDecodeErrorReason2(source_filename),
+                        makeSourceReferenceFromFilename(source_filename),
+                        display_line=False,
+                    )
                 else:
-                    # Cannot happen, decode error implies non-empty.
-                    count = -1
+                    lines = source_code.split("\n")
+                    so_far = 0
 
-                wrong_byte = re.search(
-                    "byte 0x([a-f0-9]{2}) in position", str(e)
-                ).group(1)
+                    for count, line in enumerate(lines):
+                        so_far += len(line) + 1
 
-                raiseSyntaxError(
-                    """\
+                        if so_far > e.args[2]:
+                            break
+                    else:
+                        # Cannot happen, decode error implies non-empty.
+                        count = -1
+
+                    wrong_byte = re.search(
+                        "byte 0x([a-f0-9]{2}) in position", str(e)
+                    ).group(1)
+
+                    raiseSyntaxError(
+                        """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details"""
-                    % (wrong_byte, source_filename, count + 1),
-                    makeSourceReferenceFromFilename(source_filename).atLineNumber(
-                        count + 1
-                    ),
-                    display_line=False,
-                )
+                        % (wrong_byte, source_filename, count + 1),
+                        makeSourceReferenceFromFilename(source_filename).atLineNumber(
+                            count + 1
+                        ),
+                        display_line=False,
+                    )
 
     return source_code
 

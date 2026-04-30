@@ -16,6 +16,8 @@ import os
 import re
 import sys
 
+from nuitka.__past__ import subprocess
+
 
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""
@@ -139,6 +141,28 @@ def f():
       return closure""")
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
+
+
+def getSourceDecodeErrorReason2(source_filename):
+    if not isRunningInInterpreter():
+        return "decoding error"
+
+    process = subprocess.Popen(
+        args=(sys.executable, source_filename),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    _stdout, stderr = process.communicate()
+
+    for line in reversed(stderr.splitlines()):
+        if line.startswith(b"SyntaxError:"):
+            return line.split(b": ", 1)[1].decode("ascii")
+
+    sys.exit(
+        "Error, failed to detect source decode error reason for '%s', stderr was: %r"
+        % (source_filename, stderr)
+    )
 
 
 def getComplexCallSequenceErrorTemplate():
