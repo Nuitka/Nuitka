@@ -4366,7 +4366,12 @@
     - depends:
         - 'PIL._tkinter_finder'
 
-- module-name: 'PIL.Image' # checksum: 560d430e
+- module-name: 'PIL.Image' # checksum: fc233aba
+  variables:
+    setup_code:
+      - 'import PIL.Image'
+    declarations:
+      'pil_image_plugins': 'tuple("PIL." + plugin for plugin in PIL.Image._plugins)'
   anti-bloat:
     - description: 'avoid Qt dependency'
       no-auto-follow:
@@ -4382,51 +4387,7 @@
         'packaging': 'ignore'
   implicit-imports:
     - depends:
-        - 'PIL.BlpImagePlugin'
-        - 'PIL.BmpImagePlugin'
-        - 'PIL.BufrStubImagePlugin'
-        - 'PIL.CurImagePlugin'
-        - 'PIL.DcxImagePlugin'
-        - 'PIL.DdsImagePlugin'
-        - 'PIL.EpsImagePlugin'
-        - 'PIL.FitsStubImagePlugin'
-        - 'PIL.FliImagePlugin'
-        - 'PIL.FpxImagePlugin'
-        - 'PIL.FtexImagePlugin'
-        - 'PIL.GbrImagePlugin'
-        - 'PIL.GifImagePlugin'
-        - 'PIL.GribStubImagePlugin'
-        - 'PIL.Hdf5StubImagePlugin'
-        - 'PIL.IcnsImagePlugin'
-        - 'PIL.IcoImagePlugin'
-        - 'PIL.ImImagePlugin'
-        - 'PIL.ImtImagePlugin'
-        - 'PIL.IptcImagePlugin'
-        - 'PIL.Jpeg2KImagePlugin'
-        - 'PIL.JpegImagePlugin'
-        - 'PIL.McIdasImagePlugin'
-        - 'PIL.MicImagePlugin'
-        - 'PIL.MpegImagePlugin'
-        - 'PIL.MpoImagePlugin'
-        - 'PIL.MspImagePlugin'
-        - 'PIL.PalmImagePlugin'
-        - 'PIL.PcdImagePlugin'
-        - 'PIL.PcxImagePlugin'
-        - 'PIL.PdfImagePlugin'
-        - 'PIL.PixarImagePlugin'
-        - 'PIL.PngImagePlugin'
-        - 'PIL.PpmImagePlugin'
-        - 'PIL.PsdImagePlugin'
-        - 'PIL.SgiImagePlugin'
-        - 'PIL.SpiderImagePlugin'
-        - 'PIL.SunImagePlugin'
-        - 'PIL.TgaImagePlugin'
-        - 'PIL.TiffImagePlugin'
-        - 'PIL.WebPImagePlugin'
-        - 'PIL.WmfImagePlugin'
-        - 'PIL.XbmImagePlugin'
-        - 'PIL.XpmImagePlugin'
-        - 'PIL.XVThumbImagePlugin'
+        - 'get_variable("pil_image_plugins")'
 
 - module-name: 'PIL.ImageShow' # checksum: 1ae9e8b3
   anti-bloat:
