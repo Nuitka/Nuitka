@@ -7422,11 +7422,11 @@
     - dirs:
         - 'static'
 
-- module-name: 'streamlit.runtime.caching.cache_utils' # checksum: e430da94
+- module-name: 'streamlit.runtime.caching.cache_utils' # checksum: a33d28d3
   anti-bloat:
     - description: 'remove warning for compiled functions'
       replacements_plain:
-        '_LOGGER.debug(': '('
+        '_LOGGER.debug(': '(lambda *args, **kwargs: None)('
 
 - module-name: 'sv_ttk' # checksum: 8b045092
   data-files:
