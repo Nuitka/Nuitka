@@ -96,11 +96,13 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                         % self.variable.getName(),
                     )
                 elif self.subnode_fallback.isExpressionVariableRef():
-                    fallback_variable_trace = self.subnode_fallback.variable_trace
+                    fallback_variable_trace = trace_collection.getVariableCurrentTrace(
+                        variable=self.subnode_fallback.getVariable()
+                    )
 
                     if fallback_variable_trace is not None:
                         trusted_node = (
-                            self.subnode_fallback.variable_trace.getAttributeNodeVeryTrusted()
+                            fallback_variable_trace.getAttributeNodeVeryTrusted()
                         )
 
                         if trusted_node is not None:
