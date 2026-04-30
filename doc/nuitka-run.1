@@ -663,6 +663,11 @@ The Tk library dir. Nuitka is supposed to automatically detect it, but you can o
 \fB\-\-tcl\-library\-dir\fR=\fI\,TCL_LIBRARY_DIR\/\fR
 The Tcl library dir. See comments for Tk library dir.
 .IP
+Plugin options of 'torch\-hub' (categories: package\-support):
+.TP
+\fB\-\-torch\-hub\-model\fR=\fI\,TORCH_HUB_MODELS\/\fR
+Specify a Torch Hub model to scan for hidden imports. Use the form 'REPO_OR_DIR=MODEL', e.g. 'ultralytics/yolov5=yolov5s'. The repository part may also be a local directory containing a 'hubconf.py'. Repeat this option for multiple models. [REQUIRED]
+.IP
 Plugin options of 'pyside6' (same for 'pyside2', 'pyqt6', 'pyqt5' plugins) (categories: package\-support, qt\-binding):
 .TP
 \fB\-\-include\-qt\-plugins\fR=\fI\,INCLUDE_QT_PLUGINS\/\fR
