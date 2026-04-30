@@ -16,8 +16,10 @@ from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsCaching import getCcacheModuleStats
 from nuitka.build.SconsUtils import (
+    getSconsCompilerUsed,
     getSconsObjectSizes,
     getSconsReportValue,
+    getSconsReportValueBool,
     readSconsErrorReport,
     readSconsResourceUsageReports,
 )
@@ -299,7 +301,7 @@ def _getReportInputData(aborted):
                 onefile_resource_mode = getSconsReportValue(
                     onefile_source_dir, "resource_mode", default=None
                 )
-                onefile_reproducible = getSconsReportValue(
+                onefile_reproducible = getSconsReportValueBool(
                     onefile_source_dir, "reproducible", default=None
                 )
             else:
@@ -334,24 +336,30 @@ def _getReportInputData(aborted):
     )
 
     if source_dir is not None:
+        c_compiler = getSconsCompilerUsed(source_dir)
         cpp_flags = getSconsReportValue(source_dir, "cpp_flags", default=None)
         c_flags = getSconsReportValue(source_dir, "c_flags", default=None)
         cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
         cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
         ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
+        the_cc_name = getSconsReportValue(source_dir, "the_cc_name", default=None)
+        the_compiler = getSconsReportValue(source_dir, "the_compiler", default=None)
 
         backend_resource_mode = getSconsReportValue(
             source_dir, "resource_mode", default=None
         )
-        backend_reproducible = getSconsReportValue(
+        backend_reproducible = getSconsReportValueBool(
             source_dir, "reproducible", default=None
         )
     else:
+        c_compiler = None
         cpp_flags = None
         c_flags = None
         cc_flags = None
         cxx_flags = None
         ld_flags = None
+        the_cc_name = None
+        the_compiler = None
         backend_resource_mode = None
         backend_reproducible = None
 
@@ -828,6 +836,18 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "scons_environment",
         )
 
+        if report_input_data["c_compiler"] is not None:
+            scons_environment_xml_node.attrib["c_compiler"] = report_input_data[
+                "c_compiler"
+            ]
+        if report_input_data["the_cc_name"] is not None:
+            scons_environment_xml_node.attrib["the_cc_name"] = report_input_data[
+                "the_cc_name"
+            ]
+        if report_input_data["the_compiler"] is not None:
+            scons_environment_xml_node.attrib["the_compiler"] = (
+                _getCompilationReportPath(report_input_data["the_compiler"])
+            )
         if report_input_data["cpp_flags"] != "":
             scons_environment_xml_node.attrib["cpp_flags"] = report_input_data[
                 "cpp_flags"
@@ -1108,9 +1128,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             ]
 
         if report_input_data["backend_reproducible"] is not None:
-            python_binary_xml_node.attrib["reproducible"] = report_input_data[
-                "backend_reproducible"
-            ]
+            python_binary_xml_node.attrib["reproducible"] = (
+                "yes" if report_input_data["backend_reproducible"] else "no"
+            )
 
         if diffable:
             python_binary_xml_node.attrib["size"] = "volatile"
@@ -1132,9 +1152,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             ]
 
         if report_input_data.get("onefile_reproducible") is not None:
-            onefile_binary_xml_node.attrib["reproducible"] = report_input_data[
-                "onefile_reproducible"
-            ]
+            onefile_binary_xml_node.attrib["reproducible"] = (
+                "yes" if report_input_data["onefile_reproducible"] else "no"
+            )
 
         if diffable:
             onefile_binary_xml_node.attrib["size"] = "volatile"

@@ -615,7 +615,10 @@ def writeSconsReport(env, target):
         print("clang_mode=%s" % env.clang_mode, file=report_file)
         print("msvc_mode=%s" % env.msvc_mode, file=report_file)
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
+        print("zig_mode=%s" % env.zig_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
+        print("the_cc_name=%s" % env.the_cc_name, file=report_file)
+        print("the_compiler=%s" % env.the_compiler, file=report_file)
 
         print("cpp_flags=%s" % (env.cpp_flags or ""), file=report_file)
         print("c_flags=%s" % (env.c_flags or ""), file=report_file)
@@ -690,7 +693,7 @@ def _getSconsReportFilename(source_dir):
 
 
 def _getSconsErrorReportFilename(source_dir):
-    return getNormalizedPathJoin(source_dir, "scons-error-report.txt")
+    return getNormalizedPathJoin(source_dir, "scons-error-report.pickle")
 
 
 def readSconsReport(source_dir):
@@ -726,6 +729,37 @@ def getSconsReportValue(source_dir, key, default=Ellipsis):
             return default
 
         raise
+
+
+def getSconsReportValueBool(source_dir, key, default=Ellipsis):
+    """Get a boolean value from the SCons report."""
+
+    value = getSconsReportValue(source_dir, key, default=default)
+
+    if value is None:
+        return None
+
+    if value in ("True", "False"):
+        return value == "True"
+
+    assert False, (key, value)
+
+
+def getSconsCompilerUsed(source_dir):
+    """Get the compiler used according to the SCons report."""
+
+    for key, compiler_used in (
+        ("zig_mode", "zig"),
+        ("clangcl_mode", "ClangCL"),
+        ("mingw_mode", "MinGW64"),
+        ("msvc_mode", "MSVC"),
+        ("clang_mode", "Clang"),
+        ("gcc_mode", "gcc"),
+    ):
+        if getSconsReportValueBool(source_dir, key):
+            return compiler_used
+
+    return "Unknown"
 
 
 def readSconsErrorReport(source_dir):

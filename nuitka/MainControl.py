@@ -17,6 +17,7 @@ from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
+    getSconsCompilerUsed,
     getSconsReportValue,
     readSconsErrorReport,
     readSconsObjectSizes,
@@ -624,23 +625,10 @@ def _runPgoBinary():
     )
 
 
-def _wasMsvcMode():
-    if not isWin32Windows():
-        return False
-
-    return (
-        getSconsReportValue(
-            source_dir=OutputDirectories.getSourceDirectoryPath(
-                onefile=False, create=False
-            ),
-            key="msvc_mode",
-        )
-        == "True"
-    )
-
-
 def _deleteMsvcPGOFiles(pgo_mode):
-    assert _wasMsvcMode()
+    assert getSconsCompilerUsed(
+        OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+    ) in ("MSVC", "ClangCL")
 
     msvc_pgc_filename = OutputDirectories.getResultBasePath(onefile=False) + "!1.pgc"
     deleteFile(msvc_pgc_filename, must_exist=False)
@@ -661,7 +649,9 @@ def _runCPgoBinary():
         "Running created binary to produce C level PGO information:", style="blue"
     )
 
-    if _wasMsvcMode():
+    if getSconsCompilerUsed(
+        OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+    ) in ("MSVC", "ClangCL"):
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
         with withEnvironmentVarOverridden(
@@ -912,7 +902,12 @@ def runSconsBackend():
     )
 
     # Delete PGO files if asked to do that.
-    if scons_options.get("pgo_mode") == "use" and _wasMsvcMode():
+    if scons_options.get("pgo_mode") == "use" and (
+        getSconsCompilerUsed(
+            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+        )
+        in ("MSVC", "ClangCL")
+    ):
         _deleteMsvcPGOFiles(pgo_mode="use")
 
     return result

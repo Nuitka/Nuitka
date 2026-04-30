@@ -632,6 +632,7 @@ def cleanSconsDirectory(source_dir):
         ".res",
         ".S",
         ".txt",
+        ".pickle",
         ".const",
         ".gcda",
         ".pgd",
