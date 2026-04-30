@@ -133,6 +133,8 @@ Before marking a task as complete, you must verify the changes using the project
   - On Windows, ensure a suitable Python version is installed (e.g.,
     `~/AppData/Local/Programs/Python/Python313`). Prompt the user to install if missing a suitable
     version.
+  - When you only need to vary Nuitka command line flags for an existing repository test case,
+    prefer reusing it via `NUITKA_EXTRA_OPTIONS`.
   - For **scons** level changes:
     - Run `bin/nuitka --version` to check basic sanity.
     - Compile `tests/basics/AssertsTest.py` to verify correctness.
