@@ -4751,6 +4751,11 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'psycopg_binary._psycopg' # checksum: 473bd23b
+  implicit-imports:
+    - depends:
+        - '._uuid'
+
 - module-name: 'puremagic' # checksum: 8e1484eb
   data-files:
     - patterns:
