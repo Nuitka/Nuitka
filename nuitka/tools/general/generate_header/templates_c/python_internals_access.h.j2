@@ -49,7 +49,10 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
     }
     PyObject *func = PySys_GetObject("activate_stack_trampoline");
     assert(func != NULL);
-    PyObject *res = PyObject_CallFunction(func, "s", "nuitka");
+
+    // Deliberately use an invalid backend, so we can detect support without
+    // activating the trampoline.
+    NUITKA_MAY_BE_UNUSED PyObject *res = PyObject_CallFunction(func, "s", "s");
     assert(res == NULL);
     bool has_perf = true;
 
