@@ -119,8 +119,8 @@ class TimerReport(object):
                 general.sysexit("""\
 Error, performance counters were requested but are not available on this system. \
 To enable them on Linux, use 'sysctl -w kernel.perf_event_paranoid=1' or lower. \
-To enable them on WSL2, set 'hardwarePerformanceCounters=true' in your '.wslconfig' \
-file.""")
+Note: When using WSL2, you must do this AND additionally set \
+'hardwarePerformanceCounters=true' in your '.wslconfig' file on the Windows host.""")
 
         # They might not be allowed.
         self.use_perf_counters = use_perf_counters and has_perf_counters
