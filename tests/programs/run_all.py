@@ -41,8 +41,29 @@ from nuitka.tools.testing.Common import (
 )
 
 
-def checkMultiprocessingUsingReport(filename):
+def checkMultiprocessingUsingReport(filename, python_version):
     compilation_report = parseCompilationReport("compilation-report-%s.xml" % filename)
+
+    parent_main_module = None
+
+    for module_node in compilation_report.findall("module"):
+        if module_node.attrib["name"] == "__parents_main__":
+            parent_main_module = module_node
+            break
+
+    assert parent_main_module is not None, [
+        module_node.attrib["name"]
+        for module_node in compilation_report.findall("module")
+    ]
+    assert (
+        parent_main_module.attrib["reason"]
+        == "Auto enable multiprocessing freeze support"
+    ), parent_main_module.attrib
+
+    # On Python 2, the fake module is executed directly for freeze support.
+    # On Python 3, the multiprocessing post-load helper imports it.
+    if python_version < (3,):
+        return
 
     modules_used = extractModulesUsedByModule(
         compilation_report=compilation_report,
@@ -151,11 +172,6 @@ def main():
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
-            # TODO: Still true?
-            if sys.platform == "darwin" and python_version >= (3, 8):
-                reportSkip("Hangs for unknown reasons", ".", filename)
-                continue
-
             extra_flags.append("--report=compilation-report-%s.xml" % filename)
         else:
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
@@ -192,7 +208,7 @@ def main():
             )
 
             if filename == "multiprocessing_using":
-                checkMultiprocessingUsingReport(filename)
+                checkMultiprocessingUsingReport(filename, python_version)
 
     search_mode.finish()
 
