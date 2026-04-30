@@ -1106,7 +1106,6 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
     def->m_base.m_init = entrypoint;
 #endif
-
 #endif
 
     // Set filename attribute if not already set, in some branches we don't
@@ -1922,15 +1921,98 @@ static PyObject *createModuleSpecViaPathFinder(PyThreadState *tstate, PyObject *
 }
 #endif
 
+#if _NUITKA_STANDALONE_MODE
+static PyObject *getImportLibPathFinderClass(void) {
+    static PyObject *path_finder_class = NULL;
+
+    if (path_finder_class == NULL) {
+        static PyObject *machinery_module = NULL;
+
+        if (machinery_module == NULL) {
+            machinery_module = PyImport_ImportModule("importlib.machinery");
+        }
+
+        path_finder_class = PyObject_GetAttrString(machinery_module, "PathFinder");
+    }
+
+    return path_finder_class;
+}
+
+static PyObject *findExternalModuleSpecViaPathFinder(PyThreadState *tstate, PyObject *module_name,
+                                                     PyObject *search_path,
+                                                     struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
+    if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0 || (entry->flags & NUITKA_PACKAGE_FLAG) == 0) {
+        return NULL;
+    }
+
+    PyObject *path_finder_class = getImportLibPathFinderClass();
+
+    if (unlikely(path_finder_class == NULL)) {
+        return NULL;
+    }
+
+    PyObject *find_spec = PyObject_GetAttrString(path_finder_class, "find_spec");
+
+    if (unlikely(find_spec == NULL)) {
+        return NULL;
+    }
+
+    PyObject *args[2] = {module_name, search_path == NULL ? Py_None : search_path};
+    PyObject *path_finder_spec = CALL_FUNCTION_WITH_ARGS2(tstate, find_spec, args);
+
+    Py_DECREF(find_spec);
+
+    if (path_finder_spec == NULL) {
+        return NULL;
+    }
+
+    if (path_finder_spec == Py_None) {
+        Py_DECREF(path_finder_spec);
+        return NULL;
+    }
+
+    PyObject *origin = PyObject_GetAttrString(path_finder_spec, "origin");
+
+    if (unlikely(origin == NULL)) {
+        Py_DECREF(path_finder_spec);
+        return NULL;
+    }
+
+    PyObject *module_origin = getModuleFileValue(tstate, entry);
+
+    if (unlikely(module_origin == NULL)) {
+        Py_DECREF(path_finder_spec);
+        return NULL;
+    }
+
+    int same_origin = PyObject_RichCompareBool(origin, module_origin, Py_EQ);
+
+    Py_DECREF(origin);
+    Py_DECREF(module_origin);
+
+    if (unlikely(same_origin == -1)) {
+        Py_DECREF(path_finder_spec);
+        return NULL;
+    }
+
+    if (same_origin == 1) {
+        Py_DECREF(path_finder_spec);
+        return NULL;
+    }
+
+    return path_finder_spec;
+}
+#endif
+
 static char const *_kw_list_find_spec[] = {"fullname", "is_package", "path", NULL};
 
 static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
-    PyObject *unused1; // We ignore "is_package"
-    PyObject *unused2; // We ignore "path"
+    PyObject *is_package_arg = Py_None; // We currently ignore "is_package"
+    PyObject *path_arg = Py_None;
 
     int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|OO:find_spec", (char **)_kw_list_find_spec, &module_name,
-                                          &unused1, &unused2);
+                                          &is_package_arg, &path_arg);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1970,6 +2052,24 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
             }
 
             entry = NULL;
+        }
+    }
+#endif
+
+#if _NUITKA_STANDALONE_MODE
+    if (entry != NULL) {
+        PyObject *path_finder_spec = findExternalModuleSpecViaPathFinder(tstate, module_name, path_arg, entry);
+
+        if (path_finder_spec != NULL) {
+            if (isVerbose()) {
+                PySys_WriteStderr("import %s # denied responsibility to PathFinder alternative\n", full_name);
+            }
+
+            return path_finder_spec;
+        }
+
+        if (HAS_ERROR_OCCURRED(tstate)) {
+            return NULL;
         }
     }
 #endif

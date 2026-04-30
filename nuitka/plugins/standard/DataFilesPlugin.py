@@ -128,6 +128,14 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 )
 
             for data_dir in dirs:
+                data_dir = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=data_dir,
+                    config_name="data file directory for '%s'" % module_name,
+                    extra_context=None,
+                    single_value=True,
+                )
+
                 source_path = os.path.join(module_folder, data_dir)
 
                 if os.path.isdir(source_path):
@@ -148,6 +156,14 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 )
 
             for raw_dir in raw_dirs:
+                raw_dir = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=raw_dir,
+                    config_name="raw data file directory for '%s'" % module_name,
+                    extra_context=None,
+                    single_value=True,
+                )
+
                 source_path = os.path.join(module_folder, raw_dir)
 
                 if os.path.isdir(source_path):

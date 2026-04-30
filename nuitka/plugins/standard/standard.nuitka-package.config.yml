@@ -607,18 +607,32 @@
     - patterns:
         - 'cacert.pem'
 
-- module-name: 'bpy' # checksum: e3ed6145
+- module-name: 'bpy' # checksum: 2df774eb
+  variables:
+    setup_code:
+      - 'import bpy'
+      - 'import os'
+      - 'script_path = bpy.utils.script_paths()[0]'
+      - 'module_folder = os.path.dirname(os.path.dirname(script_path))'
+    declarations:
+      'bpy_has_versioned_scripts_dir': 'os.path.isdir(script_path)'
+      'bpy_versioned_scripts_dir': 'os.path.relpath(script_path, module_folder)'
   data-files:
     - dirs:
         - '.'
         - 'materialx'
         - 'usd'
     - raw_dirs:
-        - '4.1'
+        - 'get_variable("bpy_versioned_scripts_dir")'
+      when: 'get_variable("bpy_has_versioned_scripts_dir")'
   dlls:
     - from_filenames:
         prefixes:
           - ''
+
+  implicit-imports:
+    - depends:
+        - 'numpy'
 
 - module-name: 'branca' # checksum: c4e34d71
   data-files:

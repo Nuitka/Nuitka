@@ -1,32 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-from __future__ import print_function
-
-import os
-
-import data_files_package
-
-# nuitka-project: --mode=standalone
-# nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
-# nuitka-project-if: {Commercial} is not None:
-#   nuitka-project: --embed-data-files-runtime-pattern=lala.txt
-
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt")
-)
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
-)
-assert os.path.exists(
-    os.path.join(
-        os.path.dirname(data_files_package.__file__),
-        "raw_dir_expr",
-        "only_raw.py",
-    )
-)
-
-print("OK.")
+raw_value = "ok"
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
