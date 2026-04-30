@@ -530,6 +530,9 @@ static bool is_multiprocessing_fork = false;
 static bool is_multiprocessing_forkserver = false;
 static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
+#if PYTHON_VERSION >= 0x3e0
+static int multiprocessing_forkserver_authkey_fd = -1;
+#endif
 
 // This is a multiprocessing resource or semaphore tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
@@ -642,6 +645,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                 break;
             }
 
+#if PYTHON_VERSION < 0x3e0
             if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR
                              "from multiprocessing.forkserver import main; main(%i, %i, ['__main__'],",
@@ -649,6 +653,24 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                 is_multiprocessing_forkserver = true;
                 break;
             }
+#else
+            if (scanFilename(cmd_arg,
+                             FILENAME_EMPTY_STR
+                             "from multiprocessing.forkserver import main; main(%i, %i, ['__main__']",
+                             &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
+                filename_char_t const *authkey_arg = findFilenameSubstring(cmd_arg, FILENAME_EMPTY_STR "'authkey_r': ");
+
+                if (authkey_arg != NULL) {
+                    if (scanFilename(authkey_arg, FILENAME_EMPTY_STR "'authkey_r': %i",
+                                     &multiprocessing_forkserver_authkey_fd) != 1) {
+                        multiprocessing_forkserver_authkey_fd = -1;
+                    }
+                }
+
+                is_multiprocessing_forkserver = true;
+                break;
+            }
+#endif
 
 #if defined(_WIN32)
             if (strcmpFilename(cmd_arg, FILENAME_EMPTY_STR
@@ -2052,7 +2074,22 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         PyObject *args[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd1),
                             Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd2), main_list};
 
+#if PYTHON_VERSION < 0x3e0
         CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+#else
+        if (multiprocessing_forkserver_authkey_fd == -1) {
+            CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+        } else {
+            PyObject *kw_names = MAKE_TUPLE_EMPTY(tstate, 1);
+            PyTuple_SET_ITEM(kw_names, 0, Nuitka_String_FromString("authkey_r"));
+
+            PyObject *kw_values[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_authkey_fd)};
+
+            PyObject *result = CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(tstate, main_function, args, kw_values, kw_names);
+            Py_DECREF(kw_names);
+            Py_XDECREF(result);
+        }
+#endif
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 

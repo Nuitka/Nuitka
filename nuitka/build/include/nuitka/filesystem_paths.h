@@ -22,6 +22,7 @@
 #define strlenFilename wcslen
 #define strcmpFilename wcscmp
 #define strncmpFilename wcsncmp
+#define findFilenameSubstring wcsstr
 #define strdupFilename wcsdup
 #define scanFilename swscanf
 #define Nuitka_String_FromFilename(filename) NuitkaUnicode_FromWideChar(filename, -1)
@@ -41,6 +42,7 @@
 #define strlenFilename strlen
 #define strcmpFilename strcmp
 #define strncmpFilename strncmp
+#define findFilenameSubstring strstr
 #define strdupFilename strdup
 #define scanFilename sscanf
 #define Nuitka_String_FromFilename Nuitka_String_FromString
