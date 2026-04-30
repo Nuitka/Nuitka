@@ -341,7 +341,12 @@ def colorizeDiff(lines):
 
 
 def compareOutput(
-    kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
+    kind,
+    out_cpython,
+    out_nuitka,
+    ignore_warnings,
+    syntax_errors,
+    trace_result=True,
 ):
     diff = getUnifiedDiff(
         old_lines=makeDiffable(out_cpython, ignore_warnings, syntax_errors),

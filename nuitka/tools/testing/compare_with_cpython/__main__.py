@@ -210,6 +210,7 @@ def main():
     arguments = list(args)
 
     silent_mode = hasArg("silent")
+    ignore_stdout = hasArg("ignore_stdout")
     ignore_stderr = hasArg("ignore_stderr")
     ignore_warnings = hasArg("ignore_warnings")
     expect_success = hasArg("expect_success")
@@ -287,6 +288,23 @@ def main():
 
     project_options = getNuitkaProjectOptions(
         logger=test_logger, filename_arg=filename, module_mode=module_mode
+    )
+    decryption_project_options = []
+
+    for project_option in project_options:
+        if project_option.startswith("--encryption-key="):
+            project_option = "--encryption-key=" + os.path.abspath(
+                project_option.split("=", 1)[1]
+            )
+
+        decryption_project_options.append(project_option)
+
+    traceback_encryption = (
+        "--enable-plugin=traceback-encryption" in project_options
+        and any(
+            project_option.startswith("--encryption-key=")
+            for project_option in decryption_project_options
+        )
     )
 
     if "--standalone" in project_options or "--mode=standalone" in project_options:
@@ -640,6 +658,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             my_print("Going to output directory", os.getcwd())
 
     stop_watch = StopWatchWallClock()
+    second_stage_was_run = False
     stop_watch.start()
 
     if not two_step_execution:
@@ -719,6 +738,7 @@ Stderr was:
                     stdout_nuitka = process_result.stdout + stdout_nuitka2
                     stderr_nuitka = process_result.stderr + stderr_nuitka2
                     exit_nuitka = process.returncode
+                    second_stage_was_run = True
 
                     # In case of segfault or assertion triggered, run in debugger.
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
@@ -744,13 +764,18 @@ Stderr was:
     stop_watch.stop()
     nuitka_time = stop_watch.getDelta()
 
-    if "--encrypt-stderr" in project_options:
+    if traceback_encryption:
         with withPythonPathChange(nuitka_package_dir):
-            stderr_nuitka = decryptOutput(project_options, stderr_nuitka)
+            if second_stage_was_run:
+                stderr_nuitka2 = decryptOutput(
+                    decryption_project_options, stderr_nuitka2
+                )
+                stdout_nuitka2 = decryptOutput(
+                    decryption_project_options, stdout_nuitka2
+                )
 
-    if "--encrypt-stdout" in project_options:
-        with withPythonPathChange(nuitka_package_dir):
-            stdout_nuitka = decryptOutput(project_options, stdout_nuitka)
+            stderr_nuitka = decryptOutput(decryption_project_options, stderr_nuitka)
+            stdout_nuitka = decryptOutput(decryption_project_options, stdout_nuitka)
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)
@@ -762,13 +787,16 @@ Stderr was:
     if comparison_mode:
 
         def makeComparisons(trace_result):
-            exit_code_stdout = compareOutput(
-                "stdout",
-                stdout_cpython,
-                stdout_nuitka2 if two_step_execution else stdout_nuitka,
-                ignore_warnings,
-                syntax_errors,
-            )
+            if ignore_stdout:
+                exit_code_stdout = 0
+            else:
+                exit_code_stdout = compareOutput(
+                    "stdout",
+                    stdout_cpython,
+                    stdout_nuitka2 if two_step_execution else stdout_nuitka,
+                    ignore_warnings,
+                    syntax_errors,
+                )
 
             if ignore_stderr:
                 exit_code_stderr = 0

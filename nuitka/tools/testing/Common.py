@@ -1324,7 +1324,7 @@ def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith((".dist", ".build"))
+            or filename.endswith((".build", ".onefile-build", ".dist", ".app"))
             or os.path.basename(filename).startswith("venv_")
         ):
             continue
