@@ -51,6 +51,14 @@ _detected_python_rpaths = None
 _detect_binary_path_dlls_cache = {}
 
 
+def _clearBinaryPathDLLsMacOSCache(binary_filename):
+    binary_filename = getNormalizedPath(binary_filename)
+
+    for cache_key in list(_detect_binary_path_dlls_cache):
+        if areSamePaths(cache_key[1], binary_filename):
+            del _detect_binary_path_dlls_cache[cache_key]
+
+
 def _detectPythonRpaths():
     result = []
 
@@ -297,6 +305,8 @@ def _resolveBinaryPathDLLsMacOS(
                 resolved_path = os.path.normpath(os.path.join(original_dir, path[7:]))
         elif path.startswith("@loader_path/"):
             resolved_path = os.path.normpath(os.path.join(original_dir, path[13:]))
+        elif path.startswith("@executable_path/"):
+            resolved_path = os.path.normpath(os.path.join(original_dir, path[17:]))
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
@@ -480,6 +490,26 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
     return result
 
 
+def _getStandaloneEntryPointDistPathMacOS(
+    resolved_filename, binary_filename, standalone_entry_points
+):
+    for standalone_entry_point in standalone_entry_points:
+        if areSamePaths(resolved_filename, standalone_entry_point.source_path):
+            return standalone_entry_point.dest_path
+
+        dist_filename = os.path.normpath(
+            os.path.join(
+                os.path.dirname(binary_filename),
+                standalone_entry_point.dest_path,
+            )
+        )
+
+        if areSamePaths(resolved_filename, dist_filename):
+            return standalone_entry_point.dest_path
+
+    return None
+
+
 def fixupBinaryDLLPathsMacOS(
     binary_filename,
     package_name,
@@ -488,6 +518,9 @@ def fixupBinaryDLLPathsMacOS(
     removed_dll_paths,
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
+    if areSamePaths(binary_filename, original_location):
+        _clearBinaryPathDLLsMacOSCache(original_location)
+
     try:
         had_self, rpath_map = detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_location),
@@ -503,11 +536,13 @@ def fixupBinaryDLLPathsMacOS(
         mapping = []
 
         for resolved_filename, rpath_filename in rpath_map.items():
-            for standalone_entry_point in standalone_entry_points:
-                if resolved_filename == standalone_entry_point.source_path:
-                    dist_path = standalone_entry_point.dest_path
-                    break
-            else:
+            dist_path = _getStandaloneEntryPointDistPathMacOS(
+                resolved_filename=resolved_filename,
+                binary_filename=binary_filename,
+                standalone_entry_points=standalone_entry_points,
+            )
+
+            if dist_path is None:
                 # Might be a framework, which is internally treated as data
                 # files.
                 dist_path = getIncludedFrameworkDistPathFromSourcePath(

@@ -278,6 +278,19 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
+    if isMacOS():
+        # Some dependencies, e.g. copied libpython variants, are only fully
+        # resolvable once their standalone copies exist already.
+        fixupBinaryDLLPathsMacOS(
+            binary_filename=getNormalizedPathJoin(
+                dist_dir, main_standalone_entry_point.dest_path
+            ),
+            package_name=main_standalone_entry_point.package_name,
+            original_location=main_standalone_entry_point.source_path,
+            standalone_entry_points=standalone_entry_points,
+            removed_dll_paths=getRemovedUsedDllPaths(main_standalone_entry_point),
+        )
+
     onCopiedDLLs(
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,

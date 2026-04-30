@@ -304,6 +304,19 @@ def _getSharedLibraryRPATHsCoff(filename):
 _otool_output_cache = {}
 
 
+def clearOtoolOutputCache(filename):
+    filename = os.path.abspath(filename)
+
+    for cache_key in list(_otool_output_cache):
+        if type(cache_key[0]) in (tuple, list):
+            command = cache_key[0]
+        else:
+            command = cache_key
+
+        if command[-1] == filename:
+            del _otool_output_cache[cache_key]
+
+
 def _getMacOSArchOption():
     macos_target_arch = getMacOSTargetArch()
 
@@ -533,6 +546,7 @@ def setSharedLibraryRPATH(filename, rpath):
     with withMadeWritableFileMode(filename):
         if isMacOS():
             _setSharedLibraryRPATHDarwin(filename, rpath)
+            clearOtoolOutputCache(filename)
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
 
@@ -591,6 +605,7 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
                 absence_message=_install_name_tool_usage,
                 stderr_filter=_filterInstallNameToolErrorOutput,
             )
+            clearOtoolOutputCache(filename)
 
 
 def getPyWin32Dir():
