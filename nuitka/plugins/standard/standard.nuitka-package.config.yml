@@ -3424,6 +3424,13 @@
         'import pydoc': ''
       when: 'not use_pydoc'
 
+- module-name: 'numpy.ma.core' # checksum: c9565901
+  anti-bloat:
+    - description: 'avoid empty docstring assertion'
+      replacements_plain:
+        'func.__doc__ is not None': 'func.__doc__ is not None and func.__doc__ != ""'
+      when: 'no_docstrings'
+
 - module-name: 'numpy.random' # checksum: e43161e7
   implicit-imports:
     - depends:
