@@ -246,8 +246,13 @@ static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long fea
 
 #if PYTHON_VERSION >= 0x3d0
 
+static inline bool Nuitka_PyType_HasInlineValues(PyTypeObject *tp) {
+    // Inline values are stored via heap type cached keys.
+    return Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_HEAPTYPE) && Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES);
+}
+
 static inline size_t Nuitka_PyType_InlineValuesSize(PyTypeObject *tp) {
-    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+    if (!Nuitka_PyType_HasInlineValues(tp)) {
         return 0;
     }
 
@@ -255,7 +260,7 @@ static inline size_t Nuitka_PyType_InlineValuesSize(PyTypeObject *tp) {
 }
 
 static inline void Nuitka_PyObject_InitInlineValues(PyObject *obj, PyTypeObject *tp) {
-    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+    if (!Nuitka_PyType_HasInlineValues(tp)) {
         return;
     }
 
