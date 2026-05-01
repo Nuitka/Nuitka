@@ -3,7 +3,7 @@
 %if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
-%global python3_sitearch %(%{__python3} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
+%global nuitka_python3_sitelib %(%{__python3} -c "import sys, sysconfig; sys.stdout.write(sysconfig.get_path('purelib', vars={'base': '%{_prefix}', 'platbase': '%{_prefix}'}))")
 %endif
 
 %global _python_bytecompile_errors_terminate_build 0
@@ -234,7 +234,7 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 %endif
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
-%{python3_sitearch}/*
+%{nuitka_python3_sitelib}/*
 %{_bindir}/nuitka
 %{_bindir}/nuitka-run
 %endif
