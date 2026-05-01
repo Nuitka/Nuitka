@@ -41,7 +41,12 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
 
 // Avoid collisions with system libz containing it and being linked against.
 #define ZEXTERN NUITKA_MAY_BE_UNUSED static
+
+// The bundled zlib code does not use this export internally, and linked
+// libpython variants may provide it already.
+#define get_crc_table nuitka_get_crc_table
 #include "crc32.c"
+#undef get_crc_table
 #endif
 
 uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0, message, size) & 0xFFFFFFFF; }
