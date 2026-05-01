@@ -1156,13 +1156,22 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
 #else
 
-#if defined(__i386__) || defined(__x86_64__)
-#include <x86intrin.h>
+#if defined(_MSC_VER) && (defined(__i386__) || defined(__x86_64__))
+#include <intrin.h>
 #endif
 
 static uint64_t getCpuCycleCounter(void) {
 #if defined(__i386__) || defined(__x86_64__)
+#if defined(_MSC_VER)
     return __rdtsc();
+#else
+    unsigned int low_value;
+    unsigned int high_value;
+
+    __asm__ volatile("rdtsc" : "=a"(low_value), "=d"(high_value));
+
+    return (((uint64_t)high_value) << 32) | low_value;
+#endif
 #elif defined(__aarch64__)
     uint64_t val;
     __asm__ volatile("mrs %0, cntvct_el0" : "=r"(val));
