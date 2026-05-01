@@ -32,6 +32,7 @@ from .Importing import importFromInlineCopy
 from .Utils import (
     getOS,
     isAlpineLinux,
+    isAndroidBasedLinux,
     isBSD,
     isCoffUsingPlatform,
     isDebianBasedLinux,
@@ -475,10 +476,8 @@ Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
 
-def checkPatchElfPresenceAndUsability(logger):
-    """Checks if patchelf is present and usable."""
-
-    output = executeToolChecked(
+def _getPatchElfVersionOutput(logger):
+    return executeToolChecked(
         logger=logger,
         command=("patchelf", "--version"),
         absence_message="""\
@@ -486,9 +485,29 @@ Error, standalone mode on %s requires 'patchelf' to be \
 installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
     )
 
-    if output.split() == b"0.18.0" and not isDebianBasedLinux():
+
+def getPatchElfVersion(logger):
+    output = _getPatchElfVersionOutput(logger)
+
+    version = output.split()[1]
+
+    if str is not bytes:
+        version = version.decode("utf8")
+
+    return version, tuple(
+        int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+    )
+
+
+def checkPatchElfPresenceAndUsability(logger):
+    """Checks if patchelf is present and usable."""
+
+    version, version_tuple = getPatchElfVersion(logger)
+
+    if version_tuple == (0, 18, 0) and not isDebianBasedLinux():
         return logger.sysexit(
-            "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
+            "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
+            % version
         )
 
 
@@ -549,6 +568,9 @@ def setSharedLibraryRPATH(filename, rpath):
             clearOtoolOutputCache(filename)
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
+
+            if isAndroidBasedLinux():
+                cleanupHeaderForAndroid(filename)
 
     updated_rpaths = getSharedLibraryRPATHs(filename, elements=False, cached=False)
     expected_rpaths = [rpath]

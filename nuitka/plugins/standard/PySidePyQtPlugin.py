@@ -35,7 +35,13 @@ from nuitka.utils.FileOperations import (
     listDir,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.SharedLibraries import getPatchElfVersion
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isElfUsingPlatform,
+    isMacOS,
+    isWin32Windows,
+)
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -100,6 +106,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 "Error, failed to locate the '%s' installation." % self.binding_name
             )
 
+        if isElfUsingPlatform():
+            self._checkPatchElfVersion()
+
         sensible_qt_plugins = self._getSensiblePlugins()
 
         self.include_qt_plugins = OrderedSet(
@@ -140,6 +149,15 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
             reason="%s bindings removing immortal states of objects"
             % self.binding_name,
         )
+
+    def _checkPatchElfVersion(self):
+        patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
+
+        if (0, 10) <= patchelf_version_tuple < (0, 12):
+            self.sysexit("""\
+Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
+for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
+newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
