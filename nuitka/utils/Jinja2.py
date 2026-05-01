@@ -29,33 +29,48 @@ def unlikely_or_likely_from(value):
 _jinja2 = None
 _markupsafe = None
 
-# For pkg resources, we need to keep a reference, after we delete it from
-# "sys.modules" again.
 
-_loaded_pkg_resources = None
+def takeImportedModules(module_name):
+    result = {}
+
+    for loaded_module_name in tuple(sys.modules):
+        if loaded_module_name == module_name or loaded_module_name.startswith(
+            module_name + "."
+        ):
+            result[loaded_module_name] = sys.modules[loaded_module_name]
+            del sys.modules[loaded_module_name]
+
+    return result
+
+
+def restoreImportedModules(saved_modules):
+    for loaded_module_name in sorted(saved_modules):
+        sys.modules[loaded_module_name] = saved_modules[loaded_module_name]
 
 
 def getJinja2Package():
-    global _jinja2, _markupsafe, _loaded_pkg_resources  # singleton package using a cache, pylint: disable=global-statement
-
-    # Import dependencies, sadly we get to manage this ourselves.
-    if _markupsafe is None:
-        _markupsafe = importFromInlineCopy("markupsafe", must_exist=True)
-
-    # Newer Jinja2 may not use it, but we load it and remove it, so it
-    # does not interfere with anything else.
-    if "pkg_resources" not in sys.modules:
-        if _loaded_pkg_resources is None:
-            _loaded_pkg_resources = importFromInlineCopy(
-                "pkg_resources", must_exist=False
-            )
+    global _jinja2, _markupsafe  # singleton package using a cache, pylint: disable=global-statement
 
     if _jinja2 is None:
-        _jinja2 = importFromInlineCopy("jinja2", must_exist=True)
+        old_pkg_resources = takeImportedModules("pkg_resources")
 
-    # Unload if it was us loading it, as the inline copy is incomplete.
-    if _loaded_pkg_resources is not None and "pkg_resources" in sys.modules:
-        del sys.modules["pkg_resources"]
+        try:
+            # Keep Jinja2 import isolated from ambient pkg_resources state.
+            # Load this before our inline MarkupSafe, or else it will warn when
+            # site-packages contains another MarkupSafe installation.
+            importFromInlineCopy("pkg_resources", must_exist=False)
+
+            if _markupsafe is None:
+                # Prefer our inline copy over any already imported variant, older
+                # Jinja2 needs an API that newer MarkupSafe releases removed.
+                takeImportedModules("markupsafe")
+                _markupsafe = importFromInlineCopy("markupsafe", must_exist=True)
+
+            takeImportedModules("jinja2")
+            _jinja2 = importFromInlineCopy("jinja2", must_exist=True)
+        finally:
+            takeImportedModules("pkg_resources")
+            restoreImportedModules(old_pkg_resources)
 
     return _jinja2
 
