@@ -810,9 +810,15 @@ unsigned long long get%(camel_name)sSize(void) {
 
 INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
     return (unsigned CONST_CONSTANT char *)%(symbol_name)s_data;
 }
+#ifdef __cplusplus
+}
+#endif
 %(size_export_code)s
 """
         % {
