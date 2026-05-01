@@ -61,6 +61,7 @@ from nuitka.utils.Importing import (
     builtin_module_names,
     getExtensionModuleSuffixes,
     getModuleFilenameSuffixes,
+    getModuleNameAndKindFromFilenameSuffix,
     getPackageDirFilename,
     isBuiltinModuleName,
 )
@@ -319,12 +320,12 @@ def getModuleNameAndKindFromFilename(module_filename):
         package_filename = getPackageDirFilename(module_filename)
 
         if package_filename is not None:
-            for suffix in getExtensionModuleSuffixes():
-                if package_filename.endswith(suffix):
-                    return (
-                        ModuleName(os.path.basename(module_filename)),
-                        "extension",
-                    )
+            _module_name, module_kind = getModuleNameAndKindFromFilenameSuffix(
+                package_filename
+            )
+
+            if module_kind is not None:
+                return ModuleName(os.path.basename(module_filename)), module_kind
 
         return ModuleName(os.path.basename(module_filename)), "py"
 
@@ -828,10 +829,17 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
         # Not usable for target architecture.
         raise ImportError
 
+    if found_candidate.module_type == "C_EXTENSION":
+        module_kind = "extension"
+    elif found_candidate.module_type == "PY_COMPILED":
+        module_kind = "pyc"
+    else:
+        module_kind = "py"
+
     return (
         found_candidate.found_as,
         found_candidate.full_path,
-        "extension" if found_candidate.module_type == "C_EXTENSION" else "py",
+        module_kind,
     )
 
 
@@ -1159,9 +1167,9 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getNormalizedPathJoin(filename, "__init__.py")
+        source_filename = getPackageDirFilename(filename)
 
-        if not os.path.isfile(source_filename):
+        if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()
             is_namespace = True
         else:

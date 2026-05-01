@@ -37,7 +37,14 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     scanDirectoryForTestCaseFolders,
     setup,
+    test_logger,
     withPythonPathChange,
+)
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    makePath,
+    putTextFileContents,
+    resetDirectory,
 )
 
 
@@ -71,6 +78,53 @@ def checkMultiprocessingUsingReport(filename, python_version):
     )
 
     assert modules_used["__parents_main__"]["finding"] == "fake", modules_used
+
+
+def _makeBytecodeOnlyModule(filename, source_code):
+    putTextFileContents(filename=filename, contents=source_code, encoding="utf8")
+
+    try:
+        check_call(
+            (
+                os.environ["PYTHON"],
+                "-c",
+                # spell-checker: ignore cfile,doraise
+                "import py_compile,sys; py_compile.compile(sys.argv[1], cfile=sys.argv[1] + 'c', doraise=True)",
+                filename,
+            )
+        )
+    finally:
+        if os.path.exists(filename):
+            os.unlink(filename)
+
+
+def updateBytecodeOnlyImportPath(test_directory):
+    bytecode_only_path = os.path.join(test_directory, "path1")
+
+    resetDirectory(
+        path=bytecode_only_path,
+        logger=test_logger,
+        ignore_errors=True,
+        extra_recommendation=None,
+    )
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(bytecode_only_path, "bytecode_only_module.py"),
+        source_code='module_value = "module-bytecode-only"\n',
+    )
+
+    package_dir = os.path.join(bytecode_only_path, "bytecode_only_package")
+    makePath(package_dir)
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(package_dir, "__init__.py"),
+        source_code='package_value = "package-bytecode-only"\n',
+    )
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(package_dir, "submodule.py"),
+        source_code='submodule_value = "submodule-bytecode-only"\n',
+    )
 
 
 def main():
@@ -184,6 +238,9 @@ def main():
             continue
 
         my_print("Consider output of recursively compiled program:", filename)
+
+        if filename == "bytecode_only_import":
+            updateBytecodeOnlyImportPath(filename)
 
         extra_python_path = [
             os.path.abspath(os.path.join(filename, entry))

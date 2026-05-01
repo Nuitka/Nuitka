@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
     getPackageDirFilename,
+    hasPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -427,7 +428,7 @@ def _addIncludedModule(module, package_only):
 
         if not package_only:
             for sub_path, sub_filename in listDir(package_dir):
-                if sub_filename in ("__init__.py", "__pycache__"):
+                if sub_filename == "__pycache__" or hasPackageDirFilename(sub_filename):
                     continue
 
                 if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):

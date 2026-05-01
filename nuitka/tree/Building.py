@@ -1326,11 +1326,16 @@ def buildModule(
 
     # Handle bytecode module case immediately.
     if module_kind == "pyc":
+        bytecode_filename = source_filename
+
+        if bytecode_filename is None:
+            bytecode_filename = module_filename
+
         return makeUncompiledPythonModule(
             module_name=module_name,
             reason=reason,
             filename=module_filename,
-            bytecode=loadCodeObjectData(module_filename),
+            bytecode=loadCodeObjectData(bytecode_filename),
             is_package=is_package,
             technical=module_name in detectEarlyImports(),
         )
