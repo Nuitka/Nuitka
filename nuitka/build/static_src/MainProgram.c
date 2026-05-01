@@ -2106,7 +2106,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_ssize_t size = PyList_Size(argv_list);
 
         // Negative indexes are not supported by this function.
-        int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
@@ -2137,7 +2137,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
-        int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
