@@ -227,6 +227,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc README.rst Changelog.rst
+%{_bindir}/compile-python-for-nuitka-linux.sh
 %if 0%{?fedora} < 31 && 0%{?rhel} < 8
 %{_bindir}/nuitka2
 %{_bindir}/nuitka2-run
