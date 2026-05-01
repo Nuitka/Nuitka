@@ -279,7 +279,13 @@ long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow) {
         return (long)result;
     }
 
+#if PYTHON_VERSION >= 0x270
     return PyLong_AsLongAndOverflow(value, overflow);
+#else
+    // TODO: Python 2.6 doesn't have the overflow-reporting API, but we will add
+    // our own PyLong_AsLongAndOverflow anyway.
+    return PyLong_AsLong(value);
+#endif
 }
 
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
