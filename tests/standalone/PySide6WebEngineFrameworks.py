@@ -8,19 +8,23 @@
 # nuitka-project: --macos-app-icon=none
 
 # nuitka-skip-unless-expression: sys.platform == "darwin"
-# nuitka-skip-unless-imports: PySide6.QtWebEngineWidgets
+# nuitka-skip-unless-imports: PySide6.QtWebEngineCore
 
 from __future__ import print_function
 
+import os
 import sys
 
 from PySide6.QtCore import QTimer, QUrl
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWebEngineCore import QWebEnginePage
 
-app = QApplication([])
-view = QWebEngineView()
-view.resize(320, 200)
+os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
+
+
+# The macOS builder is headless, so avoid requiring a visible WebEngine widget.
+app = QGuiApplication(sys.argv[:1] + ["-platform", "offscreen"])
+page = QWebEnginePage()
 
 html = """\
 <!DOCTYPE html>
@@ -39,11 +43,23 @@ html = """\
 </html>
 """
 
-state = {"timed_out": False}
+state = {"error": None, "timed_out": False}
+
+
+def onFailure(message):
+    state["error"] = message
+    print("failure=%s" % message)
+    sys.stdout.flush()
+    app.quit()
 
 
 def onJavaScriptDone(result):
     print("js-result=%s" % result)
+
+    if result != "3857":
+        onFailure("Unexpected JavaScript result '%s'" % result)
+        return
+
     sys.stdout.flush()
     app.quit()
 
@@ -52,10 +68,17 @@ def onLoadFinished(ok):
     print("loaded=%s" % ok)
 
     if not ok:
-        raise AssertionError("WebEngine failed to load inline HTML")
+        onFailure("WebEngine failed to load inline HTML")
+        return
 
-    print("title=%s" % view.title())
-    view.page().runJavaScript("getAnswer()", onJavaScriptDone)
+    title = page.title()
+    print("title=%s" % title)
+
+    if title != "qtwe3857":
+        onFailure("Unexpected page title '%s'" % title)
+        return
+
+    page.runJavaScript("getAnswer()", onJavaScriptDone)
 
 
 def onTimeout():
@@ -65,10 +88,13 @@ def onTimeout():
     app.quit()
 
 
-view.loadFinished.connect(onLoadFinished)
+page.loadFinished.connect(onLoadFinished)
 QTimer.singleShot(15000, onTimeout)
-view.setHtml(html, QUrl("file:///qtwe3857.html"))
+page.setHtml(html, QUrl("file:///qtwe3857.html"))
 app.exec()
+
+if state["error"] is not None:
+    raise AssertionError(state["error"])
 
 if state["timed_out"]:
     raise AssertionError("WebEngine timed out")
