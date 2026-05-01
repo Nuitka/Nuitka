@@ -76,6 +76,40 @@ async def top_empty():
 print(run_until_complete(top()))
 print(run_until_complete(top_empty()))
 
+send_namespace = {}
+
+exec(
+    """\
+import types
+
+@types.coroutine
+def resume_with_value():
+    result = yield ("send",)
+    return result
+""",
+    send_namespace,
+)
+
+
+def run_until_complete_with_send(coro, value):
+    first = coro.send(None)
+    assert first == ("send",), first
+
+    try:
+        coro.send(value)
+    except StopIteration as ex:
+        return ex.args[0] if ex.args else None
+
+    assert False, "coroutine should have completed"
+
+
+async def top_send_value_bridge():
+    result = await send_namespace["resume_with_value"]()
+    print(type(result).__module__, type(result).__name__, repr(result))
+
+
+run_until_complete_with_send(top_send_value_bridge(), {"sent": 17})
+
 # Keep the inner coroutine uncompiled so the await path crosses the
 # compiled/uncompiled coroutine boundary during cancellation handling.
 bridge_namespace = {}
@@ -84,15 +118,33 @@ exec(
     """\
 import asyncio
 
+def get_current_task(loop):
+    if hasattr(asyncio, "current_task"):
+        return asyncio.current_task()
+
+    return asyncio.Task.current_task(loop=loop)
+
+def create_future(loop):
+    if hasattr(loop, "create_future"):
+        return loop.create_future()
+
+    return asyncio.Future(loop=loop)
+
+def create_task(loop, coro):
+    if hasattr(asyncio, "create_task"):
+        return asyncio.create_task(coro)
+
+    return asyncio.ensure_future(coro, loop=loop)
+
 async def run_inner():
-    current_task = asyncio.current_task()
-    loop = asyncio.get_running_loop()
-    result_future = loop.create_future()
+    loop = asyncio.get_event_loop()
+    current_task = get_current_task(loop)
+    result_future = create_future(loop)
 
     async def request_cancel():
         current_task.cancel()
 
-    cancel_task = asyncio.create_task(request_cancel())
+    cancel_task = create_task(loop, request_cancel())
 
     def deliver_result(_task):
         if not result_future.done():
@@ -114,7 +166,18 @@ async def top_cancel_await_bridge():
     print(type(result).__module__, type(result).__name__, repr(result))
 
 
-asyncio.run(top_cancel_await_bridge())
+def run_async(coro):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
+
+
+run_async(top_cancel_await_bridge())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
