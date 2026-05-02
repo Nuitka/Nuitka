@@ -475,6 +475,8 @@ _patchelf_usage = """\
 Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
+_patch_elf_version = None
+
 
 def _getPatchElfVersionOutput(logger):
     return executeToolChecked(
@@ -487,16 +489,26 @@ installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
 
 
 def getPatchElfVersion(logger):
-    output = _getPatchElfVersionOutput(logger)
+    # Singleton, pylint: disable=global-statement
+    global _patch_elf_version
 
-    version = output.split()[1]
+    result = _patch_elf_version
 
-    if str is not bytes:
-        version = version.decode("utf8")
+    if result is None:
+        output = _getPatchElfVersionOutput(logger)
 
-    return version, tuple(
-        int("".join(d for d in part if d.isdigit())) for part in version.split(".")
-    )
+        version = output.split()[1]
+
+        if str is not bytes:
+            version = version.decode("utf8")
+
+        result = version, tuple(
+            int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+        )
+
+        _patch_elf_version = result
+
+    return result
 
 
 def checkPatchElfPresenceAndUsability(logger):
@@ -504,7 +516,11 @@ def checkPatchElfPresenceAndUsability(logger):
 
     version, version_tuple = getPatchElfVersion(logger)
 
-    if version_tuple == (0, 18, 0) and not isDebianBasedLinux():
+    if (
+        version_tuple == (0, 18, 0)
+        and not isDebianBasedLinux()
+        and not isAndroidBasedLinux()
+    ):
         return logger.sysexit(
             "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
             % version
