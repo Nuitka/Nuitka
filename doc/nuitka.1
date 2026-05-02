@@ -634,6 +634,17 @@ Apply encryption to standard error.
 \fB\-\-encrypt\-debug\-init\fR
 In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.
 .IP
+Plugin options of 'source\-inclusion' (categories: feature, package\-support):
+.TP
+\fB\-\-source\-inclusion\-args\fR=\fI\,SOURCE_INCLUSION_ARG_SETS\/\fR
+Run the program being compiled during compilation with this shell\-style argument list while recording successful 'inspect.getsource()' lookups. Repeat for every additional probe run, e.g. '\-\-source\-inclusion\-args="subcommand \fB\-\-help\fR"'.
+.TP
+\fB\-\-source\-inclusion\-timeout\fR=\fI\,SOURCE_INCLUSION_TIMEOUT\/\fR
+Timeout in seconds for each probe run. Defaults to 30.
+.TP
+\fB\-\-show\-source\-inclusion\-trace\fR
+Display the recorded 'inspect.getsource()' keys from the probe run.
+.IP
 Plugin options of 'upx' (categories: integration):
 .TP
 \fB\-\-upx\-binary\fR=\fI\,UPX_PATH\/\fR

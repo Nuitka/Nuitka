@@ -9162,6 +9162,22 @@
     - depends:
         - '_twofish'
 
+- module-name: 'tyro' # checksum: b2300544
+  anti-bloat:
+    - description: 'remove optional pydantic support'
+      no-auto-follow:
+        'pydantic': 'ignore'
+        'torch': 'ignore'
+        'flax.linen': 'ignore'
+        'ml_collections': 'ignore'
+        'msgspec': 'ignore'
+        'pydantic.v1': 'ignore'
+  options:
+    checks:
+      - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
+        support_info: 'plugin'
+        when: 'standalone and not plugin("source-inclusion")'
+
 - module-name: 'tzdata' # checksum: c364567b
   data-files:
     - dirs:
