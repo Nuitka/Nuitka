@@ -256,7 +256,18 @@ static inline size_t Nuitka_PyType_InlineValuesSize(PyTypeObject *tp) {
         return 0;
     }
 
-    return _PyInlineValuesSize(tp);
+    // GCC 11+ can still emit a false-positive "-Warray-bounds" for the
+    // PyHeapTypeObject cast in '_PyInlineValuesSize' after the heap type
+    // check above. CPython applies the same workaround elsewhere.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+    size_t result = _PyInlineValuesSize(tp);
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
+    return result;
 }
 
 static inline void Nuitka_PyObject_InitInlineValues(PyObject *obj, PyTypeObject *tp) {
@@ -264,7 +275,17 @@ static inline void Nuitka_PyObject_InitInlineValues(PyObject *obj, PyTypeObject 
         return;
     }
 
+    // GCC 11+ can still emit a false-positive "-Warray-bounds" for the
+    // PyHeapTypeObject cast after the heap type check above. CPython applies
+    // the same workaround elsewhere.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     PyDictKeysObject *keys = ((PyHeapTypeObject *)tp)->ht_cached_keys;
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
     assert(keys != NULL);
 
 #ifdef Py_GIL_DISABLED
