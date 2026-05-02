@@ -37,6 +37,7 @@ from .Utils import (
     isCoffUsingPlatform,
     isDebianBasedLinux,
     isElfUsingPlatform,
+    isFedoraBasedLinux,
     isLinux,
     isMacOS,
     isWin32Windows,
@@ -516,10 +517,12 @@ def checkPatchElfPresenceAndUsability(logger):
 
     version, version_tuple = getPatchElfVersion(logger)
 
+    # These have backports by now.
     if (
         version_tuple == (0, 18, 0)
         and not isDebianBasedLinux()
         and not isAndroidBasedLinux()
+        and not isFedoraBasedLinux()
     ):
         return logger.sysexit(
             "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
