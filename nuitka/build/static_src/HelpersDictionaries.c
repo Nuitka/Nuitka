@@ -1068,7 +1068,7 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
 #endif
 }
 
-#if PYTHON_VERSION >= 0x300 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+#if PYTHON_VERSION >= 0x300 && (NUITKA_DICT_HAS_FREELIST || !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
 static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
@@ -1153,7 +1153,7 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 }
 #endif
 
-#if PYTHON_VERSION >= 0x360 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
+#if PYTHON_VERSION >= 0x360 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 
 // Usable fraction of keys.
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
@@ -2185,7 +2185,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
 #endif
 
-#if NUITKA_DICT_HAS_FREELIST && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+#if NUITKA_DICT_HAS_FREELIST
 PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 
@@ -2211,7 +2211,11 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     _Py_RefTotal++;
 #endif
 
-    // No Nuitka_GC_Track for the empty dictionary.
+    // Python 3.14 tracks even empty dicts, older versions did not.
+#if PYTHON_VERSION >= 0x3e0
+    Nuitka_GC_Track(result_mp);
+#endif
+
     return (PyObject *)result_mp;
 }
 #endif
