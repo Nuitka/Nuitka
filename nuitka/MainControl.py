@@ -63,7 +63,6 @@ from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebuggerName,
-    getExperimentalIndications,
     getFileReferenceMode,
     getForcedStderrPath,
     getForcedStdoutPath,
@@ -728,7 +727,6 @@ def runSconsBackend():
     scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(shallUsePythonDebug())
     scons_options["full_compat"] = asBoolStr(states.is_full_compat)
-    scons_options["experimental"] = ",".join(getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["file_reference_mode"] = getFileReferenceMode()
     scons_options["compiled_module_count"] = "%d" % len(

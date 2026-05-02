@@ -686,7 +686,7 @@ def getCommonSconsOptions():
         self_compiled_python_uninstalled=isSelfCompiledPythonUninstalled(),
     )
 
-    scons_options["experimental"] = ",".join(getExperimentalIndications())
+    scons_options["experimental"] = ",".join(sorted(getExperimentalIndications()))
 
     scons_options["debug_modes"] = ",".join(getDebugModeIndications())
 
