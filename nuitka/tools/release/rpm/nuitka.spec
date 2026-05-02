@@ -3,7 +3,7 @@
 %if 0%{?fedora} < 31
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 %endif
-%global nuitka_python3_sitelib %(%{__python3} -c "import sys, sysconfig; sys.stdout.write(sysconfig.get_path('purelib', vars={'base': '%{_prefix}', 'platbase': '%{_prefix}'}))")
+%global nuitka_python3_sitelib %{python3_sitelib}
 %endif
 
 %global _python_bytecompile_errors_terminate_build 0
@@ -57,6 +57,7 @@ BuildRequires:  python3-tools
 BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc
+BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  patchelf
 BuildRequires:  ccache
