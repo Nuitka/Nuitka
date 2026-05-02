@@ -1566,7 +1566,7 @@ through incomplete set import by '%s' plugin encountered."""
             order will be plugin order.
 
         Returns:
-            OrderedSet() of paths to include as well.
+            tuple of paths to include as well.
         """
         if cls.extra_include_directories is None:
             cls.extra_include_directories = OrderedSet()
@@ -1577,7 +1577,7 @@ through incomplete set import by '%s' plugin encountered."""
                 if value:
                     cls.extra_include_directories.update(value)
 
-        return cls.extra_include_directories
+        return tuple(cls.extra_include_directories)
 
     @staticmethod
     @counted_plugin_method
@@ -1648,7 +1648,7 @@ through incomplete set import by '%s' plugin encountered."""
                         for library_name in value:
                             cls.extra_link_libraries.add(os.path.normcase(library_name))
 
-        return cls.extra_link_libraries
+        return tuple(cls.extra_link_libraries)
 
     extra_link_directories = None
 
@@ -1668,7 +1668,7 @@ through incomplete set import by '%s' plugin encountered."""
                         for dir_name in value:
                             cls.extra_link_directories.add(dir_name)
 
-        return cls.extra_link_directories
+        return tuple(cls.extra_link_directories)
 
     @classmethod
     @counted_plugin_method

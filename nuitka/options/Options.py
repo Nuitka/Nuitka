@@ -2150,13 +2150,13 @@ def isDeploymentMode():
 
 
 def getNoDeploymentIndications():
-    """:returns: list derived from ``--no-deployment-flag``"""
+    """:returns: tuple derived from ``--no-deployment-flag``"""
     result = list(options.no_deployment_flags)
 
     if shallRunInDebugger() and "segfault" not in result:
         result.append("segfault")
 
-    return result
+    return tuple(result)
 
 
 def hasNonDeploymentIndicator(indicator_name):
@@ -2182,11 +2182,8 @@ def enableExperimental(indication):
 
 
 def getExperimentalIndications():
-    """*tuple*, items of ``--experimental=``"""
-    if hasattr(options, "experimental"):
-        return options.experimental
-    else:
-        return ()
+    """*tuple*, items of ``--experimental=`` and runtime enabled indications."""
+    return tuple(sorted(_experimental))
 
 
 def getDebugModeIndications():
@@ -2208,7 +2205,7 @@ def getDebugModeIndications():
             if getattr(options, debug_option_value_name) is True:
                 result.append(debug_option_value_name)
 
-    return result
+    return tuple(result)
 
 
 def requireNoDebugImmortalAssumptions(logger, reason):

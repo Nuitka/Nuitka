@@ -116,7 +116,7 @@ def getExtraIncludeDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraIncludeDirectories()
 
@@ -129,7 +129,7 @@ def getExtraLinkDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraLinkDirectories()
 
@@ -142,7 +142,7 @@ def getExtraLinkLibraries():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of library names to link against.
+        tuple of library names to link against.
     """
     return Plugins.getExtraLinkLibraries()
 
