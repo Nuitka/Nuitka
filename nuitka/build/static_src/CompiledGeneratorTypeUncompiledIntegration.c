@@ -1572,14 +1572,18 @@ static void _Nuitka_PyFrame_Clear(PyThreadState *tstate, _PyInterpreterFrame *fr
     Py_XDECREF(frame->f_locals);
 #if PYTHON_VERSION < 0x3c0
     Py_DECREF(frame->f_func);
-#else
+#elif PYTHON_VERSION < 0x3e0
     Py_DECREF(frame->f_funcobj);
+#else
+    PyStackRef_CLEAR(frame->f_funcobj);
 #endif
 
 #if PYTHON_VERSION < 0x3d0
     Py_XDECREF(frame->f_code);
-#else
+#elif PYTHON_VERSION < 0x3e0
     Py_XDECREF(frame->f_executable);
+#else
+    PyStackRef_CLEAR(frame->f_executable);
 #endif
 }
 #endif
