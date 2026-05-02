@@ -263,7 +263,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         PyObject *key, *dict_value;
 
         while (Nuitka_DictNext(value, &pos, &key, &dict_value)) {
-            if (key != NULL && value != NULL) {
+            if (key != NULL && dict_value != NULL) {
                 result ^= DEEP_HASH(tstate, key);
                 result ^= DEEP_HASH(tstate, dict_value);
             }
