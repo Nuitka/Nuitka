@@ -651,6 +651,14 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define UN_TRANSLATE(x) (x)
 #endif
 
+#ifndef MAKE_NAME
+#define MAKE_NAME(name, index) (name)
+#endif
+
+#ifndef UN_TRANSLATE_NAME
+#define UN_TRANSLATE_NAME(x) (x)
+#endif
+
 #if _NUITKA_EXPERIMENTAL_FILE_TRACING
 #include "nuitka_file_tracer.h"
 #else

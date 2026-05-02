@@ -642,7 +642,7 @@ _supported_resource_modes = (
 def _decideBlobResourceMode(env):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
@@ -667,10 +667,12 @@ def _decideBlobResourceMode(env):
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
-        # TODO: The macOS has no Clang19 yet, once it does, we could also
-        # consider using "c23_embed" for it too.
-        resource_mode = "mac_section"
-        reason = "default for macOS"
+        if env.clang_mode and env.clang_version >= (19,):
+            resource_mode = "c23_embed"
+            reason = "default for macOS with clang 19 or later"
+        else:
+            resource_mode = "mac_section"
+            reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -746,13 +748,18 @@ def _getBlobNameCamelCase(blob_filename):
     )
 
 
-def _isWriteableConstantsBlob(env, blob_filename):
-    return (
-        env.writeable_constants and os.path.basename(blob_filename) == "__constant.bin"
-    )
+def _isWriteableConstantsBlob(blob_filename):
+    if os.path.basename(blob_filename) != "__constant.bin":
+        return False
+
+    for cpp_define in getArgumentList("cpp_defines", ""):
+        if cpp_define.split("=", 1)[0] == "_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS":
+            return True
+
+    return False
 
 
-def _addConstantBlobFileCoffObj(env, blob_filename, export_size):
+def _addConstantBlobFileCoffObj(env, blob_filename):
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
 
     obj_filename = blob_filename + ".obj"
@@ -762,36 +769,20 @@ def _addConstantBlobFileCoffObj(env, blob_filename, export_size):
         out_filename=obj_filename,
         symbol_name=_getSymbolName(blob_filename) + "_data",
         architecture=env.target_arch,
-        export_size=export_size,
-        writeable=_isWriteableConstantsBlob(env, blob_filename),
+        writeable=_isWriteableConstantsBlob(blob_filename),
     )
 
     # Link the generated object file
     env.Append(LINKFLAGS=[obj_filename])
 
 
-def _addConstantBlobFileIncbin(env, blob_filename, export_size):
+def _addConstantBlobFileIncbin(env, blob_filename):
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
     constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
 
     symbol_name = _getSymbolName(blob_filename)
     camel_name = _getBlobNameCamelCase(blob_filename)
-    # The incbin macro creates style symbols like `symbol_name_size`.
-    # But C variables initialized from them will give "initializer element is not constant"
-    # because they are `extern const unsigned int`, not macro sizes.
-    # Therefore we expose it via a function.
-    size_export_code = """
-#ifdef __cplusplus
-extern "C" {
-#endif
-unsigned long long get%(camel_name)sSize(void) {
-    return %(symbol_name)s_size;
-}
-#ifdef __cplusplus
-}
-#endif
-""" % {"symbol_name": symbol_name, "camel_name": camel_name} if export_size else ""
 
     putTextFileContents(
         constants_generated_filename,
@@ -819,18 +810,16 @@ unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
 #ifdef __cplusplus
 }
 #endif
-%(size_export_code)s
 """
         % {
             "blob_filename": blob_filename,
             "symbol_name": symbol_name,
             "camel_name": camel_name,
-            "size_export_code": size_export_code,
         },
     )
 
 
-def _addConstantBlobFileLinker(env, blob_filename, export_size):
+def _addConstantBlobFileLinker(env, blob_filename):
     # Indicate "linker" resource mode.
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
@@ -864,20 +853,8 @@ def _addConstantBlobFileLinker(env, blob_filename, export_size):
         ]
     )
 
-    if export_size:
-        env.Append(
-            LINKFLAGS=[
-                "-Wl,-defsym",
-                "-Wl,%s_size_value=_binary_%s_size"
-                % (
-                    constant_bin_link_name.replace("_data", ""),
-                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
-                ),
-            ]
-        )
 
-
-def _addConstantBlobFileCode(env, blob_filename, export_size):
+def _addConstantBlobFileCode(env, blob_filename):
     # Indicate "code" resource mode.
     env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
@@ -929,17 +906,6 @@ unsigned char %s_data[] =
 
             output.write("\n};\n")
 
-            if export_size:
-                output.write("""
-#ifdef __cplusplus
-extern "C" {
-#endif
-const unsigned long long %s_size_value = sizeof(%s_data);
-#ifdef __cplusplus
-}
-#endif
-""" % (_getSymbolName(blob_filename), _getSymbolName(blob_filename)))
-
             if not env.c11_mode:
                 output.write("}")
 
@@ -970,7 +936,7 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     )
 
 
-def addConstantBlobFile(env, blob_filename, export_size):
+def addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
     if env.resource_mode == "absent":
@@ -981,17 +947,17 @@ def addConstantBlobFile(env, blob_filename, export_size):
         )
 
     if env.resource_mode == "coff_obj":
-        _addConstantBlobFileCoffObj(env, blob_filename, export_size)
+        _addConstantBlobFileCoffObj(env, blob_filename)
     elif env.resource_mode == "win_resource":
         _addConstantBlobFileWinResource(env)
     elif env.resource_mode == "mac_section":
         _addConstantBlobFileMacSection(env, blob_filename)
     elif env.resource_mode == "incbin":
-        _addConstantBlobFileIncbin(env, blob_filename, export_size)
+        _addConstantBlobFileIncbin(env, blob_filename)
     elif env.resource_mode == "linker":
-        _addConstantBlobFileLinker(env, blob_filename, export_size)
+        _addConstantBlobFileLinker(env, blob_filename)
     elif env.resource_mode in ("code", "c23_embed"):
-        _addConstantBlobFileCode(env, blob_filename, export_size)
+        _addConstantBlobFileCode(env, blob_filename)
     else:
         return scons_logger.sysexit(
             "Error, illegal resource mode '%s' specified" % env.resource_mode,
@@ -1003,17 +969,17 @@ def addConstantBlobFiles(env, source_dir):
     env.resource_mode = "absent"
 
     blobs_dir = os.path.join(source_dir, "blobs")
-    if not os.path.exists(blobs_dir):
-        return
+    if os.path.exists(blobs_dir):
+        blob_filenames = []
 
-    for filename_full, filename in listDir(blobs_dir):
-        if filename.endswith(".bin"):
-            export_size = filename == "__payload.bin"
+        for filename_full, filename in listDir(blobs_dir):
+            if filename.endswith(".bin"):
+                blob_filenames.append(filename_full)
 
+        for blob_filename in blob_filenames:
             addConstantBlobFile(
                 env=env,
-                blob_filename=filename_full,
-                export_size=export_size,
+                blob_filename=blob_filename,
             )
 
 
@@ -1023,26 +989,13 @@ def _enableMacOSTargetSettings(env):
 
     setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-    if env.zig_mode:
-        zig_target_arch = env.macos_target_arch
-
-        if zig_target_arch == "arm64":
-            zig_target_arch = "aarch64"
-
-        # Zig does not accept the Clang style "--target=arm64-apple-macos11"
-        # form, but it does accept versioned macOS target triples of its own.
-        target_flag = "--target=%s-macos.%s-none" % (
-            zig_target_arch,
-            env.macos_min_version,
-        )
-    else:
+    if not env.zig_mode:
         target_flag = "--target=%s-apple-macos%s" % (
             env.macos_target_arch,
             env.macos_min_version,
         )
-
-    env.Append(CCFLAGS=[target_flag])
-    env.Append(LINKFLAGS=[target_flag])
+        env.Append(CCFLAGS=[target_flag])
+        env.Append(LINKFLAGS=[target_flag])
 
 
 def _enableAIXTargetSettings(env):

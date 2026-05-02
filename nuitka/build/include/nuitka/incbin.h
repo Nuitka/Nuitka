@@ -119,18 +119,15 @@ For more information, please refer to <http://unlicense.org/>
 #ifdef __GNUC__
 /* Utilize .balign where supported */
 #  define INCBIN_ALIGN_HOST ".balign " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n"
-#  define INCBIN_ALIGN_BYTE ".balign 1\n"
 #elif defined(INCBIN_ARM)
 /*
  * On arm assemblers, the alignment value is calculated as (1 << n) where `n' is
  * the shift count. This is the value passed to `.align'
  */
 #  define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT_INDEX) "\n"
-#  define INCBIN_ALIGN_BYTE ".align 0\n"
 #else
 /* We assume other inline assembler's treat `.align' as `.balign' */
 #  define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n"
-#  define INCBIN_ALIGN_BYTE ".align 1\n"
 #endif
 
 /* INCBIN_CONST is used by incbin.c generated files */
@@ -172,7 +169,6 @@ For more information, please refer to <http://unlicense.org/>
 #  else
 #    define INCBIN_GLOBAL(NAME)
 #  endif
-#  define INCBIN_INT             ".long "
 #  define INCBIN_MANGLE          "_"
 #  define INCBIN_BYTE            ".byte "
 #  define INCBIN_TYPE(...)
@@ -182,11 +178,6 @@ For more information, please refer to <http://unlicense.org/>
 #    define INCBIN_GLOBAL(NAME)    ".global " INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME "\n"
 #  else
 #    define INCBIN_GLOBAL(NAME)
-#  endif
-#  if defined(__ghs__)
-#    define INCBIN_INT           ".word "
-#  else
-#    define INCBIN_INT           ".int "
 #  endif
 #  if defined(__USER_LABEL_PREFIX__)
 #    define INCBIN_MANGLE        INCBIN_STRINGIZE(__USER_LABEL_PREFIX__)
@@ -220,8 +211,6 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols:
  * // const unsigned char gFooData[];
- * // const unsigned char *const gFooEnd;
- * // const unsigned int gFooSize;
  * @endcode
  *
  * If however you specify a prefix before including: e.g:
@@ -232,8 +221,6 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols instead:
  * // const unsigned char incbinFooData[];
- * // const unsigned char *const incbinFooEnd;
- * // const unsigned int incbinFooSize;
  * @endcode
  */
 #if !defined(INCBIN_PREFIX)
@@ -254,8 +241,6 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols:
  * // const unsigned char <prefix>FooData[];
- * // const unsigned char *const <prefix>FooEnd;
- * // const unsigned int <prefix>FooSize;
  * @endcode
  *
  * If however you specify a style before including: e.g:
@@ -266,8 +251,6 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols:
  * // const unsigned char <prefix>foo_data[];
- * // const unsigned char *const <prefix>foo_end;
- * // const unsigned int <prefix>foo_size;
  * @endcode
  */
 #if !defined(INCBIN_STYLE)
@@ -276,11 +259,7 @@ For more information, please refer to <http://unlicense.org/>
 
 /* Style lookup tables */
 #define INCBIN_STYLE_0_DATA Data
-#define INCBIN_STYLE_0_END End
-#define INCBIN_STYLE_0_SIZE Size
 #define INCBIN_STYLE_1_DATA _data
-#define INCBIN_STYLE_1_END _end
-#define INCBIN_STYLE_1_SIZE _size
 
 /* Style lookup: returning identifier */
 #define INCBIN_STYLE_IDENT(TYPE) \
@@ -316,11 +295,11 @@ For more information, please refer to <http://unlicense.org/>
 /**
  * @brief Externally reference binary data included in another translation unit.
  *
- * Produces three external symbols that reference the binary data included in
+ * Produces one external symbol that references the binary data included in
  * another translation unit.
  *
- * The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
- * "Data", as well as "End" and "Size" after. An example is provided below.
+ * The symbol name is a concatenation of `INCBIN_PREFIX' before *NAME* and
+ * "Data" after it. An example is provided below.
  *
  * @param NAME The name given for the binary data
  *
@@ -329,32 +308,22 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols:
  * // extern const unsigned char <prefix>FooData[];
- * // extern const unsigned char *const <prefix>FooEnd;
- * // extern const unsigned int <prefix>FooSize;
  * @endcode
  */
 #define INCBIN_EXTERN(NAME) \
     INCBIN_EXTERNAL const INCBIN_ALIGN unsigned char \
         INCBIN_CONCATENATE( \
             INCBIN_CONCATENATE(INCBIN_PREFIX, NAME), \
-            INCBIN_STYLE_IDENT(DATA))[]; \
-    INCBIN_EXTERNAL const INCBIN_ALIGN unsigned char *const \
-    INCBIN_CONCATENATE( \
-        INCBIN_CONCATENATE(INCBIN_PREFIX, NAME), \
-        INCBIN_STYLE_IDENT(END)); \
-    INCBIN_EXTERNAL const unsigned int \
-        INCBIN_CONCATENATE( \
-            INCBIN_CONCATENATE(INCBIN_PREFIX, NAME), \
-            INCBIN_STYLE_IDENT(SIZE))
+            INCBIN_STYLE_IDENT(DATA))[]
 
 /**
  * @brief Include a binary file into the current translation unit.
  *
- * Includes a binary file into the current translation unit, producing three symbols
- * for objects that encode the data and size respectively.
+ * Includes a binary file into the current translation unit, producing one symbol
+ * for the object that encodes the data.
  *
- * The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
- * "Data", as well as "End" and "Size" after. An example is provided below.
+ * The symbol name is a concatenation of `INCBIN_PREFIX' before *NAME* and
+ * "Data" after it. An example is provided below.
  *
  * @param NAME The name to associate with this binary data (as an identifier.)
  * @param FILENAME The file to include (as a string literal.)
@@ -364,8 +333,6 @@ For more information, please refer to <http://unlicense.org/>
  *
  * // Now you have the following symbols:
  * // const unsigned char <prefix>IconData[];
- * // const unsigned char *const <prefix>IconEnd;
- * // const unsigned int <prefix>IconSize;
  * @endcode
  *
  * @warning This must be used in global scope
@@ -384,15 +351,6 @@ For more information, please refer to <http://unlicense.org/>
             INCBIN_ALIGN_HOST \
             INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(DATA) ":\n" \
             INCBIN_MACRO " \"" FILENAME "\"\n" \
-            INCBIN_GLOBAL_LABELS(NAME, END) \
-            INCBIN_ALIGN_BYTE \
-            INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(END) ":\n" \
-                INCBIN_BYTE "1\n" \
-            INCBIN_GLOBAL_LABELS(NAME, SIZE) \
-            INCBIN_ALIGN_HOST \
-            INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(SIZE) ":\n" \
-                INCBIN_INT INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(END) " - " \
-                           INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(DATA) "\n" \
             INCBIN_ALIGN_HOST \
             ".text\n" \
     ); \

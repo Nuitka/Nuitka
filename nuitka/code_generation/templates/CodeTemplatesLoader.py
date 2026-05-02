@@ -153,7 +153,7 @@ struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE(current->name);
+            current->name = UN_TRANSLATE_NAME(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 

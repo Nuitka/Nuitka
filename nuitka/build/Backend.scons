@@ -532,7 +532,7 @@ if env.gcc_mode and (not env.clang_mode or env.zig_mode):
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
 # Plugin contributed C include directories should be used too.
-env.Append(CPPPATH=cpp_include_dirs)
+env.Prepend(CPPPATH=cpp_include_dirs)
 # Plugin contributed link dirs should be used too.
 env.Append(LIBPATH=link_dirs)
 # Plugin contributed link libraries should be used too.

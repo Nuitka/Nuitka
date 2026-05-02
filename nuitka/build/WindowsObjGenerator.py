@@ -14,7 +14,7 @@ import struct
 from nuitka.utils.FileOperations import getFileSize
 
 
-def _createCoffStringTable(symbol_bytes, symbol_size_bytes):
+def _createCoffStringTable(symbol_bytes):
     string_table_data = b""
 
     if len(symbol_bytes) <= 8:
@@ -26,24 +26,17 @@ def _createCoffStringTable(symbol_bytes, symbol_size_bytes):
         string_table_data += symbol_bytes + b"\x00"
         sym_name_field = struct.pack("<II", 0, offset)
 
-    if len(symbol_size_bytes) <= 8:
-        sym_name_size_field = symbol_size_bytes.ljust(8, b"\x00")
-    else:
-        offset = 4 + len(string_table_data)
-        string_table_data += symbol_size_bytes + b"\x00"
-        sym_name_size_field = struct.pack("<II", 0, offset)
-
     if not string_table_data:
         string_table = b""
     else:
         string_table_size = 4 + len(string_table_data)
         string_table = struct.pack("<I", string_table_size) + string_table_data
 
-    return sym_name_field, sym_name_size_field, string_table
+    return sym_name_field, string_table
 
 
 def generateWindowsCoffObject(
-    in_filename, out_filename, symbol_name, architecture, export_size, writeable
+    in_filename, out_filename, symbol_name, architecture, writeable
 ):
     """Generate a valid MSVC COFF .obj file containing the given payload.
 
@@ -52,7 +45,6 @@ def generateWindowsCoffObject(
         out_filename (str): Path to write the resulting .obj file.
         symbol_name (str): The C symbol name to export.
         architecture (str): 'x86', 'x86_64', or 'arm64'.
-        export_size (bool): Export payload size information as a second symbol.
         writeable (bool): Use a writable '.data' section instead of '.rdata'.
     """
 
@@ -73,16 +65,10 @@ def generateWindowsCoffObject(
     if str is not bytes:
         symbol_bytes = symbol_name.encode("utf8")
 
-    symbol_size_bytes = symbol_bytes.replace(b"_data", b"_size_value")
-
-    sym_name_field, sym_name_size_field, string_table = _createCoffStringTable(
-        symbol_bytes, symbol_size_bytes
-    )
+    sym_name_field, string_table = _createCoffStringTable(symbol_bytes)
 
     payload_size = getFileSize(in_filename)
-
-    size_bytes_data = struct.pack("<Q", payload_size) if export_size else b""
-    section_data_size = payload_size + len(size_bytes_data)
+    section_data_size = payload_size
 
     # 4-byte alignment padding for the symbol table
     padding_len = (4 - (section_data_size % 4)) % 4
@@ -102,7 +88,7 @@ def generateWindowsCoffObject(
         1,  # NumberOfSections
         0,  # TimeDateStamp (0 for reproducibility)
         pointer_to_symbol_table,
-        2 if export_size else 1,  # NumberOfSymbols
+        1,  # NumberOfSymbols
         0,  # SizeOfOptionalHeader
         0,  # Characteristics
     )
@@ -156,16 +142,6 @@ def generateWindowsCoffObject(
         0,  # NumberOfAuxSymbols
     )
 
-    symbol_table_entry2 = struct.pack(
-        "<8sIhHBB",
-        sym_name_size_field,
-        payload_size,  # Value (offset within section)
-        1,  # SectionNumber
-        0,  # Type
-        2,  # StorageClass (IMAGE_SYM_CLASS_EXTERNAL)
-        0,  # NumberOfAuxSymbols
-    )
-
     with open(out_filename, "wb") as f_out:
         f_out.write(file_header)
         f_out.write(section_header)
@@ -173,14 +149,8 @@ def generateWindowsCoffObject(
         with open(in_filename, "rb") as f_in:
             shutil.copyfileobj(f_in, f_out)
 
-        if export_size:
-            f_out.write(size_bytes_data)
-
         f_out.write(padding)
         f_out.write(symbol_table_entry)
-
-        if export_size:
-            f_out.write(symbol_table_entry2)
 
         if string_table:
             f_out.write(string_table)

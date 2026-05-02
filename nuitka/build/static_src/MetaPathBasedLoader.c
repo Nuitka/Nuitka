@@ -292,7 +292,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name) {
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE(current->name);
+            current->name = UN_TRANSLATE_NAME(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -320,7 +320,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findContainingPackageEntry(char c
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE(current->name);
+            current->name = UN_TRANSLATE_NAME(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -1684,7 +1684,7 @@ static PyObject *_nuitka_loader_iter_modules(PyObject *self_obj, PyObject *args,
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE(current->name);
+            current->name = UN_TRANSLATE_NAME(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -2377,7 +2377,7 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     while (entry->name != NULL) {
         if ((entry->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            entry->name = UN_TRANSLATE(entry->name);
+            entry->name = UN_TRANSLATE_NAME(entry->name);
             entry->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -2561,7 +2561,7 @@ void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
 
         while (current->name != NULL) {
             if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-                current->name = UN_TRANSLATE(current->name);
+                current->name = UN_TRANSLATE_NAME(current->name);
                 current->flags -= NUITKA_TRANSLATED_FLAG;
             }
 

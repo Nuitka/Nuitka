@@ -29,12 +29,6 @@
     extern unsigned modifier char *get##blob_camel_name##Data(void);                                                   \
     NUITKA_CONSTANTS_EXTERN_C_END
 
-#define NUITKA_DECLARE_CONSTANT_BLOB_SIZED(blob_name, blob_camel_name, modifier, res_id)                               \
-    NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                         \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    extern unsigned long long get##blob_camel_name##Size(void);                                                        \
-    NUITKA_CONSTANTS_EXTERN_C_END
-
 #elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
 
 #include <windows.h> // Ensure FindResource and loaded objects are valid
@@ -67,19 +61,6 @@ extern HMODULE getDllModuleHandle(void);
             abort();                                                                                                   \
         }                                                                                                              \
         return (unsigned modifier char *)LockResource(hData);                                                          \
-    }                                                                                                                  \
-    NUITKA_CONSTANTS_EXTERN_C_END
-
-#define NUITKA_DECLARE_CONSTANT_BLOB_SIZED(blob_name, blob_camel_name, modifier, res_id)                               \
-    NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                         \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    static inline unsigned long long get##blob_camel_name##Size(void) {                                                \
-        HMODULE handle = _NUITKA_GET_RESOURCE_HANDLE();                                                                \
-        HRSRC hRes = FindResource(handle, MAKEINTRESOURCE(res_id), RT_RCDATA);                                         \
-        if (unlikely(hRes == NULL)) {                                                                                  \
-            abort();                                                                                                   \
-        }                                                                                                              \
-        return SizeofResource(handle, hRes);                                                                           \
     }                                                                                                                  \
     NUITKA_CONSTANTS_EXTERN_C_END
 
@@ -140,17 +121,6 @@ static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
     }                                                                                                                  \
     NUITKA_CONSTANTS_EXTERN_C_END
 
-#define NUITKA_DECLARE_CONSTANT_BLOB_SIZED(blob_name, blob_camel_name, modifier, res_id)                               \
-    NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                         \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    static inline unsigned long long get##blob_camel_name##Size(void) {                                                \
-        const struct mach_header_arch *header = _getNuitkaMachHeader();                                                \
-        unsigned long size;                                                                                            \
-        getsectiondata(header, #blob_name, #blob_name, &size);                                                         \
-        return size;                                                                                                   \
-    }                                                                                                                  \
-    NUITKA_CONSTANTS_EXTERN_C_END
-
 #else
 
 #ifdef __cplusplus
@@ -168,26 +138,6 @@ static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
     static inline unsigned modifier char *get##blob_camel_name##Data(void) {                                           \
         return (unsigned modifier char *)(blob_name##_data);                                                           \
     }
-
-#if defined(_NUITKA_CONSTANTS_FROM_CODE)
-// The size for code mode is provided as an actual variable value
-#define NUITKA_DECLARE_CONSTANT_BLOB_SIZED(blob_name, blob_camel_name, modifier, res_id)                               \
-    NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                         \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    extern const unsigned long long blob_name##_size_value;                                                            \
-    NUITKA_CONSTANTS_EXTERN_C_END                                                                                      \
-    static inline unsigned long long get##blob_camel_name##Size(void) { return blob_name##_size_value; }
-#else
-// The size for linker/coff_obj mode is provided as an address variable by GNU linker or CoffObj
-#define NUITKA_DECLARE_CONSTANT_BLOB_SIZED(blob_name, blob_camel_name, modifier, res_id)                               \
-    NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                         \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    extern const unsigned char blob_name##_size_value[];                                                               \
-    NUITKA_CONSTANTS_EXTERN_C_END                                                                                      \
-    static inline unsigned long long get##blob_camel_name##Size(void) {                                                \
-        return (unsigned long long)&(blob_name##_size_value);                                                          \
-    }
-#endif
 
 #endif // INCBIN
 

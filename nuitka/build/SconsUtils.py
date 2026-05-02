@@ -380,14 +380,6 @@ def createEnvironment(
     # Non-elf binary, important for linker settings.
     env.noelf_mode = getArgumentBool("noelf_mode", False)
 
-    cpp_defines = getArgumentList("cpp_defines", "")
-    for cpp_define in cpp_defines:
-        if cpp_define.split("=", 1)[0] == "_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS":
-            env.writeable_constants = True
-            break
-    else:
-        env.writeable_constants = False
-
     # Python specific modes have to influence some decisions.
     env.static_libpython = getArgumentDefaulted("static_libpython", "")
     if env.static_libpython:
@@ -756,7 +748,7 @@ def getSconsCompilerUsed(source_dir):
         ("clang_mode", "Clang"),
         ("gcc_mode", "gcc"),
     ):
-        if getSconsReportValueBool(source_dir, key):
+        if getSconsReportValueBool(source_dir, key, default=None):
             return compiler_used
 
     return "Unknown"

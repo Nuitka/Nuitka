@@ -48,6 +48,7 @@ from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
     getFileContents,
+    getFileSize,
     makeContainingPath,
     removeDirectory,
 )
@@ -86,7 +87,9 @@ def packDistFolderToOnefile(dist_dir):
     onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode):
+def _runOnefileScons(
+    onefile_compression, onefile_archive, backend_resource_mode, onefile_payload_size
+):
     scons_options, env_values = getCommonSconsOptions()
 
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
@@ -110,6 +113,7 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
     env_values["_NUITKA_ONEFILE_HAS_PAYLOAD_BOOL"] = "1" if hasOnefilePayload() else "0"
+    env_values["_NUITKA_ONEFILE_PAYLOAD_SIZE_INT"] = str(onefile_payload_size)
 
     main_filename_in_payload = hasOnefilePayloadMainEntry()
 
@@ -267,6 +271,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
 
     # We might not even have a payload due to commercial file embedding.
     has_payload = hasOnefilePayload()
+    onefile_payload_size = 0
 
     if has_payload:
         expected_files = []
@@ -288,11 +293,14 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
             expected_files=expected_files,
         )
 
+        onefile_payload_size = getFileSize(onefile_payload_filename)
+
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
         onefile_archive=shallOnefileAsArchive(),
         backend_resource_mode=backend_resource_mode,
+        onefile_payload_size=onefile_payload_size,
     )
 
     if isWin32Windows():

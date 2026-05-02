@@ -190,13 +190,13 @@ static unsigned long long payload_size = 0;
     defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_RESOURCE) ||                           \
     defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 
-NUITKA_DECLARE_CONSTANT_BLOB_SIZED(payload_bin, PayloadBlob, const, 27)
+NUITKA_DECLARE_CONSTANT_BLOB(payload_bin, PayloadBlob, const, 27)
 
-// We have no sizing here, but it's first reading length anyway.
+// The payload blob size is a generated onefile build definition.
 static void initPayloadData2(void) {
     payload_data = getPayloadBlobData();
     payload_current = payload_data;
-    payload_size = getPayloadBlobSize();
+    payload_size = (unsigned long long)_NUITKA_ONEFILE_PAYLOAD_SIZE_INT;
 }
 
 static void closePayloadData(void) {}
