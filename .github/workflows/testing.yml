@@ -69,6 +69,8 @@ jobs:
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -164,6 +166,8 @@ jobs:
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -208,7 +212,7 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
-    needs: linux
+    needs: checks
     runs-on: macos-latest
     strategy:
       matrix:
@@ -273,6 +277,8 @@ jobs:
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -339,7 +345,7 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
-    needs: linux
+    needs: checks
     runs-on: windows-latest
     strategy:
       matrix:
@@ -400,6 +406,8 @@ jobs:
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -430,7 +438,7 @@ jobs:
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows-arm:
-    needs: linux
+    needs: checks
     runs-on: windows-11-arm
     strategy:
       matrix:
@@ -489,6 +497,8 @@ jobs:
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
