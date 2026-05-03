@@ -10,7 +10,7 @@ dynamic = ["version"]
 description = "Python compiler with full language support and CPython compatibility"
 readme = "README.rst"
 license = "AGPL-3.0-or-later"
-requires-python = ">=3.7"
+requires-python = ">=3.6"
 authors = [
     {name = "Kay Hayen", email = "Kay.Hayen@gmail.com"},
 ]
@@ -44,9 +44,9 @@ classifiers = [
 ]
 dependencies = [
     "appdirs",
-    "tqdm; python_version>='3.4'",
-    "zstandard>=0.15; python_version>='3.5' and python_version<'3.14'",
-    "pyyaml; python_version>='3.6'",
+    "tqdm",
+    "zstandard>=0.15; python_version<'3.14'",
+    "pyyaml",
     "Jinja2>=2.10.2",
 ]
 
@@ -65,7 +65,7 @@ build_with_nuitka = "nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsComm
 [project.optional-dependencies]
 build-wheel = ["setuptools>=42", "toml", "wheel"]
 standalone = []
-onefile = ["zstandard>=0.15; python_version>='3.7' and python_version<'3.14'"]
+onefile = ["zstandard>=0.15; python_version<'3.14'"]
 app = []
 package = []
 icon-conversion = ["imageio"]
@@ -73,7 +73,7 @@ all = [
     "setuptools>=42",
     "toml",
     "imageio",
-    "zstandard>=0.15; python_version>='3.7' and python_version<'3.14'",
+    "zstandard>=0.15; python_version<'3.14'",
 ]
 
 [project.urls]
@@ -96,10 +96,10 @@ dev = [
     "doxypypy==0.8.8.6",
     "Jinja2==3.1.4; python_version>='3.7'",
     "tqdm==4.66.4; python_version>='3.7'",
-    "virtualenv; python_version>='3.5'",
-    "pytest; python_version>='3.4'",
-    "zstandard>=0.15; python_version>='3.5' and python_version<'3.14'",
-    "pyyaml==6.0.1; python_version>='3.6'",
+    "virtualenv",
+    "pytest",
+    "zstandard>=0.15; python_version<'3.14'",
+    "pyyaml==6.0.1",
     "wheel",
     "black==26.3.1; python_version>='3.11'",
     "isort==8.0.1; python_version>='3.11'",
