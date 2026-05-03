@@ -9,7 +9,7 @@ name = "Nuitka"
 dynamic = ["version"]
 description = "Python compiler with full language support and CPython compatibility"
 readme = "README.rst"
-license = "AGPL-3.0-or-later"
+license = {text = "GNU Affero General Public License v3"}
 requires-python = ">=3.6"
 authors = [
     {name = "Kay Hayen", email = "Kay.Hayen@gmail.com"},
