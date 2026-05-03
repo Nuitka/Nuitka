@@ -77,13 +77,15 @@ jobs:
         with:
           enable-cache: true
 
-      - name: 🗄️ Cache Nuitka downloads
+      - name: 🗄️ Cache Nuitka downloads and autoformat
         uses: actions/cache@v4
         with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          path: |
+            ~/.cache/Nuitka/downloads
+            ~/.cache/Nuitka/autoformat
+          key: nuitka-formatting-${{ runner.os }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
           restore-keys: |
-            nuitka-downloads-${{ runner.os }}-
+            nuitka-formatting-${{ runner.os }}-
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
