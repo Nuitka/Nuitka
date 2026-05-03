@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     openPickleFile,
     openTextFile,
+    searchPrefixPath,
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
@@ -893,29 +894,173 @@ def getSconsObjectSizes(source_dir):
     return _scons_object_sizes.get(source_dir, {})
 
 
+def _getVisualStudioClangDirectory(clang_root_dir, compiler_arch):
+    if compiler_arch == "pei-x86-64":
+        return getNormalizedPathJoin(clang_root_dir, "x64", "bin")
+    elif compiler_arch == "pei-arm64":
+        return getNormalizedPathJoin(clang_root_dir, "ARM64", "bin")
+    else:
+        return getNormalizedPathJoin(clang_root_dir, "bin")
+
+
+_visual_studio_installer_data = None
+
+
+def _getVisualStudioInstallerComponentTitles():
+    global _visual_studio_installer_data  # Singleton, pylint: disable=global-statement
+
+    if _visual_studio_installer_data is None:
+        vs_instances_dir = r"C:\ProgramData\Microsoft\VisualStudio\Packages\_Instances"
+        component_titles = {}
+
+        if os.path.isdir(vs_instances_dir):
+            for instance_name in os.listdir(vs_instances_dir):
+                components_filename = getNormalizedPathJoin(
+                    vs_instances_dir, instance_name, "components.json"
+                )
+
+                if not os.path.exists(components_filename):
+                    continue
+
+                try:
+                    components_data = loadJsonFromFilename(components_filename)
+                except OSError:  # Broken installer state is not fatal here.
+                    continue
+
+                if components_data is None:
+                    continue
+
+                for package_data in components_data.get("packages", ()):
+                    package_id = package_data.get("id")
+
+                    if package_id in component_titles:
+                        continue
+
+                    package_title = None
+
+                    for localized_resource in package_data.get(
+                        "localizedResources", ()
+                    ):
+                        if package_title is None:
+                            package_title = localized_resource.get("title")
+
+                        if localized_resource.get("language", "").lower() == "en-us":
+                            package_title = localized_resource.get("title")
+                            break
+
+                    if package_title is not None:
+                        component_titles[package_id] = package_title
+
+        _visual_studio_installer_data = component_titles
+
+    return _visual_studio_installer_data
+
+
+def _getVisualStudioInstallerComponentTitle(package_id):
+    return _getVisualStudioInstallerComponentTitles().get(package_id)
+
+
+def _getVisualStudioClangMissingComponentName(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "C++ Clang-cl for v143 build tools (ARM64)"
+
+    component_name = _getVisualStudioInstallerComponentTitle(
+        "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+    )
+
+    if component_name is None:
+        component_name = _getVisualStudioInstallerComponentTitle(
+            "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang"
+        )
+
+    if component_name is None:
+        component_name = "C++ Clang Compiler for Windows"
+
+    return component_name
+
+
+def _getVisualStudioClangMissingComponentId(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+    return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+
+def _getVisualStudioInstallationPathFromCLExe(cl_exe):
+    vc_path = searchPrefixPath(cl_exe, "VC")
+
+    if vc_path is None:
+        return None
+
+    return os.path.dirname(vc_path)
+
+
+def _getVisualStudioClangInstallCommand(cl_exe, compiler_arch):
+    installation_path = _getVisualStudioInstallationPathFromCLExe(cl_exe)
+    component_id = _getVisualStudioClangMissingComponentId(compiler_arch)
+    setup_exe = r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
+
+    if installation_path is None or not os.path.exists(setup_exe):
+        return None
+
+    return '"%s" modify --installPath "%s" --add "%s" --passive --norestart' % (
+        setup_exe,
+        installation_path,
+        component_id,
+    )
+
+
+def _getVisualStudioClangMissingError(clang_dir, compiler_arch, cl_exe):
+    component_name = _getVisualStudioClangMissingComponentName(compiler_arch)
+    install_command = _getVisualStudioClangInstallCommand(
+        cl_exe=cl_exe, compiler_arch=compiler_arch
+    )
+
+    if install_command is None:
+        return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.""" % (
+            clang_dir,
+            component_name,
+        )
+
+    return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.
+
+From an elevated shell (administrator), run:
+%s""" % (
+        clang_dir,
+        component_name,
+        install_command,
+    )
+
+
 def addClangClPathFromMSVC(env):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        scons_logger.sysexit(
-            "Error, Visual Studio required for using ClangCL on Windows."
+        return scons_logger.sysexit(
+            "Error, Visual Studio required for using ClangCL on Windows.", env=env
         )
 
-    clang_dir = getNormalizedPathJoin(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
+    compiler_arch = getCompilerArch(
+        mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
+    )
 
-    if (
-        getCompilerArch(
-            mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
-        )
-        == "pei-x86-64"
-    ):
-        clang_dir = getNormalizedPathJoin(clang_dir, "x64", "bin")
-    else:
-        clang_dir = getNormalizedPathJoin(clang_dir, "bin")
+    clang_root_dir = getNormalizedPathJoin(
+        cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm"
+    )
+    clang_dir = _getVisualStudioClangDirectory(
+        clang_root_dir=clang_root_dir, compiler_arch=compiler_arch
+    )
 
     if not os.path.exists(clang_dir):
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     scons_details_logger.info(
@@ -927,8 +1072,11 @@ def addClangClPathFromMSVC(env):
     clangcl_path = getExecutablePath("clang-cl", env=env)
 
     if clangcl_path is None:
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     env["CC"] = "clang-cl"
