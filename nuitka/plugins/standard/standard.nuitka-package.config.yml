@@ -4352,6 +4352,11 @@
     - depends:
         - '.*.locale'
 
+- module-name: 'perfetto.trace_processor' # checksum: fcccb406
+  data-files:
+    - patterns:
+        - '*.descriptor'
+
 - module-name: 'persistent._compat' # checksum: 79e919b4
   anti-bloat:
     - description: 'use own compilation for compatibility'
