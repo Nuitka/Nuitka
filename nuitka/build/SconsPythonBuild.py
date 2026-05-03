@@ -6,7 +6,7 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
@@ -33,7 +33,13 @@ def _addPythonIncludePaths(env):
         )
 
     if env.self_compiled_python_uninstalled:
-        python_include_paths.append(env.python_prefix_external)
+        if isWin32Windows():
+            python_header_path = os.path.join(env.python_prefix_external, "PC")
+
+            if os.path.exists(python_header_path):
+                python_include_paths.append(python_header_path)
+        else:
+            python_include_paths.append(env.python_prefix_external)
 
     env.Append(CPPPATH=python_include_paths)
 
