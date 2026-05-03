@@ -8,37 +8,40 @@
 
 // spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld
 
-#if _NUITKA_MODULE_MODE
-static inline int Nuitka_GetRuntimeVersion(void) {
-    static int runtime_version = 0;
-    if (runtime_version == 0) {
-        const char *ver = Py_GetVersion();
-        while (*ver && *ver != '.') {
-            ver++;
-        }
-        if (*ver) {
-            ver++;
-        }
-        while (*ver && *ver != '.') {
-            ver++;
-        }
-        if (*ver) {
-            ver++;
-        }
-        int micro = 0;
-        while (*ver >= '0' && *ver <= '9') {
-            micro = micro * 10 + (*ver - '0');
-            ver++;
-        }
-        if (micro >= 16) {
-            micro = 15;
-        }
-        runtime_version = PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + micro;
-    }
-    return runtime_version;
-}
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {
+    static int cached_objects_pointer_delta = 2;
+
+    if (cached_objects_pointer_delta == 2) {
+        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
+
+#if PYTHON_VERSION >= 0x3e4
+        cached_objects_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
 #else
-#define Nuitka_GetRuntimeVersion() PYTHON_VERSION
+        cached_objects_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
+#endif
+    }
+
+    return (struct _Py_interp_cached_objects *)((char *)&interp->cached_objects +
+                                                cached_objects_pointer_delta * sizeof(void *));
+}
+
+static inline struct _Py_interp_static_objects *Nuitka_PyInterpreterState_GetStaticObjects(PyInterpreterState *interp) {
+    static int static_objects_pointer_delta = 2;
+
+    if (static_objects_pointer_delta == 2) {
+        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
+
+#if PYTHON_VERSION >= 0x3e4
+        static_objects_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
+#else
+        static_objects_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
+#endif
+    }
+
+    return (struct _Py_interp_static_objects *)((char *)&interp->static_objects +
+                                                static_objects_pointer_delta * sizeof(void *));
+}
 #endif
 
 #if PYTHON_VERSION >= 0x3c0

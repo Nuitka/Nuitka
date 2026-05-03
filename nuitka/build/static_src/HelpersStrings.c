@@ -319,7 +319,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 #if PYTHON_VERSION >= 0x390
 
 #ifdef Py_REF_DEBUG
-#define _Py_DEC_REFTOTAL _Py_RefTotal--;
+#define _Py_DEC_REFTOTAL Nuitka_Py_DecRefTotal(_PyThreadState_GET());
 #else
 #define _Py_DEC_REFTOTAL
 #endif

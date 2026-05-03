@@ -1074,8 +1074,7 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
 
 #if NUITKA_DICT_HAS_FREELIST
 #if PYTHON_VERSION >= 0x3e0
-    // TODO: Eliminate _Py_freelists_GET for our own version, using tstate passed in
-    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->dicts);
+    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->dicts);
 
     if (result_mp == NULL) {
         result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
@@ -2207,8 +2206,8 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 #endif
 
     // Key reference needs to be counted on older Python
-#if defined(Py_REF_DEBUG) && PYTHON_VERSION < 0x3c0
-    _Py_RefTotal++;
+#if PYTHON_VERSION < 0x3c0
+    Nuitka_Py_IncRefTotal(tstate);
 #endif
 
     // Python 3.14 tracks even empty dicts, older versions did not.

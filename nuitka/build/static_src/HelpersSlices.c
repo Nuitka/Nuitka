@@ -14,7 +14,7 @@ PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *sto
     PySliceObject *result_slice;
 
 #if PYTHON_VERSION >= 0x3e0
-    result_slice = (PySliceObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->slices);
+    result_slice = (PySliceObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->slices);
 
     if (result_slice == NULL) {
         result_slice = (PySliceObject *)Nuitka_GC_New(&PySlice_Type);

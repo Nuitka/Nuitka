@@ -72,6 +72,33 @@ NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(pyt
 #endif
 #endif
 
+#ifdef Py_REF_DEBUG
+static inline void Nuitka_Py_IncRefTotal(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x3c0
+    _Py_RefTotal++;
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    _Py_IncRefTotal(tstate);
+#else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
+    tstate->interp->object_state.reftotal++;
+#endif
+}
+
+static inline void Nuitka_Py_DecRefTotal(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x3c0
+    _Py_RefTotal--;
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    _Py_DecRefTotal(tstate);
+#else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
+    tstate->interp->object_state.reftotal--;
+#endif
+}
+#else
+#define Nuitka_Py_IncRefTotal(tstate)
+#define Nuitka_Py_DecRefTotal(tstate)
+#endif
+
 #if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {
@@ -79,9 +106,7 @@ static inline void _Nuitka_Py_DECREF(PyObject *ob) {
 
     // Non-limited C API and limited C API for Python 3.9 and older access
     // directly PyObject.ob_refcnt.
-#ifdef Py_REF_DEBUG
-    _Py_RefTotal--;
-#endif
+    Nuitka_Py_DecRefTotal(_PyThreadState_GET());
     if (--ob->ob_refcnt == 0) {
         destructor dealloc = Py_TYPE(ob)->tp_dealloc;
 #ifdef Py_TRACE_REFS
@@ -101,9 +126,7 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 
         // Non-limited C API and limited C API for Python 3.9 and older access
         // directly PyObject.ob_refcnt.
-#ifdef Py_REF_DEBUG
-        _Py_RefTotal--;
-#endif
+        Nuitka_Py_DecRefTotal(_PyThreadState_GET());
         if (--ob->ob_refcnt == 0) {
             destructor dealloc = Py_TYPE(ob)->tp_dealloc;
 #ifdef Py_TRACE_REFS
@@ -202,14 +225,7 @@ static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type 
 #if PYTHON_VERSION >= 0x390
 static inline void Nuitka_Py_NewReferenceNoTotal(PyObject *op) { Py_SET_REFCNT(op, 1); }
 static inline void Nuitka_Py_NewReference(PyObject *op) {
-#ifdef Py_REF_DEBUG
-#if PYTHON_VERSION < 0x3c0
-    _Py_RefTotal++;
-#else
-    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
-    _PyInterpreterState_GET()->object_state.reftotal++;
-#endif
-#endif
+    Nuitka_Py_IncRefTotal(_PyThreadState_GET());
 #if !defined(Py_GIL_DISABLED)
 
 #if PYTHON_VERSION < 0x3e0

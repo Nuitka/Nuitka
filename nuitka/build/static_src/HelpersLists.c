@@ -58,7 +58,7 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     return PyList_New(size);
 #else
 #if PYTHON_VERSION >= 0x3e0
-    PyListObject *result_list = (PyListObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->lists);
+    PyListObject *result_list = (PyListObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->lists);
 
     if (result_list == NULL) {
         result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);

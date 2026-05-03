@@ -86,9 +86,7 @@ else
         result_mp->ma_used = dict_mp->ma_used;
 
         // This is a manual reference count for the keys.
-#ifdef Py_REF_DEBUG
-        _Py_RefTotal++;
-#endif
+        Nuitka_Py_IncRefTotal(tstate);
         dict_mp->ma_keys->dk_refcnt += 1;
 
         for (Py_ssize_t i = 0; i < size; i++) {
@@ -204,9 +202,7 @@ else
 #endif
 
     // The new keys are an object counted.
-#ifdef Py_REF_DEBUG
-        _Py_RefTotal++;
-#endif
+        Nuitka_Py_IncRefTotal(tstate);
 
         Nuitka_GC_Track(result_mp);
     } else

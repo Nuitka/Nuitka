@@ -73,9 +73,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             // This is a manual reference count for the keys.
-#ifdef Py_REF_DEBUG
-            _Py_RefTotal++;
-#endif
+            Nuitka_Py_IncRefTotal(tstate);
             dict_mp->ma_keys->dk_refcnt += 1;
 
             for (Py_ssize_t i = 0; i < size; i++) {
@@ -167,9 +165,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #endif
 
                 // The new keys are an object counted.
-#ifdef Py_REF_DEBUG
-                _Py_RefTotal++;
-#endif
+                Nuitka_Py_IncRefTotal(tstate);
 
                 Nuitka_GC_Track(result_mp);
             } else
@@ -298,9 +294,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             // This is a manual reference count for the keys.
-#ifdef Py_REF_DEBUG
-            _Py_RefTotal++;
-#endif
+            Nuitka_Py_IncRefTotal(tstate);
             dict_mp->ma_keys->dk_refcnt += 1;
 
             for (Py_ssize_t i = 0; i < size; i++) {
@@ -394,9 +388,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #endif
 
                 // The new keys are an object counted.
-#ifdef Py_REF_DEBUG
-                _Py_RefTotal++;
-#endif
+                Nuitka_Py_IncRefTotal(tstate);
 
                 Nuitka_GC_Track(result_mp);
             } else
@@ -557,9 +549,7 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
             result_mp->ma_used = dict_mp->ma_used;
 
             // This is a manual reference count for the keys.
-#ifdef Py_REF_DEBUG
-            _Py_RefTotal++;
-#endif
+            Nuitka_Py_IncRefTotal(tstate);
             dict_mp->ma_keys->dk_refcnt += 1;
 
             for (Py_ssize_t i = 0; i < size; i++) {
@@ -658,9 +648,7 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
 #endif
 
                 // The new keys are an object counted.
-#ifdef Py_REF_DEBUG
-                _Py_RefTotal++;
-#endif
+                Nuitka_Py_IncRefTotal(tstate);
 
                 Nuitka_GC_Track(result_mp);
             } else

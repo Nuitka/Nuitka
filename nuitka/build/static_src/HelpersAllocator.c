@@ -706,12 +706,14 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
 
-    gcstate->young.count++;
-    gcstate->heap_size++;
+    if (!Nuitka_GC_TrackOwnsAccounting()) {
+        gcstate->young.count++;
+        gcstate->heap_size++;
 
-    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
-        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
-        Nuitka_Py_ScheduleGC(tstate);
+        if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
     }
 #endif
 }
@@ -899,7 +901,7 @@ void _NuitkaMem_ProcessDelayed(PyThreadState *tstate) {
     _Nuitka_process_queue(&tstate_impl->mem_free_queue, tstate_impl->qsbr, true);
 
     // Release interpreter queue
-    _Nuitka_process_interp_queue(&interp->mem_free_queue, tstate_impl->qsbr);
+    _Nuitka_process_interp_queue(Nuitka_PyInterpreterState_GetMemFreeQueue(interp), tstate_impl->qsbr);
 }
 
 static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
