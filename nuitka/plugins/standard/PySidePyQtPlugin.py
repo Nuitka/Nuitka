@@ -659,6 +659,12 @@ import %(binding_name)s.QtCore
             yield self._getChildNamed("QtWebEngineCore")
             yield self._getChildNamed("QtWebChannel")
             yield self._getChildNamed("QtPrintSupport")
+        elif (
+            child_name == "QtWebEngineCore"
+            and self.binding_name == "PySide6"
+            and self._getBindingVersion() >= (6, 10, 0)
+        ):
+            yield self._getChildNamed("QtPrintSupport")
         elif child_name == "QtScriptTools":
             yield self._getChildNamed("QtScript")
         elif child_name in (
