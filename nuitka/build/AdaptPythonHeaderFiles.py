@@ -286,11 +286,14 @@ def ensurePythonInternalsOffsets(cache_dir):
 
 
 def _getPythonInternalHeadersAndHash(internal_include_dir):
-    # Hash the original header contents to ensure cache invalidation on micro-version changes
+    # Hash the original header contents and mode-dependent adaptation settings.
     hash_obj = Hash()
     header_files = []
 
-    hash_obj.updateFromValues("adapted-python-headers-v6")
+    hash_obj.updateFromValues(
+        "adapted-python-headers-v7",
+        "module" if shallMakeModule() else "non-module",
+    )
 
     for filename in sorted(getFileList(internal_include_dir, only_suffixes=(".h",))):
         header_files.append(filename)
