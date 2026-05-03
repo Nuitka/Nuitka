@@ -20,9 +20,9 @@ permissions:
   contents: read
 
 jobs:
-  checks:
+  lint:
     runs-on: ubuntu-24.04
-    name: Checks
+    name: Lint
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
@@ -43,6 +43,8 @@ jobs:
           uv pip install --system .
 
       - name: 🔎 PyLint on Nuitka source code
+        env:
+          PYLINT_EXTRA_OPTIONS: "--jobs=0"
         run: |
           python ./bin/check-nuitka-with-pylint
 
@@ -58,9 +60,69 @@ jobs:
         run: |
           python ./bin/check-nuitka-with-codespell
 
+  formatting:
+    runs-on: ubuntu-24.04
+    name: Formatting
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v6
+
+      - name: 🐍 Use Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          uv pip install --system -r requirements-devel.txt
+          uv pip install --system .
+
       - name: 🔎 Auto-format check on Nuitka source code
         run: |
           python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
+
+  codegen:
+    runs-on: ubuntu-24.04
+    name: Code generation
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v6
+
+      - name: 🐍 Use Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          uv pip install --system -r requirements-devel.txt
+          uv pip install --system .
 
       - name: 🔎 Specialized C code check
         run: |
@@ -71,7 +133,7 @@ jobs:
           python ./bin/generate-specialized-python-code --check
 
   linux:
-    needs: checks
+    needs: [lint, formatting, codegen]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -130,14 +192,6 @@ jobs:
             standalone-binary-readelf.txt
             standalone-binary-ldd.txt
 
-      # This can be used to ssh into GitHub actions if debugging is needed.
-      # - uses: actions/checkout@v6
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-      #   with:
-      #     ## limits ssh access and adds the ssh public keys of the listed GitHub users
-      #     limit-access-to-users: kayhayen
-
       - name: 🧪 Run Nuitka test suite
         run: |
           python -m nuitka --version
@@ -145,7 +199,7 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
-    needs: checks
+    needs: [lint, formatting, codegen]
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -248,7 +302,7 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
-    needs: checks
+    needs: [lint, formatting, codegen]
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -311,7 +365,7 @@ jobs:
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows-arm:
-    needs: checks
+    needs: [lint, formatting, codegen]
     runs-on: windows-11-arm
     strategy:
       fail-fast: false
