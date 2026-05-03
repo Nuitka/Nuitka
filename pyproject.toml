@@ -2,6 +2,119 @@
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "Nuitka"
+dynamic = ["version"]
+description = "Python compiler with full language support and CPython compatibility"
+readme = "README.rst"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.7"
+authors = [
+    {name = "Kay Hayen", email = "Kay.Hayen@gmail.com"},
+]
+keywords = ["compiler", "python", "nuitka"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: System :: Software Distribution",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: C",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: POSIX :: BSD :: FreeBSD",
+    "Operating System :: POSIX :: BSD :: NetBSD",
+    "Operating System :: POSIX :: BSD :: OpenBSD",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: Android",
+]
+dependencies = [
+    "appdirs",
+    "tqdm; python_version>='3.4'",
+    "zstandard>=0.15; python_version>='3.5' and python_version<'3.14'",
+    "pyyaml; python_version>='3.6'",
+    "Jinja2>=2.10.2",
+]
+
+[project.scripts]
+nuitka = "nuitka.__main__:main"
+nuitka-run = "nuitka.__main__:main"
+
+[project.entry-points."distutils.commands"]
+bdist_nuitka = "nuitka.distutils.DistutilsCommands:bdist_nuitka"
+build_nuitka = "nuitka.distutils.DistutilsCommands:build"
+install_nuitka = "nuitka.distutils.DistutilsCommands:install"
+
+[project.entry-points."distutils.setup_keywords"]
+build_with_nuitka = "nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsCommands"
+
+[project.optional-dependencies]
+build-wheel = ["setuptools>=42", "toml", "wheel"]
+standalone = []
+onefile = ["zstandard>=0.15; python_version>='3.7' and python_version<'3.14'"]
+app = []
+package = []
+icon-conversion = ["imageio"]
+all = [
+    "setuptools>=42",
+    "toml",
+    "imageio",
+    "zstandard>=0.15; python_version>='3.7' and python_version<'3.14'",
+]
+
+[project.urls]
+Commercial = "https://nuitka.net/doc/commercial.html"
+Support = "https://nuitka.net/pages/support.html"
+Documentation = "https://nuitka.net/doc/user-manual.html"
+Donations = "https://nuitka.net/pages/donations.html"
+Mastodon = "https://fosstodon.org/@kayhayen"
+Twitter = "https://twitter.com/KayHayen"
+Source = "https://github.com/Nuitka/Nuitka"
+
+[dependency-groups]
+dev = [
+    "pylint==4.0.5; python_version>='3.11'",
+    "astroid==4.0.4; python_version>='3.11'",
+    "restructuredtext-lint==2.0.2; python_version>='3.11'",
+    "Pygments==2.20.0; python_version>='3.11'",
+    "rstcheck==6.2.5; python_version>='3.11'",
+    "codespell; python_version>='3.11'",
+    "doxypypy==0.8.8.6",
+    "Jinja2==3.1.4; python_version>='3.7'",
+    "tqdm==4.66.4; python_version>='3.7'",
+    "virtualenv; python_version>='3.5'",
+    "pytest; python_version>='3.4'",
+    "zstandard>=0.15; python_version>='3.5' and python_version<'3.14'",
+    "pyyaml==6.0.1; python_version>='3.6'",
+    "wheel",
+    "black==26.3.1; python_version>='3.11'",
+    "isort==8.0.1; python_version>='3.11'",
+    "yamllint==1.28.0; python_version>='3.11'",
+    "rstfmt==0.0.14; python_version>='3.11'",
+    "jsonschema==4.6.0; python_version>='3.7'",
+    "ruamel.yaml==0.17.21; python_version>='3.11'",
+    "deepdiff==8.6.2; python_version>='3.11'",
+    "mdformat==1.0.0; python_version>='3.11'",
+    "mdformat-gfm==1.0.0; python_version>='3.11'",
+    "mdformat-frontmatter==2.0.10; python_version>='3.11'",
+    "mdformat-footnote==0.1.3; python_version>='3.11'",
+    "clang-format==22.1.1",
+    "toml==0.10.2; python_version>='3.11'",
+]
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
