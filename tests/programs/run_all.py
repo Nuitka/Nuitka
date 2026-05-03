@@ -64,7 +64,7 @@ def checkMultiprocessingUsingReport(filename, python_version):
     ]
     assert (
         parent_main_module.attrib["reason"]
-        == "Auto enable multiprocessing freeze support"
+        == "Auto enable multiprocessing/anyio freeze support"
     ), parent_main_module.attrib
 
     # On Python 2, the fake module is executed directly for freeze support.
