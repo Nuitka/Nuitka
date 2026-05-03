@@ -71,6 +71,35 @@ def import_re_callback(match):
     )
 
 
+def splitOutputLines(output):
+    lines = output.split(b"\n")
+
+    result = []
+
+    for line in lines:
+        if type(line) is not str:
+            try:
+                line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            except UnicodeDecodeError:
+                line = repr(line)
+
+        if line.endswith("\r"):
+            line = line[:-1]
+
+        result.append(line)
+
+    return result
+
+
+def _normalizeTracebackSourceLine(line):
+    stripped_line = line.lstrip()
+
+    if not stripped_line or syntax_error_caret_re.match(stripped_line):
+        return line
+
+    return "    " + stripped_line
+
+
 def makeDiffable(output, ignore_warnings, syntax_errors):
     # Take any arbitrary test output from CPython and make it work against
     # Nuitka's output. For example, some tracebacks would take a lot of work
@@ -85,25 +114,16 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
     if m:
         output = output[len(m.group()) :]
 
-    lines = output.split(b"\n")
+    lines = splitOutputLines(output)
     if syntax_errors:
         for line in lines:
-            if line.startswith(b"SyntaxError:"):
+            if line.startswith("SyntaxError:"):
                 lines = [line]
                 break
 
     skip_gcc_source_context = False
 
     for index, line in enumerate(lines):
-        if type(line) is not str:
-            try:
-                line = line.decode("utf-8" if os.name != "nt" else "cp850")
-            except UnicodeDecodeError:
-                line = repr(line)
-
-        if line.endswith("\r"):
-            line = line[:-1]
-
         if skip_gcc_source_context:
             skip_gcc_source_context = False
 
@@ -302,6 +322,13 @@ exceeded while calling a Python object' in \
         # Ensure that there's only a single line for each file in the traceback
         if 'File "' in line:
             end_index = None
+
+            if index + 1 < len(lines):
+                next_line = lines[index + 1]
+
+                if next_line.startswith("  "):
+                    lines[index + 1] = _normalizeTracebackSourceLine(next_line)
+
             for next_index, next_line in enumerate(lines[index + 1 :]):
                 # TODO: Deduplicate this code.
                 if type(next_line) is not str:
@@ -347,10 +374,18 @@ def compareOutput(
     ignore_warnings,
     syntax_errors,
     trace_result=True,
+    no_diffable=False,
 ):
+    if no_diffable:
+        old_lines = splitOutputLines(out_cpython)
+        new_lines = splitOutputLines(out_nuitka)
+    else:
+        old_lines = makeDiffable(out_cpython, ignore_warnings, syntax_errors)
+        new_lines = makeDiffable(out_nuitka, ignore_warnings, syntax_errors)
+
     diff = getUnifiedDiff(
-        old_lines=makeDiffable(out_cpython, ignore_warnings, syntax_errors),
-        new_lines=makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
+        old_lines=old_lines,
+        new_lines=new_lines,
         old_filename="%s (%s)" % (os.environ["PYTHON"], kind),
         new_filename="%s (%s)" % ("nuitka", kind),
         num_lines=3,
