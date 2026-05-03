@@ -387,19 +387,7 @@ class BinaryDistribution(Distribution):
         return not install_mode
 
 
-with open("README.rst", "rb") as input_file:
-    long_description = input_file.read().decode("utf8")
-
-    # Need to remove the ..contents etc from the rest, or else PyPI will not render
-    # it.
-    long_description = long_description.replace(".. contents::\n", "")
-    long_description = long_description.replace(
-        ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
-    )
-
 install_requires = []
-if sys.version_info[:2] == (2, 7) and os.name == "nt":
-    install_requires.append("subprocess32")
 
 build_requires = ["setuptools>=42", "toml"]
 standalone_requires = []
@@ -411,73 +399,9 @@ if (3, 7) <= sys.version_info < (3, 14):
     onefile_requires.append("zstandard >= 0.15")
 
 setup(
-    name="Nuitka",
-    license="GNU Affero General Public License v3",
     version=version,
-    long_description=long_description,
-    long_description_content_type="text/x-rst",
-    classifiers=[
-        # Nuitka is mature even
-        "Development Status :: 5 - Production/Stable",
-        # Indicate who Nuitka is for
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        # Nuitka is a compiler and a build tool as such.
-        "Topic :: Software Development :: Compilers",
-        "Topic :: Software Development :: Build Tools",
-        # Is has a weak subset of PyLint, but aims for more long term
-        "Topic :: Software Development :: Quality Assurance",
-        # Nuitka standalone mode aims at distribution
-        "Topic :: System :: Software Distribution",
-        # Python3 supported versions.
-        "Programming Language :: Python :: 3.14",
-        "Programming Language :: Python :: 3.13",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.4",
-        # Python2 supported versions.
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 2.6",
-        # We depend on CPython.
-        "Programming Language :: Python :: Implementation :: CPython",
-        # We generate C intermediate code and implement part of the
-        # run time environment in C. Actually C11.
-        "Programming Language :: C",
-        # Supported OSes are many
-        "Operating System :: POSIX :: Linux",
-        "Operating System :: POSIX :: BSD :: FreeBSD",
-        "Operating System :: POSIX :: BSD :: NetBSD",
-        "Operating System :: POSIX :: BSD :: OpenBSD",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: MacOS",
-        "Operating System :: Android",
-        # License
-        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
-    ],
     packages=nuitka_packages,
     package_data=package_data,
-    # metadata for upload to PyPI
-    author="Kay Hayen",
-    author_email="Kay.Hayen@gmail.com",
-    url="https://nuitka.net",
-    description="""\
-Python compiler with full language support and CPython compatibility""",
-    keywords="compiler,python,nuitka",
-    project_urls={
-        "Commercial": "https://nuitka.net/doc/commercial.html",
-        "Support": "https://nuitka.net/pages/support.html",
-        "Documentation": "https://nuitka.net/doc/user-manual.html",
-        "Donations": "https://nuitka.net/pages/donations.html",
-        "Mastodon": "https://fosstodon.org/@kayhayen",
-        "Twitter": "https://twitter.com/KayHayen",
-        "Source": "https://github.com/Nuitka/Nuitka",
-    },
     zip_safe=False,
     scripts=scripts,
     data_files=data_files,

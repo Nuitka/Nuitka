@@ -1338,7 +1338,7 @@ all = [
     { name = "zstandard", version = "0.20.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.7'" },
     { name = "zstandard", version = "0.21.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.7.*'" },
     { name = "zstandard", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.8.*'" },
-    { name = "zstandard", version = "0.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9' and python_full_version < '3.14'" },
+    { name = "zstandard", version = "0.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
 build-wheel = [
     { name = "setuptools", version = "59.6.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.7'" },
@@ -1362,7 +1362,7 @@ onefile = [
     { name = "zstandard", version = "0.20.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.7'" },
     { name = "zstandard", version = "0.21.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.7.*'" },
     { name = "zstandard", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.8.*'" },
-    { name = "zstandard", version = "0.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9' and python_full_version < '3.14'" },
+    { name = "zstandard", version = "0.25.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
 
 [package.dev-dependencies]
@@ -1422,10 +1422,10 @@ requires-dist = [
     { name = "tqdm" },
     { name = "wheel", marker = "extra == 'build-wheel'" },
     { name = "zstandard", marker = "python_full_version < '3.14'", specifier = ">=0.15" },
-    { name = "zstandard", marker = "python_full_version < '3.14' and extra == 'all'", specifier = ">=0.15" },
-    { name = "zstandard", marker = "python_full_version < '3.14' and extra == 'onefile'", specifier = ">=0.15" },
+    { name = "zstandard", marker = "extra == 'all'", specifier = ">=0.15" },
+    { name = "zstandard", marker = "extra == 'onefile'", specifier = ">=0.15" },
 ]
-provides-extras = ["build-wheel", "standalone", "onefile", "app", "package", "icon-conversion", "all"]
+provides-extras = ["build-wheel", "package", "standalone", "onefile", "app", "icon-conversion", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3902,6 +3902,7 @@ resolution-markers = [
     "python_full_version == '3.11.*'",
     "python_full_version == '3.10.*'",
     "python_full_version == '3.9.*'",
+    "python_full_version >= '3.14'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fd/aa/3e0508d5a5dd96529cdc5a97011299056e14c6505b678fd58938792794b1/zstandard-0.25.0.tar.gz", hash = "sha256:7713e1179d162cf5c7906da876ec2ccb9c3a9dcbdffef0cc7f70c3667a205f0b", size = 711513, upload-time = "2025-09-14T22:15:54.002Z" }
 wheels = [

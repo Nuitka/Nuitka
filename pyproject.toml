@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "Nuitka"
-dynamic = ["version"]
+dynamic = ["version", "scripts", "gui-scripts", "entry-points", "optional-dependencies"]
 description = "Python compiler with full language support and CPython compatibility"
 readme = "README.rst"
 license = {text = "GNU Affero General Public License v3"}
@@ -48,32 +48,6 @@ dependencies = [
     "zstandard>=0.15; python_version<'3.14'",
     "pyyaml",
     "Jinja2>=2.10.2",
-]
-
-[project.scripts]
-nuitka = "nuitka.__main__:main"
-nuitka-run = "nuitka.__main__:main"
-
-[project.entry-points."distutils.commands"]
-bdist_nuitka = "nuitka.distutils.DistutilsCommands:bdist_nuitka"
-build_nuitka = "nuitka.distutils.DistutilsCommands:build"
-install_nuitka = "nuitka.distutils.DistutilsCommands:install"
-
-[project.entry-points."distutils.setup_keywords"]
-build_with_nuitka = "nuitka.distutils.DistutilsCommands:setupNuitkaDistutilsCommands"
-
-[project.optional-dependencies]
-build-wheel = ["setuptools>=42", "toml", "wheel"]
-standalone = []
-onefile = ["zstandard>=0.15; python_version<'3.14'"]
-app = []
-package = []
-icon-conversion = ["imageio"]
-all = [
-    "setuptools>=42",
-    "toml",
-    "imageio",
-    "zstandard>=0.15; python_version<'3.14'",
 ]
 
 [project.urls]
