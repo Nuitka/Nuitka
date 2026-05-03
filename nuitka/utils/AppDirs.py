@@ -40,27 +40,36 @@ def getAppdirsModule():
 _cache_dir = None
 
 
+def _getCacheDirNormalizedPath(cache_dir):
+    cache_dir = os.path.expanduser(cache_dir)
+    cache_dir = os.path.abspath(cache_dir)
+    cache_dir = getNormalizedPath(cache_dir)
+
+    return cache_dir
+
+
 def _getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
 
     if _cache_dir is None:
         _cache_dir = os.getenv("NUITKA_CACHE_DIR")
 
-        if _cache_dir:
-            _cache_dir = os.path.expanduser(_cache_dir)
-        elif appdirs is not None:
-            _cache_dir = appdirs.user_cache_dir("Nuitka", None)
-        else:
-            _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+        if _cache_dir is None:
+            if appdirs is not None:
+                _cache_dir = appdirs.user_cache_dir("Nuitka", None)
+            else:
+                _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
-        _cache_dir = getNormalizedPath(_cache_dir)
+        _cache_dir = _getCacheDirNormalizedPath(_cache_dir)
 
         # For people that build with HOME set this, e.g. Debian, and other package
         # managers. spell-checker: ignore sbuild
         if _cache_dir.startswith(
             ("/nonexistent/", "/sbuild-nonexistent/", "/homeless-shelter/")
         ):
-            _cache_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
+            _cache_dir = _getCacheDirNormalizedPath(
+                os.path.join(tempfile.gettempdir(), "Nuitka")
+            )
 
         try:
             makePath(_cache_dir)
@@ -90,7 +99,7 @@ def getCacheDir(cache_basename, create=False):
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
 
-    cache_dir = getNormalizedPath(cache_dir)
+    cache_dir = _getCacheDirNormalizedPath(cache_dir)
 
     if create and cache_dir not in _created_cache_dirs:
         makePath(cache_dir)
