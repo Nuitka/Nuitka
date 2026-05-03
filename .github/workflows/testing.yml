@@ -26,15 +26,11 @@ jobs:
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
-      - name: 🐍 Use Python 3.11
+      - name: 🐍 Use Python 3.12
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: 📦 Install uv
         uses: astral-sh/setup-uv@v6
@@ -43,8 +39,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install patchelf gdb ccache libfuse2
           uv pip install --system -r requirements-devel.txt
           uv pip install --system .
 
@@ -80,6 +74,7 @@ jobs:
     needs: checks
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.8"
@@ -153,6 +148,7 @@ jobs:
     needs: checks
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.9"
@@ -255,6 +251,7 @@ jobs:
     needs: checks
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.7"
@@ -317,6 +314,7 @@ jobs:
     needs: checks
     runs-on: windows-11-arm
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.11"
