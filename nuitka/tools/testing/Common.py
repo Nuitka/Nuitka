@@ -567,15 +567,14 @@ def getDebugPython():
     ):
         return debug_python
 
-    # On Windows systems, these work. TODO: Python asserts in Nuitka with
-    # these, not sure why, pylint: disable=using-constant-test
-    if False:
-        debug_python = os.environ["PYTHON"]
-        if debug_python.lower().endswith(".exe"):
-            debug_python = debug_python[:-4]
-        debug_python = debug_python + "_d.exe"
-        if os.path.exists(debug_python):
-            return debug_python
+    # On Windows systems, debug binaries conventionally use the "_d.exe"
+    # suffix next to the release executable.
+    debug_python = os.environ["PYTHON"]
+    if debug_python.lower().endswith(".exe"):
+        debug_python = debug_python[:-4]
+    debug_python = debug_python + "_d.exe"
+    if os.path.exists(debug_python):
+        return debug_python
 
     # Otherwise no.
     return None
@@ -844,7 +843,8 @@ Examples:
         dest="pattern",
         default="",
         help="""\
-Execute only tests matching the pattern. Defaults to all tests.""",
+Start at the first test matching the pattern. With '--only-one', execute only
+the first matching test. Defaults to all tests.""",
     )
     select_group.add_option(
         "--all",

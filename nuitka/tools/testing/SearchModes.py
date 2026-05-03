@@ -115,10 +115,6 @@ class SearchMode(object):
                     self.active = True
 
         if self.active:
-            # If active, we still filter by pattern if one was given.
-            if self.start_at and not self._match(dirname, filename, self.start_at):
-                return False
-
             # If we are active, we can save the current file as the one to resume
             # from.
             self._saveResume(dirname, filename)
