@@ -4575,7 +4575,7 @@
     - depends:
         - 'plotly.version'
 
-- module-name: 'plotly.graph_objects' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objects' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4584,8 +4584,12 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Dash imports 'plotly.graph_objects.Figure' at module load time.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.graph_objs' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objs' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4594,13 +4598,21 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Plotly resolves 'Figure' lazily via '_plotly_utils.importers'.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.io' # checksum: bc9ae932
+- module-name: 'plotly.io' # checksum: 87ddf821
   anti-bloat:
     - description: 'include plotly templates'
       replacements_plain:
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
+  implicit-imports:
+    - depends:
+        # Plotly imports 'templates' during 'plotly.io' initialization.
+        - 'plotly.io._templates'
 
 - module-name: 'plotly.validator_cache' # checksum: 4e4fa5ab
   implicit-imports:
