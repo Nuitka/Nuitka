@@ -224,6 +224,8 @@ jobs:
 
   mac-python3:
     runs-on: macos-latest
+    env:
+      CCACHE_DIR: ~/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
@@ -268,6 +270,11 @@ jobs:
           restore-keys: |
             nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-
             nuitka-downloads-${{ runner.os }}-
+
+      - name: 🗄️ Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-${{ matrix.python_version }}
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
