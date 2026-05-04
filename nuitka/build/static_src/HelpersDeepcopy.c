@@ -298,8 +298,10 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         while (true) {
             PyObject *item = PyIter_Next(iterator);
-            if (!item)
+            if (!item) {
+                assert(!HAS_ERROR_OCCURRED(tstate));
                 break;
+            }
 
             CHECK_OBJECT(item);
 
@@ -321,6 +323,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         // Use string to hash the long value, which relies on that to not
         // use the object address.
         PyObject *str = PyObject_Str(value);
+        CHECK_OBJECT(str);
         result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);
 
@@ -341,10 +344,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         DEEP_HASH_BLOB(&result, s, size);
 #else
         PyObject *str = PyUnicode_AsUTF8String(value);
-
-        if (str) {
-            result ^= DEEP_HASH(tstate, str);
-        }
+        CHECK_OBJECT(str);
+        result ^= DEEP_HASH(tstate, str);
 
         Py_DECREF(str);
 #endif
@@ -433,6 +434,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         GenericAliasObject *generic_alias = (GenericAliasObject *)value;
+        CHECK_OBJECT(generic_alias->args);
+        CHECK_OBJECT(generic_alias->origin);
 
         result ^= DEEP_HASH(tstate, generic_alias->args);
         result ^= DEEP_HASH(tstate, generic_alias->origin);
@@ -442,8 +445,11 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x3a0
     } else if (Py_TYPE(value) == Nuitka_PyUnion_Type) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
+        PyObject *args = LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__);
+        CHECK_OBJECT(args);
 
-        result ^= DEEP_HASH(tstate, LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__));
+        result ^= DEEP_HASH(tstate, args);
+        Py_DECREF(args);
 
         return result;
 #endif

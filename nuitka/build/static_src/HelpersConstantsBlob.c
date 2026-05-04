@@ -554,9 +554,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         int size = (int)_unpackVariableLength(&data);
 
         PyObject *t = PyTuple_New(size);
+        CHECK_OBJECT(t);
 
         if (size > 0) {
             data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
+
+            CHECK_OBJECTS(&PyTuple_GET_ITEM(t, 0), size);
         }
 
         insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_tp_richcompare);
@@ -570,9 +573,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         int size = (int)_unpackVariableLength(&data);
 
         PyObject *l = PyList_New(size);
+        CHECK_OBJECT(l);
 
         if (size > 0) {
             data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
+
+            CHECK_OBJECTS(&PyList_GET_ITEM(l, 0), size);
         }
 
         insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_tp_richcompare);
@@ -586,6 +592,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         int size = (int)_unpackVariableLength(&data);
 
         PyObject *d = _PyDict_NewPresized(size);
+        CHECK_OBJECT(d);
 
         if (size > 0) {
             NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
@@ -594,8 +601,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             data = _unpackBlobConstants(tstate, &keys[0], data, size);
             data = _unpackBlobConstants(tstate, &values[0], data, size);
 
+            CHECK_OBJECTS(&keys[0], size);
+            CHECK_OBJECTS(&values[0], size);
+
             for (int i = 0; i < size; i++) {
-                PyDict_SetItem(d, keys[i], values[i]);
+                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, keys[i], values[i]);
+                assert(res == 0);
             }
         }
 
@@ -631,13 +642,18 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             }
         }
 
+        CHECK_OBJECT(s);
+
         if (size > 0) {
             NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
             data = _unpackBlobConstants(tstate, &values[0], data, size);
 
+            CHECK_OBJECTS(&values[0], size);
+
             for (int i = 0; i < size; i++) {
-                PySet_Add(s, values[i]);
+                NUITKA_MAY_BE_UNUSED int res = PySet_Add(s, values[i]);
+                assert(res == 0);
             }
         }
 
