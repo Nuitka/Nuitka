@@ -123,6 +123,7 @@ if (os.name == "nt" and sys.version_info >= (3, 6)) or sdist_mode:
     addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
+    addInlineCopy("pkg_resources_27", do_byte_compile=sys.version_info < (3,))
     addInlineCopy("yaml_27", do_byte_compile=sys.version_info < (3,))
 if (3,) < sys.version_info < (3, 6) or sdist_mode:
     addInlineCopy("yaml_35", do_byte_compile=(3,) < sys.version_info < (3, 6))
