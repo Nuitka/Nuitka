@@ -3302,7 +3302,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: e8a53225
+- module-name: 'numpy' # checksum: 2c28405f
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3315,13 +3315,14 @@
           import os, sys
           library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
           library_path = os.path.join(sys.prefix, library_path)
-          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+          library_filenames = ("libblas.dll", "libcblas.dll", "liblapack.dll") if os.name == "nt" else ()
+          library_prefixes = ("mkl_",) if os.name == "nt" else ("libmkl_",)
         filename_code: |
           [os.path.join(library_path, filename)
            for filename in os.listdir(library_path)
-           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
+           if filename in library_filenames or filename.startswith(library_prefixes)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'is_conda_package("numpy") and version("numpy") < (2,)'
+      when: 'is_conda_package("numpy")'
 
   anti-bloat:
     - description: 'avoid URLs for AV noise'
