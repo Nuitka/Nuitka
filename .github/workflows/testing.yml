@@ -182,7 +182,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
-      CCACHE_DIR: ~/.cache/Nuitka/ccache
+      CCACHE_DIR: /home/runner/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -240,7 +240,7 @@ jobs:
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -248,8 +248,6 @@ jobs:
             *.xml
             standalone-binary-readelf.txt
             standalone-binary-ldd.txt
-          retention-days: 7
-          compression-level: 1
 
       - name: 🧪 Run Nuitka test suite
         run: |
@@ -262,7 +260,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     env:
-      CCACHE_DIR: ~/.cache/Nuitka/ccache
+      CCACHE_DIR: /Users/runner/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
@@ -343,14 +341,12 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
-          retention-days: 7
-          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |
@@ -408,14 +404,12 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
-          retention-days: 7
-          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |
@@ -474,14 +468,12 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
           path: |
             *.xml
-          retention-days: 7
-          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |

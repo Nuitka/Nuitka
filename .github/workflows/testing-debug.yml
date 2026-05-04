@@ -56,7 +56,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     env:
-      CCACHE_DIR: ~/.cache/Nuitka/ccache
+      CCACHE_DIR: /Users/runner/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
