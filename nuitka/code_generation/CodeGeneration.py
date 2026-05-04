@@ -260,6 +260,7 @@ from .LoopCodes import (
 from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
+    generateModuleAttributeDunderCompiledCode,
     generateModuleAttributeFileCode,
     getModuleCode,
 )
@@ -847,6 +848,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_SORT1": generateListOperationSort1Code,
         "EXPRESSION_LIST_OPERATION_SORT2": generateListOperationSort2Code,
         "EXPRESSION_LIST_OPERATION_SORT3": generateListOperationSort3Code,
+        "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": generateModuleAttributeDunderCompiledCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": generateModuleAttributeCode,

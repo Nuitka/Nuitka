@@ -322,12 +322,16 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
     }
 #endif
 
-    // Set "__compiled__" to what version information we have.
+    // For Python 3.11 standalone modules, package "__path__" is inserted by the
+    // loader before module code runs. Pre-seed "__compiled__" for non-packages
+    // to keep their dangerous dict slots aligned with packages.
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3c0 && _NUITKA_STANDALONE_MODE && !%(is_package)s
     UPDATE_STRING_DICT0(
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
         Nuitka_dunder_compiled_value
     );
+#endif
 
     // Update "__package__" value to what it ought to be.
     {

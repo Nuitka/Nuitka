@@ -252,6 +252,13 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
         emit("%s = module_filename_obj;" % result_name)
 
 
+def generateModuleAttributeDunderCompiledCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "module_compiled_attr_value", expression, emit, context
+    ) as result_name:
+        emit("%s = Nuitka_dunder_compiled_value;" % result_name)
+
+
 def generateModuleAttributeCode(to_name, expression, emit, context):
     getModuleVariableReferenceCode(
         to_name=to_name,

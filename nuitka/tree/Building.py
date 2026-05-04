@@ -90,6 +90,7 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeDunderCompiledRef,
     ExpressionModuleAttributeFileRef,
     ExpressionModuleAttributeSpecRef,
 )
@@ -953,6 +954,18 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                 source_ref=internal_source_ref,
             )
         )
+
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__compiled__",
+            source=ExpressionModuleAttributeDunderCompiledRef(
+                variable=provider.getVariableForReference("__compiled__"),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    )
 
     if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
