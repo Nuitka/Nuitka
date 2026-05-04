@@ -1003,6 +1003,7 @@ def _getVisualStudioClangInstallCommand(cl_exe, compiler_arch):
     if installation_path is None or not os.path.exists(setup_exe):
         return None
 
+    # spell-checker: ignore norestart
     return '"%s" modify --installPath "%s" --add "%s" --passive --norestart' % (
         setup_exe,
         installation_path,
