@@ -204,6 +204,22 @@ def isFedoraBasedLinux():
     return (base or dist_name) == "Fedora"
 
 
+def isSuseBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    if base == "SUSE":
+        return True
+
+    if dist_name is None:
+        return False
+
+    dist_name = dist_name.lower()
+
+    return dist_name.startswith(
+        ("suse", "opensuse", "sles", "sled", "sle-", "sle_", "sl-", "sl_")
+    )
+
+
 def isArchBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
