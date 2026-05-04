@@ -58,6 +58,11 @@ def _parseOsReleaseFileContents(filename):
                 base = "Debian"
             elif "fedora" in base:
                 base = "Fedora"
+            elif "suse" in base:
+                base = "SUSE"
+
+                if result is None:
+                    result = base
 
         if line.startswith("VERSION="):
             version = line[8:].strip('"')
