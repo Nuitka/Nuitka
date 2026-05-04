@@ -4,6 +4,13 @@ on:
   pull_request:
     branches:
       - develop
+    paths-ignore:
+      - "doc/**"
+      - "*.md"
+      - "*.rst"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/FUNDING.yml"
   push:
     branches:
       - main
@@ -11,6 +18,13 @@ on:
       - factory
       - release/**
       - hotfix/**
+    paths-ignore:
+      - "doc/**"
+      - "*.md"
+      - "*.rst"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/FUNDING.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,27 +37,34 @@ env:
   NUITKA_CACHE_DIR: ~/.cache/Nuitka
 
 jobs:
+  matrix-setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      macos-versions: ${{ steps.set.outputs.macos-versions }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'macos-versions=["3.10","3.13"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'macos-versions=["3.9","3.10","3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+          fi
+
   mac-debug:
+    needs: matrix-setup
     runs-on: macos-latest
+    timeout-minutes: 90
     env:
       CCACHE_DIR: ~/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
-        python_version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python_version: ${{ fromJSON(needs.matrix-setup.outputs.macos-versions) }}
     name: macOS Debug Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v6

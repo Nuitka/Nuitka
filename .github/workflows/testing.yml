@@ -4,6 +4,13 @@ on:
   pull_request:
     branches:
       - develop
+    paths-ignore:
+      - "doc/**"
+      - "*.md"
+      - "*.rst"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/FUNDING.yml"
   push:
     branches:
       - main
@@ -11,6 +18,13 @@ on:
       - factory
       - release/**
       - hotfix/**
+    paths-ignore:
+      - "doc/**"
+      - "*.md"
+      - "*.rst"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/FUNDING.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,6 +39,7 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     name: Lint
     steps:
       - name: 🛎️ Checkout
@@ -65,6 +80,7 @@ jobs:
 
   formatting:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     name: Formatting
     steps:
       - name: 🛎️ Checkout
@@ -101,6 +117,7 @@ jobs:
 
   codegen:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     name: Code generation
     steps:
       - name: 🛎️ Checkout
@@ -137,28 +154,44 @@ jobs:
         run: |
           python ./bin/generate-specialized-python-code --check
 
-  linux:
+  matrix-setup:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      linux-versions: ${{ steps.set.outputs.linux-versions }}
+      macos-versions: ${{ steps.set.outputs.macos-versions }}
+      windows-versions: ${{ steps.set.outputs.windows-versions }}
+      windows-arm-versions: ${{ steps.set.outputs.windows-arm-versions }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo 'linux-versions=["3.10","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'macos-versions=["3.10","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'windows-versions=["3.10","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'windows-arm-versions=["3.13"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'linux-versions=["3.8","3.9","3.10","3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'macos-versions=["3.9","3.10","3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'windows-versions=["3.7","3.8","3.9","3.10","3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+            echo 'windows-arm-versions=["3.11","3.12","3.13"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  linux:
+    needs: matrix-setup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
     env:
       CCACHE_DIR: ~/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
-        python_version:
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python_version: ${{ fromJSON(needs.matrix-setup.outputs.linux-versions) }}
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v6
@@ -207,7 +240,7 @@ jobs:
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
@@ -215,6 +248,8 @@ jobs:
             *.xml
             standalone-binary-readelf.txt
             standalone-binary-ldd.txt
+          retention-days: 7
+          compression-level: 1
 
       - name: 🧪 Run Nuitka test suite
         run: |
@@ -223,26 +258,19 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
+    needs: matrix-setup
     runs-on: macos-latest
+    timeout-minutes: 90
     env:
       CCACHE_DIR: ~/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
-        python_version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python_version: ${{ fromJSON(needs.matrix-setup.outputs.macos-versions) }}
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v6
@@ -315,12 +343,14 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
+          retention-days: 7
+          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |
@@ -329,26 +359,18 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
+    needs: matrix-setup
     runs-on: windows-latest
+    timeout-minutes: 90
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
-        python_version:
-          - "3.7"
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python_version: ${{ fromJSON(needs.matrix-setup.outputs.windows-versions) }}
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v6
@@ -386,12 +408,14 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
+          retention-days: 7
+          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |
@@ -400,22 +424,17 @@ jobs:
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows-arm:
+    needs: matrix-setup
     runs-on: windows-11-arm
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        python_version:
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        python_version: ${{ fromJSON(needs.matrix-setup.outputs.windows-arm-versions) }}
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          fetch-tags: false
-          filter: blob:none
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v6
@@ -455,12 +474,14 @@ jobs:
         shell: bash
 
       - name: Archive compilation reports for empty modules
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
           path: |
             *.xml
+          retention-days: 7
+          compression-level: 1
 
       - name: Run Nuitka test suite
         run: |
