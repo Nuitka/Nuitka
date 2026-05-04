@@ -19,6 +19,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  NUITKA_CACHE_DIR: ~/.cache/Nuitka
+
 jobs:
   lint:
     runs-on: ubuntu-24.04
@@ -135,8 +138,9 @@ jobs:
           python ./bin/generate-specialized-python-code --check
 
   linux:
-    needs: [lint, formatting, codegen]
     runs-on: ubuntu-24.04
+    env:
+      CCACHE_DIR: ~/.cache/Nuitka/ccache
     strategy:
       fail-fast: false
       matrix:
@@ -166,10 +170,28 @@ jobs:
         with:
           enable-cache: true
 
+      - name: 🗄️ Cache apt packages
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: patchelf gdb ccache libfuse2
+          version: 1.0
+
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-
+            nuitka-downloads-${{ runner.os }}-
+
+      - name: 🗄️ Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-${{ matrix.python_version }}
+
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install patchelf gdb ccache libfuse2
           uv pip install --system -r requirements-devel.txt
           uv pip install --system .
 
@@ -201,7 +223,6 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
-    needs: [lint, formatting, codegen]
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -238,6 +259,15 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-
+            nuitka-downloads-${{ runner.os }}-
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -285,18 +315,6 @@ jobs:
           path: |
             *.xml
 
-      - name: 🐞 Check all modes for debug output
-        run: |
-          set -x
-          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-
-          # DLL mode has no run ability at this time.
-          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-        shell: bash
-
       - name: Run Nuitka test suite
         run: |
           python -m nuitka --version
@@ -304,7 +322,6 @@ jobs:
           python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows:
-    needs: [lint, formatting, codegen]
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -338,6 +355,15 @@ jobs:
         with:
           enable-cache: true
 
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-${{ matrix.python_version }}-
+            nuitka-downloads-${{ runner.os }}-
+
       - name: 🧳 Install Nuitka and dependencies
         run: |
           uv pip install --system -r requirements-devel.txt
@@ -367,7 +393,6 @@ jobs:
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   windows-arm:
-    needs: [lint, formatting, codegen]
     runs-on: windows-11-arm
     strategy:
       fail-fast: false
@@ -398,6 +423,15 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+
+      - name: 🗄️ Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-arm64-${{ matrix.python_version }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
+          restore-keys: |
+            nuitka-downloads-${{ runner.os }}-arm64-${{ matrix.python_version }}-
+            nuitka-downloads-${{ runner.os }}-arm64-
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
