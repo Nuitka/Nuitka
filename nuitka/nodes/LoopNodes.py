@@ -119,7 +119,6 @@ class StatementLoop(StatementLoopBase):
         # Track if we got incomplete knowledge due to loop. If so, we are not done, even
         # if no was optimization done, once we are complete, they can come.
         incomplete_variables = None
-        late_incomplete_variables = None
 
         # Mark all variables as loop wrap around that are written in the loop and
         # hit a 'continue' and make them become loop merges. We will strive to
@@ -131,7 +130,6 @@ class StatementLoop(StatementLoopBase):
 
             if all_first_pass:
                 first_pass = True
-                restarted = False
 
                 # Remember what we started with, so we can detect changes from outside the
                 # loop and make them restart the collection process, if the pre-conditions
@@ -140,11 +138,9 @@ class StatementLoop(StatementLoopBase):
             else:
                 if not self.loop_start[loop_variable].compareValueTrace(current):
                     first_pass = True
-                    restarted = True
                     self.loop_start[loop_variable] = current
                 else:
                     first_pass = False
-                    restarted = False
 
             if first_pass:
                 incomplete = True
@@ -191,7 +187,6 @@ class StatementLoop(StatementLoopBase):
                         shapes=self.loop_resume[loop_variable],
                         incomplete=incomplete,
                     ),
-                    restarted,
                 )
             )
 
@@ -224,7 +219,7 @@ class StatementLoop(StatementLoopBase):
             # Rebuild this with only the ones that actually changed in the loop.
             self.loop_variables = []
 
-            for loop_variable, loop_entry_trace, restarted in loop_entry_traces:
+            for loop_variable, loop_entry_trace in loop_entry_traces:
                 # Giving up
                 if self.incomplete_count >= 20:
                     self.loop_previous_resume[loop_variable] = self.loop_resume[
@@ -282,27 +277,14 @@ class StatementLoop(StatementLoopBase):
 
                 self.loop_resume[loop_variable] = minimizeShapes(shapes)
 
-                if (
-                    self.loop_resume[loop_variable]
-                    != self.loop_previous_resume[loop_variable]
-                ):
-                    if late_incomplete_variables is None:
-                        late_incomplete_variables = set()
-
-                    late_incomplete_variables.add(loop_variable)
-
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
 
-        if late_incomplete_variables:
-            # Resume shapes can change while computing the loop body. Report that
-            # immediately instead of one full optimization pass later.
-            if incomplete_variables is None:
-                incomplete_variables = set()
-
-            incomplete_variables.update(late_incomplete_variables)
-
+        # Only loop state observed at the start of a pass may request another
+        # micro pass. Resume shapes discovered while tracing the loop body are
+        # consumed on the next pass; reporting them immediately can optimize
+        # away real loop control updates.
         if incomplete_variables:
             self.incomplete_count += 1
 
