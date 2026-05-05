@@ -11,6 +11,7 @@ class NuitkaPluginForTesting(NuitkaPluginBase):
 
     @staticmethod
     def createPostModuleLoadCode(module):
+        # spell-checker: ignore testmultiphase
         if module.getFullName() == "_testmultiphase":
             return (
                 """\
