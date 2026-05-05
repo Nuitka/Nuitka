@@ -20,6 +20,7 @@
 #endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #endif

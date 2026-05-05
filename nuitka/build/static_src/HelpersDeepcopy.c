@@ -463,32 +463,115 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 }
 #endif
 
-// Note: Not recursion safe, cannot do this everywhere.
-void CHECK_OBJECT_DEEP(PyObject *value) {
-    CHECK_OBJECT(value);
+static void abortCorruptNamedObject(char const *name, char const *reason) {
+    fprintf(stderr, "Corrupt object at %s: %s\n", name, reason);
+    fflush(stderr);
+    abort();
+}
+
+static void abortCorruptNamedRefcount(char const *name, PyObject *value) {
+    fprintf(stderr, "Corrupt object at %s: refcount %ld\n", name, (long)Py_REFCNT(value));
+    fflush(stderr);
+    abort();
+}
+
+static void CHECK_OBJECT_TYPE_NAMED(char const *name, PyObject *value) {
+    char type_name[1024];
+    PyTypeObject *type = Py_TYPE(value);
+
+    PyOS_snprintf(type_name, sizeof(type_name), "%s.__class__", name);
+
+    if (type == NULL) {
+        abortCorruptNamedObject(type_name, "NULL");
+    }
+
+    if (Py_REFCNT((PyObject *)type) <= 0) {
+        abortCorruptNamedRefcount(type_name, (PyObject *)type);
+    }
+}
+
+static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value) {
+    if (value == NULL) {
+        abortCorruptNamedObject(name, "NULL");
+    }
+
+    if (Py_REFCNT(value) <= 0) {
+        abortCorruptNamedRefcount(name, value);
+    }
+
+    CHECK_OBJECT_TYPE_NAMED(name, value);
 
     if (PyTuple_Check(value)) {
         for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(value); i < size; i++) {
+            char element_name[1024];
             PyObject *element = PyTuple_GET_ITEM(value, i);
 
-            CHECK_OBJECT_DEEP(element);
+            PyOS_snprintf(element_name, sizeof(element_name), "%s[%ld]", name, (long)i);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(element_name, element);
         }
     } else if (PyList_CheckExact(value)) {
         for (Py_ssize_t i = 0, size = PyList_GET_SIZE(value); i < size; i++) {
+            char element_name[1024];
             PyObject *element = PyList_GET_ITEM(value, i);
 
-            CHECK_OBJECT_DEEP(element);
+            PyOS_snprintf(element_name, sizeof(element_name), "%s[%ld]", name, (long)i);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(element_name, element);
         }
     } else if (PyDict_Check(value)) {
         Py_ssize_t pos = 0;
         PyObject *dict_key, *dict_value;
+        int item_index = 0;
 
         while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
-            CHECK_OBJECT_DEEP(dict_key);
-            CHECK_OBJECT_DEEP(dict_value);
+            char key_name[1024];
+            char value_name[1024];
+
+            PyOS_snprintf(key_name, sizeof(key_name), "%s{key %d}", name, item_index);
+            PyOS_snprintf(value_name, sizeof(value_name), "%s{value %d}", name, item_index);
+
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(key_name, dict_key);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(value_name, dict_value);
+
+            item_index += 1;
         }
+    } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
+        PyObject *iterator = PyObject_GetIter(value);
+
+        if (iterator == NULL) {
+            abortCorruptNamedObject(name, "set iteration failed");
+        }
+
+        Py_ssize_t item_index = 0;
+
+        while (true) {
+            PyObject *item = PyIter_Next(iterator);
+
+            if (item == NULL) {
+                if (PyErr_Occurred()) {
+                    Py_DECREF(iterator);
+                    abortCorruptNamedObject(name, "set iteration raised");
+                }
+
+                break;
+            }
+
+            char item_name[1024];
+
+            PyOS_snprintf(item_name, sizeof(item_name), "%s{item %ld}", name, (long)item_index);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(item_name, item);
+            Py_DECREF(item);
+
+            item_index += 1;
+        }
+
+        Py_DECREF(iterator);
     }
 }
+
+// Note: Not recursion safe, cannot do this everywhere.
+void CHECK_OBJECT_DEEP(PyObject *value) { CHECK_OBJECT_DEEP_NAMED_RECURSIVE("<unnamed>", value); }
+
+void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value) { CHECK_OBJECT_DEEP_NAMED_RECURSIVE(name, value); }
 
 void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
     for (Py_ssize_t i = 0; i < size; i++) {
