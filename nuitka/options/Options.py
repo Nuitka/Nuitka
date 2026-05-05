@@ -520,13 +520,6 @@ longer part of Winlibs and therefore no more available this way. Use only \
             )
 
     if isMacOS():
-        macos_target_arch = getMacOSTargetArch()
-
-        if macos_target_arch == "universal":
-            return options_logger.sysexit(
-                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
-            )
-
         if (options.macos_target_arch or "native") != "native":
             from nuitka.utils.SharedLibraries import (
                 hasUniversalOrMatchingMacOSArchitecture,
@@ -1312,7 +1305,7 @@ provide either '--product-version' or '--file-version' as these can
 not have good defaults, but are forced to be present by the OS.""")
 
     if (
-        options.macos_target_arch not in ("native", "universal", None)
+        options.macos_target_arch not in ("native", None)
         and getArchitecture() != options.macos_target_arch
     ):
         options_logger.warning(
@@ -2567,7 +2560,7 @@ def getProductName():
 
 
 def getMacOSTargetArch():
-    """:returns: str enum ("universal", "arm64", "x86_64") derived from ``--macos-target-arch`` value"""
+    """:returns: str enum ("arm64", "x86_64") derived from ``--macos-target-arch`` value"""
     if options is None:
         macos_target_arch = "native"
     else:

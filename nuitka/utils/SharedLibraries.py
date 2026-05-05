@@ -321,12 +321,7 @@ def clearOtoolOutputCache(filename):
 
 
 def _getMacOSArchOption():
-    macos_target_arch = getMacOSTargetArch()
-
-    if macos_target_arch != "universal":
-        return ("-arch", macos_target_arch)
-    else:
-        return ()
+    return ("-arch", getMacOSTargetArch())
 
 
 def _filterOtoolErrorOutput(stderr):
@@ -836,7 +831,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
     if isWin32Windows() and python_version < 0x300:
         _removeSxsFromDLL(target_filename)
 
-    if isMacOS() and getMacOSTargetArch() != "universal":
+    if isMacOS():
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
     if isElfUsingPlatform():

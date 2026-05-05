@@ -1882,11 +1882,11 @@ macos_group.add_option(
     "--macos-target-arch",
     action="store",
     dest="macos_target_arch",
-    choices=("universal", "arm64", "x86_64"),
+    choices=("arm64", "x86_64"),
     metavar="MACOS_TARGET_ARCH",
     default=None,
     help="""\
-What architectures is this to supposed to run on. Default and limit
+What architecture is this supposed to run on. Default and limit
 is what the running Python allows for. Default is "native" which is
 the architecture the Python is run with.""",
 )
