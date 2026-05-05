@@ -164,6 +164,12 @@ def isTermuxContainer(container_name):
     return "termux" in container_name.lower()
 
 
+def isPython2OnlyContainer(container_name):
+    container_name = container_name.lower()
+
+    return "centos6" in container_name or "rhel6" in container_name
+
+
 def _copyContainerReferences(container_content, repo_root, build_context_dir):
     for match in re.finditer(
         r"^\s*COPY\s+(?:--[a-z-]+\S+\s+)*([^\s]+)", container_content, re.MULTILINE
@@ -185,6 +191,9 @@ def _copyContainerReferences(container_content, repo_root, build_context_dir):
 def getContainerPython(container_name):
     if isTermuxContainer(container_name):
         return "python"
+
+    if isPython2OnlyContainer(container_name):
+        return "python2.6"
 
     return "python3"
 
