@@ -215,7 +215,7 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
                 template_metapath_loader_excluded_module_entry
                 % {
                     "module_name": module_c_name,
-                    "flags": "NUITKA_EXCLUDED_MODULE_FLAG",
+                    "flags": "NUITKA_TRANSLATED_FLAG | NUITKA_EXCLUDED_MODULE_FLAG",
                     "exclusion_reason": reason_c_string,
                 }
             )
