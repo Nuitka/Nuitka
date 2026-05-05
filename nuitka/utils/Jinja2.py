@@ -3,6 +3,7 @@
 
 """Jinja folklore wrappers and handling of inline copy usage."""
 
+import os
 import sys
 
 from nuitka.__past__ import unicode
@@ -48,6 +49,35 @@ def restoreImportedModules(saved_modules):
         sys.modules[loaded_module_name] = saved_modules[loaded_module_name]
 
 
+def _getTemplateSubDirectory(package_name, template_subdir):
+    if package_name not in sys.modules:
+        try:
+            __import__(package_name)
+        except ImportError:
+            return None
+
+    module = sys.modules[package_name]
+    package_path = None
+
+    if hasattr(module, "__path__"):
+        module_path = tuple(module.__path__)
+
+        if module_path:
+            package_path = module_path[0]
+    elif hasattr(module, "__file__"):
+        package_path = os.path.dirname(module.__file__)
+
+    if package_path is None:
+        return None
+
+    template_path = os.path.join(package_path, template_subdir)
+
+    if os.path.isdir(template_path):
+        return template_path
+    else:
+        return None
+
+
 def getJinja2Package():
     global _jinja2, _markupsafe  # singleton package using a cache, pylint: disable=global-statement
 
@@ -82,7 +112,14 @@ def getEnvironment(package_name, template_subdir, extensions):
         jinja2 = getJinja2Package()
 
         if package_name is not None:
-            loader = jinja2.PackageLoader(package_name, template_subdir)
+            template_path = _getTemplateSubDirectory(
+                package_name=package_name, template_subdir=template_subdir
+            )
+
+            if template_path is not None:
+                loader = jinja2.FileSystemLoader(template_path)
+            else:
+                loader = jinja2.PackageLoader(package_name, template_subdir)
         elif template_subdir is not None:
             loader = jinja2.FileSystemLoader(template_subdir)
         else:
