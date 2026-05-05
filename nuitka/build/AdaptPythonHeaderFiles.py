@@ -139,6 +139,19 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
             replacement="#  define _Py_DEC_REFTOTAL(interp) \\\n    _Py_DecRefTotal(_PyThreadState_GET())",
         )
 
+    if filename == "pycore_stackref.h" and 0x3E0 <= python_version < 0x3F0:
+        adapted = _substituteExpectedInAdaptedPythonHeaderFile(
+            content=adapted,
+            filename=filename,
+            pattern=(
+                r"(int tag = ref\.bits & Py_TAG_BITS;\n\s+)"
+                r"PyObject \*obj = BITS_TO_PTR_MASKED\(ref\);"
+            ),
+            replacement=(
+                r"\1NUITKA_MAY_BE_UNUSED PyObject *obj = BITS_TO_PTR_MASKED(ref);"
+            ),
+        )
+
     return adapted
 
 
@@ -291,7 +304,7 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_files = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v7",
+        "adapted-python-headers-v8",
         "module" if shallMakeModule() else "non-module",
     )
 
