@@ -638,14 +638,34 @@ static int waitpid_retried(pid_t pid, int *status, bool async) {
 }
 
 static int waitpid_timeout(pid_t pid) {
-    // Check if already exited.
-    if (waitpid(pid, NULL, WNOHANG) == -1) {
+    int res = waitpid_retried(pid, NULL, true);
+
+    // Child can already be gone when cleanup is entered from signal handling or
+    // when an earlier wait has already collected it for us.
+    if (res == -1) {
+        if (errno != ECHILD) {
+            perror("waitpid");
+
+            return -1;
+        }
+
+        return 0;
+    }
+
+    if (res != 0) {
         return 0;
     }
 
     // A value of -1 means wait indefinitely.
     if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
-        waitpid_retried(pid, NULL, false);
+        res = waitpid_retried(pid, NULL, false);
+
+        if (res == -1 && errno != ECHILD) {
+            perror("waitpid");
+
+            return -1;
+        }
+
         return 0;
     }
 
@@ -663,9 +683,13 @@ static int waitpid_timeout(pid_t pid) {
 
     do {
         // Only want to care about SIGCHLD here.
-        int res = waitpid_retried(pid, NULL, true);
+        res = waitpid_retried(pid, NULL, true);
 
         if (unlikely(res < 0)) {
+            if (errno == ECHILD) {
+                return 0;
+            }
+
             perror("waitpid");
 
             return -1;
