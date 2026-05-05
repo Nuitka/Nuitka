@@ -609,7 +609,7 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
         id_path  - Use this value for library id
-        rpath    - Set this as an rpath if not None, delete if False
+        rpath    - Set this as an rpath if not None, delete all if False
 
     Returns:
         None
@@ -625,7 +625,11 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
             command += ("-change", old_path, new_path)
             needs_call = True
 
-    if rpath is not None:
+    if rpath is False:
+        for existing_rpath in getSharedLibraryRPATHs(filename):
+            command += ("-delete_rpath", existing_rpath)
+            needs_call = True
+    elif rpath is not None:
         command += ("-add_rpath", os.path.join(rpath, "."))
         needs_call = True
 
