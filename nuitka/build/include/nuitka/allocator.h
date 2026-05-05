@@ -223,7 +223,13 @@ static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type 
 // After Python 3.9 this was moved into the DLL potentially, making
 // it expensive to call.
 #if PYTHON_VERSION >= 0x390
-static inline void Nuitka_Py_NewReferenceNoTotal(PyObject *op) { Py_SET_REFCNT(op, 1); }
+static inline void Nuitka_Py_NewReferenceNoTotal(PyObject *op) {
+    Py_SET_REFCNT(op, 1);
+
+#if PYTHON_VERSION >= 0x3e0 && defined(Py_REF_DEBUG)
+    _PyReftracerTrack(op, PyRefTracer_CREATE);
+#endif
+}
 static inline void Nuitka_Py_NewReference(PyObject *op) {
     Nuitka_Py_IncRefTotal(_PyThreadState_GET());
 #if !defined(Py_GIL_DISABLED)
@@ -251,8 +257,11 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
     op->ob_ref_local = 1;
     op->ob_ref_shared = 0;
 #endif
+
+    Nuitka_Py_NewReferenceNoTotal(op);
 }
 #else
+#define Nuitka_Py_NewReferenceNoTotal(op) _Py_NewReferenceNoTotal(op)
 #define Nuitka_Py_NewReference(op) _Py_NewReference(op)
 #endif
 
@@ -369,6 +378,9 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 
     // This is the "var" branch, we already know we are variable size here.
     assert(type->tp_itemsize != 0);
+#if PYTHON_VERSION >= 0x3e0
+    _PyObject_InitVar((PyVarObject *)obj, type, nitems);
+#else
     Py_SET_SIZE((PyVarObject *)obj, nitems);
 
     // Initialize the object references.
@@ -376,12 +388,15 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#endif
 
 #if PYTHON_VERSION >= 0x3d0
     Nuitka_PyObject_InitInlineValues(obj, type);
 #endif
 
+#if PYTHON_VERSION < 0x3e0
     Nuitka_Py_NewReference(obj);
+#endif
 
     return obj;
 }
@@ -390,12 +405,14 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     // TODO: This ought to be static for all our types, so remove it as a call.
     size_t pre_size = _PyType_PreHeaderSize(type);
     size_t inline_values_size = 0;
+    size_t size = _PyObject_SIZE(type);
 
 #if PYTHON_VERSION >= 0x3d0
     inline_values_size = Nuitka_PyType_InlineValuesSize(type);
+    size += inline_values_size;
 #endif
 
-    char *alloc = (char *)NuitkaObject_Malloc(_PyObject_SIZE(type) + pre_size + inline_values_size);
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -406,16 +423,21 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     Nuitka_PyObject_GC_Link(obj);
 
     // Initialize the object references.
+#if PYTHON_VERSION >= 0x3e0
+    _PyObject_Init(obj, type);
+#else
     Py_SET_TYPE(obj, type);
-
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#endif
 #if PYTHON_VERSION >= 0x3d0
     Nuitka_PyObject_InitInlineValues(obj, type);
 #endif
 
+#if PYTHON_VERSION < 0x3e0
     Nuitka_Py_NewReference(obj);
+#endif
 
     return obj;
 }

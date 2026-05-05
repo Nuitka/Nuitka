@@ -699,22 +699,8 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
-    // TODO: Have this passed.
-    PyThreadState *tstate = _PyThreadState_GET();
-    GCState *gcstate = &tstate->interp->gc;
-
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
-
-    if (!Nuitka_GC_TrackOwnsAccounting()) {
-        gcstate->young.count++;
-        gcstate->heap_size++;
-
-        if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
-            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
-            Nuitka_Py_ScheduleGC(tstate);
-        }
-    }
 #endif
 }
 

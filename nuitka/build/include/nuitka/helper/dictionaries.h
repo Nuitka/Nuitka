@@ -454,7 +454,13 @@ extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr,
 extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
-#define MAKE_DICT_EMPTY(tstate) PyDict_New()
+static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
+    (void)tstate;
+
+    PyObject *result = PyDict_New();
+    assert(result != NULL);
+    return result;
+}
 #endif
 
 // Create a dictionary from key/value pairs.

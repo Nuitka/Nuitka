@@ -1068,43 +1068,72 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3e0
+static PyDictObject *_Nuitka_AllocatePyDictObjectFresh(void) {
+    size_t pre_size = _PyType_PreHeaderSize(&PyDict_Type);
+    size_t size = _PyObject_SIZE(&PyDict_Type);
+
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+    assert(alloc != NULL);
+
+    ((PyObject **)alloc)[0] = NULL;
+    ((PyObject **)alloc)[1] = NULL;
+
+    PyObject *obj = (PyObject *)(alloc + pre_size);
+
+    Nuitka_PyObject_GC_Link(obj);
+    _PyObject_Init(obj, &PyDict_Type);
+
+    return (PyDictObject *)obj;
+}
+#endif
+
 #if PYTHON_VERSION >= 0x300 && (NUITKA_DICT_HAS_FREELIST || !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
 static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
 #if NUITKA_DICT_HAS_FREELIST
-#if PYTHON_VERSION >= 0x3e0
-    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->dicts);
-
-    if (result_mp == NULL) {
-        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
-    } else {
-        Nuitka_Py_NewReference((PyObject *)result_mp);
-    }
-#else
-    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
+    // This is the CPython name, spell-checker: ignore numfree
     PyDictObject **items = tstate->interp->dict_state.free_list;
     int *numfree = &tstate->interp->dict_state.numfree;
-#else
+#elif PYTHON_VERSION < 0x3e0
     struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
     struct _Py_dict_freelist *state = &freelists->dicts;
     PyDictObject **items = state->items;
     int *numfree = &state->numfree;
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+    struct _Py_freelists *freelists = Nuitka_Py_freelists_GET(tstate);
+
+    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&freelists->dicts);
+
+    if (result_mp != NULL) {
+        Nuitka_Py_NewReference((PyObject *)result_mp);
+    } else {
+        result_mp = _Nuitka_AllocatePyDictObjectFresh();
+    }
+#else
     if (*numfree) {
         (*numfree) -= 1;
         result_mp = items[*numfree];
 
         Nuitka_Py_NewReference((PyObject *)result_mp);
-    } else
-#endif
-    {
+    } else {
+#if PYTHON_VERSION >= 0x3e0
+        result_mp = _Nuitka_AllocatePyDictObjectFresh();
+#else
         result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+#endif
     }
+#endif
+#else
+#if PYTHON_VERSION >= 0x3e0
+    result_mp = _Nuitka_AllocatePyDictObjectFresh();
 #else
     result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+#endif
 #endif
 #if PYTHON_VERSION >= 0x3e0
     result_mp->_ma_watcher_tag = 0;
@@ -2194,15 +2223,14 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 
     PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
 
+    assert(empty_dict_mp->ma_values == NULL);
     result_mp->ma_keys = empty_dict_mp->ma_keys;
-    result_mp->ma_values = empty_dict_mp->ma_values;
+    result_mp->ma_values = NULL;
     result_mp->ma_used = 0;
-#if PYTHON_VERSION < 0x3e0
-#if PYTHON_VERSION >= 0x3c0
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0
     result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
-#elif PYTHON_VERSION >= 0x360
+#elif PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3e0
     result_mp->ma_version_tag = 1;
-#endif
 #endif
 
     // Key reference needs to be counted on older Python

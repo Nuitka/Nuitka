@@ -79,13 +79,14 @@ else
 #endif
 #else
         PyDictValues *new_values = _Nuitka_PyDict_copy_values(dict_mp->ma_values);
+        assert(new_values != NULL);
+        size = new_values->capacity;
 #endif
 
         result_mp->ma_values = new_values;
         result_mp->ma_keys = dict_mp->ma_keys;
         result_mp->ma_used = dict_mp->ma_used;
 
-        // This is a manual reference count for the keys.
         Nuitka_Py_IncRefTotal(tstate);
         dict_mp->ma_keys->dk_refcnt += 1;
 
@@ -201,9 +202,7 @@ else
         }
 #endif
 
-    // The new keys are an object counted.
         Nuitka_Py_IncRefTotal(tstate);
-
         Nuitka_GC_Track(result_mp);
     } else
 #endif
@@ -295,8 +294,11 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         PyObject *dict_value_copy = DEEP_COPY(tstate, value);
 
         if (dict_value_copy != value) {
-            DICT_SET_ITEM(result, key, value);
+            NUITKA_MAY_BE_UNUSED bool res = DICT_SET_ITEM(result, key, dict_value_copy);
+            assert(res);
         }
+
+        Py_DECREF(dict_value_copy);
     }
 #else
     Py_BEGIN_CRITICAL_SECTION(dict_value);
@@ -305,41 +307,6 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
     Py_END_CRITICAL_SECTION();
 #endif
-
-    return result;
-}
-
-// Helper for function calls with star dict arguments. */
-static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
-    PyObject *result;
-    bool had_kw_error = false;
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
-    CHECK_OBJECT(dict_value);
-    assert(PyDict_CheckExact(dict_value));
-
-    result = DICT_COPY(tstate, dict_value);
-
-    Py_ssize_t pos = 0;
-    PyObject *key, *value;
-
-    while (Nuitka_DictNext(dict_value, &pos, &key, &value)) {
-        if (unlikely(!checkKeywordType(key))) {
-            had_kw_error = true;
-        }
-    }
-#else
-    Py_BEGIN_CRITICAL_SECTION(dict_value);
-
-    {{ dict_copy_iteration("result", "dict_value", "if (unlikely(!checkKeywordType(key))) { had_kw_error = true; }", "", 0) }}
-
-    Py_END_CRITICAL_SECTION();
-#endif
-
-    if (unlikely(had_kw_error)) {
-        Py_DECREF(result);
-        return NULL;
-    }
 
     return result;
 }

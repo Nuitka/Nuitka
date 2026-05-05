@@ -526,6 +526,7 @@ static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
     }
 }
 
+#if PYTHON_VERSION >= 0x3e0
 static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
 #if _NUITKA_MODULE_MODE
     static int owns_accounting = -1;
@@ -539,6 +540,7 @@ static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
     return PYTHON_VERSION >= 0x3e1;
 #endif
 }
+#endif
 
 #undef Nuitka_GC_Track
 static inline void Nuitka_GC_Track(void *raw_op) {
@@ -559,22 +561,19 @@ static inline void Nuitka_GC_Track(void *raw_op) {
     gc->_gc_next = ((uintptr_t)generation0) | not_visited;
     generation0->_gc_prev = (uintptr_t)gc;
 
+#if PYTHON_VERSION >= 0x3e0
     if (Nuitka_GC_TrackOwnsAccounting()) {
-        /* Python 3.14.1 moved young-generation accounting from
-         * "_PyObject_GC_Link" to "_PyObject_GC_TRACK".
-         */
-        gcstate->young.count++; /* number of tracked GC objects */
+        gcstate->young.count++;
         gcstate->heap_size++;
 
-        if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
-            !_Py_atomic_load_int_relaxed(&gcstate->collecting)) {
-            PyThreadState *tstate = _PyThreadState_GET();
-
-            if (!_PyErr_Occurred(tstate)) {
-                Nuitka_Py_ScheduleGC(tstate);
+        if (gcstate->young.count > gcstate->young.threshold) {
+            if (gcstate->enabled && gcstate->young.threshold && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+                !_PyErr_Occurred(_PyThreadState_GET())) {
+                Nuitka_Py_ScheduleGC(_PyThreadState_GET());
             }
         }
     }
+#endif
 #endif
 }
 
@@ -593,16 +592,6 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
     _PyGCHead_SET_PREV(next, prev);
     gc->_gc_next = 0;
     gc->_gc_prev &= _PyGC_PREV_MASK_FINALIZED;
-
-    if (Nuitka_GC_TrackOwnsAccounting()) {
-        struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
-
-        if (gcstate->young.count > 0) {
-            gcstate->young.count--;
-        }
-
-        gcstate->heap_size--;
-    }
 #endif
 }
 
