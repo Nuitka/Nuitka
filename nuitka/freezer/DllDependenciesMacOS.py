@@ -13,10 +13,12 @@ from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.plugins.Hooks import isAcceptableMissingDLL
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
+    getMacPortsInstallPath,
     getSystemPrefixPath,
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMacPortsPython,
     isMonolithPy,
     isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
@@ -76,6 +78,18 @@ def _detectPythonRpaths():
 
     if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
+
+    if isMacPortsPython():
+        mac_ports_install_path = getMacPortsInstallPath()
+
+        # spell-checker: ignore libexec
+        for candidate in (
+            os.path.join(getSystemPrefixPath(), "lib"),
+            os.path.join(mac_ports_install_path, "Library", "Frameworks"),
+            os.path.join(mac_ports_install_path, "lib"),
+            os.path.join(mac_ports_install_path, "libexec", "qt6", "lib"),
+        ):
+            result.append(candidate)
 
     if isHomebrewPython() or isPyenvHomebrewPython():
         result.extend(

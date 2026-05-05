@@ -168,6 +168,42 @@ def getHomebrewInstallPath():
     sys.exit("Error, failed to locate homebrew installation path.")
 
 
+_is_mac_ports_python = None
+
+
+def isMacPortsPython():
+    """Detect if this is a MacPorts Python."""
+    # Singleton, pylint: disable=global-statement
+    global _is_mac_ports_python
+
+    if _is_mac_ports_python is None:
+        _is_mac_ports_python = False
+
+        if isMacOS():
+            _is_mac_ports_python = isFilenameSameAsOrBelowPath(
+                path="/opt/local", filename=getSystemPrefixPath()
+            ) or isFilenameSameAsOrBelowPath(path="/opt/local", filename=sys.executable)
+
+    return _is_mac_ports_python
+
+
+def getMacPortsInstallPath():
+    assert isMacPortsPython()
+
+    candidate = getSystemPrefixPath()
+
+    while candidate != "/":
+        if candidate == "/opt/local":
+            return candidate
+
+        if os.path.exists(os.path.join(candidate, "bin", "port")):
+            return candidate
+
+        candidate = os.path.dirname(candidate)
+
+    return "/opt/local"
+
+
 def isRyePython():
     if isMacOS():
         import sysconfig
@@ -461,6 +497,8 @@ def getPythonFlavorName():
         return "PyEnv on Homebrew Python"
     elif isPyenvPython():
         return "PyEnv Python"
+    elif isMacPortsPython():
+        return "MacPorts Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isRyePython():

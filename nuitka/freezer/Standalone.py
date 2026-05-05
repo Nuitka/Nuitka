@@ -35,9 +35,11 @@ from nuitka.Progress import (
 )
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
+    getMacPortsInstallPath,
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMacPortsPython,
     isMonolithPy,
     isMSYS2MingwPython,
     isPyenvHomebrewPython,
@@ -586,6 +588,9 @@ def _reduceToPythonPath(used_dll_paths):
 
     if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
         inside_paths.insert(0, getSystemPrefixPath())
+
+    if isMacPortsPython():
+        inside_paths.insert(0, getMacPortsInstallPath())
 
     if isHomebrewPython() or isPyenvHomebrewPython():
         inside_paths.insert(0, getHomebrewInstallPath())
