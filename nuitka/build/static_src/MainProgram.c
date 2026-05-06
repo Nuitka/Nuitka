@@ -2018,12 +2018,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
-
-// TODO: Python3.13 NoGIL: This is causing errors during bytecode import
-// that are unexplained.
-#if !defined(Py_GIL_DISABLED)
     patchInspectModule(tstate);
-#endif
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1

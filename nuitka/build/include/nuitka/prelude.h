@@ -304,10 +304,10 @@ static inline struct types_state *Nuitka_PyInterpreterState_GetTypesState(PyInte
 #endif
 }
 
-#if PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION >= 0x3d0
 NUITKA_MAY_BE_UNUSED static inline struct _Py_mem_interp_free_queue *
 Nuitka_PyInterpreterState_GetMemFreeQueue(PyInterpreterState *interp) {
-#if PYTHON_VERSION < 0x3f0
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
     return (struct _Py_mem_interp_free_queue *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->mem_free_queue);
 #else
     return &interp->mem_free_queue;
@@ -545,12 +545,11 @@ static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
 #undef Nuitka_GC_Track
 static inline void Nuitka_GC_Track(void *raw_op) {
     PyObject *op = (PyObject *)raw_op;
-    assert(!_PyObject_GC_IS_TRACKED(op));
 #ifdef Py_GIL_DISABLED
+    assert(!_PyObject_GC_IS_TRACKED(op));
     _PyObject_SET_GC_BITS(op, _PyGC_BITS_TRACKED);
 #else
     PyGC_Head *gc = _Py_AS_GC(op);
-    assert((gc->_gc_prev & _PyGC_PREV_MASK_COLLECTING) == 0);
 
     struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
     PyGC_Head *generation0 = &gcstate->young.head;
@@ -581,8 +580,8 @@ static inline void Nuitka_GC_Track(void *raw_op) {
 #undef Nuitka_GC_UnTrack
 static inline void Nuitka_GC_UnTrack(void *raw_op) {
     PyObject *op = (PyObject *)raw_op;
-    assert(_PyObject_GC_IS_TRACKED(op));
 #ifdef Py_GIL_DISABLED
+    assert(_PyObject_GC_IS_TRACKED(op));
     _PyObject_CLEAR_GC_BITS(op, _PyGC_BITS_TRACKED);
 #else
     PyGC_Head *gc = _Py_AS_GC(op);
@@ -724,6 +723,14 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define _Py_CRITICAL_SECTION_ASSERT_MUTEX_LOCKED(mutex)
 #define _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op)
 
+#endif
+
+#ifdef Py_GIL_DISABLED
+#define LOCK_KEYS(keys) PyMutex_Lock(&keys->dk_mutex)
+#define UNLOCK_KEYS(keys) PyMutex_Unlock(&keys->dk_mutex)
+#else
+#define LOCK_KEYS(keys)
+#define UNLOCK_KEYS(keys)
 #endif
 
 // Our replacement for "PyType_IsSubtype"

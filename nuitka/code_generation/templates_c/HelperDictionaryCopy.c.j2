@@ -111,7 +111,7 @@ else
       crashes at release time. Need to check if the keys allocator is different
       in some API somehow, or non-split dictionaries which didn't exist then are
       to be handled differently. #}
-#if PYTHON_VERSION >= 0x360
+#if PYTHON_VERSION >= 0x360 && !defined(Py_GIL_DISABLED)
     // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
     // for the DICT_COPY, where it might even be the intention to trigger a shrink with
     // a fresh copy.

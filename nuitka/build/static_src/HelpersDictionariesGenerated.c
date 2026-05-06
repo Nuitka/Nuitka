@@ -91,7 +91,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
             Nuitka_GC_Track(result_mp);
         } else
-#if PYTHON_VERSION >= 0x360
+#if PYTHON_VERSION >= 0x360 && !defined(Py_GIL_DISABLED)
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
             // a fresh copy.
@@ -314,7 +314,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
             Nuitka_GC_Track(result_mp);
         } else
-#if PYTHON_VERSION >= 0x360
+#if PYTHON_VERSION >= 0x360 && !defined(Py_GIL_DISABLED)
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
             // a fresh copy.

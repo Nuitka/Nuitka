@@ -31,7 +31,7 @@ static struct _Py_dictkeys_freelist *get_dictkeys_freelist(void) {
 static void Nuitka_Py_dictkeys_free_keys_object(PyDictKeysObject *keys, bool use_qsbr) {
 #ifdef Py_GIL_DISABLED
     if (use_qsbr) {
-        _PyMem_FreeDelayed(keys);
+        NuitkaMem_FreeDelayed(keys);
         return;
     }
 #endif
@@ -79,9 +79,6 @@ static inline void ASSERT_DICT_LOCKED(PyObject *op) { _Py_CRITICAL_SECTION_ASSER
     if (kind == DICT_KEYS_SPLIT) {                                                                                     \
         UNLOCK_KEYS(keys);                                                                                             \
     }
-
-#define LOCK_KEYS(keys) PyMutex_LockFlags(&keys->dk_mutex, _Py_LOCK_DONT_DETACH)
-#define UNLOCK_KEYS(keys) PyMutex_Unlock(&keys->dk_mutex)
 
 #define ASSERT_KEYS_LOCKED(keys) assert(PyMutex_IsLocked(&keys->dk_mutex))
 #define LOAD_SHARED_KEY(key) _Py_atomic_load_ptr_acquire(&key)
@@ -147,8 +144,6 @@ static inline void split_keys_entry_added(PyDictKeysObject *keys) {
 #define ASSERT_DICT_LOCKED(op)
 #define ASSERT_WORLD_STOPPED_OR_DICT_LOCKED(op)
 #define ASSERT_WORLD_STOPPED_OR_OBJ_LOCKED(op)
-#define LOCK_KEYS(keys)
-#define UNLOCK_KEYS(keys)
 #define ASSERT_KEYS_LOCKED(keys)
 #define LOAD_SHARED_KEY(key) key
 #define STORE_SHARED_KEY(key, value) key = value
@@ -1654,7 +1649,9 @@ read_failed:
     // or in the *_lookup_* helper.  In that case we need to take the lock to avoid
     // mutation and do a normal incref which will make them shared.
     Py_BEGIN_CRITICAL_SECTION(mp);
-    ix = _Py_dict_lookup(mp, key, hash, &value);
+    PyObject **locked_value_addr = NULL;
+    ix = Nuitka_PyDictLookup(mp, key, hash, &locked_value_addr);
+    value = locked_value_addr == NULL ? NULL : *locked_value_addr;
     *value_addr = value;
     if (value != NULL) {
         assert(ix >= 0);
@@ -2223,9 +2220,13 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
 
     PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
 
-    assert(empty_dict_mp->ma_values == NULL);
     result_mp->ma_keys = empty_dict_mp->ma_keys;
+#if PYTHON_VERSION < 0x3b0
+    result_mp->ma_values = empty_dict_mp->ma_values;
+#else
+    assert(empty_dict_mp->ma_values == NULL);
     result_mp->ma_values = NULL;
+#endif
     result_mp->ma_used = 0;
 #if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0
     result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());

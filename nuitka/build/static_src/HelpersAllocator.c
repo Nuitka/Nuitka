@@ -52,6 +52,14 @@ void initNuitkaAllocators(void) {
 #endif
 }
 
+#if defined(Py_GIL_DISABLED) && defined(Py_REF_DEBUG) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
+void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) { tstate->interp->object_state.reftotal += n; }
+
+void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+
+void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
 
 typedef struct _gc_runtime_state GCState;
@@ -726,15 +734,21 @@ struct _mem_work_chunk {
 // Aligns with CPython "qsbr.c"
 #define QSBR_DEFERRED_LIMIT 10
 
+static uint64_t Nuitka_qsbr_shared_next(struct _qsbr_shared *shared) {
+    return _Py_qsbr_shared_current(shared) + QSBR_INCR;
+}
+
 static uint64_t Nuitka_qsbr_advance(struct _qsbr_shared *shared) {
     return _Py_atomic_add_uint64(&shared->wr_seq, QSBR_INCR) + QSBR_INCR;
 }
 
 static uint64_t Nuitka_qsbr_deferred_advance(struct _qsbr_thread_state *qsbr) {
-    if (++qsbr->deferrals < QSBR_DEFERRED_LIMIT) {
-        return _Py_qsbr_shared_current(qsbr->shared) + QSBR_INCR;
+    if (++qsbr->deferred_count < QSBR_DEFERRED_LIMIT) {
+        return Nuitka_qsbr_shared_next(qsbr->shared);
     }
-    qsbr->deferrals = 0;
+
+    qsbr->deferred_count = 0;
+    qsbr->should_process = true;
     return Nuitka_qsbr_advance(qsbr->shared);
 }
 
@@ -921,7 +935,8 @@ static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
     buf->array[buf->wr_idx].qsbr_goal = seq;
     buf->wr_idx++;
 
-    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
+    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK || _Py_qsbr_should_process(tstate->qsbr)) {
+        tstate->qsbr->should_process = false;
         _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
     }
 }

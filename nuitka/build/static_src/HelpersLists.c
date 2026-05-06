@@ -100,6 +100,9 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
             Py_DECREF(result_list);
             return PyErr_NoMemory();
         }
+
+        memset(list_array->ob_item, 0, size * sizeof(PyObject *));
+        result_list->ob_item = list_array->ob_item;
 #else
         result_list->ob_item = (PyObject **)NuitkaMem_Calloc(size, sizeof(PyObject *));
 

@@ -364,13 +364,20 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
-    assert(pre_size);
+#ifdef Py_GIL_DISABLED
     if (pre_size) {
         ((PyObject **)alloc)[0] = NULL;
         ((PyObject **)alloc)[1] = NULL;
 
         Nuitka_PyObject_GC_Link(obj);
     }
+#else
+    assert(pre_size != 0);
+    ((PyObject **)alloc)[0] = NULL;
+    ((PyObject **)alloc)[1] = NULL;
+
+    Nuitka_PyObject_GC_Link(obj);
+#endif
 
     // We might be able to avoid this, but it's unclear what e.g. the sentinel
     // is supposed to be.
@@ -404,23 +411,30 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     // TODO: This ought to be static for all our types, so remove it as a call.
     size_t pre_size = _PyType_PreHeaderSize(type);
-    size_t inline_values_size = 0;
     size_t size = _PyObject_SIZE(type);
 
 #if PYTHON_VERSION >= 0x3d0
-    inline_values_size = Nuitka_PyType_InlineValuesSize(type);
-    size += inline_values_size;
+    size += Nuitka_PyType_InlineValuesSize(type);
 #endif
 
     char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
-    assert(pre_size);
+#ifdef Py_GIL_DISABLED
+    if (pre_size) {
+        ((PyObject **)alloc)[0] = NULL;
+        ((PyObject **)alloc)[1] = NULL;
+
+        Nuitka_PyObject_GC_Link(obj);
+    }
+#else
+    assert(pre_size != 0);
     ((PyObject **)alloc)[0] = NULL;
     ((PyObject **)alloc)[1] = NULL;
 
     Nuitka_PyObject_GC_Link(obj);
+#endif
 
     // Initialize the object references.
 #if PYTHON_VERSION >= 0x3e0
