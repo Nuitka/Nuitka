@@ -14,7 +14,7 @@
  *
  */
 
-extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
+extern int loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
 
 // We define a macro that declares the external symbols and provides accessor functions.
 // For INCBIN/C23, the generating C file already defines these functions, so we just declare them.

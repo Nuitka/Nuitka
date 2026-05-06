@@ -65,10 +65,20 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+        NUITKA_MAY_BE_UNUSED int constants_loaded_count =
+            loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
+        if (constants_loaded_count != %(constants_count)d) {
+            fprintf(stderr,
+                    "Corrupt constants blob for %%s: expected %(constants_count)d values, got %%d\n",
+                    UN_TRANSLATE(%(module_const_blob_name)s),
+                    constants_loaded_count);
+            fflush(stderr);
+            abort();
+        }
+
 %(module_constants_check_hash)s
 #endif
     }

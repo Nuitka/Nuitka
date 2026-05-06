@@ -1328,16 +1328,18 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
     return data;
 }
 
-static void unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data) {
+static int unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data) {
     int count = (int)unpackValueUint16(&data);
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     printf("unpackBlobConstants count %d\n", count);
 #endif
     _unpackBlobConstants(tstate, output, data, count);
+
+    return count;
 }
 
-void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *name) {
+int loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *name) {
     static bool init_done = false;
 
     if (init_done == false) {
@@ -1392,7 +1394,7 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
         w += size;
     }
 
-    unpackBlobConstants(tstate, output, w);
+    return unpackBlobConstants(tstate, output, w);
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
