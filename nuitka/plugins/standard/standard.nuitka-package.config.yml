@@ -5082,7 +5082,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: b6d023e2
+- module-name: 'pypylon' # checksum: 3494369e
   data-files:
     - patterns:
         - '**/*.sig'
@@ -5103,6 +5103,9 @@
           - 'Pylon'
           - 'gxapi'
           - 'uxapi'
+          - 'libpylon'
+          - 'libgxapi'
+          - 'libuxapi'
       when: 'not macos'
     - from_filenames:
         relative_path: 'pylonDataProcessingPlugins'
