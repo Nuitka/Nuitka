@@ -2023,6 +2023,11 @@
     - patterns:
         - '_cython/_credentials/roots.pem'
 
+- module-name: 'grpc_requests' # checksum: c60b4c80
+  data-files:
+    - include-metadata:
+        - 'protobuf'
+
 - module-name: 'gruut' # checksum: fddc60ae
   data-files:
     - patterns:
