@@ -67,30 +67,17 @@ static const bool use_freelists = true;
 
 #if PYTHON_VERSION >= 0x3e0
 
-// CPython 3.14.4 added "array_raw" to "_qsbr_shared", shifting the
-// interpreter "object_state.freelists" by one pointer width.
+// CPython 3.14 changed the layout before post-QSBR interpreter fields in
+// 3.14.4 and again in 3.14.5.
 static inline struct _Py_freelists *Nuitka_Py_freelists_GET(PyThreadState *tstate) {
 #ifdef Py_GIL_DISABLED
     return &((_PyThreadStateImpl *)tstate)->freelists;
 #else
-    struct _Py_freelists *freelists = &tstate->interp->object_state.freelists;
-
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION < 0x3f0
-    static int freelists_pointer_delta = 2;
-
-    if (freelists_pointer_delta == 2) {
-        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
-
-#if PYTHON_VERSION >= 0x3e4
-        freelists_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
+    return (struct _Py_freelists *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(
+        &tstate->interp->object_state.freelists);
 #else
-        freelists_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
-#endif
-    }
-
-    return (struct _Py_freelists *)((char *)freelists + freelists_pointer_delta * sizeof(void *));
-#else
-    return freelists;
+    return &tstate->interp->object_state.freelists;
 #endif
 #endif
 }
