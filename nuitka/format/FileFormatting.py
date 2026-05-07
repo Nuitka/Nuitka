@@ -76,19 +76,23 @@ def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
     # pylint: disable=global-statement
     global _warned_clang_format, _clang_format_path
 
-    if _warned_clang_format:
-        return None
+    if _clang_format_path is False:
+        clang_format_path = getClangFormatBinaryPath(
+            logger=logger,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message=reject_message,
+        )
 
-    if _clang_format_path is not False:
-        return _clang_format_path
+        if clang_format_path is not None or reject_message is not None:
+            _clang_format_path = clang_format_path
+        else:
+            return None
 
-    _clang_format_path = getClangFormatBinaryPath(
-        logger=logger,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-        reject_message=reject_message,
-    )
-
-    if _clang_format_path is None and not _warned_clang_format:
+    if (
+        _clang_format_path is None
+        and reject_message is not None
+        and not _warned_clang_format
+    ):
         if logger is not None:
             logger.warning("Need to accept clang-format download to format C files.")
         _warned_clang_format = True
