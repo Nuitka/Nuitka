@@ -679,7 +679,7 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         Nuitka_gc_collect_generations(tstate);
         gcstate->collecting = 0;
     }
-#elif PYTHON_VERSION < 0x3e0
+#elif (PYTHON_VERSION < 0x3e0) || (PYTHON_VERSION >= 0x3e5)
     // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 

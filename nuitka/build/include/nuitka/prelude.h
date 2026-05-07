@@ -509,6 +509,15 @@ typedef long Py_hash_t;
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
 
+#if PYTHON_VERSION >= 0x3e0
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
+    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
+        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+    }
+}
+#endif
+
 /* Due to ABI issues, it seems that on Windows the symbols used by
  * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
  * function that does it instead.
@@ -518,13 +527,7 @@ typedef long Py_hash_t;
  * become runtime incompatible.
  *
  */
-#if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
-// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
-static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
-    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
-        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
-    }
-}
+#if (PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)) && (PYTHON_VERSION < 0x3e5)
 
 #if PYTHON_VERSION >= 0x3e0
 static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
