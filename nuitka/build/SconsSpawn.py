@@ -15,7 +15,7 @@ import threading
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Execution import Process, executeProcess
-from nuitka.utils.FileOperations import getReportPath
+from nuitka.utils.FileOperations import getFilenameExtension, getReportPath
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -464,16 +464,22 @@ def _getWrappedSpawnFunction(env):
         assert type(args) in (list, tuple)
 
         args = [reverseShQuoting(arg) for arg in args]
+
+        source_filename = None
+        source_name = None
+
         for arg in args[1:]:
-            if arg.endswith(".c") and os.path.exists(arg):
+            source_basename = os.path.basename(arg)
+            source_ext = getFilenameExtension(source_basename)
+
+            if source_ext in (".c", ".cpp") and os.path.exists(arg):
+                source_name = source_basename[: -len(source_ext)]
                 source_filename = arg
                 break
-        else:
-            source_filename = None
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if source_filename == "__constants_data.c":
+        if source_filename is not None and source_name == "__constants_data":
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
