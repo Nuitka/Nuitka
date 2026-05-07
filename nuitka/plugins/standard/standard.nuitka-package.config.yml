@@ -4380,11 +4380,15 @@
     - depends:
         - '.region_*'
 
-- module-name: 'PIL' # checksum: 52d41000
+- module-name: 'PIL' # checksum: ad207987
   anti-bloat:
     - description: 'avoid numpy dependency'
       no-auto-follow:
         'numpy': 'ignore'
+    - description: 'avoid tkinter dependency'
+      no-auto-follow:
+        'tkinter': 'PIL will not be able to create Tk image objects'
+      when: 'not use_tkinter'
 
 - module-name: 'PIL._imagingtk' # checksum: 52df48a8
   implicit-imports:
