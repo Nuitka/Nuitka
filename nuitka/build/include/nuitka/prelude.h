@@ -124,6 +124,14 @@ NUITKA_MAY_BE_UNUSED static inline int Nuitka_GetRuntimeVersion(void) {
 #define Nuitka_GetRuntimeVersion() PYTHON_VERSION
 #endif
 
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+// 'pycore_tuple.h' expands '_PyObject_GC_TRACK()' in inline helpers, so the
+// Nuitka runtime-aware replacements must be declared before that header is
+// included.
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_Track(void *raw_op);
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
+#endif
+
 #if defined(_WIN32)
 // Windows is too difficult for API redefines.
 #define MIN_PYCORE_PYTHON_VERSION 0x380
@@ -348,6 +356,14 @@ static inline struct types_state *Nuitka_PyInterpreterState_GetTypesState(PyInte
     return (struct types_state *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->types);
 #else
     return &interp->types;
+#endif
+}
+
+static inline struct _Py_dict_state *Nuitka_PyInterpreterState_GetDictState(PyInterpreterState *interp) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _Py_dict_state *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->dict_state);
+#else
+    return &interp->dict_state;
 #endif
 }
 
@@ -634,6 +650,28 @@ static inline Nuitka_GCStateIncremental *Nuitka_GC_GetIncrementalState(struct _g
 static inline Nuitka_GCStateGenerational *Nuitka_GC_GetGenerationalState(struct _gc_runtime_state *gcstate) {
     return (Nuitka_GCStateGenerational *)gcstate;
 }
+
+static inline PyGC_Head *Nuitka_GCHead_NEXT(PyGC_Head *gc) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        return (PyGC_Head *)gc->_gc_next;
+    } else {
+        uintptr_t next = gc->_gc_next & _PyGC_PREV_MASK;
+        return (PyGC_Head *)next;
+    }
+}
+
+static inline void Nuitka_GCHead_SET_NEXT(PyGC_Head *gc, PyGC_Head *next) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        gc->_gc_next = (uintptr_t)next;
+    } else {
+        uintptr_t unext = (uintptr_t)next;
+        assert((unext & ~_PyGC_PREV_MASK) == 0);
+        gc->_gc_next = (gc->_gc_next & ~_PyGC_PREV_MASK) | unext;
+    }
+}
+
+#define _PyGCHead_NEXT Nuitka_GCHead_NEXT
+#define _PyGCHead_SET_NEXT Nuitka_GCHead_SET_NEXT
 
 static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
     static int owns_accounting = -1;

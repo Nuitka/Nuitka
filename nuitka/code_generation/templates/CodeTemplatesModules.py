@@ -109,7 +109,7 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
     if (dk->dk_version != 0) {
         return dk->dk_version;
     }
-    uint32_t result = interp->dict_state.next_keys_version++;
+    uint32_t result = Nuitka_PyInterpreterState_GetDictState(interp)->next_keys_version++;
     dk->dk_version = result;
     return result;
 }

@@ -139,6 +139,32 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
             replacement="#  define _Py_DEC_REFTOTAL(interp) \\\n    _Py_DecRefTotal(_PyThreadState_GET())",
         )
 
+        if shallMakeModule() and isPythonWithGil():
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_TRACK(op) \\\n        _PyObject_GC_TRACK(_PyObject_CAST(op))",
+                new="#  define _PyObject_GC_TRACK(op) \\\n        Nuitka_GC_Track(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_UNTRACK(op) \\\n        _PyObject_GC_UNTRACK(_PyObject_CAST(op))",
+                new="#  define _PyObject_GC_UNTRACK(op) \\\n        Nuitka_GC_UnTrack(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_TRACK(op) \\\n        _PyObject_GC_TRACK(__FILE__, __LINE__, _PyObject_CAST(op))",
+                new="#  define _PyObject_GC_TRACK(op) \\\n        Nuitka_GC_Track(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_UNTRACK(op) \\\n        _PyObject_GC_UNTRACK(__FILE__, __LINE__, _PyObject_CAST(op))",
+                new="#  define _PyObject_GC_UNTRACK(op) \\\n        Nuitka_GC_UnTrack(_PyObject_CAST(op))",
+            )
+
     if filename == "pycore_stackref.h" and 0x3E0 <= python_version < 0x3F0:
         adapted = _substituteExpectedInAdaptedPythonHeaderFile(
             content=adapted,
@@ -304,7 +330,7 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_files = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v8",
+        "adapted-python-headers-v9",
         "module" if shallMakeModule() else "non-module",
     )
 
