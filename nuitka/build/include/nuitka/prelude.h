@@ -124,6 +124,14 @@ NUITKA_MAY_BE_UNUSED static inline int Nuitka_GetRuntimeVersion(void) {
 #define Nuitka_GetRuntimeVersion() PYTHON_VERSION
 #endif
 
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+// 'pycore_tuple.h' expands '_PyObject_GC_TRACK()' in inline helpers, so the
+// Nuitka runtime-aware replacements must be declared before that header is
+// included.
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_Track(void *raw_op);
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
+#endif
+
 #if defined(_WIN32)
 // Windows is too difficult for API redefines.
 #define MIN_PYCORE_PYTHON_VERSION 0x380
@@ -257,32 +265,58 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #endif
 
-#ifdef _NUITKA_ADAPTED_PYTHON_HEADERS
-/* Cross-compiler offset access and runtime abstraction layer */
-#include "nuitka/python_internals_access.h"
-#else
-#if PYTHON_VERSION >= 0x3c0
-#define Nuitka_PyRuntime__imports (&_PyRuntime.imports)
-#define Nuitka_PyRuntime__static_objects (&_PyRuntime.static_objects)
-#endif
-#endif
-
-#if PYTHON_VERSION >= 0x3c0
-static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
-
 #if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+// CPython 3.14.5 grew "_gc_runtime_state" in GIL builds, shifting all later
+// interpreter fields by three pointer widths.
+static inline int Nuitka_PyInterpreterState_PostGcPointerDelta(void) {
+#if _NUITKA_MODULE_MODE && !defined(Py_GIL_DISABLED)
+    static int post_gc_pointer_delta = 99;
+
+    if (post_gc_pointer_delta == 99) {
+        int runtime_pointer_shift = 0;
+        int compile_time_pointer_shift = 0;
+        int runtime_version = Nuitka_GetRuntimeVersion();
+
+        if (runtime_version >= 0x3e5) {
+            runtime_pointer_shift += 3;
+        }
+
+#if PYTHON_VERSION >= 0x3e5
+        compile_time_pointer_shift += 3;
+#endif
+        post_gc_pointer_delta = runtime_pointer_shift - compile_time_pointer_shift;
+    }
+
+    return post_gc_pointer_delta;
+#else
+    return 0;
+#endif
+}
+
+static inline void *Nuitka_PyInterpreterState_AdjustPostGcPointer(void *field_ptr) {
+    return (char *)field_ptr + Nuitka_PyInterpreterState_PostGcPointerDelta() * sizeof(void *);
+}
+
+// CPython 3.14 changed the interpreter layout twice before fields after
+// "_qsbr_shared": 3.14.4 added "_qsbr_shared.array_raw" (+1 pointer) and
+// 3.14.5 grew "_gc_runtime_state" in GIL builds (+3 pointers).
 static inline int Nuitka_PyInterpreterState_PostQsbrPointerDelta(void) {
 #if _NUITKA_MODULE_MODE && !defined(Py_GIL_DISABLED)
-    static int post_qsbr_pointer_delta = 2;
+    static int post_qsbr_pointer_delta = 99;
 
-    if (post_qsbr_pointer_delta == 2) {
-        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
+    if (post_qsbr_pointer_delta == 99) {
+        int post_gc_pointer_delta = Nuitka_PyInterpreterState_PostGcPointerDelta();
+        int runtime_version = Nuitka_GetRuntimeVersion();
+        int qsbr_pointer_delta = 0;
+
+        if (runtime_version >= 0x3e4) {
+            qsbr_pointer_delta += 1;
+        }
 
 #if PYTHON_VERSION >= 0x3e4
-        post_qsbr_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
-#else
-        post_qsbr_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
+        qsbr_pointer_delta -= 1;
 #endif
+        post_qsbr_pointer_delta = post_gc_pointer_delta + qsbr_pointer_delta;
     }
 
     return post_qsbr_pointer_delta;
@@ -296,11 +330,40 @@ static inline void *Nuitka_PyInterpreterState_AdjustPostQsbrPointer(void *field_
 }
 #endif
 
+#ifdef _NUITKA_ADAPTED_PYTHON_HEADERS
+/* Cross-compiler offset access and runtime abstraction layer */
+#include "nuitka/python_internals_access.h"
+#else
+#if PYTHON_VERSION >= 0x3c0
+#define Nuitka_PyRuntime__imports (&_PyRuntime.imports)
+#define Nuitka_PyRuntime__static_objects (&_PyRuntime.static_objects)
+#endif
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
+
+static inline struct _import_state *Nuitka_PyInterpreterState_GetImportsState(PyInterpreterState *interp) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _import_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(&interp->imports);
+#else
+    return &interp->imports;
+#endif
+}
+
 static inline struct types_state *Nuitka_PyInterpreterState_GetTypesState(PyInterpreterState *interp) {
 #if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
     return (struct types_state *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->types);
 #else
     return &interp->types;
+#endif
+}
+
+static inline struct _Py_dict_state *Nuitka_PyInterpreterState_GetDictState(PyInterpreterState *interp) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _Py_dict_state *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->dict_state);
+#else
+    return &interp->dict_state;
 #endif
 }
 
@@ -509,6 +572,29 @@ typedef long Py_hash_t;
 #define NUITKA_CROSS_MODULE
 #define NUITKA_LOCAL_MODULE static
 
+#if PYTHON_VERSION >= 0x3e0
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
+    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
+        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+    }
+}
+
+static inline bool Nuitka_GC_UsesGeneration0List(void) {
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+    static int uses_generation0_list = -1;
+
+    if (uses_generation0_list == -1) {
+        uses_generation0_list = Nuitka_GetRuntimeVersion() >= 0x3e5;
+    }
+
+    return uses_generation0_list != 0;
+#else
+    return PYTHON_VERSION >= 0x3e5;
+#endif
+}
+#endif
+
 /* Due to ABI issues, it seems that on Windows the symbols used by
  * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
  * function that does it instead.
@@ -518,15 +604,164 @@ typedef long Py_hash_t;
  * become runtime incompatible.
  *
  */
-#if PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)
-// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
-static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
-    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
-        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+typedef struct {
+    PyObject *trash_delete_later;
+    int trash_delete_nesting;
+    int enabled;
+    int debug;
+    struct gc_generation young;
+    struct gc_generation old[2];
+    struct gc_generation permanent_generation;
+    struct gc_generation_stats generation_stats[NUM_GENERATIONS];
+    int collecting;
+    PyObject *garbage;
+    PyObject *callbacks;
+    Py_ssize_t heap_size;
+    Py_ssize_t work_to_do;
+    int visited_space;
+    int phase;
+} Nuitka_GCStateIncremental;
+
+typedef struct {
+    PyObject *trash_delete_later;
+    int trash_delete_nesting;
+    int enabled;
+    int debug;
+    struct gc_generation generations[NUM_GENERATIONS];
+    struct gc_generation permanent_generation;
+    struct gc_generation_stats generation_stats[NUM_GENERATIONS];
+    int collecting;
+    PyObject *garbage;
+    PyObject *callbacks;
+    Py_ssize_t heap_size;
+    Py_ssize_t dummy1;
+    int dummy2;
+    int dummy3;
+    Py_ssize_t long_lived_total;
+    Py_ssize_t long_lived_pending;
+    PyGC_Head *generation0;
+} Nuitka_GCStateGenerational;
+
+static inline Nuitka_GCStateIncremental *Nuitka_GC_GetIncrementalState(struct _gc_runtime_state *gcstate) {
+    return (Nuitka_GCStateIncremental *)gcstate;
+}
+
+static inline Nuitka_GCStateGenerational *Nuitka_GC_GetGenerationalState(struct _gc_runtime_state *gcstate) {
+    return (Nuitka_GCStateGenerational *)gcstate;
+}
+
+static inline PyGC_Head *Nuitka_GCHead_NEXT(PyGC_Head *gc) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        return (PyGC_Head *)gc->_gc_next;
+    } else {
+        uintptr_t next = gc->_gc_next & _PyGC_PREV_MASK;
+        return (PyGC_Head *)next;
     }
 }
 
-#if PYTHON_VERSION >= 0x3e0
+static inline void Nuitka_GCHead_SET_NEXT(PyGC_Head *gc, PyGC_Head *next) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        gc->_gc_next = (uintptr_t)next;
+    } else {
+        uintptr_t unext = (uintptr_t)next;
+        assert((unext & ~_PyGC_PREV_MASK) == 0);
+        gc->_gc_next = (gc->_gc_next & ~_PyGC_PREV_MASK) | unext;
+    }
+}
+
+#define _PyGCHead_NEXT Nuitka_GCHead_NEXT
+#define _PyGCHead_SET_NEXT Nuitka_GCHead_SET_NEXT
+
+static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
+    static int owns_accounting = -1;
+
+    if (owns_accounting == -1) {
+        int runtime_version = Nuitka_GetRuntimeVersion();
+        owns_accounting = runtime_version >= 0x3e1 && runtime_version < 0x3e5;
+    }
+
+    return owns_accounting != 0;
+}
+
+#undef Nuitka_GC_Track
+static inline void Nuitka_GC_Track(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+    struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+
+    if (Nuitka_GC_UsesGeneration0List()) {
+        Nuitka_GCStateGenerational *gcstate_generational = Nuitka_GC_GetGenerationalState(gcstate);
+        PyGC_Head *generation0 = gcstate_generational->generation0;
+        PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+
+        _PyGCHead_SET_NEXT(last, gc);
+        _PyGCHead_SET_PREV(gc, last);
+        _PyGCHead_SET_NEXT(gc, generation0);
+        generation0->_gc_prev = (uintptr_t)gc;
+
+        gcstate_generational->heap_size++;
+    } else {
+        Nuitka_GCStateIncremental *gcstate_incremental = Nuitka_GC_GetIncrementalState(gcstate);
+        PyGC_Head *generation0 = &gcstate_incremental->young.head;
+        PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+
+        _PyGCHead_SET_NEXT(last, gc);
+        _PyGCHead_SET_PREV(gc, last);
+
+        {
+            uintptr_t not_visited = 1 ^ gcstate_incremental->visited_space;
+            gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+        }
+
+        generation0->_gc_prev = (uintptr_t)gc;
+
+        if (Nuitka_GC_TrackOwnsAccounting()) {
+            gcstate_incremental->young.count++;
+            gcstate_incremental->heap_size++;
+
+            if (gcstate_incremental->young.count > gcstate_incremental->young.threshold) {
+                if (gcstate_incremental->enabled && gcstate_incremental->young.threshold &&
+                    !_Py_atomic_load_int_relaxed(&gcstate_incremental->collecting) &&
+                    !_PyErr_Occurred(_PyThreadState_GET())) {
+                    Nuitka_Py_ScheduleGC(_PyThreadState_GET());
+                }
+            }
+        }
+    }
+}
+
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+#undef Nuitka_GC_UnTrack
+static inline void Nuitka_GC_UnTrack(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+    PyGC_Head *prev = _PyGCHead_PREV(gc);
+    PyGC_Head *next = _PyGCHead_NEXT(gc);
+
+    _PyGCHead_SET_NEXT(prev, next);
+    _PyGCHead_SET_PREV(next, prev);
+    gc->_gc_next = 0;
+    gc->_gc_prev &= _PyGC_PREV_MASK_FINALIZED;
+
+    if (Nuitka_GC_UsesGeneration0List()) {
+        struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+        gcstate->heap_size--;
+    } else if (Nuitka_GC_TrackOwnsAccounting()) {
+        Nuitka_GCStateIncremental *gcstate_incremental = Nuitka_GC_GetIncrementalState(&_PyInterpreterState_GET()->gc);
+
+        if (gcstate_incremental->young.count > 0) {
+            gcstate_incremental->young.count--;
+        }
+
+        gcstate_incremental->heap_size--;
+    }
+}
+
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif (PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)) && (PYTHON_VERSION < 0x3e5)
+
 static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
 #if _NUITKA_MODULE_MODE
     static int owns_accounting = -1;
@@ -540,15 +775,10 @@ static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
     return PYTHON_VERSION >= 0x3e1;
 #endif
 }
-#endif
 
 #undef Nuitka_GC_Track
 static inline void Nuitka_GC_Track(void *raw_op) {
     PyObject *op = (PyObject *)raw_op;
-#ifdef Py_GIL_DISABLED
-    assert(!_PyObject_GC_IS_TRACKED(op));
-    _PyObject_SET_GC_BITS(op, _PyGC_BITS_TRACKED);
-#else
     PyGC_Head *gc = _Py_AS_GC(op);
 
     struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
@@ -556,11 +786,12 @@ static inline void Nuitka_GC_Track(void *raw_op) {
     PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
     _PyGCHead_SET_NEXT(last, gc);
     _PyGCHead_SET_PREV(gc, last);
-    uintptr_t not_visited = 1 ^ gcstate->visited_space;
-    gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+    {
+        uintptr_t not_visited = 1 ^ gcstate->visited_space;
+        gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+    }
     generation0->_gc_prev = (uintptr_t)gc;
 
-#if PYTHON_VERSION >= 0x3e0
     if (Nuitka_GC_TrackOwnsAccounting()) {
         gcstate->young.count++;
         gcstate->heap_size++;
@@ -572,18 +803,12 @@ static inline void Nuitka_GC_Track(void *raw_op) {
             }
         }
     }
-#endif
-#endif
 }
 
 // TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
 #undef Nuitka_GC_UnTrack
 static inline void Nuitka_GC_UnTrack(void *raw_op) {
     PyObject *op = (PyObject *)raw_op;
-#ifdef Py_GIL_DISABLED
-    assert(_PyObject_GC_IS_TRACKED(op));
-    _PyObject_CLEAR_GC_BITS(op, _PyGC_BITS_TRACKED);
-#else
     PyGC_Head *gc = _Py_AS_GC(op);
     PyGC_Head *prev = _PyGCHead_PREV(gc);
     PyGC_Head *next = _PyGCHead_NEXT(gc);
@@ -591,7 +816,6 @@ static inline void Nuitka_GC_UnTrack(void *raw_op) {
     _PyGCHead_SET_PREV(next, prev);
     gc->_gc_next = 0;
     gc->_gc_prev &= _PyGC_PREV_MASK_FINALIZED;
-#endif
 }
 
 #undef _PyObject_GC_TRACK

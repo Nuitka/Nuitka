@@ -10,37 +10,11 @@
 
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {
-    static int cached_objects_pointer_delta = 2;
-
-    if (cached_objects_pointer_delta == 2) {
-        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
-
-#if PYTHON_VERSION >= 0x3e4
-        cached_objects_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
-#else
-        cached_objects_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
-#endif
-    }
-
-    return (struct _Py_interp_cached_objects *)((char *)&interp->cached_objects +
-                                                cached_objects_pointer_delta * sizeof(void *));
+    return (struct _Py_interp_cached_objects *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->cached_objects);
 }
 
 static inline struct _Py_interp_static_objects *Nuitka_PyInterpreterState_GetStaticObjects(PyInterpreterState *interp) {
-    static int static_objects_pointer_delta = 2;
-
-    if (static_objects_pointer_delta == 2) {
-        int runtime_has_qsbr_array_raw = Nuitka_GetRuntimeVersion() >= 0x3e4;
-
-#if PYTHON_VERSION >= 0x3e4
-        static_objects_pointer_delta = runtime_has_qsbr_array_raw ? 0 : -1;
-#else
-        static_objects_pointer_delta = runtime_has_qsbr_array_raw ? 1 : 0;
-#endif
-    }
-
-    return (struct _Py_interp_static_objects *)((char *)&interp->static_objects +
-                                                static_objects_pointer_delta * sizeof(void *));
+    return (struct _Py_interp_static_objects *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(&interp->static_objects);
 }
 #endif
 
