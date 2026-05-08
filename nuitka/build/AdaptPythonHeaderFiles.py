@@ -155,13 +155,17 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
             adapted = _replaceExpectedInAdaptedPythonHeaderFile(
                 content=adapted,
                 filename=filename,
-                old="#  define _PyObject_GC_TRACK(op) \\\n        _PyObject_GC_TRACK(__FILE__, __LINE__, _PyObject_CAST(op))",
+                old="""\
+#  define _PyObject_GC_TRACK(op) \\
+        _PyObject_GC_TRACK(__FILE__, __LINE__, _PyObject_CAST(op))""",
                 new="#  define _PyObject_GC_TRACK(op) \\\n        Nuitka_GC_Track(_PyObject_CAST(op))",
             )
             adapted = _replaceExpectedInAdaptedPythonHeaderFile(
                 content=adapted,
                 filename=filename,
-                old="#  define _PyObject_GC_UNTRACK(op) \\\n        _PyObject_GC_UNTRACK(__FILE__, __LINE__, _PyObject_CAST(op))",
+                old="""\
+#  define _PyObject_GC_UNTRACK(op) \\
+        _PyObject_GC_UNTRACK(__FILE__, __LINE__, _PyObject_CAST(op))""",
                 new="#  define _PyObject_GC_UNTRACK(op) \\\n        Nuitka_GC_UnTrack(_PyObject_CAST(op))",
             )
 
