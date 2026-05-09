@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to tell Nuitka about DLLs needed for standalone imports.
@@ -24,6 +24,7 @@ from nuitka.utils.FileOperations import (
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
 )
+from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
@@ -108,8 +109,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             )
 
     def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
-        # A lot of details here, pylint: disable=too-many-locals
-
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
             full_name=full_name, condition=dll_config.get("when", "True")
@@ -126,18 +125,25 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
             single_value=True,
         )
 
-        module_filename = self.locateModule(full_name)
+        relative_to = dll_config.get("relative_to")
+
+        if relative_to is not None:
+            base_module_name = ModuleName(relative_to)
+        else:
+            base_module_name = full_name
+
+        module_filename = self.locateModule(base_module_name)
 
         if os.path.isdir(module_filename):
             module_directory = module_filename
 
             if dest_path is None:
-                dest_path = os.path.join(full_name.asPath(), relative_path)
+                dest_path = os.path.join(base_module_name.asPath(), relative_path)
         else:
             module_directory = os.path.dirname(module_filename)
 
             if dest_path is None:
-                dest_path = os.path.join(full_name.asPath(), "..", relative_path)
+                dest_path = os.path.join(base_module_name.asPath(), "..", relative_path)
 
         dll_dir = os.path.normpath(os.path.join(module_directory, relative_path))
 
@@ -166,39 +172,42 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 for prefix in dll_config.get("prefixes", ())
             )
 
-            for prefix in prefixes:
-                if exe:
-                    for exe_filename, filename in listExeFilesFromDirectory(
-                        dll_dir, prefix=prefix, suffixes=suffixes
-                    ):
-                        yield self.makeExeEntryPoint(
-                            source_path=exe_filename,
-                            dest_path=os.path.normpath(
-                                os.path.join(
-                                    dest_path,
-                                    filename,
-                                )
-                            ),
-                            module_name=full_name,
-                            package_name=full_name,
-                            reason="Yaml config of '%s'" % full_name.asString(),
-                        )
-                else:
-                    for dll_filename, filename in listDllFilesFromDirectory(
-                        dll_dir, prefix=prefix, suffixes=suffixes
-                    ):
-                        yield self.makeDllEntryPoint(
-                            source_path=dll_filename,
-                            dest_path=os.path.normpath(
-                                os.path.join(
-                                    dest_path,
-                                    filename,
-                                )
-                            ),
-                            module_name=full_name,
-                            package_name=full_name,
-                            reason="Yaml config of '%s'" % full_name.asString(),
-                        )
+            for entry_point in self._yieldDllsFromDirectory(
+                dll_dir=dll_dir,
+                dest_path=dest_path,
+                exe=exe,
+                prefixes=prefixes,
+                suffixes=suffixes,
+                full_name=full_name,
+            ):
+                yield entry_point
+
+    def _yieldDllsFromDirectory(
+        self, dll_dir, dest_path, exe, prefixes, suffixes, full_name
+    ):
+        for prefix in prefixes:
+            if exe:
+                for exe_filename, filename in listExeFilesFromDirectory(
+                    dll_dir, prefix=prefix, suffixes=suffixes
+                ):
+                    yield self.makeExeEntryPoint(
+                        source_path=exe_filename,
+                        dest_path=os.path.normpath(os.path.join(dest_path, filename)),
+                        module_name=full_name,
+                        package_name=full_name,
+                        reason="Yaml config of '%s'" % full_name.asString(),
+                    )
+            else:
+                for dll_filename, filename in listDllFilesFromDirectory(
+                    dll_dir, prefix=prefix, suffixes=suffixes
+                ):
+                    yield self.makeDllEntryPoint(
+                        source_path=dll_filename,
+                        dest_path=os.path.normpath(os.path.join(dest_path, filename)),
+                        module_name=full_name,
+                        package_name=full_name,
+                        reason="Yaml config of '%s'" % full_name.asString(),
+                    )
 
     def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
         # Expecting absolute paths internally for DLL sources.

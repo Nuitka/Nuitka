@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_CONSTANTS_BLOB_H__
 #define __NUITKA_CONSTANTS_BLOB_H__
@@ -14,7 +14,16 @@
  *
  */
 
-extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
+extern int loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
+
+// We define a macro that declares the external symbols and provides accessor functions.
+// For INCBIN/C23, the generating C file already defines these functions, so we just declare them.
+// For Linker/Code/CoffObj, we provide inline functions that map to the C arrays.
+#if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
+#define CONST_CONSTANT
+#endif
+
+#include "nuitka/blobs.h"
 
 #endif
 

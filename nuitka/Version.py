@@ -1,11 +1,11 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nuitka version related stuff."""
 
 version_string = """\
-Nuitka V4.0.8
-Copyright (C) 2025 Kay Hayen."""
+Nuitka V4.1
+Copyright (C) 2026 Kay Hayen."""
 
 
 def getNuitkaVersion():

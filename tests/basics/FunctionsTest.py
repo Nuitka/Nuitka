@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Various kinds of functions with small specialties."""
@@ -579,6 +579,17 @@ d = {"other": 7, "c": 3}
 print("Dual star args consuming function", posDoubleStarArgsFunction(1, *l, **d))
 
 
+def emptyFunction():
+    pass
+
+
+if hasattr(emptyFunction, "__builtins__"):
+    print("Function has __builtins__")
+    print(emptyFunction.__builtins__)
+else:
+    print("Function does not have __builtins__")
+
+
 for value in sorted(dir()):
     main_value = getattr(sys.modules["__main__"], value)
 
@@ -592,18 +603,6 @@ for value in sorted(dir()):
         # TODO: Make this work as well, currently disabled, because of nested arguments not
         # being compatible yet.
         # print inspect.getargspec( main_value )
-
-
-def emptyFunction():
-    pass
-
-
-if hasattr(emptyFunction, "__builtins__"):
-    print("Function has __builtins__")
-    print(emptyFunction.__builtins__)
-else:
-    print("Function does not have __builtins__")
-
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

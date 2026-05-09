@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /** Compiled Coroutines.
  *
@@ -222,7 +222,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
             }
         }
     } else if (PyGen_CheckExact(yield_from) || PyCoro_CheckExact(yield_from)) {
-        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
+        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, send_value);
     } else if (send_value == Py_None && Nuitka_CoroutineWrapper_Check(yield_from)) {
         struct Nuitka_CoroutineObject *yield_from_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yield_from)->m_coroutine;

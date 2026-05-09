@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Outline nodes.
@@ -235,7 +235,6 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
 
     def makeClone(self):
         result = ExpressionFunctionBodyBase.makeClone(self)
-        result.name += "_clone"
 
         entry_point = self.getEntryPoint()
 

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Code generation for locals dict handling.
@@ -36,7 +36,9 @@ def generateSetLocalsDictCode(statement, emit, context):
     emit(
         """\
 %(locals_dict)s = MAKE_DICT_EMPTY(tstate);"""
-        % {"locals_dict": locals_declaration}
+        % {
+            "locals_dict": locals_declaration,
+        }
     )
 
 
@@ -71,12 +73,9 @@ def generateReleaseLocalsDictCode(statement, emit, context):
         statement.getLocalsScope().getCodeName()
     )
 
-    emit(
-        """\
+    emit("""\
 Py_DECREF(%(locals_dict)s);
-%(locals_dict)s = NULL;"""
-        % {"locals_dict": locals_declaration}
-    )
+%(locals_dict)s = NULL;""" % {"locals_dict": locals_declaration})
 
 
 def generateLocalsDictSetCode(statement, emit, context):
@@ -209,7 +208,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
         if is_dict:
             template = template_read_locals_dict_with_fallback
-            fallback_codes = indented(fallback_emit.codes)
+            fallback_codes = indented(fallback_emit)
 
             emit(
                 template
@@ -232,7 +231,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             else:
                 template = template_read_locals_mapping_with_fallback_no_ref
 
-            fallback_codes = indented(fallback_emit.codes)
+            fallback_codes = indented(fallback_emit)
 
             (
                 exception_state_name,

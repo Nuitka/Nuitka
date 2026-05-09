@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 print("gfcrk")
@@ -8,13 +8,11 @@ print(r"""\x00""")
 
 print("\ttest\n")
 
-print(
-    """
+print("""
 something
 with
 new
-lines"""
-)
+lines""")
 
 print("favicon.ico (32\xd732)")
 

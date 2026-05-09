@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -40,13 +40,19 @@ def getPoetryBuildConfiguration(logger):
             dump_filename,
         )
 
-        stdout, stderr, exit_code = executeProcess(
+        process_result = executeProcess(
             command,
             stdin=False,
         )
 
-        if exit_code != 0:
-            reportBuildError(logger, "poetry", command, stdout, stderr)
+        if process_result.exit_code != 0:
+            reportBuildError(
+                logger=logger,
+                name="poetry",
+                command=command,
+                stdout=process_result.stdout,
+                stderr=process_result.stderr,
+            )
 
         config = loadJsonFromFilename(dump_filename)
 

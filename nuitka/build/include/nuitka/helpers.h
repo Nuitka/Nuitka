@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
@@ -338,6 +338,9 @@ extern PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks);
 
 // Get the containing directory as an object with symlinks resolved or not.
 extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
+
+// Get the loaded extension filename for module/package mode.
+extern PyObject *getDllFilenameObject(void);
 
 // Get the original argv[0] as recorded by the bootstrap stage. Returns
 // None, if not available, in module mode.

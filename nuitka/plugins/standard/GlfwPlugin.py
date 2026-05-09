@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Support for glfw, details in below class definitions."""
@@ -109,9 +109,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
             code = r"""
 import os
 os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", "%s")
-""" % os.path.basename(
-                dll_filename
-            )
+""" % os.path.basename(dll_filename)
             return (
                 code,
                 "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",

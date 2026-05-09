@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nodes for comparisons."""
@@ -431,8 +431,7 @@ Determined values to not alias and therefore result of '%s' comparison."""
             result,
             "new_statements",
             """\
-Removed %s comparison for unused result."""
-            % self.comparator,
+Removed %s comparison for unused result.""" % self.comparator,
         )
 
 

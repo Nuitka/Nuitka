@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Plugin for spacy.
@@ -86,14 +86,12 @@ not found, the list of installed ones is '%s'."""
                         )
 
             if not self.used_language_model_names:
-                self.warning(
-                    """\
+                self.warning("""\
 No language models included. Use the option '--spacy-language-model=language_model_name' to \
 include one. Use 'all' to include all downloaded ones, or select from the list of installed \
-ones: %s"""
-                    % ",".join(self._getInstalledSpaceLanguageModels())
-                )
+ones: %s""" % ",".join(self._getInstalledSpaceLanguageModels()))
 
+            # TODO: Can we not just return the OrderedSet.
             for used_language_model_name in self.used_language_model_names:
                 yield used_language_model_name
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "OBS Build Logs"
+  short_description: "Access and diagnose OBS package build logs."
+  default_prompt: "Use $obs-build-logs to inspect an OBS build log and identify the actual failing step."

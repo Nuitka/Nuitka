@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Loop nodes.
@@ -129,9 +129,6 @@ class StatementLoop(StatementLoopBase):
             current = trace_collection.getVariableCurrentTrace(loop_variable)
 
             if all_first_pass:
-                if current.isAssignTraceVeryTrusted():
-                    continue
-
                 first_pass = True
 
                 # Remember what we started with, so we can detect changes from outside the
@@ -140,9 +137,6 @@ class StatementLoop(StatementLoopBase):
                 self.loop_start[loop_variable] = current
             else:
                 if not self.loop_start[loop_variable].compareValueTrace(current):
-                    if current.isAssignTraceVeryTrusted():
-                        continue
-
                     first_pass = True
                     self.loop_start[loop_variable] = current
                 else:
@@ -257,6 +251,14 @@ class StatementLoop(StatementLoopBase):
                     del self.loop_previous_resume[loop_variable]
                     del self.loop_start[loop_variable]
 
+                    # pylint: disable=cell-var-from-loop
+                    trace_collection.signalChange(
+                        "loop_analysis",
+                        self.source_ref,
+                        lambda: "Loop variable '%s' proven to not be changed in loop."
+                        % loop_variable.getName(),
+                    )
+
                     continue
 
                 # Keep this as a loop variable
@@ -279,6 +281,10 @@ class StatementLoop(StatementLoopBase):
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
 
+        # Only loop state observed at the start of a pass may request another
+        # micro pass. Resume shapes discovered while tracing the loop body are
+        # consumed on the next pass; reporting them immediately can optimize
+        # away real loop control updates.
         if incomplete_variables:
             self.incomplete_count += 1
 

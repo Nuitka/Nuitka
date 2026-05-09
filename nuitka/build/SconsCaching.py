@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Caching of C compiler output."""
@@ -7,12 +7,14 @@ import ast
 import os
 import platform
 import re
+import shlex
 import sys
 from collections import defaultdict
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Download import getCachedDownload
+from nuitka.utils.Execution import ExecuteProcessResult
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -20,7 +22,6 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getLinkTarget,
     getNormalizedPathJoin,
-    makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS
@@ -31,6 +32,14 @@ from .SconsUtils import (
     getSconsReportValue,
     setEnvironmentVariable,
 )
+
+# Store for per-module ccache stats retrieved from the Scons build
+ccache_module_stats = {}
+
+
+def getCcacheModuleStats():
+    """Returns the per-module hit statistics collected if any."""
+    return ccache_module_stats
 
 
 def _getPythonDirCandidates(python_prefix):
@@ -157,8 +166,7 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
 
         # Unless asked to do otherwise, store ccache files in our own directory.
         if "CCACHE_DIR" not in os.environ:
-            ccache_dir = getCacheDir("ccache")
-            makePath(ccache_dir)
+            ccache_dir = getCacheDir("ccache", create=True)
             ccache_dir = getExternalUsePath(ccache_dir)
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
@@ -199,16 +207,19 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
     if env.zig_mode:
         cc_path = getExecutablePath(env.the_compiler, env=env)
 
-        env["CXX"] = env["CC"] = '"%s" "%s"' % (
+        env["CC"] = '"%s" "%s"' % (
             cc_path,
-            "cc" if env.c11_mode else "c++",
+            "cc",
+        )
+        env["CXX"] = '"%s" "%s"' % (
+            cc_path,
+            "c++",
         )
 
         if "CCACHE_DIR" not in os.environ:
-            zig_cache_dir = getCacheDir("zig")
+            zig_cache_dir = getCacheDir("zig", create=True)
 
             if not os.getenv("ZIG_LOCAL_CACHE_DIR"):
-                makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
                     env,
@@ -217,7 +228,6 @@ def enableCcache(env, source_dir, python_prefix, disable_ccache):
                 )
 
             if not os.getenv("ZIG_GLOBAL_CACHE_DIR"):
-                makePath(zig_cache_dir)
                 zig_cache_dir = getExternalUsePath(zig_cache_dir)
                 setEnvironmentVariable(
                     env,
@@ -262,8 +272,7 @@ def enableClcache(env, source_dir):
 
     # Unless asked to do otherwise, store ccache files in our own directory.
     if "CLCACHE_DIR" not in os.environ:
-        clcache_dir = getCacheDir("clcache")
-        makePath(clcache_dir)
+        clcache_dir = getCacheDir("clcache", create=True)
         clcache_dir = getExternalUsePath(clcache_dir)
         setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)
         env["CLCACHE_DIR"] = clcache_dir
@@ -296,7 +305,7 @@ def _writeClcacheStatistics():
 def _getCcacheStatistics(ccache_logfile):
     # parsing ccache is a bit complicated as we need to work around bugs
     # and version differences
-    data = {}
+    data = defaultdict(list)
 
     if os.path.exists(ccache_logfile):
         re_command = re.compile(r"\[.*? (\d+) *\] Command line: (.*)$")
@@ -325,7 +334,7 @@ def _getCcacheStatistics(ccache_logfile):
                 result = result.strip()
 
                 try:
-                    command = data[commands[pid]]
+                    command = commands[pid]
                 except KeyError:
                     # It seems writing to the file can be lossy, so we can have results for
                     # unknown commands, but we don't use the command yet anyway, so just
@@ -359,59 +368,80 @@ def _getCcacheStatistics(ccache_logfile):
                     scons_logger.warning("Full scons output: %s" % all_text)
 
                 if result != "called for link":
-                    data[command] = result
+                    data[command].append(result)
 
     return data
 
 
-def checkCachingSuccess(source_dir):
+def _normalizeCcacheHit(result):
+    # These are not important to our users, time based decisions differentiate these.
+    if result in (
+        "cache hit (direct)",
+        "cache hit (preprocessed)",
+        "local_storage_hit",
+        "primary_storage_hit",
+    ):
+        return "cache hit"
+    elif result == "cache_miss":
+        return "cache miss"
+
+    # Newer ccache has these, but they duplicate:
+    if result in (
+        "direct_cache_hit",
+        "direct_cache_miss",
+        "preprocessed_cache_hit",
+        "preprocessed_cache_miss",
+        "primary_storage_miss",
+        "called_for_link",
+        "no_input_file",
+        "local_storage_read_hit",
+        "local_storage_read_miss",
+        "local_storage_write",
+        "local_storage_miss",
+        # Usage of incbin causes this for the constants blob integration.
+        "unsupported code directive",
+        "disabled",
+    ):
+        return None
+
+    return result
+
+
+def _getModuleNameFromCommand(command):
+    # Command format usually: gcc -o something.o -c ... file.c
+    for arg in shlex.split(command):
+        if arg.startswith("module.") and arg.endswith(".c"):
+            return arg[7:-2]
+
+    return None
+
+
+def _checkCachingSuccessCcache(source_dir):
     ccache_logfile = getSconsReportValue(source_dir=source_dir, key="CCACHE_LOGFILE")
 
     if ccache_logfile is not None:
         stats = _getCcacheStatistics(ccache_logfile)
 
         if not stats:
-            scons_logger.warning(
-                """\
+            scons_logger.warning("""\
 You are not using ccache, re-compilation of identical code \
 will be slower than necessary. Use your OS package manager \
-to install it."""
-            )
+to install it.""")
         else:
             counts = defaultdict(int)
+            for command, results in stats.items():
+                for result in results:
+                    result = _normalizeCcacheHit(result)
 
-            for _command, result in stats.items():
-                # These are not important to our users, time based decisions differentiate these.
-                if result in (
-                    "cache hit (direct)",
-                    "cache hit (preprocessed)",
-                    "local_storage_hit",
-                    "primary_storage_hit",
-                ):
-                    result = "cache hit"
-                elif result == "cache_miss":
-                    result = "cache miss"
+                    if result is None:
+                        continue
 
-                # Newer ccache has these, but they duplicate:
-                if result in (
-                    "direct_cache_hit",
-                    "direct_cache_miss",
-                    "preprocessed_cache_hit",
-                    "preprocessed_cache_miss",
-                    "primary_storage_miss",
-                    "called_for_link",
-                    "no_input_file",
-                    "local_storage_read_hit",
-                    "local_storage_read_miss",
-                    "local_storage_write",
-                    "local_storage_miss",
-                    # Usage of incbin causes this for the constants blob integration.
-                    "unsupported code directive",
-                    "disabled",
-                ):
-                    continue
+                    if result in ("cache hit", "cache miss"):
+                        module_name = _getModuleNameFromCommand(command)
+                        if module_name is not None:
+                            ccache_module_stats[module_name] = ("ccache", result)
 
-                counts[result] += 1
+                    counts[result] += 1
 
             scons_logger.info(
                 "Compiled %d C files using ccache." % sum(counts.values())
@@ -422,26 +452,40 @@ to install it."""
                     % (result, count)
                 )
 
-    if os.name == "nt":
-        clcache_stats_filename = getSconsReportValue(
-            source_dir=source_dir, key="CLCACHE_STATS"
+
+def _checkCachingSuccessClcache(source_dir):
+    clcache_stats_filename = getSconsReportValue(
+        source_dir=source_dir, key="CLCACHE_STATS"
+    )
+
+    if clcache_stats_filename is not None and os.path.exists(clcache_stats_filename):
+        stats = ast.literal_eval(getFileContents(clcache_stats_filename))
+
+        clcache_hit = stats["CacheHits"]
+        clcache_miss = stats["CacheMisses"]
+
+        for source_file, result in stats.get("CacheHistory", {}).items():
+            assert result in ("Hit", "Miss")
+
+            module_name = source_file
+            if source_file.startswith("module.") and source_file.endswith(".c"):
+                module_name = source_file[7:-2]
+
+            ccache_module_stats[module_name] = ("clcache", "cache " + result.lower())
+
+        scons_logger.info(
+            "Compiled %d C files using clcache with %d cache hits and %d cache misses."
+            % (clcache_hit + clcache_miss, clcache_hit, clcache_miss)
         )
 
-        if clcache_stats_filename is not None and os.path.exists(
-            clcache_stats_filename
-        ):
-            stats = ast.literal_eval(getFileContents(clcache_stats_filename))
 
-            clcache_hit = stats["CacheHits"]
-            clcache_miss = stats["CacheMisses"]
-
-            scons_logger.info(
-                "Compiled %d C files using clcache with %d cache hits and %d cache misses."
-                % (clcache_hit + clcache_miss, clcache_hit, clcache_miss)
-            )
+def checkCachingSuccess(source_dir):
+    _checkCachingSuccessCcache(source_dir)
+    if os.name == "nt":
+        _checkCachingSuccessClcache(source_dir)
 
 
-def runClCache(args, env):
+def runClCache(args, os_env):
     # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
     from clcache.caching import runClCache
 
@@ -450,13 +494,15 @@ def runClCache(args, env):
         scons_logger.sysexit("Error, cannot use Python2 for scons when using MSVC.")
 
     # The first argument is "<clcache>" and should not be used.
-    result = runClCache(
-        os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], env
+    stdout, stderr, exit_code = runClCache(
+        os.environ["CLCACHE_CL"], [arg.strip('"') for arg in args[1:]], os_env
     )
 
     updateSconsProgressBar()
 
-    return result
+    return ExecuteProcessResult(
+        stdout=stdout, stderr=stderr, exit_code=exit_code, rusage=None
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

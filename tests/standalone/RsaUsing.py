@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 # nuitka-project: --mode=standalone
@@ -7,7 +7,7 @@ import rsa
 
 # nuitka-skip-unless-imports: rsa
 
-(tambe_pub, tambe_priv) = rsa.newkeys(512)
+tambe_pub, tambe_priv = rsa.newkeys(512)
 message = "beautiful people!".encode("utf8")
 encrypted_msg = rsa.encrypt(message, tambe_pub)
 message = rsa.decrypt(encrypted_msg, tambe_priv)

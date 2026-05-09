@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Trace collection (also often still referred to as constraint collection).
@@ -32,7 +32,6 @@ from nuitka.utils.InstanceCounters import (
     counted_init,
     isCountingInstances,
 )
-from nuitka.utils.Timing import TimerReport
 
 from .ValueTraces import (
     ValueTraceAssign,
@@ -123,9 +122,9 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         self.outline_functions = None
 
-        # What loop variables were there, them going away is something we want
-        # to know.
-        self.loop_variables = set()
+        # What loop nodes a variable was part of, them going away is something
+        # we want to know.
+        self.loop_variables = defaultdict(set)
 
         self.delayed_work = []
 
@@ -443,6 +442,8 @@ class TraceCollectionBase(object):
         self.variable_traces[variable][version] = result
 
         self.markCurrentVariableTrace(variable, version)
+
+        self.loop_variables[variable].add(loop_node)
 
         return result
 
@@ -782,6 +783,7 @@ class TraceCollectionBase(object):
             collection1.has_unescaped_variables or collection2.has_unescaped_variables
         )
         new_actives = {}
+
         for variable, version in iterItems(collection1.variable_actives):
             other_version = collection2.variable_actives[variable]
 
@@ -816,6 +818,8 @@ class TraceCollectionBase(object):
         self.has_unescaped_variables = has_unescaped_variables
 
     def mergeMultipleBranches(self, collections):
+        # pylint: disable=too-many-locals
+
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work, and length 2 has dedicated code as it's so frequent.
 
@@ -841,69 +845,74 @@ class TraceCollectionBase(object):
         elif merge_size == 2:
             return self.mergeBranches(*collections)
 
-        _merge_counts[len(collections)] += 1
+        _merge_counts[merge_size] += 1
 
-        with TimerReport(
-            message="Running merge for %s took %%.2f seconds" % collections,
-            decider=False,
-            include_sleep_time=False,
-            use_perf_counters=False,
-        ):
-            new_actives = {}
+        new_actives = {}
 
-            has_unescaped_variables = any(
-                collection.has_unescaped_variables for collection in collections
+        has_unescaped_variables = any(
+            collection.has_unescaped_variables for collection in collections
+        )
+
+        other_collections = collections[1:]
+
+        for variable, first_collection_version in collections[
+            0
+        ].variable_actives.items():
+            # Attempt optimistically that a variable is not influenced at
+            # all by any of the branches we merge.
+            for collection in other_collections:
+                if collection.variable_actives[variable] != first_collection_version:
+                    break
+            else:
+                new_actives[variable] = first_collection_version
+                continue
+
+            # Slow path: collect unique versions, they are different.
+            versions = set(
+                collection.variable_actives[variable] for collection in collections
             )
 
-            for variable in collections[0].variable_actives:
-                versions = set(
-                    collection.variable_actives[variable] for collection in collections
+            traces = []
+            escaped = set()
+            winner_version = None
+
+            variable_traces = self.variable_traces[variable]
+
+            for version in sorted(versions):
+                trace = variable_traces[version]
+
+                if version % 3 == 1:
+                    winner_version = version
+                    escaped_trace = trace.previous
+
+                    if escaped_trace in traces:
+                        traces.remove(escaped_trace)
+
+                    escaped.add(escaped_trace)
+                    traces.append(trace)
+                else:
+                    if trace not in escaped:
+                        traces.append(trace)
+
+            if len(traces) == 1:
+                version = winner_version
+                assert winner_version is not None
+            else:
+                version = self.addVariableMergeMultipleTrace(
+                    variable,
+                    traces,
                 )
 
-                if len(versions) == 1:
-                    (version,) = versions
-                else:
-                    traces = []
-                    escaped = []
-                    winner_version = None
+                has_unescaped_variables = True
 
-                    variable_traces = self.variable_traces[variable]
+            new_actives[variable] = version
 
-                    for version in sorted(versions):
-                        trace = variable_traces[version]
+        self.variable_actives = new_actives
+        self.variable_actives_needs_copy = False
 
-                        if version % 3 == 1:
-                            winner_version = version
-                            escaped_trace = trace.previous
-
-                            if escaped_trace in traces:
-                                traces.remove(trace.previous)
-
-                            escaped.append(escaped)
-                            traces.append(trace)
-                        else:
-                            if trace not in escaped:
-                                traces.append(trace)
-
-                    if len(traces) == 1:
-                        version = winner_version
-                        assert winner_version is not None
-                    else:
-                        version = self.addVariableMergeMultipleTrace(
-                            variable,
-                            traces,
-                        )
-
-                        has_unescaped_variables = True
-
-                new_actives[variable] = version
-
-            self.variable_actives = new_actives
-            self.variable_actives_needs_copy = False
-
-            # TODO: This could be avoided, if we detect no actual changes being present, but it might
-            # be more costly.
-            self.has_unescaped_variables = has_unescaped_variables
+        # TODO: This could be avoided, if we detect no actual changes being present, but it might
+        # be more costly.
+        self.has_unescaped_variables = has_unescaped_variables
 
     def replaceBranch(self, collection_replace):
         self.variable_actives = collection_replace.variable_actives

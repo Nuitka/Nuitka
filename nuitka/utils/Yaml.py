@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nuitka yaml utility functions.
@@ -54,8 +54,7 @@ def _checkNotEmptyString(logger, filename, module_name, section, k, value):
     if value == "":
         logger.info(
             """\
-%s: %s config value of %s %s cannot be empty."""
-            % (filename, module_name, section, k),
+%s: %s config value of %s %s cannot be empty.""" % (filename, module_name, section, k),
             keep_format=True,
         )
         return False
@@ -106,8 +105,42 @@ def _checkNormalizedPosixPath(logger, filename, module_name, section, k, value):
         logger.info(
             """\
 %s: module '%s' config value of '%s' '%s' should be normalized posix \
-path, with '/' style slashes not '%s'."""
-            % (filename, module_name, section, k, value),
+path, with '/' style slashes not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    return True
+
+
+def _checkRelativePosixPath(logger, filename, module_name, section, k, value):
+    """Check if a value is a relative POSIX path and log error if not."""
+    if not _checkNormalizedPosixPath(logger, filename, module_name, section, k, value):
+        return False
+
+    if value.startswith("/"):
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, not an absolute path, not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    if ".." in value.split("/"):
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, without '..' paths, not '%s'.""" % (filename, module_name, section, k, value),
+            keep_format=True,
+        )
+        return False
+
+    if ":" in value:
+        logger.info(
+            """\
+%s: module '%s' config value of '%s' '%s' should be a relative posix \
+path, without drive letters, not '%s'.""" % (filename, module_name, section, k, value),
             keep_format=True,
         )
         return False
@@ -161,10 +194,33 @@ def checkSectionValues(logger, filename, module_name, section, value):
                     ):
                         result = False
 
-            if k in ("dest_path", "relative_path") and not _checkNormalizedPosixPath(
+            if k == "dest_path" and not _checkNormalizedPosixPath(
                 logger, filename, module_name, section, k, v
             ):
                 result = False
+
+            if k == "relative_path" and not _checkRelativePosixPath(
+                logger, filename, module_name, section, k, v
+            ):
+                result = False
+
+            if k == "relative_to":
+                if not checkModuleName(v):
+                    logger.info(
+                        """\
+%s: module '%s' config value of '%s' '%s' should be a valid module name, not '%s'."""
+                        % (filename, module_name, section, k, v),
+                        keep_format=True,
+                    )
+                    result = False
+                elif v == module_name:
+                    logger.info(
+                        """\
+%s: module '%s' config value of '%s' '%s' should not be the module name itself, s that's the default, not '%s'."""
+                        % (filename, module_name, section, k, v),
+                        keep_format=True,
+                    )
+                    result = False
 
             if k in ("dirs", "raw_dirs", "empty_dirs"):
                 for e in v:
@@ -187,10 +243,16 @@ def checkSectionValues(logger, filename, module_name, section, value):
                         logger.info(
                             """\
 %s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
-if you want no message."""
-                            % (filename, module_name, section, k, m),
+if you want no message.""" % (filename, module_name, section, k, m),
                             keep_format=True,
                         )
+                        result = False
+
+            if k == "limit-auto-follow":
+                for item in v:
+                    if not _checkNotEmptyString(
+                        logger, filename, module_name, section, k, item
+                    ):
                         result = False
 
             if k == "declarations":
@@ -376,8 +438,7 @@ class PackageConfigYaml(object):
             logger=logger,
             data=file_data,
             error_message="""\
-Error, empty (or malformed?) user package configuration '%s' used."""
-            % name,
+Error, empty (or malformed?) user package configuration '%s' used.""" % name,
         )
 
         assert type(data) is list, type(data)

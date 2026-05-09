@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Read/write source code from files.
@@ -7,6 +7,7 @@ Reading is tremendously more complex than one might think, due to encoding
 issues and version differences of Python versions.
 """
 
+import codecs
 import os
 import re
 import sys
@@ -19,13 +20,19 @@ from nuitka.options.Options import (
     shallShowSourceModifications,
 )
 from nuitka.plugins.Hooks import onModuleSourceCode
-from nuitka.PythonVersions import python_version, python_version_str
+from nuitka.PythonVersions import (
+    getSourceDecodeErrorReason2,
+    python_version,
+    python_version_str,
+)
 from nuitka.SourceCodeReferences import makeSourceReferenceFromFilename
 from nuitka.Tracing import general, inclusion_logger, my_print
+from nuitka.utils.Diffs import getUnifiedDiff
 from nuitka.utils.FileOperations import (
     getReportPath,
     hasFilenameExtension,
     putTextFileContents,
+    stripFileContentsBOM,
 )
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
@@ -47,8 +54,6 @@ def _installFutureFStrings():
 
     # TODO: Not supporting anything before that.
     if python_version >= 0x360:
-        import codecs
-
         # Play trick for of "future_strings" PyPI package support. It's not needed,
         # but some people use it even on newer Python.
         try:
@@ -76,24 +81,37 @@ def _readSourceCodeFromFilename3(source_filename):
 
     _installFutureFStrings()
 
-    with tokenize.open(source_filename) as source_file:
-        return source_file.read()
+    try:
+        with tokenize.open(source_filename) as source_file:
+            return source_file.read()
+    except UnicodeDecodeError as e:
+        # Match the parser wording for declared but incompatible source
+        # encodings.
+        raiseSyntaxError(
+            "encoding problem: %s" % e.encoding,
+            makeSourceReferenceFromFilename(source_filename),
+            display_line=False,
+        )
 
 
 def _detectEncoding2(source_file):
     # Detect the encoding.
     encoding = "ascii"
+    encoding_declared = False
 
     line1 = source_file.readline()
+    line1, bom = stripFileContentsBOM(line1)
 
-    if line1.startswith(b"\xef\xbb\xbf"):
+    if bom:
         # BOM marker makes it clear.
         encoding = "utf-8"
+        encoding_declared = True
     else:
         line1_match = re.search(b"coding[:=]\\s*([-\\w.]+)", line1)
 
         if line1_match:
             encoding = line1_match.group(1)
+            encoding_declared = True
         else:
             line2 = source_file.readline()
 
@@ -101,10 +119,11 @@ def _detectEncoding2(source_file):
 
             if line2_match:
                 encoding = line2_match.group(1)
+                encoding_declared = True
 
     source_file.seek(0)
 
-    return encoding
+    return encoding, encoding_declared
 
 
 def _readSourceCodeFromFilename2(source_filename):
@@ -112,56 +131,60 @@ def _readSourceCodeFromFilename2(source_filename):
 
     # Detect the encoding, we do not know it, pylint: disable=unspecified-encoding
     with open(source_filename, "rU") as source_file:
-        encoding = _detectEncoding2(source_file)
+        encoding, encoding_declared = _detectEncoding2(source_file)
 
         source_code = source_file.read()
 
         # Try and detect SyntaxError from missing or wrong encodings.
-        if type(source_code) is not unicode and encoding == "ascii":
+        if type(source_code) is not unicode:
             try:
                 _source_code = source_code.decode(encoding)
             except UnicodeDecodeError as e:
-                lines = source_code.split("\n")
-                so_far = 0
-
-                for count, line in enumerate(lines):
-                    so_far += len(line) + 1
-
-                    if so_far > e.args[2]:
-                        break
+                if encoding_declared:
+                    raiseSyntaxError(
+                        getSourceDecodeErrorReason2(source_filename),
+                        makeSourceReferenceFromFilename(source_filename),
+                        display_line=False,
+                    )
                 else:
-                    # Cannot happen, decode error implies non-empty.
-                    count = -1
+                    lines = source_code.split("\n")
+                    so_far = 0
 
-                wrong_byte = re.search(
-                    "byte 0x([a-f0-9]{2}) in position", str(e)
-                ).group(1)
+                    for count, line in enumerate(lines):
+                        so_far += len(line) + 1
 
-                raiseSyntaxError(
-                    """\
+                        if so_far > e.args[2]:
+                            break
+                    else:
+                        # Cannot happen, decode error implies non-empty.
+                        count = -1
+
+                    wrong_byte = re.search(
+                        "byte 0x([a-f0-9]{2}) in position", str(e)
+                    ).group(1)
+
+                    raiseSyntaxError(
+                        """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details"""
-                    % (wrong_byte, source_filename, count + 1),
-                    makeSourceReferenceFromFilename(source_filename).atLineNumber(
-                        count + 1
-                    ),
-                    display_line=False,
-                )
+                        % (wrong_byte, source_filename, count + 1),
+                        makeSourceReferenceFromFilename(source_filename).atLineNumber(
+                            count + 1
+                        ),
+                        display_line=False,
+                    )
 
     return source_code
 
 
 def getSourceCodeDiff(source_code, source_code_modified):
-    import difflib
 
-    diff = difflib.unified_diff(
-        source_code.splitlines(),
-        source_code_modified.splitlines(),
-        "original",
-        "modified",
-        "",
-        "",
-        n=3,
+    diff = getUnifiedDiff(
+        old_lines=source_code.splitlines(),
+        new_lines=source_code_modified.splitlines(),
+        old_filename="original",
+        new_filename="modified",
+        num_lines=3,
     )
 
     return list(diff)
@@ -278,12 +301,13 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3D0 > python_version >= 0x3C0
         elif basename == "python3.13":
             result = 0x3E0 > python_version >= 0x3D0
+        elif basename == "python3.14":
+            result = 0x3F0 > python_version >= 0x3E0
         else:
             result = None
 
         if result is False:
-            general.sysexit(
-                """\
+            return general.sysexit("""\
 The program you compiled wants to be run with: %s.
 
 Nuitka is currently running with Python version '%s', which seems to not
@@ -291,9 +315,7 @@ match that. Nuitka cannot guess the Python version of your source code. You
 therefore might want to specify: '%s -m nuitka'.
 
 That will make use the correct Python version for Nuitka.
-"""
-                % (shebang, python_version_str, binary)
-            )
+""" % (shebang, python_version_str, binary))
 
 
 def readSourceLine(source_ref):

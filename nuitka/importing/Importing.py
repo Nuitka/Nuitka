@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Locating modules and package source on disk.
@@ -61,6 +61,7 @@ from nuitka.utils.Importing import (
     builtin_module_names,
     getExtensionModuleSuffixes,
     getModuleFilenameSuffixes,
+    getModuleNameAndKindFromFilenameSuffix,
     getPackageDirFilename,
     isBuiltinModuleName,
 )
@@ -74,7 +75,9 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
 )
 
+from .FakeModules import locateFakeModule
 from .IgnoreListing import isIgnoreListedNotExistingModule
+from .ImportingResults import makeFindModuleResult
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .StandardLibrary import isStandardLibraryPath
 
@@ -99,6 +102,18 @@ def setupImportingFromOptions():
     # Lets try and have this complete, please report failures.
     if states.is_debug and not isMonolithPy():
         _checkRaisingBuiltinComplete()
+
+    if isMonolithPy():
+        from nuitka.HardImportRegistry import (
+            addModuleDynamicBuiltinHard,
+            isHardModule,
+        )
+
+        for builtin_module_name in sorted(builtin_module_names):
+            builtin_module_name = ModuleName(builtin_module_name)
+
+            if not isHardModule(builtin_module_name):
+                addModuleDynamicBuiltinHard(builtin_module_name)
 
     if getOutputFolderName() is not None:
         source_dir = getSourceDirectoryPath(onefile=False, create=False)
@@ -305,12 +320,12 @@ def getModuleNameAndKindFromFilename(module_filename):
         package_filename = getPackageDirFilename(module_filename)
 
         if package_filename is not None:
-            for suffix in getExtensionModuleSuffixes():
-                if package_filename.endswith(suffix):
-                    return (
-                        ModuleName(os.path.basename(module_filename)),
-                        "extension",
-                    )
+            _module_name, module_kind = getModuleNameAndKindFromFilenameSuffix(
+                package_filename
+            )
+
+            if module_kind is not None:
+                return ModuleName(os.path.basename(module_filename)), module_kind
 
         return ModuleName(os.path.basename(module_filename)), "py"
 
@@ -384,7 +399,38 @@ def normalizePackageName(module_name):
 
 
 # Avoid creating this over and over
-_find_module_not_found = (None, None, None, None, "not-found")
+_find_module_not_found = makeFindModuleResult(
+    found_module_name=None,
+    module_package=None,
+    module_filename=None,
+    module_kind=None,
+    finding="not-found",
+)
+
+
+def _locateFakeModule(module_name, logger, log_message):
+    fake_result = locateFakeModule(module_name)
+
+    if fake_result is None:
+        return None
+
+    try:
+        _found_module_name, module_filename, _module_kind = _findModule(
+            module_name=module_name,
+            logger=None,
+        )
+    except ImportError:
+        pass
+    else:
+        return recursion_logger.sysexit(
+            "Error, fake module name '%s' collides with real module in '%s'."
+            % (module_name, module_filename)
+        )
+
+    if fake_result is not None and logger is not None:
+        logger.info(log_message)
+
+    return fake_result
 
 
 def findModule(module_name, parent_package, level, logger):
@@ -394,9 +440,7 @@ def findModule(module_name, parent_package, level, logger):
     as with "__import__" built-in. Warnings are optional.
 
     Returns:
-        Returns a triple of package name the module is in, filename of
-        it, which can be a directory for packages, and the location
-        method used.
+        FindModuleResult namedtuple describing the located module.
     """
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches,too-many-return-statements
@@ -439,16 +483,28 @@ def findModule(module_name, parent_package, level, logger):
 
         full_name = normalizePackageName(full_name)
 
+        fake_result = _locateFakeModule(
+            module_name=full_name,
+            logger=logger,
+            log_message="findModule: Relative imported fake module '%s' as '%s'."
+            % (module_name, full_name),
+        )
+
+        if fake_result is not None:
+            return fake_result
+
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
-            for module_filename in preloaded_path:
-                if os.path.exists(module_filename):
-                    break
-            else:
-                module_filename = None
+            module_filename = preloaded_path[0]
 
-            return full_name, full_name.getPackageName(), module_filename, "py", "pth"
+            return makeFindModuleResult(
+                found_module_name=full_name,
+                module_package=full_name.getPackageName(),
+                module_filename=module_filename,
+                module_kind="py",
+                finding="pth",
+            )
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -465,29 +521,40 @@ def findModule(module_name, parent_package, level, logger):
                     % (module_name, full_name, module_filename)
                 )
 
-            return (
-                found_module_name,
-                full_name.getPackageName(),
-                module_filename,
-                module_kind,
-                "relative",
+            return makeFindModuleResult(
+                found_module_name=found_module_name,
+                module_package=full_name.getPackageName(),
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding="relative",
             )
 
     if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
+
+        fake_result = _locateFakeModule(
+            module_name=module_name,
+            logger=logger,
+            log_message="findModule: Found fake imported module '%s'." % module_name,
+        )
+
+        if fake_result is not None:
+            return fake_result
 
         package_name = module_name.getPackageName()
 
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
-            for module_filename in preloaded_path:
-                if os.path.exists(module_filename):
-                    break
-            else:
-                module_filename = None
+            module_filename = preloaded_path[0]
 
-            return module_name, package_name, module_filename, "py", "pth"
+            return makeFindModuleResult(
+                found_module_name=module_name,
+                module_package=package_name,
+                module_filename=module_filename,
+                module_kind="py",
+                finding="pth",
+            )
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -504,12 +571,12 @@ def findModule(module_name, parent_package, level, logger):
                     % (found_module_name, module_filename)
                 )
 
-            return (
-                found_module_name,
-                package_name,
-                module_filename,
-                module_kind,
-                "absolute",
+            return makeFindModuleResult(
+                found_module_name=found_module_name,
+                module_package=package_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding="absolute",
             )
 
     return _find_module_not_found
@@ -647,28 +714,20 @@ def getRecompileDecisionReason(module_name):
     return _recompile_extension_modules.get(module_name, (None, None))
 
 
-def _findModuleInPath2(package_name, module_name, search_path, logger):
-    """This is out own module finding low level implementation.
-
-    Just the full module name and search path are given. This is then
-    tasked to raise "ImportError" or return a path if it finds it, or
-    None, if it is a built-in.
-    """
-    # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches
-
-    # We may have to decide between package and module, therefore build
-    # a list of candidates.
+def _findModuleInPathCandidates(package_name, module_name, search_path):
     candidates = OrderedSet()
 
     considered = set()
 
-    for count, search_path_entry in enumerate(search_path):
+    for search_index, search_path_entry in enumerate(search_path):
+        normalized_search_path_entry = os.path.normcase(search_path_entry)
+
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
-        if os.path.normcase(search_path_entry) in considered:
+        if normalized_search_path_entry in considered:
             continue
-        considered.add(os.path.normcase(search_path_entry))
+
+        considered.add(normalized_search_path_entry)
 
         package_directory = getNormalizedPathJoin(
             search_path_entry, module_name.asPath()
@@ -678,74 +737,107 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
             module_name=module_name,
             package_name=package_name,
             search_path=search_path,
-            search_index=count,
+            search_index=search_index,
             search_path_entry=search_path_entry,
             package_directory=package_directory,
         ):
             candidates.add(candidate)
 
+    return candidates
+
+
+def _addSetuptoolsDistutilsCandidates(candidates, module_name):
+    setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
+
+    if setuptools_package_dir is None:
+        return
+
+    for candidate in _findModuleInPath3(
+        module_name=module_name,
+        package_name=None,
+        search_path=[],
+        search_path_entry=None,
+        package_directory=setuptools_package_dir,
+        search_index=-1,
+    ):
+        candidates.add(candidate)
+
+
+def _sortModuleScanCandidates(candidates):
+    # Sort by priority, with entries from same path element coming first, then
+    # desired type.
+    if any(candidate.module_type == "C_EXTENSION" for candidate in candidates):
+
+        def prioritize(candidate):
+            if candidate.module_type == "PY_SOURCE":
+                decision, reason = decideRecompileExtensionModules(candidate.found_as)
+                _recompile_extension_modules[candidate.found_as] = decision, reason
+            else:
+                decision = False
+
+            return (
+                candidate.search_order,
+                ((candidate.priority - 2) if decision else candidate.priority),
+            )
+
+    else:
+
+        def prioritize(candidate):
+            return (candidate.search_order, candidate.priority)
+
+    return tuple(sorted(candidates, key=prioritize))
+
+
+def _pickBestModuleScanCandidate(candidates):
+    candidates = _sortModuleScanCandidates(candidates)
+
+    # On case sensitive systems, no resolution needed.
+    if case_sensitive:
+        return candidates[0]
+
+    for candidate in candidates:
+        if candidate.found_in is None:
+            return candidate
+
+        for fullname, _filename in listDirCached(candidate.found_in):
+            if fullname == candidate.full_path:
+                return candidate
+
+    return None
+
+
+def _getModuleKind(found_candidate):
+    if found_candidate.module_type == "C_EXTENSION":
+        return "extension"
+    elif found_candidate.module_type == "PY_COMPILED":
+        return "pyc"
+    else:
+        return "py"
+
+
+def _findModuleInPath2(package_name, module_name, search_path, logger):
+    """This is out own module finding low level implementation.
+
+    Just the full module name and search path are given. This is then
+    tasked to raise "ImportError" or return a path if it finds it, or
+    None, if it is a built-in.
+    """
+    # We may have to decide between package and module, therefore build
+    # a list of candidates.
+    candidates = _findModuleInPathCandidates(
+        package_name=package_name, module_name=module_name, search_path=search_path
+    )
+
     # TODO: Make this a plugin decision instead.
     if not candidates and package_name is None and module_name == "distutils":
-        setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
-
-        if setuptools_package_dir is not None:
-            for candidate in _findModuleInPath3(
-                module_name=module_name,
-                package_name=None,
-                search_path=[],
-                search_path_entry=None,
-                package_directory=setuptools_package_dir,
-                search_index=-1,
-            ):
-                candidates.add(candidate)
+        _addSetuptoolsDistutilsCandidates(
+            candidates=candidates, module_name=module_name
+        )
 
     if logger is not None:
         logger.info("Candidates: %r" % candidates)
 
-    found_candidate = None
-
-    if candidates:
-        # Sort by priority, with entries from same path element coming first, then desired type. In case
-        # pf there being an extension module,
-        if any(c.module_type == "C_EXTENSION" for c in candidates):
-
-            def prioritize(c):
-                if c.module_type == "PY_SOURCE":
-                    decision, reason = decideRecompileExtensionModules(c.found_as)
-                    _recompile_extension_modules[c.found_as] = decision, reason
-                else:
-                    decision = False
-
-                return (
-                    c.search_order,
-                    ((c.priority - 2) if decision else c.priority),
-                )
-
-        else:
-
-            def prioritize(c):
-                return (c.search_order, c.priority)
-
-        candidates = tuple(sorted(candidates, key=prioritize))
-
-        # On case sensitive systems, no resolution needed.
-        if case_sensitive:
-            found_candidate = candidates[0]
-        else:
-            for candidate in candidates:
-                if candidate.found_in is None:
-                    found_candidate = candidate
-                else:
-                    for fullname, _filename in listDirCached(candidate.found_in):
-                        if fullname == candidate.full_path:
-                            found_candidate = candidate
-                            break
-
-                if found_candidate:
-                    break
-
-            # Only exact case matches matter, all candidates were ignored,
-            # lets just fall through to raising the import error.
+    found_candidate = _pickBestModuleScanCandidate(candidates) if candidates else None
 
     if found_candidate is None:
         # Nothing found.
@@ -765,7 +857,7 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
     return (
         found_candidate.found_as,
         found_candidate.full_path,
-        "extension" if found_candidate.module_type == "C_EXTENSION" else "py",
+        _getModuleKind(found_candidate),
     )
 
 
@@ -895,6 +987,12 @@ def _findModuleInPath(module_name, logger):
     if package_name is None and isBuiltinModuleName(module_name):
         return module_name, None, "built-in"
 
+    if package_name is not None:
+        candidate = package_name.getChildNamed(module_name)
+
+        if isBuiltinModuleName(candidate):
+            return candidate, None, "built-in"
+
     # These are existing in the standard library but are effectively inline
     # already and should be avoided to look at.
     if package_name == "importlib" and module_name in (
@@ -1017,26 +1115,11 @@ def locateModule(module_name, parent_package, level, logger=None):
         type(module_package) is ModuleName and module_package != ""
     ), ("Must not attempt to locate %r" % module_name)
 
-    if module_filename is not None:
+    if module_kind == "built-in":
+        module_name = found_module_name
+    elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
-
-        if found_module_name == "distutils":
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                module_filename
-            )
-            module_name = found_module_name
-        else:
-            module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
-            module_name = ModuleName.makeModuleNameInPackage(
-                module_name, module_package
-            )
-
-            if states.is_debug:
-                assert module_name == found_module_name, (
-                    module_name,
-                    found_module_name,
-                    parent_package,
-                )
+        module_name = found_module_name
 
     elif finding == "not-found":
         if parent_package is not None:
@@ -1050,23 +1133,6 @@ def locateModule(module_name, parent_package, level, logger=None):
             module_name = ModuleName("")
 
     return module_name, module_filename, module_kind, finding
-
-
-def locateModules(package_name):
-    """Determine child module names.
-
-    Return:
-        generator of ModuleName objects
-    """
-    package_name = ModuleName(package_name)
-
-    module_filename = locateModule(
-        module_name=ModuleName(package_name), parent_package=None, level=0
-    )[1]
-
-    if module_filename is not None:
-        for sub_module in iter_modules([module_filename]):
-            yield package_name.getChildNamed(sub_module.name)
 
 
 def hasModule(module_name):
@@ -1119,9 +1185,9 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getNormalizedPathJoin(filename, "__init__.py")
+        source_filename = getPackageDirFilename(filename)
 
-        if not os.path.isfile(source_filename):
+        if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()
             is_namespace = True
         else:

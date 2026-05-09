@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -29,11 +29,9 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
-from nuitka.utils.Utils import isMacOS
 
-from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
-    addConstantBlobFile,
+    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
     reportCCompiler,
     setupCCompiler,
@@ -90,8 +88,6 @@ python_prefix = getArgumentRequired("python_prefix")
 
 python_prefix_external = getExternalUsePath(python_prefix)
 
-# Disable ccache/clcache usage if that is requested
-disable_ccache = getArgumentBool("disable_ccache", False)
 
 # Preprocessor defines and link libraries from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -163,12 +159,10 @@ env.Append(
     ],
 )
 
-if isMacOS():
-    addConstantBlobFile(
-        env=env,
-        blob_filename=os.path.join(env.source_dir, "__payload.bin"),
-        resource_desc=("mac_section", "default on macOS"),
-    )
+addConstantBlobFiles(
+    env=env,
+    source_dir=env.source_dir,
+)
 
 # Indicate, that the common code is used to build an executable.
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
@@ -233,21 +227,6 @@ enableSpawnMonitoring(
 # scons traceback is not going to be very interesting to us.
 changeKeyboardInterruptToErrorExit()
 
-# Check if ccache is installed, and complain if it is not.
-if env.gcc_mode:
-    enableCcache(
-        env=env,
-        source_dir=env.source_dir,
-        python_prefix=python_prefix_external,
-        disable_ccache=disable_ccache,
-    )
-
-if env.msvc_mode and not disable_ccache:
-    enableClcache(
-        env=env,
-        source_dir=env.source_dir,
-    )
-
 
 def createBuildDefinitionsFile():
     onefile_definitions = {}
@@ -259,7 +238,7 @@ def createBuildDefinitionsFile():
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
-    if env.onefile_dll_mode:
+    if env.onefile_dll_mode and os.name == "nt":
         env.Append(LIBS=["PsApi"])
 
     createDefinitionsFile(env.source_dir, "onefile_definitions.h", onefile_definitions)

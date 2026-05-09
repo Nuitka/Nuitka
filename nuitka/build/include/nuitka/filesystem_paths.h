@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_FILESYSTEM_PATH_OPS_H__
 #define __NUITKA_FILESYSTEM_PATH_OPS_H__
@@ -21,6 +21,8 @@
 #define expandTemplatePathFilename expandTemplatePathW
 #define strlenFilename wcslen
 #define strcmpFilename wcscmp
+#define strncmpFilename wcsncmp
+#define findFilenameSubstring wcsstr
 #define strdupFilename wcsdup
 #define scanFilename swscanf
 #define Nuitka_String_FromFilename(filename) NuitkaUnicode_FromWideChar(filename, -1)
@@ -39,6 +41,8 @@
 #define expandTemplatePathFilename expandTemplatePath
 #define strlenFilename strlen
 #define strcmpFilename strcmp
+#define strncmpFilename strncmp
+#define findFilenameSubstring strstr
 #define strdupFilename strdup
 #define scanFilename sscanf
 #define Nuitka_String_FromFilename Nuitka_String_FromString
@@ -70,7 +74,8 @@
 // Get path of the running binary.
 extern filename_char_t const *getBinaryPath(void);
 
-// Get the DLL directory as wide characters.
+// Get the DLL directory, set the DLL filename if necessary..
+extern void setDllFilename(filename_char_t const *filename);
 extern filename_char_t const *getDllDirectory(void);
 
 extern FILE_HANDLE openFileForReading(filename_char_t const *filename);

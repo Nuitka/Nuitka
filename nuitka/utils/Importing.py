@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Helper to import a file as a module.
@@ -294,7 +294,7 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
 def hasPackageDirFilename(path):
     path = os.path.basename(path)
 
-    for suffix in (".py",) + getExtensionModuleSuffixes():
+    for suffix, _module_type in getModuleFilenameSuffixes():
         candidate = "__init__" + suffix
 
         if candidate == path:
@@ -306,7 +306,7 @@ def hasPackageDirFilename(path):
 def getPackageDirFilename(path):
     assert os.path.isdir(path)
 
-    for suffix in getExtensionModuleSuffixes() + (".py",):
+    for suffix, _module_type in getModuleFilenameSuffixes():
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):

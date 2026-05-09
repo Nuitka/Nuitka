@@ -22,7 +22,7 @@ and maintain the Nuitka compiler.
   - Do NOT use keyword-only arguments separator `*` (e.g. `def foo(a, *, b)`) - *required for Python
     2 compatibility*.
   - Do NOT use positional-only arguments separator `/` (e.g. `def foo(a, /, b)`) - *required for
-    Python \< 3.8 compatibility*.
+    Python < 3.8 compatibility*.
 - **Coding Preferences:**
   - **Preferred:** List comprehensions are preferred over `map`, `filter`, and `apply` for
     readability.
@@ -64,6 +64,11 @@ and maintain the Nuitka compiler.
 
 - **Coding Practices:**
 
+  - **Comments:** Comments shall only state information that is not available in the code it
+    comments on.
+  - **Strings:** Do not create long strings by implicitly concatenating multiple smaller strings
+    across lines or using backslashes between string fragments. Use triple-quoted strings
+    (`"""..."""`) for long strings, using `\` escapes inside them if lines become too long.
   - **List Contractions:** PREFERRED over `map`, `filter`, `apply`.
   - **Properties:** Avoid using properties for internal APIs; use explicit getters/setters.
   - **Imports:** Sort imports using `isort` (handled by auto-format).
@@ -91,6 +96,9 @@ Before marking a task as complete, you must verify the changes using the project
 - **Linting:** You must run the project's pylint script on any modified files.
 
   - Command: `./bin/check-nuitka-with-pylint --un-pushed`
+  - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
+    unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
+    diagnosis.
   - Can be run on the entire project with `./bin/check-nuitka-with-pylint`
   - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
     without a very strong reason.
@@ -98,6 +106,9 @@ Before marking a task as complete, you must verify the changes using the project
 - **Auto-Formatting:** Apply auto-formatting to any file you touch (Python or C).
 
   - Command: `./bin/autoformat-nuitka-source --un-pushed`
+  - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
+    unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
+    diagnosis.
   - Can be run on the entire project with `./bin/autoformat-nuitka-source`
   - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
     tools.
@@ -122,6 +133,8 @@ Before marking a task as complete, you must verify the changes using the project
   - On Windows, ensure a suitable Python version is installed (e.g.,
     `~/AppData/Local/Programs/Python/Python313`). Prompt the user to install if missing a suitable
     version.
+  - When you only need to vary Nuitka command line flags for an existing repository test case,
+    prefer reusing it via `NUITKA_EXTRA_OPTIONS`.
   - For **scons** level changes:
     - Run `bin/nuitka --version` to check basic sanity.
     - Compile `tests/basics/AssertsTest.py` to verify correctness.

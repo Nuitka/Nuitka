@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Utility module.
@@ -58,6 +58,11 @@ def _parseOsReleaseFileContents(filename):
                 base = "Debian"
             elif "fedora" in base:
                 base = "Fedora"
+            elif "suse" in base:
+                base = "SUSE"
+
+                if result is None:
+                    result = base
 
         if line.startswith("VERSION="):
             version = line[8:].strip('"')
@@ -197,6 +202,22 @@ def isFedoraBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
     return (base or dist_name) == "Fedora"
+
+
+def isSuseBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    if base == "SUSE":
+        return True
+
+    if dist_name is None:
+        return False
+
+    dist_name = dist_name.lower()
+
+    return dist_name.startswith(
+        ("suse", "opensuse", "sles", "sled", "sle-", "sle_", "sl-", "sl_")
+    )
 
 
 def isArchBasedLinux():
@@ -385,7 +406,7 @@ def withWarningRemoved(category):
         # are not to care about.
         if "pkg_resources" in sys.modules and category is DeprecationWarning:
             try:
-                from pkg_resources import PkgResourcesDeprecationWarning
+                from pkg_resources import PkgResourcesDeprecationWarning  # type: ignore
             except ImportError:
                 pass
             else:
@@ -453,31 +474,22 @@ def decoratorRetries(
                     result = func(*args, **kwargs)
                 except exception_type as e:
                     if not isinstance(e, OSError):
-                        logger.warning(
-                            """\
+                        logger.warning("""\
 Failed to %s in attempt %d due to %s.
 %s
-Retrying after a second of delay."""
-                            % (purpose, attempt, str(e), recommendation)
-                        )
+Retrying after a second of delay.""" % (purpose, attempt, str(e), recommendation))
 
                     else:
                         if isinstance(e, OSError) and e.errno in (110, 13):
-                            logger.warning(
-                                """\
+                            logger.warning("""\
 Failed to %s in attempt %d.
 %s
-Retrying after a second of delay."""
-                                % (purpose, attempt, recommendation)
-                            )
+Retrying after a second of delay.""" % (purpose, attempt, recommendation))
                         else:
-                            logger.warning(
-                                """\
+                            logger.warning("""\
 Failed to %s in attempt %d with error code %d.
 %s
-Retrying after a second of delay."""
-                                % (purpose, attempt, e.errno, recommendation)
-                            )
+Retrying after a second of delay.""" % (purpose, attempt, e.errno, recommendation))
 
                     time.sleep(sleep_time)
                     continue

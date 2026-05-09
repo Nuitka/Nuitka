@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Runner for standalone program tests of Nuitka.
@@ -8,7 +8,6 @@ These tests aim at showing that one specific module works in standalone
 mode, trying to find issues with that packaging.
 
 """
-
 
 import os
 import sys
@@ -26,6 +25,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.__past__ import subprocess
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
     getCompilationOutputMode,
@@ -111,6 +111,19 @@ def _checkForLibcBinaries(dist_path):
             "Should not ship glibc libraries with the standalone executable (found %s)"
             % found_glibc_libs
         )
+
+
+def _checkAppBundleCodeSignature(app_bundle_path):
+    test_logger.info(
+        "Checking macOS code signature for app bundle '%s'." % app_bundle_path
+    )
+
+    return (
+        subprocess.call(
+            ("/usr/bin/codesign", "--verify", "--deep", "--strict", app_bundle_path)
+        )
+        == 0
+    )
 
 
 def main():
@@ -225,6 +238,9 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
+        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+            extra_flags.append("ignore_stderr")
+
         if filename.startswith("PyQt6") and isMacOS():
             reportSkip("not currently supported", ".", filename)
             continue
@@ -256,6 +272,18 @@ def main():
             prefixes=(("${cwd}", os.getcwd()),),
         )
         output_dist_path = os.path.dirname(binary_filename)
+
+        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
+            app_bundle_path = os.path.dirname(
+                os.path.dirname(os.path.dirname(binary_filename))
+            )
+
+            if not _checkAppBundleCodeSignature(app_bundle_path):
+                displayError(None, filename)
+                search_mode.onErrorDetected(
+                    "Error, app bundle code signing verification failed."
+                )
+                continue
 
         # Second check if libc libraries haven't been accidentally
         # shipped with the standalone executable

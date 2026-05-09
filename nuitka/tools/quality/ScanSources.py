@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Many tools work on Nuitka sources and need to find the files."""
@@ -8,6 +8,16 @@ import os
 from nuitka.utils.Shebang import getShebangFromFile
 
 _default_ignore_list = ("inline_copy", "tblib", "__pycache__")
+
+
+def _isIgnoredDirectoryName(dirname):
+    """Decide if a directory should be ignored while scanning sources."""
+
+    return (
+        dirname in _default_ignore_list
+        or dirname.endswith((".build", ".onefile-build", ".dist", ".app", ".egg-info"))
+        or dirname.startswith(("CPython", "venv_", ".venv_", "env_", ".env_"))
+    )
 
 
 def _addFromDirectory(path, suffixes, ignore_list):
@@ -23,11 +33,7 @@ def _addFromDirectory(path, suffixes, ignore_list):
 
         # Remove things we never care about.
         dirnames[:] = [
-            dirname
-            for dirname in dirnames
-            if dirname not in _default_ignore_list
-            if not dirname.endswith((".build", ".dist", ".egg-info"))
-            if not dirname.startswith(("CPython", "venv_"))
+            dirname for dirname in dirnames if not _isIgnoredDirectoryName(dirname)
         ]
 
         filenames.sort()
@@ -78,6 +84,9 @@ def scanTargets(positional_args, suffixes, ignore_list=()):
         positional_arg = os.path.normpath(positional_arg)
 
         if os.path.isdir(positional_arg):
+            if _isIgnoredDirectoryName(os.path.basename(positional_arg)):
+                continue
+
             for value in _addFromDirectory(positional_arg, suffixes, ignore_list):
                 yield value
         else:

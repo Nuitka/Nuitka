@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Python formatting utility for Nuitka.
@@ -7,18 +7,23 @@ This contains the logic to format Python source code.
 """
 
 import ast
+import io
 import os
 import re
+import tokenize
 
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     putBinaryFileContents,
     putTextFileContents,
 )
+from nuitka.utils.Hashing import Hash
 from nuitka.utils.PrivatePipSpace import (
     getBlackBinaryPath,
     getIsortBinaryPath,
+    getRequiredVersion,
     withPrivatePipSitePackagesPathAdded,
 )
 
@@ -38,6 +43,7 @@ BLACK_SKIP_LIST = [
     "tests/programs/syntax_errors/IndentationErroring.py",
     "tests/syntax/ClosureDel_2.py",
     "tests/syntax/ExecWithNesting_2.py",
+    "tests/syntax/EncodingProblemTest.py",
     "tests/syntax/IndentationError.py",
     "tests/syntax/StarImportExtra.py",
     "tests/syntax/SyntaxError.py",
@@ -48,6 +54,16 @@ BLACK_SKIP_LIST = [
     "tests/benchmarks/pystone.py",
 ]
 BLACK_SKIP_LIST = tuple(os.path.normpath(path) for path in BLACK_SKIP_LIST)
+
+
+def _getAutoformatCacheFilename(logger, tool_name, args, contents):
+    content_hash = Hash()
+    content_hash.updateFromValues(
+        os.name, getRequiredVersion(logger, tool_name), args, contents
+    )
+
+    cache_dir = getCacheDir("autoformat", create=True)
+    return os.path.join(cache_dir, "%s-%s" % (tool_name, content_hash.asHexDigest()))
 
 
 def _cleanupPyLintComments(logger, filename, effective_filename):
@@ -89,6 +105,46 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
     new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
+        putTextFileContents(filename, new_code, encoding="utf8")
+
+
+def _cleanupDashesInComments(filename):
+    """Cleanup em dashes and en dashes in code comments.
+
+    Args:
+        filename: path to the file
+    """
+    # The tokenize interface is a bit verbose, pylint: disable=too-many-locals
+    source_code = getFileContents(filename, encoding="utf8")
+
+    # Go backwards to not mess up offsets
+    source_lines = source_code.splitlines()
+    changed = False
+
+    for t in reversed(
+        tuple(tokenize.generate_tokens(io.StringIO(source_code).readline))
+    ):
+        tok_type, tok_string, (start_row, start_col), (_end_row, end_col), _line = t
+
+        if tok_type == tokenize.COMMENT:
+            if "\u2014" in tok_string or "\u2013" in tok_string:
+                line_idx = start_row - 1
+                line = source_lines[line_idx]
+
+                new_tok_string = tok_string.replace("\u2014", "-").replace(
+                    "\u2013", "-"
+                )
+
+                source_lines[line_idx] = (
+                    line[:start_col] + new_tok_string + line[end_col:]
+                )
+                changed = True
+
+    if changed:
+        new_code = "\n".join(source_lines)
+        if source_code.endswith("\n") and not new_code.endswith("\n"):
+            new_code += "\n"
+
         putTextFileContents(filename, new_code, encoding="utf8")
 
 
@@ -146,22 +202,40 @@ def _cleanupImportSortOrder(
 
         putTextFileContents(filename, contents=contents, encoding="utf8")
 
+    isort_args = [
+        "-q",
+        "--stdout",
+        "--order-by-type",
+        "--multi-line=VERTICAL_HANGING_INDENT",
+        "--trailing-comma",
+        "--project=nuitka",
+        "--float-to-top",
+        # spell-checker: ignore thirdparty
+        "--thirdparty=SCons",
+    ]
+
+    cache_filename = _getAutoformatCacheFilename(logger, "isort", isort_args, contents)
+
+    if os.path.exists(cache_filename):
+        # Restore from cache
+        isort_output = getFileContents(cache_filename, mode="rb")
+
+        if isort_output or not contents:
+            if getFileContents(filename, mode="rb") != isort_output:
+                putBinaryFileContents(filename, isort_output)
+
+            # Restore the original complete contents if we had split them out
+            if start_index is not None:
+                contents = getFileContents(filename, encoding="utf8")
+                contents = (
+                    "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
+                )
+                putTextFileContents(filename, contents=contents, encoding="utf8")
+
+            return
+
     with withPrivatePipSitePackagesPathAdded(logger=logger):
-        isort_output = check_output(
-            isort_call
-            + [
-                "-q",
-                "--stdout",
-                "--order-by-type",
-                "--multi-line=VERTICAL_HANGING_INDENT",
-                "--trailing-comma",
-                "--project=nuitka",
-                "--float-to-top",
-                # spell-checker: ignore thirdparty
-                "--thirdparty=SCons",
-                filename,
-            ]
-        )
+        isort_output = check_output(isort_call + isort_args + [filename])
 
     if isort_output == b"" and contents != "":
         if logger is not None:
@@ -172,6 +246,10 @@ def _cleanupImportSortOrder(
         putBinaryFileContents(filename, isort_output)
 
     cleanupWindowsNewlines(filename, effective_filename)
+
+    # Store the hash of the resulting formatted contents so next time we see them, we skip
+    new_contents = getFileContents(filename, mode="rb")
+    putBinaryFileContents(cache_filename, new_contents)
 
     if start_index is not None:
         contents = getFileContents(filename, encoding="utf8")
@@ -285,6 +363,8 @@ def formatPython(
         logger=logger, filename=filename, effective_filename=effective_filename
     )
 
+    _cleanupDashesInComments(filename=filename)
+
     if effective_filename not in BLACK_SKIP_LIST:
         black_path = getBlackBinaryPath(
             logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
@@ -293,19 +373,36 @@ def formatPython(
         if black_path is None:
             return logger.sysexit("Error, cannot find 'black' binary.")
 
-        black_call = [black_path, "-q", "--fast", filename]
+        black_args = ["-q", "--fast"]
+        black_call = [black_path] + black_args + [filename]
         # logger.info("Executing: %s" % " ".join(black_call))
 
         old_contents = getFileContents(filename, "rb")
 
-        try:
-            with withPrivatePipSitePackagesPathAdded(logger=logger):
-                check_call(black_call)
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Problem formatting for '%s'." % effective_filename)
+        cache_filename = _getAutoformatCacheFilename(
+            logger, "black", black_args, old_contents
+        )
 
-            if not ignore_errors:
-                raise
+        black_cache_hit = False
+        if os.path.exists(cache_filename):
+            black_output = getFileContents(cache_filename, mode="rb")
+            if black_output or not old_contents:
+                if old_contents != black_output:
+                    putBinaryFileContents(filename, black_output)
+                black_cache_hit = True
+
+        if not black_cache_hit:
+            try:
+                with withPrivatePipSitePackagesPathAdded(logger=logger):
+                    check_call(black_call)
+
+                new_contents = getFileContents(filename, mode="rb")
+                putBinaryFileContents(cache_filename, new_contents)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Problem formatting for '%s'." % effective_filename)
+
+                if not ignore_errors:
+                    raise
 
         if getFileContents(filename) == "" and old_contents != b"":
             if ignore_errors:

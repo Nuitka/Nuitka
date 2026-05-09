@@ -1,4 +1,4 @@
-#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2026, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """Details see below in class definition."""
@@ -8,7 +8,11 @@ import sys
 
 from nuitka.options.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonFlavors import isHomebrewPython
+from nuitka.PythonFlavors import (
+    getHomebrewInstallPath,
+    isHomebrewPython,
+    isPyenvHomebrewPython,
+)
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -18,17 +22,6 @@ from nuitka.utils.Utils import isMacOS, isWin32Windows
 def _isTkInterModule(module):
     full_name = module.getFullName()
     return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
-
-
-def _getHomebrewPrefix(logger):
-    result = os.path.normpath(
-        os.path.join(getSystemPrefixPath(), "..", "..", "..", "..", "..", "..", "..")
-    )
-
-    if not os.path.isdir(result):
-        logger.sysexit("Error, failed to determine Homebrew prefix, report this bug.")
-
-    return result
 
 
 class NuitkaPluginTkinter(NuitkaPluginBase):
@@ -78,12 +71,9 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
 
         # Only ever saw these in use, report if there are more.
         if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Error, it seems 'tk-inter' has an unsupported version '%s'. \
-Please report as a issue."""
-                % self.tk_inter_version
-            )
+Please report as a issue.""" % self.tk_inter_version)
 
         return None
 
@@ -164,10 +154,10 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
             yield "/usr/lib/tcl%s" % self.tk_inter_version
 
-        if isHomebrewPython():
+        if isHomebrewPython() or isPyenvHomebrewPython():
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tcl%s" % self.tk_inter_version,
                 )
@@ -177,7 +167,7 @@ The Tcl library dir. See comments for Tk library dir.""",
             # be the version 9.
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tcl9",
                 )
@@ -212,10 +202,10 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
             yield "/usr/lib/tk%s" % self.tk_inter_version
 
-        if isHomebrewPython():
+        if isHomebrewPython() or isPyenvHomebrewPython():
             yield os.path.normpath(
                 os.path.join(
-                    _getHomebrewPrefix(self),
+                    getHomebrewInstallPath(),
                     "lib",
                     "tk%s" % self.tk_inter_version,
                 )
@@ -226,7 +216,7 @@ The Tcl library dir. See comments for Tk library dir.""",
                 # be the version 9.
                 yield os.path.normpath(
                     os.path.join(
-                        _getHomebrewPrefix(self),
+                        getHomebrewInstallPath(),
                         "lib",
                         "tk9.0",
                     )
@@ -283,11 +273,9 @@ The Tcl library dir. See comments for Tk library dir.""",
                     break
 
         if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Could not find Tcl, you might need to use '--tcl-library-dir' and if \
-that works, report a bug so it can be added to Nuitka."""
-            )
+that works, report a bug so it can be added to Nuitka.""")
 
         tk_library_dir = self.tk_library_dir
         if tk_library_dir is None:
@@ -298,11 +286,9 @@ that works, report a bug so it can be added to Nuitka."""
                     break
 
         if tk_library_dir is None or not os.path.exists(tk_library_dir):
-            self.sysexit(
-                """\
+            self.sysexit("""\
 Could not find Tk, you might need to use '--tk-library-dir' and if \
-that works, report a bug."""
-            )
+that works, report a bug.""")
 
         # survived the above, now do provide the locations
         yield self.makeIncludedDataDirectory(

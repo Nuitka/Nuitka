@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* This helpers is used to quickly create a string object from C char.
 
@@ -319,7 +319,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 #if PYTHON_VERSION >= 0x390
 
 #ifdef Py_REF_DEBUG
-#define _Py_DEC_REFTOTAL _Py_RefTotal--;
+#define _Py_DEC_REFTOTAL Nuitka_Py_DecRefTotal(_PyThreadState_GET());
 #else
 #define _Py_DEC_REFTOTAL
 #endif

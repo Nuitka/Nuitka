@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Program execution related stuff.
@@ -9,14 +9,16 @@ binaries (needed for exec) and run them capturing outputs.
 
 import errno
 import os
+import select
 import shlex
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
-from .FileOperations import getExternalUsePath
+from .FileOperations import getExternalUsePath, hasFilenameExtension
 from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 
 # Cache, so we avoid repeated command lookups.
@@ -379,6 +381,8 @@ def wrapCommandForDebuggerForExec(command, debugger):
         args = (
             lldb_path,
             "lldb",
+            "--script-language",
+            "none",
             "-o",
             "run",
             "-o",
@@ -561,6 +565,19 @@ def _checkEnvironment(env):
             )
 
 
+def expandProcessCallForWindows(command, shell):
+    """On Windows, if the command is a batch file, we need to run
+    it with cmd.exe and our own flags to disable auto-run
+    and other side effects.
+    """
+    # spell-checker: ignore COMSPEC
+    if not shell and isWin32Windows() and type(command) in (list, tuple):
+        if hasFilenameExtension(command[0], (".cmd", ".bat")):
+            return [os.getenv("COMSPEC", "cmd.exe"), "/d", "/c"] + list(command)
+
+    return command
+
+
 def createProcess(
     command,
     env=None,
@@ -571,10 +588,13 @@ def createProcess(
     external_cwd=False,
     new_group=False,
 ):
+    assert command
+
     if not env:
         env = os.environ
-
     _checkEnvironment(env)
+
+    command = expandProcessCallForWindows(command=command, shell=shell)
 
     kw_args = {}
     if new_group:
@@ -601,6 +621,38 @@ def createProcess(
         )
 
     return process
+
+
+ExecuteProcessResult = makeNamedtupleClass(
+    "ExecuteProcessResult",
+    (
+        "exit_code",
+        "stdout",
+        "stderr",
+        "rusage",
+    ),
+)
+
+ProcessResourceUsage = None
+
+
+def makeProcessResourceUsage(raw_rusage):
+    # Cannot prepare this globally, since it may not exist.
+    # pylint: disable=global-statement
+
+    global ProcessResourceUsage
+    if ProcessResourceUsage is None:
+        # Extracting the fields name from the first repr, we encounter is not
+        # award winning style code, but I didn't find a way that is not hard
+        # coding the names.
+        fields = tuple(
+            value.strip().split("=")[0]
+            for value in str(raw_rusage).split("(", 1)[-1].rsplit(")", 1)[0].split(",")
+        )
+
+        ProcessResourceUsage = makeNamedtupleClass("ProcessResourceUsage", fields)
+
+    return ProcessResourceUsage(*raw_rusage)
 
 
 def executeProcess(
@@ -681,14 +733,32 @@ class Process(object):
 
         # TODO: May introduce a namedtuple for the return value.
         if self.rusage:
-            return _communicateWithRusage(
+            stdout, stderr, exit_code, rusage = _communicateWithRusage(
                 proc=self.process, process_input=process_input
             )
         else:
-            stdout, stderr = self.process.communicate(input=process_input)
-            exit_code = self.process.wait()
+            try:
+                stdout, stderr = self.process.communicate(
+                    input=process_input, **kw_args
+                )
+            except subprocess.TimeoutExpired as e:
+                if hasattr(self.process, "kill"):
+                    self.process.kill()
+                else:
+                    self.process.terminate()
 
-            return stdout, stderr, exit_code
+                stdout, stderr = self.process.communicate()
+                e.output = stdout
+                e.stdout = stdout
+                e.stderr = stderr
+                raise
+
+            exit_code = self.process.wait()
+            rusage = None
+
+        return ExecuteProcessResult(
+            exit_code=exit_code, stdout=stdout, stderr=stderr, rusage=rusage
+        )
 
     def stop(self):
         if self.process is not None:
@@ -701,12 +771,93 @@ def _communicateWithRusage(proc, process_input):
     This version uses the high-level 'selectors' module for robust I/O handling.
     """
 
-    # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
+    # Complex code to replace communicate of Python,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    if selectors is None or not hasattr(os, "wait4"):
+    if not hasattr(os, "wait4"):
         stdout, stderr = proc.communicate(input=process_input)
         exit_code = proc.wait()
-        rusage = {}
+        rusage = None
+    elif selectors is None:
+        if process_input is None:
+            process_input = b""
+
+        stdout_chunks = []
+        stderr_chunks = []
+
+        read_fds = []
+        chunk_lists = {}
+        file_objects = {}
+
+        if proc.stdout:
+            stdout_fd = proc.stdout.fileno()
+            read_fds.append(stdout_fd)
+            chunk_lists[stdout_fd] = stdout_chunks
+            file_objects[stdout_fd] = proc.stdout
+
+        if proc.stderr:
+            stderr_fd = proc.stderr.fileno()
+            read_fds.append(stderr_fd)
+            chunk_lists[stderr_fd] = stderr_chunks
+            file_objects[stderr_fd] = proc.stderr
+
+        write_fds = []
+        stdin_file = None
+
+        if proc.stdin:
+            if process_input:
+                stdin_file = proc.stdin
+                write_fds.append(proc.stdin.fileno())
+            else:
+                proc.stdin.close()
+
+        input_offset = 0
+
+        while read_fds or write_fds:
+            try:
+                ready_to_read, ready_to_write, _unused = select.select(
+                    read_fds, write_fds, ()
+                )
+            except (select.error, OSError) as e:
+                if e.args and e.args[0] == errno.EINTR:  # spell-checker: ignore EINTR
+                    continue
+
+                raise
+
+            for fd in ready_to_read:
+                chunk = os.read(fd, 8192)
+
+                if not chunk:
+                    read_fds.remove(fd)
+                    file_objects[fd].close()
+                else:
+                    chunk_lists[fd].append(chunk)
+
+            for fd in ready_to_write:
+                chunk = process_input[input_offset : input_offset + 8192]
+                bytes_written = os.write(fd, chunk)
+                input_offset += bytes_written
+
+                if input_offset >= len(process_input):
+                    write_fds.remove(fd)
+                    stdin_file.close()
+
+        try:
+            _pid, status, raw_rusage = os.wait4(proc.pid, 0)
+            exit_code = os.WEXITSTATUS(status)
+
+            rusage = makeProcessResourceUsage(raw_rusage)
+        except OSError as e:
+            if e.errno == errno.ECHILD:
+                exit_code = proc.wait()
+                rusage = None
+            else:
+                raise
+
+        proc.returncode = exit_code
+
+        stdout = b"".join(stdout_chunks)
+        stderr = b"".join(stderr_chunks)
     else:
         # Use the best selector available for the current OS
         with selectors.DefaultSelector() as selector:
@@ -715,12 +866,16 @@ def _communicateWithRusage(proc, process_input):
                 selector.register(proc.stdout, selectors.EVENT_READ)
             if proc.stderr:
                 selector.register(proc.stderr, selectors.EVENT_READ)
-            if proc.stdin and process_input:
-                selector.register(proc.stdin, selectors.EVENT_WRITE)
 
             input_offset = 0
             if process_input is None:
                 process_input = b""
+
+            if proc.stdin:
+                if process_input:
+                    selector.register(proc.stdin, selectors.EVENT_WRITE)
+                else:
+                    proc.stdin.close()
 
             stdout_chunks = []
             stderr_chunks = []
@@ -758,14 +913,16 @@ def _communicateWithRusage(proc, process_input):
         # All I/O is done. Now, wait for the process and get the resource usage,
         # spell-checker: ignore ECHILD,WEXITSTATUS
         try:
-            _pid, status, rusage = os.wait4(proc.pid, 0)
+            _pid, status, raw_rusage = os.wait4(proc.pid, 0)
             exit_code = os.WEXITSTATUS(status)
+
+            rusage = makeProcessResourceUsage(raw_rusage)
         except OSError as e:
             # The ECHILD means the process is already reaped, which can happen with SCons
             # due to races in error cases.
             if e.errno == errno.ECHILD:
                 exit_code = proc.wait()
-                rusage = {}
+                rusage = None
             else:
                 raise
 

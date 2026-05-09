@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Build the internal node tree from source code.
@@ -90,6 +90,7 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeDunderCompiledRef,
     ExpressionModuleAttributeFileRef,
     ExpressionModuleAttributeSpecRef,
 )
@@ -216,10 +217,8 @@ from .TreeHelpers import (
     getKind,
     makeModuleFrame,
     makeReraiseExceptionStatement,
-    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
-    mergeStatements,
     parseSourceCodeToAst,
     setBuildingDispatchers,
 )
@@ -306,17 +305,8 @@ def buildTryNode(provider, node, source_ref):
 
     return buildTryFinallyNode(
         provider=provider,
-        build_tried=lambda: makeStatementsSequence(
-            statements=mergeStatements(
-                (
-                    buildTryExceptionNode(
-                        provider=provider, node=node, source_ref=source_ref
-                    ),
-                ),
-                allow_none=True,
-            ),
-            allow_none=True,
-            source_ref=source_ref,
+        build_tried=lambda: buildTryExceptionNode(
+            provider=provider, node=node, source_ref=source_ref
         ),
         node=node,
         source_ref=source_ref,
@@ -338,17 +328,8 @@ def buildTryStarNode(provider, node, source_ref):
 
     return buildTryFinallyNode(
         provider=provider,
-        build_tried=lambda: makeStatementsSequence(
-            statements=mergeStatements(
-                (
-                    buildTryStarExceptionNode(
-                        provider=provider, node=node, source_ref=source_ref
-                    ),
-                ),
-                allow_none=True,
-            ),
-            allow_none=True,
-            source_ref=source_ref,
+        build_tried=lambda: buildTryStarExceptionNode(
+            provider=provider, node=node, source_ref=source_ref
         ),
         node=node,
         source_ref=source_ref,
@@ -974,6 +955,18 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
             )
         )
 
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__compiled__",
+            source=ExpressionModuleAttributeDunderCompiledRef(
+                variable=provider.getVariableForReference("__compiled__"),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    )
+
     if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
@@ -1019,13 +1012,10 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
     # Cannot change mode of "__main__" to bytecode, that is not going to work
     # currently, maybe in the future we could allow it.
     if result == "bytecode" and is_top:
-        plugins_logger.warning(
-            """\
+        plugins_logger.warning("""\
 Ignoring plugin decision to compile top level package '%s' \
 as bytecode, the extension module entry point is technically \
-required to compiled."""
-            % module_name
-        )
+required to compiled.""" % module_name)
         result = "compiled"
 
     # Include all of standard library as bytecode, for now. We need to identify
@@ -1349,11 +1339,16 @@ def buildModule(
 
     # Handle bytecode module case immediately.
     if module_kind == "pyc":
+        bytecode_filename = source_filename
+
+        if bytecode_filename is None:
+            bytecode_filename = module_filename
+
         return makeUncompiledPythonModule(
             module_name=module_name,
             reason=reason,
             filename=module_filename,
-            bytecode=loadCodeObjectData(module_filename),
+            bytecode=loadCodeObjectData(bytecode_filename),
             is_package=is_package,
             technical=module_name in detectEarlyImports(),
         )

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Tags and set of it.
@@ -21,7 +21,7 @@ allowed_tags = (
     "new_expression",
     # Loop analysis is incomplete, or only just now completed.
     "loop_analysis",
-    # TODO: A bit unclear what this it, potentially a changed variable.
+    # Changed variable usage
     "var_usage",
     # Detected module variable to be read only.
     "read_only_module_variable",
@@ -35,6 +35,8 @@ allowed_tags = (
     "new_raise",
     # New constant introduced.
     "new_constant",
+    # New variable introduced or variable references removed.
+    "changed_variable_usage",
 )
 
 

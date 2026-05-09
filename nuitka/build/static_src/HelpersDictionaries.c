@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* These helpers are used to work with dictionaries.
 
@@ -31,7 +31,7 @@ static struct _Py_dictkeys_freelist *get_dictkeys_freelist(void) {
 static void Nuitka_Py_dictkeys_free_keys_object(PyDictKeysObject *keys, bool use_qsbr) {
 #ifdef Py_GIL_DISABLED
     if (use_qsbr) {
-        _PyMem_FreeDelayed(keys);
+        NuitkaMem_FreeDelayed(keys);
         return;
     }
 #endif
@@ -79,9 +79,6 @@ static inline void ASSERT_DICT_LOCKED(PyObject *op) { _Py_CRITICAL_SECTION_ASSER
     if (kind == DICT_KEYS_SPLIT) {                                                                                     \
         UNLOCK_KEYS(keys);                                                                                             \
     }
-
-#define LOCK_KEYS(keys) PyMutex_LockFlags(&keys->dk_mutex, _Py_LOCK_DONT_DETACH)
-#define UNLOCK_KEYS(keys) PyMutex_Unlock(&keys->dk_mutex)
 
 #define ASSERT_KEYS_LOCKED(keys) assert(PyMutex_IsLocked(&keys->dk_mutex))
 #define LOAD_SHARED_KEY(key) _Py_atomic_load_ptr_acquire(&key)
@@ -147,8 +144,6 @@ static inline void split_keys_entry_added(PyDictKeysObject *keys) {
 #define ASSERT_DICT_LOCKED(op)
 #define ASSERT_WORLD_STOPPED_OR_DICT_LOCKED(op)
 #define ASSERT_WORLD_STOPPED_OR_OBJ_LOCKED(op)
-#define LOCK_KEYS(keys)
-#define UNLOCK_KEYS(keys)
 #define ASSERT_KEYS_LOCKED(keys)
 #define LOAD_SHARED_KEY(key) key
 #define STORE_SHARED_KEY(key, value) key = value
@@ -1068,44 +1063,72 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
 #endif
 }
 
-#if PYTHON_VERSION >= 0x300 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+#if PYTHON_VERSION >= 0x3e0
+static PyDictObject *_Nuitka_AllocatePyDictObjectFresh(void) {
+    size_t pre_size = _PyType_PreHeaderSize(&PyDict_Type);
+    size_t size = _PyObject_SIZE(&PyDict_Type);
+
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
+    assert(alloc != NULL);
+
+    ((PyObject **)alloc)[0] = NULL;
+    ((PyObject **)alloc)[1] = NULL;
+
+    PyObject *obj = (PyObject *)(alloc + pre_size);
+
+    Nuitka_PyObject_GC_Link(obj);
+    _PyObject_Init(obj, &PyDict_Type);
+
+    return (PyDictObject *)obj;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300 && (NUITKA_DICT_HAS_FREELIST || !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
 static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
 #if NUITKA_DICT_HAS_FREELIST
-#if PYTHON_VERSION >= 0x3e0
-    // TODO: Eliminate _Py_freelists_GET for our own version, using tstate passed in
-    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->dicts);
-
-    if (result_mp == NULL) {
-        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
-    } else {
-        Nuitka_Py_NewReference((PyObject *)result_mp);
-    }
-#else
-    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
+    // This is the CPython name, spell-checker: ignore numfree
     PyDictObject **items = tstate->interp->dict_state.free_list;
     int *numfree = &tstate->interp->dict_state.numfree;
-#else
+#elif PYTHON_VERSION < 0x3e0
     struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
     struct _Py_dict_freelist *state = &freelists->dicts;
     PyDictObject **items = state->items;
     int *numfree = &state->numfree;
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+    struct _Py_freelists *freelists = Nuitka_Py_freelists_GET(tstate);
+
+    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&freelists->dicts);
+
+    if (result_mp != NULL) {
+        Nuitka_Py_NewReference((PyObject *)result_mp);
+    } else {
+        result_mp = _Nuitka_AllocatePyDictObjectFresh();
+    }
+#else
     if (*numfree) {
         (*numfree) -= 1;
         result_mp = items[*numfree];
 
         Nuitka_Py_NewReference((PyObject *)result_mp);
-    } else
-#endif
-    {
+    } else {
+#if PYTHON_VERSION >= 0x3e0
+        result_mp = _Nuitka_AllocatePyDictObjectFresh();
+#else
         result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+#endif
     }
+#endif
+#else
+#if PYTHON_VERSION >= 0x3e0
+    result_mp = _Nuitka_AllocatePyDictObjectFresh();
 #else
     result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+#endif
 #endif
 #if PYTHON_VERSION >= 0x3e0
     result_mp->_ma_watcher_tag = 0;
@@ -1153,7 +1176,7 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 }
 #endif
 
-#if PYTHON_VERSION >= 0x360 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
+#if PYTHON_VERSION >= 0x360 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 
 // Usable fraction of keys.
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
@@ -1626,7 +1649,9 @@ read_failed:
     // or in the *_lookup_* helper.  In that case we need to take the lock to avoid
     // mutation and do a normal incref which will make them shared.
     Py_BEGIN_CRITICAL_SECTION(mp);
-    ix = _Py_dict_lookup(mp, key, hash, &value);
+    PyObject **locked_value_addr = NULL;
+    ix = Nuitka_PyDictLookup(mp, key, hash, &locked_value_addr);
+    value = locked_value_addr == NULL ? NULL : *locked_value_addr;
     *value_addr = value;
     if (value != NULL) {
         assert(ix >= 0);
@@ -2185,7 +2210,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
 #endif
 
-#if NUITKA_DICT_HAS_FREELIST && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+#if NUITKA_DICT_HAS_FREELIST
 PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 
@@ -2196,22 +2221,29 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
 
     result_mp->ma_keys = empty_dict_mp->ma_keys;
+#if PYTHON_VERSION < 0x3b0
     result_mp->ma_values = empty_dict_mp->ma_values;
-    result_mp->ma_used = 0;
-#if PYTHON_VERSION < 0x3e0
-#if PYTHON_VERSION >= 0x3c0
-    result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
-#elif PYTHON_VERSION >= 0x360
-    result_mp->ma_version_tag = 1;
+#else
+    assert(empty_dict_mp->ma_values == NULL);
+    result_mp->ma_values = NULL;
 #endif
+    result_mp->ma_used = 0;
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0
+    result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
+#elif PYTHON_VERSION >= 0x360 && PYTHON_VERSION < 0x3e0
+    result_mp->ma_version_tag = 1;
 #endif
 
     // Key reference needs to be counted on older Python
-#if defined(Py_REF_DEBUG) && PYTHON_VERSION < 0x3c0
-    _Py_RefTotal++;
+#if PYTHON_VERSION < 0x3c0
+    Nuitka_Py_IncRefTotal(tstate);
 #endif
 
-    // No Nuitka_GC_Track for the empty dictionary.
+    // Python 3.14 tracks even empty dicts, older versions did not.
+#if PYTHON_VERSION >= 0x3e0
+    Nuitka_GC_Track(result_mp);
+#endif
+
     return (PyObject *)result_mp;
 }
 #endif

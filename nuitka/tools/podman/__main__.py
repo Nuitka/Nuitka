@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Launcher for running a script inside a container.
@@ -7,7 +7,7 @@ Podman and Docker should both work, but the first one is recommended.
 """
 
 import os
-import shutil
+import re
 import sys
 
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -25,11 +25,14 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    copyFile,
+    copyTree,
     getFileContents,
     makePath,
     putTextFileContents,
     withTemporaryDirectory,
 )
+from nuitka.utils.Jinja2 import renderTemplateFromString
 from nuitka.utils.Utils import getArchitecture, isWin32Windows
 
 from .Podman import getPodmanExecutablePath
@@ -157,7 +160,299 @@ def isPodman(podman_path):
     return "podman" in os.path.normcase(os.path.basename(podman_path))
 
 
+def isTermuxContainer(container_name):
+    return "termux" in container_name.lower()
+
+
+def _copyContainerReferences(container_content, repo_root, build_context_dir):
+    for match in re.finditer(
+        r"^\s*COPY\s+(?:--[a-z-]+\S+\s+)*([^\s]+)", container_content, re.MULTILINE
+    ):
+        source_path = match.group(1)
+        full_source_path = os.path.join(repo_root, source_path)
+
+        if os.path.exists(full_source_path):
+            dest_path = os.path.join(build_context_dir, source_path)
+            makePath(os.path.dirname(dest_path))
+
+            if os.path.isdir(full_source_path):
+                if not os.path.exists(dest_path):
+                    copyTree(full_source_path, dest_path)
+            else:
+                copyFile(full_source_path, dest_path)
+
+
+def getContainerPython(container_name):
+    container_name = container_name.lower()
+
+    if isTermuxContainer(container_name):
+        return "python"
+
+    if "centos6" in container_name or "rhel6" in container_name:
+        return "python2.6"
+
+    if "opensuse132" in container_name:
+        return "python2.7"
+
+    return "python3"
+
+
+def _makeRunCommand(command):
+    return "RUN %s\n" % command
+
+
+def _getContainerInstructions(container_content):
+    result = []
+    current = None
+
+    for line in container_content.splitlines():
+        stripped = line.strip()
+
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        if current is None:
+            current = stripped
+        else:
+            current += stripped
+
+        if current.endswith("\\"):
+            current = current[:-1].rstrip() + " "
+        else:
+            result.append(current)
+            current = None
+
+    if current is not None:
+        result.append(current)
+
+    return result
+
+
+def _parseTermuxContainerFile(container_content, container_file_path):
+    base_image = None
+    env_commands = []
+    run_commands = []
+
+    for instruction_line in _getContainerInstructions(container_content):
+        instruction_parts = instruction_line.split(None, 1)
+        instruction = instruction_parts[0].upper()
+
+        if len(instruction_parts) == 2:
+            instruction_value = instruction_parts[1]
+        else:
+            instruction_value = ""
+
+        if instruction == "FROM":
+            base_image = instruction_value.split(None, 1)[0]
+        elif instruction == "ENV":
+            env_commands.append(instruction_line)
+        elif instruction == "RUN":
+            run_commands.append(instruction_value)
+        elif instruction == "SHELL":
+            pass
+        else:
+            return containers_logger.sysexit(
+                "Termux container file '%s' uses unsupported instruction '%s'."
+                % (container_file_path, instruction)
+            )
+
+    if base_image is None:
+        return containers_logger.sysexit(
+            "Termux container file '%s' has no 'FROM' instruction."
+            % container_file_path
+        )
+
+    return base_image, env_commands, run_commands
+
+
+def _makeTermuxUpdateContainerName(container_tag_name):
+    return re.sub("[^a-z0-9_.-]", "-", container_tag_name.lower()) + "-update"
+
+
+def _updateTermuxContainer(
+    podman_path,
+    container_tag_name,
+    container_file_path,
+    container_content,
+    quiet,
+):
+    base_image, env_commands, run_commands = _parseTermuxContainerFile(
+        container_content=container_content, container_file_path=container_file_path
+    )
+
+    # Termux needs its normal entrypoint to establish the runtime environment,
+    # which Podman build does not reproduce reliably for package installation.
+    temp_container_name = _makeTermuxUpdateContainerName(container_tag_name)
+
+    create_command = [
+        podman_path,
+        "create",
+        "--replace",
+        "--name",
+        temp_container_name,
+    ]
+
+    if isPodman(podman_path):
+        create_command.append("--pull=newer")
+
+        if quiet:
+            create_command.append("--quiet")
+
+    create_command += [
+        base_image,
+        "bash",
+        "-lc",
+        " && ".join(run_commands),
+    ]
+
+    container_created = False
+
+    try:
+        exit_code = callProcess(create_command, shell=False, logger=containers_logger)
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to create Termux update container with exit code '%d'."
+                % exit_code,
+                exit_code=exit_code,
+            )
+
+        container_created = True
+
+        exit_code = callProcess(
+            [podman_path, "start", "-a", temp_container_name],
+            shell=False,
+            logger=containers_logger,
+        )
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to update Termux container with exit code '%d'." % exit_code,
+                exit_code=exit_code,
+            )
+
+        commit_command = [podman_path, "commit"]
+
+        if quiet:
+            commit_command.append("--quiet")
+
+        for env_command in env_commands:
+            commit_command += ["--change", env_command]
+
+        commit_command += [temp_container_name, container_tag_name]
+
+        exit_code = callProcess(commit_command, shell=False, logger=containers_logger)
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to commit Termux container image with exit code '%d'."
+                % exit_code,
+                exit_code=exit_code,
+            )
+    finally:
+        if container_created:
+            callProcess([podman_path, "rm", "-f", temp_container_name], shell=False)
+
+    containers_logger.info("Updated container '%s' successfully." % container_tag_name)
+
+
+def _updateContainerByBuild(
+    podman_path,
+    container_tag_name,
+    container_content,
+    repo_root,
+    build_context_dir,
+    quiet,
+):
+    _copyContainerReferences(
+        container_content=container_content,
+        repo_root=repo_root,
+        build_context_dir=build_context_dir,
+    )
+
+    # Append new instructions
+    container_content += "\n# Automatic requirements caching\n"
+    container_content += "COPY requirements-devel.txt /etc/requirements-devel.txt\n"
+    container_content += "COPY nuitka/utils/requirements-private.txt /etc/nuitka/utils/requirements-private.txt\n"
+
+    # Install requirements
+    # We try both python3 and python2.
+    container_content += _makeRunCommand(
+        command=(
+            "if command -v python3; "
+            "then python3 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
+            "fi"
+        ),
+    )
+    container_content += _makeRunCommand(
+        command=(
+            "if command -v python2; "
+            "then wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O /var/tmp/get-pip.py && "
+            "python2 /var/tmp/get-pip.py && "
+            "python2 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
+            "fi"
+        ),
+    )
+
+    # Write modified content to temporary containerfile in context
+    temp_container_file = os.path.join(build_context_dir, "Containerfile")
+    putTextFileContents(temp_container_file, container_content)
+
+    command = [
+        podman_path,
+        "build",
+        # Tolerate errors checking for image download, and use old one
+        "--tag",
+        container_tag_name,
+        "-f",
+        temp_container_file,
+        "--network=host",
+    ]
+
+    # Podman OCI builds ignore custom SHELL definitions, which Termux needs.
+    if isTermuxContainer(container_tag_name):
+        command.append("--format=docker")
+
+    if quiet:
+        command.append("--quiet")
+
+    if isPodman(podman_path):
+        # Podman only.
+        command.append("--pull=newer")
+
+    # Always append context
+    command.append(build_context_dir)
+
+    exit_code = callProcess(command)
+
+    if exit_code:
+        containers_logger.sysexit(
+            "Failed to update container with exit code '%d'. Command used was: %s"
+            % (exit_code, " ".join(command)),
+            exit_code=exit_code,
+        )
+
+    containers_logger.info("Updated container '%s' successfully." % container_tag_name)
+
+
 def updateContainer(podman_path, container_tag_name, container_file_path, quiet):
+    containers_logger.info("Updating container '%s'..." % container_tag_name)
+
+    container_content = getFileContents(container_file_path)
+
+    # Termux can refresh itself from its container file, but forcing the full
+    # development requirements there currently breaks on unsupported packages.
+    if isTermuxContainer(container_tag_name):
+        _updateTermuxContainer(
+            podman_path=podman_path,
+            container_tag_name=container_tag_name,
+            container_file_path=container_file_path,
+            container_content=container_content,
+            quiet=quiet,
+        )
+
+        return
+
     requirements_file = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
     )
@@ -173,83 +468,30 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
         "utils",
         "requirements-private.txt",
     )
-
-    containers_logger.info("Updating container '%s'..." % container_tag_name)
+    repo_root = os.path.dirname(requirements_file)
 
     # Use a temporary directory for the build context.
     with withTemporaryDirectory(containers_logger) as build_context_dir:
         # Copy requirements-devel.txt
-        shutil.copy(
+        copyFile(
             requirements_file, os.path.join(build_context_dir, "requirements-devel.txt")
         )
 
         # Copy nuitka/utils/requirements-private.txt
         requirements_private_dest = os.path.join(build_context_dir, "nuitka", "utils")
         makePath(requirements_private_dest)
-        shutil.copy(
+        copyFile(
             requirements_private_file,
             os.path.join(requirements_private_dest, "requirements-private.txt"),
         )
 
-        # Read original container file
-        container_content = getFileContents(container_file_path)
-
-        # Append new instructions
-        container_content += "\n# Automatic requirements caching\n"
-        container_content += "COPY requirements-devel.txt /etc/requirements-devel.txt\n"
-        container_content += "COPY nuitka/utils/requirements-private.txt /etc/nuitka/utils/requirements-private.txt\n"
-
-        # Install requirements
-        # We try both python3 and python2.
-        container_content += (
-            "RUN if command -v python3; "
-            "then python3 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
-            "fi\n"
-        )
-        container_content += (
-            "RUN if command -v python2; "
-            "then wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O /var/tmp/get-pip.py && "
-            "python2 /var/tmp/get-pip.py && "
-            "python2 -m pip install ${NUITKA_PIP_FLAGS} -r /etc/requirements-devel.txt; "
-            "fi\n"
-        )
-
-        # Write modified content to temporary containerfile in context
-        temp_container_file = os.path.join(build_context_dir, "Containerfile")
-        putTextFileContents(temp_container_file, container_content)
-
-        command = [
-            podman_path,
-            "build",
-            # Tolerate errors checking for image download, and use old one
-            "--tag",
-            container_tag_name,
-            "-f",
-            temp_container_file,
-            "--network=host",
-        ]
-
-        if quiet:
-            command.append("--quiet")
-
-        if isPodman(podman_path):
-            # Podman only.
-            command.append("--pull=newer")
-
-        # Always append context
-        command.append(build_context_dir)
-
-        exit_code = callProcess(command)
-
-        if exit_code:
-            containers_logger.sysexit(
-                "Failed to update container with exit code '%d'. Command used was: %s"
-                % (exit_code, " ".join(command)),
-                exit_code=exit_code,
-            )
-
-        containers_logger.info(
-            "Updated container '%s' successfully." % container_tag_name
+        _updateContainerByBuild(
+            podman_path=podman_path,
+            container_tag_name=container_tag_name,
+            container_content=container_content,
+            repo_root=repo_root,
+            build_context_dir=build_context_dir,
+            quiet=quiet,
         )
 
 
@@ -319,6 +561,9 @@ def _checkContainerArgument(options, default_container_directory):
         if container_file_path.endswith(".in"):
             container_file_path_template = container_file_path
             container_file_path = container_file_path[:-3]
+        elif container_file_path.endswith(".j2"):
+            container_file_path_template = container_file_path
+            container_file_path = container_file_path[:-3]
         else:
             container_file_path_template = None
 
@@ -329,31 +574,26 @@ def _checkContainerArgument(options, default_container_directory):
         container_file_path = os.path.join(
             default_container_directory, options.container_id + ".containerfile"
         )
-        container_file_path_template = container_file_path + ".in"
+        if os.path.isfile(container_file_path + ".j2"):
+            container_file_path_template = container_file_path + ".j2"
+        else:
+            container_file_path_template = container_file_path + ".in"
 
     return container_file_path_template, container_file_path
 
 
-def main():
-    options = parseOptions()
+def renderContainerTemplate(
+    container_file_path_template, container_file_path, default_container_directory
+):
+    if container_file_path_template.endswith(".j2"):
+        template_str = getFileContents(container_file_path_template)
+        output = renderTemplateFromString(template_str)
 
-    if options.command is None:
-        options.command = "python3 -m nuitka --version"
+        if str is not bytes and type(output) is bytes:
+            output = output.decode("utf8")
 
-    containers_logger.info(
-        "Running in container '%s' this command: %s"
-        % (options.container_id, options.command)
-    )
-
-    default_container_directory = os.path.join(os.path.dirname(__file__), "containers")
-
-    container_file_path_template, container_file_path = _checkContainerArgument(
-        options=options, default_container_directory=default_container_directory
-    )
-
-    if container_file_path_template is not None and os.path.isfile(
-        container_file_path_template
-    ):
+        putTextFileContents(container_file_path, output, encoding="utf8")
+    else:
         # Check requirement.
         cpp_path = getCppPath()
         command = [
@@ -369,6 +609,35 @@ def main():
             output = output.decode("utf8")
 
         putTextFileContents(container_file_path, output, encoding="utf8")
+
+
+def main():
+    options = parseOptions()
+
+    if options.command is None:
+        options.command = "%s -m nuitka --version" % getContainerPython(
+            options.container_id
+        )
+
+    containers_logger.info(
+        "Running in container '%s' this command: %s"
+        % (options.container_id, options.command)
+    )
+
+    default_container_directory = os.path.join(os.path.dirname(__file__), "containers")
+
+    container_file_path_template, container_file_path = _checkContainerArgument(
+        options=options, default_container_directory=default_container_directory
+    )
+
+    if container_file_path_template is not None and os.path.isfile(
+        container_file_path_template
+    ):
+        renderContainerTemplate(
+            container_file_path_template=container_file_path_template,
+            container_file_path=container_file_path,
+            default_container_directory=default_container_directory,
+        )
 
     if not os.path.isfile(container_file_path):
         containers_logger.sysexit(

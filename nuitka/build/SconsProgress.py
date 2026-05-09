@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Progress bar for Scons compilation part.
@@ -69,19 +69,13 @@ def reportSlowCompilation(env, cmd, delta_time):
     # TODO: for linking, we ought to apply a different timer maybe and attempt to extra
     # the source file that is causing the issues: pylint: disable=unused-argument
     if _current != _total:
-        scons_logger.info(
-            """\
-Slow C compilation detected, used %.0fs so far, scalability problem."""
-            % delta_time
-        )
+        scons_logger.info("""\
+Slow C compilation detected, used %.0fs so far, scalability problem.""" % delta_time)
     else:
         if env.orig_lto_mode == "auto" and env.lto_mode:
-            scons_logger.info(
-                """\
+            scons_logger.info("""\
 Slow C linking detected, used %.0fs so far, consider using '--lto=no' \
-for faster linking, or '--lto=yes"' to disable this message. """
-                % delta_time
-            )
+for faster linking, or '--lto=yes"' to disable this message. """ % delta_time)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

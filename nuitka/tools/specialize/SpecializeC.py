@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This tool is generating code variants for helper codes from Jinja templates."""
@@ -10,12 +10,14 @@ states.is_full_compat = False
 # isort:start
 
 import os
+import re
 
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
+from nuitka.build.AdaptPythonHeaderFiles import getOffsetsJsonRequiredKeys
 from nuitka.code_generation.BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
     isCommutativeOperation,
@@ -53,12 +55,21 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.Tracing import tools_logger
+from nuitka.utils.FileOperations import (
+    getFileList,
+    getNormalizedPath,
+    makePath,
+)
 from nuitka.utils.Jinja2 import getTemplateC
+from nuitka.utils.Json import loadJsonFromFilename
 
 from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
+    isCheckOnlyMode,
+    parseOptions,
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
@@ -534,14 +545,12 @@ def emitGenerationWarning(emit, template_name):
 
 
 def emitIDE(emit):
-    emit(
-        """
+    emit("""
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
-"""
-    )
+""")
 
 
 def _getSpecializedComparisonOperations(dual):
@@ -921,8 +930,7 @@ def makeHelperCalls():
 
             emitIDE(emit)
 
-            emit_c(
-                """\
+            emit_c("""\
 // We are switching some warnings off for this code, as they are triggered
 // by the generated code constructs in a way that is not useful.
 // spell-checker: ignore Wparentheses GNUC
@@ -935,8 +943,7 @@ def makeHelperCalls():
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
 #endif
-"""
-            )
+""")
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
@@ -992,8 +999,7 @@ def makeHelperCalls():
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
-            emit_c(
-                """\
+            emit_c("""\
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
@@ -1001,8 +1007,7 @@ def makeHelperCalls():
 #pragma GCC diagnostic pop
 #endif
 #endif
-"""
-            )
+""")
 
 
 def makeHelperLists():
@@ -1473,7 +1478,146 @@ def makeHelperBuiltinTypeMethods():
                     emit("#endif")
 
 
+def _getOffsetAssertionCode(key):
+    if key.startswith("_PyRuntimeState_"):
+        # spell-checker: ignore offsetof
+        return "offsetof(_PyRuntimeState, %s)" % key[len("_PyRuntimeState_") :]
+    return None
+
+
+def _getCompiledOffsetsGroups():
+    data_dir = getNormalizedPath(
+        os.path.join(
+            os.path.dirname(__file__), "..", "..", "build", "python_internal_offset"
+        )
+    )
+
+    groups = {}
+    for f in getFileList(data_dir, only_suffixes=(".json",)):
+        basename = os.path.basename(f)
+
+        match = re.match(
+            r"^offsets_(?P<python_version_str>\d+\.\d+)"
+            r"-(?P<os_name>[a-zA-Z]+)-(?P<arch_name>[a-zA-Z0-9_]+)-(?P<gil_str>gil|no-gil)\.json$",
+            basename,
+        )
+        if not match:
+            return tools_logger.sysexit(
+                "Error, unrecognized JSON filename format '%s'." % basename
+            )
+
+        python_version_str = match.group("python_version_str")
+        micro = 0
+        os_name = match.group("os_name")
+        arch_name = match.group("arch_name")
+        gil_str = match.group("gil_str")
+
+        expected_keys = {
+            "_PyRuntimeState_" + k
+            for k in getOffsetsJsonRequiredKeys(python_version_str)
+        }
+        data = loadJsonFromFilename(f)
+        data_keys = set(data.keys())
+
+        if expected_keys != data_keys:
+            return tools_logger.sysexit(
+                """\
+Error, the JSON file '%s' has outdated keys. Expected: %r, but got: %r. Please
+regenerate the headers via 'python%s bin/generate-specialized-offsets-code'."""
+                % (f, expected_keys, data_keys, python_version_str)
+            )
+
+        python_version = tuple(int(x) for x in python_version_str.split("."))
+        group_key = (python_version, gil_str, os_name, arch_name)
+        if group_key not in groups:
+            groups[group_key] = []
+        groups[group_key].append((micro, data))
+
+    return groups
+
+
+def _mapOsAndArchToMacro(os_name, arch_name):
+    macros = []
+    if os_name == "Windows":
+        macros.append("defined(_WIN32)")
+    elif os_name == "Linux":
+        macros.append("defined(__linux__)")
+    elif os_name == "Darwin":
+        macros.append("(defined(__APPLE__) && defined(__MACH__))")
+
+    if arch_name == "x86_64":
+        macros.append("(defined(__x86_64__) || defined(_M_X64))")
+    elif arch_name in ("arm64", "aarch64"):
+        macros.append("(defined(__aarch64__) || defined(_M_ARM64))")
+    elif arch_name == "x86":
+        macros.append("(defined(__i386__) || defined(_M_IX86))")
+
+    if not macros:
+        return "1"
+
+    return " && ".join(macros)
+
+
+def updateCompiledOffsetsHeader():
+    groups = _getCompiledOffsetsGroups()
+
+    template_groups = []
+    for (python_version, gil_str, os_name, arch_name), versions in sorted(
+        groups.items()
+    ):
+
+        versions.sort(key=lambda x: x[0])
+
+        template_keys = []
+        for key in sorted(versions[0][1].keys()):
+            template_keys.append(
+                {
+                    "name": key,
+                    "val": versions[0][1][key],
+                }
+            )
+
+        template_groups.append(
+            {
+                "python_version_hex": "%x%x0" % python_version,
+                "next_python_version_hex": "%x%x0"
+                % (python_version[0], python_version[1] + 1),
+                "is_gil": gil_str == "gil",
+                "os_arch_macro": _mapOsAndArchToMacro(os_name, arch_name),
+                "offset_keys": template_keys,
+            }
+        )
+
+    _writeCompiledOffsetsHeader(template_groups)
+
+
+def _writeCompiledOffsetsHeader(template_groups):
+    template = getTemplateC(
+        package_name="nuitka.tools.general.generate_header",
+        template_name="python_internals_access.h.j2",
+    )
+
+    header_c_code = template.render(
+        template_groups=template_groups,
+        linux_keys=getOffsetsJsonRequiredKeys("3.14"),
+    )
+
+    out_path = os.path.join(
+        "nuitka", "build", "include", "nuitka", "python_internals_access.h"
+    )
+    makePath(os.path.dirname(out_path))
+    with withFileOpenedAndAutoFormattedWithClaim(
+        out_path, claim=getLicenseGeneratedCode()
+    ) as output_c:
+        output_c.write(header_c_code)
+
+    if not isCheckOnlyMode():
+        tools_logger.info("Generated C header at %s" % out_path)
+
+
 def main():
+    parseOptions()
+
     makeHelpersBinaryDualOperation("+", "ADD")
 
     makeDictCopyHelperCodes()
@@ -1531,6 +1675,8 @@ def main():
     makeHelpersComparisonDualOperation(">=", "GE")
     makeHelpersComparisonDualOperation(">", "GT")
     makeHelpersComparisonDualOperation("<", "LT")
+
+    updateCompiledOffsetsHeader()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

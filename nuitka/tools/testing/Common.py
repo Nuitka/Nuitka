@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Common test infrastructure functions. To be used by test runners."""
@@ -97,6 +97,37 @@ _python_vendor = None
 _python_debug = None
 
 
+def _getMinVersionSuffixRequirements():
+    result = []
+
+    for python_version_str in getTestExecutionPythonVersions():
+        major, minor = tuple(int(value) for value in python_version_str.split("."))
+
+        # No need for a "26" suffix, every interpreter supported for running
+        # tests is already new enough for it.
+        if (major, minor) == (2, 6):
+            continue
+
+        result.append(("%d%d.py" % (major, minor), (major, minor)))
+
+    return tuple(result)
+
+
+def _getMaxVersionSuffixRequirements():
+    result = []
+
+    for python_version_str in getTestExecutionPythonVersions():
+        major, minor = tuple(int(value) for value in python_version_str.split("."))
+
+        result.append(("_%d%d.py" % (major, minor), (major, minor + 1)))
+
+    return tuple(result)
+
+
+_min_version_suffix_requirements = _getMinVersionSuffixRequirements()
+_max_version_suffix_requirements = _getMaxVersionSuffixRequirements()
+
+
 def _parsePythonVersionOutput(python_binary):
     version_output = check_output(
         (
@@ -105,7 +136,11 @@ def _parsePythonVersionOutput(python_binary):
             """\
 import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
-print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(\
+("x86_64" if "AMD64" in sys.version else (\
+"arm64" if "ARM64" in sys.version else "x86"))\
+if os.name == "nt" else os.uname()[4]\
+);\
 print(sys.executable);\
 print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown");\
 print(hasattr(sys, "gettotalrefcount"))\
@@ -308,7 +343,7 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     assert type(filename) is str, repr(filename)
 
@@ -323,21 +358,16 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith(".j2"):
         filename = filename[:-3]
 
-    # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and _python_version < (2, 7):
-        return False
-
     # Skip tests that require Python 2 at maximum.
     if filename.endswith("_2.py") and _python_version >= (3,):
         return False
 
-    # Skip tests that require Python 3.7 at maximum.
-    if filename.endswith("_37.py") and _python_version >= (3, 8):
-        return False
-
-    # Skip tests that require Python 3.11 at maximum.
-    if filename.endswith("_311.py") and _python_version >= (3, 8):
-        return False
+    for version_suffix, max_excluded_version in _max_version_suffix_requirements:
+        if (
+            filename.endswith(version_suffix)
+            and _python_version >= max_excluded_version
+        ):
+            return False
 
     # Skip tests that require Python 3.2 at least.
     if filename.endswith("32.py") and _python_version < (3, 2):
@@ -347,45 +377,9 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("33.py") and _python_version < (3, 3):
         return False
 
-    # Skip tests that require Python 3.4 at least.
-    if filename.endswith("34.py") and _python_version < (3, 4):
-        return False
-
-    # Skip tests that require Python 3.5 at least.
-    if filename.endswith("35.py") and _python_version < (3, 5):
-        return False
-
-    # Skip tests that require Python 3.6 at least.
-    if filename.endswith("36.py") and _python_version < (3, 6):
-        return False
-
-    # Skip tests that require Python 3.7 at least.
-    if filename.endswith("37.py") and _python_version < (3, 7):
-        return False
-
-    # Skip tests that require Python 3.8 at least.
-    if filename.endswith("38.py") and _python_version < (3, 8):
-        return False
-
-    # Skip tests that require Python 3.9 at least.
-    if filename.endswith("39.py") and _python_version < (3, 9):
-        return False
-
-    # Skip tests that require Python 3.10 at least.
-    if filename.endswith("310.py") and _python_version < (3, 10):
-        return False
-
-    # Skip tests that require Python 3.11 at least.
-    if filename.endswith("311.py") and _python_version < (3, 11):
-        return False
-
-    # Skip tests that require Python 3.12 at least.
-    if filename.endswith("312.py") and _python_version < (3, 12):
-        return False
-
-    # Skip tests that require Python 3.13 at least.
-    if filename.endswith("313.py") and _python_version < (3, 13):
-        return False
+    for version_suffix, min_version in _min_version_suffix_requirements:
+        if filename.endswith(version_suffix) and _python_version < min_version:
+            return False
 
     return True
 
@@ -545,13 +539,13 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    stdout, stderr, exit_code = executeProcess(command)
+    process_result = executeProcess(command)
 
-    if exit_code != 0:
-        my_print("stdout", stdout)
-        my_print("stderr", stderr)
+    if process_result.exit_code != 0:
+        my_print("stdout", process_result.stdout)
+        my_print("stderr", process_result.stderr)
 
-    return exit_code == 0
+    return process_result.exit_code == 0
 
 
 def getDebugPython():
@@ -573,15 +567,14 @@ def getDebugPython():
     ):
         return debug_python
 
-    # On Windows systems, these work. TODO: Python asserts in Nuitka with
-    # these, not sure why, pylint: disable=using-constant-test
-    if False:
-        debug_python = os.environ["PYTHON"]
-        if debug_python.lower().endswith(".exe"):
-            debug_python = debug_python[:-4]
-        debug_python = debug_python + "_d.exe"
-        if os.path.exists(debug_python):
-            return debug_python
+    # On Windows systems, debug binaries conventionally use the "_d.exe"
+    # suffix next to the release executable.
+    debug_python = os.environ["PYTHON"]
+    if debug_python.lower().endswith(".exe"):
+        debug_python = debug_python[:-4]
+    debug_python = debug_python + "_d.exe"
+    if os.path.exists(debug_python):
+        return debug_python
 
     # Otherwise no.
     return None
@@ -702,10 +695,12 @@ _debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
-    # Force clear internal type caches to stabilize the reference count,
-    # and not be polluted by cached types or IO values.
-    # pylint: disable=protected-access
-    sys._clear_type_cache()
+    # Force clear internal caches to stabilize the reference count, and not be
+    # polluted by cached types or IO values. pylint: disable=protected-access
+    if hasattr(sys, "_clear_internal_caches"):
+        sys._clear_internal_caches()
+    elif hasattr(sys, "_clear_type_cache"):
+        sys._clear_type_cache()
 
     if _debug_python:
         gc.collect()
@@ -850,7 +845,8 @@ Examples:
         dest="pattern",
         default="",
         help="""\
-Execute only tests matching the pattern. Defaults to all tests.""",
+Start at the first test matching the pattern. With '--only-one', execute only
+the first matching test. Defaults to all tests.""",
     )
     select_group.add_option(
         "--all",
@@ -989,7 +985,13 @@ def reportSkip(reason, dirname, filename):
 
 
 def executeReferenceChecked(
-    prefix, names, tests_skipped=(), tests_stderr=(), explain=False, no_print=True
+    prefix,
+    names,
+    tests_skipped=(),
+    tests_stderr=(),
+    max_rounds=20,
+    explain=False,
+    no_print=True,
 ):
     gc.disable()
 
@@ -1020,12 +1022,18 @@ def executeReferenceChecked(
                     sys.stderr = null_output
             except OSError:  # Windows
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             else:
                 if not checkReferenceCount(
-                    names[name], explain=explain, no_print=no_print
+                    names[name],
+                    explain=explain,
+                    no_print=no_print,
+                    max_rounds=max_rounds,
                 ):
                     result = False
             finally:
@@ -1318,7 +1326,7 @@ def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith((".dist", ".build"))
+            or filename.endswith((".build", ".onefile-build", ".dist", ".app"))
             or os.path.basename(filename).startswith("venv_")
         ):
             continue
@@ -1953,7 +1961,8 @@ Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
 
 def getInstalledPythonVersion(python_version, must_exist):
     result = findInstalledPython(
-        python_versions=(python_version,), module_name=None, module_version=None
+        python_versions=(python_version,),
+        module_specs=None,
     )
 
     if result is None and must_exist:
@@ -2011,8 +2020,7 @@ def getLocalWebServerDir(base_dir):
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
-            module_name=None,
-            module_version=None,
+            module_specs=None,
         )
 
         if web_server_python is None:
@@ -2071,11 +2079,14 @@ def decryptOutput(project_options, output):
         if project_option.startswith("--encryption-key="):
             nuitka_decrypt_call.append("--key=" + project_option.split("=", 1)[1])
 
-    stdout, stderr, exit_code = executeProcess(nuitka_decrypt_call, stdin=output)
+    process_result = executeProcess(
+        nuitka_decrypt_call,
+        stdin=output,
+    )
 
-    assert exit_code == 0, stderr
+    assert process_result.exit_code == 0, process_result.stderr
 
-    return stdout
+    return process_result.stdout
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

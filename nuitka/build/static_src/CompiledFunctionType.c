@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 // Compiled function type.
 
@@ -458,15 +458,19 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
-#if PYTHON_VERSION < 0x3e0 || !defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
+#if PYTHON_VERSION < 0x3e0
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
 #else
-        if (function->m_annotate == NULL) {
-            return MAKE_DICT_EMPTY(tstate);
-        }
-        function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
-        if (function->m_annotations == NULL) {
-            return NULL;
+        if (function->m_annotate == NULL || function->m_annotate == Py_None) {
+            function->m_annotations = MAKE_DICT_EMPTY(tstate);
+            if (function->m_annotations == NULL) {
+                return NULL;
+            }
+        } else {
+            function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
+            if (function->m_annotations == NULL) {
+                return NULL;
+            }
         }
 #endif
     }
@@ -496,12 +500,47 @@ static int Nuitka_Function_set_annotations(PyObject *self, PyObject *value, void
     function->m_annotations = value;
     Py_XDECREF(old);
 
+#if PYTHON_VERSION >= 0x3e0
+    old = function->m_annotate;
+    CHECK_OBJECT_X(old);
+
+    function->m_annotate = NULL;
+    Py_XDECREF(old);
+#endif
+
     return 0;
 }
 
 #endif
 
 #if PYTHON_VERSION >= 0x3e0
+static PyObject *Nuitka_Function_annotateFromMaterialized(PyObject *self, PyObject *format) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
+    CHECK_OBJECT(format);
+
+    PyObject *two = Nuitka_PyLong_FromLong(2);
+    int needs_forward_ref_annotations = PyObject_RichCompareBool(format, two, Py_GT);
+    Py_DECREF(two);
+
+    if (unlikely(needs_forward_ref_annotations == -1)) {
+        return NULL;
+    }
+
+    if (needs_forward_ref_annotations == 1) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_NotImplementedError);
+        return NULL;
+    }
+
+    return Nuitka_Function_get_annotations(self, NULL);
+}
+
+static PyMethodDef Nuitka_Function_annotate_from_materialized_method = {
+    "__annotate__", (PyCFunction)Nuitka_Function_annotateFromMaterialized, METH_O, NULL};
+
 static PyObject *Nuitka_Function_get_annotate(PyObject *self, void *data) {
     CHECK_OBJECT(self);
     assert(Nuitka_Function_Check(self));
@@ -512,6 +551,11 @@ static PyObject *Nuitka_Function_get_annotate(PyObject *self, void *data) {
         Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
+
+    if (function->m_annotate == Py_None) {
+        return PyCFunction_NewEx(&Nuitka_Function_annotate_from_materialized_method, self, NULL);
+    }
+
     CHECK_OBJECT(function->m_annotate);
 
     Py_INCREF(function->m_annotate);
@@ -542,6 +586,14 @@ static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *d
     Py_XINCREF(value);
     function->m_annotate = value;
     Py_XDECREF(old);
+
+    if (value != NULL) {
+        old = function->m_annotations;
+        CHECK_OBJECT_X(old);
+
+        function->m_annotations = NULL;
+        Py_XDECREF(old);
+    }
 
     return 0;
 }
@@ -764,18 +816,27 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 
     PyThreadState *tstate = PyThreadState_GET();
 
+    PyObject *annotations = NULL;
+
 #if PYTHON_VERSION >= 0x3e0
-    PyObject *annotations = function->m_annotate;
-#else
-    PyObject *annotations = function->m_annotations;
-    if (annotations != NULL) {
-        if (DICT_SIZE(annotations) != 0) {
-            annotations = DICT_COPY(tstate, annotations);
-        } else {
-            annotations = NULL;
+    bool annotations_explicit_none = function->m_annotate == NULL && function->m_annotations != NULL;
+
+    if (function->m_annotate != NULL && function->m_annotate != Py_None) {
+        annotations = function->m_annotate;
+        Py_INCREF(annotations);
+    } else
+#endif
+    {
+        annotations = function->m_annotations;
+
+        if (annotations != NULL) {
+            if (DICT_SIZE(annotations) != 0) {
+                annotations = DICT_COPY(tstate, annotations);
+            } else {
+                annotations = NULL;
+            }
         }
     }
-#endif
 
     PyObject *kwdefaults = function->m_kwdefaults;
     if (kwdefaults != NULL) {
@@ -797,6 +858,13 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
                             kwdefaults, annotations,
 #endif
                             function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
+
+#if PYTHON_VERSION >= 0x3e0
+    if (annotations_explicit_none && result->m_annotate != NULL) {
+        Py_DECREF(result->m_annotate);
+        result->m_annotate = NULL;
+    }
+#endif
 
     return (PyObject *)result;
 }
@@ -1264,11 +1332,13 @@ PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *functio
 
     if (closure != Py_None) {
         for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(closure); i++) {
-            struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)PyTuple_GET_ITEM(closure, i);
+            PyObject *cell = PyTuple_GET_ITEM(closure, i);
+            assert(Nuitka_CellOrPyCell_Check(cell));
 
-            assert(Nuitka_Cell_Check((PyObject *)cell));
+            PyObject *cell_value = Nuitka_CellOrPyCell_GET(cell);
+            CHECK_OBJECT(cell_value);
 
-            PyTuple_SET_ITEM0(closure, i, cell->ob_ref);
+            PyTuple_SET_ITEM0(closure, i, cell_value);
         }
     }
 
@@ -1505,12 +1575,19 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_EXPERIMENTAL_DEFERRED_ANNOTATIONS)
-    // For simplicity's sake, the annotations parameter doubles as the __annotate__
-    // parameter on 3.14+
-    assert(annotations == NULL || PyCallable_Check(annotations));
-    result->m_annotations = NULL;
-    result->m_annotate = annotations;
+#if PYTHON_VERSION >= 0x3e0
+    if (annotations == NULL) {
+        result->m_annotations = NULL;
+        result->m_annotate = NULL;
+    } else if (PyCallable_Check(annotations)) {
+        result->m_annotations = NULL;
+        result->m_annotate = annotations;
+    } else {
+        assert(PyDict_Check(annotations) && DICT_SIZE(annotations) > 0);
+        result->m_annotations = annotations;
+        Py_INCREF_IMMORTAL(Py_None);
+        result->m_annotate = Py_None;
+    }
 #elif PYTHON_VERSION >= 0x300
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;
@@ -1970,7 +2047,7 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
             return -1;
         }
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
         Py_INCREF(key);
         Py_INCREF(value);
@@ -2085,7 +2162,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
 
         assert(checkKeywordType(key));
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
 #if PYTHON_VERSION < 0x380
         Py_ssize_t kw_arg_start = 0;
@@ -2171,27 +2248,6 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
     return kw_found;
 }
 
-static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value);
-
-static bool MAKE_STAR_DICT_DICTIONARY_COPY(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                           PyObject **python_pars, PyObject *kw) {
-    Py_ssize_t star_dict_index = function->m_args_star_dict_index;
-    assert(star_dict_index != -1);
-
-    if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
-        python_pars[star_dict_index] = MAKE_DICT_EMPTY(tstate);
-    } else {
-        python_pars[star_dict_index] = COPY_DICT_KW(tstate, kw);
-
-        if (unlikely(python_pars[star_dict_index] == NULL)) {
-            formatErrorKeywordsMustBeString(tstate, function);
-            return false;
-        }
-    }
-
-    return true;
-}
-
 #if PYTHON_VERSION < 0x300
 static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                                 PyObject **python_pars, PyObject *kw)
@@ -2202,10 +2258,6 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
 {
     assert(function->m_args_star_dict_index != -1);
 
-    if (unlikely(MAKE_STAR_DICT_DICTIONARY_COPY(tstate, function, python_pars, kw) == false)) {
-        return -1;
-    }
-
     Py_ssize_t kw_found = 0;
     Py_ssize_t keywords_count = function->m_args_keywords_count;
 #if PYTHON_VERSION >= 0x300
@@ -2213,6 +2265,12 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
 #endif
 
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
+    python_pars[star_dict_index] = MAKE_DICT_EMPTY(tstate);
+    assert(python_pars[star_dict_index] != NULL);
+
+    if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
+        return 0;
+    }
 
     PyObject **var_names = function->m_varnames;
 
@@ -2222,25 +2280,61 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
     Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
 #endif
 
-    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = var_names[i];
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
 
-        PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
+    while (Nuitka_DictNext(kw, &pos, &key, &value)) {
+        if (unlikely(!checkKeywordType(key))) {
+            formatErrorKeywordsMustBeString(tstate, function);
+            return -1;
+        }
 
-        if (kw_arg_value != NULL) {
-            assert(python_pars[i] == NULL);
+        bool found = false;
 
-            python_pars[i] = kw_arg_value;
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+            if (var_names[i] == key) {
+                assert(python_pars[i] == NULL);
+                Py_INCREF(value);
+                python_pars[i] = value;
 
-            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
-
-            kw_found += 1;
+                kw_found += 1;
 
 #if PYTHON_VERSION >= 0x300
-            if (i >= keyword_after_index) {
-                *kw_only_found += 1;
-            }
+                if (i >= keyword_after_index) {
+                    *kw_only_found += 1;
+                }
 #endif
+
+                found = true;
+                break;
+            }
+        }
+
+        if (found == false) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                    assert(python_pars[i] == NULL);
+                    Py_INCREF(value);
+                    python_pars[i] = value;
+
+                    kw_found += 1;
+
+#if PYTHON_VERSION >= 0x300
+                    if (i >= keyword_after_index) {
+                        *kw_only_found += 1;
+                    }
+#endif
+
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (found == false) {
+            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+                return -1;
+            }
         }
     }
 
@@ -2262,16 +2356,8 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
     assert(star_dict_index != -1);
 
-    Py_ssize_t kw_names_size = PyTuple_GET_SIZE(kw_names);
-
-    python_pars[star_dict_index] = _PyDict_NewPresized(kw_names_size);
-
-    for (Py_ssize_t i = 0; i < kw_names_size; i++) {
-        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
-        PyObject *value = kw_values[i];
-
-        DICT_SET_ITEM(python_pars[star_dict_index], key, value);
-    }
+    python_pars[star_dict_index] = MAKE_DICT_EMPTY(tstate);
+    assert(python_pars[star_dict_index] != NULL);
 
     Py_ssize_t kw_found = 0;
     Py_ssize_t keywords_count = function->m_args_keywords_count;
@@ -2287,25 +2373,62 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
     Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
 #endif
 
-    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = var_names[i];
+    Py_ssize_t kw_names_size = PyTuple_GET_SIZE(kw_names);
 
-        PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
+    for (Py_ssize_t kw_index = 0; kw_index < kw_names_size; kw_index++) {
+        PyObject *key = PyTuple_GET_ITEM(kw_names, kw_index);
+        PyObject *value = kw_values[kw_index];
+        bool found = false;
 
-        if (kw_arg_value != NULL) {
-            assert(python_pars[i] == NULL);
+        if (unlikely(!checkKeywordType(key))) {
+            formatErrorKeywordsMustBeString(tstate, function);
+            return -1;
+        }
 
-            python_pars[i] = kw_arg_value;
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+            if (var_names[i] == key) {
+                assert(python_pars[i] == NULL);
+                Py_INCREF(value);
+                python_pars[i] = value;
 
-            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
-
-            kw_found += 1;
+                kw_found += 1;
 
 #if PYTHON_VERSION >= 0x300
-            if (i >= keyword_after_index) {
-                *kw_only_found += 1;
-            }
+                if (i >= keyword_after_index) {
+                    *kw_only_found += 1;
+                }
 #endif
+
+                found = true;
+                break;
+            }
+        }
+
+        if (found == false) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                    assert(python_pars[i] == NULL);
+                    Py_INCREF(value);
+                    python_pars[i] = value;
+
+                    kw_found += 1;
+
+#if PYTHON_VERSION >= 0x300
+                    if (i >= keyword_after_index) {
+                        *kw_only_found += 1;
+                    }
+#endif
+
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (found == false) {
+            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+                return -1;
+            }
         }
     }
 
@@ -3062,7 +3185,7 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
             return -1;
         }
 
-        NUITKA_MAY_BE_UNUSED bool found = false;
+        bool found = false;
 
 #if PYTHON_VERSION < 0x380
         Py_ssize_t kw_arg_start = 0;
@@ -3141,32 +3264,6 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
     return kw_found;
 }
 
-static bool MAKE_STAR_DICT_DICTIONARY_COPY38(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
-                                             PyObject **python_pars, PyObject *const *kw_names,
-                                             PyObject *const *kw_values, Py_ssize_t kw_size) {
-    Py_ssize_t star_dict_index = function->m_args_star_dict_index;
-    assert(star_dict_index != -1);
-
-    python_pars[star_dict_index] = _PyDict_NewPresized(kw_size);
-
-    for (int i = 0; i < kw_size; i++) {
-        PyObject *key = kw_names[i];
-
-        if (unlikely(!checkKeywordType(key))) {
-            formatErrorKeywordsMustBeString(tstate, function);
-            return false;
-        }
-
-        bool result = DICT_SET_ITEM(python_pars[star_dict_index], key, kw_values[i]);
-
-        if (unlikely(result == false)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
                                                           struct Nuitka_FunctionObject const *function,
                                                           PyObject **python_pars, Py_ssize_t *kw_only_found,
@@ -3174,16 +3271,13 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
                                                           Py_ssize_t kw_size) {
     assert(function->m_args_star_dict_index != -1);
 
-    if (unlikely(MAKE_STAR_DICT_DICTIONARY_COPY38(tstate, function, python_pars, kw_names, kw_values, kw_size) ==
-                 false)) {
-        return -1;
-    }
-
     Py_ssize_t kw_found = 0;
     Py_ssize_t keywords_count = function->m_args_keywords_count;
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
+    python_pars[star_dict_index] = MAKE_DICT_EMPTY(tstate);
+    assert(python_pars[star_dict_index] != NULL);
 
     PyObject **var_names = function->m_varnames;
 
@@ -3193,22 +3287,55 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
     Py_ssize_t kw_arg_start = function->m_args_pos_only_count;
 #endif
 
-    for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = var_names[i];
+    for (Py_ssize_t kw_index = 0; kw_index < kw_size; kw_index++) {
+        PyObject *key = kw_names[kw_index];
+        PyObject *value = kw_values[kw_index];
+        bool found = false;
 
-        PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
+        if (unlikely(!checkKeywordType(key))) {
+            formatErrorKeywordsMustBeString(tstate, function);
+            return -1;
+        }
 
-        if (kw_arg_value != NULL) {
-            assert(python_pars[i] == NULL);
+        for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+            if (var_names[i] == key) {
+                assert(python_pars[i] == NULL);
+                Py_INCREF(value);
+                python_pars[i] = value;
 
-            python_pars[i] = kw_arg_value;
+                kw_found += 1;
 
-            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
+                if (i >= keyword_after_index) {
+                    *kw_only_found += 1;
+                }
 
-            kw_found += 1;
+                found = true;
+                break;
+            }
+        }
 
-            if (i >= keyword_after_index) {
-                *kw_only_found += 1;
+        if (found == false) {
+            for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
+                    assert(python_pars[i] == NULL);
+                    Py_INCREF(value);
+                    python_pars[i] = value;
+
+                    kw_found += 1;
+
+                    if (i >= keyword_after_index) {
+                        *kw_only_found += 1;
+                    }
+
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (found == false) {
+            if (unlikely(DICT_SET_ITEM(python_pars[star_dict_index], key, value) == false)) {
+                return -1;
             }
         }
     }

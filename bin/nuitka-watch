@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Launcher for Nuitka watch tool.
@@ -9,7 +9,6 @@ test cases for detecting PyPI updates that cause regressions, or changes in
 Nuitka that do.
 
 """
-
 
 # Import as little as possible initially, because we might be re-executing
 # soon.

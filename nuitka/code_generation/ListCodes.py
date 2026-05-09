@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Code generation for lists.
@@ -63,7 +63,7 @@ def generateListCreationCode(to_name, expression, emit, context):
         with withCleanupFinally(
             "list_build", result_name, needs_exception_exit, emit, context
         ) as guarded_emit:
-            emit = guarded_emit.emit
+            emit = guarded_emit
 
             for count, element in enumerate(elements):
                 if count > 0:
@@ -410,7 +410,7 @@ def generateListOperationPop2Code(to_name, expression, emit, context):
 
 
 def generateListOperationRemoveCode(to_name, expression, emit, context):
-    (list_arg_name, value_arg_name) = generateChildExpressionsCode(
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 

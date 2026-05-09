@@ -2973,6 +2973,9 @@ class Distribution:
             if modname in ('pkg_resources', 'setuptools', 'site'):
                 continue
             fn = getattr(sys.modules[modname], '__file__', None)
+            # Nuitka inline copies intentionally shadow installed packages.
+            if fn and "/nuitka/build/inline_copy/" in fn.replace("\\", "/"):
+                continue
             if fn and (normalize_path(fn).startswith(loc) or
                        fn.startswith(self.location)):
                 continue

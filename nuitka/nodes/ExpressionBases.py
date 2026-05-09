@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Expression base classes.
@@ -1200,8 +1200,7 @@ Compile time constant bytes value pre-computed.""",
                     value_node.getCompileTimeConstant(), self.getCompileTimeConstant()
                 ),
                 description="""\
-Predicted '%s' on compiled time constant values."""
-                % in_node.comparator,
+Predicted '%s' on compiled time constant values.""" % in_node.comparator,
                 user_provided=False,
             )
 

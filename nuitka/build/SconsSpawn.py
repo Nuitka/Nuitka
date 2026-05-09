@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Spawning processes.
@@ -8,12 +8,14 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
+import shlex
 import sys
 import threading
 
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Execution import Process, executeProcess
-from nuitka.utils.FileOperations import getReportPath
+from nuitka.utils.FileOperations import getFilenameExtension, getReportPath
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -22,26 +24,33 @@ from .SconsProgress import (
     reportSlowCompilation,
     updateSconsProgressBar,
 )
-from .SconsUtils import decodeData, reportSconsUnexpectedOutput
+from .SconsUtils import (
+    decodeData,
+    reportSconsUnexpectedOutput,
+    writeSconsResourceUsageReport,
+)
+
+SubprocessSpawnResult = makeNamedtupleClass(
+    "SubprocessSpawnResult",
+    (
+        "exit_code",
+        "stdout",
+        "stderr",
+        "exception",
+        "rusage",
+    ),
+)
 
 
 # Thread class to run a command
 class SubprocessThread(threading.Thread):
-    # Lots of details, to keep track of pylint: disable=too-many-instance-attributes
-    # TODO: If executeProcess returned a "namedtuple", we could stop only that.
-
     def __init__(self, cmdline, env):
         threading.Thread.__init__(self)
 
         self.cmdline = cmdline
         self.env = env
 
-        self.data = None
-        self.err = None
-        self.exit_code = None
-        self.rusage = None
-
-        self.exception = None
+        self.process_result = None
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
@@ -54,17 +63,27 @@ class SubprocessThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.data, self.err, self.exit_code, self.rusage = executeProcess(
+                process_result = executeProcess(
                     command=self.cmdline,
                     env=self.env,
                     rusage=True,
                 )
 
+                self.process_result = SubprocessSpawnResult(
+                    exception=None, **process_result.asDict()
+                )
+
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
-            self.exception = e
+            self.process_result = SubprocessSpawnResult(
+                exit_code=None,
+                stdout=None,
+                stderr=None,
+                exception=e,
+                rusage=None,
+            )
 
     def getProcessResult(self):
-        return self.data, self.err, self.exit_code, self.exception, self.rusage
+        return self.process_result
 
 
 def _runProcessMonitored(env, cmdline, os_env):
@@ -112,13 +131,10 @@ def _filterMsvcLinkOutput(env, data, exit_code):
 
 def _raiseCorruptedObjectFilesExit(cache_name):
     """Error exit due to corrupt object files and point to cache cleanup."""
-    scons_logger.sysexit(
-        """\
+    scons_logger.sysexit("""\
 Error, the C linker reported a corrupt object file. You may need to run
 Nuitka with '--clean-cache=%s' once to repair it, or else will
-surely happen again."""
-        % cache_name
-    )
+surely happen again.""" % cache_name)
 
 
 def _getNoSuchCommandErrorMessage():
@@ -136,6 +152,7 @@ def _getWindowsSpawnFunction(env, source_files):
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
         """Our own spawn implementation for use on Windows."""
+        assert type(args) in (list, tuple)
 
         # The "del" appears to not work reliably, but is used with large amounts of
         # files to link. So, lets do this ourselves, plus it avoids a process
@@ -159,23 +176,32 @@ def _getWindowsSpawnFunction(env, source_files):
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
-            data, err, rv = runClCache(args, os_env)
-            _rusage = {}
+            process_result = runClCache(
+                args=args,
+                os_env=os_env,
+            )
         else:
-            # TODO: Make use of _rusage
-            data, err, rv, exception, _rusage = _runProcessMonitored(
-                env, cmdline, os_env
+            process_result = _runProcessMonitored(
+                env=env,
+                cmdline=cmdline,
+                os_env=os_env,
             )
 
-            if exception:
+            if process_result.exception:
                 closeSconsProgressBar()
-                raise exception
+                raise process_result.exception
 
-        if rv != 0:
+        if process_result.exit_code != 0:
             closeSconsProgressBar()
 
+        data = process_result.stdout
+
         if cmd == "link":
-            data = _filterMsvcLinkOutput(env=env, data=data, exit_code=rv)
+            data = _filterMsvcLinkOutput(
+                env=env,
+                data=data,
+                exit_code=process_result.exit_code,
+            )
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
@@ -205,6 +231,7 @@ def _getWindowsSpawnFunction(env, source_files):
 
             reportSconsUnexpectedOutput(env, cmdline, stdout=data, stderr=None)
 
+        err = process_result.stderr
         if err:
             if str is not bytes:
                 err = decodeData(err)
@@ -231,22 +258,19 @@ def _getWindowsSpawnFunction(env, source_files):
 
                 reportSconsUnexpectedOutput(env, cmdline, stdout=None, stderr=err)
 
-        return rv
+        return process_result.exit_code
 
     return spawnWindowsCommand
 
 
+def reverseShQuoting(arg):
+    # Undo the damage that scons did in order to pass it to "sh"
+    result = shlex.split(arg)
+    assert len(result) == 1, (arg, result)
+    return result[0]
+
+
 def _formatForOutput(arg):
-    # Undo the damage that scons did to pass it to "sh"
-    arg = arg.strip('"')
-
-    slash = "\\"
-    special = '"$()'
-
-    arg = arg.replace(slash + slash, slash)
-    for c in special:
-        arg = arg.replace(slash + c, c)
-
     if arg.startswith("-I"):
         prefix = "-I"
         arg = arg[2:]
@@ -288,12 +312,9 @@ def isIgnoredError(line):
         return True
 
     # Trusty has buggy toolchain that does this with LTO.
-    if (
-        line
-        == """\
+    if line == """\
 bytearrayobject.o (symbol from plugin): warning: memset used with constant zero \
-length parameter; this could be due to transposed parameters"""
-    ):
+length parameter; this could be due to transposed parameters""":
         return True
 
     # The gcc LTO with debug information is deeply buggy with many messages:
@@ -308,19 +329,17 @@ length parameter; this could be due to transposed parameters"""
 
 
 class SpawnThread(threading.Thread):
-    # Lots of details, to keep track of pylint: disable=too-many-instance-attributes
-    # TODO: If executeProcess returned a "namedtuple", we could stop only that.
-
-    def __init__(self, env, *args):
+    def __init__(self, env, command, os_env):
         threading.Thread.__init__(self)
 
         self.env = env
-        self.args = args
+        self.command = command
+        self.os_env = os_env
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
             % (
-                " ".join(_formatForOutput(arg) for arg in self.args[2]).replace(
+                " ".join(_formatForOutput(arg) for arg in self.command).replace(
                     "%", "%%"
                 ),
             ),
@@ -328,9 +347,7 @@ class SpawnThread(threading.Thread):
             logger=scons_logger,
         )
 
-        self.result = None
-        self.rusage = {}
-        self.exception = None
+        self.process_result = None
 
         self.is_terminated = False
         self.process = None
@@ -339,25 +356,29 @@ class SpawnThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.result = self.spawnSubprocess(env=self.env, args=self.args)
+                self.process_result = self.spawnSubprocess(env=self.env)
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
-            self.exception = e
+            self.process_result = SubprocessSpawnResult(
+                stdout=None, stderr=None, exit_code=None, exception=e, rusage=None
+            )
         except SystemExit as e:
-            self.result = e.code
+            self.process_result = SubprocessSpawnResult(
+                stdout=None, stderr=None, exit_code=e.code, exception=None, rusage=None
+            )
 
-    def spawnSubprocess(self, env, args):
-        sh, _cmd, args, os_env = args
-
+    def spawnSubprocess(self, env):
         self.process = Process(
-            command=[sh, "-c", " ".join(args)],
-            env=os_env,
+            command=self.command,
+            env=self.os_env,
             rusage=True,
         )
-        _stdout, stderr, exit_code, self.rusage = self.process.communicate()
+        process_result = self.process.communicate()
+        exit_code = process_result.exit_code
 
         if self.is_terminated and exit_code != 0:
-            return exit_code
+            return SubprocessSpawnResult(exception=None, **process_result.asDict())
 
+        stderr = process_result.stderr
         if str is not bytes:
             stderr = decodeData(stderr)
 
@@ -380,12 +401,14 @@ class SpawnThread(threading.Thread):
 
             my_print(line, style="scons-unexpected", file=sys.stderr)
 
-            reportSconsUnexpectedOutput(env, args, stdout=None, stderr=line)
+            reportSconsUnexpectedOutput(env, self.command, stdout=None, stderr=line)
 
-        return exit_code
+        return SubprocessSpawnResult(
+            exception=None, **process_result.replace(exit_code=exit_code).asDict()
+        )
 
     def getSpawnResult(self):
-        return self.result, self.exception, self.rusage
+        return self.process_result
 
     def stopThread(self):
         self.is_terminated = True
@@ -408,8 +431,8 @@ def _stopOtherThreads():
                 thread.stopThread()
 
 
-def _runSpawnMonitored(env, sh, cmd, args, os_env):
-    thread = SpawnThread(env, sh, cmd, args, os_env)
+def _runSpawnMonitored(env, args, os_env):
+    thread = SpawnThread(env, args, os_env)
 
     _threads.append(thread)
 
@@ -420,13 +443,13 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
         thread.join(360)
 
         if thread.is_alive():
-            reportSlowCompilation(env, cmd, thread.timer_report.getTimer().getDelta())
+            reportSlowCompilation(env, args, thread.timer_report.getTimer().getDelta())
 
         thread.join()
 
         spawn_result = thread.getSpawnResult()
 
-        if spawn_result[:2] == (0, None):
+        if spawn_result.exit_code == 0 and spawn_result.exception is None:
             updateSconsProgressBar()
 
         return spawn_result
@@ -437,36 +460,66 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
 
 def _getWrappedSpawnFunction(env):
     def spawnCommand(sh, escape, cmd, args, os_env):
-        # signature needed towards Scons core, pylint: disable=unused-argument
+        # Signature needed towards Scons core, pylint: disable=unused-argument
+        assert type(args) in (list, tuple)
+
+        args = [reverseShQuoting(arg) for arg in args]
+
+        source_filename = None
+        source_name = None
+
+        for arg in args[1:]:
+            source_basename = os.path.basename(arg)
+            source_ext = getFilenameExtension(source_basename)
+
+            if source_ext in (".c", ".cpp") and os.path.exists(arg):
+                source_name = source_basename[: -len(source_ext)]
+                source_filename = arg
+                break
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
+        if source_filename is not None and source_name == "__constants_data":
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
-        result, exception, _rusage = _runSpawnMonitored(env, sh, cmd, args, os_env)
+        spawn_result = _runSpawnMonitored(env, args, os_env)
 
-        if exception:
+        if spawn_result.exception:
             closeSconsProgressBar()
             _stopOtherThreads()
 
-            raise exception
+            raise spawn_result.exception
 
-        if result != 0:
+        if spawn_result.exit_code != 0:
             closeSconsProgressBar()
             _stopOtherThreads()
 
         # Segmentation fault should give a clear error.
-        if result == -11:
-            scons_logger.sysexit(
-                """\
+        if spawn_result.exit_code == -11:
+            scons_logger.sysexit("""\
 Error, the C compiler '%s' crashed with segfault. Consider upgrading \
-it or using '--clang' option."""
-                % env.the_compiler
-            )
+it or using '--clang' option.""" % env.the_compiler)
 
-        return result
+        if (
+            spawn_result.exit_code == 0
+            and spawn_result.rusage is not None
+            and env.collect_resources
+        ):
+            if source_filename is not None:
+                writeSconsResourceUsageReport(
+                    source_dir=env.source_dir,
+                    source_filename=os.path.basename(source_filename),
+                    rusage=spawn_result.rusage,
+                )
+            elif "-o" in args:
+                writeSconsResourceUsageReport(
+                    source_dir=env.source_dir,
+                    source_filename="@linker",
+                    rusage=spawn_result.rusage,
+                )
+
+        return spawn_result.exit_code
 
     return spawnCommand
 

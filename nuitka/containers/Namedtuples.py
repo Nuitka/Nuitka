@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This module is only an abstraction of namedtuple.
@@ -8,6 +8,8 @@ methods like "asDict".
 """
 
 from collections import namedtuple
+
+from nuitka.Errors import NuitkaCodeDeficit
 
 
 def makeNamedtupleClass(name, element_names):
@@ -22,11 +24,20 @@ def makeNamedtupleClass(name, element_names):
         def asDict(self):
             return self._asdict()
 
+        def asTuple(self):
+            return tuple(self)
+
         def replace(self, **kwargs):
             new_data = self.asDict()
             new_data.update(**kwargs)
 
             return self.__class__(**new_data)
+
+        # Avoid testing the namedtuple as boolean, which is not supported.
+        def __nonzero__(self):
+            raise NuitkaCodeDeficit("boolean testing of namedtuples")
+
+        __bool__ = __nonzero__
 
     DynamicNamedtuple.__name__ = name
 

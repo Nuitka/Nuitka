@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to avoid bloat at compile time.
@@ -12,6 +12,7 @@ import ast
 import re
 
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
@@ -217,12 +218,9 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
 
         for custom_choice in custom_choices:
             if custom_choice.count(":") != 1:
-                self.sysexit(
-                    """\
+                self.sysexit("""\
 Error, argument value '%s' for '--noinclude-custom-mode' used. It has to be of \
-form 'module_name:[%s]'."""
-                    % (custom_choice, "|".join(_mode_choices + _other_choices))
-                )
+form 'module_name:[%s]'.""" % (custom_choice, "|".join(_mode_choices + _other_choices)))
 
             module_name, mode = custom_choice.rsplit(":", 1)
 
@@ -233,12 +231,9 @@ form 'module_name:[%s]'."""
                 )
 
             if mode == "nofollow":
-                self.sysexit(
-                    """\
+                self.sysexit("""\
 Error, cannot use 'follow' as a custom mode, use '--nofollow-import-to=%s' option \
-instead of '--noinclude-custom-mode=%s'"""
-                    % (module_name, custom_choice)
-                )
+instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
 
             self.handled_modules[ModuleName(module_name)] = mode, module_name
 
@@ -264,11 +259,21 @@ instead of '--noinclude-custom-mode=%s'"""
         # information given for that.
         self.no_auto_follows = {}
 
+        # Keep track of modules that limit what might be followed.
+        self.limit_auto_follows = OrderedDict()
+
         # Keep track of modules prevented from being followed at all.
         self.no_follows = OrderedDict()
 
+        # Keep track of modules that are suppressed, they get a second
+        # change through "conditional-auto-follow" potentially.
+        self.suppressed_modules = OrderedSet()
+
         # Cache execution context for anti-bloat configs.
         self.context_codes = {}
+
+        # Precompute this for getCacheContributionValues to avoid sorting each time
+        self.handled_modules_hash = str(tuple(sorted(self.handled_modules.items())))
 
     def getEvaluationConditionControlTags(self):
         return self.control_tags
@@ -282,7 +287,7 @@ instead of '--noinclude-custom-mode=%s'"""
             # TODO: Until we can change the evaluation to tell us exactly what
             # control tag values were used, we have to make this one. We sort
             # the values, to try and have order changes in code not matter.
-            yield str(tuple(sorted(self.handled_modules.items())))
+            yield self.handled_modules_hash
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -807,7 +812,7 @@ class %(class_name)s:
 
         return None
 
-    def decideAsserts(self, module_name):
+    def decideAssertions(self, module_name):
         # Finding a matching configuration aborts the search, not finding one
         # means default behavior should apply.
         for _config_module_name, asserts_config_value in self.getYamlConfigItem(
@@ -945,6 +950,7 @@ slow down compilation."""
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):
+        # We need this many variables, pylint: disable=too-many-locals
         for handled_module_name, (
             mode,
             intended_module_name,
@@ -992,11 +998,35 @@ slow down compilation."""
                     % (config_of_module_name, no_auto_follow),
                 )
 
+            # Do checking of "limit-auto-follow"
+            limit_auto_follows = self.getYamlConfigItemSet(
+                module_name=using_module_name,
+                section="anti-bloat",
+                item_name="limit-auto-follow",
+                decide_relevant=None,
+                recursive=True,
+            )
+
+            has_limits = False
+            for config_of_module_name, limit_pattern in limit_auto_follows:
+                has_limits = True
+                if module_name.matchesToShellPattern(limit_pattern).is_match:
+                    break
+            else:
+                if has_limits:
+                    self.suppressed_modules.add(module_name)
+                    return (
+                        False,
+                        "according to yaml 'limit-auto-follow' configuration of '%s'"
+                        % config_of_module_name,
+                    )
+
         for no_follow_pattern, (
             config_of_module_name,
             description,
         ) in self.no_follows.items():
-            if module_name.matchesToShellPattern(no_follow_pattern)[0]:
+            if module_name.matchesToShellPattern(no_follow_pattern).is_match:
+                self.suppressed_modules.add(module_name)
                 return (
                     False,
                     "according to yaml 'no-follow' configuration of '%s' for '%s'"
@@ -1023,6 +1053,28 @@ slow down compilation."""
         # required. TODO: Make the compilation mode part of the config.
         if module_name == "xmlrpc.server":
             return "compiled"
+
+    def onIncompleteModuleSet(self, module_names):
+        for module_name in module_names:
+            for (
+                config_of_module_name,
+                module_to_check,
+                module_namespace_to_add,
+            ) in self.getYamlConfigItemItems(
+                module_name=module_name,
+                section="anti-bloat",
+                item_name="conditional-auto-follow",
+                decide_relevant=lambda key, value: True,
+                recursive=True,
+            ):
+                if ModuleName(module_to_check) in module_names:
+                    module_namespace_to_add = ModuleName(module_namespace_to_add)
+                    for suppressed_module in self.suppressed_modules:
+                        if (
+                            suppressed_module == module_namespace_to_add
+                            or suppressed_module.hasNamespace(module_namespace_to_add)
+                        ):
+                            yield config_of_module_name, suppressed_module
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names

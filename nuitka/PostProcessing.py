@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Postprocessing tasks for create binaries or modules."""
@@ -8,6 +8,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
+from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
@@ -37,6 +38,7 @@ from nuitka.OutputDirectories import (
     getResultRunFilename,
     getSourceDirectoryPath,
 )
+from nuitka.plugins.Hooks import onPostProcessingResources
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.States import states
@@ -254,9 +256,11 @@ def createScriptFileForExecution(result_filename):
     debugger_call = (
         (
             " ".join(
-                wrapCommandForDebuggerForSubprocess(
-                    command=(), debugger=getDebuggerName()
+                x
+                for x in wrapCommandForDebuggerForSubprocess(
+                    command=("dummy",), debugger=getDebuggerName()
                 )
+                if os.path.basename(x) != "dummy"
             )
             + " "
         )
@@ -401,6 +405,8 @@ def executePostProcessingResources(result_filename, manifest, onefile):
             logger=postprocessing_logger,
         )
 
+    onPostProcessingResources(result_filename=result_filename, onefile=onefile)
+
 
 def _createModulePyiFile():
     if shallCreatePyiFileContainStubs():
@@ -434,13 +440,10 @@ def _createModulePyiFile():
                 text_only=True,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
-            postprocessing_logger.warning(
-                """\
+            postprocessing_logger.warning("""\
 Stub generation with internal stubgen tool failed due to: '%s'.
 
-Please report the module code in an issue report."""
-                % (str(e))
-            )
+Please report the module code in an issue report.""" % (str(e)))
 
             if states.is_debug:
                 raise
@@ -505,15 +508,16 @@ def executePostProcessing(result_filename):
 
         source_dir = getSourceDirectoryPath(onefile=False, create=True)
 
-        # Attach the binary blob as a Windows resource.
-        addResourceToFile(
-            target_filename=result_filename,
-            data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
-            resource_kind=RT_RCDATA,
-            res_name=3,
-            lang_id=0,
-            logger=postprocessing_logger,
-        )
+        # Attach the binary blob as a Windows resource if we used that mode.
+        if getSconsReportValue(source_dir, "resource_mode") == "win_resource":
+            addResourceToFile(
+                target_filename=result_filename,
+                data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
+                resource_kind=RT_RCDATA,
+                res_name=3,
+                lang_id=0,
+                logger=postprocessing_logger,
+            )
 
     # On macOS, we update the executable path for searching the "libpython"
     # library.
@@ -525,10 +529,8 @@ def executePostProcessing(result_filename):
                 python_dll_filename = dependency
                 break
         else:
-            return postprocessing_logger.sysexit(
-                """
-Error, expected 'libpython dependency not found. Please report the bug."""
-            )
+            return postprocessing_logger.sysexit("""
+Error, expected 'libpython dependency not found. Please report the bug.""")
 
         python_lib_path = os.path.dirname(python_dll_filename)
         python_dll_path = python_dll_filename
@@ -582,11 +584,9 @@ Error, expected 'libpython dependency not found. Please report the bug."""
         _createModulePyiFile()
 
     if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:
-        postprocessing_logger.warning(
-            """\
+        postprocessing_logger.warning("""\
 The created compiled binary is larger than 1.8GB and therefore may not be
-executable by Windows due to its limitations."""
-        )
+executable by Windows due to its limitations.""")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

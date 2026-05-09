@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Module for handling Windows resources.
@@ -63,9 +63,9 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
         ctypes.wintypes.HMODULE,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.wintypes.LPARAM,
     )
 
     EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
@@ -94,15 +94,23 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     EnumResourceLanguagesCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
         ctypes.wintypes.HMODULE,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
         ctypes.wintypes.WORD,
-        ctypes.wintypes.LONG,
+        ctypes.wintypes.LPARAM,
     )
 
     result = []
 
+    def _normalizeResourceName(lp_name):
+        if lp_name <= 0xFFFF:
+            return lp_name
+
+        return ctypes.string_at(lp_name)
+
     def callback(hModule, lpType, lpName, _lParam):
+        res_name = _normalizeResourceName(lpName)
+
         langs = []
 
         def callback2(hModule2, lpType2, lpName2, wLang, _lParam):
@@ -131,11 +139,11 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
             try:
                 ptr = ctypes.windll.kernel32.LockResource(hData)
-                result.append((lpType, lpName, lang_id, ctypes.string_at(ptr, size)))
+                result.append((lpType, res_name, lang_id, ctypes.string_at(ptr, size)))
             finally:
                 ctypes.windll.kernel32.FreeResource(hData)
         else:
-            result.append((lpName, lang_id))
+            result.append((res_name, lang_id))
 
         return True
 
@@ -338,9 +346,7 @@ def getDefaultWindowsExecutableManifest():
     # Note: Supported OS are lied about by CPython.
     # spell-checker: ignore asmv3
 
-    # pylint: disable=line-too-long
-    template = (
-        """\
+    template = """\
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
   <assemblyIdentity type="win32" name="Mini" version="1.0.0.0"/>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
@@ -364,9 +370,7 @@ def getDefaultWindowsExecutableManifest():
   </dependency>
   %s
 </assembly>
-"""
-        % _getDefaultWindowsExecutableTrustInfo()
-    )
+""" % _getDefaultWindowsExecutableTrustInfo()
 
     return WindowsExecutableManifest(template)
 

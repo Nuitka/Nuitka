@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from __future__ import print_function
@@ -17,6 +17,13 @@ assert os.path.exists(
 )
 assert os.path.exists(
     os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
+)
+assert os.path.exists(
+    os.path.join(
+        os.path.dirname(data_files_package.__file__),
+        "raw_dir_expr",
+        "only_raw.py",
+    )
 )
 
 print("OK.")

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Time taking.
@@ -10,6 +10,7 @@ call an external tool.
 from contextlib import contextmanager
 
 from nuitka.__past__ import StringIO, perf_counter, process_time
+from nuitka.options.Options import isDevelPerformanceCounts
 from nuitka.Tracing import general
 
 from .Profiling import PerfCounters, hasPerfProfilingSupport
@@ -111,6 +112,15 @@ class TimerReport(object):
 
         if use_perf_counters is None:
             use_perf_counters = not self.include_sleep_time
+
+        if use_perf_counters and not has_perf_counters:
+            if isDevelPerformanceCounts():
+                # spell-checker: ignore wslconfig
+                general.sysexit("""\
+Error, performance counters were requested but are not available on this system. \
+To enable them on Linux, use 'sysctl -w kernel.perf_event_paranoid=1' or lower. \
+Note: When using WSL2, you must do this AND additionally set \
+'hardwarePerformanceCounters=true' in your '.wslconfig' file on the Windows host.""")
 
         # They might not be allowed.
         self.use_perf_counters = use_perf_counters and has_perf_counters

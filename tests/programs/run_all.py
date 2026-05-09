@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Runner for program tests of Nuitka.
@@ -25,6 +25,10 @@ sys.path.insert(
 # isort:start
 
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.reports.CompilationReportReader import (
+    extractModulesUsedByModule,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     checkTestRequirements,
     compareWithCPython,
@@ -33,8 +37,94 @@ from nuitka.tools.testing.Common import (
     reportSkip,
     scanDirectoryForTestCaseFolders,
     setup,
+    test_logger,
     withPythonPathChange,
 )
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    makePath,
+    putTextFileContents,
+    resetDirectory,
+)
+
+
+def checkMultiprocessingUsingReport(filename, python_version):
+    compilation_report = parseCompilationReport("compilation-report-%s.xml" % filename)
+
+    parent_main_module = None
+
+    for module_node in compilation_report.findall("module"):
+        if module_node.attrib["name"] == "__parents_main__":
+            parent_main_module = module_node
+            break
+
+    assert parent_main_module is not None, [
+        module_node.attrib["name"]
+        for module_node in compilation_report.findall("module")
+    ]
+    assert (
+        parent_main_module.attrib["reason"]
+        == "Auto enable multiprocessing/anyio freeze support"
+    ), parent_main_module.attrib
+
+    # On Python 2, the fake module is executed directly for freeze support.
+    # On Python 3, the multiprocessing post-load helper imports it.
+    if python_version < (3,):
+        return
+
+    modules_used = extractModulesUsedByModule(
+        compilation_report=compilation_report,
+        module_name="multiprocessing-postLoad",
+    )
+
+    assert modules_used["__parents_main__"]["finding"] == "fake", modules_used
+
+
+def _makeBytecodeOnlyModule(filename, source_code):
+    putTextFileContents(filename=filename, contents=source_code, encoding="utf8")
+
+    try:
+        check_call(
+            (
+                os.environ["PYTHON"],
+                "-c",
+                # spell-checker: ignore cfile,doraise
+                "import py_compile,sys; py_compile.compile(sys.argv[1], cfile=sys.argv[1] + 'c', doraise=True)",
+                filename,
+            )
+        )
+    finally:
+        if os.path.exists(filename):
+            os.unlink(filename)
+
+
+def updateBytecodeOnlyImportPath(test_directory):
+    bytecode_only_path = os.path.join(test_directory, "path1")
+
+    resetDirectory(
+        path=bytecode_only_path,
+        logger=test_logger,
+        ignore_errors=True,
+        extra_recommendation=None,
+    )
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(bytecode_only_path, "bytecode_only_module.py"),
+        source_code='module_value = "module-bytecode-only"\n',
+    )
+
+    package_dir = os.path.join(bytecode_only_path, "bytecode_only_package")
+    makePath(package_dir)
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(package_dir, "__init__.py"),
+        source_code='package_value = "package-bytecode-only"\n',
+    )
+
+    _makeBytecodeOnlyModule(
+        filename=os.path.join(package_dir, "submodule.py"),
+        source_code='submodule_value = "submodule-bytecode-only"\n',
+    )
 
 
 def main():
@@ -136,10 +226,7 @@ def main():
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
-            # TODO: Still true?
-            if sys.platform == "darwin" and python_version >= (3, 8):
-                reportSkip("Hangs for unknown reasons", ".", filename)
-                continue
+            extra_flags.append("--report=compilation-report-%s.xml" % filename)
         else:
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
@@ -152,6 +239,9 @@ def main():
 
         my_print("Consider output of recursively compiled program:", filename)
 
+        if filename == "bytecode_only_import":
+            updateBytecodeOnlyImportPath(filename)
+
         extra_python_path = [
             os.path.abspath(os.path.join(filename, entry))
             for entry in os.listdir(filename)
@@ -162,17 +252,20 @@ def main():
             my_print("Applying extra PYTHONPATH %r." % extra_python_path)
 
         with withPythonPathChange(extra_python_path):
+            test_variants = OrderedDict((("", extra_flags),))
+
+            if extra_variant:
+                test_variants["variant"] = extra_flags + extra_variant
+
             compareWithCPython(
                 dirname=filename,
                 filename=filename_main,
-                extra_flags=OrderedDict(
-                    (
-                        ("", extra_flags),
-                        ("variant", extra_flags + extra_variant),
-                    )
-                ),
+                extra_flags=test_variants,
                 search_mode=search_mode,
             )
+
+            if filename == "multiprocessing_using":
+                checkMultiprocessingUsingReport(filename, python_version)
 
     search_mode.finish()
 

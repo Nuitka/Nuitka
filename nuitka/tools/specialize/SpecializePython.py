@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This tool is generating node variants from Jinja templates."""
@@ -52,6 +52,7 @@ from .Common import (
     getLicenseGeneratedCode,
     getMethodVariations,
     getSpecs,
+    parseOptions,
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
@@ -239,9 +240,7 @@ processTypeShapeAttribute(
 
 attribute_shape_empty = {}
 
-attribute_shape_empty[
-    "update", "tshape_dict"
-] = """\
+attribute_shape_empty["update", "tshape_dict"] = """\
 lambda source_ref: wrapExpressionWithNodeSideEffects(
     new_node=makeConstantRefNode(
         constant=None,
@@ -251,9 +250,7 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 )
 """
 
-attribute_shape_empty[
-    "fromkeys", "tshape_dict"
-] = """
+attribute_shape_empty["fromkeys", "tshape_dict"] = """
 lambda source_ref: makeRaiseExceptionReplacementExpression(
     expression=dict_arg,
     exception_type="TypeError",
@@ -287,16 +284,13 @@ def emitGenerationWarning(emit, doc_string, template_name):
         replace_whitespace=False,
     )
 
-    emit(
-        """
+    emit("""
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
-"""
-    )
+""")
 
-    emit(
-        '''
+    emit('''
 """%s
 
 WARNING, this code is GENERATED. Modify the template %s instead!
@@ -304,9 +298,7 @@ WARNING, this code is GENERATED. Modify the template %s instead!
 %s
 """
 
-'''
-        % (doc_string, template_name, ignores)
-    )
+''' % (doc_string, template_name, ignores))
 
 
 def formatCallArgs(operation_node_arg_mapping, args, starting=True):
@@ -371,14 +363,12 @@ def makeAttributeNodes():
         emit("from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs")
 
         emit("from nuitka.nodes.ConstantRefNodes import makeConstantRefNode")
-        emit(
-            """\
+        emit("""\
 from nuitka.nodes.NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     makeRaiseExceptionReplacementExpression
 )
-            """
-        )
+            """)
 
         emit(
             "from nuitka.nodes.KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs"
@@ -791,15 +781,15 @@ def makeChildrenHavingMixinNodes():
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_python,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python, withFileOpenedAndAutoFormattedWithClaim(
         filename_python2,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python2, withFileOpenedAndAutoFormattedWithClaim(
         filename_python3,
-        ignore_errors=True,
+        ignore_errors=False,
         claim=getLicenseGeneratedCode(),
     ) as output_python3:
 
@@ -823,25 +813,21 @@ def makeChildrenHavingMixinNodes():
 
         emit("# Loop unrolling over child names, pylint: disable=too-many-branches")
 
-        emit1(
-            """
-from nuitka.nodes.Checkers import (
+        emit1("""
+from .Checkers import (
     checkStatementsSequenceOrNone,
     convertNoneConstantToNone,
     convertEmptyStrConstantToNone
 )
-"""
-        )
+""")
 
-        emit3(
-            """
-from nuitka.nodes.Checkers import (
+        emit3("""
+from .Checkers import (
     checkStatementsSequenceOrNone, \
     checkStatementsSequence,
     convertNoneConstantToNone
 )
-"""
-        )
+""")
 
         for (
             is_expression,
@@ -1027,12 +1013,10 @@ def makeHardImportNodes():
 
         emitGenerationWarning(emit, "Hard import nodes", template_ref_node.name)
 
-        emit(
-            """
+        emit("""
 hard_import_node_classes = {}
 
-"""
-        )
+""")
 
         for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
             spec = spec_descriptions[0][2]
@@ -1144,6 +1128,8 @@ hard_import_node_classes = {}
 
 
 def main():
+    parseOptions()
+
     makeHardImportNodes()
     makeAttributeNodes()
     makeBuiltinOperationNodes()

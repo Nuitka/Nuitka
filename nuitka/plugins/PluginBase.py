@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -26,6 +26,7 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectory,
+    makeIncludedFrameworkDirectory,
     makeIncludedGeneratedDataFile,
     makeIncludedPackageDataFiles,
 )
@@ -56,6 +57,7 @@ from nuitka.options.Options import (
     shallMakeDll,
     shallMakeModule,
     shallShowExecutedCommands,
+    shallUsePythonDebug,
 )
 from nuitka.PythonFlavors import (
     isAnacondaPython,
@@ -110,7 +112,12 @@ from nuitka.utils.Utils import (
     withNoWarning,
 )
 
-from .Hooks import decideAnnotations, decideAssertions, decideDocStrings
+from .Hooks import (
+    decideAnnotations,
+    decideAssertions,
+    decideDocStrings,
+    registerDecisionCompilation,
+)
 
 _warned_unused_plugins = set()
 
@@ -204,7 +211,10 @@ def _getEvaluationContext():
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
             # Technical requirements
-            "static_libpython": getSystemStaticLibPythonPath() is not None,
+            "static_libpython": getSystemStaticLibPythonPath(
+                python_debug=shallUsePythonDebug()
+            )
+            is not None,
             # Builtins
             "True": True,
             "False": False,
@@ -677,8 +687,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
 
         Returns:
             None (does not apply, default)
-            tuple (code, reason)
-            tuple (code, reason, flags)
+            FakeModuleDescription(module_name, source_code, source_filename, reason)
+            tuple(module_name, source_code, source_filename, reason)
+            iterable of those
         """
         # Virtual method, pylint: disable=unused-argument
         return None
@@ -809,11 +820,26 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         # Virtual method, pylint: disable=no-self-use
         return ()
 
+    def onIncompleteModuleSet(self, module_names):
+        """Provide extra modules during the optimization module loop.
+
+        Args:
+            module_names - tuple of module names
+        Returns:
+            Iterable yielding `config_module_name, module_to_add`
+        Notes:
+            You can use this to conditionally add modules inside optimization passes,
+            but for dependencies of modules, use getImplicitImports, to assign the
+            dependency to the module that uses it.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def onModuleCompleteSet(self, module_set):
         """Provide extra modules to the initial root module set.
 
         Args:
-            module_set - tuple of module objects
+            module_set - tuple of modules
         Returns:
             None
         Notes:
@@ -871,20 +897,6 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         )
 
         return module_filename
-
-    @staticmethod
-    def locateModules(module_name):
-        """Provide a filename / -path for a to-be-imported module.
-
-        Args:
-            module_name: (str or ModuleName) full name of module
-        Returns:
-            list of ModuleName
-        """
-
-        from nuitka.importing.Importing import locateModules
-
-        return locateModules(module_name)
 
     @classmethod
     def locateDLL(cls, dll_name):
@@ -1065,6 +1077,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             raw=raw,
         )
 
+    def makeIncludedFrameworkDirectory(self, source_path, dest_path, reason, tags=""):
+        return makeIncludedFrameworkDirectory(
+            self,
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tags=tags,
+        )
+
     def makeIncludedEmptyDirectory(self, dest_path, reason, tags):
         return makeIncludedEmptyDirectory(
             dest_path=dest_path,
@@ -1157,6 +1178,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onPostProcessingResources(self, result_filename, onefile):
+        """Called during post-processing to embed Windows resources or similar attachments.
+
+        Args:
+            result_filename: the created binary (module, accelerated exe, dist exe, onefile exe)
+            onefile: (bool) whether it is the onefile bootstrap
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onFinalResult(self, filename):
         """Called after successfully finishing a compilation.
 
@@ -1203,6 +1237,20 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def registerDecisionCompilation(self, module_name, decision):
+        """Register a decision whether to C compile a module or include as bytecode.
+
+        Notes:
+            Registers the decision statically to be considered during compilation.
+
+        Args:
+            module_name: (str) name of module
+            decision: "compiled" or "bytecode"
+        """
+        registerDecisionCompilation(
+            plugin_name=self.plugin_name, module_name=module_name, decision=decision
+        )
 
     def decideRecompileExtensionModules(self, module_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument

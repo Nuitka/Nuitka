@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Main module code templates
@@ -65,10 +65,20 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+        NUITKA_MAY_BE_UNUSED int constants_loaded_count =
+            loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
+        if (constants_loaded_count != %(constants_count)d) {
+            fprintf(stderr,
+                    "Corrupt constants blob for %%s: expected %(constants_count)d values, got %%d\n",
+                    UN_TRANSLATE(%(module_const_blob_name)s),
+                    constants_loaded_count);
+            fflush(stderr);
+            abort();
+        }
+
 %(module_constants_check_hash)s
 #endif
     }
@@ -99,7 +109,7 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
     if (dk->dk_version != 0) {
         return dk->dk_version;
     }
-    uint32_t result = interp->dict_state.next_keys_version++;
+    uint32_t result = Nuitka_PyInterpreterState_GetDictState(interp)->next_keys_version++;
     dk->dk_version = result;
     return result;
 }
@@ -322,12 +332,16 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
     }
 #endif
 
-    // Set "__compiled__" to what version information we have.
+    // For Python 3.11 standalone modules, package "__path__" is inserted by the
+    // loader before module code runs. Pre-seed "__compiled__" for non-packages
+    // to keep their dangerous dict slots aligned with packages.
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3c0 && _NUITKA_STANDALONE_MODE && !%(is_package)s
     UPDATE_STRING_DICT0(
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
         Nuitka_dunder_compiled_value
     );
+#endif
 
     // Update "__package__" value to what it ought to be.
     {

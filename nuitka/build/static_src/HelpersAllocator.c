@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 // For interacting with the Python GC unexposed details
 
@@ -51,6 +51,14 @@ void initNuitkaAllocators(void) {
     python_mem_free = allocators.free;
 #endif
 }
+
+#if defined(Py_GIL_DISABLED) && defined(Py_REF_DEBUG) && PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0
+void _Py_AddRefTotal(PyThreadState *tstate, Py_ssize_t n) { tstate->interp->object_state.reftotal += n; }
+
+void _Py_IncRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, 1); }
+
+void _Py_DecRefTotal(PyThreadState *tstate) { _Py_AddRefTotal(tstate, -1); }
+#endif
 
 #if PYTHON_VERSION >= 0x3b0
 
@@ -692,8 +700,8 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
-#else
-    // TODO: This is considering the no-GIL implementation
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+    // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
     // gc must be correctly aligned
@@ -706,11 +714,70 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
 
-    gcstate->young.count++;
-    gcstate->heap_size++;
+    if (Nuitka_GC_UsesGeneration0List()) {
+        Nuitka_GCStateGenerational *gcstate_generational = Nuitka_GC_GetGenerationalState(gcstate);
 
-    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
-        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+        gcstate_generational->generations[0].count++;
+
+        if (gcstate_generational->generations[0].count > gcstate_generational->generations[0].threshold &&
+            gcstate_generational->enabled && gcstate_generational->generations[0].threshold &&
+            !_Py_atomic_load_int_relaxed(&gcstate_generational->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    } else if (!Nuitka_GC_TrackOwnsAccounting()) {
+        Nuitka_GCStateIncremental *gcstate_incremental = Nuitka_GC_GetIncrementalState(gcstate);
+
+        gcstate_incremental->young.count++;
+        gcstate_incremental->heap_size++;
+
+        if (gcstate_incremental->young.count > gcstate_incremental->young.threshold && gcstate_incremental->enabled &&
+            gcstate_incremental->young.threshold && !_Py_atomic_load_int_relaxed(&gcstate_incremental->collecting) &&
+            !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#elif PYTHON_VERSION < 0x3e5
+    // TODO: This is not the no-GIL implementation
+    PyGC_Head *gc = _Py_AS_GC(op);
+
+    // gc must be correctly aligned
+    _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
+
+    // TODO: Have this passed.
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+
+    gc->_gc_next = 0;
+    gc->_gc_prev = 0;
+
+    if (!Nuitka_GC_TrackOwnsAccounting()) {
+        gcstate->young.count++;
+        gcstate->heap_size++;
+
+        if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+            !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+            Nuitka_Py_ScheduleGC(tstate);
+        }
+    }
+#else
+    // TODO: This is not the no-GIL implementation
+    PyGC_Head *gc = _Py_AS_GC(op);
+
+    // gc must be correctly aligned
+    _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
+
+    // TODO: Have this passed.
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+
+    gc->_gc_next = 0;
+    gc->_gc_prev = 0;
+
+    gcstate->generations[0].count++;
+
+    if (gcstate->generations[0].count > gcstate->generations[0].threshold && gcstate->enabled &&
+        gcstate->generations[0].threshold && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+        !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
 #endif
@@ -738,15 +805,21 @@ struct _mem_work_chunk {
 // Aligns with CPython "qsbr.c"
 #define QSBR_DEFERRED_LIMIT 10
 
+static uint64_t Nuitka_qsbr_shared_next(struct _qsbr_shared *shared) {
+    return _Py_qsbr_shared_current(shared) + QSBR_INCR;
+}
+
 static uint64_t Nuitka_qsbr_advance(struct _qsbr_shared *shared) {
     return _Py_atomic_add_uint64(&shared->wr_seq, QSBR_INCR) + QSBR_INCR;
 }
 
 static uint64_t Nuitka_qsbr_deferred_advance(struct _qsbr_thread_state *qsbr) {
-    if (++qsbr->deferrals < QSBR_DEFERRED_LIMIT) {
-        return _Py_qsbr_shared_current(qsbr->shared) + QSBR_INCR;
+    if (++qsbr->deferred_count < QSBR_DEFERRED_LIMIT) {
+        return Nuitka_qsbr_shared_next(qsbr->shared);
     }
-    qsbr->deferrals = 0;
+
+    qsbr->deferred_count = 0;
+    qsbr->should_process = true;
     return Nuitka_qsbr_advance(qsbr->shared);
 }
 
@@ -899,7 +972,7 @@ void _NuitkaMem_ProcessDelayed(PyThreadState *tstate) {
     _Nuitka_process_queue(&tstate_impl->mem_free_queue, tstate_impl->qsbr, true);
 
     // Release interpreter queue
-    _Nuitka_process_interp_queue(&interp->mem_free_queue, tstate_impl->qsbr);
+    _Nuitka_process_interp_queue(Nuitka_PyInterpreterState_GetMemFreeQueue(interp), tstate_impl->qsbr);
 }
 
 static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
@@ -933,7 +1006,8 @@ static void _NuitkaMem_FreeDelayed2(uintptr_t ptr) {
     buf->array[buf->wr_idx].qsbr_goal = seq;
     buf->wr_idx++;
 
-    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK) {
+    if (buf->wr_idx == WORK_ITEMS_PER_CHUNK || _Py_qsbr_should_process(tstate->qsbr)) {
+        tstate->qsbr->should_process = false;
         _NuitkaMem_ProcessDelayed((PyThreadState *)tstate);
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Launcher for git hook installer tool."""
@@ -15,7 +15,9 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 import stat
 
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
+from nuitka.tools.release.Release import getGitDir
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
@@ -24,69 +26,101 @@ from nuitka.utils.FileOperations import (
 )
 
 
+def _getWindowsShPath():
+    git_path = getExecutablePath("git")
+
+    if git_path is None:
+        git_path = r"C:\Program Files\Git\bin\sh.exe"
+
+        if not os.path.exists(git_path):
+            git_path = None
+
+    if git_path is None:
+        return tools_logger.sysexit("""\
+Error, cannot locate 'git.exe' which we need to install git hooks. Add it to
+PATH while executing this will be sufficient.""")
+
+    for candidate in (
+        "sh.exe",
+        os.path.join("..", "bin", "sh.exe"),
+        os.path.join("..", "..", "bin", "sh.exe"),
+    ):
+        result = os.path.normpath(os.path.join(os.path.dirname(git_path), candidate))
+
+        if os.path.exists(result):
+            break
+    else:
+        return tools_logger.sysexit("""\
+Error, cannot locate 'sh.exe' near 'git.exe' which we need to install git hooks,
+please improve this script.""")
+
+    # For MinGW and #! we will need a path without spaces, so use this
+    # code to find the short name, that won't have it.
+    return getWindowsShortPathName(result)
+
+
 def main():
+    parser = makeOptionsParser(usage="usage: %prog [options]", epilog="")
+
+    parser.add_option(
+        "--no-pre-commit",
+        action="store_false",
+        dest="pre_commit",
+        default=True,
+        help="Do not install the pre-commit hook.",
+    )
+    parser.add_option(
+        "--no-pre-push",
+        action="store_false",
+        dest="pre_push",
+        default=True,
+        help="Do not install the pre-push hook.",
+    )
+    options, _args = parser.parse_args()
+
     goHome()
 
-    if os.name == "nt":
-        git_path = getExecutablePath("git")
-
-        if git_path is None:
-            git_path = r"C:\Program Files\Git\bin\sh.exe"
-
-            if not os.path.exists(git_path):
-                git_path = None
-
-        if git_path is None:
-            tools_logger.sysexit(
-                """\
-Error, cannot locate 'git.exe' which we need to install git hooks. Add it to
-PATH while executing this will be sufficient."""
-            )
-
-        for candidate in (
-            "sh.exe",
-            os.path.join("..", "bin", "sh.exe"),
-            os.path.join("..", "..", "bin", "sh.exe"),
-        ):
-            sh_path = os.path.normpath(
-                os.path.join(os.path.dirname(git_path), candidate)
-            )
-
-            if os.path.exists(sh_path):
-                break
-        else:
-            tools_logger.sysexit(
-                """\
-Error, cannot locate 'sh.exe' near 'git.exe' which we need to install git hooks,
-please improve this script."""
-            )
-
-        # For MinGW and #! we will need a path without spaces, so use this
-        # code to find the short name, that won't have it.
-        sh_path = getWindowsShortPathName(sh_path)
+    git_dir = getGitDir()
 
     for hook in os.listdir(".githooks"):
+        hook_target = os.path.join(git_dir, "hooks", hook)
+
+        if hook == "pre-commit" and not options.pre_commit:
+            if os.path.exists(hook_target):
+                os.remove(hook_target)
+            continue
+        if hook == "pre-push" and not options.pre_push:
+            if os.path.exists(hook_target):
+                os.remove(hook_target)
+            continue
+
         full_path = os.path.join(".githooks", hook)
 
         hook_contents = getFileContents(full_path)
 
         if hook_contents.startswith("#!/bin/sh"):
             if os.name == "nt":
+                sh_path = _getWindowsShPath()
                 # Correct shebang for Windows git to work.
                 hook_contents = "#!%s\n%s" % (
                     sh_path.replace("\\", "/").replace(" ", r"\ "),
                     hook_contents[10:],
                 )
 
-            # Also use "sys.executable" to make sure we find auto-format tool.
-            hook_contents = hook_contents.replace(
-                "./bin/autoformat-nuitka-source",
-                "'%s' ./bin/autoformat-nuitka-source" % sys.executable,
-            )
+            # Also use "sys.executable" to make sure we find Nuitka tools.
+            for tool_name in (
+                "autoformat-nuitka-source",
+                "check-nuitka-with-pylint",
+                "generate-specialized-c-code",
+                "generate-specialized-python-code",
+            ):
+                hook_contents = hook_contents.replace(
+                    "./bin/%s" % tool_name,
+                    "'%s' ./bin/%s" % (sys.executable, tool_name),
+                )
         else:
             sys.exit("Error, unknown hook contents.")
 
-        hook_target = os.path.join(".git/hooks/", hook)
         with open(hook_target, "wb") as out_file:
             out_file.write(hook_contents.encode("utf8"))
 

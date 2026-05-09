@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Utils for file and directory operations.
@@ -14,6 +14,7 @@ import codecs
 import errno
 import fnmatch
 import glob
+import io
 import os
 import pickle
 import shutil
@@ -739,8 +740,12 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
     for fullpath, filename in listDir(path):
         for pattern in pattern_list:
             if fnmatch.fnmatch(filename, pattern):
-                if not isWin32OrPosixWindows() and not os.access(fullpath, os.X_OK):
-                    continue
+                if not isWin32OrPosixWindows():
+                    if not isPathExecutable(fullpath):
+                        continue
+
+                    if getDllBasename(fullpath) is not None:
+                        continue
 
                 yield fullpath, filename
                 break
@@ -1098,6 +1103,37 @@ def getFileContents(filename, mode="r", encoding=None, errors=None):
             return f.read()
 
 
+def stripFileContentsBOM(contents):
+    """Strip UTF-8 BOM from byte contents.
+
+    Args:
+        contents: Byte contents to normalize.
+
+    Returns:
+        tuple: Stripped contents, indicator if BOM was removed.
+    """
+
+    if contents.startswith(codecs.BOM_UTF8):
+        return contents[len(codecs.BOM_UTF8) :], True
+
+    return contents, False
+
+
+def addFileContentsBOM(contents):
+    """Add UTF-8 BOM to byte contents.
+
+    Args:
+        contents: Byte contents to normalize.
+
+    Returns:
+        bytes: Contents with BOM prefix.
+    """
+
+    contents, _bom = stripFileContentsBOM(contents)
+
+    return codecs.BOM_UTF8 + contents
+
+
 def getFileFirstLine(filename, mode="r", encoding=None):
     """Get the contents of a file.
 
@@ -1139,7 +1175,10 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if python_version >= 0x370:
         mode = mode.replace("U", "")
 
-    return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    if str is bytes:
+        return codecs.open(filename, mode, encoding=encoding, errors=errors)
+    else:
+        return io.open(filename, mode, encoding=encoding, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):

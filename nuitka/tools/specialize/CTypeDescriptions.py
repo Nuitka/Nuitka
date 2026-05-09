@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """C type descriptions. For specific or general C types, provide code generation help."""
@@ -1111,9 +1111,7 @@ class UnicodeDesc(ConcreteSequenceTypeBase):
     def getCheckValueCode(cls, operand):
         return """\
 CHECK_OBJECT(%(operand)s);
-assert(PyUnicode_CheckExact(%(operand)s));""" % {
-            "operand": operand
-        }
+assert(PyUnicode_CheckExact(%(operand)s));""" % {"operand": operand}
 
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):

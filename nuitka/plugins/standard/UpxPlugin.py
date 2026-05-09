@@ -1,15 +1,17 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """UPX plugin."""
 
 import os
 
+from nuitka.build.SconsUtils import getSconsCompilerUsed
 from nuitka.options.Options import isOnefileMode, shallNotCompressOnefile
+from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
-from nuitka.utils.FileOperations import copyFile, getFileContentsHash, makePath
+from nuitka.utils.FileOperations import copyFile, getFileContentsHash
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Utils import isLinux
 
@@ -33,17 +35,13 @@ class NuitkaPluginUpx(NuitkaPluginBase):
 
     def onCompilationStartChecks(self):
         if self.upx_binary is None:
-            self.sysexit(
-                """\
-No UPX binary found, please use '--upx-binary' option to specify it."""
-            )
+            self.sysexit("""\
+No UPX binary found, please use '--upx-binary' option to specify it.""")
 
         if isOnefileMode and not shallNotCompressOnefile() and not isLinux():
-            self.warning(
-                """\
+            self.warning("""\
 For best results, disable onefile compression with '--onefile-no-compression' \
-as double compression going to give larger and slower results."""
-            )
+as double compression going to give larger and slower results.""")
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -81,8 +79,36 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
 
         return new_result, stderr
 
+    @staticmethod
+    def _shallSkipCompression(filename):
+        basename = os.path.basename(filename)
+        basename_lower = basename.lower()
+
+        compiler_used = getSconsCompilerUsed(
+            getSourceDirectoryPath(onefile=False, create=False)
+        )
+
+        # UPX compression of this extension module is known to break startup
+        # for Qt WebEngine on Windows with MinGW64 and zig, while MSVC and
+        # ClangCL work. spell-checker: ignore qtwebchannel
+        if basename_lower == "qtwebchannel.pyd" and compiler_used in ("MinGW64", "zig"):
+            return """\
+Not compressing '%s' because UPX compressed builds are not working with %s \
+compilation for this file; MSVC and ClangCL compilation work.""" % (
+                basename,
+                compiler_used,
+            )
+
+        return None
+
     def _compressFile(self, filename, use_cache):
         upx_options = ["-q", "--no-progress", "--best", "--lzma"]
+
+        skip_reason = self._shallSkipCompression(filename)
+
+        if skip_reason is not None:
+            self.info(skip_reason)
+            return
 
         # spell-checker: ignore vcruntime140
         if os.path.basename(filename).startswith("vcruntime140"):
@@ -100,8 +126,7 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
             upx_hash.updateFromFile(filename)
 
             # TODO: Repeating pattern
-            upx_cache_dir = getCacheDir("upx")
-            makePath(upx_cache_dir)
+            upx_cache_dir = getCacheDir("upx", create=True)
 
             upx_cache_filename = os.path.join(
                 upx_cache_dir, upx_hash.asHexDigest() + ".bin"

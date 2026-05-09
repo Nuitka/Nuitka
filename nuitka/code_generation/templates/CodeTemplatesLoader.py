@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Templates for the loading of embedded modules."""
@@ -153,7 +153,7 @@ struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE(current->name);
+            current->name = UN_TRANSLATE_NAME(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 

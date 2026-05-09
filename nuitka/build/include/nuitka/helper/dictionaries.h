@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
@@ -79,12 +79,12 @@ typedef Py_ssize_t (*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_
 typedef Py_ssize_t (*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **value_addr);
 #endif
 
-// Taken from CPython3.3 "Objects/dictobject.c", lives in "Objects/dict-common.h" later
+// Taken from CPython3.3 "Objects/dictobject.c", lives in "Objects/dict-common.h" later,
 
 #if PYTHON_VERSION < 0x3b0
 
 #define DK_SIZE(dk) ((dk)->dk_size)
-struct _dictkeysobject {
+struct _dictkeysobject { // spell-checker: ignore dictkeysobject
     Py_ssize_t dk_refcnt;
     Py_ssize_t dk_size;
     dict_lookup_func dk_lookup;
@@ -115,6 +115,7 @@ struct _dictkeysobject {
 
 #if PYTHON_VERSION < 0x3b0
 #if SIZEOF_VOID_P > 4
+// spell-checker: ignore DK_IXSIZE
 #define DK_IXSIZE(dk)                                                                                                  \
     (DK_SIZE(dk) <= 0xff ? 1 : DK_SIZE(dk) <= 0xffff ? 2 : DK_SIZE(dk) <= 0xffffffff ? 4 : sizeof(int64_t))
 #else
@@ -213,7 +214,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
         found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
     }
 
-    assert(found != DKIX_ERROR);
+    assert(found != DKIX_ERROR); // spell-checker: ignore DKIX_ERROR
 
     return value;
 #endif
@@ -453,7 +454,13 @@ extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr,
 extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
-#define MAKE_DICT_EMPTY(tstate) PyDict_New()
+static inline PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
+    (void)tstate;
+
+    PyObject *result = PyDict_New();
+    assert(result != NULL);
+    return result;
+}
 #endif
 
 // Create a dictionary from key/value pairs.

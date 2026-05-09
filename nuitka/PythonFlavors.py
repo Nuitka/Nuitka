@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Python flavors specifics.
@@ -94,6 +94,35 @@ def isApplePython():
     return False
 
 
+_is_pyenv_homebrew_python = None
+
+
+def isPyenvHomebrewPython():
+    """Detect if this is a Pyenv Python built with Homebrew dependencies."""
+    # Singleton, pylint: disable=global-statement
+    global _is_pyenv_homebrew_python
+
+    if _is_pyenv_homebrew_python is None:
+        if not isMacOS() or not isPyenvPython():
+            _is_pyenv_homebrew_python = False
+        else:
+            _is_pyenv_homebrew_python = False
+            import sysconfig
+
+            for var_value in sysconfig.get_config_vars().values():
+                if var_value is not None:
+                    var_value_str = str(var_value)
+                    if (
+                        "/opt/homebrew" in var_value_str
+                        or "/usr/local/opt" in var_value_str
+                        or "/usr/local/Homebrew" in var_value_str
+                    ):
+                        _is_pyenv_homebrew_python = True
+                        break
+
+    return _is_pyenv_homebrew_python
+
+
 def isHomebrewPython():
     # spell-checker: ignore sitecustomize
     if not isMacOS():
@@ -117,7 +146,7 @@ def isHomebrewPython():
 
 
 def getHomebrewInstallPath():
-    assert isHomebrewPython()
+    assert isHomebrewPython() or isPyenvHomebrewPython()
 
     candidate = getSystemPrefixPath()
 
@@ -127,7 +156,52 @@ def getHomebrewInstallPath():
 
         candidate = os.path.dirname(candidate)
 
+    # Expect above to work, except for when pyenv is installing to outside of it.
+    assert isPyenvHomebrewPython()
+
+    if os.path.isdir("/opt/homebrew/Cellar"):
+        return "/opt/homebrew"
+
+    if os.path.isdir("/usr/local/Cellar"):
+        return "/usr/local"
+
     sys.exit("Error, failed to locate homebrew installation path.")
+
+
+_is_mac_ports_python = None
+
+
+def isMacPortsPython():
+    """Detect if this is a MacPorts Python."""
+    # Singleton, pylint: disable=global-statement
+    global _is_mac_ports_python
+
+    if _is_mac_ports_python is None:
+        _is_mac_ports_python = False
+
+        if isMacOS():
+            _is_mac_ports_python = isFilenameSameAsOrBelowPath(
+                path="/opt/local", filename=getSystemPrefixPath()
+            ) or isFilenameSameAsOrBelowPath(path="/opt/local", filename=sys.executable)
+
+    return _is_mac_ports_python
+
+
+def getMacPortsInstallPath():
+    assert isMacPortsPython()
+
+    candidate = getSystemPrefixPath()
+
+    while candidate != "/":
+        if candidate == "/opt/local":
+            return candidate
+
+        if os.path.exists(os.path.join(candidate, "bin", "port")):
+            return candidate
+
+        candidate = os.path.dirname(candidate)
+
+    return "/opt/local"
 
 
 def isRyePython():
@@ -247,9 +321,22 @@ def isWinPython():
     return _is_win_python
 
 
+_is_debian_package_python = None
+
+
 def isDebianPackagePython():
     """Is this Python from a debian package."""
 
+    # singleton, pylint: disable=global-statement
+    global _is_debian_package_python
+
+    if _is_debian_package_python is None:
+        _is_debian_package_python = _isDebianPackagePython()
+
+    return _is_debian_package_python
+
+
+def _isDebianPackagePython():
     # spell-checker: ignore multiarch
 
     if not isLinux():
@@ -257,7 +344,13 @@ def isDebianPackagePython():
 
     if python_version < 0x300:
         return hasattr(sys, "_multiarch")
-    elif python_version < 0x3C0:
+    else:
+        import sysconfig
+
+        # Need to check there for Debian patch.
+        if "deb_system" in getattr(sysconfig, "_INSTALL_SCHEMES", {}):
+            return True
+
         with withNoDeprecationWarning():
             try:
                 from distutils.dir_util import _multiarch
@@ -265,11 +358,6 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
-    else:
-        import sysconfig
-
-        # Need to check there for Debian patch, pylint: disable=protected-access
-        return "deb_system" in sysconfig._INSTALL_SCHEMES
 
 
 def isFedoraPackagePython():
@@ -405,6 +493,12 @@ def getPythonFlavorName():
         return "Alpine Python"
     elif isGithubActionsPython():
         return "GitHub Actions Python"
+    elif isPyenvHomebrewPython():
+        return "PyEnv on Homebrew Python"
+    elif isPyenvPython():
+        return "PyEnv Python"
+    elif isMacPortsPython():
+        return "MacPorts Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isRyePython():
@@ -413,8 +507,6 @@ def getPythonFlavorName():
         return "Python Build Standalone"
     elif isApplePython():
         return "Apple Python"
-    elif isPyenvPython():
-        return "pyenv"
     elif isPosixWindows():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():

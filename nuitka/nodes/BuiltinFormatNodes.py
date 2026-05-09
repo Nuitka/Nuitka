@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Format related nodes format/bin/oct/hex/ascii.
@@ -63,8 +63,7 @@ class ExpressionBuiltinFormat(
                     value,
                     "new_expression",
                     """\
-Removed useless 'format' on '%s' value."""
-                    % value.getTypeShape().getTypeName(),
+Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName(),
                 )
 
         return self, None, None

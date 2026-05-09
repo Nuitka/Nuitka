@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to make PyQt and PySide work well in standalone mode.
@@ -35,7 +35,13 @@ from nuitka.utils.FileOperations import (
     listDir,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.SharedLibraries import getPatchElfVersion
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isElfUsingPlatform,
+    isMacOS,
+    isWin32Windows,
+)
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -100,6 +106,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 "Error, failed to locate the '%s' installation." % self.binding_name
             )
 
+        if isElfUsingPlatform():
+            self._checkPatchElfVersion()
+
         sensible_qt_plugins = self._getSensiblePlugins()
 
         self.include_qt_plugins = OrderedSet(
@@ -140,6 +149,15 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
             reason="%s bindings removing immortal states of objects"
             % self.binding_name,
         )
+
+    def _checkPatchElfVersion(self):
+        patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
+
+        if (0, 10) <= patchelf_version_tuple < (0, 12):
+            self.sysexit("""\
+Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
+for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
+newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -311,12 +329,10 @@ there might be.""",
                 "path_name": path_name,
             }
 
-        setup_codes = self._applyBindingName(
-            r"""
+        setup_codes = self._applyBindingName(r"""
 import os
 import %(binding_name)s.QtCore
-"""
-        )
+""")
 
         info = self.queryRuntimeInformationMultiple(
             info_name=self._applyBindingName("%(binding_name)s_info"),
@@ -643,6 +659,12 @@ import %(binding_name)s.QtCore
             yield self._getChildNamed("QtWebEngineCore")
             yield self._getChildNamed("QtWebChannel")
             yield self._getChildNamed("QtPrintSupport")
+        elif (
+            child_name == "QtWebEngineCore"
+            and self.binding_name == "PySide6"
+            and self._getBindingVersion() >= (6, 10, 0)
+        ):
+            yield self._getChildNamed("QtPrintSupport")
         elif child_name == "QtScriptTools":
             yield self._getChildNamed("QtScript")
         elif child_name in (
@@ -778,10 +800,14 @@ class OurQApplication(orig_QApplication):
 
         self.setWindowIcon(icon)
 
+OurQApplication.__module__ = orig_QApplication.__module__
+OurQApplication.__name__ = orig_QApplication.__name__
+if str is not bytes:
+    OurQApplication.__qualname__ = orig_QApplication.__qualname__
+OurQApplication.__doc__ = orig_QApplication.__doc__
+
 %(binding_name)s.QtWidgets.QApplication = OurQApplication
-""" % {
-                "binding_name": self.binding_name
-            }
+""" % {"binding_name": self.binding_name}
 
             yield (code, "Loading Qt application icon from Windows resources.")
 
@@ -884,9 +910,7 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
     %(web_engine_locales_path)r,
     "qtwebengine_locales"
 )
-""" % {
-                "web_engine_locales_path": self._getTranslationsTargetDir()
-            }
+""" % {"web_engine_locales_path": self._getTranslationsTargetDir()}
 
             yield (
                 code,
@@ -1014,21 +1038,23 @@ Prefix = .
         framework_basename = framework_name + ".framework"
         framework_path = getNormalizedPathJoin(source_path, framework_basename)
 
-        for filename in getFileList(framework_path):
-            filename_relative = os.path.relpath(filename, framework_path)
+        # Some Qt wheel layouts do not ship all optional WebEngine dependencies
+        # as frameworks. Before framework directory copying, these were
+        # silently skipped, and we need to preserve that behavior.
+        if not os.path.isdir(framework_path):
+            return None
 
-            yield self.makeIncludedDataFile(
-                source_path=filename,
-                dest_path=getNormalizedPathJoin(
-                    self.binding_name,
-                    "Qt",
-                    "lib",
-                    framework_basename,
-                    filename_relative,
-                ),
-                reason=reason,
-                tags=tags,
-            )
+        return self.makeIncludedFrameworkDirectory(
+            source_path=framework_path,
+            dest_path=getNormalizedPathJoin(
+                self.binding_name,
+                "Qt",
+                "lib",
+                framework_basename,
+            ),
+            reason=reason,
+            tags=tags,
+        )
 
     def _handleWebEngineDataFilesGeneric(self):
         resources_dir = self._getWebEngineResourcesPath()
@@ -1353,8 +1379,7 @@ behavior with the uncompiled code."""
             self.warning(
                 """Including QML file %s, but not having Qt qml plugins is unlikely \
 to work. Consider using '--include-qt-plugins=qml' to include the \
-necessary files to use it."""
-                % included_datafile.dest_path
+necessary files to use it.""" % included_datafile.dest_path
             )
 
 
@@ -1637,10 +1662,8 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
         NuitkaPluginQtBindingsPluginBase.onCompilationStartChecks(self)
 
         if self._getBindingVersion() < (6, 5, 0):
-            self.warning(
-                """\
-Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all cases."""
-            )
+            self.warning("""\
+Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all cases.""")
 
         if self._getBindingVersion() < (6, 1, 2):
             self.warning(

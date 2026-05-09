@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Provide installed Pythons with module availability checks."""
@@ -10,6 +10,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import (
     getInstalledPythonRegistryPaths,
+    isRunningInInterpreter,
     python_version_str,
 )
 
@@ -44,7 +45,7 @@ class InstalledPython(object):
         return int(major) * 256 + int(minor) * 16
 
     def isAnacondaPython(self):
-        if self.python_exe == sys.executable:
+        if self.python_exe == sys.executable and isRunningInInterpreter():
             return isAnacondaPython()
 
         # TODO: May not yet work really.
@@ -53,7 +54,7 @@ class InstalledPython(object):
         )
 
     def isMSYS2MingwPython(self):
-        if self.python_exe == sys.executable:
+        if self.python_exe == sys.executable and isRunningInInterpreter():
             return isMSYS2MingwPython()
 
         # TODO: May not yet work really.
@@ -78,12 +79,18 @@ class InstalledPython(object):
         # We can trust our own code there, pylint: disable=exec-used
         exec(code.replace("print", "catch_print"), context)
 
-    def checkUsability(self, module_name, module_version):
+    def checkUsability(self, module_spec):
         # very many cases and return driven
         # pylint: disable=too-many-branches,too-many-return-statements
 
-        if module_name is None:
+        if module_spec is None:
             return True
+
+        if ">=" in module_spec:
+            module_name, module_version = module_spec.split(">=", 1)
+        else:
+            module_name = module_spec
+            module_version = None
 
         test_code = "import %s" % module_name
 
@@ -92,7 +99,7 @@ class InstalledPython(object):
 
         test_code += ";print('OK')"
 
-        if self.python_exe != sys.executable:
+        if self.python_exe != sys.executable or not isRunningInInterpreter():
             try:
                 output = check_output([self.python_exe, "-c", test_code])
             except NuitkaCalledProcessError:
@@ -167,13 +174,27 @@ def _getPythonInstallPathsWindows(python_version):
             yield candidate
 
 
-def findPythons(python_version, module_name=None, module_version=None):
+def _checkCandidateUsability(candidate, module_specs):
+    if module_specs is None:
+        return True
+
+    if type(module_specs) is str:
+        module_specs = module_specs.split("|")
+
+    for module_spec in module_specs:
+        if candidate.checkUsability(module_spec):
+            return True
+
+    return False
+
+
+def findPythons(python_version, module_specs=None):
     """Find all Python installations for a specific version."""
 
     if python_version not in _installed_pythons:
         result = OrderedSet()
 
-        if python_version == python_version_str:
+        if python_version == python_version_str and isRunningInInterpreter():
             result.add(
                 InstalledPython(
                     python_exe=sys.executable, python_version=python_version
@@ -199,8 +220,9 @@ def findPythons(python_version, module_name=None, module_version=None):
             (
                 candidate
                 for candidate in _installed_pythons[python_version]
-                if candidate.checkUsability(
-                    module_name=module_name, module_version=module_version
+                if _checkCandidateUsability(
+                    candidate=candidate,
+                    module_specs=module_specs,
                 )
             ),
             key=lambda c: c.getPythonExe(),
@@ -208,7 +230,7 @@ def findPythons(python_version, module_name=None, module_version=None):
     )
 
 
-def findInstalledPython(python_versions, module_name, module_version):
+def findInstalledPython(python_versions, module_specs):
     python_versions = list(python_versions)
     python_versions.sort(
         key=lambda python_version: python_version != python_version_str
@@ -221,8 +243,9 @@ def findInstalledPython(python_versions, module_name, module_version):
     # Attempt to prefer scanned versions.
     for python_version in python_versions:
         for candidate in _installed_pythons.get(python_version, ()):
-            if module_name is None or candidate.checkUsability(
-                module_name=module_name, module_version=module_version
+            if _checkCandidateUsability(
+                candidate=candidate,
+                module_specs=module_specs,
             ):
                 return candidate
 
@@ -230,8 +253,9 @@ def findInstalledPython(python_versions, module_name, module_version):
     for python_version in python_versions:
         if python_version not in _installed_pythons:
             for candidate in findPythons(python_version):
-                if module_name is None or candidate.checkUsability(
-                    module_name=module_name, module_version=module_version
+                if _checkCandidateUsability(
+                    candidate=candidate,
+                    module_specs=module_specs,
                 ):
                     return candidate
 

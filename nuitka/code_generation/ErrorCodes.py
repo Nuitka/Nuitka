@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Error codes
@@ -102,35 +102,31 @@ def getErrorExitBoolCode(
 
     if fetched_exception:
         emit(
-            indented(
-                template_error_catch_fetched_exception
-                % {
-                    "condition": condition,
-                    "exception_state_name": exception_state_name,
-                    "exception_exit": context.getExceptionEscape(),
-                    "release_temps": indented(getErrorExitReleaseCode(context)),
-                    "var_description_code": indented(
-                        getFrameVariableTypeDescriptionCode(context)
-                    ),
-                    "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-                }
-            )
+            template_error_catch_fetched_exception
+            % {
+                "condition": condition,
+                "exception_state_name": exception_state_name,
+                "exception_exit": context.getExceptionEscape(),
+                "release_temps": indented(getErrorExitReleaseCode(context)),
+                "var_description_code": indented(
+                    getFrameVariableTypeDescriptionCode(context)
+                ),
+                "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            }
         )
     else:
         emit(
-            indented(
-                template_error_catch_exception
-                % {
-                    "condition": condition,
-                    "exception_state_name": exception_state_name,
-                    "exception_exit": context.getExceptionEscape(),
-                    "release_temps": indented(getErrorExitReleaseCode(context)),
-                    "var_description_code": indented(
-                        getFrameVariableTypeDescriptionCode(context)
-                    ),
-                    "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-                }
-            )
+            template_error_catch_exception
+            % {
+                "condition": condition,
+                "exception_state_name": exception_state_name,
+                "exception_exit": context.getExceptionEscape(),
+                "release_temps": indented(getErrorExitReleaseCode(context)),
+                "var_description_code": indented(
+                    getFrameVariableTypeDescriptionCode(context)
+                ),
+                "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            }
         )
 
 
@@ -208,12 +204,9 @@ def getReleaseCodes(release_names, emit, context):
 
 
 def getMustNotGetHereCode(reason, emit):
-    emit(
-        """\
+    emit("""\
 NUITKA_CANNOT_GET_HERE("%s");
-return NULL;"""
-        % reason
-    )
+return NULL;""" % reason)
 
 
 def getAssertionCode(check, emit):

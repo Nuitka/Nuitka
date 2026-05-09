@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Variable declarations
@@ -17,6 +17,7 @@ from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
+    CTypePyCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
 )
@@ -93,6 +94,8 @@ class VariableDeclaration(object):
             return CTypePyObjectPtr
         elif c_type == "struct Nuitka_CellObject *":
             return CTypeCellObject
+        elif c_type == "PyCellObject *":
+            return CTypePyCellObject
         elif c_type == "PyObject **":
             return CTypePyObjectPtrPtr
         elif c_type == "nuitka_bool":
@@ -136,6 +139,7 @@ class VariableStorage(object):
         "variable_declarations_closure",
         "variable_declarations_locals",
         "exception_variable_name",
+        "variable_declarations_top",
     )
 
     def __init__(self, heap_name):
@@ -148,6 +152,8 @@ class VariableStorage(object):
         self.variable_declarations_locals = []
 
         self.exception_variable_name = None
+
+        self.variable_declarations_top = {}
 
     @contextmanager
     def withLocalStorage(self):
@@ -165,15 +171,7 @@ class VariableStorage(object):
         self.variable_declarations_locals.pop()
 
     def getVariableDeclarationTop(self, code_name):
-        for variable_declaration in self.variable_declarations_main:
-            if variable_declaration.code_name == code_name:
-                return variable_declaration
-
-        for variable_declaration in self.variable_declarations_heap:
-            if variable_declaration.code_name == code_name:
-                return variable_declaration
-
-        return None
+        return self.variable_declarations_top.get(code_name)
 
     def getVariableDeclarationClosure(self, closure_index):
         return self.variable_declarations_closure[closure_index]
@@ -229,6 +227,12 @@ class VariableStorage(object):
         result = VariableDeclaration(c_type, code_name, init_value, None)
 
         self.variable_declarations_main.append(result)
+        assert code_name not in self.variable_declarations_top, (
+            code_name,
+            self.variable_declarations_top[code_name],
+            result,
+        )
+        self.variable_declarations_top[code_name] = result
 
         return result
 
@@ -239,6 +243,13 @@ class VariableStorage(object):
             self.variable_declarations_heap.append(result)
         else:
             self.variable_declarations_main.append(result)
+
+        assert code_name not in self.variable_declarations_top, (
+            code_name,
+            self.variable_declarations_top[code_name],
+            result,
+        )
+        self.variable_declarations_top[code_name] = result
 
         return result
 

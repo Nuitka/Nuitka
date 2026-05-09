@@ -607,18 +607,32 @@
     - patterns:
         - 'cacert.pem'
 
-- module-name: 'bpy' # checksum: e3ed6145
+- module-name: 'bpy' # checksum: 2df774eb
+  variables:
+    setup_code:
+      - 'import bpy'
+      - 'import os'
+      - 'script_path = bpy.utils.script_paths()[0]'
+      - 'module_folder = os.path.dirname(os.path.dirname(script_path))'
+    declarations:
+      'bpy_has_versioned_scripts_dir': 'os.path.isdir(script_path)'
+      'bpy_versioned_scripts_dir': 'os.path.relpath(script_path, module_folder)'
   data-files:
     - dirs:
         - '.'
         - 'materialx'
         - 'usd'
     - raw_dirs:
-        - '4.1'
+        - 'get_variable("bpy_versioned_scripts_dir")'
+      when: 'get_variable("bpy_has_versioned_scripts_dir")'
   dlls:
     - from_filenames:
         prefixes:
           - ''
+
+  implicit-imports:
+    - depends:
+        - 'numpy'
 
 - module-name: 'branca' # checksum: c4e34d71
   data-files:
@@ -1513,6 +1527,23 @@
         'self.add_batch = types.MethodType(': 'self.add_batch = self.add_batch.__class__('
         'self.add = types.MethodType(': 'self.add = self.add.__class__('
 
+- module-name: 'eventlet' # checksum: 9042efed
+  implicit-imports:
+    - depends:
+        - 'eventlet.hubs'
+        - 'dns.*'
+
+- module-name: 'eventlet.hubs' # checksum: b5ba53e2
+  implicit-imports:
+    - depends:
+        - 'eventlet.hubs.epolls'
+        - 'eventlet.hubs.hub'
+        - 'eventlet.hubs.kqueue'
+        - 'eventlet.hubs.poll'
+        - 'eventlet.hubs.pyevent'
+        - 'eventlet.hubs.selects'
+        - 'eventlet.hubs.timer'
+
 - module-name: 'exchangelib' # checksum: 9f83fa1b
   implicit-imports:
     - depends:
@@ -1645,6 +1676,34 @@
       change_function:
         'install_flet_package': 'un-callable'
       when: 'standalone'
+
+- module-name: 'flet_desktop' # checksum: a0d7a541
+  data-files:
+    - dirs:
+        - 'app/flet/data'
+      when: 'win32'
+    - patterns:
+        - 'app/flet/data/**/*.bin'
+        - 'app/flet/data/**/*.so*'
+      when: 'win32'
+    - patterns:
+        - 'app/flet-*.tar.gz'
+      when: 'not win32'
+
+  dlls:
+    # TODO: Add a way to mark these as "external" so DLL dependency analysis
+    # knows which packaged runtime binary they belong to.
+    - from_filenames:
+        relative_path: 'app/flet'
+        prefixes:
+          - ''
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'app/flet'
+        prefixes:
+          - ''
+        executable: 'yes'
+      when: 'win32'
 
 - module-name: 'folium' # checksum: 2e123618
   data-files:
@@ -1963,6 +2022,11 @@
   data-files:
     - patterns:
         - '_cython/_credentials/roots.pem'
+
+- module-name: 'grpc_requests' # checksum: c60b4c80
+  data-files:
+    - include-metadata:
+        - 'protobuf'
 
 - module-name: 'gruut' # checksum: fddc60ae
   data-files:
@@ -2651,7 +2715,7 @@
     - depends:
         - 'numpy.core.multiarray'
 
-- module-name: 'lxml' # checksum: 1528e581
+- module-name: 'lxml' # checksum: d4275afa
   implicit-imports:
     - depends:
         - '.builder'
@@ -2661,6 +2725,8 @@
         - '._elementpath'
   import-hacks:
     - recompile-extensions: 'no'
+    - package-system-dlls: 'yes'
+      when: 'debian_python'
 
 - module-name: 'lxml.etree' # checksum: dfaed226
   implicit-imports:
@@ -3087,19 +3153,17 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'multiprocess.util' # checksum: bbf4504b
+- module-name: 'multiprocess.util' # checksum: df30b465
   anti-bloat:
-    - description: 'remove unittest reference'
-      change_function:
-        '_cleanup_tests': 'un-callable'
-      when: 'not use_unittest'
+    - description: 'avoid test module usage'
+      no-auto-follow:
+        'test': 'ignore'
 
-- module-name: 'multiprocessing.util' # checksum: bbf4504b
+- module-name: 'multiprocessing.util' # checksum: df30b465
   anti-bloat:
-    - description: 'remove unittest reference'
-      change_function:
-        '_cleanup_tests': 'un-callable'
-      when: 'not use_unittest'
+    - description: 'avoid test module usage'
+      no-auto-follow:
+        'test': 'ignore'
 
 - module-name: 'nacl._sodium' # checksum: ff2e6560
   implicit-imports:
@@ -3243,7 +3307,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: e8a53225
+- module-name: 'numpy' # checksum: 2c28405f
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3256,13 +3320,14 @@
           import os, sys
           library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
           library_path = os.path.join(sys.prefix, library_path)
-          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+          library_filenames = ("libblas.dll", "libcblas.dll", "liblapack.dll") if os.name == "nt" else ()
+          library_prefixes = ("mkl_",) if os.name == "nt" else ("libmkl_",)
         filename_code: |
           [os.path.join(library_path, filename)
            for filename in os.listdir(library_path)
-           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
+           if filename in library_filenames or filename.startswith(library_prefixes)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'is_conda_package("numpy") and version("numpy") < (2,)'
+      when: 'is_conda_package("numpy")'
 
   anti-bloat:
     - description: 'avoid URLs for AV noise'
@@ -3378,6 +3443,13 @@
         '.pydoc.allmethods(object)': '()'
         'import pydoc': ''
       when: 'not use_pydoc'
+
+- module-name: 'numpy.ma.core' # checksum: c9565901
+  anti-bloat:
+    - description: 'avoid empty docstring assertion'
+      replacements_plain:
+        'func.__doc__ is not None': 'func.__doc__ is not None and func.__doc__ != ""'
+      when: 'no_docstrings'
 
 - module-name: 'numpy.random' # checksum: e43161e7
   implicit-imports:
@@ -3712,13 +3784,7 @@
         prefixes:
           - ''
 
-- module-name: 'openvino.inference_engine' # checksum: 9100f948
-  dlls:
-    - from_filenames:
-        relative_path: '../libs'
-        prefixes:
-          - ''
-
+- module-name: 'openvino.inference_engine' # checksum: 22b5ffdd
   implicit-imports:
     - depends:
         - 'openvino.inference_engine.ie_api'
@@ -4292,6 +4358,11 @@
     - depends:
         - '.*.locale'
 
+- module-name: 'perfetto.trace_processor' # checksum: fcccb406
+  data-files:
+    - patterns:
+        - '*.descriptor'
+
 - module-name: 'persistent._compat' # checksum: 79e919b4
   anti-bloat:
     - description: 'use own compilation for compatibility'
@@ -4309,18 +4380,27 @@
     - depends:
         - '.region_*'
 
-- module-name: 'PIL' # checksum: 52d41000
+- module-name: 'PIL' # checksum: ad207987
   anti-bloat:
     - description: 'avoid numpy dependency'
       no-auto-follow:
         'numpy': 'ignore'
+    - description: 'avoid tkinter dependency'
+      no-auto-follow:
+        'tkinter': 'PIL will not be able to create Tk image objects'
+      when: 'not use_tkinter'
 
 - module-name: 'PIL._imagingtk' # checksum: 52df48a8
   implicit-imports:
     - depends:
         - 'PIL._tkinter_finder'
 
-- module-name: 'PIL.Image' # checksum: 560d430e
+- module-name: 'PIL.Image' # checksum: fc233aba
+  variables:
+    setup_code:
+      - 'import PIL.Image'
+    declarations:
+      'pil_image_plugins': 'tuple("PIL." + plugin for plugin in PIL.Image._plugins)'
   anti-bloat:
     - description: 'avoid Qt dependency'
       no-auto-follow:
@@ -4336,51 +4416,7 @@
         'packaging': 'ignore'
   implicit-imports:
     - depends:
-        - 'PIL.BlpImagePlugin'
-        - 'PIL.BmpImagePlugin'
-        - 'PIL.BufrStubImagePlugin'
-        - 'PIL.CurImagePlugin'
-        - 'PIL.DcxImagePlugin'
-        - 'PIL.DdsImagePlugin'
-        - 'PIL.EpsImagePlugin'
-        - 'PIL.FitsStubImagePlugin'
-        - 'PIL.FliImagePlugin'
-        - 'PIL.FpxImagePlugin'
-        - 'PIL.FtexImagePlugin'
-        - 'PIL.GbrImagePlugin'
-        - 'PIL.GifImagePlugin'
-        - 'PIL.GribStubImagePlugin'
-        - 'PIL.Hdf5StubImagePlugin'
-        - 'PIL.IcnsImagePlugin'
-        - 'PIL.IcoImagePlugin'
-        - 'PIL.ImImagePlugin'
-        - 'PIL.ImtImagePlugin'
-        - 'PIL.IptcImagePlugin'
-        - 'PIL.Jpeg2KImagePlugin'
-        - 'PIL.JpegImagePlugin'
-        - 'PIL.McIdasImagePlugin'
-        - 'PIL.MicImagePlugin'
-        - 'PIL.MpegImagePlugin'
-        - 'PIL.MpoImagePlugin'
-        - 'PIL.MspImagePlugin'
-        - 'PIL.PalmImagePlugin'
-        - 'PIL.PcdImagePlugin'
-        - 'PIL.PcxImagePlugin'
-        - 'PIL.PdfImagePlugin'
-        - 'PIL.PixarImagePlugin'
-        - 'PIL.PngImagePlugin'
-        - 'PIL.PpmImagePlugin'
-        - 'PIL.PsdImagePlugin'
-        - 'PIL.SgiImagePlugin'
-        - 'PIL.SpiderImagePlugin'
-        - 'PIL.SunImagePlugin'
-        - 'PIL.TgaImagePlugin'
-        - 'PIL.TiffImagePlugin'
-        - 'PIL.WebPImagePlugin'
-        - 'PIL.WmfImagePlugin'
-        - 'PIL.XbmImagePlugin'
-        - 'PIL.XpmImagePlugin'
-        - 'PIL.XVThumbImagePlugin'
+        - 'get_variable("pil_image_plugins")'
 
 - module-name: 'PIL.ImageShow' # checksum: 1ae9e8b3
   anti-bloat:
@@ -4418,6 +4454,11 @@
     - description: 'allow pydoc inside pip vendored modules'
       no-auto-follow:
         'pydoc': 'ignore'
+
+- module-name: 'pip._vendor.rich._unicode_data' # checksum: de94d9e0
+  implicit-imports:
+    - depends:
+        - '[m for m in iterate_modules("pip._vendor.rich._unicode_data") if m.rsplit(".", 1)[-1].startswith("unicode")]'
 
 - module-name: 'pip._vendor.rich.jupyter' # checksum: b346e77
   # See rich.jupyter
@@ -4544,7 +4585,7 @@
     - depends:
         - 'plotly.version'
 
-- module-name: 'plotly.graph_objects' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objects' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4553,8 +4594,12 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Dash imports 'plotly.graph_objects.Figure' at module load time.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.graph_objs' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objs' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4563,13 +4608,21 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Plotly resolves 'Figure' lazily via '_plotly_utils.importers'.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.io' # checksum: bc9ae932
+- module-name: 'plotly.io' # checksum: 87ddf821
   anti-bloat:
     - description: 'include plotly templates'
       replacements_plain:
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
+  implicit-imports:
+    - depends:
+        # Plotly imports 'templates' during 'plotly.io' initialization.
+        - 'plotly.io._templates'
 
 - module-name: 'plotly.validator_cache' # checksum: 4e4fa5ab
   implicit-imports:
@@ -4699,6 +4752,11 @@
         'from ._common import POSIX': "'POSIX = %r' % psutil.POSIX"
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
+
+- module-name: 'psycopg_binary._psycopg' # checksum: 473bd23b
+  implicit-imports:
+    - depends:
+        - '._uuid'
 
 - module-name: 'puremagic' # checksum: 8e1484eb
   data-files:
@@ -5028,7 +5086,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: 83b57769
+- module-name: 'pypylon' # checksum: 3494369e
   data-files:
     - patterns:
         - '**/*.sig'
@@ -5039,8 +5097,7 @@
         - '**/*.omc'
         - '**/*.hotc'
       when: 'not macos'
-    - dest_path: '.'
-      raw_dirs:
+    - raw_dirs:
         - 'pylon.framework'
       when: 'macos'
   dlls:
@@ -5050,6 +5107,9 @@
           - 'Pylon'
           - 'gxapi'
           - 'uxapi'
+          - 'libpylon'
+          - 'libgxapi'
+          - 'libuxapi'
       when: 'not macos'
     - from_filenames:
         relative_path: 'pylonDataProcessingPlugins'
@@ -5156,66 +5216,75 @@
       replacements_plain:
         "not all('/site-packages/' in p for p in __path__[1:])": 'False'
 
-- module-name: 'pyscf.agf2._agf2' # checksum: c57648ff
+- module-name: 'pyscf.agf2._agf2' # checksum: cc497dd6
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libagf2'
 
-- module-name: 'pyscf.ao2mo' # checksum: b1eae599
+- module-name: 'pyscf.ao2mo' # checksum: f35142c0
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libao2mo'
 
-- module-name: 'pyscf.cc._ccsd' # checksum: 2f8edb26
+- module-name: 'pyscf.cc._ccsd' # checksum: 85a737bf
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcc'
 
-- module-name: 'pyscf.df.df_jk' # checksum: 9c821128
+- module-name: 'pyscf.df.df_jk' # checksum: 36abfdb1
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libri'
 
-- module-name: 'pyscf.dft' # checksum: 2f70b34e
+- module-name: 'pyscf.dft' # checksum: a609b142
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libdft'
 
-- module-name: 'pyscf.dft.libxc' # checksum: f3d52af4
+- module-name: 'pyscf.dft.libxc' # checksum: d01eb819
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libxc_itrf'
 
-- module-name: 'pyscf.dft.xcfun' # checksum: c7fd93f9
+- module-name: 'pyscf.dft.xcfun' # checksum: 29062389
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libxcfun_itrf'
 
-- module-name: 'pyscf.fci' # checksum: 3285ffbc
+- module-name: 'pyscf.fci' # checksum: bbfcfdb0
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libfci'
 
-- module-name: 'pyscf.gto' # checksum: 251ddee
+- module-name: 'pyscf.gto' # checksum: b6ee8c7
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcgto'
 
@@ -5230,31 +5299,35 @@
         prefixes:
           - 'libnp_helper'
 
-- module-name: 'pyscf.mcscf' # checksum: a8cbc5fd
+- module-name: 'pyscf.mcscf' # checksum: ea7062a4
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libmcscf'
 
-- module-name: 'pyscf.mrpt.nevpt2' # checksum: a8cbc5fd
+- module-name: 'pyscf.mrpt.nevpt2' # checksum: ea7062a4
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libmcscf'
 
-- module-name: 'pyscf.pbc' # checksum: d3e0f821
+- module-name: 'pyscf.pbc' # checksum: 5a99fa2d
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libpbc'
 
-- module-name: 'pyscf.scf._vhf' # checksum: 801ef150
+- module-name: 'pyscf.scf._vhf' # checksum: 8921c479
   dlls:
     - from_filenames:
-        relative_path: '../lib'
+        relative_to: 'pyscf'
+        relative_path: 'lib'
         prefixes:
           - 'libcvhf'
 
@@ -5309,7 +5382,7 @@
         macos_bundle_as_onefile: 'yes'
         when: 'macos and use_pyside2'
 
-- module-name: 'PySide6' # checksum: 749c1641
+- module-name: 'PySide6' # checksum: 498a67fc
   implicit-imports:
     - post-import-code:
         - |
@@ -5319,11 +5392,18 @@
             if hasattr(func, "__compiled__") and hasattr(func, "im_func"):
                 _protected.append(func)
 
-                if not func.__name__.startswith("_pyside6_workaround_"):
-                  func.im_func.__name__ = "_pyside6_workaround_" + func.im_func.__name__
+                protected_name = func.im_func.__name__
+
+                if not protected_name.startswith("_pyside6_workaround_"):
+                  protected_name = "_pyside6_workaround_" + getattr(
+                      func.im_func,
+                      "__qualname__",
+                      protected_name
+                  )
+                  func.im_func.__name__ = protected_name
 
                 try:
-                  setattr(func.im_self.__class__, func.im_func.__name__, func.im_func)
+                  setattr(func.im_self.__class__, protected_name, func.im_func)
                 except Exception:
                   pass
 
@@ -5749,6 +5829,11 @@
     - patterns:
         - 'syntax_rfc3987.lark'
 
+- module-name: 'rich._unicode_data' # checksum: da973d02
+  implicit-imports:
+    - depends:
+        - '[m for m in iterate_modules("rich._unicode_data") if m.rsplit(".", 1)[-1].startswith("unicode")]'
+
 - module-name: 'rich.jupyter' # checksum: b346e77
   anti-bloat:
     - description: 'remove IPython reference'
@@ -6149,10 +6234,29 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'sentry_sdk' # checksum: 758a715a
+- module-name: 'sentry_sdk.integrations' # checksum: 3f626871
+  variables:
+    setup_code:
+      - 'import sentry_sdk.integrations'
+    declarations:
+      'sentry_sdk_default_integrations': 'tuple(integration.rsplit(".", 1)[0] for integration in sentry_sdk.integrations._DEFAULT_INTEGRATIONS)'
+
+  anti-bloat:
+    - description: "Don't include dependencies automatically"
+      limit-auto-follow:
+        - 'sentry_sdk'
+    - description: 'Disable metadata checking'
+      change_function:
+        '_check_minimum_version': "'(lambda integration, package, version: None)'"
   implicit-imports:
     - depends:
-        - 'sentry_sdk.integrations.*'
+        - 'get_variable("sentry_sdk_default_integrations")'
+
+- module-name: 'sentry_sdk.integrations.strawberry' # checksum: 9a6111a4
+  anti-bloat:
+    - description: "Don't include dependencies automatically"
+      conditional-auto-follow:
+        'strawberry': 'strawberry'
 
 - module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
@@ -7369,11 +7473,11 @@
     - dirs:
         - 'static'
 
-- module-name: 'streamlit.runtime.caching.cache_utils' # checksum: e430da94
+- module-name: 'streamlit.runtime.caching.cache_utils' # checksum: a33d28d3
   anti-bloat:
     - description: 'remove warning for compiled functions'
       replacements_plain:
-        '_LOGGER.debug(': '('
+        '_LOGGER.debug(': '(lambda *args, **kwargs: None)('
 
 - module-name: 'sv_ttk' # checksum: 8b045092
   data-files:
@@ -8020,11 +8124,6 @@
     - depends:
         - 'pygments.lexers.css'
 
-- module-name: 'textual.widgets' # checksum: a98bfa19
-  implicit-imports:
-    - depends:
-        - '._*'
-
 - module-name: 'tf_keras.src' # checksum: c552fd3e
   anti-bloat:
     - description: 'remove unittest reference'
@@ -8363,7 +8462,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: fe3ef51e
+- module-name: 'torch' # checksum: c7a5c4df
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -8402,6 +8501,10 @@
         # When using dill, we expect that to be outside, this is only for
         # testing if it needs to be considered.
         'dill': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'nvidia'
+      when: 'standalone and linux'
   options:
     checks:
       - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
@@ -8557,6 +8660,23 @@
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
+
+- module-name: 'torch.jit._check' # checksum: 9362fefc
+  anti-bloat:
+    - description: 'work around missing base module init source for standalone Torch JIT'
+      append_plain: |
+        orig_attribute_type_is_supported_checker_check = AttributeTypeIsSupportedChecker.check
+
+        def _nuitka_attribute_type_is_supported_checker_check(self, nn_module):
+          try:
+            return orig_attribute_type_is_supported_checker_check(self, nn_module)
+          except OSError:
+            if nn_module.__class__.__init__ is torch.nn.Module.__init__:
+              return
+            raise
+
+        AttributeTypeIsSupportedChecker.check = _nuitka_attribute_type_is_supported_checker_check
+      when: 'standalone and get_parameter("disable-jit", "yes" if standalone else "no") == "no"'
 
 - module-name: 'torch.onnx.symbolic_registry' # checksum: 836242c
   implicit-imports:
@@ -9079,6 +9199,22 @@
     - depends:
         - '_twofish'
 
+- module-name: 'tyro' # checksum: b2300544
+  anti-bloat:
+    - description: 'remove optional pydantic support'
+      no-auto-follow:
+        'pydantic': 'ignore'
+        'torch': 'ignore'
+        'flax.linen': 'ignore'
+        'ml_collections': 'ignore'
+        'msgspec': 'ignore'
+        'pydantic.v1': 'ignore'
+  options:
+    checks:
+      - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
+        support_info: 'plugin'
+        when: 'standalone and not plugin("source-inclusion")'
+
 - module-name: 'tzdata' # checksum: c364567b
   data-files:
     - dirs:
@@ -9092,6 +9228,11 @@
   implicit-imports:
     - depends:
         - '.*'
+
+- module-name: 'ultralytics' # checksum: 5e065a8c
+  data-files:
+    - patterns:
+        - 'cfg/default.yaml'
 
 - module-name: 'unstructured' # checksum: e17b7f4d
   data-files:

@@ -13,6 +13,9 @@ if __name__ == "__main__":
     import os
     import sys
 
+    if os.name == "nt" and sys.version_info < (3, 5):
+        sys.exit("Error, on Windows scons must be run with Python 3.5 or higher.")
+
     if sys.version_info >= (3, 0) and sys.version_info < (3, 5):
         sys.exit("Error, scons must not be run with Python3 older than 3.5.")
 

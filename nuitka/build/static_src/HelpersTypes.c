@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
@@ -216,7 +216,7 @@ static PyTypeObject *getTypeAliasType(void) {
     return type_alias_type;
 }
 
-PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value, PyObject *module_name) {
+PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value, PyObject *module_name) {
     // TODO: For Python 3.13 we can use the intrinsic.
 
     typealiasobject *ta = Nuitka_GC_New(getTypeAliasType());
@@ -225,8 +225,8 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value
     // only code, so we can use it here.
     ta->name = Py_NewRef(name);
     ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
-    ta->compute_value = NULL;
-    ta->value = Py_XNewRef(value);
+    ta->compute_value = Py_NewRef(compute_value);
+    ta->value = NULL;
     ta->module = Py_NewRef(module_name);
 
     Nuitka_GC_Track(ta);
@@ -273,7 +273,7 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
                                             PyObject *evaluate_bound, PyObject *constraints,
                                             PyObject *evaluate_constraints, bool covariant, bool contravariant,
                                             bool infer_variance, PyObject *module) {
-    PyTypeObject *tp = tstate->interp->cached_objects.typevar_type;
+    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevar_type);
     typevarobject *result = Nuitka_GC_New(tp);
 
     result->name = Py_NewRef(name);
@@ -306,7 +306,7 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
 
 static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module,
                                                       PyObject *default_value) {
-    PyTypeObject *tp = tstate->interp->cached_objects.typevartuple_type;
+    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevartuple_type);
     typevartupleobject *tvt = Nuitka_GC_New(tp);
     if (tvt == NULL) {
         return NULL;
@@ -329,7 +329,7 @@ static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyO
 static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
                                                 PyObject *default_value, bool covariant, bool contravariant,
                                                 bool infer_variance, PyObject *module) {
-    PyTypeObject *tp = tstate->interp->cached_objects.paramspec_type;
+    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, paramspec_type);
     paramspecobject *ps = Nuitka_GC_New(tp);
     if (ps == NULL) {
         return NULL;
@@ -384,7 +384,7 @@ static PyTypeObject *_getTypeGenericAliasType(void) {
 
 static int _Nuitka_contains_typevartuple(PyTupleObject *params) {
     Py_ssize_t n = PyTuple_GET_SIZE(params);
-    PyTypeObject *tp = PyInterpreterState_Get()->cached_objects.typevartuple_type;
+    PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(PyInterpreterState_Get(), typevartuple_type);
     for (Py_ssize_t i = 0; i < n; i++) {
         PyObject *param = PyTuple_GET_ITEM(params, i);
         if (Py_IS_TYPE(param, tp)) {
@@ -394,34 +394,40 @@ static int _Nuitka_contains_typevartuple(PyTupleObject *params) {
     return 0;
 }
 
+static PyObject *_Nuitka_unpack_param(PyThreadState *tstate, PyObject *self) {
+    static PyObject *typing_unpack = NULL;
+
+    if (typing_unpack == NULL) {
+        typing_unpack = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_TYPING(), const_str_plain_Unpack);
+        CHECK_OBJECT(typing_unpack);
+    }
+
+    return LOOKUP_SUBSCRIPT(tstate, typing_unpack, self);
+}
+
 // Match CPython, spell-checker: ignore typevartuple,typevartuples
 static PyObject *_Nuitka_unpack_typevartuples(PyThreadState *tstate, PyObject *params) {
     assert(PyTuple_Check(params));
-
     // TypeVarTuple must be unpacked when passed to Generic, so we do that here.
     if (_Nuitka_contains_typevartuple((PyTupleObject *)params)) {
         Py_ssize_t n = PyTuple_GET_SIZE(params);
-
         PyObject *new_params = MAKE_TUPLE_EMPTY(tstate, n);
-        PyTypeObject *tp = tstate->interp->cached_objects.typevartuple_type;
+        CHECK_OBJECT(new_params);
 
+        PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevartuple_type);
         for (Py_ssize_t i = 0; i < n; i++) {
             PyObject *param = PyTuple_GET_ITEM(params, i);
-
             if (Py_IS_TYPE(param, tp)) {
-                PyObject *unpacked = _Nuitka_unpack_typevartuples(tstate, param);
-
-                if (unlikely(unpacked == NULL)) {
+                PyObject *unpacked = _Nuitka_unpack_param(tstate, param);
+                if (unpacked == NULL) {
                     Py_DECREF(new_params);
                     return NULL;
                 }
-
                 PyTuple_SET_ITEM(new_params, i, unpacked);
             } else {
                 PyTuple_SET_ITEM(new_params, i, Py_NewRef(param));
             }
         }
-
         return new_params;
     } else {
         return Py_NewRef(params);
@@ -434,7 +440,7 @@ PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
     CHECK_OBJECT(unpacked_params);
     assert(PyTuple_CheckExact(unpacked_params));
 
-    PyObject *args[2] = {(PyObject *)tstate->interp->cached_objects.generic_type, unpacked_params};
+    PyObject *args[2] = {(PyObject *)_Py_INTERP_CACHED_OBJECT(tstate->interp, generic_type), unpacked_params};
 
     PyObject *called = (PyObject *)_getTypeGenericAliasType();
 

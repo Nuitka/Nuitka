@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nuitka watch main part.
@@ -147,8 +147,6 @@ def selectOS(os_values):
 
 
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
-    # A bit of details needed, pylint: disable=too-many-locals
-
     preferred_package_type = installed_python.getPreferredPackageType()
 
     extra_options = []
@@ -159,8 +157,6 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             "-m",
             "pipenv",
             "run",
-            "--python",
-            installed_python.getPythonExe(),
             "python",
         ]
     elif preferred_package_type == "pacman":
@@ -188,7 +184,7 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         run_command
         + [
             nuitka_binary,
-            os.path.join(case_dir, case_data["filename"]),
+            relpath(os.path.join(case_dir, case_data["filename"])),
             "--assume-yes-for-downloads",
             "--report=%s" % report_filename,
             "--report-diffable",
@@ -213,27 +209,28 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         }
 
         with withEnvironmentVarsOverridden(env):
-            stdout, stderr, exit_nuitka = executeProcess(
-                [binary_filename], timeout=5 * 60
+            process_result = executeProcess(
+                [binary_filename],
+                timeout=5 * 60,
             )
 
         with open("compiled-stdout.txt", "wb") as output:
-            output.write(stdout)
+            output.write(process_result.stdout)
         with open("compiled-stderr.txt", "wb") as output:
-            output.write(stderr)
+            output.write(process_result.stderr)
 
-        if exit_nuitka == 0:
+        if process_result.exit_code == 0:
             deleteFile("compiled-exit.txt", must_exist=False)
         else:
             putTextFileContents(
                 filename="compiled-exit.txt",
-                contents=str(exit_nuitka),
+                contents=str(process_result.exit_code),
             )
 
-        if exit_nuitka != 0:
+        if process_result.exit_code != 0:
             return watch_logger.sysexit(
                 "Error, failed to execute %s with code %d."
-                % (binary_filename, exit_nuitka)
+                % (binary_filename, process_result.exit_code)
             )
 
 
@@ -568,7 +565,8 @@ to reserve cores.""",
         getTestExecutionPythonVersions()
     ):
         installed_pythons[python_version] = findPythons(
-            python_version, module_name=None if isAnacondaPython() else "pipenv"
+            python_version,
+            module_specs=(None if isAnacondaPython() else "pipenv"),
         )
 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))

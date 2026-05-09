@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Code generation for calls.
@@ -370,7 +370,7 @@ def _generateCallCodeKwDict(
 def generateCallCode(to_name, expression, emit, context):
     # There is a whole lot of different cases, for each of which, we create
     # optimized code, constant, with and without positional or keyword arguments
-    # each, so there is lots of branches involved.
+    # each, so there is lots of branches involved. pylint: disable=too-many-branches
 
     called = expression.subnode_called
     call_kw = expression.subnode_kwargs
@@ -482,6 +482,20 @@ def generateCallCode(to_name, expression, emit, context):
                 ):
                     # Only positional args are constant, create tuple and split keyword values.
                     _getCallCodePosConstKeywordVariableArgs(
+                        to_name=result_name,
+                        called_name=called_name,
+                        expression=expression,
+                        call_args=call_args,
+                        call_kw=call_kw,
+                        emit=emit,
+                        context=context,
+                    )
+                elif (
+                    call_kw.isExpressionConstantDictRef()
+                    and call_args.isExpressionMakeTuple()
+                ):
+                    # Only keyword args are constant, split them from variable positional args.
+                    _getCallCodePosVariableKeywordConstArgs(
                         to_name=result_name,
                         called_name=called_name,
                         expression=expression,
@@ -760,12 +774,9 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
 
     quick_tuple_calls_used.add(arg_size)
 
-    emit(
-        """\
+    emit("""\
 %s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
-"""
-        % (to_name, arg_size, called_name, arg_tuple_name)
-    )
+""" % (to_name, arg_size, called_name, arg_tuple_name))
 
     getErrorExitCode(
         check_name=to_name,
@@ -895,6 +906,86 @@ tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, args_name) + tuple(dict_value_names),
+        needs_check=expression.mayRaiseExceptionOperation(),
+        emit=emit,
+        context=context,
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def _getCallCodePosVariableKeywordConstArgs(
+    to_name, called_name, expression, call_args, call_kw, emit, context
+):
+    # Many details for this call variant, pylint: disable=too-many-locals
+    kw_items = tuple(call_kw.getCompileTimeConstant().items())
+
+    kw_names = tuple(item[0] for item in kw_items)
+    kw_values = tuple(item[1] for item in kw_items)
+
+    call_arg_names = []
+
+    for count, call_arg_element in enumerate(call_args.subnode_elements):
+        call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
+
+        generateExpressionCode(
+            to_name=call_arg_name,
+            expression=call_arg_element,
+            emit=emit,
+            context=context,
+        )
+
+        call_arg_names.append(call_arg_name)
+
+    args_count = len(call_arg_names)
+
+    quick_mixed_calls_used.add((args_count, False, True))
+
+    if isMutable(kw_values):
+        kw_values_name = context.allocateTempName("call_kw_split_values")
+
+        kw_values_name.getCType().emitAssignmentCodeFromConstant(
+            to_name=kw_values_name,
+            constant=kw_values,
+            may_escape=True,
+            emit=emit,
+            context=context,
+        )
+        split_name = kw_values_name
+    else:
+        kw_values_name = context.getConstantCode(kw_values)
+        split_name = None
+
+    emitLineNumberUpdateCode(expression, emit, context)
+
+    emit(
+        """\
+{
+    PyObject *args[] = {%(call_arg_names)s};
+    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d_KW_SPLIT(
+        tstate,
+        %(called_name)s,
+        args,
+        &PyTuple_GET_ITEM(%(kw_values_name)s, 0),
+        %(kw_names)s
+    );
+}
+"""
+        % {
+            "to_name": to_name,
+            "called_name": called_name,
+            "call_arg_names": ", ".join(
+                str(call_arg_name) for call_arg_name in call_arg_names
+            ),
+            "args_count": args_count,
+            "kw_values_name": kw_values_name,
+            "kw_names": context.getConstantCode(kw_names),
+        }
+    )
+
+    getErrorExitCode(
+        check_name=to_name,
+        release_names=(called_name, split_name) + tuple(call_arg_names),
         needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,

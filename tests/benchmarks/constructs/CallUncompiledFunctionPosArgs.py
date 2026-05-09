@@ -1,16 +1,14 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from __future__ import print_function
 
 import itertools
 
-exec(
-    """
+exec("""
 def python_func(a,b,c,d,e,f):
     pass
-"""
-)
+""")
 
 
 def calledRepeatedly():

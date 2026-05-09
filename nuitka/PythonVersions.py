@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Python version specifics.
@@ -15,6 +15,8 @@ import ctypes
 import os
 import re
 import sys
+
+from nuitka.__past__ import subprocess
 
 
 def getSupportedPythonVersions():
@@ -117,6 +119,10 @@ python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 python_release_level = sys.version_info[3]
 
 
+def isRunningInInterpreter():
+    return not hasattr(sys.modules.get("__main__"), "__compiled__")
+
+
 # TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
@@ -128,15 +134,35 @@ def getErrorMessageExecWithNestedFunction():
     # Need to use "exec" to detect the syntax error, pylint: disable=W0122
 
     try:
-        exec(
-            """
+        exec("""
 def f():
    exec ""
    def nested():
-      return closure"""
-        )
+      return closure""")
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
+
+
+def getSourceDecodeErrorReason2(source_filename):
+    if not isRunningInInterpreter():
+        return "decoding error"
+
+    process = subprocess.Popen(
+        args=(sys.executable, source_filename),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    _stdout, stderr = process.communicate()
+
+    for line in reversed(stderr.splitlines()):
+        if line.startswith(b"SyntaxError:"):
+            return line.split(b": ", 1)[1].decode("ascii")
+
+    sys.exit(
+        "Error, failed to detect source decode error reason for '%s', stderr was: %r"
+        % (source_filename, stderr)
+    )
 
 
 def getComplexCallSequenceErrorTemplate():
@@ -261,15 +287,124 @@ def isStaticallyLinkedPython():
     return result
 
 
-def getPythonABI():
+_target_python_include_path = {}
+
+
+def getTargetPythonIncludePath(
+    logger,
+    python_debug,
+    self_compiled_python_uninstalled,
+):
+    python_abi_version = python_version_str + getPythonABI(python_debug=python_debug)
+    python_prefix_external = getSystemPrefixPath()
+
+    key = (
+        python_debug,
+        self_compiled_python_uninstalled,
+        python_abi_version,
+        python_prefix_external,
+    )
+
+    if key not in _target_python_include_path:
+        _target_python_include_path[key] = _getTargetPythonIncludePath(
+            logger=logger,
+            python_debug=python_debug,
+            python_abi_version=python_abi_version,
+            python_prefix_external=python_prefix_external,
+            self_compiled_python_uninstalled=self_compiled_python_uninstalled,
+        )
+
+    return _target_python_include_path[key]
+
+
+def _getTargetPythonIncludePath(
+    logger,
+    python_debug,
+    python_abi_version,
+    python_prefix_external,
+    self_compiled_python_uninstalled,
+):
+
+    if os.name == "nt":
+        candidates = [
+            # On Windows, the CPython official installation layout is relatively fixed,
+            os.path.join(python_prefix_external, "include"),
+            # On MSYS2 with MinGW64 Python, it is also the other form.
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+            # For self-built Python on Windows, need to also add the "PC" directory,
+            # that a normal install won't have.
+            os.path.join(python_prefix_external, "PC"),
+        ]
+    else:
+        # The python header path is a combination of python version and debug
+        # indication, we make sure the headers are found by adding it to the C
+        # include path.
+
+        candidates = [
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+            # CPython source code checkout
+            os.path.join(python_prefix_external, "Include"),
+            # Haiku specific paths:
+            os.path.join(
+                python_prefix_external,
+                "develop/headers",
+                "python" + python_abi_version,
+            ),
+        ]
+
+        # Not all Python versions, have the ABI version to use for the debug version.
+        if python_debug and "d" in python_abi_version:
+            candidates.append(
+                os.path.join(
+                    python_prefix_external,
+                    "include",
+                    "python" + python_abi_version.replace("d", ""),
+                )
+            )
+
+    search = ["Python.h"]
+    if self_compiled_python_uninstalled:
+        search.append("pyconfig.h")  # spell-checker: ignore pyconfig
+
+    for candidate in candidates:
+        for s in tuple(search):
+            found = False
+            if os.path.exists(os.path.join(candidate, s)):
+                search.remove(s)
+                found = True
+
+            if found:
+                return candidate
+
+        if not search:
+            break
+    else:
+        if os.name == "nt":
+            return logger.sysexit("""\
+Error, you seem to be using the unsupported embeddable CPython distribution \
+use a full Python instead.""")
+        else:
+            return logger.sysexit(
+                """\
+Error, no 'Python.h' %s headers can be found at '%s', dependency \
+not satisfied!"""
+                % (
+                    "debug" if python_debug else "development",
+                    candidates,
+                )
+            )
+
+
+def getPythonABI(python_debug):
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
 
-        # Cyclic dependency here.
-        from nuitka.options.Options import shallUsePythonDebug
-
         # spell-checker: ignore getobjects
-        if shallUsePythonDebug() or hasattr(sys, "getobjects"):
+        if python_debug or hasattr(sys, "getobjects"):
             if not abiflags.startswith("d"):
                 abiflags = "d" + abiflags
     else:
@@ -449,9 +584,9 @@ def getInstalledPythonRegistryPaths(version):
     from nuitka.__past__ import WindowsError
 
     if str is bytes:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+        import _winreg as winreg  # type: ignore # pylint: disable=I0021,import-error,no-name-in-module
     else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
+        import winreg  # type: ignore # pylint: disable=I0021,import-error,no-name-in-module
 
     for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
@@ -510,6 +645,40 @@ def isPythonWithGil():
 def getSitePackageCandidateNames():
     """Get the list of site package candidate names."""
     return ("site-packages", "dist-packages", "vendor-packages")
+
+
+def isPythonIdentifier(name):
+    """
+    Check if a string is a valid Python identifier.
+    """
+    # Python 3 has isidentifier, Python 2 does not.
+    if str is not bytes:
+        return name.isidentifier()
+
+    return bool(re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name))
+
+
+def getRecommendedSupportedVersion():
+    return "3.13"
+
+
+def getRecommendedWorkingVersion():
+    return "3.14"
+
+
+def getRecommendedCommercialVersion():
+    return "3.12"
+
+
+def displayRecommendedVersion(kind):
+    if kind == "supported":
+        print(getRecommendedSupportedVersion())
+    elif kind == "working":
+        print(getRecommendedWorkingVersion())
+    elif kind == "commercial":
+        print(getRecommendedCommercialVersion())
+    else:
+        assert False, kind
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

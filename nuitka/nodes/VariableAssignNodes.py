@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Assignment related nodes.
@@ -141,6 +141,11 @@ class StatementAssignmentVariableMixin(object):
         previous = self.variable_trace.getPrevious()
 
         if previous.mustNotHaveValue():
+            # Loop re-entry can give this assignment a previous value even if the
+            # last trace collection run fell back to the uninitialized start trace.
+            if self.getContainingLoopNode() is not None:
+                return None
+
             return False
         elif previous.mustHaveValue():
             return True

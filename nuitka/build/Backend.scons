@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -42,12 +42,9 @@ from nuitka.utils.Utils import (
     isMacOS,
 )
 
-from .DataComposerInterface import getConstantBlobFilename
-from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
-    addConstantBlobFile,
+    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
-    decideConstantsBlobResourceMode,
     enableWindowsStackSize,
     reportCCompiler,
     setupCCompiler,
@@ -73,7 +70,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore cflags,ccflags,cppdefines,cpppath,
+# spell-checker: ignore cflags,cppdefines,cpppath,
 # spell-checker: ignore linkflags,libpath,libflags
 
 # Set up the basic stuff.
@@ -154,9 +151,6 @@ link_libraries = getArgumentList("link_libraries", "")
 link_module_libs = getArgumentList("link_module_libs", "")
 
 
-# Disable ccache/clcache usage if that is requested
-disable_ccache = getArgumentBool("disable_ccache", False)
-
 # Report the C compiler used.
 reportCCompiler(env, "Backend", scons_logger.info)
 
@@ -172,54 +166,6 @@ setupCCompiler(
 if env.exe_mode:
     enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
-if env.debug_mode:
-    if env.gcc_mode:
-        # Allow gcc/clang to point out all kinds of inconsistency to us by
-        # raising an error.
-
-        env.Append(
-            CCFLAGS=[
-                # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
-                # which are unfounded, so disable them.
-                "-Wno-error=strict-aliasing",
-                "-Wno-strict-aliasing",
-                # At least for self-compiled Python3.2, and MinGW this happens
-                # and has little use anyway.
-                "-Wno-error=format",
-                "-Wno-format",
-            ]
-        )
-
-    elif env.msvc_mode:
-        # Disable warnings that system headers already show.
-        env.Append(
-            CCFLAGS=[
-                "/W4",
-                "/wd4505",
-                "/wd4127",
-                "/wd4100",
-                "/wd4702",
-                "/wd4189",
-                "/wd4211",
-                "/wd4115",
-            ]
-        )
-
-        # Disable warnings, that CPython headers already show.
-        if env.python_version >= (3,):
-            env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
-
-        if env.python_version >= (3, 13):
-            env.Append(CCFLAGS=["/wd4324"])
-
-        # We use null arrays in our structure Python declarations, which C11 does
-        # not really allow, but should work.
-        env.Append(CCFLAGS=["/wd4200"])
-
-        # Do not show deprecation warnings, we will use methods for as long
-        # as they work.
-        env.Append(CCFLAGS=["/wd4996"])
-
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
 
@@ -230,6 +176,10 @@ if env.trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
 applyPythonBuildSettings(env)
+
+adapted_python_header_files_dir = env.get("adapted_python_header_files_dir")
+if adapted_python_header_files_dir:
+    env.Prepend(CPPPATH=[adapted_python_header_files_dir])
 
 # TODO: This ought to be decided outside of scons and per flavor maybe.
 if env.static_libpython and ((not os.name == "nt" and not isMacOS()) or env.monolithpy):
@@ -401,10 +351,9 @@ if (
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
 
-addConstantBlobFile(
+addConstantBlobFiles(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(env=env),
-    blob_filename=getConstantBlobFilename(env.source_dir),
+    source_dir=env.source_dir,
 )
 
 
@@ -583,7 +532,7 @@ if env.gcc_mode and (not env.clang_mode or env.zig_mode):
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
 # Plugin contributed C include directories should be used too.
-env.Append(CPPPATH=cpp_include_dirs)
+env.Prepend(CPPPATH=cpp_include_dirs)
 # Plugin contributed link dirs should be used too.
 env.Append(LIBPATH=link_dirs)
 # Plugin contributed link libraries should be used too.
@@ -598,21 +547,6 @@ enableSpawnMonitoring(
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
 # scons traceback is not going to be very interesting to us.
 changeKeyboardInterruptToErrorExit()
-
-# Check if ccache is installed, and complain if it is not.
-if env.gcc_mode:
-    enableCcache(
-        env=env,
-        source_dir=env.source_dir,
-        python_prefix=env.python_prefix_external,
-        disable_ccache=disable_ccache,
-    )
-
-if env.msvc_mode and not disable_ccache:
-    enableClcache(
-        env=env,
-        source_dir=env.source_dir,
-    )
 
 writeSconsReport(env=env, target=target)
 

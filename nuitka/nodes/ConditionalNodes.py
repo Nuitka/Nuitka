@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Conditional nodes.
@@ -278,9 +278,8 @@ class ExpressionConditionalBoolBase(ChildrenHavingLeftRightMixin, ExpressionBase
                 left,
                 "new_raise",
                 """\
-Conditional %s statements already raises implicitly in condition, removing \
-branches."""
-                % self.conditional_kind,
+Conditional %s expression already raises implicitly in condition, removing \
+branches.""" % self.conditional_kind,
             )
 
         if not left.mayRaiseException(BaseException) and left.mayRaiseExceptionBool(
@@ -756,8 +755,7 @@ Removed conditional statement without effect.""",
                 new_statement,
                 "new_statements",
                 """\
-Condition for branch statement was predicted to be always '%s'."""
-                % choice,
+Condition for branch statement was predicted to be always '%s'.""" % choice,
             )
 
         # If there is no "yes" branch, remove that. Maybe a bad idea though.

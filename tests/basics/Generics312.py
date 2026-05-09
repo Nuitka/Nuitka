@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Generic tests, cover most important forms of them."""
@@ -92,6 +92,16 @@ try:
         print("Awaited function")
 except NameError as err:
     print(err)
+
+
+class TypeParams[T, *Ts, **P]:
+    saved = (T, Ts, P)
+
+
+print(TypeParams.__type_params__)
+print(tuple(a is b for a, b in zip(TypeParams.__type_params__, TypeParams.saved)))
+print(TypeParams.__bases__)
+print(TypeParams.__orig_bases__)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

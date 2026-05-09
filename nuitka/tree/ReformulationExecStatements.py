@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Reformulation of "exec" statements
@@ -155,8 +155,8 @@ def wrapEvalGlobalsAndLocals(
                 source_ref if locals_node is None else locals_node.getSourceReference()
             ),
         ),
-        makeStatementsSequence(pre_statements, False, source_ref),
-        makeStatementsSequence(post_statements, False, source_ref),
+        makeStatementsSequence(pre_statements, source_ref),
+        makeStatementsSequence(post_statements, source_ref),
     )
 
 

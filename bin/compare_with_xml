@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Tool to compare XML outputs of two Nuitka versions."""
@@ -13,9 +13,8 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 # isort:start
 
-import difflib
-
 from nuitka.tools.testing.Common import my_print
+from nuitka.utils.Diffs import getUnifiedDiff
 from nuitka.utils.Execution import executeProcess
 
 nuitka1 = sys.argv[1]
@@ -34,8 +33,15 @@ extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "")
 nuitka1_cmd = "{nuitka1} --xml {filename}".format(nuitka1=nuitka1, filename=filename)
 nuitka2_cmd = "{nuitka2} --xml {filename}".format(nuitka2=nuitka2, filename=filename)
 
-stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(nuitka1_cmd, shell=True)
-stdout_nuitka2, stderr_nuitka2, exit_nuitka2 = executeProcess(nuitka2_cmd, shell=True)
+process_result1 = executeProcess(
+    nuitka1_cmd,
+    shell=True,
+)
+
+process_result2 = executeProcess(
+    nuitka2_cmd,
+    shell=True,
+)
 
 
 def makeDiffable(output):
@@ -49,14 +55,12 @@ def makeDiffable(output):
 
 
 def compareOutput(kind, out1, out2):
-    diff = difflib.unified_diff(
-        makeDiffable(out1),
-        makeDiffable(out2),
-        "{program} ({detail})".format(program="nuitka1 " + filename, detail=kind),
-        "{program} ({detail})".format(program="nuitka2 " + filename, detail=kind),
-        None,
-        None,
-        n=3,
+    diff = getUnifiedDiff(
+        old_lines=makeDiffable(out1),
+        new_lines=makeDiffable(out2),
+        old_filename="%s (%s)" % ("nuitka1 " + filename, kind),
+        new_filename="%s (%s)" % ("nuitka2 " + filename, kind),
+        num_lines=3,
     )
 
     result = list(diff)
@@ -69,16 +73,18 @@ def compareOutput(kind, out1, out2):
         return 0
 
 
-exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
-exit_code_return = exit_nuitka1 != exit_nuitka2
+exit_code_stdout = compareOutput(
+    "stdout", process_result1.stdout, process_result2.stdout
+)
+exit_code_return = process_result1.exit_code != process_result2.exit_code
 
 if exit_code_return:
     my_print(
         """\
 Exit codes {exit_nuitka1:d} ({nuitka1}) != {exit_nuitka2:d} ({nuitka2})""".format(
-            exit_nuitka1=exit_nuitka1,
+            exit_nuitka1=process_result1.exit_code,
             nuitka1=nuitka1,
-            exit_nuitka2=exit_nuitka2,
+            exit_nuitka2=process_result2.exit_code,
             nuitka2=nuitka2,
         )
     )

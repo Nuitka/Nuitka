@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Tools for accessing distributions and resolving package names for them."""
@@ -649,12 +649,10 @@ def getDistributionInstallerName(distribution_name):
                 _distribution_to_installer[distribution_name] = installer_name
 
                 if installer_name.lower().startswith("poetry") and isAnacondaPython():
-                    return metadata_logger.sysexit(
-                        """\
+                    return metadata_logger.sysexit("""\
 Error, cannot use poetry and conda combined in a virtualenv, due \
 to poetry corrupting installer information. Use either pure conda \
-or poetry virtualenv."""
-                    )
+or poetry virtualenv.""")
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):
@@ -692,6 +690,9 @@ def getDistributionName(distribution):
     and this is to abstract the difference is how to look up the name from
     one.
     """
+    if hasattr(distribution, "project_name"):
+        return distribution.project_name
+
     result = None
 
     if hasattr(distribution, "metadata"):
@@ -699,7 +700,6 @@ def getDistributionName(distribution):
 
         if result is None:
             installer_name = _getDistributionInstallerFileContents(distribution)
-
             if installer_name == "debian":
                 distribution_path = _getDistributionPath(distribution)
 
@@ -711,16 +711,13 @@ def getDistributionName(distribution):
 
                         result = dir_name.rsplit("-", 1)[0]
 
-    if result is None and hasattr(distribution, "project_name"):
-        result = distribution.project_name
-
     if result is None and isAnacondaPython() and hasattr(distribution, "_path"):
         result = getCondaDistributionName(distribution)
 
-        # Abuse above code path preferring "project_name" as a cheap form of
-        # caching.
-        if result is not None:
-            distribution.project_name = result
+    # Abuse above code path preferring "project_name" as a cheap form of
+    # caching.
+    if result is not None:
+        distribution.project_name = result
 
     return result
 

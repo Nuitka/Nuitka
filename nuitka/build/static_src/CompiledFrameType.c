@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
@@ -201,11 +201,13 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-                assert(Nuitka_Cell_Check((PyObject *)value));
+                assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
                 CHECK_OBJECT(value);
 
-                if (value->ob_ref != NULL) {
-                    DICT_SET_ITEM(result, *var_names, value->ob_ref);
+                PyObject *cell_value = Nuitka_CellOrPyCell_GET((PyObject *)value);
+
+                if (cell_value != NULL) {
+                    DICT_SET_ITEM(result, *var_names, cell_value);
                 }
 
                 t += sizeof(struct Nuitka_CellObject *);
@@ -242,6 +244,52 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
 
         return result;
     }
+}
+
+// Attach an exposed locals mapping to a compiled frame, with Python2 class fallback.
+void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject *locals_value) {
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
+    CHECK_OBJECT((PyObject *)frame_object);
+    CHECK_OBJECT(locals_value);
+
+#if PYTHON_VERSION < 0x300
+    NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = &frame_object->m_frame;
+#else
+    _PyInterpreterFrame *locals_owner = &frame_object->m_interpreter_frame;
+#endif
+
+    assert(locals_owner->f_locals == NULL);
+
+#if PYTHON_VERSION < 0x300
+    if (PyModule_Check(locals_value)) {
+        // Class frames in Python2 expose a minimal locals dict with "__module__".
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, locals_value)};
+
+        locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
+        return;
+    }
+#endif
+
+    locals_owner->f_locals = locals_value;
+    Py_INCREF(locals_owner->f_locals);
+}
+
+// Drop an exposed locals mapping from a compiled frame.
+void Nuitka_Frame_ClearLocals(struct Nuitka_FrameObject *frame_object) {
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
+    CHECK_OBJECT((PyObject *)frame_object);
+
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = &frame_object->m_frame;
+#else
+    _PyInterpreterFrame *locals_owner = &frame_object->m_interpreter_frame;
+#endif
+
+    Py_CLEAR(locals_owner->f_locals);
 }
 
 static PyObject *_Nuitka_Frame_get_lineno(PyObject *self, void *data) {
@@ -385,7 +433,7 @@ static void _Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
             }
             case NUITKA_TYPE_DESCRIPTION_CELL: {
                 struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-                assert(Nuitka_Cell_Check((PyObject *)value));
+                assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
                 CHECK_OBJECT(value);
 
                 Py_DECREF(value);
@@ -452,6 +500,13 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_DECREF(locals_owner->f_builtins);
     Py_DECREF(locals_owner->f_globals);
     Py_XDECREF(locals_owner->f_locals);
+
+#if PYTHON_VERSION >= 0x3e0
+    PyStackRef_CLEAR(locals_owner->f_executable);
+    Py_CLEAR(frame->f_extra_locals);
+    Py_CLEAR(frame->f_locals_cache);
+    Py_CLEAR(frame->f_overwritten_fast_locals);
+#endif
 
 #if PYTHON_VERSION < 0x370
     Py_XDECREF(frame->f_exc_type);
@@ -528,7 +583,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
         }
         case NUITKA_TYPE_DESCRIPTION_CELL: {
             struct Nuitka_CellObject *value = *(struct Nuitka_CellObject **)t;
-            assert(Nuitka_Cell_Check((PyObject *)value));
+            assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
             CHECK_OBJECT(value);
 
             Py_VISIT(value);
@@ -805,6 +860,12 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     frame->f_trace_opcodes = 0;
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+    frame->f_extra_locals = NULL;
+    frame->f_locals_cache = NULL;
+    frame->f_overwritten_fast_locals = NULL;
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
     result->m_ob_size = Py_SIZE(result);
 #endif
@@ -885,11 +946,8 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObje
 
 struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
                                             PyObject *f_locals, Py_ssize_t locals_size) {
-    // The frame template sets f_locals on usage itself, need not create it that way.
-    if (f_locals == NULL) {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, module)};
-        f_locals = MAKE_DICT(kw_pairs, 1);
-    } else {
+    // The frame template sets f_locals on usage itself.
+    if (f_locals != NULL) {
         Py_INCREF(f_locals);
     }
 
@@ -928,7 +986,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #if PYTHON_VERSION >= 0x3b0
     if (function_qualname) {
         CHECK_OBJECT(function_qualname);
-        PyUnicode_CheckExact(function_qualname);
+        assert(PyUnicode_CheckExact(function_qualname));
     }
 #endif
 
@@ -1016,8 +1074,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
         PyObject *empty_code_module_object = Py_CompileString(
             "def empty(): raise RuntimeError('Compiled function bytecode used')", "<exec>", Py_file_input);
-        NUITKA_MAY_BE_UNUSED PyObject *module =
-            PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
+        PyObject *module = PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
         CHECK_OBJECT(module);
 
         PyObject *empty_function = PyObject_GetAttrString(module, "empty");
@@ -1197,9 +1254,9 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
         }
         case NUITKA_TYPE_DESCRIPTION_CELL: {
             struct Nuitka_CellObject *value = va_arg(ap, struct Nuitka_CellObject *);
-            assert(Nuitka_Cell_Check((PyObject *)value));
+            assert(Nuitka_CellOrPyCell_Check((PyObject *)value));
             CHECK_OBJECT(value);
-            CHECK_OBJECT_X(value->ob_ref);
+            CHECK_OBJECT_X(Nuitka_CellOrPyCell_GET((PyObject *)value));
 
             memcpy(t, &value, sizeof(struct Nuitka_CellObject *));
             // TODO: Reference count must become wrong here, should

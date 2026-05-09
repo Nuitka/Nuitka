@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Variables link the storage and use of a Python variable together.
@@ -490,26 +490,49 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
     for variable, variable_traces in iterItems(new_traces):
         variable.setTracesForUserUpdate(owner, variable_traces)
 
+        if variable in old_traces:
+            for version, new_trace in iterItems(variable_traces):
+                old_trace = old_traces[variable].get(version)
+                if old_trace is not None:
+                    if (
+                        old_trace.hasNoMergeOrNameUsage() is False
+                        and new_trace.hasNoMergeOrNameUsage() is True
+                    ):
+                        # pylint: disable=cell-var-from-loop
+                        new_collection.signalChange(
+                            "var_usage",
+                            source_ref,
+                            lambda: "Variable '%s' usage ceased." % variable.getName(),
+                        )
+                        break
+
     for variable in old_traces:
         # Remove traces for variables that are not in the new collection unless
         # they are finalized, then we don't need to update them.
         if variable not in new_traces and hasattr(variable, "users"):
             variable.removeTracesForUser(owner)
 
-    if old_collection.loop_variables != new_collection.loop_variables:
-        new_collection.signalChange(
-            "var_usage",
-            source_ref,
-            lambda: "Loop variable '%s' usage ceased."
-            % ",".join(
-                sorted(
-                    variable.getName()
-                    for variable in (
-                        old_collection.loop_variables - new_collection.loop_variables
-                    )
-                )
-            ),
+    for variable, old_loop_nodes in iterItems(old_collection.loop_variables):
+        removed_loop_nodes = old_loop_nodes - new_collection.loop_variables.get(
+            variable, set()
         )
+
+        if removed_loop_nodes:
+            # pylint: disable=cell-var-from-loop
+            new_collection.signalChange(
+                "var_usage",
+                source_ref,
+                lambda: "Loop variable '%s' usage ceased for loop(s) at %s."
+                % (
+                    variable.getName(),
+                    ",".join(
+                        sorted(
+                            loop_node.getSourceReference().getAsString()
+                            for loop_node in removed_loop_nodes
+                        )
+                    ),
+                ),
+            )
 
 
 def removeVariablesFromCollection(old_collection):

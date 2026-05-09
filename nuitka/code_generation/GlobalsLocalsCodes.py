@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Code generation for locals and globals handling.
@@ -65,7 +65,10 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 if (%(locals_dict)s == NULL) %(locals_dict)s = MAKE_DICT_EMPTY(tstate);
 %(to_name)s = %(locals_dict)s;
 Py_INCREF(%(to_name)s);"""
-                % {"to_name": value_name, "locals_dict": locals_declaration}
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                }
             )
             context.addCleanupTempName(value_name)
 
@@ -140,7 +143,7 @@ def _getVariableDictUpdateCode(
                 "dict_name": target_name,
                 "var_name": context.getConstantCode(constant=variable.getName()),
                 "test_code": test_code,
-                "access_code": indented(access_code.codes),
+                "access_code": indented(access_code),
             }
         )
     else:

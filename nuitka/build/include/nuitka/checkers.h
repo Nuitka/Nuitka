@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_CHECKERS_H__
 #define __NUITKA_CHECKERS_H__
@@ -20,6 +20,7 @@
 #endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #endif

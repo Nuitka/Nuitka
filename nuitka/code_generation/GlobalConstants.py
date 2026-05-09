@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Global constant values."""
@@ -197,6 +197,9 @@ def getConstantDefaultPopulation():
     if shallMakeModule():
         result.append("loader")
 
+    if python_version >= 0x360:
+        result.append("__classcell__")
+
     # Resource reader files interface, including for backport
     if python_version >= 0x390:
         result.append("as_file")
@@ -224,6 +227,9 @@ def getConstantDefaultPopulation():
 
         # Exception group split method call
         result.append("split")
+
+    if python_version >= 0x3C0:
+        result.append("Unpack")
 
     if isWin32Windows():
         result.append("fileno")

@@ -1,8 +1,5 @@
-<!--     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -->
-
 ---
-description: Create a Minimally Reproducible Example (MRE) from a larger file triggering
-  a Nuitka bug.
+description: Create a Minimally Reproducible Example (MRE) from a larger file triggering a Nuitka bug.
 ---
 
 # MRE Extraction Workflow
@@ -12,21 +9,47 @@ a specific bug (e.g., a compiler crash).
 
 ## 1. Setup and Verification
 
-- **Identify the target file** to reduce.
-- **Identify the specific command** that triggers the issue (e.g., `python bin/nuitka Target.py`).
-- **Run the reproduction command** immediately to confirm the issue exists and capture the exact
-  error message/output.
+- **Identify the target file** to reduce. If this file is deep inside an installed library (e.g., in
+  `site-packages`), **copy it to `tests/scratch/`** (e.g. `tests/scratch/MRE.py`) to avoid
+  accidentally corrupting your Python environment during the destructive reduction process and to
+  keep temporary reduction artifacts out of the repository root.
+- **Identify the specific command** that triggers the issue if possible.
+- **For macOS issues that may depend on Python distribution or CI packaging**, establish the Python
+  flavor matrix before reducing. Follow `.agent/workflows/reproduce-macos-python-flavors.md`.
+- **Augment the reproduction command** so it always writes
+  `--report=tests/scratch/compilation-report.xml`. If the command already uses `--report=...`,
+  redirect it to this path. Keep the rest of the invocation as close as possible to the original
+  failure as you can.
+- **Define the reproduction oracle** before reducing. For crash bugs, this can be the same exception
+  type, the same failing statement location, or the same relevant `<exception>` entry in
+  `tests/scratch/compilation-report.xml`. For non-crash bugs, this should be a specific preserved
+  signal such as an output line, warning text, optimization message, exit code, or diff against
+  expected output. The oracle does not need to be byte-for-byte identical output; it needs to
+  reliably indicate that the same bug is still present. For example, an extra-pass bug may use
+  `Module(s) '__main__' necessitate pass 3` as the oracle.
+- **Run the reproduction command** to confirm the issue. If the crash occurs during a massive
+  standalone build, it's highly recommended to pipe the output to a file
+  (`> tests/scratch/out.txt 2>&1`) to easily search for the crash location while also inspecting
+  `tests/scratch/compilation-report.xml`.
 
 ### Handling Standalone Optimization Crashes
 
 If the crash happens during optimization in standalone mode (often a Python traceback below
-`nuitka/optimizations`:
+`nuitka/optimizations`):
 
-1. **Check the output** for lines starting with `Problem with statement at ...`.
-2. **Identify the filename** mentioned in the next line.
-3. **Run Nuitka in module mode** on that specific file (e.g.,
-   `python bin/nuitka --mode=module path/to/ProblematicFile.py`).
-4. **If the crash reproduces**, specific reduction in module mode as described below is the best
+1. **Check the output** or `tests/scratch/out.txt` for lines starting with
+   `Problem with statement at ...`, or inspect the `<exception>` tag in
+   `tests/scratch/compilation-report.xml`.
+2. **Identify the filename** involved.
+3. **Copy that file to `tests/scratch/`** (e.g.
+   `cp /path/to/ProblematicFile.py tests/scratch/MRE.py`).
+4. **Run Nuitka in module mode** on that copied file (e.g.,
+   `bin/nuitka --mode=module --generate-c-only --report=tests/scratch/compilation-report.xml tests/scratch/MRE.py`).
+   Preserve the original failing invocation as closely as possible while reducing, while keeping the
+   report output in `tests/scratch/`. *Note*: Use `--generate-c-only` to skip the C compilation
+   phase, which is unnecessary if the crash occurs during Nuitka's optimization (Python) phase. This
+   significantly speeds up the reduction cycle.
+5. **If the oracle still matches**, specific reduction in module mode as described below is the best
    path forward.
 
 ## 2. Analysis
@@ -52,6 +75,16 @@ Repeat this process until the file is minimal:
      complex scope analysis.
    - *Strategy 6*: Remove default arguments from functions. This simplifies the function signature
      and can help isolate issues related to default value evaluation or parameter handling.
+   - *Strategy 7*: **Structural and Scoping Mutations**. When dealing with compiler/optimization
+     crashes, the bug is sometimes tied to the *shape* of the AST or variable scoping. Test subtle
+     structural changes:
+     - Replace attribute lookups in decorators (e.g., `@module.decorator`) with direct names
+       (`@decorator`).
+     - Remove or simplify `locals()` or `globals()` updates.
+     - Simplify variable capturing in `lambda` functions, especially inside list/dict
+       comprehensions.
+     - Replace generator expressions with equivalent `for` loops to see if the implicit function
+       scope is the trigger.
    - *Consider Simplification*: Don't assume the entire block must be removed.
      - Replace complex expressions with constants/literals.
      - Replace variable usage with direct values.
@@ -59,12 +92,13 @@ Repeat this process until the file is minimal:
    - *Avoid Confounding Variables*: Ensure you are changing only one thing at a time. (e.g., don't
      remove an import *and* a global assignment in one step).
 2. **Apply the change**.
-3. **Run the reproduction command**.
+3. **Run the reproduction command** and re-check the same reproduction oracle.
 4. **Evaluate result**:
-   - **If the exact same error persists**: Great! The removed code was irrelevant.
+   - **If the oracle still matches**: Great! The removed code was irrelevant.
 
-   - **If the error disappears or changes**: The removed code was relevant. **IMMEDIATELY REVERT**
-     the change.
+   - **If the oracle no longer matches, disappears, or becomes ambiguous**: The removed code was
+     relevant. **IMMEDIATELY REVERT** the change to the scratch copy only. Never reset unrelated
+     repository changes.
 
    - **Validation**:
 
@@ -83,18 +117,3 @@ Repeat this process until the file is minimal:
 ## 5. Report
 
 - Present the final MRE code block to the user.
-
-<!--     Part of "Nuitka", an optimizing Python compiler that is compatible and -->
-<!--     integrates with CPython, but also works on its own. -->
-<!-- -->
-<!--     Licensed under the GNU Affero General Public License, Version 3 (the "License"); -->
-<!--     you may not use this file except in compliance with the License. -->
-<!--     You may obtain a copy of the License at -->
-<!-- -->
-<!--        http://www.gnu.org/licenses/agpl.txt -->
-<!-- -->
-<!--     Unless required by applicable law or agreed to in writing, software -->
-<!--     distributed under the License is distributed on an "AS IS" BASIS, -->
-<!--     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. -->
-<!--     See the License for the specific language governing permissions and -->
-<!--     limitations under the License. -->

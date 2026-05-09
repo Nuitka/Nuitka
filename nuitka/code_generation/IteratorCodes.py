@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Iteration related codes.
@@ -23,7 +23,6 @@ from .ErrorCodes import (
     getFrameVariableTypeDescriptionCode,
     getReleaseCode,
 )
-from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import template_loop_break_next
@@ -99,11 +98,9 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
             "to_name": to_name,
             "break_indicator_code": break_indicator_code,
             "break_target": break_target,
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            "release_temps": getErrorExitReleaseCode(context),
+            "var_description_code": getFrameVariableTypeDescriptionCode(context),
+            "line_number_code": getErrorLineNumberUpdateCode(context),
             "exception_target": context.getExceptionEscape(),
             "exception_state_name": exception_state_name,
         }
@@ -242,14 +239,11 @@ def generateUnpackCheckFromIteratedCode(statement, emit, context):
     context.removeCleanupTempName(to_name)
 
     # TODO: This exception ought to have a creator function.
-    emit(
-        """
+    emit("""
 if (%(to_name)s) {
     PyErr_Format(PyExc_ValueError, "too many values to unpack");
 }
-"""
-        % {"to_name": to_name}
-    )
+""" % {"to_name": to_name})
 
     getErrorExitBoolCode(condition=str(to_name), emit=emit, context=context)
 

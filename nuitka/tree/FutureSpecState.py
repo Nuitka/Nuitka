@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """State of a stack of future specs during parsing."""
@@ -13,7 +13,11 @@ _future_specs = []
 
 
 def pushFutureSpec(module_name):
-    _future_specs.append(FutureSpec(use_annotations=decideAnnotations(module_name)))
+    _future_specs.append(
+        FutureSpec(
+            use_annotations=decideAnnotations(module_name),
+        )
+    )
 
 
 def getFutureSpec():

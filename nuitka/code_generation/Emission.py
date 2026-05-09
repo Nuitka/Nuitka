@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Emission of source code.
@@ -11,24 +11,14 @@ use of these will occur.
 
 import contextlib
 
-from .Indentation import indented
 
-
-class SourceCodeCollector(object):
-    def __init__(self):
-        self.codes = []
+class SourceCodeCollector(list):
+    __slots__ = ()
 
     def __call__(self, code):
-        self.emit(code)
+        self.append(code)
 
-    def emit(self, code):
-        self.codes.extend(code.split("\n"))
-
-    def emitTo(self, emit):
-        for code in self.codes:
-            emit(indented(code))
-
-        self.codes = None
+    emit = __call__
 
 
 @contextlib.contextmanager
@@ -46,14 +36,12 @@ def withSubCollector(emit, context):
         if local_declarations:
             emit("{")
 
-            for local_declaration in local_declarations:
-                emit(indented(local_declaration))
-
-            sub_emit.emitTo(emit)
+            emit.extend(local_declarations)
+            emit.extend(sub_emit)
 
             emit("}")
         else:
-            sub_emit.emitTo(emit)
+            emit.extend(sub_emit)
 
         context.popCleanupScope()
 

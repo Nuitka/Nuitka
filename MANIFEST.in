@@ -18,8 +18,13 @@ include bin/measure-construct-performance
 # Runners, mainly for source distribution.
 include bin/nuitka
 include bin/nuitka-run
+include bin/compile-python-for-nuitka-linux.sh
+include bin/compile-python-for-nuitka-mac.sh
+include bin/compile-python-for-nuitka-windows.cmd
 
 include misc/*.cmd
+include misc/nuitka-completion.bash
+include misc/nuitka-completion.zsh
 include tests/run-tests
 
 include nuitka/plugins/standard/*.yml
@@ -39,6 +44,7 @@ recursive-include tests/basics *.py
 recursive-include tests/syntax *.py
 recursive-include tests/packages *.py
 recursive-include tests/programs *.py
+recursive-include tests/programs *.yml
 include tests/programs/pkgutil_usage/package/DATA_FILE*.txt
 include tests/programs/resource_reader37/some_package/DATA_FILE*.txt
 include tests/onefile/external-data/*.txt

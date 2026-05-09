@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -36,11 +36,12 @@ def _maybeVirtualEnv(path):
 
 
 def getUvBuildConfiguration(logger, pyproject_data):
-    # Necessarily a lot of details in the configuration
-    # pylint: disable=too-many-locals
     """
     Get the build configuration from a UV Build project.
     """
+
+    # Necessarily a lot of details in the configuration
+
     with withTemporaryDirectory("nuitka-project-dump") as temp_dir:
         dump_filename = os.path.join(temp_dir, "build_config.json")
 
@@ -60,13 +61,19 @@ def getUvBuildConfiguration(logger, pyproject_data):
             dump_filename,
         )
 
-        stdout, stderr, exit_code = executeProcess(
+        process_result = executeProcess(
             command,
             stdin=False,
         )
 
-        if exit_code != 0:
-            reportBuildError(logger, "uv_build", command, stdout, stderr)
+        if process_result.exit_code != 0:
+            reportBuildError(
+                logger=logger,
+                name="uv_build",
+                command=command,
+                stdout=process_result.stdout,
+                stderr=process_result.stderr,
+            )
 
         if not os.path.exists(dump_filename):
             logger.sysexit(
@@ -79,22 +86,30 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         # Parse tool.uv configuration
         uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
+        uv_build_config = dict(uv_config.pop("build-backend", {}))
 
-        module_root = uv_config.pop("module-root", None)
+        module_root = uv_build_config.pop("module-root", None)
         if module_root is not None:
-            if module_root != "":
-                addMainScriptDirectory(os.path.abspath(module_root))
+            addMainScriptDirectory(os.path.abspath(module_root))
         elif os.path.exists("src"):
             addMainScriptDirectory(os.path.abspath("src"))
+        else:
+            addMainScriptDirectory(os.getcwd())
+
+        if uv_build_config:
+            for unhandled_key in uv_build_config:
+                logger.warning(
+                    """\
+Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
+'pyproject.toml', we might have to ignore list or handle it: %s"""
+                    % (unhandled_key, uv_build_config[unhandled_key])
+                )
 
         if uv_config:
             for unhandled_key in uv_config:
-                logger.warning(
-                    """\
+                logger.warning("""\
 Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
-have to ignore list or handle it: %s"""
-                    % (unhandled_key, uv_config[unhandled_key])
-                )
+have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
 
         detected_packages = config.get("packages", [])
 

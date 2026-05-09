@@ -1,10 +1,11 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_HELPER_INTS_H__
 #define __NUITKA_HELPER_INTS_H__
 
 // Our "PyLong_FromLong" replacement.
 extern PyObject *Nuitka_PyLong_FromLong(long ival);
+extern long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow);
 
 // Our "PyInt_FromLong" replacement, not done (yet?).
 #if PYTHON_VERSION >= 0x300

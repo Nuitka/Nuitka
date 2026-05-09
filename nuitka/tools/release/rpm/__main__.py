@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """OpenSUSE Build Service (OSC) upload release tool.
@@ -12,7 +12,10 @@ import shutil
 import sys
 
 from nuitka.tools.Basics import goHome
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    cleanupSourceDistributionState,
+)
 from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import (
     copyFile,
@@ -33,6 +36,8 @@ def main():
 
     shutil.rmtree("build", ignore_errors=True)
     makePath("build")
+
+    cleanupSourceDistributionState()
 
     # Used by rpmbuild, spell-checker: ignore rpmbuild
     makePath(os.path.expanduser("~/rpmbuild/SOURCES"))

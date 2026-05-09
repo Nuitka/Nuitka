@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Display the DLLs in a package."""
@@ -13,6 +13,8 @@ from nuitka.importing.Importing import (
     hasMainScriptDirectory,
     locateModule,
 )
+from nuitka.plugins.Hooks import onCompilationStartChecks
+from nuitka.plugins.Plugins import activatePlugins
 from nuitka.Tracing import tools_logger
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import (
@@ -78,9 +80,8 @@ def scanModule(module_name, scan_function):
             % module_name.asString()
         )
 
-    from nuitka.plugins.Plugins import activatePlugins
-
     activatePlugins()
+    onCompilationStartChecks()
 
     if module_kind != "extension":
         package_filename = getPackageDirFilename(package_directory)

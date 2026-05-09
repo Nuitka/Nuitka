@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nodes that deal with locals, as dict or mapping.
@@ -96,11 +96,13 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
                         % self.variable.getName(),
                     )
                 elif self.subnode_fallback.isExpressionVariableRef():
-                    fallback_variable_trace = self.subnode_fallback.variable_trace
+                    fallback_variable_trace = trace_collection.getVariableCurrentTrace(
+                        variable=self.subnode_fallback.getVariable()
+                    )
 
                     if fallback_variable_trace is not None:
                         trusted_node = (
-                            self.subnode_fallback.variable_trace.getAttributeNodeVeryTrusted()
+                            fallback_variable_trace.getAttributeNodeVeryTrusted()
                         )
 
                         if trusted_node is not None:
@@ -677,7 +679,7 @@ class StatementReleaseLocals(StatementBase):
             ]
 
             result = makeStatementsSequence(
-                statements=statements, allow_none=False, source_ref=self.source_ref
+                statements=statements, source_ref=self.source_ref
             )
 
             return (

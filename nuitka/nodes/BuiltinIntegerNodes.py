@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Node for the calls to the 'int' and 'long' (Python2) built-ins.
@@ -99,8 +99,7 @@ class ExpressionBuiltinIntLong2Base(
                         node=self,
                         computation=lambda: self.builtin(base=2),
                         description="""\
-%s built-in call with only base argument"""
-                        % self.builtin.__name__,
+%s built-in call with only base argument""" % self.builtin.__name__,
                     )
 
             given_values = ()

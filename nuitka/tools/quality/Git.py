@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Functions to handle git staged content.
@@ -235,28 +235,28 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     command.append("-")
 
     # Apply the patch.
-    output, err, exit_code = executeProcess(
+    process_result = executeProcess(
         command,
         stdin=patch,
     )
 
-    if exit_code != 0 and os.name == "nt":
+    if process_result.exit_code != 0 and os.name == "nt":
         cleanupWindowsNewlines(path, path)
 
-        output, err, exit_code = executeProcess(
+        process_result = executeProcess(
             ["git", "apply", "-"],
             stdin=patch,
         )
 
-    success = exit_code == 0
+    success = process_result.exit_code == 0
 
     if not success:
         # TODO: In case of failure, do we need to abort, or what do we do.
 
-        if output:
-            my_print(output, style="yellow")
-        if err:
-            my_print(err, style="yellow")
+        if process_result.stdout:
+            my_print(process_result.stdout, style="yellow")
+        if process_result.stderr:
+            my_print(process_result.stderr, style="yellow")
 
     return success
 
@@ -268,8 +268,7 @@ def addGitArguments(parser, verb="Analyze"):
         dest="diff",
         default=False,
         help="""\
-%s the changed files in git checkout. Default is %%default."""
-        % verb,
+%s the changed files in git checkout. Default is %%default.""" % verb,
     )
 
     parser.add_option(
@@ -279,8 +278,7 @@ def addGitArguments(parser, verb="Analyze"):
         dest="un_pushed",
         default=False,
         help="""\
-%s the changed files in git not yet pushed. Default is %%default."""
-        % verb,
+%s the changed files in git not yet pushed. Default is %%default.""" % verb,
     )
 
 

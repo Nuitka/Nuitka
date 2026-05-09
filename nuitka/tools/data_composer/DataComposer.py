@@ -1,9 +1,8 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Data composer, crunch constants into binary blobs to load."""
 
-import binascii
 import os
 import re
 import struct
@@ -11,6 +10,7 @@ import sys
 from math import copysign, isinf, isnan
 
 from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
+from nuitka.build.ConstantBlobFormat import loadConstantBlobSpec
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -74,7 +74,7 @@ def _isAttributeName(value):
 _last_written = None
 
 
-def _writeConstantValue(output, constant_value):
+def _writeConstantValue(output, constant_value, blob_spec):
     # Massively many details per value,
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
@@ -84,29 +84,29 @@ def _writeConstantValue(output, constant_value):
     constant_type = type(constant_value)
 
     if constant_value is None:
-        output.write(b"n")
+        output.write(blob_spec.tag_none)
     elif constant_value is _last_written:
-        output.write(b"p")
+        output.write(blob_spec.tag_previous)
     elif constant_value is True:
-        output.write(b"t")
+        output.write(blob_spec.tag_true)
     elif constant_value is False:
-        output.write(b"F")
+        output.write(blob_spec.tag_false)
     elif constant_type is tuple:
-        output.write(b"T" + _encodeVariableLength(len(constant_value)))
+        output.write(blob_spec.tag_tuple + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
 
         for element in constant_value:
-            _writeConstantValue(output, element)
+            _writeConstantValue(output, element, blob_spec)
     elif constant_type is list:
-        output.write(b"L" + _encodeVariableLength(len(constant_value)))
+        output.write(blob_spec.tag_list + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
 
         for element in constant_value:
-            _writeConstantValue(output, element)
+            _writeConstantValue(output, element, blob_spec)
     elif constant_type is dict:
-        output.write(b"D" + _encodeVariableLength(len(constant_value)))
+        output.write(blob_spec.tag_dict + _encodeVariableLength(len(constant_value)))
 
         # Write keys first, and values second, such that we allow for the
         # last_written to have an impact.
@@ -114,34 +114,44 @@ def _writeConstantValue(output, constant_value):
 
         _last_written = None
         for key, value in items:
-            _writeConstantValue(output, key)
+            _writeConstantValue(output, key, blob_spec)
 
         _last_written = None
         for key, value in items:
-            _writeConstantValue(output, value)
+            _writeConstantValue(output, value, blob_spec)
     elif constant_type is set:
-        output.write(b"S" + _encodeVariableLength(len(constant_value)))
+        output.write(blob_spec.tag_set + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
         for element in constant_value:
-            _writeConstantValue(output, element)
+            _writeConstantValue(output, element, blob_spec)
     elif constant_type is frozenset:
-        output.write(b"P" + _encodeVariableLength(len(constant_value)))
+        output.write(
+            blob_spec.tag_frozenset + _encodeVariableLength(len(constant_value))
+        )
 
         _last_written = None
         for element in constant_value:
-            _writeConstantValue(output, element)
+            _writeConstantValue(output, element, blob_spec)
     elif constant_type is long:
         is_negative = constant_value < 0
         abs_constant_value = abs(constant_value)
 
         if abs_constant_value < _max_uint31_t_value:
             output.write(
-                (b"q" if is_negative else b"l")
+                (
+                    blob_spec.tag_long_negative_small
+                    if is_negative
+                    else blob_spec.tag_long_positive_small
+                )
                 + _encodeVariableLength(abs_constant_value)
             )
         else:
-            output.write(b"G" if is_negative else b"g")
+            output.write(
+                blob_spec.tag_long_negative_large
+                if is_negative
+                else blob_spec.tag_long_positive_large
+            )
 
             parts = []
 
@@ -160,26 +170,45 @@ def _writeConstantValue(output, constant_value):
         # This is Python2 then.
 
         output.write(
-            (b"I" if is_negative else b"i") + _encodeVariableLength(abs_constant_value)
+            (blob_spec.tag_int_negative if is_negative else blob_spec.tag_int_positive)
+            + _encodeVariableLength(abs_constant_value)
         )
     elif constant_type is float:
         if constant_value == 0.0:
             if copysign(1, constant_value) == 1:
-                output.write(b"Z" + to_byte(0))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_pos_zero)
+                )
             else:
-                output.write(b"Z" + to_byte(1))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_neg_zero)
+                )
         elif isnan(constant_value):
             if copysign(1, constant_value) == 1:
-                output.write(b"Z" + to_byte(2))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_pos_nan)
+                )
             else:
-                output.write(b"Z" + to_byte(3))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_neg_nan)
+                )
         elif isinf(constant_value):
             if copysign(1, constant_value) == 1:
-                output.write(b"Z" + to_byte(4))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_pos_inf)
+                )
             else:
-                output.write(b"Z" + to_byte(5))
+                output.write(
+                    blob_spec.tag_float_special
+                    + to_byte(blob_spec.float_special_neg_inf)
+                )
         else:
-            output.write(b"f" + struct.pack("d", constant_value))
+            output.write(blob_spec.tag_float + struct.pack("d", constant_value))
     elif constant_type is unicode:
         if str is not bytes:
             # spell-checker: ignore surrogatepass
@@ -189,48 +218,54 @@ def _writeConstantValue(output, constant_value):
 
         encoded_len = len(encoded)
         if not encoded_len:
-            output.write(b"s")
+            output.write(blob_spec.tag_text_empty)
         elif encoded_len == 1:
-            output.write(b"w" + encoded)
+            output.write(blob_spec.tag_text_single + encoded)
         # Zero termination if possible.
         elif b"\0" in encoded:
-            output.write(b"v" + _encodeVariableLength(encoded_len))
+            output.write(
+                blob_spec.tag_text_utf8_length_prefixed
+                + _encodeVariableLength(encoded_len)
+            )
             output.write(encoded)
         else:
             if str is not bytes and _isAttributeName(constant_value):
-                indicator = b"a"
+                indicator = blob_spec.tag_attribute_name
             else:
-                indicator = b"u"
+                indicator = blob_spec.tag_text_utf8_zero_terminated
 
             output.write(indicator + encoded + b"\0")
     elif constant_type is bytes:
         if len(constant_value) == 1:
-            output.write(b"d" + constant_value)
+            output.write(blob_spec.tag_bytes_single + constant_value)
         # Zero termination if possible.
         elif b"\0" in constant_value:
-            output.write(b"b" + _encodeVariableLength(len(constant_value)))
+            output.write(
+                blob_spec.tag_bytes_length_prefixed
+                + _encodeVariableLength(len(constant_value))
+            )
             output.write(constant_value)
         else:
             if str is bytes and _isAttributeName(constant_value):
-                indicator = b"a"
+                indicator = blob_spec.tag_attribute_name
             else:
-                indicator = b"c"
+                indicator = blob_spec.tag_bytes_zero_terminated
 
             output.write(indicator + constant_value + b"\0")
     elif constant_type is slice:
-        output.write(b":")
+        output.write(blob_spec.tag_slice)
         _last_written = None
-        _writeConstantValue(output, constant_value.start)
-        _writeConstantValue(output, constant_value.stop)
-        _writeConstantValue(output, constant_value.step)
+        _writeConstantValue(output, constant_value.start, blob_spec)
+        _writeConstantValue(output, constant_value.stop, blob_spec)
+        _writeConstantValue(output, constant_value.step, blob_spec)
     elif constant_type is range:
-        output.write(b";")
+        output.write(blob_spec.tag_range)
         _last_written = None
-        _writeConstantValue(output, constant_value.start)
-        _writeConstantValue(output, constant_value.stop)
-        _writeConstantValue(output, constant_value.step)
+        _writeConstantValue(output, constant_value.start, blob_spec)
+        _writeConstantValue(output, constant_value.stop, blob_spec)
+        _writeConstantValue(output, constant_value.step, blob_spec)
     elif constant_type is xrange:
-        output.write(b";")
+        output.write(blob_spec.tag_range)
         _last_written = None
 
         range_args = [
@@ -246,9 +281,9 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        _writeConstantValue(output, range_args[0])
-        _writeConstantValue(output, range_args[1])
-        _writeConstantValue(output, range_args[2])
+        _writeConstantValue(output, range_args[0], blob_spec)
+        _writeConstantValue(output, range_args[1], blob_spec)
+        _writeConstantValue(output, range_args[2], blob_spec)
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
@@ -259,54 +294,56 @@ def _writeConstantValue(output, constant_value):
             or isinf(constant_value.real)
             or isinf(constant_value.imag)
         ):
-            output.write(b"J")
+            output.write(blob_spec.tag_complex_special)
 
             _last_written = None
-            _writeConstantValue(output, constant_value.real)
-            _writeConstantValue(output, constant_value.imag)
+            _writeConstantValue(output, constant_value.real, blob_spec)
+            _writeConstantValue(output, constant_value.imag, blob_spec)
         else:
-            output.write(b"j")
+            output.write(blob_spec.tag_complex)
             output.write(struct.pack("dd", constant_value.real, constant_value.imag))
 
     elif constant_type is bytearray:
-        output.write(b"B" + _encodeVariableLength(len(constant_value)))
+        output.write(
+            blob_spec.tag_bytearray + _encodeVariableLength(len(constant_value))
+        )
 
         if python_version < 0x270:
             constant_value = constant_value.decode("latin1")
         output.write(constant_value)
     elif constant_type is BuiltinAnonValue:
-        output.write(b"M")
+        output.write(blob_spec.tag_builtin_anon)
         output.write(constant_value.getStreamValueByte())
     elif constant_type is BuiltinSpecialValue:
-        output.write(b"Q")
+        output.write(blob_spec.tag_builtin_special)
         output.write(constant_value.getStreamValueByte())
     elif constant_type is BlobData:
         constant_value = constant_value.getData()
-        output.write(b"X")
+        output.write(blob_spec.tag_blob_data)
         output.write(_encodeVariableLength(len(constant_value)))
         output.write(constant_value)
     elif constant_type is BuiltinGenericAliasValue:
-        output.write(b"A")
+        output.write(blob_spec.tag_generic_alias)
         _last_written = None
-        _writeConstantValue(output, constant_value.origin)
-        _writeConstantValue(output, constant_value.args)
+        _writeConstantValue(output, constant_value.origin, blob_spec)
+        _writeConstantValue(output, constant_value.args, blob_spec)
     elif constant_type is BuiltinUnionTypeValue:
-        output.write(b"H")
+        output.write(blob_spec.tag_union_type)
         _last_written = None
-        _writeConstantValue(output, constant_value.args)
+        _writeConstantValue(output, constant_value.args, blob_spec)
     elif constant_value in builtin_named_values:
-        output.write(b"O")
+        output.write(blob_spec.tag_builtin_named)
         output.write(builtin_named_values[constant_value].encode("utf8"))
         output.write(b"\0")
     elif constant_value in builtin_exception_values_list:
-        output.write(b"E")
+        output.write(blob_spec.tag_builtin_exception)
         output.write(constant_value.__name__.encode("utf8"))
         output.write(b"\0")
     elif constant_type is CodeObjectSpec:
-        output.write(b"C")
+        output.write(blob_spec.tag_code_object)
         _last_written = None
 
-        _writeConstantValueCodeObject(output, constant_value)
+        _writeConstantValueCodeObject(output, constant_value, blob_spec)
 
     else:
         assert False, (type(constant_value), constant_value)
@@ -314,90 +351,79 @@ def _writeConstantValue(output, constant_value):
     _last_written = constant_value
 
 
-def _writeConstantValueCodeObject(output, code_object):
+def _writeConstantValueCodeObject(output, code_object, blob_spec):
     # Lots of details and optimization to deal with
     # pylint: disable=too-many-branches,too-many-statements
 
     # Flags for the code object, not all items will be present.
     flags = 0
 
-    # Current bit, allocated dynamically based on availability of a feature
-    # per version and compatibility modes.
-    flag_base = 1
-
     if python_version >= 0x3B0:
         if code_object.getCodeObjectQualname() != code_object.getCodeObjectName():
-
             assert code_object.getCodeObjectQualname().endswith(
                 "." + code_object.getCodeObjectName()
             )
-            flags |= flag_base
-
-        qualname_flag_value = flag_base
-        flag_base <<= 1
-    else:
-        qualname_flag_value = 0
+            flags |= blob_spec.code_flag_qualname
 
     if code_object.getFreeVarNames():
-        flags |= flag_base
-    free_var_flag_value = flag_base
-    flag_base <<= 1
+        flags |= blob_spec.code_flag_free_vars
 
     if python_version >= 0x300:
         if code_object.getKwOnlyParameterCount():
-            flags |= flag_base
-        kw_only_flag_value = flag_base
-        flag_base <<= 1
-    else:
-        kw_only_flag_value = 0
+            flags |= blob_spec.code_flag_kw_only
 
-    # TODO: Not all versions have this.
     if python_version >= 0x380:
         if code_object.getPosOnlyParameterCount():
-            flags |= flag_base
-        pos_only_flag_value = flag_base
-        flag_base <<= 1
-    else:
-        pos_only_flag_value = 0
+            flags |= blob_spec.code_flag_pos_only
 
     co_kind = code_object.getCodeObjectKind()
 
-    # TODO: Not all versions have coroutines and asyncgen.
     if co_kind == "Generator":
-        flags |= flag_base  # CO_GENERATOR
+        flags |= blob_spec.code_kind_generator
     elif co_kind == "Coroutine":
-        flags |= flag_base * 2  # CO_COROUTINE
+        flags |= blob_spec.code_kind_coroutine
     elif co_kind == "Asyncgen":
-        flags |= flag_base * 3  # CO_ASYNC_GENERATOR
-    flag_base <<= 2
+        flags |= blob_spec.code_kind_asyncgen
 
-    # TODO: Version specific?
-    # TODO: Maybe invert the logic, if this is default
     if code_object.getFlagIsOptimizedValue():
-        flags |= flag_base
-    flag_base <<= 1
+        flags |= blob_spec.code_flag_optimized
 
-    # TODO: Version specific?
     if code_object.getFlagNewLocalsValue():
-        flags |= flag_base
-    flag_base <<= 1
+        flags |= blob_spec.code_flag_newlocals
 
     if code_object.hasStarListArg():
-        flags |= flag_base
-    flag_base <<= 1
+        flags |= blob_spec.code_flag_varargs
 
     if code_object.hasStarDictArg():
-        flags |= flag_base
-    flag_base <<= 1
+        flags |= blob_spec.code_flag_varkeywords
 
-    # Note: This is the last, so the actual bit size doesn't
-    # have to be dealt with here.
-    flags |= flag_base * code_object.getFutureSpec().encode()
+    future_flags = code_object.getFutureSpec().asFlags()
+
+    if "CO_FUTURE_DIVISION" in future_flags:
+        flags |= blob_spec.code_flag_future_division
+
+    if "CO_FUTURE_UNICODE_LITERALS" in future_flags:
+        flags |= blob_spec.code_flag_future_unicode_literals
+
+    if "CO_FUTURE_PRINT_FUNCTION" in future_flags:
+        flags |= blob_spec.code_flag_future_print_function
+
+    if "CO_FUTURE_ABSOLUTE_IMPORT" in future_flags:
+        flags |= blob_spec.code_flag_future_absolute_import
+
+    if "CO_FUTURE_GENERATOR_STOP" in future_flags:
+        flags |= blob_spec.code_flag_future_generator_stop
+
+    if "CO_FUTURE_ANNOTATIONS" in future_flags:
+        flags |= blob_spec.code_flag_future_annotations
+
+    if "CO_FUTURE_BARRY_AS_BDFL" in future_flags:
+        flags |= blob_spec.code_flag_future_barry_as_bdfl
 
     output.write(_encodeVariableLength(flags))
 
     # Name is mandatory, no flag needed.
-    _writeConstantValue(output, code_object.getCodeObjectName())
+    _writeConstantValue(output, code_object.getCodeObjectName(), blob_spec)
 
     # Line number is mandatory, no flag needed. Encoded values start at 0,
     # where 1 is what is normally used.
@@ -406,7 +432,7 @@ def _writeConstantValueCodeObject(output, code_object):
     # Right now this is only argument names, so argument count is implied,
     # it is mandatory so no flag is needed, empty value is very compact
     # anyway and rare.
-    _writeConstantValue(output, code_object.getVarNames())
+    _writeConstantValue(output, code_object.getVarNames(), blob_spec)
 
     # TODO: Not sure if this is redundant potentially it can
     # be derives from the var names already.
@@ -414,23 +440,25 @@ def _writeConstantValueCodeObject(output, code_object):
 
     # Do not include the name part in the code object, saving
     # the repetition.
-    if flags & qualname_flag_value:
-        _writeConstantValue(output, code_object.getCodeObjectQualname().rsplit(".")[0])
+    if flags & blob_spec.code_flag_qualname:
+        _writeConstantValue(
+            output, code_object.getCodeObjectQualname().rsplit(".")[0], blob_spec
+        )
 
     # Free vars are optional.
-    if flags & free_var_flag_value:
-        _writeConstantValue(output, code_object.getFreeVarNames())
+    if flags & blob_spec.code_flag_free_vars:
+        _writeConstantValue(output, code_object.getFreeVarNames(), blob_spec)
 
     # Keyword-only args are optional and version dependent.
-    if flags & kw_only_flag_value:
+    if flags & blob_spec.code_flag_kw_only:
         output.write(_encodeVariableLength(code_object.getKwOnlyParameterCount() - 1))
 
     # Positional-only args are optional and version dependent.
-    if flags & pos_only_flag_value:
+    if flags & blob_spec.code_flag_pos_only:
         output.write(_encodeVariableLength(code_object.getPosOnlyParameterCount() - 1))
 
 
-def _writeConstantStream(constants_reader):
+def _writeConstantStream(constants_reader, blob_spec):
     result = BytesIO()
 
     # We are a singleton, pylint: disable=global-statement
@@ -445,7 +473,7 @@ def _writeConstantStream(constants_reader):
             break
 
         old_size = result.tell()
-        _writeConstantValue(result, constant_value)
+        _writeConstantValue(result, constant_value, blob_spec)
 
         if not data_composer_logger.is_quiet:
             new_size = result.tell()
@@ -463,46 +491,21 @@ def _writeConstantStream(constants_reader):
 
     # Dirty end of things marker that would trigger an assertion in the decoder.
     # TODO: Debug mode only?
-    result.write(b".")
+    result.write(blob_spec.tag_end)
 
     return count, struct.pack("H", count) + result.getvalue()
 
 
-crc32 = 0
-
-
 def _writeConstantsBlob(output_filename, desc):
-    global crc32  # singleton, pylint: disable=global-statement
-
-    with open(output_filename, "w+b") as output:
-        output.write(b"\0" * 8)
-
-        def write(data):
-            global crc32  # singleton, pylint: disable=global-statement
-
-            output.write(data)
-            crc32 = binascii.crc32(data, crc32)
-
+    with open(output_filename, "wb") as output:
         for name, part in desc:
-            write(name + b"\0")
-            write(struct.pack("I", len(part)))
-            write(part)
+            output.write(name + b"\0")
+            output.write(struct.pack("I", len(part)))
+            output.write(part)
 
-        data_size = output.tell() - 8
+        data_size = output.tell()
 
-        if str is bytes:
-            # Python2 is doing signed CRC32, but we want unsigned.
-            crc32 %= 1 << 32
-
-        output.seek(0)
-        output.write(struct.pack("II", crc32, data_size))
-
-        assert output.tell() == 8
-
-        data_composer_logger.info(
-            "Total constants blob size without header %d." % data_size
-        )
-        data_composer_logger.info("Total constants blob CRC32 is %d." % crc32)
+        data_composer_logger.info("Total constants blob size %d." % data_size)
 
         syncFileOutput(output)
 
@@ -510,9 +513,12 @@ def _writeConstantsBlob(output_filename, desc):
 def main():
     # many details, mostly needed for reporting: pylint: disable=too-many-locals
 
+    blob_spec = loadConstantBlobSpec(data_composer_logger)
+
     data_composer_logger.is_quiet = (
         os.getenv("NUITKA_DATA_COMPOSER_VERBOSE", "0") != "1"
     )
+    data_composer_logger.info("Using constants blob spec '%s'." % blob_spec.filename)
 
     # Internal tool, most simple command line handling. This is the build directory
     # where main Nuitka put the .const files.
@@ -537,7 +543,7 @@ def main():
         try:
             with open(fullpath, "rb") as const_file:
                 constants_reader = ConstantStreamReader(const_file)
-                count, part = _writeConstantStream(constants_reader)
+                count, part = _writeConstantStream(constants_reader, blob_spec)
             total += count
 
             name = deriveModuleConstantsBlobName(filename)

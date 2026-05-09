@@ -70,9 +70,11 @@ doxygen-*
 .coverage*
 *.tmp
 *.dat
+.codex
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+.vscode/.python_alias_path
 .vscode/c_cpp_properties.json
 .vscode/.python_alias_path
 Nuitka-*

@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* These helpers are used to work with tuples.
 
@@ -20,9 +20,10 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 
 #if PYTHON_VERSION >= 0x3e0
     Py_ssize_t index = size - 1;
+    bool needs_recycle = false;
 
     if (index < PyTuple_MAXSAVESIZE) {
-        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->tuples[index]);
+        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->tuples[index]);
     } else {
         result_tuple = NULL;
     }
@@ -30,8 +31,8 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     if (result_tuple == NULL) {
         result_tuple = (PyTupleObject *)Nuitka_GC_NewVar(&PyTuple_Type, size);
     } else {
-        _PyTuple_RESET_HASH_CACHE(result_tuple);
         Nuitka_Py_NewReference((PyObject *)result_tuple);
+        needs_recycle = true;
     }
 #else
     // This is the CPython name, spell-checker: ignore numfree
@@ -79,7 +80,17 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
         result_tuple->ob_item[i] = NULL;
     }
 
+#if PYTHON_VERSION >= 0x3e0
+    // Python 3.14 tuples carry a cached hash value. Re-track recycled tuples
+    // through "Nuitka_GC_Track", because CPython changed where GC accounting
+    // happens between 3.14.0 and 3.14.1+.
+    _PyTuple_RESET_HASH_CACHE((PyObject *)result_tuple);
+    if (!needs_recycle || !_PyObject_GC_IS_TRACKED((PyObject *)result_tuple)) {
+        Nuitka_GC_Track(result_tuple);
+    }
+#else
     Nuitka_GC_Track(result_tuple);
+#endif
 
     assert(PyTuple_CheckExact(result_tuple));
     assert(PyTuple_GET_SIZE(result_tuple) == size);

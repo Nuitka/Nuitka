@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Module for working with hashes in Nuitka.
@@ -43,11 +43,15 @@ class HashBase(object):
             else:
                 assert False, type(value)
 
+        return self
+
     def updateFromFile(self, filename, line_filter=None):
         from .FileOperations import openTextFile
 
         with openTextFile(filename, "rb") as input_file:
             self.updateFromFileHandle(input_file, line_filter=line_filter)
+
+        return self
 
     def updateFromFileHandle(self, file_handle, line_filter=None):
         if line_filter is None:
@@ -65,6 +69,8 @@ class HashBase(object):
                 if line is not None:
                     self.updateFromBytes(line)
 
+        return self
+
 
 class Hash(HashBase):
     def __init__(self):
@@ -72,6 +78,7 @@ class Hash(HashBase):
 
     def updateFromBytes(self, value):
         self.hash.update(value)
+        return self
 
     def asDigest(self):
         return self.hash.digest()
@@ -106,6 +113,7 @@ class HashAlgorithmBase(HashBase):
 
     def updateFromBytes(self, value):
         self.hash = self.hash_func(value, self.hash)
+        return self
 
     def asDigest(self):
         if self.hash < 0:

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Scons interface.
@@ -47,11 +47,13 @@ from nuitka.options.Options import (
     isZig,
     shallCompileWithoutBuildDirectory,
     shallCreateAppBundle,
+    shallCreateDiffableCompilationReport,
     shallDisableCCacheUsage,
     shallMakeDll,
     shallMakeExe,
     shallMakeModule,
     shallRunInDebugger,
+    shallUsePythonDebug,
 )
 from nuitka.plugins.Hooks import (
     getExtraIncludeDirectories,
@@ -68,10 +70,14 @@ from nuitka.PythonFlavors import (
 from nuitka.PythonVersions import (
     getSconsSupportingVersions,
     getSystemPrefixPath,
+    getTargetPythonIncludePath,
     isPythonWithGil,
+    isRunningInInterpreter,
     python_version,
+    python_version_full_str,
     python_version_str,
 )
+from nuitka.reports.Reports import getCompilationReportFilename
 from nuitka.Tracing import flushStandardOutputs, general, isQuiet, scons_logger
 from nuitka.utils.AppDirs import (
     getCacheDir,
@@ -154,17 +160,63 @@ def provideStaticSourceFilesOnefile(source_dir):
     _provideStaticSourceFiles(source_dir, filenames)
 
 
-def provideStaticSourceFilesOffsets(source_dir):
-    """Provide static source files for the offsets calculation."""
-    filenames = ["GenerateHeadersMain.c"]
-
-    _provideStaticSourceFiles(source_dir, filenames)
-
-
 def _getSconsInlinePath():
     """Return path to inline copy of scons."""
 
     return getNormalizedPathJoin(getSconsDataPath(), "inline_copy")
+
+
+def _getInlineSconsVersionForPythonVersion(python_version_info):
+    if os.name == "nt" and python_version_info < (3, 5):
+        return scons_logger.sysexit(
+            "Error, on Windows scons must be run with Python 3.5 or higher."
+        )
+
+    if (3, 0) <= python_version_info < (3, 5):
+        return scons_logger.sysexit(
+            "Error, scons must not be run with Python3 older than 3.5."
+        )
+
+    if python_version_info < (2, 7):
+        # Non-Windows, Python 2.6, mostly older RHEL
+        return "scons-2.3.2"
+    elif os.name == "nt" and python_version_info >= (3, 7):
+        # Windows can use latest, supported MSVC 2026 this way
+        return "scons-4.10.1"
+    elif os.name == "nt" and python_version_info >= (3, 5):
+        # Windows can use latest, supported MSVC 2022 this way
+        return "scons-4.3.0"
+    else:
+        # Everything else 2.7 or higher works with this.
+        return "scons-3.1.2"
+
+
+def getInlineSconsVersion():
+    """Return Scons inline copy version for current Python runtime."""
+
+    return _getInlineSconsVersionForPythonVersion(sys.version_info)
+
+
+def getInlineSconsLibPath():
+    """Return path to inline copy of selected Scons package."""
+
+    return getNormalizedPathJoin(_getSconsInlinePath(), "lib", getInlineSconsVersion())
+
+
+def _getCompiledSconsBinaryCall():
+    if isRunningInInterpreter():
+        return None
+
+    executable = sys.modules["__main__"].__compiled__.original_argv0
+    executable_dir = os.path.dirname(executable)
+    _binary_name, binary_ext = os.path.splitext(os.path.basename(executable))
+
+    scons_binary = os.path.join(executable_dir, "scons" + binary_ext)
+
+    if os.path.exists(scons_binary):
+        return [scons_binary]
+
+    return None
 
 
 def _getSconsBinaryCall():
@@ -173,6 +225,12 @@ def _getSconsBinaryCall():
     Using potentially in-line copy if no system Scons is available
     or if we are on Windows, there it is mandatory.
     """
+
+    # Handle the case where we are running from a compiled binary,
+    # and Scons is included as multidist binary.
+    compiled_scons_command = _getCompiledSconsBinaryCall()
+    if compiled_scons_command is not None:
+        return compiled_scons_command
 
     inline_path = getNormalizedPathJoin(_getSconsInlinePath(), "bin", "scons.py")
 
@@ -207,8 +265,7 @@ def _getPythonForSconsExePath():
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
         python_versions=reversed(getSconsSupportingVersions()),
-        module_name=None,
-        module_version=None,
+        module_specs=None,
     )
 
     if python_for_scons is None:
@@ -217,17 +274,14 @@ def _getPythonForSconsExePath():
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
 
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, while Nuitka works with older Python, Scons does not, and therefore
 Nuitka needs to find a %s executable, so please install it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry or PATH, e.g. due to using an
 uninstalled Anaconda Python.
-"""
-            % scons_python_requirement
-        )
+""" % scons_python_requirement)
 
     return python_for_scons.getPythonExe()
 
@@ -251,9 +305,9 @@ def _setupSconsEnvironment2():
             old_pythonhome = os.environ["PYTHONHOME"]
             del os.environ["PYTHONHOME"]
 
-    import nuitka
-
-    os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
+    os.environ["NUITKA_PACKAGE_DIR"] = os.path.normpath(
+        os.path.join(getSconsDataPath(), "..")
+    )
 
     # When downloading in Scons, use the external path.
     if isWin32Windows():
@@ -434,11 +488,20 @@ def _removeUnwantedArtifacts(scons_created_exe):
 
             deleteFile(linker_left_over, must_exist=False)
 
+        if not isUnstripped():
+            pdb_filename = changeFilenameExtension(scons_created_exe, ".pdb")
+
+            if os.path.exists(pdb_filename):
+                return scons_logger.sysexit(
+                    "Error, unwanted '.pdb' file '%s' was created during the build. Report the bug."
+                    % pdb_filename
+                )
+
 
 def runScons(scons_options, env_values, scons_filename):
     # We are handling quite a few error cases, as this contains transfer of
     # exceptions, workarounds for non-encodable filenames, and other error
-    # handling. pylint: disable=too-many-branches
+    # handling. pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -466,6 +529,14 @@ def runScons(scons_options, env_values, scons_filename):
 
         env_values = OrderedDict(env_values)
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
+
+        if "zig_exe_path" in scons_options and "CC" not in env_values:
+            env_values["CC"] = scons_options["zig_exe_path"]
+
+        # Avoid Visual Studio developer shell telemetry from leaking to build
+        # output. spell-checker: ignore VSCMD_SKIP_SENDTELEMETRY
+        if isWin32Windows():
+            env_values["VSCMD_SKIP_SENDTELEMETRY"] = "1"
 
         # Pass quiet setting to scons via environment variable.
         env_values["NUITKA_QUIET"] = "1" if isQuiet() else "0"
@@ -561,10 +632,12 @@ def cleanSconsDirectory(source_dir):
         ".res",
         ".S",
         ".txt",
+        ".pickle",
         ".const",
         ".gcda",
         ".pgd",
         ".pgc",
+        ".json",
     )
 
     def check(path):
@@ -587,6 +660,12 @@ def cleanSconsDirectory(source_dir):
             for path, _filename in listDir(plugins_dir):
                 check(path)
 
+        blobs_dir = getNormalizedPathJoin(source_dir, "blobs")
+
+        if os.path.exists(blobs_dir):
+            for path, _filename in listDir(blobs_dir):
+                check(path)
+
 
 def getCommonSconsOptions():
     # Scons gets transported many details, that we express as variables, and
@@ -598,8 +677,14 @@ def getCommonSconsOptions():
     scons_options["nuitka_src"] = getSconsDataPath()
 
     scons_options["python_version"] = python_version_str
+    scons_options["python_version_full_str"] = python_version_full_str
 
     scons_options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
+    scons_options["python_include_path"] = getTargetPythonIncludePath(
+        logger=scons_logger,
+        python_debug=shallUsePythonDebug(),
+        self_compiled_python_uninstalled=isSelfCompiledPythonUninstalled(),
+    )
 
     scons_options["experimental"] = ",".join(getExperimentalIndications())
 
@@ -608,6 +693,12 @@ def getCommonSconsOptions():
     scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
     scons_options["no_deployment"] = ",".join(getNoDeploymentIndications())
+
+    if (
+        getCompilationReportFilename() is not None
+        and not shallCreateDiffableCompilationReport()
+    ):
+        scons_options["collect_resources"] = asBoolStr(True)
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
@@ -631,11 +722,16 @@ def getCommonSconsOptions():
 
     if isZig():
         if "CC" not in os.environ:
-            scons_options["zig_exe_path"] = getZigBinaryPath(
-                logger=scons_logger,
-                assume_yes_for_downloads=assumeYesForDownloads(),
-                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
-            )
+            zig_exe_path = getExecutablePath("zig")
+
+            if zig_exe_path is None:
+                zig_exe_path = getZigBinaryPath(
+                    logger=scons_logger,
+                    assume_yes_for_downloads=assumeYesForDownloads(),
+                    reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+                )
+
+            scons_options["zig_exe_path"] = zig_exe_path
 
             if scons_options["zig_exe_path"] is None:
                 scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
@@ -733,6 +829,12 @@ def getCommonSconsOptions():
 
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    if product_version:
+        env_values["NUITKA_PRODUCT_VERSION"] = product_version
+
+    if file_version:
+        env_values["NUITKA_FILE_VERSION"] = file_version
 
     if isMonolithPy() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.

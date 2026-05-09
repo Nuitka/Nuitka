@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to find data files."""
@@ -17,6 +17,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.Utils import isMacOS
 
 
 class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
@@ -127,6 +128,14 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 )
 
             for data_dir in dirs:
+                data_dir = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=data_dir,
+                    config_name="data file directory for '%s'" % module_name,
+                    extra_context=None,
+                    single_value=True,
+                )
+
                 source_path = os.path.join(module_folder, data_dir)
 
                 if os.path.isdir(source_path):
@@ -147,17 +156,43 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 )
 
             for raw_dir in raw_dirs:
+                raw_dir = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=raw_dir,
+                    config_name="raw data file directory for '%s'" % module_name,
+                    extra_context=None,
+                    single_value=True,
+                )
+
                 source_path = os.path.join(module_folder, raw_dir)
 
                 if os.path.isdir(source_path):
-                    yield self.makeIncludedDataDirectory(
-                        source_path=source_path,
-                        dest_path=os.path.normpath(os.path.join(target_dir, raw_dir)),
-                        reason="package raw directory '%s' for %r"
-                        % (raw_dir, module_name.asString()),
-                        tags="config",
-                        raw=True,
-                    )
+                    if isMacOS() and os.path.basename(source_path).endswith(
+                        ".framework"
+                    ):
+                        included_datafiles = self.makeIncludedFrameworkDirectory(
+                            source_path=source_path,
+                            dest_path=os.path.normpath(
+                                os.path.join(target_dir, raw_dir)
+                            ),
+                            reason="package raw directory '%s' for %r"
+                            % (raw_dir, module_name.asString()),
+                            tags="config",
+                        )
+                    else:
+                        included_datafiles = self.makeIncludedDataDirectory(
+                            source_path=source_path,
+                            dest_path=os.path.normpath(
+                                os.path.join(target_dir, raw_dir)
+                            ),
+                            reason="package raw directory '%s' for %r"
+                            % (raw_dir, module_name.asString()),
+                            tags="config",
+                            raw=True,
+                        )
+
+                    for included_datafile in included_datafiles:
+                        yield included_datafile
 
         include_pyi_file = data_file_config.get("include-pyi-file")
 

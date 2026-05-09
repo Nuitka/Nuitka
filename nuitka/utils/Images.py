@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Handling of images, esp. format conversions for icons."""
@@ -13,11 +13,8 @@ def checkIconUsage(logger, icon_path):
     icon_format = getFilenameExtension(icon_path)
 
     if icon_format == "":
-        return logger.sysexit(
-            """\
-Cannot detect the icon format from filename extension of '%s'."""
-            % (icon_path)
-        )
+        return logger.sysexit("""\
+Cannot detect the icon format from filename extension of '%s'.""" % (icon_path))
 
     if icon_format != ".icns" and isMacOS():
         needs_conversion = True
@@ -33,12 +30,9 @@ Cannot detect the icon format from filename extension of '%s'."""
             if states.is_debug:
                 logger.info("Exception importing 'imageio' is %s" % repr(e))
 
-            return logger.sysexit(
-                """\
+            return logger.sysexit("""\
 Need to install 'imageio' to automatically convert the non native \
-icon image (%s) in file in '%s'."""
-                % (icon_format[1:].upper(), icon_path)
-            )
+icon image (%s) in file in '%s'.""" % (icon_format[1:].upper(), icon_path))
 
 
 def convertImageToIconFormat(logger, image_filename, converted_icon_filename):

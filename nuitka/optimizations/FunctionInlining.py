@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """In-lining of functions.
@@ -75,7 +75,7 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
         )
 
     body = makeStatementsSequence(
-        statements=(statements, clone), allow_none=False, source_ref=function_source_ref
+        statements=(statements, clone), source_ref=function_source_ref
     )
 
     auto_releases = function_body.getFunctionVariablesWithAutoReleases()

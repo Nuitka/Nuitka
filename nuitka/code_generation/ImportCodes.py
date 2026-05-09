@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Import related codes.
@@ -161,13 +161,30 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-        import_gives_ref, module_getter_code = getImportHardModuleGetterCode(
-            module_name=imported_module_name, context=context
-        )
-
         if imported_module_name == module_value_name:
+            import_gives_ref, module_getter_code = getImportHardModuleGetterCode(
+                module_name=imported_module_name, context=context
+            )
+
             emit("""%s = %s;""" % (value_name, module_getter_code))
+        elif not isHardModule(module_value_name):
+            # The imported module can be hard-imported while the value bound by
+            # "import package.submodule" is still only the top level package.
+            # In that case, use a normal fixed import to obtain that binding.
+            emit(
+                """%s = IMPORT_MODULE_FIXED(tstate, %s, %s);"""
+                % (
+                    value_name,
+                    context.getConstantCode(imported_module_name.asString()),
+                    context.getConstantCode(module_value_name.asString()),
+                )
+            )
+
+            import_gives_ref = True
         else:
+            import_gives_ref1, module_getter_code1 = getImportHardModuleGetterCode(
+                module_name=imported_module_name, context=context
+            )
             import_gives_ref, module_getter_code2 = getImportHardModuleGetterCode(
                 module_name=module_value_name, context=context
             )
@@ -186,9 +203,9 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
 {{value_name}} = {{module_getter_code2}};
 """,
                     value_name=value_name,
-                    module_getter_code1=module_getter_code,
+                    module_getter_code1=module_getter_code1,
                     module_getter_code2=module_getter_code2,
-                    import_gives_ref=import_gives_ref,
+                    import_gives_ref=import_gives_ref1,
                 )
             )
 

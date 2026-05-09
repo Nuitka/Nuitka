@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nodes for functions and their creations.
@@ -129,6 +129,12 @@ class ExpressionFunctionBodyBase(
 
             # Non-local declarations if any.
             self.non_local_declarations = None
+
+    def getCloneArgs(self):
+        result = ChildHavingBodyOptionalMixin.getCloneArgs(self)
+        result["name"] += "_clone"
+
+        return result
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -412,11 +418,14 @@ class ExpressionFunctionBodyBase(
 
                 self.removeClosureVariable(closure_variable)
 
-    def optimizeVeryHardHardModuleVariables(self, very_trusted_module_variables):
+    def optimizeUnusedVeryTrustedModuleVariables(self, very_trusted_module_variables):
         """Optimize module variables that are very trusted."""
 
         for module_variable in very_trusted_module_variables:
             if module_variable not in self.taken:
+                continue
+
+            if not module_variable.hasEmptyTracesFor(self.trace_collection.owner):
                 continue
 
             self.trace_collection.signalChange(
@@ -1047,8 +1056,7 @@ Replaced call to created function body '%s' with direct function call."""
                 result,
                 "new_raise",  # TODO: More appropriate tag maybe.
                 """Replaced call to created function body '%s' to argument \
-error"""
-                % self.getName(),
+error""" % self.getName(),
             )
 
     def getClosureVariableVersions(self):

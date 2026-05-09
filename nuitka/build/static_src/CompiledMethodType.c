@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /** Compiled methods.
  *
@@ -148,11 +148,45 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
     assert(nargs >= 0);
     assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (method->m_object == NULL) {
+        if (unlikely(nargs < 1)) {
+            PyErr_Format(
+                PyExc_TypeError,
+                "unbound compiled_method %s%s must be called with %s instance as first argument (got nothing instead)",
+                GET_CALLABLE_NAME((PyObject *)method->m_function), GET_CALLABLE_DESC((PyObject *)method->m_function),
+                GET_CLASS_NAME(method->m_class));
+            return NULL;
+        } else {
+            PyObject *self = stack[0];
+            CHECK_OBJECT(self);
+
+            int result = PyObject_IsInstance(self, method->m_class);
+
+            if (unlikely(result < 0)) {
+                return NULL;
+            } else if (unlikely(result == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
+
+                return NULL;
+            }
+        }
+
+        return Nuitka_CallFunctionVectorcall(tstate, method->m_function, stack, nargs,
+                                             kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+    }
+
     Py_ssize_t totalargs = nargs + kwargs_count;
 
     // Shortcut possible, no args.
     if (totalargs == 0) {
-        return Nuitka_CallMethodFunctionNoArgs(PyThreadState_GET(), method->m_function, method->m_object);
+        return Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
     }
 
     PyObject *result;
@@ -169,7 +203,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
-        result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
+        result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
@@ -185,7 +219,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
-        result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
+        result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);

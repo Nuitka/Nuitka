@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to tell user about needed or useful options for packages.
@@ -94,15 +94,12 @@ Error, package '%s' requires '--mode=app' to be used or else it cannot work."""
             pass
         elif macos_bundle == "recommend":
             if not shallCreateAppBundle():
-                self.info(
-                    """\
+                self.info("""\
 Note, when using '%s', consider using '--mode=app' option. Otherwise \
 high resolution will not be available and a terminal window will open. \
 However for debugging, terminal output is the easiest way to see \
 informative traceback and error information, so launch it from there if \
-possible."""
-                    % full_name
-                )
+possible.""" % full_name)
         else:
             self.sysexitIllegalOptionValue(full_name, "macos_bundle", macos_bundle)
 
@@ -121,9 +118,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 full_name, "macos_bundle_onefile_mode", macos_bundle_as_onefile
             )
 
-    # TODO: Definitely the wrong function to use, but we migrated this out of
-    # implicit imports, where it was done there.
-    def getImplicitImports(self, module):
+    def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
         for options_config in self.config.get(full_name, section="options"):
@@ -150,8 +145,6 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                                 "macos_bundle_as_onefile", "no"
                             ),
                         )
-
-        return ()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

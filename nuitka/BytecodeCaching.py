@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Caching of compiled code.
@@ -15,7 +15,7 @@ from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import getNormalizedPathJoin, makePath
+from nuitka.utils.FileOperations import getNormalizedPathJoin
 from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
@@ -23,7 +23,7 @@ from nuitka.Version import version_string
 
 
 def getBytecodeCacheDir():
-    return getCacheDir("module-cache")
+    return getCacheDir("module-cache", create=True)
 
 
 def _getCacheFilename(module_name, extension):
@@ -150,10 +150,12 @@ def writeImportedModulesNamesToCache(
         # We use a tuple, so preserve the order.
         "modules_used": used_modules,
         "distribution_names": distribution_names,
-        "timing_infos": getModuleOptimizationTimingInfos(module_name),
+        "timing_infos": tuple(
+            timing_info.asTuple()
+            for timing_info in getModuleOptimizationTimingInfos(module_name)
+        ),
     }
 
-    makePath(os.path.dirname(cache_filename))
     writeJsonToFilename(filename=cache_filename, contents=data)
 
 

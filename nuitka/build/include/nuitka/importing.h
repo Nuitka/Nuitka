@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_IMPORTING_H__
 #define __NUITKA_IMPORTING_H__
@@ -51,7 +51,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(void) {
 #elif PYTHON_VERSION < 0x3c0
     return _PyInterpreterState_GET()->modules;
 #else
-    return _PyInterpreterState_GET()->imports.modules;
+    return Nuitka_PyInterpreterState_GetImportsState(_PyInterpreterState_GET())->modules;
 #endif
 }
 

@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* The main program for a compiled program.
  *
@@ -306,6 +306,83 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+static char const *getNoSiteBuiltinNameFromException(PyThreadState *tstate, PyObject *exception_value,
+                                                     bool *global_name_error) {
+    PyObject *exception_text = PyObject_Str(exception_value);
+
+    if (unlikely(exception_text == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+        return NULL;
+    }
+
+    char const *message = Nuitka_String_AsString_Unchecked(exception_text);
+    char const *missing_name = NULL;
+
+    *global_name_error = false;
+
+    if (strcmp(message, "name 'exit' is not defined") == 0) {
+        missing_name = "exit";
+    } else if (strcmp(message, "name 'help' is not defined") == 0) {
+        missing_name = "help";
+    } else if (strcmp(message, "name 'quit' is not defined") == 0) {
+        missing_name = "quit";
+
+#if PYTHON_VERSION < 0x300
+    } else if (strcmp(message, "global name 'exit' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "exit";
+    } else if (strcmp(message, "global name 'help' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "help";
+    } else if (strcmp(message, "global name 'quit' is not defined") == 0) {
+        *global_name_error = true;
+        missing_name = "quit";
+#endif
+    }
+
+    Py_DECREF(exception_text);
+
+    return missing_name;
+}
+
+static PyObject *makeNoSiteBuiltinNameErrorMessage(char const *missing_name, bool global_name_error) {
+#if PYTHON_VERSION < 0x300
+    char const *message_format =
+        global_name_error
+            ? "global name '%s' is not defined. This standalone program was created with "
+              "'--python-flag=no_site', which omits 'site' module built-ins like 'exit' and 'help'. "
+              "Disable with '--no-deployment-flag=site-builtins'."
+            : "name '%s' is not defined. This standalone program was created with '--python-flag=no_site', "
+              "which omits 'site' module built-ins like 'exit' and 'help'. Disable with "
+              "'--no-deployment-flag=site-builtins'.";
+#else
+    assert(global_name_error == false);
+
+    char const *message_format =
+        "name '%s' is not defined. This standalone program was created with '--python-flag=no_site', "
+        "which omits 'site' module built-ins like 'exit' and 'help'. Disable with "
+        "'--no-deployment-flag=site-builtins'.";
+#endif
+
+    return Nuitka_String_FromFormat(message_format, missing_name);
+}
+
+static void raiseReplacementNameError(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                      PyObject *exception_arg) {
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
+#endif
+
+    struct Nuitka_ExceptionPreservationItem new_exception_state;
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &new_exception_state, PyExc_NameError, exception_arg,
+                                               GET_EXCEPTION_STATE_TRACEBACK(exception_state));
+    Py_INCREF_IMMORTAL(PyExc_NameError);
+
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
+}
+#endif
+
 static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();
@@ -346,19 +423,40 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+            || strcmp(exception_name, "NameError") == 0
+#endif
+        ) {
             struct Nuitka_ExceptionPreservationItem saved_exception;
             FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
 
-            PyObject *exception_arg = PyUnicode_FromFormat("\
+            if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+                PyObject *exception_arg = PyUnicode_FromFormat("\
 Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
 and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
 included by default",
-                                                           exception_value);
+                                                               saved_exception.exception_value);
 
-            CHECK_OBJECT(exception_arg);
+                CHECK_OBJECT(exception_arg);
 
-            raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+                raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+#if SYSFLAG_NO_SITE == 1 && !defined(_NUITKA_NO_DEPLOYMENT_SITE_BUILTINS)
+            } else {
+                bool global_name_error = false;
+                char const *missing_name =
+                    getNoSiteBuiltinNameFromException(tstate, saved_exception.exception_value, &global_name_error);
+
+                if (missing_name != NULL) {
+                    PyObject *exception_arg = makeNoSiteBuiltinNameErrorMessage(missing_name, global_name_error);
+                    CHECK_OBJECT(exception_arg);
+
+                    raiseReplacementNameError(tstate, &saved_exception, exception_arg);
+                } else {
+                    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+                }
+#endif
+            }
         }
 #endif
         // NUITKA_FINALIZE_PROGRAM(tstate);
@@ -432,9 +530,13 @@ static bool is_multiprocessing_fork = false;
 static bool is_multiprocessing_forkserver = false;
 static int multiprocessing_forkserver_fd1 = -1;
 static int multiprocessing_forkserver_fd2 = -1;
+#if PYTHON_VERSION >= 0x3e0
+static int multiprocessing_forkserver_authkey_fd = -1;
+#endif
 
-// This is a multiprocessing resource tracker if not -1
+// This is a multiprocessing resource or semaphore tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
+static char const *multiprocessing_tracker_module_name = NULL;
 
 // This is a joblib loky fork
 #ifdef _WIN32
@@ -492,6 +594,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
 #else
             multiprocessing_resource_tracker_arg = _wtoi(argv[i + 1]);
 #endif
+            multiprocessing_tracker_module_name = "multiprocessing.resource_tracker";
             break;
         }
 
@@ -507,37 +610,76 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
         if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+            // Make parameter variable to allow strip of potential imports.
+            filename_char_t const *cmd_arg = argv[i + 1];
+
+            // Newer Python versions added this for forkserver, but lets do it
+            // for all, just in case this gets added some more.
+            if (strncmpFilename(cmd_arg, FILENAME_EMPTY_STR "import sys; ", 12) == 0) {
+                cmd_arg += 12;
+            }
+
             // The multiprocessing resource tracker can launch like this.
-            if (scanFilename(argv[i + 1],
-                             FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
+            if (scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main; main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1 ||
+                scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.resource_tracker import main;main(%i)",
                              &multiprocessing_resource_tracker_arg) == 1) {
+                multiprocessing_tracker_module_name = "multiprocessing.resource_tracker";
+                break;
+            }
+
+            // Older Python versions still launch the semaphore tracker like this.
+            if (scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.semaphore_tracker import main; main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1 ||
+                scanFilename(cmd_arg, FILENAME_EMPTY_STR "from multiprocessing.semaphore_tracker import main;main(%i)",
+                             &multiprocessing_resource_tracker_arg) == 1) {
+                multiprocessing_tracker_module_name = "multiprocessing.semaphore_tracker";
                 break;
             }
 
             // The joblib loky resource tracker is launched like this.
-            if (scanFilename(argv[i + 1],
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR
                              "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
                              &loky_resource_tracker_arg)) {
                 break;
             }
 
-            if (scanFilename(argv[i + 1],
+#if PYTHON_VERSION < 0x3e0
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR
                              "from multiprocessing.forkserver import main; main(%i, %i, ['__main__'],",
                              &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
                 is_multiprocessing_forkserver = true;
                 break;
             }
+#else
+            if (scanFilename(cmd_arg,
+                             FILENAME_EMPTY_STR
+                             "from multiprocessing.forkserver import main; main(%i, %i, ['__main__']",
+                             &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
+                filename_char_t const *authkey_arg = findFilenameSubstring(cmd_arg, FILENAME_EMPTY_STR "'authkey_r': ");
+
+                if (authkey_arg != NULL) {
+                    if (scanFilename(authkey_arg, FILENAME_EMPTY_STR "'authkey_r': %i",
+                                     &multiprocessing_forkserver_authkey_fd) != 1) {
+                        multiprocessing_forkserver_authkey_fd = -1;
+                    }
+                }
+
+                is_multiprocessing_forkserver = true;
+                break;
+            }
+#endif
 
 #if defined(_WIN32)
-            if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
+            if (strcmpFilename(cmd_arg, FILENAME_EMPTY_STR
                                "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
                 is_joblib_popen_loky_win32 = true;
                 break;
             }
 
-            if (scanFilename(argv[i + 1],
+            if (scanFilename(cmd_arg,
                              FILENAME_EMPTY_STR "from joblib.externals.loky.backend.popen_loky_win32 import main; "
                                                 "main(pipe_handle=%i, parent_pid=%i)",
                              &loky_joblib_pipe_handle_arg, &loky_joblib_parent_pid_arg)) {
@@ -565,12 +707,13 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
-        if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
-            (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+        if ((i + 1 < argc) && ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
+                               (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0))) {
             fprintf(stderr,
-                    "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
+                    "Error, the program tried to call itself with '" FILENAME_FORMAT_STR
+                    "' argument: '" FILENAME_FORMAT_STR "'. Disable with "
                     "'--no-deployment-flag=self-execution'.\n",
-                    argv[i]);
+                    argv[i], argv[i + 1]);
             exit(2);
         }
 #endif
@@ -1140,9 +1283,11 @@ static void Nuitka_Py_Initialize(void) {
     config.safe_path = 1;
 #endif
 
-    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling Py_InitializeFromConfig.");
+    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling 'Py_InitializeFromConfig'.");
 
     status = Py_InitializeFromConfig(&config);
+    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): 'Py_InitializeFromConfig' returned.");
+
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
     }
@@ -1873,12 +2018,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
-
-// TODO: Python3.13 NoGIL: This is causing errors during bytecode import
-// that are unexplained.
-#if !defined(Py_GIL_DISABLED)
     patchInspectModule(tstate);
-#endif
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
@@ -1929,7 +2069,22 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         PyObject *args[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd1),
                             Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd2), main_list};
 
+#if PYTHON_VERSION < 0x3e0
         CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+#else
+        if (multiprocessing_forkserver_authkey_fd == -1) {
+            CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+        } else {
+            PyObject *kw_names = MAKE_TUPLE_EMPTY(tstate, 1);
+            PyTuple_SET_ITEM(kw_names, 0, Nuitka_String_FromString("authkey_r"));
+
+            PyObject *kw_values[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_authkey_fd)};
+
+            PyObject *result = CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(tstate, main_function, args, kw_values, kw_names);
+            Py_DECREF(kw_names);
+            Py_XDECREF(result);
+        }
+#endif
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
@@ -1946,7 +2101,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_ssize_t size = PyList_Size(argv_list);
 
         // Negative indexes are not supported by this function.
-        int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
@@ -1977,7 +2132,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
-        int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
@@ -1991,8 +2146,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
 #endif
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
-        NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.resource_tracker", true);
+        char const *tracker_module_name = multiprocessing_tracker_module_name;
+
+        if (tracker_module_name == NULL) {
+            tracker_module_name = "multiprocessing.resource_tracker";
+        }
+
+        NUITKA_PRINTF_TRACE("main(): Launching as '%s'.\n", tracker_module_name);
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, tracker_module_name, true);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
@@ -2002,7 +2163,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
-        NUITKA_PRINT_TRACE("main(): Calling 'multiprocessing.resource_tracker' Py_Exit.");
+        NUITKA_PRINTF_TRACE("main(): Calling '%s' Py_Exit.\n", tracker_module_name);
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
@@ -2126,7 +2287,11 @@ int main(int argc, char **argv) {
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) {
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv, filename_char_t const *dll_filename) {
+    if (dll_filename != NULL) {
+        setDllFilename(dll_filename);
+    }
+
     // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }

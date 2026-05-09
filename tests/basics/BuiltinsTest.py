@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Test that should cover sporadic usages of built-ins that we implemented."""
@@ -347,6 +347,29 @@ except Exception as e:
 x = range(17)
 print("Sum of range(17) is", sum(x))
 print("Sum of range(17) starting with 5 is", sum(x, 5))
+
+values = [0.1] * 10
+print("Float sum of [0.1] * 10 is", repr(sum(values)))
+print("Float sum of generator [0.1] * 10 is", repr(sum(v for v in values)))
+print("Float sum of [0.1] * 10 starting with 0.0 is", repr(sum(values, 0.0)))
+
+values = [1, 0.1] * 5
+print("Float sum of [1, 0.1] * 5 is", repr(sum(values)))
+print("Float sum of generator [1, 0.1] * 5 is", repr(sum(v for v in values)))
+print("Float sum of [1, 0.1] * 5 starting with 0.0 is", repr(sum(values, 0.0)))
+
+values = [10**100, 0.1] * 5
+print("Float sum of [10**100, 0.1] * 5 is", repr(sum(values)))
+
+values = [True, 0.1] * 5
+print("Float sum of [True, 0.1] * 5 is", repr(sum(values)))
+print("Float sum of generator [True, 0.1] * 5 is", repr(sum(v for v in values)))
+
+values = [float("inf"), float("inf")]
+print("Float sum of [inf, inf] is", repr(sum(values)))
+
+values = [1e308, 1e308]
+print("Float sum of [1e308, 1e308] is", repr(sum(values)))
 
 try:
     print(str("1", offer=2))

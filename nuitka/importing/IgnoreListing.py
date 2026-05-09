@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Ignore listing of modules that are not found, but probably that's acceptable."""
@@ -424,8 +424,7 @@ def isIgnoreListedNotExistingModule(module_name):
         raise NuitkaOptimizationError(
             """
 Your CPython version has a built-in module '%s', that is not ignore listed
-please report this as a bug."""
-            % module_name,
+please report this as a bug.""" % module_name,
         )
 
     return module_name.hasOneOfNamespaces(getModuleIgnoreList())

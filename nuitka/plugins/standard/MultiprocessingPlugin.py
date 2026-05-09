@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to make multiprocessing and joblib work well.
@@ -12,6 +12,7 @@ The issue applies to accelerated and standalone mode alike.
 spell-checker: ignore joblib,anyio
 """
 
+from nuitka.importing.FakeModules import makeFakeModuleDescription
 from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
@@ -39,6 +40,9 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     plugin_name = "multiprocessing"
     plugin_desc = "Required by 'multiprocessing' package."
     plugin_category = "package-support"
+
+    def __init__(self):
+        self.created_parents_main = False
 
     @classmethod
     def isRelevant(cls):
@@ -83,11 +87,9 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 
 sys.executable = %s
 sys._base_executable = sys.executable
-"""
-                % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
+""" % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
                 """\
-Monkey patching "%s" load environment."""
-                % full_name,
+Monkey patching "%s" load environment.""" % full_name,
             )
 
     @staticmethod
@@ -139,11 +141,104 @@ if str is not bytes:
 Monkey patching "multiprocessing" for compiled methods.""",
             )
 
-    @staticmethod
-    def createFakeModuleDependency(module):
+        if full_name == "anyio.to_process":
+            yield (
+                """\
+import anyio.to_process as _anyio_to_process
+import os
+import pickle
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
+
+def _process_worker_for_nuitka():
+    stdin = sys.stdin
+    stdout = sys.stdout
+    sys.stdin = open(os.devnull)
+    sys.stdout = open(os.devnull, "w")
+
+    stdout.buffer.write(b"READY\\n")
+    stdout.buffer.flush()
+
+    while True:
+        retval = exception = None
+
+        try:
+            payload = pickle.load(stdin.buffer)
+            command = payload[0]
+            args = payload[1:]
+        except EOFError:
+            return
+        except BaseException as exc:
+            exception = exc
+        else:
+            if command == "run":
+                func = args[0]
+                func_args = args[1]
+
+                try:
+                    retval = func(*func_args)
+                except BaseException as exc:
+                    exception = exc
+            elif command == "init":
+                sys.path, main_module_path = args
+
+                del sys.modules["__main__"]
+
+                if main_module_path and os.path.isfile(main_module_path):
+                    try:
+                        spec = spec_from_file_location("__mp_main__", main_module_path)
+
+                        if spec and spec.loader:
+                            main = module_from_spec(spec)
+                            spec.loader.exec_module(main)
+                            sys.modules["__main__"] = main
+                            sys.modules["__mp_main__"] = main
+                    except BaseException as exc:
+                        exception = exc
+                else:
+                    try:
+                        import __parents_main__ as parents_main
+                    except ImportError:
+                        pass
+                    else:
+                        sys.modules["__main__"] = parents_main
+                        sys.modules["__mp_main__"] = parents_main
+
+        try:
+            if exception is not None:
+                status = b"EXCEPTION"
+                pickled = pickle.dumps(exception, pickle.HIGHEST_PROTOCOL)
+            else:
+                status = b"RETURN"
+                pickled = pickle.dumps(retval, pickle.HIGHEST_PROTOCOL)
+        except BaseException as exc:
+            exception = exc
+            status = b"EXCEPTION"
+            pickled = pickle.dumps(exc, pickle.HIGHEST_PROTOCOL)
+
+        stdout.buffer.write(b"%s %d\\n" % (status, len(pickled)))
+        stdout.buffer.write(pickled)
+        stdout.buffer.flush()
+
+        if isinstance(exception, SystemExit):
+            raise exception
+
+_anyio_to_process.process_worker = _process_worker_for_nuitka
+""",
+                """\
+Monkey patching "anyio.to_process" for worker start.""",
+            )
+
+    def createFakeModuleDependency(self, module):
         full_name = module.getFullName()
 
-        if full_name != "multiprocessing":
+        if full_name not in ("multiprocessing", "anyio"):
+            return
+
+        if (
+            self.created_parents_main
+            or getModuleInclusionInfoByName("__parents_main__") is not None
+        ):
             return
 
         # First, build the module node and then read again from the
@@ -210,12 +305,14 @@ def __nuitka_freeze_support():
 __nuitka_freeze_support()
 """
 
-        yield (
-            module_name,
-            source_code,
-            root_module.getCompileTimeFilename(),
-            "Auto enable multiprocessing freeze support",
+        yield makeFakeModuleDescription(
+            module_name=module_name,
+            source_code=source_code,
+            source_filename=root_module.getCompileTimeFilename(),
+            reason="Auto enable multiprocessing/anyio freeze support",
         )
+
+        self.created_parents_main = True
 
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind

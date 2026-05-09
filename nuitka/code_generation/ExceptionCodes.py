@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Exception handling."""
@@ -104,14 +104,11 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
             if python_version < 0x3B0:
                 emit("%s = (PyObject *)EXC_TRACEBACK(tstate);" % (value_name,))
             else:
-                emit(
-                    """\
+                emit("""\
 %(value_name)s = (PyObject *)GET_EXCEPTION_TRACEBACK(EXC_VALUE(tstate));
 if (%(value_name)s == NULL) {
     %(value_name)s = Py_None;
-}"""
-                    % {"value_name": value_name}
-                )
+}""" % {"value_name": value_name})
 
         else:
             emit(

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This module gets setup by the plugins and provides hooks for use in Nuitka.
@@ -35,6 +35,11 @@ def onModuleInitialSet():
     return Plugins.onModuleInitialSet()
 
 
+def considerIncompleteModuleSet():
+    """The module set is incomplete, giving plugins a chance to add more."""
+    Plugins.considerIncompleteModuleSet()
+
+
 def onModuleCompleteSet():
     """Called after the final module set is complete."""
     return Plugins.onModuleCompleteSet()
@@ -59,6 +64,13 @@ def onStandaloneDistributionFinished(dist_dir, standalone_binary):
     """Called after the standalone distribution folder is prepared."""
     return Plugins.onStandaloneDistributionFinished(
         dist_dir=dist_dir, standalone_binary=standalone_binary
+    )
+
+
+def onPostProcessingResources(result_filename, onefile):
+    """Called when post-processing attached resources to the binary."""
+    return Plugins.onPostProcessingResources(
+        result_filename=result_filename, onefile=onefile
     )
 
 
@@ -104,7 +116,7 @@ def getExtraIncludeDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraIncludeDirectories()
 
@@ -117,7 +129,7 @@ def getExtraLinkDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraLinkDirectories()
 
@@ -130,7 +142,7 @@ def getExtraLinkLibraries():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of library names to link against.
+        tuple of library names to link against.
     """
     return Plugins.getExtraLinkLibraries()
 
@@ -146,6 +158,13 @@ def decideCompilation(module_name):
     """
 
     return Plugins.decideCompilation(module_name=module_name)
+
+
+def registerDecisionCompilation(plugin_name, module_name, decision):
+    """Let plugins register a decision whether to C compile a module or include as bytecode."""
+    return Plugins.registerDecisionCompilation(
+        plugin_name=plugin_name, module_name=module_name, decision=decision
+    )
 
 
 def decideRecompileExtensionModules(module_name):

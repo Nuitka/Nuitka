@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Helper functions for the scons file."""
@@ -26,16 +26,20 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContentByLine,
     getFilenameExtension,
+    getFileSize,
     getNormalizedPath,
     getNormalizedPathJoin,
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
+    listDir,
     openPickleFile,
     openTextFile,
+    searchPrefixPath,
     withFileLock,
 )
-from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
+from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
+from nuitka.utils.Utils import isLinux, isPosixWindows, isWin32Windows
 
 
 def initScons(arguments):
@@ -215,6 +219,7 @@ def createEnvironment(
     target_arch,
     consider_environ_variables,
     assume_yes_for_downloads,
+    experimental_flags,
     source_dir,
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
@@ -305,7 +310,8 @@ def createEnvironment(
 
         # spell-checker: ignore CCCOM,CFLAGS,CCFLAGS,CCCOMCOM,CXXCOM,CXXFLAGS
         # spell-checker: ignore LINKCOM,LIBDIRFLAGS,LIBFLAGS,SHCCCOM,SHCFLAGS
-        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,SHLINKFLAGS
+        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,
+        # spell-checker: ignore LINKFLAGS,SHLINKFLAGS
 
         env["CCCOM"] = (
             '"%s" cc -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' % safe_zig_path
@@ -384,6 +390,7 @@ def createEnvironment(
     env.python_version_str = getArgumentDefaulted("python_version", None)
     if env.python_version_str is not None:
         env.python_version = tuple(int(d) for d in env.python_version_str.split("."))
+        env.python_version_full_str = getArgumentRequired("python_version_full_str")
 
         # Do we have a GIL build, or no-GIL (free-threading)
         env.gil_mode = getArgumentBool("gil_mode")
@@ -428,6 +435,9 @@ def createEnvironment(
     if env.standalone_mode:
         env.Append(CPPDEFINES=["_NUITKA_STANDALONE_MODE"])
 
+    # Provide rusage from the subprocess if requested.
+    env.collect_resources = getArgumentBool("collect_resources", False)
+
     # Onefile mode: Create suitable for use in a bootstrap with either dll or
     # exe mode.
     env.onefile_mode = getArgumentBool("onefile_mode", False)
@@ -469,6 +479,7 @@ def createEnvironment(
     env.forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 
     env.build_definitions = {}
+    env.experimental_flags = experimental_flags
 
     return env
 
@@ -500,7 +511,7 @@ def getExecutablePath(filename, env):
         filename = env[variable_name]
 
         if filename is None:
-            scons_logger.sysexit(
+            return scons_logger.sysexit(
                 """\
 Error, scons environment variable '%s' is not set, this ought to never happen. Please report the bug."""
                 % variable_name
@@ -597,7 +608,10 @@ def writeSconsReport(env, target):
         print("clang_mode=%s" % env.clang_mode, file=report_file)
         print("msvc_mode=%s" % env.msvc_mode, file=report_file)
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
+        print("zig_mode=%s" % env.zig_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
+        print("the_cc_name=%s" % env.the_cc_name, file=report_file)
+        print("the_compiler=%s" % env.the_compiler, file=report_file)
 
         print("cpp_flags=%s" % (env.cpp_flags or ""), file=report_file)
         print("c_flags=%s" % (env.c_flags or ""), file=report_file)
@@ -607,6 +621,9 @@ def writeSconsReport(env, target):
 
         print("PATH=%s" % os.environ["PATH"], file=report_file)
         print("TARGET=%s" % getNormalizedPath(target[0].abspath), file=report_file)
+
+        print("resource_mode=%s" % env.resource_mode, file=report_file)
+        print("reproducible=%s" % env.reproducible_mode, file=report_file)
 
 
 _checked_msvc_language_pack = False
@@ -624,12 +641,10 @@ def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
         eng_dir = os.path.join(bin_dir, "1033")
 
         if not os.path.exists(eng_dir):
-            scons_logger.warning(
-                """\
+            scons_logger.warning("""\
 Support language of Nuitka is English. Please install the English \
 language pack for Visual Studio in the installer. There is a \
-section for that."""
-            )
+section for that.""")
 
     if env.warn_error_mode and stderr is not None:
 
@@ -657,11 +672,13 @@ section for that."""
 
 _scons_reports = {}
 _scons_error_reports = {}
+_scons_resource_usage_reports = {}
 
 
 def flushSconsReports():
     _scons_reports.clear()
     _scons_error_reports.clear()
+    _scons_resource_usage_reports.clear()
 
 
 def _getSconsReportFilename(source_dir):
@@ -669,7 +686,7 @@ def _getSconsReportFilename(source_dir):
 
 
 def _getSconsErrorReportFilename(source_dir):
-    return getNormalizedPathJoin(source_dir, "scons-error-report.txt")
+    return getNormalizedPathJoin(source_dir, "scons-error-report.pickle")
 
 
 def readSconsReport(source_dir):
@@ -692,6 +709,12 @@ def readSconsReport(source_dir):
 
 
 def getSconsReportValue(source_dir, key, default=Ellipsis):
+    """Get a value from the SCons report.
+
+    Note: The default value is only used if the report does not exist,
+    e.g. due to an error in compilation. If the report exists but is
+    missing the key, no default is used and `None` is returned.
+    """
     try:
         return readSconsReport(source_dir).get(key)
     except FileNotFoundError:
@@ -699,6 +722,37 @@ def getSconsReportValue(source_dir, key, default=Ellipsis):
             return default
 
         raise
+
+
+def getSconsReportValueBool(source_dir, key, default=Ellipsis):
+    """Get a boolean value from the SCons report."""
+
+    value = getSconsReportValue(source_dir, key, default=default)
+
+    if value is None:
+        return None
+
+    if value in ("True", "False"):
+        return value == "True"
+
+    assert False, (key, value)
+
+
+def getSconsCompilerUsed(source_dir):
+    """Get the compiler used according to the SCons report."""
+
+    for key, compiler_used in (
+        ("zig_mode", "zig"),
+        ("clangcl_mode", "ClangCL"),
+        ("mingw_mode", "MinGW64"),
+        ("msvc_mode", "MSVC"),
+        ("clang_mode", "Clang"),
+        ("gcc_mode", "gcc"),
+    ):
+        if getSconsReportValueBool(source_dir, key, default=None):
+            return compiler_used
+
+    return "Unknown"
 
 
 def readSconsErrorReport(source_dir):
@@ -742,29 +796,272 @@ def readSconsErrorReport(source_dir):
     return _scons_error_reports[source_dir]
 
 
+def writeSconsResourceUsageReport(source_dir, source_filename, rusage):
+    json_filename = getNormalizedPathJoin(
+        source_dir, os.path.splitext(source_filename)[0] + ".resource-usage.json"
+    )
+
+    rusage_dict = rusage.asDict()
+    normalized_rusage = {"cpu": {}, "memory": {}, "system-events": {}}
+
+    # spell-checker: ignore maxrss,majflt,minflt,nvcsw,nivcsw,oublock,inblock
+    mapping = {
+        "ru_utime": ("cpu", "user-cpu-time"),
+        "ru_stime": ("cpu", "system-cpu-time"),
+        "ru_maxrss": ("memory", "memory-max-rss-kb"),
+        "ru_majflt": ("system-events", "page-faults-major"),
+        "ru_minflt": ("system-events", "page-faults-minor"),
+        "ru_nvcsw": ("system-events", "context-switches-voluntary"),
+        "ru_nivcsw": ("system-events", "context-switches-involuntary"),
+        "ru_oublock": ("system-events", "disk-output-blocks"),
+        "ru_inblock": ("system-events", "disk-input-blocks"),
+    }
+
+    for old_key, (group, new_key) in mapping.items():
+        if old_key in rusage_dict:
+            val = rusage_dict[old_key]
+
+            if old_key == "ru_maxrss" and sys.platform == "darwin":
+                val = val // 1024
+
+            normalized_rusage[group][new_key] = val
+
+    writeJsonToFilename(
+        filename=json_filename,
+        contents={
+            "source_filename": source_filename,
+            "rusage": normalized_rusage,
+        },
+    )
+
+
+def readSconsResourceUsageReports(source_dir):
+    if source_dir not in _scons_resource_usage_reports:
+        results = {}
+
+        for filename, _filename_only in listDir(source_dir):
+            if filename.endswith(".resource-usage.json"):
+                data = loadJsonFromFilename(filename)
+                source_filename = data["source_filename"]
+                if source_filename.startswith("module.") and source_filename.endswith(
+                    ".c"
+                ):
+                    # TODO: Could resolve this more reliable by checking mapping to
+                    # actually picked source file names in "pickSourceFilenames"
+                    module_name = source_filename[7:-2]
+
+                    results[module_name] = data["rusage"]
+                elif source_filename == "@linker":
+                    results["@linker"] = data["rusage"]
+
+        _scons_resource_usage_reports[source_dir] = results
+
+    return _scons_resource_usage_reports[source_dir]
+
+
+_scons_object_sizes = {}
+
+
+def readSconsObjectSizes(source_dir, module_filenames, module_mode):
+    if source_dir not in _scons_object_sizes:
+        results = {}
+
+        # spell-checker: ignore OBJSUFFIX,SHOBJSUFFIX
+        if module_mode:
+            target_suffix = getSconsReportValue(source_dir, "SHOBJSUFFIX")
+        else:
+            target_suffix = getSconsReportValue(source_dir, "OBJSUFFIX")
+
+        if not target_suffix:
+            _scons_object_sizes[source_dir] = {}
+            return _scons_object_sizes[source_dir]
+
+        for module, c_filename in module_filenames.items():
+            assert c_filename.endswith(".c"), c_filename
+
+            obj_filename = changeFilenameExtension(c_filename, target_suffix)
+            try:
+                results[module.getFullName()] = getFileSize(obj_filename)
+            except FileNotFoundError:
+                pass
+
+        _scons_object_sizes[source_dir] = results
+
+    return _scons_object_sizes[source_dir]
+
+
+def getSconsObjectSizes(source_dir):
+    return _scons_object_sizes.get(source_dir, {})
+
+
+def _getVisualStudioClangDirectory(clang_root_dir, compiler_arch):
+    if compiler_arch == "pei-x86-64":
+        return getNormalizedPathJoin(clang_root_dir, "x64", "bin")
+    elif compiler_arch == "pei-arm64":
+        return getNormalizedPathJoin(clang_root_dir, "ARM64", "bin")
+    else:
+        return getNormalizedPathJoin(clang_root_dir, "bin")
+
+
+_visual_studio_installer_data = None
+
+
+def _getVisualStudioInstallerComponentTitles():
+    global _visual_studio_installer_data  # Singleton, pylint: disable=global-statement
+
+    if _visual_studio_installer_data is None:
+        vs_instances_dir = r"C:\ProgramData\Microsoft\VisualStudio\Packages\_Instances"
+        component_titles = {}
+
+        if os.path.isdir(vs_instances_dir):
+            for instance_name in os.listdir(vs_instances_dir):
+                components_filename = getNormalizedPathJoin(
+                    vs_instances_dir, instance_name, "components.json"
+                )
+
+                if not os.path.exists(components_filename):
+                    continue
+
+                try:
+                    components_data = loadJsonFromFilename(components_filename)
+                except OSError:  # Broken installer state is not fatal here.
+                    continue
+
+                if components_data is None:
+                    continue
+
+                for package_data in components_data.get("packages", ()):
+                    package_id = package_data.get("id")
+
+                    if package_id in component_titles:
+                        continue
+
+                    package_title = None
+
+                    for localized_resource in package_data.get(
+                        "localizedResources", ()
+                    ):
+                        if package_title is None:
+                            package_title = localized_resource.get("title")
+
+                        if localized_resource.get("language", "").lower() == "en-us":
+                            package_title = localized_resource.get("title")
+                            break
+
+                    if package_title is not None:
+                        component_titles[package_id] = package_title
+
+        _visual_studio_installer_data = component_titles
+
+    return _visual_studio_installer_data
+
+
+def _getVisualStudioInstallerComponentTitle(package_id):
+    return _getVisualStudioInstallerComponentTitles().get(package_id)
+
+
+def _getVisualStudioClangMissingComponentName(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "C++ Clang-cl for v143 build tools (ARM64)"
+
+    component_name = _getVisualStudioInstallerComponentTitle(
+        "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+    )
+
+    if component_name is None:
+        component_name = _getVisualStudioInstallerComponentTitle(
+            "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang"
+        )
+
+    if component_name is None:
+        component_name = "C++ Clang Compiler for Windows"
+
+    return component_name
+
+
+def _getVisualStudioClangMissingComponentId(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+    return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+
+def _getVisualStudioInstallationPathFromCLExe(cl_exe):
+    vc_path = searchPrefixPath(cl_exe, "VC")
+
+    if vc_path is None:
+        return None
+
+    return os.path.dirname(vc_path)
+
+
+def _getVisualStudioClangInstallCommand(cl_exe, compiler_arch):
+    installation_path = _getVisualStudioInstallationPathFromCLExe(cl_exe)
+    component_id = _getVisualStudioClangMissingComponentId(compiler_arch)
+    setup_exe = r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
+
+    if installation_path is None or not os.path.exists(setup_exe):
+        return None
+
+    # spell-checker: ignore norestart
+    return '"%s" modify --installPath "%s" --add "%s" --passive --norestart' % (
+        setup_exe,
+        installation_path,
+        component_id,
+    )
+
+
+def _getVisualStudioClangMissingError(clang_dir, compiler_arch, cl_exe):
+    component_name = _getVisualStudioClangMissingComponentName(compiler_arch)
+    install_command = _getVisualStudioClangInstallCommand(
+        cl_exe=cl_exe, compiler_arch=compiler_arch
+    )
+
+    if install_command is None:
+        return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.""" % (
+            clang_dir,
+            component_name,
+        )
+
+    return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.
+
+From an elevated shell (administrator), run:
+%s""" % (
+        clang_dir,
+        component_name,
+        install_command,
+    )
+
+
 def addClangClPathFromMSVC(env):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        scons_logger.sysexit(
-            "Error, Visual Studio required for using ClangCL on Windows."
+        return scons_logger.sysexit(
+            "Error, Visual Studio required for using ClangCL on Windows.", env=env
         )
 
-    clang_dir = getNormalizedPathJoin(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
+    compiler_arch = getCompilerArch(
+        mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
+    )
 
-    if (
-        getCompilerArch(
-            mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
-        )
-        == "pei-x86-64"
-    ):
-        clang_dir = getNormalizedPathJoin(clang_dir, "x64", "bin")
-    else:
-        clang_dir = getNormalizedPathJoin(clang_dir, "bin")
+    clang_root_dir = getNormalizedPathJoin(
+        cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm"
+    )
+    clang_dir = _getVisualStudioClangDirectory(
+        clang_root_dir=clang_root_dir, compiler_arch=compiler_arch
+    )
 
     if not os.path.exists(clang_dir):
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     scons_details_logger.info(
@@ -776,8 +1073,11 @@ def addClangClPathFromMSVC(env):
     clangcl_path = getExecutablePath("clang-cl", env=env)
 
     if clangcl_path is None:
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     env["CC"] = "clang-cl"
@@ -822,6 +1122,11 @@ def scanSourceDir(env, dirname, plugins):
     filenames = sorted(os.listdir(dirname))
 
     for filename_base in filenames:
+        if filename_base.endswith(".h") and plugins and not added_path:
+            # Adding path for source paths on the fly, spell-checker: ignore cpppath
+            env.Append(CPPPATH=[dirname])
+            added_path = True
+
         # Only C files are of interest here.
         if not hasFilenameExtension(filename_base, (".c", ".cpp")):
             continue
@@ -829,11 +1134,6 @@ def scanSourceDir(env, dirname, plugins):
         # If we have a C file, but a C++ file exists too, use that.
         if filename_base.endswith(".c") and (filename_base[:-2] + ".cpp") in filenames:
             continue
-
-        if filename_base.endswith(".h") and plugins and not added_path:
-            # Adding path for source paths on the fly, spell-checker: ignore cpppath
-            env.Append(CPPPATH=[dirname])
-            added_path = True
 
         filename = getNormalizedPathJoin(dirname, filename_base)
 
@@ -881,9 +1181,13 @@ def createDefinitionsFile(source_dir, filename, definitions):
                 if type(value) is bool:
                     value = int(value)
                 f.write("#define %s %s\n" % (key, value))
-            elif type(value) in (str, unicode) and key.endswith("_WIDE_STRING"):
+            elif key.endswith("_WIDE_STRING") or (
+                key.endswith("_FILENAME") and isWin32Windows()
+            ):
+                assert type(value) in (str, unicode), value
                 f.write("#define %s L%s\n" % (key, makeCLiteral(value)))
             else:
+                assert type(value) in (str, unicode), value
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
 
@@ -912,18 +1216,19 @@ def _getBinaryArch(binary, mingw_mode):
         command = ["objdump", "-f", binary]
 
         try:
-            data, _err, rv = executeProcess(command)
+            process_result = executeProcess(command)
         except OSError:
             command[0] = "llvm-objdump"
 
             try:
-                data, _err, rv = executeProcess(command)
+                process_result = executeProcess(command)
             except OSError:
                 return None
 
-        if rv != 0:
+        if process_result.exit_code != 0:
             return None
 
+        data = process_result.stdout
         if str is not bytes:
             data = decodeData(data)
 
@@ -940,7 +1245,7 @@ def _getBinaryArch(binary, mingw_mode):
 
         return found
     else:
-        # TODO: Missing for macOS, FreeBSD, other Linux
+        # TODO: Missing for FreeBSD, other Linux
         return None
 
 
@@ -988,21 +1293,21 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
                 cmdline.append("--version")
 
             # The cl.exe without further args will give error
-            stdout, stderr, _rv = executeProcess(
+            process_result = executeProcess(
                 command=cmdline,
             )
 
             # The MSVC will output on error, while clang outputs in stdout and they
             # use different names for arches.
-            if b"x64" in stderr or b"x86_64" in stdout:
+            if b"x64" in process_result.stderr or b"x86_64" in process_result.stdout:
                 _compiler_arch[compiler_path] = "pei-x86-64"
-            elif b"x86" in stderr or b"i686" in stdout:
+            elif b"x86" in process_result.stderr or b"i686" in process_result.stdout:
                 _compiler_arch[compiler_path] = "pei-i386"
-            elif b"ARM64" in stderr:
+            elif b"ARM64" in process_result.stderr:
                 # TODO: The ARM64 output for Clang is not known yet.
                 _compiler_arch[compiler_path] = "pei-arm64"
             else:
-                assert False, (stdout, stderr)
+                assert False, (process_result.stdout, process_result.stderr)
         else:
             assert False, compiler_path
 
@@ -1026,8 +1331,7 @@ def decideArchMismatch(target_arch, the_cc_name, compiler_path):
 
 def raiseNoCompilerFoundErrorExit():
     if os.name == "nt":
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, cannot locate suitable C compiler. You have the following options:
 
 a) If a suitable Visual Studio version is installed (check above trace
@@ -1043,27 +1347,9 @@ b) Using "--mingw64" forces Nuitka download MinGW64 for you, but only for
 
 c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
    this only works with 64 bit Python versions.
-"""
-        )
+""")
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
-
-
-def addBinaryBlobSection(env, blob_filename, section_name):
-    # spell-checker: ignore linkflags, sectcreate
-
-    if isMacOS():
-        env.Append(
-            LINKFLAGS=[
-                "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
-                % {
-                    "section_name": section_name,
-                    "blob_filename": blob_filename,
-                }
-            ]
-        )
-    else:
-        assert False
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):

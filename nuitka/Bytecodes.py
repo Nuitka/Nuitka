@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Handle bytecode and compile source code to bytecode."""
@@ -9,6 +9,7 @@ from nuitka.options.Options import (
     hasPythonFlagNoAsserts,
     hasPythonFlagNoDocStrings,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import getKind
 from nuitka.utils.Utils import withNoSyntaxWarning
 
@@ -87,13 +88,23 @@ def compileSourceToBytecode(source_code, filename):
     return bytecode
 
 
+if python_version < 0x300:
+    bytecode_header_size = 8
+elif python_version < 0x370:
+    # Python 3 added the source size to the pyc header.
+    bytecode_header_size = 12
+else:
+    # Python 3.7 switched to the PEP 552 header layout.
+    bytecode_header_size = 16
+
+
 def loadCodeObjectData(bytecode_filename):
     """Load bytecode from a file."""
 
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
     with open(bytecode_filename, "rb") as f:
-        return f.read()[8 if str is bytes else 16 :]
+        return f.read()[bytecode_header_size:]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

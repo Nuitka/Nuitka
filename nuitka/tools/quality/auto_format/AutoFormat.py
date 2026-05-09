@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Tool to automatically format source code in Nuitka style."""
@@ -28,13 +28,16 @@ from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, getExecutablePath
 from nuitka.utils.FileOperations import (
+    addFileContentsBOM,
     deleteFile,
     getFileContentByLine,
     getFileContents,
     getFilenameExtension,
     openTextFile,
+    stripFileContentsBOM,
     withPreserveFileMode,
     withTemporaryFile,
+    withTemporaryFilename,
 )
 from nuitka.utils.PrivatePipSpace import (
     getMdformatBinaryPath,
@@ -62,6 +65,8 @@ def _shouldNotFormatCode(filename, effective_filename):
         return True
     if "tests" in parts and "syntax" in parts:
         return True
+    if "tests" in parts and "scratch" in parts:
+        return True
     if ".dist/" in effective_filename:
         return True
     if os.path.basename(effective_filename) in ("incbin.h", "hedley.h"):
@@ -81,15 +86,17 @@ def _transferBOM(source_filename, target_filename):
     """Transfer Byte Order Mark (BOM) from source to target file."""
     with open(source_filename, "rb") as f:
         source_code = f.read()
+        source_code, bom = stripFileContentsBOM(source_code)
 
-    if source_code.startswith(b"\xef\xbb\xbf"):
+    if bom:
         with open(target_filename, "rb") as f:
             source_code = f.read()
 
-        if not source_code.startswith(b"\xef\xbb\xbf"):
+        updated_source_code = addFileContentsBOM(source_code)
+
+        if updated_source_code != source_code:
             with open(target_filename, "wb") as f:
-                f.write(b"\xef\xbb\xbf")
-                f.write(source_code)
+                f.write(updated_source_code)
 
 
 def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
@@ -196,7 +203,7 @@ def cleanupPngImage(filename, logger):
     _optipng_path = getExecutablePath("optipng")
 
     if _optipng_path:
-        check_call([_optipng_path, "-o7", "-zm1-9", filename])
+        check_call([_optipng_path, "-quiet", "-o7", "-zm1-9", filename])
     elif logger is not None:
         logger.warning("Cannot find 'optipng' binary to compress PNG image")
 
@@ -212,7 +219,7 @@ def cleanupJpegImage(filename, logger):
     _jpegoptim_path = getExecutablePath("jpegoptim")
 
     if _jpegoptim_path:
-        check_call([_jpegoptim_path, filename])
+        check_call([_jpegoptim_path, "-q", filename])
     elif logger is not None:
         logger.warning("Cannot find 'jpegoptim' binary to compress JPEG image")
 
@@ -297,10 +304,11 @@ def formatImage(filename, logger):
         cleanupJpegImage(filename, logger=logger)
 
 
-def formatJson(filename, assume_yes_for_downloads):
+def formatJson(filename, effective_filename, assume_yes_for_downloads):
     """Format JSON files."""
     formatJsonFile(filename, assume_yes_for_downloads=assume_yes_for_downloads)
     cleanupTrailingWhitespace(filename)
+    cleanupWindowsNewlines(filename, effective_filename=effective_filename)
 
 
 def autoFormatFile(
@@ -401,6 +409,8 @@ def autoFormatFile(
                     ".containerfile",
                     ".containerfile.in",
                     ".1",
+                    ".pth",
+                    ".ps1",
                 )
             ) or os.path.basename(filename) in (
                 "changelog",
@@ -414,23 +424,25 @@ def autoFormatFile(
             is_txt = False
 
         if limit_yaml or limit_python or limit_c or limit_rst or limit_md or limit_json:
-            if (
-                effective_filename.endswith(".nuitka-package.config.yml")
-                and not limit_yaml
-            ):
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif (is_c or is_cpp) and not limit_c:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif is_python and not limit_python:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif effective_filename.endswith((".rst", ".inc")) and not limit_rst:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
+            is_match = False
+
+            if effective_filename.endswith(".nuitka-package.config.yml") and limit_yaml:
+                is_match = True
+            elif (is_c or is_cpp) and limit_c:
+                is_match = True
+            elif is_python and limit_python:
+                is_match = True
+            elif effective_filename.endswith((".rst", ".inc")) and limit_rst:
+                is_match = True
             elif (
                 effective_filename.endswith(".md")
                 or os.path.basename(effective_filename) == ".cursorrules"
-            ) and not limit_md:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-            elif is_json and not limit_json:
+            ) and limit_md:
+                is_match = True
+            elif is_json and limit_json:
+                is_match = True
+
+            if not is_match:
                 is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
 
         if not (is_python or is_c or is_cpp or is_txt or is_json or is_png or is_jpeg):
@@ -472,7 +484,11 @@ def autoFormatFile(
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
         elif is_json:
-            formatJson(tmp_filename, assume_yes_for_downloads=assume_yes_for_downloads)
+            formatJson(
+                tmp_filename,
+                effective_filename=effective_filename,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+            )
         elif is_png or is_jpeg:
             formatImage(tmp_filename, logger=tools_logger)
 
@@ -504,24 +520,34 @@ def autoFormatFile(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
+def withFileOpenedAndAutoFormatted(
+    filename,
+    effective_filename,
+    ignore_errors=False,
+    check_only=False,
+    post_format_hook=None,
+):
     """Context manager for opening a file and auto-formatting it on close.
 
     Args:
         filename: path to the file
+        effective_filename: str - filename to use for formatting decisions
         ignore_errors: bool - if errors should be ignored
+        check_only: bool - if true, check for diff without modifying the file
+        post_format_hook: callable - optional hook called with tmp_filename before diff check
     """
 
-    tmp_filename = filename + ".tmp"
-
-    try:
+    with withTemporaryFilename(
+        prefix=os.path.basename(filename),
+        suffix=getFilenameExtension(filename) or ".tmp",
+    ) as tmp_filename:
         with openTextFile(tmp_filename, "w") as output:
             yield output
 
         autoFormatFile(
             filename=tmp_filename,
             git_stage=False,
-            effective_filename=filename,
+            effective_filename=effective_filename,
             trace=False,
             ignore_errors=ignore_errors,
             assume_yes_for_downloads=True,
@@ -531,7 +557,20 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             autoFormatFile(
                 filename=tmp_filename,
                 git_stage=False,
-                effective_filename=filename,
+                effective_filename=effective_filename,
+                trace=False,
+                ignore_errors=ignore_errors,
+                assume_yes_for_downloads=True,
+            )
+
+        if post_format_hook is not None:
+            post_format_hook(tmp_filename)
+
+            # The hook might have added something that messes with the formatting, so run it again
+            autoFormatFile(
+                filename=tmp_filename,
+                git_stage=False,
+                effective_filename=effective_filename,
                 trace=False,
                 ignore_errors=ignore_errors,
                 assume_yes_for_downloads=True,
@@ -540,10 +579,13 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
         if not os.path.exists(filename) or getFileContents(
             tmp_filename, mode="rb"
         ) != getFileContents(filename, mode="rb"):
+            if check_only:
+                tools_logger.sysexit(
+                    "Error, generated code for %s would change." % effective_filename
+                )
+
             with withPreserveFileMode(filename):
                 shutil.copy(tmp_filename, filename)
-    finally:
-        deleteFile(tmp_filename, must_exist=False)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

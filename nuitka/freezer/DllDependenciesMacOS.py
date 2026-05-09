@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """DLL dependency scan methods for macOS."""
@@ -13,11 +13,14 @@ from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.plugins.Hooks import isAcceptableMissingDLL
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
+    getMacPortsInstallPath,
     getSystemPrefixPath,
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMacPortsPython,
     isMonolithPy,
+    isPyenvHomebrewPython,
     isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
@@ -41,9 +44,21 @@ from nuitka.utils.SharedLibraries import (
 from nuitka.utils.Utils import getArchitecture
 
 from .DllDependenciesCommon import getLdLibraryPath
+from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
 
 # Detected Python rpath is cached.
 _detected_python_rpaths = None
+
+# Cached DLL dependency scan results.
+_detect_binary_path_dlls_cache = {}
+
+
+def _clearBinaryPathDLLsMacOSCache(binary_filename):
+    binary_filename = getNormalizedPath(binary_filename)
+
+    for cache_key in list(_detect_binary_path_dlls_cache):
+        if areSamePaths(cache_key[1], binary_filename):
+            del _detect_binary_path_dlls_cache[cache_key]
 
 
 def _detectPythonRpaths():
@@ -64,7 +79,19 @@ def _detectPythonRpaths():
     if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
-    if isHomebrewPython():
+    if isMacPortsPython():
+        mac_ports_install_path = getMacPortsInstallPath()
+
+        # spell-checker: ignore libexec
+        for candidate in (
+            os.path.join(getSystemPrefixPath(), "lib"),
+            os.path.join(mac_ports_install_path, "Library", "Frameworks"),
+            os.path.join(mac_ports_install_path, "lib"),
+            os.path.join(mac_ports_install_path, "libexec", "qt6", "lib"),
+        ):
+            result.append(candidate)
+
+    if isHomebrewPython() or isPyenvHomebrewPython():
         result.extend(
             os.path.join(getHomebrewInstallPath(), directory)
             for directory in getSubDirectories(
@@ -84,45 +111,41 @@ def detectBinaryPathDLLsMacOS(
     binary_filename,
     package_name,
     keep_unresolved,
-    recursive,
-    recursive_dlls=None,
+    recursive_dlls,
+    parent_rpaths,
 ):
-    assert os.path.exists(binary_filename), binary_filename
-
-    # This is for Anaconda, which puts required libraries of packages in this folder.
-    # do it only once, pylint: disable=global-statement
-    global _detected_python_rpaths
-    if _detected_python_rpaths is None:
-        _detected_python_rpaths = _detectPythonRpaths()
-
-    package_specific_dirs = getLdLibraryPath(
-        package_name=package_name,
-        python_rpaths=_detected_python_rpaths,
-        original_dir=original_dir,
+    cache_key = (
+        original_dir,
+        binary_filename,
+        package_name,
+        tuple(parent_rpaths),
     )
 
-    # This is recursive potentially and might add more and more.
-    stdout = getOtoolDependencyOutput(binary_filename)
-    paths = _parseOtoolListingOutput(stdout)
+    if cache_key in _detect_binary_path_dlls_cache:
+        had_self, resolved_result_items, rpaths = _detect_binary_path_dlls_cache[
+            cache_key
+        ]
+        resolved_result = OrderedDict(resolved_result_items)
+    else:
+        had_self, resolved_result, rpaths = _detectBinaryPathDLLsMacOS(
+            original_dir=original_dir,
+            binary_filename=binary_filename,
+            package_name=package_name,
+            parent_rpaths=parent_rpaths,
+        )
 
-    had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
-        original_dir=original_dir,
-        binary_filename=binary_filename,
-        paths=paths,
-        package_specific_dirs=package_specific_dirs,
-        package_name=package_name,
-    )
+        _detect_binary_path_dlls_cache[cache_key] = (
+            had_self,
+            tuple(resolved_result.items()),
+            tuple(rpaths),
+        )
 
-    if recursive:
+    if recursive_dlls is not None:
         merged_result = OrderedDict(resolved_result)
 
         # For recursive DLL detection, cycle may exist, so we keep track of what
         # was seen so far.
-        if recursive_dlls is None:
-            recursive_dlls = set([binary_filename])
-        else:
-            recursive_dlls = set(recursive_dlls)
-            recursive_dlls.add(binary_filename)
+        recursive_dlls.add(binary_filename)
 
         for sub_dll_filename in resolved_result:
             if sub_dll_filename in recursive_dlls:
@@ -133,8 +156,8 @@ def detectBinaryPathDLLsMacOS(
                 binary_filename=sub_dll_filename,
                 package_name=package_name,
                 keep_unresolved=True,
-                recursive=True,
                 recursive_dlls=recursive_dlls,
+                parent_rpaths=rpaths,
             )
 
             merged_result.update(sub_result)
@@ -145,6 +168,39 @@ def detectBinaryPathDLLsMacOS(
         return had_self, resolved_result
     else:
         return OrderedSet(resolved_result)
+
+
+def _detectBinaryPathDLLsMacOS(
+    original_dir,
+    binary_filename,
+    package_name,
+    parent_rpaths,
+):
+    assert os.path.exists(binary_filename), binary_filename
+
+    # This is for Anaconda, which puts required libraries of packages in this folder.
+    # do it only once, pylint: disable=global-statement
+    global _detected_python_rpaths
+    if _detected_python_rpaths is None:
+        _detected_python_rpaths = _detectPythonRpaths()
+
+    # This is recursive potentially and might add more and more.
+    paths = _parseOtoolListingOutput(
+        output=getOtoolDependencyOutput(binary_filename),
+    )
+
+    return _resolveBinaryPathDLLsMacOS(
+        original_dir=original_dir,
+        binary_filename=binary_filename,
+        paths=paths,
+        package_specific_dirs=getLdLibraryPath(
+            package_name=package_name,
+            python_rpaths=_detected_python_rpaths,
+            original_dir=original_dir,
+        ),
+        package_name=package_name,
+        parent_rpaths=parent_rpaths,
+    )
 
 
 def _parseOtoolListingOutput(output):
@@ -210,8 +266,16 @@ def _getNonVersionedDllFilenames(dll_filename, package_name):
                 yield filename
 
 
+_package_rpaths = {}
+
+
 def _resolveBinaryPathDLLsMacOS(
-    original_dir, binary_filename, paths, package_specific_dirs, package_name
+    original_dir,
+    binary_filename,
+    paths,
+    package_specific_dirs,
+    package_name,
+    parent_rpaths,
 ):
     # Quite a few variations to consider
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -221,6 +285,20 @@ def _resolveBinaryPathDLLsMacOS(
     result = OrderedDict()
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
+    rpaths.update(parent_rpaths)
+
+    if package_name is not None:
+        package_name_str = (
+            package_name.asString()
+            if hasattr(package_name, "asString")
+            else str(package_name)
+        )
+        if package_name_str not in _package_rpaths:
+            _package_rpaths[package_name_str] = OrderedSet()
+
+        rpaths.update(_package_rpaths[package_name_str])
+        _package_rpaths[package_name_str].update(rpaths)
+
     rpaths.update(package_specific_dirs)
 
     for path in paths:
@@ -241,6 +319,8 @@ def _resolveBinaryPathDLLsMacOS(
                 resolved_path = os.path.normpath(os.path.join(original_dir, path[7:]))
         elif path.startswith("@loader_path/"):
             resolved_path = os.path.normpath(os.path.join(original_dir, path[13:]))
+        elif path.startswith("@executable_path/"):
+            resolved_path = os.path.normpath(os.path.join(original_dir, path[17:]))
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
@@ -381,7 +461,7 @@ def _resolveBinaryPathDLLsMacOS(
             if not path.startswith(("@", "/")):
                 continue
 
-            inclusion_logger.sysexit(
+            return inclusion_logger.sysexit(
                 """\
 Error, failed to find path '%s' (resolved DLL to '%s') for binary '%s' from package '%s', please report the bug."""
                 % (path, resolved_path, binary_filename, package_name)
@@ -394,7 +474,7 @@ Error, failed to find path '%s' (resolved DLL to '%s') for binary '%s' from pack
 
         result[resolved_path] = path
 
-    return had_self, result
+    return had_self, result, rpaths
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
@@ -424,17 +504,45 @@ def _detectBinaryRPathsMacOS(original_dir, binary_filename):
     return result
 
 
+def _getStandaloneEntryPointDistPathMacOS(
+    resolved_filename, binary_filename, standalone_entry_points
+):
+    for standalone_entry_point in standalone_entry_points:
+        if areSamePaths(resolved_filename, standalone_entry_point.source_path):
+            return standalone_entry_point.dest_path
+
+        dist_filename = os.path.normpath(
+            os.path.join(
+                os.path.dirname(binary_filename),
+                standalone_entry_point.dest_path,
+            )
+        )
+
+        if areSamePaths(resolved_filename, dist_filename):
+            return standalone_entry_point.dest_path
+
+    return None
+
+
 def fixupBinaryDLLPathsMacOS(
-    binary_filename, package_name, original_location, standalone_entry_points
+    binary_filename,
+    package_name,
+    original_location,
+    standalone_entry_points,
+    removed_dll_paths,
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
+    if areSamePaths(binary_filename, original_location):
+        _clearBinaryPathDLLsMacOSCache(original_location)
+
     try:
         had_self, rpath_map = detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_location),
             binary_filename=original_location,
             package_name=package_name,
             keep_unresolved=True,
-            recursive=False,
+            recursive_dlls=None,
+            parent_rpaths=(),
         )
     except NuitkaForbiddenDLLEncounter:
         inclusion_logger.info("Not copying forbidden DLL '%s'." % binary_filename)
@@ -442,19 +550,31 @@ def fixupBinaryDLLPathsMacOS(
         mapping = []
 
         for resolved_filename, rpath_filename in rpath_map.items():
-            for standalone_entry_point in standalone_entry_points:
-                if resolved_filename == standalone_entry_point.source_path:
-                    dist_path = standalone_entry_point.dest_path
-                    break
-            else:
-                dist_path = None
+            dist_path = _getStandaloneEntryPointDistPathMacOS(
+                resolved_filename=resolved_filename,
+                binary_filename=binary_filename,
+                standalone_entry_points=standalone_entry_points,
+            )
 
             if dist_path is None:
-                inclusion_logger.sysexit(
-                    """\
-Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                    % (getReportPath(original_location), rpath_filename)
+                # Might be a framework, which is internally treated as data
+                # files.
+                dist_path = getIncludedFrameworkDistPathFromSourcePath(
+                    source_path=resolved_filename
                 )
+
+            if dist_path is None:
+                for removed_dll_path in removed_dll_paths:
+                    if areSamePaths(resolved_filename, removed_dll_path):
+                        break
+                else:
+                    return inclusion_logger.sysexit(
+                        """\
+Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+                        % (getReportPath(original_location), rpath_filename)
+                    )
+
+                continue
 
             mapping.append((rpath_filename, "@executable_path/" + dist_path))
 

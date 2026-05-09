@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Runner for onefile program tests of Nuitka.
@@ -8,7 +8,6 @@ These tests aim at showing that one specific functions work in onefile
 mode, trying to find issues with that form of packaging.
 
 """
-
 
 import os
 import sys
@@ -49,7 +48,6 @@ from nuitka.tools.testing.RuntimeTracing import (
 )
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isMacOS
 
 
 def displayError(dirname, filename):
@@ -88,14 +86,6 @@ def main():
         ]
 
         if filename == "KeyboardInterruptTest.py":
-            if isMacOS():
-                reportSkip(
-                    "Exit code from KeyboardInterrupt on macOS is not yet good.",
-                    ".",
-                    filename,
-                )
-                continue
-
             if python_version < (3,):
                 reportSkip(
                     "Python2 reports KeyboardInterrupt, but too late",

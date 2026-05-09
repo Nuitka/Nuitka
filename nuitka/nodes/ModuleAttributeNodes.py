@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Module/Package attribute nodes
@@ -49,6 +49,19 @@ class ExpressionModuleAttributeBase(ExpressionBase):
         # These attributes can be expected to be present.
 
         return False
+
+
+class ExpressionModuleAttributeDunderCompiledRef(ExpressionModuleAttributeBase):
+    """Expression that represents accesses to __compiled__ of module.
+
+    The ``__compiled__`` attribute is filled by Nuitka and is available
+    without going through normal module variable lookups.
+    """
+
+    kind = "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF"
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
 
 
 class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):

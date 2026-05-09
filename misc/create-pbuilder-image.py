@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Small tool to create a pbuilder image for Nuitka private CI mainly."""
@@ -28,7 +28,8 @@ try:
     os.chdir(stage)
 
     if debian == "debian":
-        mirror = "https://ftp.us.debian.org/debian"
+        # Certificate for https is not good.
+        mirror = "http://ftp.us.debian.org/debian"
         components = "main"
     elif debian == "ubuntu":
         mirror = "http://de.archive.ubuntu.com/ubuntu"
@@ -38,7 +39,7 @@ try:
 
     subprocess.check_call(
         [
-            "debootstrap",
+            "debootstrap",  # spell-checker: ignore debootstrap
             "--include=ccache",
             "--include=dpkg-dev",
             "--arch=" + arch,
@@ -54,7 +55,7 @@ try:
     os.makedirs("chroot/var/cache/apt/archives")
 
     os.makedirs("chroot/etc/apt.conf.d")
-    with open("chroot/etc/apt.conf.d/75mine", "w") as output_file:
+    with open("chroot/etc/apt.conf.d/75mine", "w", encoding="utf8") as output_file:
         output_file.write('Acquire::Languages "none";\n')
 
     target_filename = codename + ".tgz"

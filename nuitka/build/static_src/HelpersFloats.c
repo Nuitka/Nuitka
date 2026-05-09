@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* These helpers are used to work with float values.
 
@@ -37,7 +37,7 @@ PyObject *TO_FLOAT(PyObject *value) {
 
 static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
 #if PYTHON_VERSION >= 0x3e0
-    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->floats);
+    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->floats);
 
     if (result_float == NULL) {
         result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));

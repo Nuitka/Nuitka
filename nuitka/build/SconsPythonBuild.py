@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Helper functions for the Python build related scons files."""
@@ -6,84 +6,104 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+
+from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
 # spell-checker: ignore cppdefines,cpppath,linkflags,libpath
 
 
-def _detectPythonHeaderPath(env):
-    if os.name == "nt":
-        candidates = [
-            # On Windows, the CPython official installation layout is relatively fixed,
-            os.path.join(env.python_prefix_external, "include"),
-            # On MSYS2 with MinGW64 Python, it is also the other form.
-            os.path.join(
-                env.python_prefix_external, "include", "python" + env.python_abi_version
-            ),
-            # For self-built Python on Windows, need to also add the "PC" directory,
-            # that a normal install won't have.
-            os.path.join(env.python_prefix_external, "PC"),
-        ]
-    else:
-        # The python header path is a combination of python version and debug
-        # indication, we make sure the headers are found by adding it to the C
-        # include path.
+def _addPythonIncludePaths(env):
+    python_include_paths = []
 
-        candidates = [
-            os.path.join(
-                env.python_prefix_external, "include", "python" + env.python_abi_version
-            ),
-            # CPython source code checkout
-            os.path.join(env.python_prefix_external, "Include"),
-            # Haiku specific paths:
-            os.path.join(
-                env.python_prefix_external,
-                "develop/headers",
-                "python" + env.python_abi_version,
-            ),
-        ]
+    adapted_python_header_files_dir = getArgumentDefaulted(
+        "adapted_python_header_files_dir", ""
+    )
+    if adapted_python_header_files_dir:
+        python_include_paths.append(adapted_python_header_files_dir)
+        env.Append(CPPDEFINES=["_NUITKA_ADAPTED_PYTHON_HEADERS"])
 
-        # Not all Python versions, have the ABI version to use for the debug version.
-        if env.python_debug and "d" in env.python_abi_version:
-            candidates.append(
-                os.path.join(
-                    env.python_prefix_external,
-                    "include",
-                    "python" + env.python_abi_version.replace("d", ""),
-                )
-            )
-
-    for candidate in candidates:
-        if os.path.exists(os.path.join(candidate, "Python.h")):
-            yield candidate
-            break
-    else:
-        if os.name == "nt":
-            scons_logger.sysexit(
-                """\
-Error, you seem to be using the unsupported embeddable CPython distribution \
-use a full Python instead.""",
-                exit_code=27,  # Fatal error exit for scons
-            )
-        else:
-            scons_logger.sysexit(
-                """\
-Error, no 'Python.h' %s headers can be found at '%s', dependency \
-not satisfied!"""
-                % ("debug" if env.python_debug else "development", candidates),
-                exit_code=27,  # Fatal error exit for scons
-            )
+    python_include_path = getArgumentRequired("python_include_path")
+    python_include_paths.append(python_include_path)
 
     if env.python_version >= (3, 13):
         # spell-checker: ignore mimalloc
-        yield os.path.join(candidate, "internal", "mimalloc")
+        python_include_paths.append(
+            os.path.join(python_include_path, "internal", "mimalloc")
+        )
 
     if env.self_compiled_python_uninstalled:
-        yield env.python_prefix_external
+        if isWin32Windows():
+            python_header_path = os.path.join(env.python_prefix_external, "PC")
+
+            if os.path.exists(python_header_path):
+                python_include_paths.append(python_header_path)
+        else:
+            python_include_paths.append(env.python_prefix_external)
+
+    env.Append(CPPPATH=python_include_paths)
+
+
+def _addPythonWarningSettings(env):
+    if env.debug_mode:
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
+                    # which are unfounded, so disable them.
+                    "-Wno-error=strict-aliasing",
+                    "-Wno-strict-aliasing",
+                    # At least for self-compiled Python3.2, and MinGW this happens
+                    # and has little use anyway.
+                    "-Wno-error=format",
+                    "-Wno-format",
+                ]
+            )
+
+            if isGccName(env.the_cc_name):
+                # Some Linux distro hardening injects "-Werror=format-security",
+                # which would otherwise conflict with disabling format warnings.
+                # spell-checker: ignore Werror
+                env.Append(
+                    CCFLAGS=[
+                        "-Wno-error=format-security",
+                    ]
+                )
+
+        elif env.msvc_mode:
+            # Disable warnings that system headers already show.
+            env.Append(
+                CCFLAGS=[
+                    "/W4",
+                    "/wd4505",
+                    "/wd4127",
+                    "/wd4100",
+                    "/wd4702",
+                    "/wd4189",
+                    "/wd4211",
+                    "/wd4115",
+                ]
+            )
+
+            # Disable warnings, that CPython headers already show.
+            if env.python_version >= (3,):
+                env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+
+            if env.python_version >= (3, 13):
+                env.Append(CCFLAGS=["/wd4324"])
+
+            # We use null arrays in our structure Python declarations, which C11 does
+            # not really allow, but should work.
+            env.Append(CCFLAGS=["/wd4200"])
+
+            # Do not show deprecation warnings, we will use methods for as long
+            # as they work.
+            env.Append(CCFLAGS=["/wd4996"])
 
 
 def applyPythonBuildSettings(env):
-    env.Append(CPPPATH=list(_detectPythonHeaderPath(env)))
+    _addPythonIncludePaths(env)
+    _addPythonWarningSettings(env)
 
     if env.monolithpy:
         env.Append(CPPDEFINES=["_MONOLITHPY"])
@@ -92,7 +112,7 @@ def applyPythonBuildSettings(env):
         env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
     if env.python_debug:
-        env.Append(CPPDEFINES=["Py_DEBUG"])
+        env.Append(CPPDEFINES=["Py_DEBUG", "Py_NO_LINK_LIB"])
 
     if not env.gil_mode:
         env.Append(CPPDEFINES="Py_GIL_DISABLED")
@@ -141,7 +161,7 @@ def addWin32PythonLib(env):
 
     if env.python_version >= (3,):
         pc_build_dir = (
-            "PCBuild/amd64" if env.target_arch == "x86_64" else "PCBuild/win32"
+            "PCBuild\\amd64" if env.target_arch == "x86_64" else "PCBuild\\win32"
         )
     else:
         pc_build_dir = "PCBuild"
@@ -152,7 +172,9 @@ def addWin32PythonLib(env):
         if os.path.exists(os.path.join(win_lib_path, win_lib_filename)):
             break
     else:
-        scons_logger.sysexit("Error, cannot find '%s' file." % win_lib_filename)
+        scons_logger.sysexit(
+            "Error, cannot find link library '%s' file." % win_lib_filename
+        )
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])

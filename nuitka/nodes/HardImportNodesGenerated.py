@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 # We are not avoiding these in generated code at all
@@ -30,6 +30,7 @@ spell-checker: ignore swapcase table tabsize title translate update upper use_er
 spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
 spell-checker: ignore winmode zfill
 """
+
 import os
 from abc import abstractmethod
 

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Registry for hard import data.
@@ -38,6 +38,9 @@ hard_modules = set(
         "importlib.metadata",
         "_frozen_importlib",
         "_frozen_importlib_external",
+        "pathlib",
+        "pathlib._abc",
+        "pathlib._local",
         "pkgutil",
         "functools",
         "sysconfig",
@@ -86,6 +89,10 @@ hard_modules_version = {
     "_frozen_importlib_external": (0x350, None, None),
     "importlib.resources": (0x370, None, None),
     "importlib.metadata": (0x380, None, None),
+    # Python 3.13 made "pathlib" a package.
+    "pathlib": (0x3D0, None, None),
+    "pathlib._abc": (0x3D0, None, None),
+    "pathlib._local": (0x3D0, None, None),
     "ctypes.wintypes": (None, None, "win32"),
     "builtin": (0x300, None, None),
     "unittest.mock": (0x300, None, None),
@@ -289,6 +296,9 @@ hard_modules_trust = {
     },
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
+    "pathlib": {},
+    "pathlib._abc": {},
+    "pathlib._local": {},
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
@@ -391,6 +401,16 @@ def addModuleDynamicHard(module_name):
     hard_modules.add(module_name)
     hard_modules_dynamic.add(module_name)
     hard_modules_non_stdlib.add(module_name)
+    hard_modules_trust_with_side_effects.add(module_name)
+
+    if module_name not in hard_modules_trust:
+        hard_modules_trust[module_name] = {}
+
+
+def addModuleDynamicBuiltinHard(module_name):
+    hard_modules.add(module_name)
+    hard_modules_stdlib.add(module_name)
+    hard_modules_dynamic.add(module_name)
     hard_modules_trust_with_side_effects.add(module_name)
 
     if module_name not in hard_modules_trust:

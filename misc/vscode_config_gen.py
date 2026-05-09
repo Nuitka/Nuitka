@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Script to generate Visual Studio Code configuration file.
@@ -23,6 +23,7 @@ import sysconfig
 
 from nuitka.utils.FileOperations import getFileContents, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplateFromString
+from nuitka.utils.Utils import isMacOS
 
 
 def getPythonInfo():
@@ -152,7 +153,7 @@ def getMSVCInfo():
     return compiler_path, sdk_version
 
 
-def getPluginIncludePaths(repo_root):
+def getPluginIncludePaths():
     """Scans for plugin directories containing C/C++ header files."""
     plugin_includes = []
     base_plugins_dir = os.path.join(repo_root, "nuitka", "plugins")
@@ -177,17 +178,16 @@ def getCompilerInfo():
         compiler_path, sdk_version = getMSVCInfo()
         return compiler_path, sdk_version, "msvc-x64"
     else:
-        # Linux and macOS detection
-        compiler_path = "/usr/bin/gcc"
-        if not os.path.exists(compiler_path):
+        if isMacOS():
+            mode = "macos-clang-x64"
             compiler_path = "/usr/bin/clang"
-
-        if sys.platform == "darwin":
-            mode = "macos-clang-x64"  # Default to clang on macOS
-            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/clang"):
-                compiler_path = "/usr/bin/clang"
+            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/gcc"):
+                compiler_path = "/usr/bin/gcc"
         else:
             mode = "linux-gcc-x64"
+            compiler_path = "/usr/bin/gcc"
+            if not os.path.exists(compiler_path) and os.path.exists("/usr/bin/clang"):
+                compiler_path = "/usr/bin/clang"
 
         return compiler_path, "", mode
 
@@ -210,7 +210,7 @@ def main():
         print(f"Windows SDK Version: {sdk_version}")
     print(f"IntelliSense Mode: {intelliSenseMode}")
 
-    plugin_include_paths = getPluginIncludePaths(repo_root)
+    plugin_include_paths = getPluginIncludePaths()
     print(f"Found {len(plugin_include_paths)} plugins with headers.")
 
     template_path = os.path.join(repo_root, ".vscode", "c_cpp_properties.json.j2")

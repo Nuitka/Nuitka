@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """OpenSUSE Build Service (OSC) upload release tool.
@@ -13,7 +13,10 @@ import sys
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    cleanupSourceDistributionState,
+)
 from nuitka.Tracing import tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
@@ -25,6 +28,8 @@ def main():
 
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
+
+    cleanupSourceDistributionState()
 
     checkReleaseDocumentation()
     # spell-checker: ignore gztar
@@ -48,7 +53,8 @@ def main():
         sys.exit("Skipping OSC for branch '%s'" % branch_name)
 
     installed_python = findInstalledPython(
-        python_versions=("3.10",), module_name=None, module_version=None
+        python_versions=("3.10",),
+        module_specs=None,
     )
 
     with withVirtualenv(
@@ -62,21 +68,26 @@ def main():
         # Stage the "osc" checkout from the ground up,
         # spell-checker: ignore kayhayen,rpmlintrc,addremove
         venv.runCommand(
-            f"""\
+            """\
 rm -rf osc && mkdir osc && cd osc && \
-osc checkout home:kayhayen {osc_project_name} && \
-rm home:kayhayen/{osc_project_name}/* && \
-cp ../dist/Nuitka-*.tar.gz home:kayhayen/{osc_project_name}/ && \
-sed -e s/PROJECT_VERSION/{nuitka_version}/ ../nuitka/tools/release/rpm/nuitka.spec \
-    >home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec && \
-sed -i home:kayhayen/{osc_project_name}/nuitka{spec_suffix}.spec -e \
-    's/Name: *PROJECT_NAME/Name: nuitka{spec_suffix}/' && \
-cp ../nuitka/tools/release/rpm/nuitka-rpmlintrc home:kayhayen/{osc_project_name}/ && \
-cd home:kayhayen/{osc_project_name}/ && \
+osc checkout home:kayhayen %(osc_project_name)s && \
+rm home:kayhayen/%(osc_project_name)s/* && \
+cp ../dist/Nuitka-*.tar.gz home:kayhayen/%(osc_project_name)s/ && \
+sed -e s/PROJECT_VERSION/%(nuitka_version)s/ ../nuitka/tools/release/rpm/nuitka.spec \
+    >home:kayhayen/%(osc_project_name)s/nuitka%(spec_suffix)s.spec && \
+sed -i home:kayhayen/%(osc_project_name)s/nuitka%(spec_suffix)s.spec -e \
+    's/Name: *PROJECT_NAME/Name: nuitka%(spec_suffix)s/' && \
+cp ../nuitka/tools/release/rpm/nuitka-rpmlintrc home:kayhayen/%(osc_project_name)s/ && \
+cd home:kayhayen/%(osc_project_name)s/ && \
 osc addremove -r && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
-""",
+"""
+            % {
+                "nuitka_version": nuitka_version,
+                "osc_project_name": osc_project_name,
+                "spec_suffix": spec_suffix,
+            },
             keep_cwd=True,
         )
 

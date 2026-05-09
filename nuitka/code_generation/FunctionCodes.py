@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Code to generate and interact with compiled function objects."""
@@ -6,7 +6,11 @@
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
-from .c_types.CTypePyObjectPointers import CTypeCellObject, CTypePyObjectPtrPtr
+from .c_types.CTypePyObjectPointers import (
+    CTypeCellObject,
+    CTypePyCellObject,
+    CTypePyObjectPtrPtr,
+)
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
@@ -511,7 +515,7 @@ def setupFunctionLocalVariables(
 
         # Delay cell variable initialization for outlines to their own code.
         if (
-            variable_c_type is CTypeCellObject
+            variable_c_type in (CTypeCellObject, CTypePyCellObject)
             and variable.owner.isExpressionOutlineFunctionBase()
         ):
             init_value = "NULL"
@@ -546,6 +550,7 @@ def setupFunctionLocalVariables(
 
         assert variable_c_type in (
             CTypeCellObject,
+            CTypePyCellObject,
             CTypePyObjectPtrPtr,
         ), variable_c_type
 
@@ -649,7 +654,7 @@ def _getFunctionCode(
         reason="Return statement must have exited already.", emit=emit
     )
 
-    function_exit = indented(emit.codes) + "\n\n"
+    function_exit = indented(emit) + "\n\n"
     del emit
 
     if needs_exception_exit:
@@ -694,7 +699,7 @@ def _getFunctionCode(
             "function_identifier": function_identifier,
             "direct_call_arg_spec": ", ".join(parameter_objects_decl),
             "function_locals": indented(function_locals),
-            "function_body": indented(function_codes.codes),
+            "function_body": indented(function_codes),
             "function_exit": function_exit,
         }
     else:
@@ -702,7 +707,7 @@ def _getFunctionCode(
             "function_identifier": function_identifier,
             "parameter_objects_decl": ", ".join(parameter_objects_decl),
             "function_locals": indented(function_locals),
-            "function_body": indented(function_codes.codes),
+            "function_body": indented(function_codes),
             "function_exit": function_exit,
         }
 
@@ -766,8 +771,14 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
                 context=context, variable=variable, variable_trace=None
             )
 
-            if variable_declaration.getCType() is CTypeCellObject:
-                emit("%s = Nuitka_Cell_NewEmpty();" % variable_declaration)
+            if variable_declaration.getCType() in (CTypeCellObject, CTypePyCellObject):
+                emit(
+                    "%s = %s;"
+                    % (
+                        variable_declaration,
+                        variable_declaration.getCType().getInitValue(None),
+                    )
+                )
 
     # Need to set return target, to assign to_name from.
 

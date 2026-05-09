@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
@@ -72,6 +72,33 @@ NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(pyt
 #endif
 #endif
 
+#ifdef Py_REF_DEBUG
+static inline void Nuitka_Py_IncRefTotal(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x3c0
+    _Py_RefTotal++;
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    _Py_IncRefTotal(tstate);
+#else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
+    tstate->interp->object_state.reftotal++;
+#endif
+}
+
+static inline void Nuitka_Py_DecRefTotal(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x3c0
+    _Py_RefTotal--;
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    _Py_DecRefTotal(tstate);
+#else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
+    tstate->interp->object_state.reftotal--;
+#endif
+}
+#else
+#define Nuitka_Py_IncRefTotal(tstate)
+#define Nuitka_Py_DecRefTotal(tstate)
+#endif
+
 #if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {
@@ -79,9 +106,7 @@ static inline void _Nuitka_Py_DECREF(PyObject *ob) {
 
     // Non-limited C API and limited C API for Python 3.9 and older access
     // directly PyObject.ob_refcnt.
-#ifdef Py_REF_DEBUG
-    _Py_RefTotal--;
-#endif
+    Nuitka_Py_DecRefTotal(_PyThreadState_GET());
     if (--ob->ob_refcnt == 0) {
         destructor dealloc = Py_TYPE(ob)->tp_dealloc;
 #ifdef Py_TRACE_REFS
@@ -101,9 +126,7 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 
         // Non-limited C API and limited C API for Python 3.9 and older access
         // directly PyObject.ob_refcnt.
-#ifdef Py_REF_DEBUG
-        _Py_RefTotal--;
-#endif
+        Nuitka_Py_DecRefTotal(_PyThreadState_GET());
         if (--ob->ob_refcnt == 0) {
             destructor dealloc = Py_TYPE(ob)->tp_dealloc;
 #ifdef Py_TRACE_REFS
@@ -200,16 +223,15 @@ static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type 
 // After Python 3.9 this was moved into the DLL potentially, making
 // it expensive to call.
 #if PYTHON_VERSION >= 0x390
-static inline void Nuitka_Py_NewReferenceNoTotal(PyObject *op) { Py_SET_REFCNT(op, 1); }
+static inline void Nuitka_Py_NewReferenceNoTotal(PyObject *op) {
+    Py_SET_REFCNT(op, 1);
+
+#if PYTHON_VERSION >= 0x3e0 && defined(Py_REF_DEBUG)
+    _PyReftracerTrack(op, PyRefTracer_CREATE);
+#endif
+}
 static inline void Nuitka_Py_NewReference(PyObject *op) {
-#ifdef Py_REF_DEBUG
-#if PYTHON_VERSION < 0x3c0
-    _Py_RefTotal++;
-#else
-    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
-    _PyInterpreterState_GET()->object_state.reftotal++;
-#endif
-#endif
+    Nuitka_Py_IncRefTotal(_PyThreadState_GET());
 #if !defined(Py_GIL_DISABLED)
 
 #if PYTHON_VERSION < 0x3e0
@@ -235,8 +257,11 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
     op->ob_ref_local = 1;
     op->ob_ref_shared = 0;
 #endif
+
+    Nuitka_Py_NewReferenceNoTotal(op);
 }
 #else
+#define Nuitka_Py_NewReferenceNoTotal(op) _Py_NewReferenceNoTotal(op)
 #define Nuitka_Py_NewReference(op) _Py_NewReference(op)
 #endif
 
@@ -246,20 +271,46 @@ static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long fea
 
 #if PYTHON_VERSION >= 0x3d0
 
+static inline bool Nuitka_PyType_HasInlineValues(PyTypeObject *tp) {
+    // Inline values are stored via heap type cached keys.
+    return Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_HEAPTYPE) && Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES);
+}
+
 static inline size_t Nuitka_PyType_InlineValuesSize(PyTypeObject *tp) {
-    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+    if (!Nuitka_PyType_HasInlineValues(tp)) {
         return 0;
     }
 
-    return _PyInlineValuesSize(tp);
+    // GCC 11+ can still emit a false-positive "-Warray-bounds" for the
+    // PyHeapTypeObject cast in '_PyInlineValuesSize' after the heap type
+    // check above. CPython applies the same workaround elsewhere.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+    size_t result = _PyInlineValuesSize(tp);
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
+    return result;
 }
 
 static inline void Nuitka_PyObject_InitInlineValues(PyObject *obj, PyTypeObject *tp) {
-    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_INLINE_VALUES)) {
+    if (!Nuitka_PyType_HasInlineValues(tp)) {
         return;
     }
 
+    // GCC 11+ can still emit a false-positive "-Warray-bounds" for the
+    // PyHeapTypeObject cast after the heap type check above. CPython applies
+    // the same workaround elsewhere.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     PyDictKeysObject *keys = ((PyHeapTypeObject *)tp)->ht_cached_keys;
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
     assert(keys != NULL);
 
 #ifdef Py_GIL_DISABLED
@@ -313,13 +364,20 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
-    assert(pre_size);
+#ifdef Py_GIL_DISABLED
     if (pre_size) {
         ((PyObject **)alloc)[0] = NULL;
         ((PyObject **)alloc)[1] = NULL;
 
         Nuitka_PyObject_GC_Link(obj);
     }
+#else
+    assert(pre_size != 0);
+    ((PyObject **)alloc)[0] = NULL;
+    ((PyObject **)alloc)[1] = NULL;
+
+    Nuitka_PyObject_GC_Link(obj);
+#endif
 
     // We might be able to avoid this, but it's unclear what e.g. the sentinel
     // is supposed to be.
@@ -327,6 +385,9 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 
     // This is the "var" branch, we already know we are variable size here.
     assert(type->tp_itemsize != 0);
+#if PYTHON_VERSION >= 0x3e0
+    _PyObject_InitVar((PyVarObject *)obj, type, nitems);
+#else
     Py_SET_SIZE((PyVarObject *)obj, nitems);
 
     // Initialize the object references.
@@ -334,12 +395,15 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#endif
 
 #if PYTHON_VERSION >= 0x3d0
     Nuitka_PyObject_InitInlineValues(obj, type);
 #endif
 
+#if PYTHON_VERSION < 0x3e0
     Nuitka_Py_NewReference(obj);
+#endif
 
     return obj;
 }
@@ -347,33 +411,47 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     // TODO: This ought to be static for all our types, so remove it as a call.
     size_t pre_size = _PyType_PreHeaderSize(type);
-    size_t inline_values_size = 0;
+    size_t size = _PyObject_SIZE(type);
 
 #if PYTHON_VERSION >= 0x3d0
-    inline_values_size = Nuitka_PyType_InlineValuesSize(type);
+    size += Nuitka_PyType_InlineValuesSize(type);
 #endif
 
-    char *alloc = (char *)NuitkaObject_Malloc(_PyObject_SIZE(type) + pre_size + inline_values_size);
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
-    assert(pre_size);
+#ifdef Py_GIL_DISABLED
+    if (pre_size) {
+        ((PyObject **)alloc)[0] = NULL;
+        ((PyObject **)alloc)[1] = NULL;
+
+        Nuitka_PyObject_GC_Link(obj);
+    }
+#else
+    assert(pre_size != 0);
     ((PyObject **)alloc)[0] = NULL;
     ((PyObject **)alloc)[1] = NULL;
 
     Nuitka_PyObject_GC_Link(obj);
+#endif
 
     // Initialize the object references.
+#if PYTHON_VERSION >= 0x3e0
+    _PyObject_Init(obj, type);
+#else
     Py_SET_TYPE(obj, type);
-
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#endif
 #if PYTHON_VERSION >= 0x3d0
     Nuitka_PyObject_InitInlineValues(obj, type);
 #endif
 
+#if PYTHON_VERSION < 0x3e0
     Nuitka_Py_NewReference(obj);
+#endif
 
     return obj;
 }

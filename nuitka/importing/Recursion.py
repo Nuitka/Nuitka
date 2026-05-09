@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Recursion into other modules."""
@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
     getPackageDirFilename,
+    hasPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -427,7 +428,7 @@ def _addIncludedModule(module, package_only):
 
         if not package_only:
             for sub_path, sub_filename in listDir(package_dir):
-                if sub_filename in ("__init__.py", "__pycache__"):
+                if sub_filename == "__pycache__" or hasPackageDirFilename(sub_filename):
                     continue
 
                 if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):
@@ -485,14 +486,11 @@ def scanPluginSinglePath(plugin_filename, module_package, package_only):
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
     if module_kind == "extension" and not isStandaloneMode():
-        recursion_logger.warning(
-            """\
+        recursion_logger.warning("""\
 Cannot include extension module '%s' unless using at least standalone mode, \
 where they would be copied. In this mode, extension modules are not part of \
 the compiled result, and therefore asking to include them makes no sense.
-"""
-            % module_name.asString()
-        )
+""" % module_name.asString())
 
     if module_kind is not None:
         decision, decision_reason = decideRecursion(

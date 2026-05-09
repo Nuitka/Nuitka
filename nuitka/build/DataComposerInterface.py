@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Interface to data composer"""
@@ -9,6 +9,7 @@ import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.plugins.Hooks import onDataComposerResult, onDataComposerRun
+from nuitka.PythonVersions import isRunningInInterpreter
 from nuitka.States import states
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
@@ -16,6 +17,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileSize,
     getNormalizedPathJoin,
+    makeContainingPath,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 
@@ -61,14 +63,27 @@ def _runDataComposer(source_dir):
 
     with withEnvironmentVarsOverridden(mapping):
         try:
-            subprocess.check_call(
-                [
+            if not isRunningInInterpreter():
+                executable = sys.modules["__main__"].__compiled__.original_argv0
+                command = (
+                    "DataComposer",
+                    source_dir,
+                    blob_filename,
+                    stats_filename,
+                )
+            else:
+                command = (
                     sys.executable,
                     data_composer_path,
                     source_dir,
                     blob_filename,
                     stats_filename,
-                ],
+                )
+                executable = None
+
+            subprocess.check_call(
+                command,
+                executable=executable,
                 shell=False,
             )
         except subprocess.CalledProcessError:
@@ -80,7 +95,9 @@ def _runDataComposer(source_dir):
 
 
 def getConstantBlobFilename(source_dir):
-    return getNormalizedPathJoin(source_dir, "__constants.bin")
+    result = getNormalizedPathJoin(source_dir, "blobs", "__constant.bin")
+    makeContainingPath(result)
+    return result
 
 
 def deriveModuleConstantsBlobName(filename):

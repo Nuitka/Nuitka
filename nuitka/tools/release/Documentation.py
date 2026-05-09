@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Generation of Nuitka documentation."""
@@ -19,7 +19,7 @@ from nuitka.utils.FileOperations import (
 
 def _optimizePNGs(pngList):
     for png in pngList:
-        check_call(["optipng", "-o2", "%s.png" % png])
+        check_call(["optipng", "-quiet", "-o2", "%s.png" % png])
 
 
 def makeLogoImages():

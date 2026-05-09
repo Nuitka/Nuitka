@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Templates for the constants handling.
@@ -135,6 +135,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"module", (char *)"boolean indicating --module usage"},
         {(char *)"main", (char *)"name of main module at runtime"},
         {(char *)"original_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
+        {(char *)"extension_filename", (char *)"loaded extension filename in module/package mode, None otherwise"},
         {0}
     };
 
@@ -232,6 +233,13 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *original_argv0 = Py_None;
 # endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);
+
+#if _NUITKA_MODULE_MODE
+    PyObject *extension_filename = getDllFilenameObject();
+#else
+    PyObject *extension_filename = Py_None;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

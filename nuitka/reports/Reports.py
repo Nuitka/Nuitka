@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Collection of information for reports and their writing.
@@ -14,7 +14,15 @@ import traceback
 
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
-from nuitka.build.SconsUtils import getSconsReportValue, readSconsErrorReport
+from nuitka.build.SconsCaching import getCcacheModuleStats
+from nuitka.build.SconsUtils import (
+    getSconsCompilerUsed,
+    getSconsObjectSizes,
+    getSconsReportValue,
+    getSconsReportValueBool,
+    readSconsErrorReport,
+    readSconsResourceUsageReports,
+)
 from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
@@ -40,9 +48,11 @@ from nuitka.options.Options import (
     getOnefileTempDirSpec,
     isOnefileMode,
     isOnefileTempDirMode,
+    isStandaloneMode,
     shallCreateDiffableCompilationReport,
 )
 from nuitka.OutputDirectories import (
+    getResultFullpath,
     getResultRunFilename,
     getSourceDirectoryPath,
     hasMainModule,
@@ -67,6 +77,7 @@ from nuitka.utils.Distributions import (
     isDistributionVendored,
 )
 from nuitka.utils.FileOperations import (
+    getFileSize,
     getNormalizedPath,
     getReportPath,
     putBinaryFileContents,
@@ -268,33 +279,172 @@ def _getReportInputData(aborted):
         output_run_filename = os.path.abspath(
             getResultRunFilename(onefile=isOnefileMode())
         )
+        backend_executable = os.path.abspath(
+            getResultFullpath(onefile=False, real=True)
+        )
+        if os.path.exists(backend_executable):
+            backend_executable_size = getFileSize(backend_executable)
+        else:
+            backend_executable_size = None
+
+        if isOnefileMode():
+            onefile_executable = os.path.abspath(
+                getResultFullpath(onefile=True, real=True)
+            )
+            if os.path.exists(onefile_executable):
+                onefile_executable_size = getFileSize(onefile_executable)
+            else:
+                onefile_executable_size = None
+
+            onefile_source_dir = getSourceDirectoryPath(onefile=True, create=False)
+            if onefile_source_dir is not None:
+                onefile_resource_mode = getSconsReportValue(
+                    onefile_source_dir, "resource_mode", default=None
+                )
+                onefile_reproducible = getSconsReportValueBool(
+                    onefile_source_dir, "reproducible", default=None
+                )
+            else:
+                onefile_resource_mode = None
+                onefile_reproducible = None
+        else:
+            onefile_executable = None
+            onefile_executable_size = None
+            onefile_resource_mode = None
+            onefile_reproducible = None
+
         scons_error_report_data = readSconsErrorReport(
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
+        scons_resource_usage_data = readSconsResourceUsageReports(
+            source_dir=getSourceDirectoryPath(onefile=False, create=False)
+        )
+        scons_ccache_stats = getCcacheModuleStats()
     else:
         scons_error_report_data = {}
+        scons_resource_usage_data = {}
+        scons_ccache_stats = {}
         output_run_filename = "failed too early"
+        backend_executable = "failed too early"
+        backend_executable_size = None
+        onefile_executable = None
+        onefile_executable_size = None
+        onefile_resource_mode = None
 
     source_dir = (
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
     )
 
     if source_dir is not None:
+        c_compiler = getSconsCompilerUsed(source_dir)
         cpp_flags = getSconsReportValue(source_dir, "cpp_flags", default=None)
         c_flags = getSconsReportValue(source_dir, "c_flags", default=None)
         cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
         cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
         ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
+        the_cc_name = getSconsReportValue(source_dir, "the_cc_name", default=None)
+        the_compiler = getSconsReportValue(source_dir, "the_compiler", default=None)
+
+        backend_resource_mode = getSconsReportValue(
+            source_dir, "resource_mode", default=None
+        )
+        backend_reproducible = getSconsReportValueBool(
+            source_dir, "reproducible", default=None
+        )
     else:
+        c_compiler = None
         cpp_flags = None
         c_flags = None
         cc_flags = None
         cxx_flags = None
         ld_flags = None
+        the_cc_name = None
+        the_compiler = None
+        backend_resource_mode = None
+        backend_reproducible = None
+
+    module_object_sizes = getSconsObjectSizes(source_dir) if source_dir else {}
 
     del source_dir
 
     compilation_mode = getCompilationMode()
+
+    performance_totals = {
+        "optimization_passes": {},
+        "code_generation": {
+            "time": 0.0,
+            "count": 0,
+            "cpu_instr": None,
+            "cpu_cycles": None,
+        },
+        "all_passes": {"time": 0.0, "count": 0, "cpu_instr": None, "cpu_cycles": None},
+    }
+
+    _total_all_passes_module_set = set()
+
+    for _module_name, _timing_infos in module_timing_infos.items():
+        if _timing_infos:
+            _total_all_passes_module_set.add(_module_name)
+        for _timing_info in _timing_infos:
+            _pass_num = _timing_info.pass_number
+            if _pass_num not in performance_totals["optimization_passes"]:
+                performance_totals["optimization_passes"][_pass_num] = {
+                    "time": 0.0,
+                    "count": 0,
+                    "cpu_instr": None,
+                    "cpu_cycles": None,
+                }
+            performance_totals["optimization_passes"][_pass_num][
+                "time"
+            ] += _timing_info.time_used
+            performance_totals["optimization_passes"][_pass_num]["count"] += 1
+            performance_totals["all_passes"]["time"] += _timing_info.time_used
+
+            if _timing_info.cpu_instr_count is not None:
+                if (
+                    performance_totals["optimization_passes"][_pass_num]["cpu_instr"]
+                    is None
+                ):
+                    performance_totals["optimization_passes"][_pass_num][
+                        "cpu_instr"
+                    ] = 0
+                    performance_totals["optimization_passes"][_pass_num][
+                        "cpu_cycles"
+                    ] = 0
+                performance_totals["optimization_passes"][_pass_num][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["optimization_passes"][_pass_num][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
+
+                if performance_totals["all_passes"]["cpu_instr"] is None:
+                    performance_totals["all_passes"]["cpu_instr"] = 0
+                    performance_totals["all_passes"]["cpu_cycles"] = 0
+                performance_totals["all_passes"][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["all_passes"][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
+
+    performance_totals["all_passes"]["count"] = len(_total_all_passes_module_set)
+
+    for _module_name, _timing_info in module_generation_timing_infos.items():
+        if _timing_info is not None:
+            performance_totals["code_generation"]["time"] += _timing_info.time_used
+            performance_totals["code_generation"]["count"] += 1
+
+            if getattr(_timing_info, "cpu_instr_count", None) is not None:
+                if performance_totals["code_generation"]["cpu_instr"] is None:
+                    performance_totals["code_generation"]["cpu_instr"] = 0
+                    performance_totals["code_generation"]["cpu_cycles"] = 0
+                performance_totals["code_generation"][
+                    "cpu_instr"
+                ] += _timing_info.cpu_instr_count
+                performance_totals["code_generation"][
+                    "cpu_cycles"
+                ] += _timing_info.cpu_cycles_count
 
     return dict(
         (var_name, var_value)
@@ -424,7 +574,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             # Going via attrib, because pass is a keyword in Python.
             timing_xml_node.attrib["pass"] = str(timing_info.pass_number)
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.micro_passes:
@@ -457,7 +607,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             timing_xml_node.attrib["time"] = (
-                "volatile" if diffable else "%.2f" % timing_info.time_used
+                "volatile" if diffable else "%.4f" % timing_info.time_used
             )
 
             if timing_info.cpu_instr_count is not None:
@@ -466,6 +616,64 @@ def _addModulesToReport(root, report_input_data, diffable):
                 timing_xml_node.attrib["cpu_cycles"] = str(timing_info.cpu_cycles_count)
 
             module_xml_node.append(timing_xml_node)
+
+        if report_input_data["scons_resource_usage_data"] is not None:
+            compile_rusage = report_input_data["scons_resource_usage_data"].get(
+                module_name.asString()
+            )
+        else:
+            compile_rusage = None
+
+        if report_input_data["scons_ccache_stats"]:
+            ccache_info = report_input_data["scons_ccache_stats"].get(
+                module_name.asString()
+            )
+        else:
+            ccache_info = None
+
+        module_object_size = report_input_data["module_object_sizes"].get(module_name)
+
+        if not diffable and (
+            compile_rusage or ccache_info is not None or module_object_size is not None
+        ):
+            compile_xml_node = appendTreeElement(
+                module_xml_node,
+                "c-compilation-resources",
+            )
+
+            if ccache_info is not None:
+                appendTreeElement(
+                    compile_xml_node,
+                    "c-cache",
+                    tech=ccache_info[0],
+                    result=ccache_info[1],
+                )
+            else:
+                appendTreeElement(
+                    compile_xml_node,
+                    "c-cache",
+                    tech="none",
+                )
+
+            if module_object_size is not None:
+                appendTreeElement(
+                    compile_xml_node,
+                    "object-file",
+                    size=str(module_object_size),
+                )
+
+            if compile_rusage:
+                for group_name, group_data in compile_rusage.items():
+                    group_xml_node = appendTreeElement(
+                        compile_xml_node,
+                        group_name,
+                    )
+                    for key, value in group_data.items():
+                        if type(value) is float:
+                            value = "%.4f" % value
+                        else:
+                            value = str(value)
+                        group_xml_node.attrib[key] = value
 
         distributions = report_input_data["module_distribution_usages"][module_name]
 
@@ -628,6 +836,18 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "scons_environment",
         )
 
+        if report_input_data["c_compiler"] is not None:
+            scons_environment_xml_node.attrib["c_compiler"] = report_input_data[
+                "c_compiler"
+            ]
+        if report_input_data["the_cc_name"] is not None:
+            scons_environment_xml_node.attrib["the_cc_name"] = report_input_data[
+                "the_cc_name"
+            ]
+        if report_input_data["the_compiler"] is not None:
+            scons_environment_xml_node.attrib["the_compiler"] = (
+                _getCompilationReportPath(report_input_data["the_compiler"])
+            )
         if report_input_data["cpp_flags"] != "":
             scons_environment_xml_node.attrib["cpp_flags"] = report_input_data[
                 "cpp_flags"
@@ -687,6 +907,23 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     _addModulesToReport(
         root=root, report_input_data=report_input_data, diffable=diffable
     )
+
+    if report_input_data["scons_resource_usage_data"]:
+        linker_rusage = report_input_data["scons_resource_usage_data"].get("@linker")
+
+        if not diffable and linker_rusage:
+            linker_xml_node = appendTreeElement(root, "linker-resources")
+            for group_name, group_data in linker_rusage.items():
+                group_xml_node = appendTreeElement(
+                    linker_xml_node,
+                    group_name,
+                )
+                for key, value in group_data.items():
+                    if type(value) is float:
+                        value = "%.4f" % value
+                    else:
+                        value = str(value)
+                    group_xml_node.attrib[key] = value
 
     if report_input_data["memory_infos"]:
         performance_xml_node = appendTreeElement(
@@ -756,11 +993,15 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "included_" + kind,
             name=os.path.basename(standalone_entry_point.dest_path),
             dest_path=standalone_entry_point.dest_path,
-            source_path=_getCompilationReportPath(standalone_entry_point.source_path),
+            source_path=(
+                "{generated}"
+                if standalone_entry_point.reason == "main binary"
+                else _getCompilationReportPath(standalone_entry_point.source_path)
+            ),
             package=standalone_entry_point.package_name or "",
             ignored="yes" if ignored else "no",
             reason=standalone_entry_point.reason,
-            # TODO: No reason yet.
+            tags=",".join(standalone_entry_point.tags),
         )
 
     for standalone_entry_point, (reason, removed_dll_paths) in getRemovedUsedDllsInfo():
@@ -798,6 +1039,129 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                         filename=item,
                         **item_value
                     )
+
+    performance_totals = report_input_data["performance_totals"]
+
+    performance_totals_node = appendTreeElement(
+        root,
+        "performance-totals",
+    )
+
+    for pass_num in sorted(performance_totals["optimization_passes"]):
+        timing_xml_node = appendTreeElement(
+            performance_totals_node,
+            "optimization-time",
+        )
+        timing_xml_node.attrib["pass"] = str(pass_num)
+        timing_xml_node.attrib["time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["optimization_passes"][pass_num]["time"]
+        )
+        timing_xml_node.attrib["module_count"] = str(
+            performance_totals["optimization_passes"][pass_num]["count"]
+        )
+        if performance_totals["optimization_passes"][pass_num]["cpu_instr"] is not None:
+            if not diffable:
+                timing_xml_node.attrib["cpu_instr"] = str(
+                    performance_totals["optimization_passes"][pass_num]["cpu_instr"]
+                )
+                timing_xml_node.attrib["cpu_cycles"] = str(
+                    performance_totals["optimization_passes"][pass_num]["cpu_cycles"]
+                )
+
+    timing_xml_node = appendTreeElement(
+        performance_totals_node,
+        "optimization-time",
+    )
+    timing_xml_node.attrib["pass"] = "all"
+    timing_xml_node.attrib["time"] = (
+        "volatile" if diffable else "%.4f" % performance_totals["all_passes"]["time"]
+    )
+    timing_xml_node.attrib["module_count"] = str(
+        performance_totals["all_passes"]["count"]
+    )
+    if performance_totals["all_passes"]["cpu_instr"] is not None:
+        if not diffable:
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["all_passes"]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["all_passes"]["cpu_cycles"]
+            )
+
+    timing_xml_node = appendTreeElement(
+        performance_totals_node,
+        "code-generation-time",
+    )
+    timing_xml_node.attrib["time"] = (
+        "volatile"
+        if diffable
+        else "%.4f" % performance_totals["code_generation"]["time"]
+    )
+    timing_xml_node.attrib["module_count"] = str(
+        performance_totals["code_generation"]["count"]
+    )
+    if performance_totals["code_generation"]["cpu_instr"] is not None:
+        if not diffable:
+            timing_xml_node.attrib["cpu_instr"] = str(
+                performance_totals["code_generation"]["cpu_instr"]
+            )
+            timing_xml_node.attrib["cpu_cycles"] = str(
+                performance_totals["code_generation"]["cpu_cycles"]
+            )
+
+    if report_input_data["backend_executable"] != "failed too early":
+        python_binary_xml_node = appendTreeElement(
+            root,
+            "python_binary",
+            filename=(
+                os.path.basename(report_input_data["backend_executable"])
+                if isStandaloneMode()
+                else _getCompilationReportPath(report_input_data["backend_executable"])
+            ),
+        )
+
+        if report_input_data["backend_resource_mode"] is not None:
+            python_binary_xml_node.attrib["backend_resource_mode"] = report_input_data[
+                "backend_resource_mode"
+            ]
+
+        if report_input_data["backend_reproducible"] is not None:
+            python_binary_xml_node.attrib["reproducible"] = (
+                "yes" if report_input_data["backend_reproducible"] else "no"
+            )
+
+        if diffable:
+            python_binary_xml_node.attrib["size"] = "volatile"
+        elif report_input_data["backend_executable_size"] is not None:
+            python_binary_xml_node.attrib["size"] = str(
+                report_input_data["backend_executable_size"]
+            )
+
+    if report_input_data.get("onefile_executable") is not None:
+        onefile_binary_xml_node = appendTreeElement(
+            root,
+            "onefile_binary",
+            filename=os.path.basename(report_input_data["onefile_executable"]),
+        )
+
+        if report_input_data.get("onefile_resource_mode") is not None:
+            onefile_binary_xml_node.attrib["onefile_resource_mode"] = report_input_data[
+                "onefile_resource_mode"
+            ]
+
+        if report_input_data.get("onefile_reproducible") is not None:
+            onefile_binary_xml_node.attrib["reproducible"] = (
+                "yes" if report_input_data["onefile_reproducible"] else "no"
+            )
+
+        if diffable:
+            onefile_binary_xml_node.attrib["size"] = "volatile"
+        elif report_input_data.get("onefile_executable_size") is not None:
+            onefile_binary_xml_node.attrib["size"] = str(
+                report_input_data["onefile_executable_size"]
+            )
 
     options_xml_node = appendTreeElement(
         root,

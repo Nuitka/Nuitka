@@ -1,0 +1,11 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'package.subpackage' # checksum: 948124b4
+  implicit-imports:
+    - post-import-code:
+        - 'import package.subpackage'
+        - 'package.subpackage.func = lambda: "well behaved."'

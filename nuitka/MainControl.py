@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This is the main actions of Nuitka.
@@ -13,12 +13,16 @@ a distribution folder.
 import os
 import sys
 
+from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
 from nuitka.build.SconsUtils import (
+    getSconsCompilerUsed,
     getSconsReportValue,
     readSconsErrorReport,
+    readSconsObjectSizes,
     readSconsReport,
+    readSconsResourceUsageReports,
 )
 from nuitka.code_generation.CodeGeneration import (
     generateHelpersCode,
@@ -44,7 +48,11 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.freezer.MacOSDmg import createDmgFile
-from nuitka.importing.Importing import locateModule, setupImportingFromOptions
+from nuitka.importing.Importing import (
+    getRecompileDecisionReason,
+    locateModule,
+    setupImportingFromOptions,
+)
 from nuitka.importing.Recursion import (
     scanIncludedPackage,
     scanPluginFilenamePattern,
@@ -55,7 +63,6 @@ from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebuggerName,
-    getExperimentalIndications,
     getFileReferenceMode,
     getForcedStderrPath,
     getForcedStdoutPath,
@@ -122,6 +129,7 @@ from nuitka.plugins.Hooks import (
     onStandaloneDistributionFinished,
     writeExtraCodeFiles,
 )
+from nuitka.plugins.PluginsUsage import printPluginUsageStats
 from nuitka.PostProcessing import executePostProcessing
 from nuitka.Progress import (
     closeProgressBar,
@@ -206,6 +214,18 @@ from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
+def _deleteResultFile(filename):
+    deleteFile(
+        path=filename,
+        must_exist=False,
+    )
+    if isWin32Windows():
+        deleteFile(
+            path=changeFilenameExtension(filename, ".pdb"),
+            must_exist=False,
+        )
+
+
 def _createMainModule():
     """Create a node tree.
 
@@ -245,12 +265,9 @@ def _createMainModule():
         real_distribution_name = getDistributionName(distribution)
 
         if real_distribution_name != distribution_name:
-            general.warning(
-                """\
+            general.warning("""\
 Warning, the distribution specified as '--include-distribution-metadata=%s' is really named '%s', \
-use the correct name instead."""
-                % (distribution_name, real_distribution_name)
-            )
+use the correct name instead.""" % (distribution_name, real_distribution_name))
 
         addDistributionMetadataValue(
             distribution_name=real_distribution_name,
@@ -272,15 +289,10 @@ use the correct name instead."""
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
-    deleteFile(
-        path=OutputDirectories.getResultFullpath(onefile=False, real=True),
-        must_exist=False,
-    )
+    _deleteResultFile(OutputDirectories.getResultFullpath(onefile=False, real=True))
+
     if isOnefileMode():
-        deleteFile(
-            path=OutputDirectories.getResultFullpath(onefile=True, real=True),
-            must_exist=False,
-        )
+        _deleteResultFile(OutputDirectories.getResultFullpath(onefile=True, real=True))
 
         # Also make sure we inform the user in case the compression is not possible.
         getCompressorPython()
@@ -345,6 +357,20 @@ use the correct name instead."""
                 "Error, including metadata for distribution '%s' without including related package '%s'."
                 % (distribution_name, meta_data_value.module_name)
             )
+
+    # Complain about undecided recompilations of extension modules
+    for module in ModuleRegistry.getDoneModules():
+        recompile_decision = getRecompileDecisionReason(module.getFullName())
+
+        # TODO: Make that a shared constant value
+        if (
+            recompile_decision[0] is None
+            and recompile_decision[1] == "default behavior"
+        ):
+            inclusion_logger.info("""\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default, but source code is available and \
+may work too.""" % (module.getFullName()))
 
     # Allow plugins to comment on final module set.
     onModuleCompleteSet()
@@ -581,6 +607,8 @@ def makeSourceDirectory():
         assume_yes_for_downloads=assumeYesForDownloads(),
     )
 
+    return module_filenames
+
 
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
@@ -596,23 +624,10 @@ def _runPgoBinary():
     )
 
 
-def _wasMsvcMode():
-    if not isWin32Windows():
-        return False
-
-    return (
-        getSconsReportValue(
-            source_dir=OutputDirectories.getSourceDirectoryPath(
-                onefile=False, create=False
-            ),
-            key="msvc_mode",
-        )
-        == "True"
-    )
-
-
 def _deleteMsvcPGOFiles(pgo_mode):
-    assert _wasMsvcMode()
+    assert getSconsCompilerUsed(
+        OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+    ) in ("MSVC", "ClangCL")
 
     msvc_pgc_filename = OutputDirectories.getResultBasePath(onefile=False) + "!1.pgc"
     deleteFile(msvc_pgc_filename, must_exist=False)
@@ -633,7 +648,9 @@ def _runCPgoBinary():
         "Running created binary to produce C level PGO information:", style="blue"
     )
 
-    if _wasMsvcMode():
+    if getSconsCompilerUsed(
+        OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+    ) in ("MSVC", "ClangCL"):
         msvc_pgc_filename = _deleteMsvcPGOFiles(pgo_mode="generate")
 
         with withEnvironmentVarOverridden(
@@ -660,18 +677,14 @@ def _runCPgoBinary():
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
 
     if exit_code_pgo != 0:
-        pgo_logger.warning(
-            """\
+        pgo_logger.warning("""\
 Error, the C PGO compiled program error exited. Make sure it works \
-fully before using '--pgo-c' option."""
-        )
+fully before using '--pgo-c' option.""")
 
     if not pgo_data_collected:
-        return pgo_logger.sysexit(
-            """\
+        return pgo_logger.sysexit("""\
 Error, no C PGO compiled program did not produce expected information, \
-did the created binary run at all?"""
-        )
+did the created binary run at all?""")
 
     pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
@@ -687,12 +700,9 @@ def _runPythonPgoBinary():
         exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
-        return general.sysexit(
-            """\
+        return general.sysexit("""\
 Error, no Python PGO information produced, did the created binary
-run (exit code %d) as expected?"""
-            % exit_code
-        )
+run (exit code %d) as expected?""" % exit_code)
 
     return pgo_filename
 
@@ -706,12 +716,17 @@ def runSconsBackend():
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
         onefile=False, create=False
     )
+
+    # We might need to adapt the Python header files for some setups to work correctly.
+    adapted_dir = createAdaptedPythonHeaderFiles(scons_options["source_dir"])
+    if adapted_dir:
+        scons_options["adapted_python_header_files_dir"] = adapted_dir
+
     scons_options["monolithpy"] = asBoolStr(isMonolithPy())
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["debugger_mode"] = asBoolStr(shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(shallUsePythonDebug())
     scons_options["full_compat"] = asBoolStr(states.is_full_compat)
-    scons_options["experimental"] = ",".join(getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["file_reference_mode"] = getFileReferenceMode()
     scons_options["compiled_module_count"] = "%d" % len(
@@ -734,7 +749,9 @@ def runSconsBackend():
             scons_options["main_module_name"] = main_module_name
 
     if shallUseStaticLibPython():
-        scons_options["static_libpython"] = getSystemStaticLibPythonPath()
+        scons_options["static_libpython"] = getSystemStaticLibPythonPath(
+            python_debug=shallUsePythonDebug()
+        )
 
     if isDebianPackagePython():
         scons_options["debian_python"] = asBoolStr(True)
@@ -791,7 +808,11 @@ def runSconsBackend():
     if sys.flags.bytes_warning:
         scons_options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.getenv("NUITKA_NOSITE_FLAG", hasPythonFlagNoSite())):
+    # TODO: Actually all of sys flags is not for module mode and we should
+    # achieve it to be an error to even attempt to use it.
+    if not shallMakeModule() and int(
+        os.getenv("NUITKA_NOSITE_FLAG", hasPythonFlagNoSite())
+    ):
         scons_options["python_sysflag_no_site"] = asBoolStr(True)
 
     if hasPythonFlagTraceImports():
@@ -818,7 +839,7 @@ def runSconsBackend():
     if hasPythonFlagIsolated():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
-    abiflags = getPythonABI()
+    abiflags = getPythonABI(python_debug=shallUsePythonDebug())
     if abiflags:
         scons_options["abiflags"] = abiflags
 
@@ -879,7 +900,12 @@ def runSconsBackend():
     )
 
     # Delete PGO files if asked to do that.
-    if scons_options.get("pgo_mode") == "use" and _wasMsvcMode():
+    if scons_options.get("pgo_mode") == "use" and (
+        getSconsCompilerUsed(
+            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+        )
+        in ("MSVC", "ClangCL")
+    ):
         _deleteMsvcPGOFiles(pgo_mode="use")
 
     return result
@@ -895,7 +921,7 @@ def callExecPython(args, add_path, uac):
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
 
-    callExecProcess(args, uac=uac)
+    callExecProcess(args, shell=uac)
 
 
 def _executeMain(binary_filename):
@@ -933,12 +959,9 @@ importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 
     output_dir = os.path.normpath(getOutputDir())
     if output_dir != ".":
-        python_command_template = (
-            """\
+        python_command_template = """\
 import sys; sys.path.insert(0, %(output_dir)r)
-"""
-            + python_command_template
-        )
+""" + python_command_template
 
     python_command_template += ";__import__('%(module_name)s')"
 
@@ -988,7 +1011,7 @@ def compileTree():
             logger=code_generation_logger,
             enabled=isCompileTimeProfile(),
         ):
-            makeSourceDirectory()
+            module_filenames = makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -1006,12 +1029,16 @@ def compileTree():
         )
 
     else:
+        # Too hard to come by this information, and it's only for optional parts
+        # of the reporting at this time.
+        module_filenames = {}
+
         source_dir = OutputDirectories.getSourceDirectoryPath(
             onefile=False, create=False
         )
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
-            general.sysexit("Error, no previous build directory exists.")
+            return general.sysexit("Error, no previous build directory exists.")
 
     reportMemoryUsage(
         "before_running_scons",
@@ -1044,6 +1071,13 @@ def compileTree():
 
     # Run the Scons to build things.
     result, scons_options = runSconsBackend()
+
+    if result:
+        readSconsObjectSizes(
+            source_dir=source_dir,
+            module_filenames=module_filenames,
+            module_mode=shallMakeModule(),
+        )
 
     return result, scons_options
 
@@ -1207,6 +1241,8 @@ def _main():
         if isShowMemory():
             showMemoryTrace()
 
+        printPluginUsageStats()
+
         sys.exit(0)
 
     executePostProcessing(scons_options["result_exe"])
@@ -1270,6 +1306,7 @@ def _main():
         # Make sure the scons report is cached before deleting it.
         readSconsReport(source_dir)
         readSconsErrorReport(source_dir)
+        readSconsResourceUsageReports(source_dir)
 
         removeDirectory(
             path=source_dir,
@@ -1312,8 +1349,7 @@ def _main():
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
 not use compiled code while it exists because it has precedence while both \
-exist, out e.g. '--output-dir=output' to sure is importable."""
-                % base_path,
+exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
                 mnemonic="compiled-package-hidden-by-package",
             )
 
@@ -1324,6 +1360,7 @@ exist, out e.g. '--output-dir=output' to sure is importable."""
         createDmgFile(general)
 
     writeCompilationReports(aborted=False)
+    printPluginUsageStats()
 
     run_filename = OutputDirectories.getResultRunFilename(onefile=isOnefileMode())
 
@@ -1351,13 +1388,11 @@ def main():
             writeCompilationReports(aborted=True)
         except KeyboardInterrupt:
             general.warning("""Report writing was prevented by user interrupt.""")
-        except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-            general.warning(
-                """\
+        # Catch all the things, pylint: disable-next=broad-exception-caught
+        except BaseException as e:
+            general.warning("""\
 Report writing was prevented by exception %r, use option \
-'--experimental=debug-report-traceback' for full traceback."""
-                % e
-            )
+'--experimental=debug-report-traceback' for full traceback.""" % e)
 
             if isExperimental("debug-report-traceback"):
                 raise

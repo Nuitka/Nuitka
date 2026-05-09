@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Command line options of Nuitka.
@@ -19,7 +19,7 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import isPythonWithGil
+from nuitka.PythonVersions import displayRecommendedVersion, isPythonWithGil
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -36,11 +36,26 @@ from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
+
+def _getSysArgv():
+    # During early startup on Python2, "sys.argv" may not exist yet.
+    return getattr(sys, "argv", ("__main__.py",))
+
+
+def _getNuitkaBinaryName():
+    argv = _getSysArgv()
+
+    result = os.path.basename(argv[0])
+
+    if result == "__main__.py":
+        result = "%s -m nuitka" % os.path.basename(sys.executable)
+
+    return result
+
+
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-_nuitka_binary_name = os.path.basename(sys.argv[0])
-if _nuitka_binary_name == "__main__.py":
-    _nuitka_binary_name = "%s -m nuitka" % os.path.basename(sys.executable)
+_nuitka_binary_name = _getNuitkaBinaryName()
 is_nuitka_run = _nuitka_binary_name.lower().endswith("-run")
 
 if not is_nuitka_run:
@@ -53,12 +68,14 @@ else:
 
 def _handleHelpModes():
     result = False
-    for count, arg in enumerate(sys.argv[1:], start=1):
+    argv = _getSysArgv()
+
+    for count, arg in enumerate(argv[1:], start=1):
         if arg == "--":
             break
         if arg in ("--help-all", "--help-plugin", "--help-plugins"):
             result = True
-            sys.argv[count] = "--help"
+            argv[count] = "--help"
             break
     return result
 
@@ -82,6 +99,18 @@ parser.add_option(
     require_compiling=False,
     help="""\
 Show version information and important details for bug reports, then exit. Defaults to off.""",
+)
+
+parser.add_option(
+    "--recommended-python-version",
+    action="store",
+    type="choice",
+    choices=("supported", "commercial", "working"),
+    dest="recommended_python_version_kind",
+    default=None,
+    require_compiling=False,
+    github_action=False,
+    help=SUPPRESS_HELP,
 )
 
 parser.add_option(
@@ -456,9 +485,9 @@ onefile_group.add_option(
     default=None,
     help="""\
 Use this as a folder to unpack to in onefile mode. Defaults to
-'{TEMP}/onefile_{PID}_{TIME}', i.e. user temporary directory
-and being non-static it's removed. Use e.g. a string like
-'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
+'{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}', i.e. user temporary
+directory and being non-static it's removed. Use e.g. a string
+like '{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
 static cache path, this will then not be removed.""",
 )
 
@@ -474,7 +503,9 @@ This mode is inferred from your use of the spec. If it contains
 runtime dependent paths, "auto" resolves to "temporary" which
 will make sure to remove the unpacked binaries after execution,
 and cached will not remove it and see to reuse its contents
-during next execution for faster startup times.""",
+during next execution for faster startup times. Using it also
+changes the default tempdir spec to be in the cache directory.
+""",
 )
 
 
@@ -773,8 +804,7 @@ execute_group.add_option(
     default=is_nuitka_run,
     help="""\
 Execute immediately the created binary (or import the compiled module).
-Defaults to %s."""
-    % ("on" if is_nuitka_run else "off"),
+Defaults to %s.""" % ("on" if is_nuitka_run else "off"),
 )
 
 execute_group.add_option(
@@ -880,8 +910,7 @@ choice and using it will be an error. For onefile mode this may include path
 information that needs to exist though. For standalone mode it can only be
 a name, and controls how the binary is named inside the dist folder. Defaults
 to '%s' on this platform.
-"""
-    % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
+""" % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
 )
 
 output_group.add_option(
@@ -1195,9 +1224,9 @@ for small test cases. Defaults to off.""",
 )
 
 development_group.add_option(
-    "--devel-generate-ming64-header",
+    "--devel-generate-python-internal-offsets",
     action="store_true",
-    dest="generate_mingw64_header",
+    dest="generate_python_internal_offsets",
     default=False,
     require_compiling=False,
     github_action=False,
@@ -1212,6 +1241,17 @@ development_group.add_option(
     github_action=False,
     help="""\
 Enable cProfile based profiling of time spent during compilation. Defaults to off.""",
+)
+
+development_group.add_option(
+    "--devel-performance-counts",
+    action="store_true",
+    dest="devel_performance_counts",
+    default=False,
+    github_action=False,
+    help="""\
+Enable this to produce a fatal error if performance counters cannot be \
+used, but are attempted to be used.""",
 )
 
 development_group.add_option(
@@ -1386,8 +1426,7 @@ caching_group.add_option(
     help="""\
 Disable selected caches, specify "all" for all cached. Currently allowed
 values are: %s. can be given multiple times or with comma separated values.
-Default none."""
-    % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
+Default none.""" % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
 )
 
 caching_group.add_option(
@@ -1635,6 +1674,15 @@ Obsolete: You should use '--report' file instead. Defaults to off.""",
 )
 
 tracing_group.add_option(
+    "--show-plugin-usage",
+    action="store_true",
+    dest="show_plugin_usage",
+    github_action=False,
+    default=False,
+    help="""Provide information on plugin usage. Defaults to off.""",
+)
+
+tracing_group.add_option(
     "--show-modules-output",
     action="store",
     dest="show_inclusion_output",
@@ -1834,11 +1882,11 @@ macos_group.add_option(
     "--macos-target-arch",
     action="store",
     dest="macos_target_arch",
-    choices=("universal", "arm64", "x86_64"),
+    choices=("arm64", "x86_64"),
     metavar="MACOS_TARGET_ARCH",
     default=None,
     help="""\
-What architectures is this to supposed to run on. Default and limit
+What architecture is this supposed to run on. Default and limit
 is what the running Python allows for. Default is "native" which is
 the architecture the Python is run with.""",
 )
@@ -2208,12 +2256,9 @@ def _considerPluginOptions(logger):
         ):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
-                return logger.sysexit(
-                    """\
+                return logger.sysexit("""\
 Error, plugin options format changed. Use '--enable-plugin=%s --help' \
-to know new options."""
-                    % plugin_names.split("=", 1)[0]
-                )
+to know new options.""" % plugin_names.split("=", 1)[0])
 
             addPluginCommandLineOptions(
                 parser=parser,
@@ -2224,12 +2269,9 @@ to know new options."""
         if arg.startswith("--user-plugin="):
             plugin_name = arg[14:]
             if "=" in plugin_name:
-                return logger.sysexit(
-                    """\
+                return logger.sysexit("""\
 Error, plugin options format changed. Use '--user-plugin=%s --help'
-to know new options."""
-                    % plugin_name.split("=", 1)[0]
-                )
+to know new options.""" % plugin_name.split("=", 1)[0])
 
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
@@ -2238,6 +2280,8 @@ run_time_variable_names = (
     "TEMP",
     "PID",
     "TIME",
+    "TIME_US",
+    "RANDOM",
     "PROGRAM",
     "PROGRAM_BASE",
     "PROGRAM_DIR",
@@ -2245,6 +2289,8 @@ run_time_variable_names = (
     "COMPANY",
     "PRODUCT",
     "VERSION",
+    "FILE_VERSION",
+    "PRODUCT_VERSION",
     "HOME",
     "NONE",
     "NULL",
@@ -2573,6 +2619,36 @@ def _considerGithubWorkflowOptions(phase):
     )
 
 
+def _extractMainArguments(args):
+    mains = []
+    main_entry_points = []
+
+    expect_main = False
+    expect_main_entry_point = False
+
+    for arg in args:
+        if expect_main:
+            mains.append(arg)
+            expect_main = False
+            continue
+
+        if expect_main_entry_point:
+            main_entry_points.append(arg)
+            expect_main_entry_point = False
+            continue
+
+        if arg in ("--main", "--script-name"):
+            expect_main = True
+        elif arg == "--main-entry-point":
+            expect_main_entry_point = True
+        elif arg.startswith(("--main=", "--script-name=")):
+            mains.append(arg.split("=", 1)[1])
+        elif arg.startswith("--main-entry-point="):
+            main_entry_points.append(arg.split("=", 1)[1])
+
+    return mains, main_entry_points
+
+
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
     # well as integrating with plugins and run modes. pylint: disable=too-many-branches
@@ -2609,21 +2685,27 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="early")
 
-    sys.argv = [sys.argv[0]] + getBuildConfigurationOptions(logger) + sys.argv[1:]
+    build_configuration_options = getBuildConfigurationOptions(logger)
+    project_mains, project_main_entry_points = _extractMainArguments(
+        build_configuration_options
+    )
 
-    for count, arg in enumerate(sys.argv):
-        if count == 0:
-            continue
+    sys.argv = [sys.argv[0]] + build_configuration_options + sys.argv[1:]
 
-        if arg.startswith(("--main=", "--script-name=")):
-            filename_args.append(arg.split("=", 1)[1])
+    if "--project" not in sys.argv[1:]:
+        for count, arg in enumerate(sys.argv):
+            if count == 0:
+                continue
 
-        if arg in ("--mode=module", "--mode=module", "--module=package"):
-            module_mode = True
+            if arg.startswith(("--main=", "--script-name=")):
+                filename_args.append(arg.split("=", 1)[1])
 
-        if arg[0] != "-":
-            filename_args.append(arg)
-            break
+            if arg in ("--mode=module", "--mode=module", "--module=package"):
+                module_mode = True
+
+            if arg[0] != "-":
+                filename_args.append(arg)
+                break
 
     for filename in filename_args:
         sys.argv = (
@@ -2638,6 +2720,14 @@ def parseOptions(logger):
     # Options may be coming from GitHub workflow configuration as well.
     _considerGithubWorkflowOptions(phase="late")
 
+    if os.getenv("OPTPARSE_AUTO_COMPLETE"):
+        from nuitka.utils.Importing import importFromInlineCopy
+
+        # spell-checker: ignore optcomplete
+        opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
+        if opt_complete is not None:
+            opt_complete.autocomplete(parser)
+
     options, positional_args = parser.parse_args()
 
     if (
@@ -2648,25 +2738,37 @@ def parseOptions(logger):
     ):
         parser.print_help()
 
-        return logger.sysexit(
-            """\
+        return logger.sysexit("""\
 Error, need filename argument with python module, package directory or main
-program."""
-        )
+program.""")
+
+    if options.is_project_mode and (
+        positional_args
+        or sorted(options.mains) != sorted(project_mains)
+        or sorted(options.main_entry_points) != sorted(project_main_entry_points)
+    ):
+        parser.print_help()
+
+        return logger.sysexit("""\
+Error, with '--project' do not provide '--main', '--main-entry-point', \
+or a positional main program. The entry points need to come from the project \
+configuration.""")
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
-        return logger.sysexit(
-            """\
+        return logger.sysexit("""\
 Error, specify only one positional argument unless "--run" is specified to
-pass them to the compiled program execution."""
-        )
+pass them to the compiled program execution.""")
 
     return is_nuitka_run, options, positional_args, extra_args
 
 
 def runSpecialCommandsFromOptions(options):
+    if options.recommended_python_version_kind is not None:
+        displayRecommendedVersion(options.recommended_python_version_kind)
+        sys.exit(0)
+
     if options.plugin_list:
         from nuitka.plugins.Plugins import listPlugins
 
@@ -2720,7 +2822,7 @@ def runSpecialCommandsFromOptions(options):
         )
         sys.exit(0)
 
-    if options.generate_mingw64_header:
+    if options.generate_python_internal_offsets:
         from nuitka.tools.general.generate_header.GenerateHeader import (
             generateHeader,
         )

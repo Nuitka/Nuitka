@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Optimize calls to built-in references to specific built-in calls.
@@ -829,7 +829,6 @@ if python_version < 0x300:
                         source_ref=source_ref,
                     ),
                 ),
-                allow_none=False,
                 source_ref=source_ref,
             )
 
@@ -986,7 +985,7 @@ def eval_extractor(node):
         )
 
         tried = makeStatementsSequence(
-            statements=(tried,) + statements, allow_none=False, source_ref=source_ref
+            statements=(tried,) + statements, source_ref=source_ref
         )
 
         outline_body.setChildBody(
@@ -1045,7 +1044,6 @@ if python_version >= 0x300:
                         source_ref=source_ref,
                     ),
                 ),
-                allow_none=False,
                 source_ref=source_ref,
             )
 
@@ -1526,7 +1524,7 @@ def _describeNewNode(new_node):
         tags = "new_expression"
         message = "call"
     elif new_node.isExpressionOutlineBody():
-        tags = "new_expression"
+        tags = "changed_variable_usage"
         message = "outlined function"
     elif new_node.isExpressionConstantRef():
         tags = "new_expression"

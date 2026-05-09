@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """The code generation.
@@ -73,6 +73,7 @@ from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import (
     generateBuiltinSuper1Code,
     generateBuiltinSuperCode,
+    generateCallMetaclassCode,
     generateSelectMetaclassCode,
     generateTypeOperationPrepareCode,
 )
@@ -259,6 +260,7 @@ from .LoopCodes import (
 from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
+    generateModuleAttributeDunderCompiledCode,
     generateModuleAttributeFileCode,
     getModuleCode,
 )
@@ -658,6 +660,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_SUM2": generateBuiltinSum2Code,
         "EXPRESSION_BUILTIN_TYPE1": generateBuiltinType1Code,
         "EXPRESSION_BUILTIN_TYPE3": generateBuiltinType3Code,
+        "EXPRESSION_CALL_METACLASS": generateCallMetaclassCode,
         "EXPRESSION_BUILTIN_IMPORT": generateBuiltinImportCode,
         "EXPRESSION_BUILTIN_BOOL": generateBuiltinBoolCode,
         "EXPRESSION_BUILTIN_BYTEARRAY1": generateBuiltinBytearray1Code,
@@ -845,6 +848,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_SORT1": generateListOperationSort1Code,
         "EXPRESSION_LIST_OPERATION_SORT2": generateListOperationSort2Code,
         "EXPRESSION_LIST_OPERATION_SORT3": generateListOperationSort3Code,
+        "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": generateModuleAttributeDunderCompiledCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": generateModuleAttributeCode,

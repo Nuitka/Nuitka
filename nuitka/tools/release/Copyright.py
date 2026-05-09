@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Tools related to management of copyright headers and footers."""
@@ -8,9 +8,11 @@ import os
 
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.utils.FileOperations import (
+    addFileContentsBOM,
     getFileContentByLine,
     getFileContents,
     openTextFile,
+    stripFileContentsBOM,
 )
 from nuitka.Version import getNuitkaVersionYear
 
@@ -58,6 +60,7 @@ _plain_files = (
     "nuitka-linux-container",
     "generate-specialized-c-code",
     "generate-specialized-python-code",
+    "generate-specialized-offsets-code",
     "sort-nuitka-import-statements",
     "find_sxs_modules",
     "find-module",
@@ -123,6 +126,7 @@ def _formatComments(filename, comments):
             ".yml",
             ".cfg",
             ".toml",
+            ".ps1",
             ".containerfile",
         )
     ) or isPlainFileWithCopyright(filename):
@@ -142,7 +146,9 @@ def _formatComments(filename, comments):
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]
     elif filename.endswith(".j2"):
-        comments = [(b"{# %-76s #}" % comment) for comment in comments]
+        max_len = max(75, max(len(comment.strip()) for comment in comments))
+        template = b"{#-  %%-%ds -#}" % max_len
+        comments = [(template % comment.strip()) for comment in comments]
     elif (
         filename.endswith(".txt")
         and "tests/commercial" in filename
@@ -170,16 +176,44 @@ def _formatComments(filename, comments):
     return comments
 
 
+def _isEncodingIndicatorLine(line):
+    return (
+        line.startswith(b"# -*-")
+        or line.startswith(b"# coding:")
+        or line.startswith(b"# encoding:")
+    )
+
+
+def _pickLeadingLines(old_lines):
+    old_lines_head = []
+
+    if old_lines and (
+        old_lines[0].startswith(b"#!") or old_lines[0].startswith(b"@echo")
+    ):
+        old_lines_head = old_lines[0:1]
+        old_lines = old_lines[1:]
+
+    if old_lines and _isEncodingIndicatorLine(old_lines[0]):
+        old_lines_head += old_lines[0:1]
+        old_lines = old_lines[1:]
+    elif (
+        not old_lines_head
+        and len(old_lines) >= 2
+        and old_lines[0].startswith(b"#")
+        and _isEncodingIndicatorLine(old_lines[1])
+    ):
+        old_lines_head = old_lines[0:2]
+        old_lines = old_lines[2:]
+
+    return old_lines_head, old_lines
+
+
 def attachLeadingComment(filename, effective_filename, comments, replacements=()):
     # Many details and complicated algorithm, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    old_lines = getFileContents(filename, mode="rb").splitlines()
-
-    if old_lines and old_lines[0].startswith(b"\xef\xbb\xbf"):
-        old_lines[0] = old_lines[0][3:]
-        bom = True
-    else:
-        bom = False
+    old_contents = getFileContents(filename, mode="rb")
+    old_contents, bom = stripFileContentsBOM(old_contents)
+    old_lines = old_contents.splitlines()
 
     if comments and os.path.basename(effective_filename) != os.path.basename(__file__):
         assert b'Part of "Nuitka"' not in b"".join(old_lines), filename
@@ -248,17 +282,7 @@ def attachLeadingComment(filename, effective_filename, comments, replacements=()
             if bottom_function:
                 post_comments.insert(0, b"")
 
-    if old_lines and (
-        old_lines[0].startswith(b"#!")
-        or old_lines[0].startswith(b"# -*-")
-        or old_lines[0].startswith(b"@echo")
-        or old_lines[0].startswith(b"# coding:")
-        or old_lines[0].startswith(b"# encoding:")
-    ):
-        old_lines_head = old_lines[0:1]
-        old_lines = old_lines[1:]
-    else:
-        old_lines_head = []
+    old_lines_head, old_lines = _pickLeadingLines(old_lines=old_lines)
 
     if pre_comments:
         while old_lines and old_lines[0].strip() in (b"", b"#"):
@@ -268,7 +292,7 @@ def attachLeadingComment(filename, effective_filename, comments, replacements=()
     lines = old_lines_head + pre_comments + old_lines + post_comments
 
     if bom:
-        lines[0] = b"\xef\xbb\xbf" + lines[0]
+        lines[0] = addFileContentsBOM(lines[0])
 
     def replace(line):
         for src, dest in replacements:
@@ -326,8 +350,7 @@ def getLicenseTextStandard():
     return _copyright_claim_standard
 
 
-_copyright_claim_commercial = (
-    b"""\
+_copyright_claim_commercial = (b"""\
     Part of Nuitka commercial.
 
     Commercial grade license of Nuitka. No distribution to outside of the
@@ -340,8 +363,7 @@ _copyright_claim_commercial = (
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-"""
-).split(b"\n")
+""").split(b"\n")
 
 
 def getLicenseTextCommercial():

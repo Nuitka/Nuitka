@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This module deals with finding and information about shared libraries."""
@@ -32,11 +32,15 @@ from .Importing import importFromInlineCopy
 from .Utils import (
     getOS,
     isAlpineLinux,
+    isAndroidBasedLinux,
     isBSD,
     isCoffUsingPlatform,
+    isDebianBasedLinux,
     isElfUsingPlatform,
+    isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isSuseBasedLinux,
     isWin32Windows,
     raiseWindowsError,
 )
@@ -303,13 +307,21 @@ def _getSharedLibraryRPATHsCoff(filename):
 _otool_output_cache = {}
 
 
-def _getMacOSArchOption():
-    macos_target_arch = getMacOSTargetArch()
+def clearOtoolOutputCache(filename):
+    filename = os.path.abspath(filename)
 
-    if macos_target_arch != "universal":
-        return ("-arch", macos_target_arch)
-    else:
-        return ()
+    for cache_key in list(_otool_output_cache):
+        if type(cache_key[0]) in (tuple, list):
+            command = cache_key[0]
+        else:
+            command = cache_key
+
+        if command[-1] == filename:
+            del _otool_output_cache[cache_key]
+
+
+def _getMacOSArchOption():
+    return ("-arch", getMacOSTargetArch())
 
 
 def _filterOtoolErrorOutput(stderr):
@@ -460,22 +472,58 @@ _patchelf_usage = """\
 Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
+_patch_elf_version = None
 
-def checkPatchElfPresenceAndUsability(logger):
-    """Checks if patchelf is present and usable."""
 
-    output = executeToolChecked(
+def _getPatchElfVersionOutput(logger):
+    return executeToolChecked(
         logger=logger,
         command=("patchelf", "--version"),
         absence_message="""\
 Error, standalone mode on %s requires 'patchelf' to be \
-installed. Use 'apt/dnf/yum install patchelf' first."""
-        % getOS(),
+installed. Use 'apt/dnf/yum install patchelf' first.""" % getOS(),
     )
 
-    if output.split() == b"0.18.0":
+
+def getPatchElfVersion(logger):
+    # Singleton, pylint: disable=global-statement
+    global _patch_elf_version
+
+    result = _patch_elf_version
+
+    if result is None:
+        output = _getPatchElfVersionOutput(logger)
+
+        version = output.split()[1]
+
+        if str is not bytes:
+            version = version.decode("utf8")
+
+        result = version, tuple(
+            int("".join(d for d in part if d.isdigit())) for part in version.split(".")
+        )
+
+        _patch_elf_version = result
+
+    return result
+
+
+def checkPatchElfPresenceAndUsability(logger):
+    """Checks if patchelf is present and usable."""
+
+    version, version_tuple = getPatchElfVersion(logger)
+
+    # These have backports or a safe enough package build by now.
+    if (
+        version_tuple == (0, 18, 0)
+        and not isDebianBasedLinux()
+        and not isAndroidBasedLinux()
+        and not isFedoraBasedLinux()
+        and not isSuseBasedLinux()
+    ):
         return logger.sysexit(
-            "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
+            "Error, patchelf version %s is a known buggy release and cannot be used. Please upgrade or downgrade it."
+            % version
         )
 
 
@@ -533,8 +581,12 @@ def setSharedLibraryRPATH(filename, rpath):
     with withMadeWritableFileMode(filename):
         if isMacOS():
             _setSharedLibraryRPATHDarwin(filename, rpath)
+            clearOtoolOutputCache(filename)
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
+
+            if isAndroidBasedLinux():
+                cleanupHeaderForAndroid(filename)
 
     updated_rpaths = getSharedLibraryRPATHs(filename, elements=False, cached=False)
     expected_rpaths = [rpath]
@@ -557,7 +609,7 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
         filename - The file to be modified.
         mapping  - old_path, new_path pairs of values that should be changed
         id_path  - Use this value for library id
-        rpath    - Set this as an rpath if not None, delete if False
+        rpath    - Set this as an rpath if not None, delete all if False
 
     Returns:
         None
@@ -573,7 +625,11 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
             command += ("-change", old_path, new_path)
             needs_call = True
 
-    if rpath is not None:
+    if rpath is False:
+        for existing_rpath in getSharedLibraryRPATHs(filename):
+            command += ("-delete_rpath", existing_rpath)
+            needs_call = True
+    elif rpath is not None:
         command += ("-add_rpath", os.path.join(rpath, "."))
         needs_call = True
 
@@ -591,6 +647,7 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
                 absence_message=_install_name_tool_usage,
                 stderr_filter=_filterInstallNameToolErrorOutput,
             )
+            clearOtoolOutputCache(filename)
 
 
 def getPyWin32Dir():
@@ -778,31 +835,15 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
     if isWin32Windows() and python_version < 0x300:
         _removeSxsFromDLL(target_filename)
 
-    if isMacOS() and getMacOSTargetArch() != "universal":
+    if isMacOS():
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
     if isElfUsingPlatform():
-        # Path must be normalized for this to be correct, but entry points enforced that.
-        count = dest_path.count(os.path.sep)
-
-        # TODO: This ought to depend even more on actual presence of used DLLs
-        # in middle paths and not just do it, but maybe there is not much harm
-        # in it.
-
-        rpaths = OrderedSet()
-        for c in range(count, -1, -1):
-            if c > 0:
-                dest_path_candidate = os.path.normpath(
-                    os.path.join(dest_path, *([".."] * c))
-                )
-
-                if all(
-                    os.path.dirname(other_entry_point.dest_path) != dest_path_candidate
-                    for other_entry_point in other_entry_points
-                ):
-                    continue
-
-            rpaths.add(os.path.join("$ORIGIN", *([".."] * c)))
+        rpaths = getStandaloneEntryPointRPATHs(
+            dest_path=dest_path,
+            other_entry_points=other_entry_points,
+            rpath_mode="parents",
+        )
 
         # Make sure, sub-folders use by the original DLL are actually still
         # included.
@@ -832,6 +873,56 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
 
     if executable:
         addFileExecutablePermission(target_filename)
+
+
+def getStandaloneEntryPointRPATHs(dest_path, other_entry_points, rpath_mode):
+    rpaths = OrderedSet()
+    rpaths.add("$ORIGIN")
+
+    if rpath_mode == "parents":
+        # Path must be normalized for this to be correct, but entry points
+        # enforced that.
+        count = dest_path.count(os.path.sep)
+
+        # TODO: This ought to depend even more on actual presence of used DLLs
+        # in middle paths and not just do it, but maybe there is not much harm
+        # in it.
+        for c in range(count, 0, -1):
+            dest_path_candidate = os.path.normpath(
+                os.path.join(dest_path, *([".."] * c))
+            )
+
+            if all(
+                os.path.dirname(other_entry_point.dest_path) != dest_path_candidate
+                for other_entry_point in other_entry_points
+            ):
+                continue
+
+            rpaths.add(os.path.join("$ORIGIN", *([".."] * c)))
+    elif rpath_mode == "dirs":
+        current_dir = os.path.dirname(dest_path)
+
+        if not current_dir:
+            current_dir = "."
+
+        for other_entry_point in other_entry_points:
+            other_dir = os.path.dirname(other_entry_point.dest_path)
+
+            if not other_dir:
+                continue
+
+            relative_dir = os.path.relpath(other_dir, current_dir)
+
+            if relative_dir == ".":
+                rpath = "$ORIGIN"
+            else:
+                rpath = os.path.normpath(os.path.join("$ORIGIN", relative_dir))
+
+            rpaths.add(rpath)
+    else:
+        assert False, rpath_mode
+
+    return rpaths
 
 
 def getDLLVersion(filename):
@@ -971,13 +1062,23 @@ def getPEFileUsedDllNames(filename):
     except pefile.PEFormatError:
         return None
 
-    # TODO: Check arch with pefile as well and ignore wrong arches if asked to.
-
-    # TODO: The decoding cannot expect ASCII, but also surely is not UTF8.
-    return OrderedSet(
-        dll_entry.dll.decode("utf8")
-        for dll_entry in getattr(pe_info, "DIRECTORY_ENTRY_IMPORT", ())
+    pe_info.parse_data_directories(
+        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"],),
+        import_dllnames_only=True,  # spell-checker: ignore import_dllnames_only
     )
+    pe_info.parse_data_directories(
+        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],)
+    )
+
+    result = OrderedSet()
+
+    for entry_name in ("DIRECTORY_ENTRY_IMPORT", "DIRECTORY_ENTRY_DELAY_IMPORT"):
+        for dll_entry in getattr(pe_info, entry_name, ()):
+            # TODO: The PE/COFF docs describe these names as ASCII, but
+            # they do not actually specify the encoding here.
+            result.add(dll_entry.dll.decode("utf8"))
+
+    return result
 
 
 def getDllExportedSymbols(logger, filename):

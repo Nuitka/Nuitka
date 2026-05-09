@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_FREELISTS_H__
 #define __NUITKA_FREELISTS_H__
@@ -66,6 +66,21 @@ static const bool use_freelists = true;
 #if PYTHON_VERSION >= 0x3d0
 
 #if PYTHON_VERSION >= 0x3e0
+
+// CPython 3.14 changed the layout before post-QSBR interpreter fields in
+// 3.14.4 and again in 3.14.5.
+static inline struct _Py_freelists *Nuitka_Py_freelists_GET(PyThreadState *tstate) {
+#ifdef Py_GIL_DISABLED
+    return &((_PyThreadStateImpl *)tstate)->freelists;
+#else
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION < 0x3f0
+    return (struct _Py_freelists *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(
+        &tstate->interp->object_state.freelists);
+#else
+    return &tstate->interp->object_state.freelists;
+#endif
+#endif
+}
 
 // Like _PyFreeList_Pop but doesn't set the reference, may also be totally
 // unnecessary to have.

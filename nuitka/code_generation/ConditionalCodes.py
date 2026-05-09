@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Conditional statements related codes.
@@ -191,8 +191,7 @@ def generateConditionalCode(to_name, expression, emit, context):
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 
-        for line in emit.codes:
-            real_emit(line)
+        real_emit.extend(emit)
         emit = real_emit
 
         getTakeReferenceCode(to_name, emit)
@@ -203,15 +202,13 @@ def generateConditionalCode(to_name, expression, emit, context):
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 
-        for line in emit.codes:
-            real_emit(line)
+        real_emit.extend(emit)
         emit = real_emit
     else:
         getGotoCode(end_target, real_emit)
         getLabelCode(false_target, real_emit)
 
-        for line in emit.codes:
-            real_emit(line)
+        real_emit.extend(emit)
         emit = real_emit
 
     getLabelCode(end_target, emit)

@@ -94,7 +94,8 @@
     "xstring": "c",
     "cstdint": "c",
     "hash_map": "c",
-    "list": "c"
+    "list": "c",
+    "**/tests/syntax/*Test*.py": "plaintext"
   },
   "python.analysis.autoSearchPaths": false,
   "python.analysis.extraPaths": [
@@ -108,7 +109,37 @@
   "python.analysis.diagnosticSeverityOverrides": {
     "reportMissingImports": "none"
   },
+  "python.analysis.typeCheckingMode": "off",
   "python.terminal.activateEnvironment": true,
+  "terminal.integrated.profiles.linux": {
+    "Nuitka Bash": {
+      "path": "bash",
+      "args": [
+        "--rcfile",
+        "${workspaceFolder}/.vscode/bash-env/rcfile"
+      ],
+      "icon": "terminal-bash"
+    },
+    "Nuitka Zsh": {
+      "path": "zsh",
+      "env": {
+        "ZDOTDIR": "${workspaceFolder}/.vscode/zsh-env"
+      },
+      "icon": "terminal-tmux"
+    }
+  },
+  "terminal.integrated.profiles.windows": {
+    "Nuitka PowerShell": {
+      "source": "PowerShell",
+      "args": [
+        "-NoExit",
+        "-File",
+        "${workspaceFolder}\\.vscode\\powershell-env\\profile.ps1"
+      ],
+      "icon": "terminal-powershell"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "Nuitka PowerShell",
   "cSpell.words": [
     "__abstractmethods__",
     "__aenter__",
@@ -143,6 +174,7 @@
     "asyncgen",
     "asyncgens",
     "athrows",
+    "authenticode",
     "backslashreplace",
     "basenames",
     "basestring",
@@ -160,6 +192,7 @@
     "ccache",
     "CCFLAGS",
     "certifi",
+    "CFLAGS",
     "CFLOAT",
     "cframe",
     "chdir",
@@ -169,6 +202,7 @@
     "CLONG",
     "clonglong",
     "closefd",
+    "cntvct",
     "co_argcount",
     "co_exceptiontable",
     "co_firstlineno",
@@ -228,6 +262,7 @@
     "embeddable",
     "endfor",
     "endmacro",
+    "endswith",
     "enduml",
     "EPEL",
     "finalizer",
@@ -252,14 +287,19 @@
     "haskey",
     "Hayen",
     "HEDLEY",
+    "HGLOBAL",
     "HINSTANCE",
+    "HKLM",
     "hotfixes",
+    "HRESULT",
     "HRSRC",
     "HWND",
     "ibitand",
     "ibitor",
     "ibitxor",
     "idna",
+    "ifdef",
+    "ifndef",
     "ilong",
     "imatmult",
     "importlib",
@@ -320,6 +360,7 @@
     "msys",
     "Mult",
     "multidist",
+    "namedtuple",
     "namedtuples",
     "Namify",
     "NBOOL",
@@ -403,6 +444,7 @@
     "PyTuple_MAXSAVESIZE",
     "qiter",
     "Qualname",
+    "rdtsc",
     "redist",
     "reexecute",
     "repeatfunc",
@@ -472,6 +514,7 @@
     "unoptimized",
     "unorderable",
     "unstripped",
+    "URLW",
     "Valgrind",
     "vectorcall",
     "vectorcallfunc",
@@ -489,6 +532,7 @@
     "winlibs",
     "WinLicense",
     "wmain",
+    "Xorshift",
     "xrange",
     "ziglang",
     "zstandard",
@@ -505,10 +549,12 @@
     "debian",
     "rpm/*.spec",
     "tests/scratch",
+    "tests/syntax/*Test*.py*",
     "tests/CPython*",
     "doc/*.1",
     "*.containerfile",
-    "Containerfile"
+    "Containerfile",
+    "nuitka/tools/general/generate_header/offsets_*.json"
   ],
   "cSpell.languageSettings": [
     {
@@ -525,11 +571,12 @@
       ]
     }
   ],
-  "yaml.schemas": {
-    "nuitka/package_config/nuitka-package-config-schema.json": [
-      "*.nuitka-package.config.yml",
-      "*.nuitka-package.config.yaml"
-    ]
+  "yaml.maxItemsComputed": 10000,
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.formatOnSave": false
   },
-  "yaml.maxItemsComputed": 10000
+  "yaml.schemas": {
+    "nuitka/package_config/nuitka-package-config-schema.json": "*.nuitka-package.config.{yml,yaml}"
+  }
 }

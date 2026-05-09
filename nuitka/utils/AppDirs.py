@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Wrapper around appdirs from PyPI
@@ -18,7 +18,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.Tracing import general
 
-from .FileOperations import getNormalizedPath, makePath
+from .FileOperations import getNormalizedPath, makePath, removeDirectory
 from .Importing import importFromInlineCopy
 
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
@@ -40,27 +40,36 @@ def getAppdirsModule():
 _cache_dir = None
 
 
+def _getCacheDirNormalizedPath(cache_dir):
+    cache_dir = os.path.expanduser(cache_dir)
+    cache_dir = os.path.abspath(cache_dir)
+    cache_dir = getNormalizedPath(cache_dir)
+
+    return cache_dir
+
+
 def _getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
 
     if _cache_dir is None:
         _cache_dir = os.getenv("NUITKA_CACHE_DIR")
 
-        if _cache_dir:
-            _cache_dir = os.path.expanduser(_cache_dir)
-        elif appdirs is not None:
-            _cache_dir = appdirs.user_cache_dir("Nuitka", None)
-        else:
-            _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+        if _cache_dir is None:
+            if appdirs is not None:
+                _cache_dir = appdirs.user_cache_dir("Nuitka", None)
+            else:
+                _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
-        _cache_dir = getNormalizedPath(_cache_dir)
+        _cache_dir = _getCacheDirNormalizedPath(_cache_dir)
 
         # For people that build with HOME set this, e.g. Debian, and other package
         # managers. spell-checker: ignore sbuild
         if _cache_dir.startswith(
             ("/nonexistent/", "/sbuild-nonexistent/", "/homeless-shelter/")
         ):
-            _cache_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
+            _cache_dir = _getCacheDirNormalizedPath(
+                os.path.join(tempfile.gettempdir(), "Nuitka")
+            )
 
         try:
             makePath(_cache_dir)
@@ -68,13 +77,10 @@ def _getCacheDir():
             if e.errno != errno.EACCES:
                 raise
 
-            return general.sysexit(
-                """\
+            return general.sysexit("""\
 Error, failed to create cache directory '%s'. If this is due to a special environment, \
 please consider making a PR for a general solution that adds support for it, or use \
-'NUITKA_CACHE_DIR' set to a writable directory."""
-                % _cache_dir
-            )
+'NUITKA_CACHE_DIR' set to a writable directory.""" % _cache_dir)
 
     return _cache_dir
 
@@ -85,14 +91,35 @@ def getCacheDirEnvironmentVariableName(cache_basename):
     return "NUITKA_CACHE_DIR_" + env_name
 
 
-def getCacheDir(cache_basename):
+_created_cache_dirs = set()
+
+
+def getCacheDir(cache_basename, create=False):
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
 
-    cache_dir = getNormalizedPath(cache_dir)
+    cache_dir = _getCacheDirNormalizedPath(cache_dir)
+
+    if create and cache_dir not in _created_cache_dirs:
+        makePath(cache_dir)
+        _created_cache_dirs.add(cache_dir)
 
     return cache_dir
+
+
+def removeCacheDir(cache_basename, logger, ignore_errors, extra_recommendation):
+    cache_dir = getCacheDir(cache_basename, create=False)
+
+    if os.path.isdir(cache_dir):
+        removeDirectory(
+            path=cache_dir,
+            logger=logger,
+            ignore_errors=ignore_errors,
+            extra_recommendation=extra_recommendation,
+        )
+
+        _created_cache_dirs.discard(cache_dir)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

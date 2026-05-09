@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This module deals with finding and information about static libraries."""
@@ -23,7 +23,13 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general
 
-from .Execution import executeToolChecked
+from .Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    executeToolChecked,
+    getExecutablePath,
+    isExecutableCommand,
+)
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
@@ -72,6 +78,7 @@ def _locateStaticLinkLibrary(dll_name):
 
 
 _static_lib_python_path = False
+_static_lib_problem_cache = {}
 
 
 def isDebianSuitableForStaticLinking():
@@ -107,11 +114,11 @@ def _getSysConfigVarLIBPL():
         return None
 
 
-def _getSystemStaticLibPythonPath():
+def _getSystemStaticLibPythonPath(python_debug):
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
 
     sys_prefix = getSystemPrefixPath()
-    python_abi_version = python_version_str + getPythonABI()
+    python_abi_version = python_version_str + getPythonABI(python_debug=python_debug)
 
     if isMonolithPy():
         # MonolithPy has this.
@@ -224,13 +231,45 @@ def _getSystemStaticLibPythonPath():
     return None
 
 
-def getSystemStaticLibPythonPath():
+def getSystemStaticLibPythonPath(python_debug):
     global _static_lib_python_path  # singleton, pylint: disable=global-statement
 
     if _static_lib_python_path is False:
-        _static_lib_python_path = _getSystemStaticLibPythonPath()
+        _static_lib_python_path = _getSystemStaticLibPythonPath(
+            python_debug=python_debug
+        )
 
     return _static_lib_python_path
+
+
+def _detectStaticLinkLibraryProblem(static_library_path):
+    if static_library_path is None or isWin32Windows():
+        return None
+
+    if not isExecutableCommand("nm"):
+        return None
+
+    try:
+        output = check_output((getExecutablePath("nm"), "-u", static_library_path))
+    except (NuitkaCalledProcessError, OSError):
+        return None
+
+    if b"__warn_memset_zero_len" in output:
+        return (
+            "Static link library '%s' contains the broken undefined symbol "
+            "'__warn_memset_zero_len'." % static_library_path
+        )
+
+    return None
+
+
+def getStaticLinkLibraryProblem(static_library_path):
+    if static_library_path not in _static_lib_problem_cache:
+        _static_lib_problem_cache[static_library_path] = (
+            _detectStaticLinkLibraryProblem(static_library_path)
+        )
+
+    return _static_lib_problem_cache[static_library_path]
 
 
 _nm_usage = "nm is used to detect symbols of static link libraries"

@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Nodes that build containers."""
@@ -76,8 +76,7 @@ class ExpressionMakeSequenceMixin(object):
             result,
             "new_statements",
             """\
-Removed %s creation for unused sequence."""
-            % self.getSequenceName(),
+Removed %s creation for unused sequence.""" % self.getSequenceName(),
         )
 
     def onContentEscapes(self, trace_collection):

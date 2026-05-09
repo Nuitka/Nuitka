@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Utilities for private pip space to download packages into."""
@@ -26,8 +26,12 @@ from .Execution import (
 )
 from .FileOperations import (
     areSamePaths,
+    deleteFile,
     getFileContentByLine,
     getNormalizedPathJoin,
+    putBinaryFileContents,
+    removeDirectory,
+    withTemporaryFilename,
 )
 from .Hashing import HashCRC32
 from .Importing import withTemporarySysPathExtension
@@ -111,33 +115,283 @@ def _getCandidateBinPaths(logger, site_packages):
     return candidate_bin_paths
 
 
+def _normalizePrivatePipPackageName(package_name):
+    """Normalize a package name to the dist-info naming convention."""
+    return re.sub(r"[-_.]+", "_", package_name)
+
+
+def _clearPrivatePipBinaryCheckCache(binary_path):
+    """Invalidate cached checks for a private pip binary path."""
+    _check_required_version_cache.pop((binary_path, "--version"), None)
+    _check_mdformat_usability_cache.pop(binary_path, None)
+
+
+def _removePrivatePipInstalledPath(logger, path):
+    """Remove a private pip installation path if it exists."""
+    if not os.path.lexists(path):
+        return False
+
+    if os.path.isdir(path) and not os.path.islink(path):
+        removeDirectory(
+            path=path,
+            logger=logger,
+            ignore_errors=False,
+            extra_recommendation="Please remove the private pip cache folder manually and retry",
+        )
+    else:
+        deleteFile(path, must_exist=False)
+
+    return True
+
+
+def _cleanupPrivatePipModuleState(logger, site_packages_folder, module_name):
+    """Remove stale module files for a package refresh."""
+    removed = False
+
+    if site_packages_folder is not None and os.path.isdir(site_packages_folder):
+        module_path = getNormalizedPathJoin(
+            site_packages_folder, module_name.replace(".", os.path.sep)
+        )
+
+        for candidate in (
+            module_path,
+            module_path + ".py",
+            module_path + ".pyc",
+            module_path + ".pyo",
+        ):
+            if _removePrivatePipInstalledPath(logger=logger, path=candidate):
+                removed = True
+
+        pycache_dir = getNormalizedPathJoin(os.path.dirname(module_path), "__pycache__")
+        if os.path.isdir(pycache_dir):
+            module_basename = os.path.basename(module_path)
+
+            for filename in os.listdir(pycache_dir):
+                if filename.startswith(module_basename + ".") and filename.endswith(
+                    ".pyc"
+                ):
+                    if _removePrivatePipInstalledPath(
+                        logger=logger,
+                        path=os.path.join(pycache_dir, filename),
+                    ):
+                        removed = True
+
+    return removed
+
+
+def _cleanupPrivatePipMetadataState(logger, site_packages_folder, package_name):
+    """Remove stale package metadata for a package refresh."""
+    removed = False
+
+    if site_packages_folder is not None and os.path.isdir(site_packages_folder):
+        dist_info_prefix = _normalizePrivatePipPackageName(package_name) + "-"
+
+        for filename in os.listdir(site_packages_folder):
+            if filename.startswith(dist_info_prefix) and filename.endswith(
+                (".dist-info", ".egg-info")
+            ):
+                if _removePrivatePipInstalledPath(
+                    logger=logger,
+                    path=os.path.join(site_packages_folder, filename),
+                ):
+                    removed = True
+
+    return removed
+
+
+def _getPrivatePipBinaryCleanupPaths(candidate_bin_path, binary_name):
+    """Get the binary wrapper paths to replace during a refresh."""
+    if isWin32Windows():
+        return (
+            os.path.join(candidate_bin_path, binary_name + ".exe"),
+            os.path.join(candidate_bin_path, binary_name + ".exe.manifest"),
+            os.path.join(candidate_bin_path, binary_name + ".cmd"),
+            os.path.join(candidate_bin_path, binary_name + "-script.py"),
+            os.path.join(candidate_bin_path, binary_name + "-script.pyw"),
+        )
+    else:
+        return (os.path.join(candidate_bin_path, binary_name),)
+
+
+def _cleanupPrivatePipBinaryState(logger, site_packages_folder, binary_names):
+    """Remove stale binary wrappers for a package refresh."""
+    removed = False
+    seen_bin_paths = set()
+
+    for candidate_bin_path in _getCandidateBinPaths(
+        logger=logger, site_packages=site_packages_folder
+    ):
+        if candidate_bin_path in seen_bin_paths:
+            continue
+
+        seen_bin_paths.add(candidate_bin_path)
+
+        for binary_name in binary_names:
+            binary_paths = _getPrivatePipBinaryCleanupPaths(
+                candidate_bin_path=candidate_bin_path,
+                binary_name=binary_name,
+            )
+
+            _clearPrivatePipBinaryCheckCache(binary_paths[0])
+
+            for binary_path in binary_paths:
+                if _removePrivatePipInstalledPath(logger=logger, path=binary_path):
+                    removed = True
+
+    return removed
+
+
+def _cleanupPrivatePipPackageState(
+    logger,
+    site_packages_folder,
+    package_name,
+    module_name,
+    binary_names,
+):
+    """Remove stale package metadata, modules, and scripts before a refresh."""
+
+    removed = _cleanupPrivatePipModuleState(
+        logger=logger,
+        site_packages_folder=site_packages_folder,
+        module_name=module_name,
+    )
+    removed = (
+        _cleanupPrivatePipMetadataState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+        )
+        or removed
+    )
+    removed = (
+        _cleanupPrivatePipBinaryState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            binary_names=binary_names,
+        )
+        or removed
+    )
+
+    return removed
+
+
+def _checkPrivatePipBinaryPath(
+    logger,
+    binary_name,
+    binary_path,
+    version,
+    dependencies,
+    check_binary,
+    report_rejection,
+):
+    """Check if a binary path is version compatible and usable."""
+
+    with withPrivatePipSitePackagesPathAdded(logger=logger):
+        if version is None:
+            ok = True
+            message = None
+        else:
+            ok, message = _checkRequiredVersion(
+                logger=logger,
+                tool=binary_name,
+                tool_call=[binary_path],
+                dependencies=dependencies,
+            )
+
+        if ok and check_binary is not None:
+            ok, message = check_binary(
+                logger=logger,
+                binary_path=binary_path,
+            )
+
+    if report_rejection and not ok and logger is not None:
+        logger.info(
+            "Rejecting '%s' binary '%s' due to: %s"
+            % (binary_name, binary_path, message)
+        )
+
+    return ok, message
+
+
 def _getPrivatePipBinaryPath(
     logger,
     binary_name,
     package_name,
     module_name,
-    version,
+    dependencies,
+    check_binary,
     assume_yes_for_downloads,
     reject_message,
 ):
-    """Get the path of a binary from the private pip space."""
+    """Get the path of a binary from the private pip space or globally.
+
+    This first checks the system PATH for the binary. If found, it checks if its
+    version and its dependencies' versions match the requirements. If they match,
+    it returns the global binary.
+
+    Otherwise, it downloads the package and its dependencies into the private pip
+    space, verifies the installed binary there, and returns its path.
+    """
+    # Complex code, pylint: disable=too-many-locals
+
+    version = getRequiredVersion(logger, package_name)
+    report_rejection = reject_message is not None
+
     candidate_bin_paths = _getCandidateBinPaths(logger=logger, site_packages=None)
 
     # Construct an extra_dir for search
     extra_dir = os.pathsep.join(candidate_bin_paths)
 
     binary_path = getExecutablePath(binary_name, extra_dir=extra_dir)
+    force_package_update = False
 
     if binary_path is not None:
-        if version is None:
-            return binary_path, None, assume_yes_for_downloads
+        ok, _message = _checkPrivatePipBinaryPath(
+            logger=logger,
+            binary_name=binary_name,
+            binary_path=binary_path,
+            version=version,
+            dependencies=dependencies,
+            check_binary=check_binary,
+            report_rejection=report_rejection,
+        )
 
-        with withPrivatePipSitePackagesPathAdded(logger=logger):
-            ok, _message = _checkRequiredVersion(
-                logger=logger, tool=binary_name, tool_call=[binary_path]
-            )
         if ok:
             return binary_path, None, assume_yes_for_downloads
+
+        force_package_update = True
+
+    if reject_message is None:
+        return None, None, assume_yes_for_downloads
+
+    if force_package_update:
+        site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
+
+        cleaned_private_pip = _cleanupPrivatePipPackageState(
+            logger=logger,
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+            module_name=module_name,
+            binary_names=(binary_name,),
+        )
+
+        for dep_package_name, dep_module_name, _dep_reject_message in dependencies:
+            cleaned_private_pip = (
+                _cleanupPrivatePipPackageState(
+                    logger=logger,
+                    site_packages_folder=site_packages_folder,
+                    package_name=dep_package_name,
+                    module_name=dep_module_name,
+                    binary_names=(),
+                )
+                or cleaned_private_pip
+            )
+
+        if cleaned_private_pip and logger is not None:
+            logger.info(
+                "Removed stale private pip package state for '%s' before refresh."
+                % binary_name
+            )
 
     # Download, avoiding to use the result, which is the site-packages
     # folder
@@ -146,11 +400,23 @@ def _getPrivatePipBinaryPath(
         package_name=package_name,
         module_name=module_name,
         package_version=version,
+        force_update=force_package_update,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
     )
 
     if site_packages_folder:
+        for dep_package_name, dep_module_name, dep_reject_message in dependencies:
+            _, assume_yes_for_downloads = tryDownloadPackageName(
+                logger=logger,
+                package_name=dep_package_name,
+                module_name=dep_module_name,
+                package_version=getRequiredVersion(logger, dep_package_name),
+                force_update=force_package_update,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                reject_message=dep_reject_message,
+            )
+
         # Check standard locations in the downloaded environment.
         for candidate in _getCandidateBinPaths(
             logger=logger, site_packages=site_packages_folder
@@ -160,13 +426,18 @@ def _getPrivatePipBinaryPath(
                 possible += ".exe"
 
             if os.path.exists(possible):
-                if version is not None:
-                    with withPrivatePipSitePackagesPathAdded(logger=logger):
-                        ok, _message = _checkRequiredVersion(
-                            logger=logger, tool=binary_name, tool_call=[possible]
-                        )
-                    if not ok:
-                        continue
+                ok, _message = _checkPrivatePipBinaryPath(
+                    logger=logger,
+                    binary_name=binary_name,
+                    binary_path=possible,
+                    version=version,
+                    dependencies=dependencies,
+                    check_binary=check_binary,
+                    report_rejection=report_rejection,
+                )
+
+                if not ok:
+                    continue
 
                 return possible, site_packages_folder, assume_yes_for_downloads
 
@@ -264,6 +535,7 @@ def tryDownloadPackageName(
     package_name,
     module_name,
     package_version,
+    force_update,
     assume_yes_for_downloads,
     reject_message,
 ):
@@ -272,7 +544,7 @@ def tryDownloadPackageName(
 
     site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
 
-    if site_packages_folder is not None:
+    if site_packages_folder is not None and not force_update:
         candidate = os.path.join(site_packages_folder, module_name)
 
         if os.path.exists(candidate):
@@ -426,6 +698,7 @@ def getPrivatePackage(
             package_name=package_name,
             module_name=module_name.split(".")[0],
             package_version=package_version,
+            force_update=False,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -452,6 +725,7 @@ def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
         package_name="ziglang",
         module_name="ziglang",
         package_version=None,
+        force_update=False,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
     )
@@ -479,7 +753,8 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
             binary_name="clang-format",
             package_name="clang-format",
             module_name="clang_format",
-            version=_getRequiredVersion(logger, "clang-format"),
+            dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
         )
@@ -495,7 +770,8 @@ def getBlackBinaryPath(logger, assume_yes_for_downloads):
             binary_name="black",
             package_name="black",
             module_name="black",
-            version=_getRequiredVersion(logger, "black"),
+            dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'black'.",
         )
@@ -511,7 +787,8 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
             binary_name="isort",
             package_name="isort",
             module_name="isort",
-            version=_getRequiredVersion(logger, "isort"),
+            dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Python formatting needs to use 'isort'.",
         )
@@ -519,45 +796,70 @@ def getIsortBinaryPath(logger, assume_yes_for_downloads):
     return binary_path
 
 
+def _checkMdformatUsability(logger, binary_path):
+    """Check if mdformat can format a minimal markdown file."""
+    # Not logging these calls, pylint: disable=unused-argument
+
+    if binary_path in _check_mdformat_usability_cache:
+        return _check_mdformat_usability_cache[binary_path]
+
+    result = True, None
+
+    with withTemporaryFilename(suffix=".md") as temp_filename:
+        try:
+            putBinaryFileContents(temp_filename, b"# smoke\n")
+            check_output([binary_path, "--check", temp_filename])
+        except NuitkaCalledProcessError as e:
+            stderr = e.stderr
+
+            if str is not bytes and stderr is not None:
+                stderr = stderr.decode("utf8", "ignore")
+
+            result = (
+                False,
+                "failed to format a test file: %s" % (stderr or e),
+            )
+        finally:
+            deleteFile(temp_filename, must_exist=False)
+
+    _check_mdformat_usability_cache[binary_path] = result
+
+    return result
+
+
 def getMdformatBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the mdformat binary from the private pip space."""
-    mdformat_path, site_packages_folder, assume_yes_for_downloads = (
+
+    dependencies = (
+        (
+            "mdformat-gfm",
+            "mdformat_gfm",
+            "Markdown formatting needs to use 'mdformat-gfm'.",
+        ),
+        (
+            "mdformat-frontmatter",
+            "mdformat_frontmatter",
+            "Markdown formatting needs to use 'mdformat-frontmatter'.",
+        ),
+        (
+            "mdformat-footnote",
+            "mdformat_footnote",
+            "Markdown formatting needs to use 'mdformat-footnote'.",
+        ),
+    )
+
+    mdformat_path, _site_packages_folder, _assume_yes_for_downloads = (
         _getPrivatePipBinaryPath(
             logger=logger,
             binary_name="mdformat",
             package_name="mdformat",
             module_name="mdformat",
-            version=_getRequiredVersion(logger, "mdformat"),
+            dependencies=dependencies,
+            check_binary=_checkMdformatUsability,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="Markdown formatting needs to use 'mdformat'.",
         )
     )
-
-    if mdformat_path and site_packages_folder:
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-gfm",
-            module_name="mdformat_gfm",
-            package_version=_getRequiredVersion(logger, "mdformat-gfm"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-gfm'.",
-        )
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-frontmatter",
-            module_name="mdformat_frontmatter",
-            package_version=_getRequiredVersion(logger, "mdformat-frontmatter"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-frontmatter'.",
-        )
-        tryDownloadPackageName(
-            logger=logger,
-            package_name="mdformat-footnote",
-            module_name="mdformat_footnote",
-            package_version=_getRequiredVersion(logger, "mdformat-footnote"),
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            reject_message="Markdown formatting needs to use 'mdformat-footnote'.",
-        )
 
     return mdformat_path
 
@@ -570,7 +872,8 @@ def getRstfmtBinaryPath(logger, assume_yes_for_downloads):
             binary_name="rstfmt",
             package_name="rstfmt",
             module_name="rstfmt",
-            version=_getRequiredVersion(logger, "rstfmt"),
+            dependencies=(),
+            check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message="ReStructuredText formatting needs to use 'rstfmt'.",
         )
@@ -666,7 +969,7 @@ def _getPrivatePipHash():
     return private_pip_hash.asHexDigest()
 
 
-def _getRequiredVersion(logger, tool):
+def getRequiredVersion(logger, tool):
     """Get the required version of a tool from requirements-private.txt."""
     requirements = _parseRequirements(logger)
 
@@ -695,19 +998,49 @@ def _getRequiredVersion(logger, tool):
     return None
 
 
-def _checkRequiredVersion(logger, tool, tool_call):
-    """Check if the version of a tool matches the requirement."""
-    required_version = _getRequiredVersion(logger=logger, tool=tool)
+_check_required_version_cache = {}
+_check_mdformat_usability_cache = {}
 
-    tool_call = list(tool_call) + ["--version"]
+
+def _checkRequiredVersion(logger, tool, tool_call, dependencies):
+    """Check if the version of a tool matches the requirement."""
+
+    # Complex code, pylint: disable=too-many-branches,too-many-locals
+    required_version = getRequiredVersion(logger=logger, tool=tool)
+
+    tool_call = tuple(list(tool_call) + ["--version"])
+
+    if tool_call in _check_required_version_cache:
+        return _check_required_version_cache[tool_call]
 
     try:
         version_output = check_output(tool_call)
     except NuitkaCalledProcessError as e:
-        return False, "failed to execute: %s" % e.stderr
+        result = False, "failed to execute: %s" % e.stderr
+        _check_required_version_cache[tool_call] = result
+        return result
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
+
+    if dependencies:
+        for dep_package_name, _dep_module_name, _dep_reject_message in dependencies:
+            plugin_ver = getRequiredVersion(logger, dep_package_name)
+            if plugin_ver:
+                search_name_1 = dep_package_name
+                search_name_2 = dep_package_name.replace("-", "_")
+
+                if not any(
+                    "%s %s" % (name, plugin_ver) in version_output
+                    for name in (search_name_1, search_name_2)
+                ):
+                    result = (
+                        False,
+                        "Missing or mismatched dependency '%s %s' in '%s'."
+                        % (dep_package_name, plugin_ver, tool),
+                    )
+                    _check_required_version_cache[tool_call] = result
+                    return result
 
     actual_version = None
     for line in version_output.splitlines():
@@ -733,10 +1066,12 @@ def _checkRequiredVersion(logger, tool, tool_call):
             break
 
     if not actual_version:
-        return False, "Error, couldn't determine version output of '%s' ('%s')" % (
+        result = False, "Error, couldn't determine version output of '%s' ('%s')" % (
             tool,
             " ".join(tool_call),
         )
+        _check_required_version_cache[tool_call] = result
+        return result
 
     message = "Version of '%s' via '%s' is required to be %r and not %r." % (
         tool,
@@ -745,7 +1080,9 @@ def _checkRequiredVersion(logger, tool, tool_call):
         actual_version,
     )
 
-    return required_version == actual_version, message
+    result = required_version == actual_version, message
+    _check_required_version_cache[tool_call] = result
+    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

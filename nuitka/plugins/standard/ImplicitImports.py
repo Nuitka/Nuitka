@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Standard plug-in to tell Nuitka about implicit imports.
@@ -15,6 +15,7 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
+from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionsFromModuleName,
@@ -322,7 +323,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
                     module_name = ModuleName(module_name)
 
-                    if module_name.matchesToShellPattern("*__mypyc")[0]:
+                    if module_name.matchesToShellPattern("*__mypyc").is_match:
                         yield module_name
 
         if full_name == "pkg_resources.extern":
@@ -546,6 +547,35 @@ __file__ = (__nuitka_binary_dir + '%s" + "site.py') if '__nuitka_binary_dir' in 
 
                 source_code = source_code.replace("= lazy_load()", " = %r" % toga_info)
 
+        if module_name == "textual.widgets":
+            # Textual has its own lazy loading for widgets.
+            if "def __getattr__(" in source_code:
+                textual_info = self.queryRuntimeInformationSingle(
+                    setup_codes="""\
+import textual.widgets
+from textual.case import camel_to_snake
+""",
+                    value="""\
+tuple(
+    (widget_name, "._" + camel_to_snake(widget_name))
+    for widget_name in textual.widgets.__all__
+)""",
+                    info_name="textual_widgets_lazy_loader",
+                )
+
+                textual_submodule_attrs = {}
+
+                for widget_name, sub_module_name in textual_info:
+                    if sub_module_name not in textual_submodule_attrs:
+                        textual_submodule_attrs[sub_module_name] = []
+                    textual_submodule_attrs[sub_module_name].append(widget_name)
+
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=(),
+                    submodule_attrs=textual_submodule_attrs,
+                )
+
         if module_name == "vllm":  # spell-checker: ignore vllm
             if "def __getattr__(" in source_code:
                 vllm_info = self.queryRuntimeInformationSingle(
@@ -720,9 +750,7 @@ if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
 else:
     os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
     del os.environ["%(environment_variable_name)s" + "_OLD"]
-""" % {
-                            "environment_variable_name": environment_variable_name
-                        }
+""" % {"environment_variable_name": environment_variable_name}
 
                         yield code, """\
 According to Yaml 'overridden-environment-variables' configuration."""
@@ -737,6 +765,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "numpy.distutils",  # Largely unused, and a lot of modules.
         "numpy.f2py",  # Mostly unused, only numpy.distutils import it.
         "numpy.testing",  # Useless.
+        "dns",  # Not performance relevant.
         "nose",  # Not performance relevant.
         "coverage",  # Not performance relevant.
         "docutils",  # Not performance relevant.
@@ -787,13 +816,16 @@ According to Yaml 'overridden-environment-variables' configuration."""
     )
 
     def decideCompilation(self, module_name):
-        if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
+        if module_name.hasOneOfNamespaces(
+            self.unworthy_namespaces
+        ) and not isExperimental("no-unworthy"):
             return "bytecode"
 
         is_match, _reason = module_name.matchesToShellPatterns(
             self.unworthy_modulename_patterns
         )
-        if is_match:
+
+        if is_match and not isExperimental("no-unworthy"):
             return "bytecode"
 
     def onModuleUsageLookAhead(

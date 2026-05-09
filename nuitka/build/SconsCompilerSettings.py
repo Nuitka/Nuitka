@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """This contains the tuning of the compilers towards defined goals."""
@@ -6,7 +6,7 @@
 import os
 import re
 
-from SCons.Script import (  # pylint: disable=I0021,import-error
+from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
     ARGUMENTS,
     Environment,
     GetOption,
@@ -17,6 +17,7 @@ from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
     getReportPath,
+    listDir,
     openTextFile,
     putTextFileContents,
 )
@@ -30,10 +31,10 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 
+from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
 from .SconsUtils import (
-    addBinaryBlobSection,
     addToPATH,
     createEnvironment,
     decideArchMismatch,
@@ -55,10 +56,11 @@ from .SconsUtils import (
     setEnvironmentVariable,
     setupScons,
 )
+from .WindowsObjGenerator import generateWindowsCoffObject
 
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode
+# spell-checker: ignore -fwrapv,-Wunused,-ftrack,-fvisibility,-municode
 # spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
 # spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS,CCVERSION
 
@@ -82,12 +84,10 @@ def _detectWindowsSDK(env):
 
         env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
     else:
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 Windows SDK must be installed in Visual Studio for it to \
 be usable with Nuitka. Use the Visual Studio installer for \
-adding it."""
-        )
+adding it.""")
 
         env.windows_sdk_version = None
 
@@ -225,12 +225,9 @@ def _enableLtoSettings(
         )
 
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version for lto mode (>= 4.6). Disabled."""
-            % (env["CXX"], env["CXXVERSION"])
-        )
+version for lto mode (>= 4.6). Disabled.""" % (env["CXX"], env["CXXVERSION"]))
 
         lto_mode = False
         reason = "gcc 4.6 is doesn't have good enough LTO support"
@@ -243,13 +240,11 @@ version for lto mode (>= 4.6). Disabled."""
         and not isMacOS()
         and getExecutablePath("make", env=env) is None
     ):
-        scons_logger.warning(
-            """\
+        scons_logger.warning("""\
 The gcc compiler for LTO mode requires 'make' to be installed \
 for parallel linking to be used, compilation might be a lot \
 slower without it.
-"""
-        )
+""")
 
     if (env.gcc_mode or env.zig_mode) and lto_mode:
         if env.clang_mode:
@@ -307,7 +302,6 @@ def checkWindowsCompilerFound(
     msvc_version,
     download_ok,
     assume_yes_for_downloads,
-    experimental_flags,
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
@@ -438,7 +432,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
         the_cc_name = os.path.basename(compiler_path)
 
         if isGccName(the_cc_name):
-            if "force-accept-windows-gcc" not in experimental_flags:
+            if "force-accept-windows-gcc" not in env.experimental_flags:
                 scons_logger.info(
                     "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
                     % (compiler_path,)
@@ -452,7 +446,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     # rejected and MSVC is not enforced.
 
     if compiler_path is None and msvc_version is None:
-        if env.python_version < (3, 13):
+        if env.python_version < (3, 13) or "force-mingw64" in env.experimental_flags:
             scons_details_logger.info(
                 "No usable C compiler, attempt fallback to winlibs gcc."
             )
@@ -461,7 +455,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 download_ok=download_ok,
-                experimental="winlibs-new" in experimental_flags,
+                experimental="winlibs-new" in env.experimental_flags,
             )
         elif target_arch != "x86" and not mingw_mode:
             scons_details_logger.info("No usable C compiler, attempt fallback to zig.")
@@ -478,14 +472,23 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             addToPATH(env=env, dirname=os.path.dirname(compiler_path), prefix=True)
 
             env = createEnvironment(
-                mingw_mode=env.python_version < (3, 13),
+                mingw_mode=env.python_version < (3, 13)
+                or "force-mingw64" in env.experimental_flags,
                 msvc_version=None,
                 clang_mode=False,
                 clangcl_mode=False,
-                zig_exe_path=None if env.python_version < (3, 13) else compiler_path,
+                zig_exe_path=(
+                    None
+                    if (
+                        env.python_version < (3, 13)
+                        or "force-mingw64" in env.experimental_flags
+                    )
+                    else compiler_path
+                ),
                 target_arch=target_arch,
                 consider_environ_variables=False,
                 assume_yes_for_downloads=env.assume_yes_for_downloads,
+                experimental_flags=env.experimental_flags,
                 source_dir=env.source_dir,
             )
 
@@ -524,6 +527,7 @@ def createEnvironmentAndCheckCompiler(
         target_arch=target_arch,
         consider_environ_variables=consider_environ_variables,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
 
@@ -535,7 +539,6 @@ def createEnvironmentAndCheckCompiler(
         msvc_version=msvc_version,
         download_ok=download_ok,
         assume_yes_for_downloads=assume_yes_for_downloads,
-        experimental_flags=experimental_flags,
     )
 
     env.the_compiler = env["CC"] or env["CXX"]
@@ -567,6 +570,7 @@ def createEnvironmentAndCheckCompiler(
         and not env.msvc_mode
         and not env.zig_mode
         and env.python_version >= (3, 13)
+        and "force-mingw64" not in env.experimental_flags
     ):
         return scons_logger.sysexit(
             """\
@@ -624,10 +628,21 @@ as described in the documentation.""",
     return env
 
 
-def decideConstantsBlobResourceMode(env):
+_supported_resource_modes = (
+    "c23_embed",
+    "linker",
+    "incbin",
+    "coff_obj",
+    "win_resource",
+    "mac_section",
+    "code",
+)
+
+
+def _decideBlobResourceMode(env):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
@@ -639,17 +654,25 @@ def decideConstantsBlobResourceMode(env):
         if env.clangcl_mode and getMsvcVersion(env) >= (14, 3):
             resource_mode = "c23_embed"
             reason = "default for ClangCL"
+        elif env.msvc_mode:
+            resource_mode = "coff_obj"
+            reason = "default for MSVC"
+        elif env.mingw_mode:
+            resource_mode = "coff_obj"
+            reason = "default for MinGW"
         else:
             resource_mode = "win_resource"
-            reason = "default for Windows"
+            reason = "default for Windows on old MSVC or ClangCL"
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
-        # TODO: The macOS has no Clang19 yet, once it does, we could also
-        # consider using "c23_embed" for it too.
-        resource_mode = "mac_section"
-        reason = "default for macOS"
+        if env.clang_mode and env.clang_version >= (19,):
+            resource_mode = "c23_embed"
+            reason = "default for macOS with clang 19 or later"
+        else:
+            resource_mode = "mac_section"
+            reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -671,166 +694,293 @@ def decideConstantsBlobResourceMode(env):
         resource_mode = "incbin"
         reason = "default"
 
-    assert resource_mode in (
-        "incbin",
-        "linker",
-        "win_resource",
-        "mac_section",
-        "code",
-        "c23_embed",
-    ), resource_mode
+    if resource_mode not in _supported_resource_modes:
+        return scons_logger.sysexit(
+            "Unknown resource mode '%s', supported modes are: %s"
+            % (resource_mode, _supported_resource_modes),
+            env=env,
+        )
 
+    if resource_mode in ("linker", "incbin") and env.msvc_mode:
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
+            env=env,
+        )
+
+    if resource_mode == "mac_section" and not isMacOS():
+        return scons_logger.sysexit(
+            "Resource mode 'mac_section' is not supported on non-macOS platforms.",
+            env=env,
+        )
+
+    if resource_mode == "win_resource" and not isWin32Windows():
+        return scons_logger.sysexit(
+            "Resource mode 'win_resource' is not supported on non-Windows platforms.",
+            env=env,
+        )
+
+    if resource_mode == "coff_obj" and not isWin32Windows():
+        return scons_logger.sysexit(
+            "Resource mode 'coff_obj' is not supported on non-Windows platforms.",
+            env=env,
+        )
+
+    env.resource_mode = resource_mode
     return resource_mode, reason
 
 
-def addConstantBlobFile(env, blob_filename, resource_desc):
-    resource_mode, reason = resource_desc
+def _getSymbolName(blob_filename):
+    blob_filename = os.path.basename(blob_filename)
+    assert blob_filename.endswith(".bin") and blob_filename.startswith(
+        "__"
+    ), blob_filename
 
-    assert blob_filename.endswith(".bin"), blob_filename
+    # TODO: Get rid of the strip, it ought not to be needed, but right now there
+    # is a disconnect between symbol names and the filename.
+    return blob_filename[2:-4] + "_bin"
 
-    scons_details_logger.info(
-        "Using resource mode: '%s' (%s)." % (resource_mode, reason)
+
+def _getBlobNameCamelCase(blob_filename):
+    symbol_name = _getSymbolName(blob_filename)
+    return (
+        "".join(word.title() for word in symbol_name.split("_") if word != "bin")
+        + "Blob"
     )
 
-    if resource_mode == "win_resource":
-        # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
-    elif resource_mode == "mac_section":
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
 
-        addBinaryBlobSection(
-            env=env,
-            blob_filename=blob_filename,
-            section_name=os.path.basename(blob_filename)[:-4].lstrip("_"),
-        )
-    elif resource_mode == "incbin":
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
+def _isWriteableConstantsBlob(blob_filename):
+    if os.path.basename(blob_filename) != "__constant.bin":
+        return False
 
-        constants_generated_filename = os.path.join(
-            env.source_dir, "__constants_data.c"
-        )
+    for cpp_define in getArgumentList("cpp_defines", ""):
+        if cpp_define.split("=", 1)[0] == "_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS":
+            return True
 
-        putTextFileContents(
-            constants_generated_filename,
-            contents=r"""
+    return False
+
+
+def _addConstantBlobFileCoffObj(env, blob_filename):
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
+
+    obj_filename = blob_filename + ".obj"
+
+    generateWindowsCoffObject(
+        in_filename=blob_filename,
+        out_filename=obj_filename,
+        symbol_name=_getSymbolName(blob_filename) + "_data",
+        architecture=env.target_arch,
+        writeable=_isWriteableConstantsBlob(blob_filename),
+    )
+
+    # Link the generated object file
+    env.Append(LINKFLAGS=[obj_filename])
+
+
+def _addConstantBlobFileIncbin(env, blob_filename):
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
+
+    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+
+    symbol_name = _getSymbolName(blob_filename)
+    camel_name = _getBlobNameCamelCase(blob_filename)
+
+    putTextFileContents(
+        constants_generated_filename,
+        contents=r"""
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_LOCAL
 #ifdef _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define INCBIN_OUTPUT_SECTION ".data"
+#define CONST_CONSTANT
+#else
+#define CONST_CONSTANT const
 #endif
 
 #include "nuitka/incbin.h"
 
-INCBIN(constant_bin, "%(blob_filename)s");
+INCBIN(%(symbol_name)s, "%(blob_filename)s");
 
-unsigned char const *getConstantsBlobData(void) {
-    return constant_bin_data;
+#ifdef __cplusplus
+extern "C" {
+#endif
+unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
+    return (unsigned CONST_CONSTANT char *)%(symbol_name)s_data;
 }
+#ifdef __cplusplus
+}
+#endif
 """
-            % {"blob_filename": blob_filename},
-        )
+        % {
+            "blob_filename": blob_filename,
+            "symbol_name": symbol_name,
+            "camel_name": camel_name,
+        },
+    )
 
-    elif resource_mode == "linker":
-        # Indicate "linker" resource mode.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
-        # For MinGW the symbol name to be used is more low level.
-        constant_bin_link_name = "constant_bin_data"
-        if env.mingw_mode:
-            constant_bin_link_name = "_" + constant_bin_link_name
+def _addConstantBlobFileLinker(env, blob_filename):
+    # Indicate "linker" resource mode.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
-        # At least some gcc versions need this path to contain a path element,
-        # but it's normalized when it gets to here.
-        if env.source_dir == ".":
-            blob_filename = "./%s" % blob_filename
+    # For MinGW the symbol name to be used is more low level.
+    constant_bin_link_name = _getSymbolName(blob_filename) + "_data"
+    if env.mingw_mode:
+        constant_bin_link_name = "_" + constant_bin_link_name
 
-        env.Append(
-            LINKFLAGS=[
-                "-Wl,-b",
-                "-Wl,binary",
-                "-Wl,%s" % blob_filename,
-                "-Wl,-b",
-                "-Wl,%s"
-                % getLinkerArch(
-                    target_arch=env.target_arch,
-                    mingw_mode=env.mingw_mode or isPosixWindows(),
-                ),
-                "-Wl,-defsym",
-                "-Wl,%s=_binary_%s___constants_bin_start"
-                % (
-                    constant_bin_link_name,
-                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
-                ),
-            ]
-        )
-    elif resource_mode in ("code", "c23_embed"):
-        # Indicate "code" resource mode.
-        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
+    # At least some gcc versions need this path to contain a path element,
+    # but it's normalized when it gets to here.
+    if env.source_dir == ".":
+        blob_filename = "./%s" % blob_filename
 
-        constants_generated_filename = os.path.join(
-            env.source_dir, "__constants_data.c"
-        )
+    env.Append(
+        LINKFLAGS=[
+            "-Wl,-b",
+            "-Wl,binary",
+            "-Wl,%s" % blob_filename,
+            "-Wl,-b",
+            "-Wl,%s"
+            % getLinkerArch(
+                target_arch=env.target_arch,
+                mingw_mode=env.mingw_mode or isPosixWindows(),
+            ),
+            "-Wl,-defsym",
+            "-Wl,%s=_binary_%s_start"
+            % (
+                constant_bin_link_name,
+                "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
+            ),
+        ]
+    )
 
-        def writeConstantsDataSource():
-            with openTextFile(constants_generated_filename, "w") as output:
-                if not env.c11_mode:
-                    output.write('extern "C" {')
 
-                output.write(
-                    """\
+def _addConstantBlobFileCode(env, blob_filename):
+    # Indicate "code" resource mode.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
+
+    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+
+    def writeConstantsDataSource():
+        with openTextFile(constants_generated_filename, "w") as output:
+            if not env.c11_mode:
+                output.write('extern "C" {')
+
+            output.write("""\
 // Constant data for the program.
-"""
-                )
+""")
 
-                if env.clang_mode or env.clangcl_mode:
-                    output.write(
-                        """
+            if env.clang_mode or env.clangcl_mode:
+                output.write("""
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
 #endif
-"""
-                    )
+""")
 
-                output.write(
-                    """
+            output.write("""
 #ifdef __cplusplus
 extern "C"
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
 const
 #endif
-unsigned char constant_bin_data[] =\n{\n
-"""
-                )
+unsigned char %s_data[] =
+{
+""" % _getSymbolName(blob_filename))
 
-                if resource_mode == "code":
-                    with open(blob_filename, "rb") as f:
-                        content = f.read()
-                    for count, stream_byte in enumerate(content):
-                        if count % 16 == 0:
-                            if count > 0:
-                                output.write("\n")
+            if env.resource_mode == "code":
+                with open(blob_filename, "rb") as f:
+                    content = f.read()
+                for count, stream_byte in enumerate(content):
+                    if count % 16 == 0:
+                        if count > 0:
+                            output.write("\n")
 
-                            output.write("   ")
+                        output.write("   ")
 
-                        if str is bytes:
-                            stream_byte = ord(stream_byte)
+                    if str is bytes:
+                        stream_byte = ord(stream_byte)
 
-                        output.write(" 0x%02x," % stream_byte)
-                else:
-                    output.write('#embed "%s"\n' % blob_filename)
+                    output.write(" 0x%02x," % stream_byte)
+            else:
+                output.write('#embed "%s"\n' % blob_filename)
 
-                output.write("\n};\n")
+            output.write("\n};\n")
 
-                if not env.c11_mode:
-                    output.write("}")
+            if not env.c11_mode:
+                output.write("}")
 
-        writeConstantsDataSource()
-    else:
-        scons_logger.sysexit(
-            "Error, illegal resource mode '%s' specified" % resource_mode
+    writeConstantsDataSource()
+
+
+def _addConstantBlobFileWinResource(env):
+    # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+
+
+def _addConstantBlobFileMacSection(env, blob_filename):
+    assert isMacOS()
+
+    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
+
+    section_name = _getSymbolName(blob_filename)
+
+    # spell-checker: ignore linkflags, sectcreate
+    env.Append(
+        LINKFLAGS=[
+            "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
+            % {
+                "section_name": section_name,
+                "blob_filename": blob_filename,
+            }
+        ]
+    )
+
+
+def addConstantBlobFile(env, blob_filename):
+    assert blob_filename.endswith(".bin"), blob_filename
+
+    if env.resource_mode == "absent":
+        env.resource_mode, reason = _decideBlobResourceMode(env)
+
+        scons_details_logger.info(
+            "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
         )
+
+    if env.resource_mode == "coff_obj":
+        _addConstantBlobFileCoffObj(env, blob_filename)
+    elif env.resource_mode == "win_resource":
+        _addConstantBlobFileWinResource(env)
+    elif env.resource_mode == "mac_section":
+        _addConstantBlobFileMacSection(env, blob_filename)
+    elif env.resource_mode == "incbin":
+        _addConstantBlobFileIncbin(env, blob_filename)
+    elif env.resource_mode == "linker":
+        _addConstantBlobFileLinker(env, blob_filename)
+    elif env.resource_mode in ("code", "c23_embed"):
+        _addConstantBlobFileCode(env, blob_filename)
+    else:
+        return scons_logger.sysexit(
+            "Error, illegal resource mode '%s' specified" % env.resource_mode,
+            env=env,
+        )
+
+
+def addConstantBlobFiles(env, source_dir):
+    env.resource_mode = "absent"
+
+    blobs_dir = os.path.join(source_dir, "blobs")
+    if os.path.exists(blobs_dir):
+        blob_filenames = []
+
+        for filename_full, filename in listDir(blobs_dir):
+            if filename.endswith(".bin"):
+                blob_filenames.append(filename_full)
+
+        for blob_filename in blob_filenames:
+            addConstantBlobFile(
+                env=env,
+                blob_filename=blob_filename,
+            )
 
 
 def _enableMacOSTargetSettings(env):
@@ -839,8 +989,6 @@ def _enableMacOSTargetSettings(env):
 
     setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-    # TODO: The zig doesn't support the option given, not having "arm64" as a
-    # valid architecture.
     if not env.zig_mode:
         target_flag = "--target=%s-apple-macos%s" % (
             env.macos_target_arch,
@@ -1059,7 +1207,6 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.macos_min_version = macos_min_version
     env.macos_target_arch = macos_target_arch
     env.target_arch = target_arch
-    env.experimental = experimental_flags
     env.no_deployment = no_deployment
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
@@ -1091,6 +1238,23 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Set build directory and scons general settings.
     if needs_source_dir:
         setupScons(env, source_dir)
+
+        # Check if ccache is installed, and complain if it is not.
+        disable_ccache = getArgumentBool("disable_ccache", False)
+
+        if env.gcc_mode:
+            enableCcache(
+                env=env,
+                source_dir=source_dir,
+                python_prefix=env.python_prefix_external,
+                disable_ccache=disable_ccache,
+            )
+
+        if env.msvc_mode and not disable_ccache:
+            enableClcache(
+                env=env,
+                source_dir=source_dir,
+            )
 
     return env
 
@@ -1163,6 +1327,12 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Support for clang.
     if env.clang_mode or env.clangcl_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
+
+    if env.clang_mode:
+        env.Append(CCFLAGS=["-Wno-missing-field-initializers"])
+    elif env.clangcl_mode:
+        # spell-checker: ignore Xclang
+        env.Append(CCFLAGS=["-Xclang", "-Wno-missing-field-initializers"])
 
     if isClangName(env.the_cc_name):
         env.Append(CCFLAGS=["-Wno-constant-logical-operand"])
@@ -1253,10 +1423,14 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
-    # The var-tracking does not scale, disable it. Should we really need it, we
-    # can enable it. TODO: Does this cause a performance loss?
+    # The var-tracking only improves GDB debugging information, but it does
+    # not scale for Nuitka generated C code in terms of memory and compile
+    # time. Since it has zero impact on runtime performance, we disable it.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
         env.Append(CCFLAGS=["-fno-var-tracking"])
+
+        if env.gcc_mode and env.gcc_version >= (4, 4):
+            env.Append(CCFLAGS=["-fno-var-tracking-assignments"])
 
     # For large files, these can issue warnings about disabling
     # itself, while we do not need it really.
@@ -1270,7 +1444,7 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # Disable output of notes, e.g. on struct alignment layout changes for
     # some arches, we don't care.
     if (env.gcc_mode or env.zig_mode) and not env.clang_mode:
-        env.Append(CCFLAGS=["-fcompare-debug-second"])
+        env.Append(CCFLAGS=["-Wno-psabi"])  # spell-checker: ignore psabi
 
     # Prevent using LTO when told not to use it, causes errors with some
     # static link libraries.
@@ -1546,6 +1720,8 @@ def _enableDebugSystemSettings(env):
 
             if not env.clangcl_mode and not isMacOS():
                 env.Append(LINKFLAGS=["-s"])
+        elif env.msvc_mode:
+            env.Append(LINKFLAGS=["/DEBUG:NONE"])
 
 
 def switchFromGccToGpp(env):
@@ -1561,41 +1737,29 @@ def switchFromGccToGpp(env):
     env.gcc_version = myDetectVersion(env, the_compiler)
 
     if env.gcc_version is None:
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, failed to detect gcc version of backend compiler '%s'.
-"""
-            % env.the_compiler
-        )
+""" % env.the_compiler)
 
     if "++" in env.the_cc_name:
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 Error, compiler %s is apparently a C++ compiler, specify a C compiler instead.
-"""
-            % env.the_cc_name
-        )
+""" % env.the_cc_name)
 
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
     # good enough, but g++-4.5 would be.
     if env.gcc_version < (4, 4):
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4)."""
-            % (env.the_compiler, env.gcc_version)
-        )
+version (>= 4.4).""" % (env.the_compiler, env.gcc_version))
 
     # CondaCC or newer.
     if env.mingw_mode and env.gcc_version < (5, 3):
-        scons_logger.sysexit(
-            """\
+        scons_logger.sysexit("""\
 The MinGW64 compiler %s (version %s) doesn't have the sufficient \
-version (>= 5.3)."""
-            % (env.the_compiler, env.gcc_version)
-        )
+version (>= 5.3).""" % (env.the_compiler, env.gcc_version))
 
     if env.gcc_version < (5,):
         if env.python_version < (3, 11):
@@ -1628,12 +1792,9 @@ version (>= 5.3)."""
                 env["CC"] = env.the_compiler
                 env["CXX"] = env.the_compiler
             else:
-                scons_logger.sysexit(
-                    """\
+                scons_logger.sysexit("""\
 Error, your gcc is too old for C11 support, and no g++ ('%s') to
-workaround that was found."""
-                    % the_gpp_compiler_name
-                )
+workaround that was found.""" % the_gpp_compiler_name)
         else:
             scons_logger.sysexit(
                 "Error, your gcc is too old for C11 support, install a newer one.",

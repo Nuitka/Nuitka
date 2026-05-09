@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Reformulation of function statements.
@@ -231,7 +231,6 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
                 )
             ),
         ),
-        allow_none=False,
         source_ref=source_ref,
     )
 

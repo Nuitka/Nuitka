@@ -1,0 +1,83 @@
+{#-  Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -#}
+
+#ifndef Py_BUILD_CORE
+#define Py_BUILD_CORE 1
+#endif
+#include <Python.h>
+
+// spell-checker: disable
+
+// To access the PyRuntime struct
+#if PY_VERSION_HEX >= 0x03080000
+#if PY_VERSION_HEX < 0x030b0000
+#include <internal/pycore_pystate.h>
+#else
+#include <internal/pycore_runtime.h>
+#endif
+#endif
+#include <stdio.h>
+#include <stddef.h>
+
+#if defined(__linux__) && PY_VERSION_HEX >= 0x030c0000 && !defined(PY_HAVE_PERF_TRAMPOLINE)
+#error "On Linux, perf trampoline support is assumed to be present for offset stability."
+#endif
+
+int main() {
+#if defined(_WIN32) && !defined(_MSC_VER) && !defined(__ZIG__)
+    fprintf(stderr, "On Windows run this program compiled with MSVC or Zig in C11 mode only.");
+    exit(1);
+#else
+    struct OffsetDef {
+        const char *name;
+        size_t value;
+    };
+
+    struct OffsetDef offsets[] = {
+{% for key in keys %}
+        {"_PyRuntimeState_{{ key }}", offsetof(_PyRuntimeState, {{ key }})},
+{% endfor %}
+    };
+    int num_offsets = sizeof(offsets) / sizeof(offsets[0]);
+
+    for (int i = 0; i < num_offsets - 1; i++) {
+        for (int j = 0; j < num_offsets - i - 1; j++) {
+            if (offsets[j].value > offsets[j + 1].value) {
+                struct OffsetDef temp = offsets[j];
+                offsets[j] = offsets[j + 1];
+                offsets[j + 1] = temp;
+            }
+        }
+    }
+
+    puts("{");
+    for (int i = 0; i < num_offsets; i++) {
+        printf("  \"%s\": %zd%s\n", offsets[i].name, offsets[i].value, i < num_offsets - 1 ? "," : "");
+    }
+    puts("}");
+
+    return 0;
+#endif
+}
+
+#if defined(_WIN32)
+#include <windows.h>
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd) {
+    return main();
+}
+#endif
+
+{#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
+{#-  integrates with CPython, but also works on its own.                              -#}
+{#-                                                                                   -#}
+{#-  Licensed under the GNU Affero General Public License, Version 3 (the "License"); -#}
+{#-  you may not use this file except in compliance with the License.                 -#}
+{#-  You may obtain a copy of the License at                                          -#}
+{#-                                                                                   -#}
+{#-  http://www.gnu.org/licenses/agpl.txt                                             -#}
+{#-                                                                                   -#}
+{#-  Unless required by applicable law or agreed to in writing, software              -#}
+{#-  distributed under the License is distributed on an "AS IS" BASIS,                -#}
+{#-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.         -#}
+{#-  See the License for the specific language governing permissions and              -#}
+{#-  limitations under the License.                                                   -#}

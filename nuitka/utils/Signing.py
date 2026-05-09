@@ -1,7 +1,9 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Signing of executables."""
+
+import re
 
 from nuitka.options.Options import (
     getMacOSSignedAppName,
@@ -23,8 +25,12 @@ _macos_security_usage = (
     "The 'security' is used to access signatures from files on macOS."
 )
 
+_macos_find_identity_pattern = re.compile(
+    r'^\s*\d+\)\s+([0-9A-F]+)\s+"(.*)"(?:\s+\(.*\))?$'
+)
 
-def _filterCodesignErrorOutput(stderr):
+
+def _filterCodesignErrorOutput(stderr, signing_identity, signing_keychain_filename):
     stderr = b"\n".join(
         line
         for line in stderr.splitlines()
@@ -34,12 +40,25 @@ def _filterCodesignErrorOutput(stderr):
     )
 
     if b"errSecInternalComponent" in stderr:
-        return postprocessing_logger.sysexit(
-            """\
-Access to the specified codesign certificate was not allowed. Please \
-'allow all items' or when compiling with GUI available, enable prompting \
-for the certificate in KeyChain Access application for this certificate."""
-        )
+        details = []
+
+        if signing_identity is not None:
+            details.append("identity '%s'" % signing_identity)
+
+        if signing_keychain_filename is not None:
+            details.append("keychain '%s'" % signing_keychain_filename)
+
+        if details:
+            details = " Requested %s." % " and ".join(details)
+        else:
+            details = ""
+
+        return postprocessing_logger.sysexit("""\
+The macOS codesign step failed with a keychain access error \
+'errSecInternalComponent'. This can mean that the signing identity is \
+missing, incomplete, locked, or not accessible to codesign. Check that the \
+requested identity exists with its private key and that the relevant keychain \
+can be unlocked and used for code signing.%s""" % details)
 
     return None, stderr
 
@@ -49,42 +68,108 @@ def _filterSecurityErrorOutput(stderr):
     return None, stderr
 
 
-def detectMacIdentity():
+def _getMacOSCodeSigningIdentities(signing_keychain_filename):
+    command = ["security", "find-identity", "-p", "codesigning"]
+
+    if signing_keychain_filename is None:
+        command.append("-v")
+
+    if signing_keychain_filename is not None:
+        command.append(signing_keychain_filename)
+
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=["security", "find-identity"],
+        command=command,
         absence_message="The 'security' program is used to scan for signing identities",
         stderr_filter=_filterSecurityErrorOutput,
         decoding=str is not bytes,
     )
 
-    signing_name = None
-    result = None
+    result = []
+    seen_identities = set()
 
     for line in output.splitlines():
-        line = line.strip()
+        match = _macos_find_identity_pattern.match(line)
 
-        if line.startswith("2)"):
+        if match is None:
+            continue
+
+        identity_hash, signing_name = match.groups()
+
+        if identity_hash in seen_identities:
+            continue
+
+        seen_identities.add(identity_hash)
+        result.append((identity_hash, signing_name))
+
+    return tuple(result)
+
+
+def _unlockMacIdentityKeychain(signing_keychain_filename):
+    command = [
+        "security",
+        "unlock-keychain",
+        "-p",
+        getMacOSSigningCertificatePassword() or "",
+        signing_keychain_filename,
+    ]
+
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=command,
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+
+def _detectMacOSCodeSigningIdentity(signing_keychain_filename=None):
+    identities = _getMacOSCodeSigningIdentities(
+        signing_keychain_filename=signing_keychain_filename
+    )
+
+    if len(identities) > 1:
+        found_names = ", ".join(
+            "'%s'" % signing_name for _identity_hash, signing_name in identities
+        )
+
+        if signing_keychain_filename is None:
             return postprocessing_logger.sysexit(
-                "More than one signing identity, auto mode cannot be used."
+                "More than one signing identity, auto mode cannot be used. Found: %s."
+                % found_names
+            )
+        else:
+            return postprocessing_logger.sysexit(
+                "More than one code signing identity in keychain '%s', auto mode cannot be used. Found: %s."
+                % (signing_keychain_filename, found_names)
             )
 
-        if line.startswith("1)"):
-            parts = line.split(" ", 2)
+    if not identities:
+        if signing_keychain_filename is None:
+            return postprocessing_logger.sysexit(
+                "Failed to detect any signing identity, auto mode cannot be used."
+            )
+        else:
+            return postprocessing_logger.sysexit(
+                "Failed to detect any code signing identity in keychain '%s', auto mode cannot be used."
+                % signing_keychain_filename
+            )
 
-            result = parts[1]
-            signing_name = parts[2]
+    identity_hash, signing_name = identities[0]
 
-    if result is None:
-        return postprocessing_logger.sysexit(
-            "Failed to detect any signing identity, auto mode cannot be used."
-        )
-    else:
+    if signing_keychain_filename is None:
         postprocessing_logger.info(
             "Using signing identity %s automatically." % signing_name
         )
+    else:
+        postprocessing_logger.info(
+            "Using signing identity %s from keychain '%s' automatically."
+            % (signing_name, signing_keychain_filename)
+        )
 
-    return result
+    if signing_keychain_filename is not None:
+        return signing_name
+    else:
+        return identity_hash
 
 
 def addMacOSCodeSignature(filenames, entitlements_filename):
@@ -104,24 +189,16 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
     # Weak signing.
     identity = getMacOSSigningIdentity()
 
-    if getMacOSSigningCertificateFilename() is not None:
-        command = [
-            "security",
-            "unlock-keychain",
-            "-p",
-            getMacOSSigningCertificatePassword() or "",
-            getExternalUsePath(getMacOSSigningCertificateFilename()),
-        ]
+    signing_keychain_filename = getMacOSSigningCertificateFilename()
 
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=command,
-            absence_message=_macos_security_usage,
-            stderr_filter=_filterSecurityErrorOutput,
-        )
+    if signing_keychain_filename is not None:
+        signing_keychain_filename = getExternalUsePath(signing_keychain_filename)
+        _unlockMacIdentityKeychain(signing_keychain_filename)
 
     if identity == "auto":
-        identity = detectMacIdentity()
+        identity = _detectMacOSCodeSigningIdentity(
+            signing_keychain_filename=signing_keychain_filename
+        )
 
     command = [
         # Need to avoid Anaconda codesign.
@@ -132,6 +209,12 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
         "--deep",
         "--preserve-metadata=entitlements",
     ]
+
+    if signing_keychain_filename is not None:
+        command += [
+            "--keychain",
+            signing_keychain_filename,
+        ]
 
     macos_signed_app_name = getMacOSSignedAppName()
 
@@ -159,6 +242,10 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
             command=command,
             absence_message=_macos_codesign_usage,
             stderr_filter=_filterCodesignErrorOutput,
+            context={
+                "signing_identity": identity,
+                "signing_keychain_filename": signing_keychain_filename,
+            },
         )
 
 

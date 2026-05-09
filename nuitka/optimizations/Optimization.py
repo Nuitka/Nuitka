@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Control the flow of optimizations applied to node tree.
@@ -11,15 +11,18 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.options.Options import (
     isCompileTimeProfile,
+    isExperimental,
     isShowMemory,
     isShowProgress,
 )
 from nuitka.plugins.Hooks import (
     considerImplicitImports,
+    considerIncompleteModuleSet,
     getModuleSysPathAdditions,
 )
 from nuitka.Progress import (
@@ -87,6 +90,9 @@ def optimizeCompiledPythonModule(module):
     while True:
         micro_pass += 1
 
+        # Indicator that new variables or changed were added in the previous
+        # pass, will require another pass to fully propagate.
+        added_variables = "changed_variable_usage" in tag_set
         tag_set.clear()
 
         try:
@@ -99,18 +105,22 @@ def optimizeCompiledPythonModule(module):
             general.info("Interrupted while working on '%s'." % module)
             raise
 
-        if scopes_were_incomplete:
+        if scopes_were_incomplete or added_variables:
             tag_set.add("var_usage")
+        added_variables = False
 
         Graphs.onModuleOptimizationStep(module)
 
-        if unchanged_count == 1 and tag_set:
+        if (
+            unchanged_count == 1
+            and tag_set
+            and not isExperimental("ignore-extra-micro-pass")
+        ):
             optimization_logger.sysexit(
                 """\
 Changes made after there were already no changes for module '%s' \
 in the extra micro pass that checks for that to not happen \
-that is done in debug mode: '%s'"""
-                % (module_name, tag_set.asString()),
+that is done in debug mode: '%s'""" % (module_name, tag_set.asString()),
             )
 
         # Search for local change tags.
@@ -274,15 +284,14 @@ def restoreFromXML(text):
     return module
 
 
-def makeOptimizationPass():
+def _makeOptimizationPass():
     """Make a single pass for optimization, indication potential completion."""
-
-    finished = True
 
     ModuleRegistry.startTraversal()
 
     _restartProgress()
 
+    unfinished_modules = OrderedSet()
     main_module = None
     stdlib_phase_done = False
 
@@ -297,7 +306,13 @@ def makeOptimizationPass():
                 main_module = None
                 continue
 
-            break
+            # plugins might add items to the unresolved module set
+            considerIncompleteModuleSet()
+
+            current_module = ModuleRegistry.nextModule()
+
+            if current_module is None:
+                break
 
         if current_module.isMainModule() and not stdlib_phase_done:
             main_module = current_module
@@ -328,7 +343,7 @@ def makeOptimizationPass():
         _traceProgressModuleEnd(current_module)
 
         if changed:
-            finished = False
+            unfinished_modules.add(current_module)
 
     # Unregister collection traces from now unused code, dropping the trace
     # collections of functions no longer used. This must be done after global
@@ -349,13 +364,14 @@ def makeOptimizationPass():
 
     _endProgress()
 
-    return finished
+    return unfinished_modules
 
 
 def _optimizeModules(output_filename):
     Graphs.startGraph()
 
-    finished = makeOptimizationPass()
+    # Pass 1 is unconditional.
+    unfinished_modules = _makeOptimizationPass()
 
     # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
@@ -366,9 +382,21 @@ def _optimizeModules(output_filename):
         ):
             demoteCompiledModuleToBytecode(module)
 
-    # Second, "endless" pass.
-    while not finished:
-        finished = makeOptimizationPass()
+    # Second more more, "endless" passes.
+    while unfinished_modules:
+        if pass_count >= 2:
+            general.info(
+                "Module(s) '%s' necessitate pass %d"
+                % (
+                    ",".join(
+                        unfinished_module.getFullName()
+                        for unfinished_module in unfinished_modules
+                    ),
+                    pass_count + 1,
+                )
+            )
+
+        unfinished_modules = _makeOptimizationPass()
 
     Graphs.endGraph(output_filename)
 

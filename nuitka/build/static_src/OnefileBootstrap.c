@@ -1,4 +1,4 @@
-//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* The main program for onefile bootstrap.
  *
@@ -65,13 +65,22 @@
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
 #define _NUITKA_ONEFILE_TEMP_BOOL 0
 #define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
-#define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME}"
+#define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}"
 
 #define _NUITKA_AUTO_UPDATE_BOOL 1
 #define _NUITKA_AUTO_UPDATE_DEBUG_BOOL 1
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
 
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
+
+// Most often used modes per OS, more exist and could be used of course.
+#if defined(_WIN32)
+#define _NUITKA_CONSTANTS_FROM_COFF_OBJ 1
+#elif defined(__APPLE__)
+#define _NUITKA_CONSTANTS_FROM_MACOS_SECTION 1
+#else
+#define _NUITKA_CONSTANTS_FROM_CODE 1
+#endif
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -108,6 +117,8 @@
 #if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES
 #include "extra_onefile_includes.h"
 #endif
+
+#include "nuitka/blobs.h"
 
 #include "HelpersChecksumTools.c"
 #include "HelpersEnvironmentVariablesSystem.c"
@@ -174,86 +185,33 @@ static unsigned char const *payload_data = NULL;
 static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
 
-#ifdef __APPLE__
+#if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
+    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_RESOURCE) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 
-#include <mach-o/getsect.h>
-#include <mach-o/ldsyms.h>
+NUITKA_DECLARE_CONSTANT_BLOB(payload_bin, PayloadBlob, const, 27)
 
-#ifdef __LP64__
-#define mach_header_arch mach_header_64
-#else
-#define mach_header_arch mach_header
-#endif
-
+// The payload blob size is a generated onefile build definition.
 static void initPayloadData2(void) {
-    const struct mach_header_arch *header = &_mh_execute_header;
-
-    unsigned long section_size;
-
-    payload_data = getsectiondata(header, "payload", "payload", &section_size);
+    payload_data = getPayloadBlobData();
     payload_current = payload_data;
-    payload_size = section_size;
+    payload_size = (unsigned long long)_NUITKA_ONEFILE_PAYLOAD_SIZE_INT;
 }
 
 static void closePayloadData(void) {}
 
-#elif defined(_WIN32)
+#elif _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 0
+// Note: External payload is used.
+static void initPayloadData2(void) {}
 
-static void initPayloadData2(void) {
-    HRSRC windows_resource = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
-
-    payload_data = (const unsigned char *)LockResource(LoadResource(NULL, windows_resource));
-    payload_current = payload_data;
-
-    payload_size = SizeofResource(NULL, windows_resource);
-}
-
-// Note: it appears unlocking the resource is not actually foreseen.
 static void closePayloadData(void) {}
 
 #else
-
-static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
-    char buffer[1024] = "Error, couldn't find attached data:";
-    appendStringSafe(buffer, erroring_function, sizeof(buffer));
-
-    fatalIOError(buffer, error_code);
-}
-
-static struct MapFileToMemoryInfo exe_file_mapped;
-
-static void initPayloadData2(void) {
-    exe_file_mapped = mapFileToMemory(getBinaryPath());
-
-    if (exe_file_mapped.error) {
-        fatalErrorFindAttachedData(exe_file_mapped.erroring_function, exe_file_mapped.error_code);
-    }
-
-    payload_data = exe_file_mapped.data;
-    payload_current = payload_data;
-}
-
-static void closePayloadData(void) { unmapFileFromMemory(&exe_file_mapped); }
-
+#error "Unknown resource mode"
 #endif
 
-static void initPayloadData(void) {
-    initPayloadData2();
-
-#if !defined(__APPLE__) && !defined(_WIN32)
-    const off_t size_end_offset = exe_file_mapped.file_size;
-
-    NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
-
-    assert(sizeof(payload_size) == sizeof(unsigned long long));
-    memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
-
-    unsigned long long start_pos = size_end_offset - sizeof(payload_size) - payload_size;
-
-    payload_current += start_pos;
-    payload_data += start_pos;
-#endif
-}
+static void initPayloadData(void) { initPayloadData2(); }
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 
@@ -680,14 +638,34 @@ static int waitpid_retried(pid_t pid, int *status, bool async) {
 }
 
 static int waitpid_timeout(pid_t pid) {
-    // Check if already exited.
-    if (waitpid(pid, NULL, WNOHANG) == -1) {
+    int res = waitpid_retried(pid, NULL, true);
+
+    // Child can already be gone when cleanup is entered from signal handling or
+    // when an earlier wait has already collected it for us.
+    if (res == -1) {
+        if (errno != ECHILD) {
+            perror("waitpid");
+
+            return -1;
+        }
+
+        return 0;
+    }
+
+    if (res != 0) {
         return 0;
     }
 
     // A value of -1 means wait indefinitely.
     if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
-        waitpid_retried(pid, NULL, false);
+        res = waitpid_retried(pid, NULL, false);
+
+        if (res == -1 && errno != ECHILD) {
+            perror("waitpid");
+
+            return -1;
+        }
+
         return 0;
     }
 
@@ -705,9 +683,13 @@ static int waitpid_timeout(pid_t pid) {
 
     do {
         // Only want to care about SIGCHLD here.
-        int res = waitpid_retried(pid, NULL, true);
+        res = waitpid_retried(pid, NULL, true);
 
         if (unlikely(res < 0)) {
+            if (errno == ECHILD) {
+                return 0;
+            }
+
             perror("waitpid");
 
             return -1;
@@ -964,7 +946,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         return EXIT_FAILURE;
     }
 
-    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **);
+    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **, wchar_t const *);
 
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(hGetProcIDDLL, "run_code");
 
@@ -974,9 +956,9 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
         return EXIT_FAILURE;
     }
 
-    return (*nuitka_dll_function)(argc, argv);
+    return (*nuitka_dll_function)(argc, argv, dll_filename);
 #else
-    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **);
+    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **, filename_char_t const *);
 
     void *handle = dlopen(dll_filename, RTLD_LOCAL | RTLD_NOW);
 
@@ -994,7 +976,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
     nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)dlsym(handle, "run_code");
     assert(nuitka_dll_function);
 
-    return (*nuitka_dll_function)(argc, argv);
+    return (*nuitka_dll_function)(argc, argv, dll_filename);
 #endif
 }
 #endif
@@ -1096,13 +1078,7 @@ int main(int argc, char **argv) {
             process_role = NULL;
         }
 
-        // Do not inherit these from another onefile binary.
-        if (process_role == NULL) {
-            NUITKA_PRINT_TIMING("ONEFILE: Removing other onefile environment.");
-
-            unsetEnvironmentVariable("NUITKA_ONEFILE_PARENT");
-            unsetEnvironmentVariable("NUITKA_ONEFILE_START");
-        } else {
+        if (process_role != NULL) {
             NUITKA_PRINT_TIMING("ONEFILE: Decided we child environment.");
         }
     }
@@ -1117,6 +1093,12 @@ int main(int argc, char **argv) {
     // might change it by the time the child looks at its parent and we will use it
     // for calculating the template path potentially as well.
     if (process_role == NULL) {
+        NUITKA_PRINT_TIMING("ONEFILE: Removing other onefile environment.");
+
+        unsetEnvironmentVariable("NUITKA_ONEFILE_START");
+        unsetEnvironmentVariable("NUITKA_ONEFILE_TIME_US");
+        unsetEnvironmentVariable("NUITKA_ONEFILE_RANDOM");
+
 #if defined(_WIN32)
         setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
 #else
@@ -1136,17 +1118,33 @@ int main(int argc, char **argv) {
     }
 #endif
 
+#if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
     initPayloadData();
+#endif
 
-    static filename_char_t first_filename[1024] = {0};
+    static filename_char_t first_filename[4096] = {0};
+
+#ifdef _NUITKA_ONEFILE_MAIN_FILENAME
+    appendStringSafeFilename(first_filename, payload_path, sizeof(first_filename) / sizeof(filename_char_t));
+    appendCharSafeFilename(first_filename, FILENAME_SEP_CHAR, sizeof(first_filename) / sizeof(filename_char_t));
+    appendStringSafeFilename(first_filename, _NUITKA_ONEFILE_MAIN_FILENAME,
+                             sizeof(first_filename) / sizeof(filename_char_t));
+
+    // Run the Python code DLL if we are the child process, no unpacking needed
+#if _NUITKA_ONEFILE_DLL_MODE
+    if (process_role != NULL) {
+        return runPythonCodeDLL(first_filename, argc, argv);
+    }
+#endif
+#endif
 
     if (unlikely(bool_res == false)) {
         fatalErrorSpec(pattern);
     }
 
 #if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
-    wprintf(L"payload path: '%lS'\n", payload_path);
+    wprintf(L"payload path: '" FILENAME_FORMAT_STR "'\n", payload_path);
 #endif
 
     if (process_role == NULL) {
@@ -1166,6 +1164,7 @@ int main(int argc, char **argv) {
     checkAutoUpdates();
 #endif
 
+#if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
     NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
 
     char header[3];
@@ -1338,6 +1337,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Finishing decompression, cleanup payload.");
 
     closePayloadData();
+#endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL
     exe_file_updatable = true;
@@ -1452,7 +1452,19 @@ int main(int argc, char **argv) {
         // Make sure, we use the absolute program path for argv[0]
         argv[0] = (char *)getBinaryPath();
 
-        execv(fork_binary, argv);
+        // On WSL, the AVs can cause this, not sure about Linux in general, but
+        // we can wait for a bit.
+        int retry_count = 0;
+        while (retry_count < 10) {
+            execv(fork_binary, argv);
+
+            if (errno == ETXTBSY) {
+                usleep(100000); // 100ms delay
+                retry_count++;
+            } else {
+                break;
+            }
+        }
 
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
         exit_code = 2;
@@ -1472,6 +1484,18 @@ int main(int argc, char **argv) {
         cleanupChildProcess(false);
     }
 
+#endif
+
+#if _NUITKA_AUTO_UPDATE_BOOL
+    extern volatile bool auto_update_in_progress;
+
+    while (auto_update_in_progress) {
+#if defined(_WIN32)
+        Sleep(100);
+#else
+        usleep(100000);
+#endif
+    }
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Exiting.");

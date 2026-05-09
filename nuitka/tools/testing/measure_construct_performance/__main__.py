@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Run a construct based comparison test.
@@ -25,6 +25,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
+from nuitka.utils.Diffs import getHtmlDiffTable
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
     copyFile,
@@ -197,16 +198,14 @@ def main():
             else:
                 assert False
 
-            import difflib
-
             putTextFileContents(
                 diff_filename,
-                difflib.HtmlDiff().make_table(
-                    getFileContentByLine(cpp_1),
-                    getFileContentByLine(cpp_2),
-                    "Construct",
-                    "Baseline",
-                    True,
+                getHtmlDiffTable(
+                    old_lines=getFileContentByLine(cpp_1),
+                    new_lines=getFileContentByLine(cpp_2),
+                    old_desc="Construct",
+                    new_desc="Baseline",
+                    context=True,
                 ),
             )
 

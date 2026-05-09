@@ -1,4 +1,4 @@
-#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """Base class for all C types.
@@ -11,6 +11,7 @@ type_indicators = {
     "PyObject *": "o",
     "PyObject **": "O",
     "struct Nuitka_CellObject *": "c",
+    "PyCellObject *": "c",
     "nuitka_bool": "b",
     "nuitka_ilong": "L",
 }
