@@ -208,6 +208,8 @@ def printVersionInformation():
         scons_options=scons_options,
         env_values=env_values,
         scons_filename="CCompilerVersion.scons",
+        source_dir=None,
+        source_dir_external=None,
     )
 
 

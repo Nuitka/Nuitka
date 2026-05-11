@@ -18,6 +18,7 @@ from nuitka.tools.quality.auto_format.AutoFormat import (
 from nuitka.Tracing import offsets_logger
 from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import (
+    getExternalUsePath,
     getNormalizedPath,
     makeContainingPath,
     makePath,
@@ -56,9 +57,10 @@ def generateHeader():
         if scons_options["zig_exe_path"] is None:
             return offsets_logger.sysexit("Nuitka needs zig for header generation.")
 
-    scons_options["source_dir"] = "generate_header.build"
-    cleanSconsDirectory(scons_options["source_dir"])
-    makePath(scons_options["source_dir"])
+    source_dir = "generate_header.build"
+    source_dir_external = getExternalUsePath(source_dir)
+    cleanSconsDirectory(source_dir)
+    makePath(source_dir)
 
     keys = getOffsetsJsonRequiredKeys(python_version_str)
 
@@ -70,7 +72,7 @@ def generateHeader():
     c_code = template.render(keys=keys)
 
     c_filepath = os.path.join(
-        scons_options["source_dir"],
+        source_dir,
         "static_src",
         "GenerateHeadersMain.c",
     )
@@ -91,6 +93,8 @@ def generateHeader():
             scons_options=scons_options,
             env_values=env_values,
             scons_filename="Offsets.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
         )
 
         if not success:

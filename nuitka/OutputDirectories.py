@@ -27,6 +27,7 @@ from nuitka.options.Options import (
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
+    getExternalUsePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     hasFilenameExtension,
@@ -98,6 +99,12 @@ def getSourceDirectoryPath(onefile, create):
             putTextFileContents(filename=git_ignore_filename, contents="*")
 
     return result
+
+
+def getSourceDirectoryExternalUsePath(onefile, create):
+    """Return externally usable path inside the build directory."""
+
+    return getExternalUsePath(getSourceDirectoryPath(onefile=onefile, create=create))
 
 
 def _getStandaloneDistSuffix(bundle):

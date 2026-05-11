@@ -402,7 +402,7 @@ def pickSourceFilenames(source_dir, modules):
     """Pick the names for the C files of each module.
 
     Args:
-        source_dir - the directory to put the module sources will be put into
+        source_dir - the externally usable directory to put module sources into
         modules    - all the modules to build.
 
     Returns:
@@ -433,14 +433,19 @@ def pickSourceFilenames(source_dir, modules):
             source_dir, "module." + module.getFullName().asString().lower()
         )
 
-        # When the filename becomes to long to add ".const", we use a hash name
-        # instead.
+        # When the source filename becomes unsafe, use a deterministic hash
+        # based name instead.
         hash_filename = getNormalizedPathJoin(
             source_dir,
             "module.hashed_" + module.getFullName().asLegalFilename(name_limit=1),
         )
 
         return nice_filename, collision_filename, hash_filename
+
+    # Budget against the external path that Scons uses as its working
+    # directory on Windows, because relative compiler filenames resolve from
+    # there. On other platforms, the basename length is the relevant limit.
+    source_filename_length_base = len(source_dir) + 1
 
     colliding_filenames = set()
 
@@ -468,12 +473,13 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename = os.path.basename(nice_filename)
 
-        # Allow for longer suffixes that .c, we use .const and might use others
-        # as well in the C compiler and make sure we use only file system
-        # encodable names.
         if (
             collision_filename in collision_filenames
-            or len(base_filename) > 240
+            or (
+                source_filename_length_base + len(base_filename) > 240
+                if isWin32Windows()
+                else len(base_filename) > 240
+            )
             or not isFilesystemEncodable(base_filename)
         ):
             nice_filename = hash_filename
@@ -537,7 +543,12 @@ def makeSourceDirectory():
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     module_filenames = pickSourceFilenames(
-        source_dir=source_dir, modules=compiled_modules
+        # Pass the external path, so length checks can be correct.
+        source_dir=OutputDirectories.getSourceDirectoryExternalUsePath(
+            onefile=False,
+            create=False,
+        ),
+        modules=compiled_modules,
     )
 
     setupProgressBar(
@@ -713,12 +724,17 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
-    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
-        onefile=False, create=False
+    source_dir = OutputDirectories.getSourceDirectoryPath(
+        onefile=False,
+        create=False,
+    )
+    source_dir_external = OutputDirectories.getSourceDirectoryExternalUsePath(
+        onefile=False,
+        create=False,
     )
 
     # We might need to adapt the Python header files for some setups to work correctly.
-    adapted_dir = createAdaptedPythonHeaderFiles(scons_options["source_dir"])
+    adapted_dir = createAdaptedPythonHeaderFiles(source_dir)
     if adapted_dir:
         scons_options["adapted_python_header_files_dir"] = adapted_dir
 
@@ -857,6 +873,8 @@ def runSconsBackend():
             scons_options=scons_options,
             env_values=env_values,
             scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
         )
 
         if not result:
@@ -880,6 +898,8 @@ def runSconsBackend():
                 scons_options=scons_options,
                 env_values=env_values,
                 scons_filename="Backend.scons",
+                source_dir=source_dir,
+                source_dir_external=source_dir_external,
             )
 
             if not result:
@@ -895,6 +915,8 @@ def runSconsBackend():
             scons_options=scons_options,
             env_values=env_values,
             scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
         ),
         scons_options,
     )

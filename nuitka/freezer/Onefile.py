@@ -28,7 +28,11 @@ from nuitka.options.Options import (
     shallOnefileAsArchive,
     shallTraceExecution,
 )
-from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
+from nuitka.OutputDirectories import (
+    getResultFullpath,
+    getSourceDirectoryExternalUsePath,
+    getSourceDirectoryPath,
+)
 from nuitka.plugins.Hooks import (
     getBuildDefinitions,
     onBootstrapBinary,
@@ -100,7 +104,6 @@ def _runOnefileScons(
     onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
-    scons_options["source_dir"] = source_dir
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["onefile_splash_screen"] = asBoolStr(
@@ -133,6 +136,11 @@ def _runOnefileScons(
         scons_options=scons_options,
         env_values=env_values,
         scons_filename="Onefile.scons",
+        source_dir=source_dir,
+        source_dir_external=getSourceDirectoryExternalUsePath(
+            onefile=True,
+            create=False,
+        ),
     )
 
     # Exit if compilation failed.
