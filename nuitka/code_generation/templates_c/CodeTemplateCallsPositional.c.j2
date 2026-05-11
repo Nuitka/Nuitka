@@ -78,7 +78,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% else %}
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;

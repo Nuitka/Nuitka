@@ -402,7 +402,10 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = PyObject_IsInstance(%s, %s);" % (res_name, inst_name, cls_name))
+    emit(
+        "%s = Nuitka_Object_IsInstance(tstate, %s, %s);"
+        % (res_name, inst_name, cls_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

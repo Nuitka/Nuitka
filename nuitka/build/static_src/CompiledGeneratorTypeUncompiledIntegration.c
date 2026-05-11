@@ -163,8 +163,7 @@ static bool Nuitka_PyGen_FetchStopIterationValue(PyThreadState *tstate, PyObject
         FETCH_ERROR_OCCURRED(tstate, &exception_type, &exception_value, &exception_tb);
 
         if (exception_value) {
-            // TODO: API call here should be eliminated.
-            if (PyObject_TypeCheck(exception_value, (PyTypeObject *)exception_type)) {
+            if (Nuitka_PyObject_TypeCheck(exception_value, (PyTypeObject *)exception_type)) {
                 value = ((PyStopIterationObject *)exception_value)->value;
                 Py_INCREF(value);
                 Py_DECREF(exception_value);
@@ -173,7 +172,7 @@ static bool Nuitka_PyGen_FetchStopIterationValue(PyThreadState *tstate, PyObject
             } else {
                 NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_tb);
 
-                if (!PyObject_TypeCheck(exception_value, (PyTypeObject *)PyExc_StopIteration)) {
+                if (!Nuitka_PyObject_TypeCheck(exception_value, (PyTypeObject *)PyExc_StopIteration)) {
                     RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
 
                     return false;

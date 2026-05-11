@@ -469,7 +469,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -934,7 +934,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -1371,7 +1371,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -1817,7 +1817,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -2233,7 +2233,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -2679,7 +2679,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -3095,7 +3095,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -3541,7 +3541,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -3957,7 +3957,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -4403,7 +4403,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -4819,7 +4819,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -5265,7 +5265,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -5681,7 +5681,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6127,7 +6127,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6543,7 +6543,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6989,7 +6989,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -7405,7 +7405,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -7851,7 +7851,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -8267,7 +8267,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -8713,7 +8713,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;

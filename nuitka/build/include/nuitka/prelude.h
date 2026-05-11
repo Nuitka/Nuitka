@@ -195,7 +195,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #if PYTHON_VERSION >= 0x3a0
 #include <internal/pycore_long.h>
-#include <internal/pycore_unionobject.h>
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
@@ -959,6 +958,11 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 
 // Our replacement for "PyType_IsSubtype"
 extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
+    return Py_TYPE(obj) == type || Nuitka_Type_IsSubtype(Py_TYPE(obj), type);
+}
+
+extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
 
 #include "nuitka/allocator.h"
 #include "nuitka/exceptions.h"

@@ -35,6 +35,8 @@ extern PyObject **global_constants;
 #define const_str_plain___nuitka__ global_constants[11]
 // '__class__'
 #define const_str_plain___class__ global_constants[12]
+// '__bases__'
+#define const_str_plain___bases__ global_constants[12]
 // '__class_getitem__'
 #define const_str_plain___class_getitem__ global_constants[12]
 // '__name__'
@@ -73,6 +75,8 @@ extern PyObject **global_constants;
 #define const_str_plain___init__ global_constants[24]
 // '__iter__'
 #define const_str_plain___iter__ global_constants[25]
+// '__instancecheck__'
+#define const_str_plain___instancecheck__ global_constants[25]
 // '__subclasscheck__'
 #define const_str_plain___subclasscheck__ global_constants[25]
 // '__compiled__'
