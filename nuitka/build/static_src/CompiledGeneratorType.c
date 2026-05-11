@@ -453,7 +453,14 @@ static PyObject *Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nui
 
     // Need to make it unaccessible while using it.
     generator->m_yield_from = NULL;
+
+    // Before yielding to an inner coroutine, swap the outer coroutine's
+    // exception onto the thread state so that sys.exc_info() can see it
+    SAVE_GENERATOR_EXCEPTION(tstate, generator);
+
     PyObject *yielded = _Nuitka_YieldFromGeneratorCore(tstate, generator, yield_from, send_value);
+
+    RESTORE_GENERATOR_EXCEPTION(tstate, generator);
 
     if (yielded == NULL) {
         Py_DECREF(yield_from);

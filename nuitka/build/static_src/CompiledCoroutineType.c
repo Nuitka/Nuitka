@@ -284,8 +284,14 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(PyThreadState *tstate, struct Nu
     // Need to make it unaccessible while using it.
     coroutine->m_yield_from = NULL;
 
+    // Before yielding to an inner coroutine, swap the outer coroutine's
+    // exception onto the thread state so that sys.exc_info() can see it
+    SAVE_COROUTINE_EXCEPTION(tstate, coroutine);
+
     PyObject *returned_value;
     PyObject *yielded = _Nuitka_YieldFromCore(tstate, yield_from, send_value, &returned_value, mode);
+
+    RESTORE_COROUTINE_EXCEPTION(tstate, coroutine);
 
     if (yielded == NULL) {
         assert(coroutine->m_yield_from == NULL);
