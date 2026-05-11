@@ -602,6 +602,20 @@ import %(binding_name)s.QtCore
         if top_level_package_name != self.binding_name:
             return
 
+        if child_name == "QtWebView":
+            if "webview" not in self.qt_plugins:
+                self.info(
+                    "Including 'webview' Qt plugins due to '%s' usage." % full_name
+                )
+
+            self.qt_plugins.add("webview")
+
+        if child_name in ("QtQml", "QtQuick", "QtQuickWidgets", "QtQuickControls2"):
+            if "qml" not in self.qt_plugins:
+                self.info("Including 'qml' Qt plugins due to '%s' usage." % full_name)
+
+            self.qt_plugins.add("qml")
+
         # These are alternatives depending on PyQt5 version
         if child_name == "QtCore" and "PyQt" in self.binding_name:
             if python_version < 0x300:
@@ -626,6 +640,7 @@ import %(binding_name)s.QtCore
             "QtSvg",
             "QtTest",
             "QtWebKit",
+            "QtWebView",
             "QtOpenGL",
             "QtXml",
             "QtXmlPatterns",
@@ -681,6 +696,7 @@ import %(binding_name)s.QtCore
             "QtSvg",
             "QtTest",
             "QtWebKit",
+            "QtWebView",
             "QtPrintSupport",
             "QtWebKitWidgets",
             "QtMultimedia",
@@ -699,6 +715,7 @@ import %(binding_name)s.QtCore
             "QtDesigner",
             "QtHelp",
             "QtTest",
+            "QtWebView",
             "QtPrintSupport",
             "QtSvg",
             "QtOpenGL",
