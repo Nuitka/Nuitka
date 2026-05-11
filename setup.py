@@ -114,8 +114,10 @@ addInlineCopy("tqdm")
 
 addInlineCopy("stubgen")
 
-if os.name == "nt" or sdist_mode:
+if os.name == "nt" or sys.version_info < (3,) or sdist_mode:
     addInlineCopy("atomicwrites")
+
+if os.name == "nt" or sdist_mode:
     addInlineCopy("clcache")
     addInlineCopy("colorama")
 
