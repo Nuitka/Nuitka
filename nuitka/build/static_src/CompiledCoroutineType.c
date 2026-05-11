@@ -1056,6 +1056,7 @@ static PySendResult _Nuitka_Coroutine_am_send(struct Nuitka_CoroutineObject *cor
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
 #endif
+    *result = NULL;
     PyThreadState *tstate = PyThreadState_GET();
 
     // We need to transfer ownership of the sent value.
