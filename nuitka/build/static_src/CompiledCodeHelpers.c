@@ -296,6 +296,7 @@ PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
     unsigned long n = getLengthOfRange(tstate, start, stop, step);
 
 #if defined(__clang__)
+// spell-checker: ignore -Wtautological
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
