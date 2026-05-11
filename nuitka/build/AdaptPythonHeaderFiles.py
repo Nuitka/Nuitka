@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import getArchitecture, getOS, isLinux, isWin32Windows
+from nuitka.Version import getNuitkaVersion
 
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
@@ -334,7 +335,8 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_files = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v9",
+        "adapted-python-headers-v1",
+        getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
     )
 
