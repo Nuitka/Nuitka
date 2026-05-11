@@ -425,6 +425,7 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         reason=reason,
         tracer=logger,
         tags=tags,
+        ignore_dirs=("_CodeSignature",),
         raw=True,
     )
 
