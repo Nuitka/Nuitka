@@ -77,6 +77,7 @@ doxygen-*
 .vscode/.python_alias_path
 .vscode/c_cpp_properties.json
 .vscode/.python_alias_path
+.clangd
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
 nuitka/build/inline_copy/downloads
