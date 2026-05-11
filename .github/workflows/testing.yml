@@ -114,6 +114,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -212,6 +213,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -342,6 +344,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -426,6 +429,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
