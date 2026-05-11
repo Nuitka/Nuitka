@@ -9353,6 +9353,74 @@
     - patterns:
         - 'nlp/english-words.txt'
 
+- module-name: 'urllib.request' # checksum: 13bc467c
+  implicit-imports:
+    - post-import-code:
+        - |
+          import ssl
+          import urllib.error
+          import urllib.request
+
+          _nuitka_original_do_open = urllib.request.AbstractHTTPHandler.do_open
+          _nuitka_ssl_cert_verification_error = getattr(
+              ssl,
+              "SSLCertVerificationError",
+              ssl.SSLError
+          )
+
+          def _nuitka_make_missing_default_ca_runtime_error():
+              verify_paths = ssl.get_default_verify_paths()
+
+              if verify_paths.cafile is not None or verify_paths.capath is not None:
+                  return None
+
+              message = """\
+          Nuitka: HTTPS certificate verification failed because no usable
+          default CA certificate store was found at runtime.
+
+          OpenSSL looked for:
+          - cafile: %(cafile)r
+          - capath: %(capath)r
+
+          This often means the standalone/onefile binary was built on a
+          system with different OpenSSL certificate locations than the
+          machine running it.
+          Set %(cafile_env)s or %(capath_env)s to valid certificate
+          locations, or bundle and use certifi.
+          """ % {
+                  "cafile": verify_paths.openssl_cafile,
+                  "capath": verify_paths.openssl_capath,
+                  "cafile_env": verify_paths.openssl_cafile_env,
+                  "capath_env": verify_paths.openssl_capath_env,
+              }
+
+              return RuntimeError(message.strip())
+
+          def _nuitka_handle_missing_default_ca_store_error(self, http_class, req, **http_conn_args):
+              try:
+                  return _nuitka_original_do_open(self, http_class, req, **http_conn_args)
+              except urllib.error.URLError as error:
+                  if http_conn_args.get("context") is not None:
+                      raise
+
+                  reason = getattr(error, "reason", None)
+
+                  if not isinstance(reason, _nuitka_ssl_cert_verification_error):
+                      raise
+
+                  if "local issuer certificate" not in str(reason):
+                      raise
+
+                  replacement = _nuitka_make_missing_default_ca_runtime_error()
+
+                  if replacement is None:
+                      raise
+
+                  raise replacement from error
+
+          urllib.request.AbstractHTTPHandler.do_open = _nuitka_handle_missing_default_ca_store_error
+      when: 'standalone and macos and python3_or_higher and not deployment'
+
 - module-name: 'urllib3' # checksum: aed85e8e
   implicit-imports:
     - depends:
