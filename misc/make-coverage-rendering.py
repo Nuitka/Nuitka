@@ -2,6 +2,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Coverage rendering tool."""
+
 import os
 import shutil
 import subprocess
@@ -32,7 +34,10 @@ def main():
             continue
 
         values = {}
-        exec(open(filename).read(), values)
+        with open(filename, encoding="utf-8") as f:
+            # pylint: disable=exec-used
+            exec(f.read(), values)
+
         if "__builtins__" in values:
             del values["__builtins__"]
 
@@ -41,7 +46,7 @@ def main():
     # spell-checker: ignore coveragerc
     coverage_path = os.path.abspath(".coveragerc")
 
-    with open(coverage_path, "w") as coverage_rc_file:
+    with open(coverage_path, "w", encoding="utf-8") as coverage_rc_file:
         coverage_rc_file.write("[paths]\n")
         coverage_rc_file.write("source = \n")
 
