@@ -1013,12 +1013,16 @@ static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutin
 
     // TODO: Identify the impact of not visiting owned objects like module
     Py_VISIT(coroutine->m_yield_from);
+    Py_VISIT(coroutine->m_frame);
 
     for (Py_ssize_t i = 0; i < coroutine->m_closure_given; i++) {
         Py_VISIT(coroutine->m_closure[i]);
     }
 
-    Py_VISIT(coroutine->m_frame);
+#if PYTHON_VERSION >= 0x370
+    Py_VISIT(coroutine->m_exc_state.exception_value);
+#endif
+    Py_VISIT(coroutine->m_returned);
 
     return 0;
 }

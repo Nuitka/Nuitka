@@ -557,7 +557,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 
     Py_VISIT(locals_owner->f_builtins);
     Py_VISIT(locals_owner->f_globals);
-    // Py_VISIT(locals_owner->f_locals);
+    Py_VISIT(locals_owner->f_locals);
 
 #if PYTHON_VERSION < 0x370
     Py_VISIT(frame->m_frame.f_exc_type);

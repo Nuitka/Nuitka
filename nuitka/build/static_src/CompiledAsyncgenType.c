@@ -1022,14 +1022,17 @@ static int Nuitka_Asyncgen_tp_traverse(struct Nuitka_AsyncgenObject *asyncgen, v
     CHECK_OBJECT(asyncgen);
 
     Py_VISIT(asyncgen->m_yield_from);
+    Py_VISIT(asyncgen->m_frame);
 
     for (Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++) {
         Py_VISIT(asyncgen->m_closure[i]);
     }
 
-    Py_VISIT(asyncgen->m_frame);
-
     Py_VISIT(asyncgen->m_finalizer);
+
+#if PYTHON_VERSION >= 0x370
+    Py_VISIT(asyncgen->m_exc_state.exception_value);
+#endif
 
     return 0;
 }
