@@ -291,7 +291,7 @@ if isMacOS():
     if env.module_mode or env.dll_mode:
         # Dynamic lookup needed for extension modules.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
-    else:
+    if not env.module_mode:
         # For macOS we need to make sure install_name_tool can do its work
         # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
