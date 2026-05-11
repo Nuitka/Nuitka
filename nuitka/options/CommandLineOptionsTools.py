@@ -43,6 +43,7 @@ class OurOptionGroup(OptionGroup):
         require_compiling = kwargs.pop("require_compiling", True)
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
+        environment_variable_name = kwargs.pop("environment_variable_name", None)
         link = kwargs.pop("link", None)
 
         result = OptionGroup.add_option(self, *args, **kwargs)
@@ -50,7 +51,11 @@ class OurOptionGroup(OptionGroup):
         result.require_compiling = require_compiling
         result.github_action = github_action
         result.github_action_default = github_action_default
+        result.environment_variable_name = environment_variable_name
         result.link = link
+
+        if environment_variable_name is not None:
+            assert result.action == "store", result
 
         return result
 
@@ -119,6 +124,7 @@ class OurOptionParser(OptionParser):
         require_compiling = kwargs.pop("require_compiling", True)
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
+        environment_variable_name = kwargs.pop("environment_variable_name", None)
 
         default_values = self.get_default_values()
 
@@ -126,6 +132,10 @@ class OurOptionParser(OptionParser):
         result.require_compiling = require_compiling
         result.github_action = github_action
         result.github_action_default = github_action_default
+        result.environment_variable_name = environment_variable_name
+
+        if environment_variable_name is not None:
+            assert result.action == "store", result
 
         if result.dest is not None:
             if hasattr(default_values, result.dest):
@@ -149,6 +159,46 @@ class OurOptionParser(OptionParser):
         for option_group in self.option_groups:
             for option in option_group.option_list:
                 yield option
+
+    @staticmethod
+    def _hasArgForOption(option, args):
+        # Need optparse internals for matching all spellings of an option,
+        # pylint: disable=protected-access
+        option_strings = option._long_opts + option._short_opts
+
+        for arg in args:
+            if arg == "--":
+                break
+
+            for option_string in option_strings:
+                if arg == option_string or arg.startswith(option_string + "="):
+                    return True
+
+        return False
+
+    def addEnvironmentVariableDefaultOptions(self, args):
+        result = []
+
+        for option in self.iterateOptions():
+            environment_variable_name = getattr(
+                option, "environment_variable_name", None
+            )
+
+            if environment_variable_name is None or self._hasArgForOption(option, args):
+                continue
+
+            env_value = os.getenv(environment_variable_name)
+
+            if env_value is None:
+                continue
+
+            # Need optparse internals to synthesize the canonical long option,
+            # pylint: disable=protected-access
+            option_string = option._long_opts[0]
+
+            result.append("%s=%s" % (option_string, env_value))
+
+        return result
 
     def hasNonCompilingAction(self, options):
         for option in self.iterateOptions():

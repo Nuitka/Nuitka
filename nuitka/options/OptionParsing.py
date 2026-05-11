@@ -778,6 +778,21 @@ walker, ccache, and even gcc on Windows. To disable, redirect input
 from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
 )
 
+warnings_group.add_option(
+    "--update-check",
+    action="store",
+    type="choice",
+    choices=("never", "force", "error", "warning", "info"),
+    dest="update_check",
+    default="warning",
+    environment_variable_name="NUITKA_UPDATE_CHECK",
+    help="""\
+Control checking for newer Nuitka releases. Use "never" to disable it,
+"force" to bypass the cache once, "error" to make outdated versions abort,
+"warning" (default) to warn, or "info" to merely inform. This can also be
+controlled with the environment variable 'NUITKA_UPDATE_CHECK'.""",
+)
+
 
 warnings_group.add_option(
     "--nowarn-mnemonic",
@@ -2727,6 +2742,12 @@ def parseOptions(logger):
         opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
         if opt_complete is not None:
             opt_complete.autocomplete(parser)
+
+    sys.argv = (
+        [sys.argv[0]]
+        + parser.addEnvironmentVariableDefaultOptions(sys.argv[1:])
+        + sys.argv[1:]
+    )
 
     options, positional_args = parser.parse_args()
 

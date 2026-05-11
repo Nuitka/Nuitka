@@ -141,6 +141,9 @@ Enable warnings for unusual code detected at compile time.
 \fB\-\-assume\-yes\-for\-downloads\fR
 Allow Nuitka to download external code if necessary, e.g. dependency walker, ccache, and even gcc on Windows. To disable, redirect input from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.
 .TP
+\fB\-\-update\-check\fR=\fI\,UPDATE_CHECK\/\fR
+Control checking for newer Nuitka releases. Use "never" to disable it, "force" to bypass the cache once, "error" to make outdated versions abort, "warning" (default) to warn, or "info" to merely inform. This can also be controlled with the environment variable 'NUITKA_UPDATE_CHECK'.
+.TP
 \fB\-\-nowarn\-mnemonic\fR=\fI\,MNEMONIC\/\fR
 Disable warning for a given mnemonic. These are given to make sure you are aware of certain topics, and typically point to the Nuitka website. The mnemonic is the part of the URL at the end, without the HTML suffix. Can be given multiple times and accepts shell pattern. Default empty.
 .IP

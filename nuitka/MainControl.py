@@ -78,6 +78,7 @@ from nuitka.options.Options import (
     getShallFollowExtraFilePatterns,
     getShallFollowModules,
     getShallIncludeDistributionMetadata,
+    getUpdateCheckMode,
     getXMLDumpOutputFilename,
     hasPythonFlagIsolated,
     hasPythonFlagNoAnnotations,
@@ -188,6 +189,7 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+from nuitka.VersionCheck import checkNuitkaUpdate
 
 from . import ModuleRegistry, OutputDirectories
 from .build.SconsInterface import (
@@ -1192,6 +1194,8 @@ def _main():
             "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
         ),
     )
+
+    checkNuitkaUpdate(getUpdateCheckMode())
 
     # In case we are in a PGO run, we read its information first, so it becomes
     # available for later parts.

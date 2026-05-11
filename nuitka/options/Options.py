@@ -101,6 +101,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
 from .OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from .PathSpecs import checkPathSpec
@@ -164,6 +165,8 @@ gave the value '%s'.""" % options.onefile_tempdir_spec)
 
 def _getVersionInformationValues():
     yield getNuitkaVersion()
+    if not os.getenv("NUITKA_MANPAGE_GEN"):
+        yield getNuitkaUpdateStatusValue(getUpdateCheckMode())
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
@@ -193,7 +196,7 @@ def _getVersionInformationValues():
 
 
 def printVersionInformation():
-    print("\n".join(_getVersionInformationValues()))
+    print("\n".join(tuple(_getVersionInformationValues())))
 
     from nuitka.build.SconsInterface import (
         asBoolStr,
@@ -1638,6 +1641,11 @@ def shallWarnUnusualCode():
 def assumeYesForDownloads():
     """:returns: bool derived from ``--assume-yes-for-downloads``"""
     return options is not None and options.assume_yes_for_downloads
+
+
+def getUpdateCheckMode():
+    """:returns: str derived from ``--update-check`` or ``NUITKA_UPDATE_CHECK``"""
+    return options.update_check
 
 
 def _isDebug():

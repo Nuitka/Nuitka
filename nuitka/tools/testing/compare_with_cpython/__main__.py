@@ -360,6 +360,7 @@ def main():
         os.environ["PYTHONHASHSEED"] = "0"
 
     os.environ["PYTHONWARNINGS"] = "ignore"
+    os.environ["NUITKA_UPDATE_CHECK"] = "never"
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
