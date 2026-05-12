@@ -1894,6 +1894,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
             "libffi.dylib",
+            "libffi-trampolines.dylib",
             "libfribidi.dylib",
         ):
             continue
