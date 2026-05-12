@@ -432,6 +432,107 @@ if a != a:
 else:
     print("isn't nan")
 
+
+def getRuntimeValue(value):
+    return value
+
+
+print("Ordered comparisons involving nan floats:")
+nan_value = float(getRuntimeValue("nan"))
+print([nan_value < 1.0, nan_value <= 1.0, nan_value > 1.0, nan_value >= 1.0])
+print([1.0 < nan_value, 1.0 <= nan_value, 1.0 > nan_value, 1.0 >= nan_value])
+print(
+    [
+        1 if nan_value < 1.0 else 0,
+        1 if nan_value <= 1.0 else 0,
+        1 if nan_value > 1.0 else 0,
+        1 if nan_value >= 1.0 else 0,
+    ]
+)
+print(
+    [
+        1 if 1.0 < nan_value else 0,
+        1 if 1.0 <= nan_value else 0,
+        1 if 1.0 > nan_value else 0,
+        1 if 1.0 >= nan_value else 0,
+    ]
+)
+print([not (nan_value <= 1.0), not (nan_value < 1.0)])
+print([not (1.0 <= nan_value), not (1.0 < nan_value)])
+
+int_value = int(getRuntimeValue("1"))
+print([int_value < nan_value, int_value <= nan_value])
+print([int_value > nan_value, int_value >= nan_value])
+print(
+    [
+        1 if int_value < nan_value else 0,
+        1 if int_value <= nan_value else 0,
+        1 if int_value > nan_value else 0,
+        1 if int_value >= nan_value else 0,
+    ]
+)
+
+if str is bytes:
+    print("Mixed int and long comparisons:")
+
+    int_value = int(getRuntimeValue("40"))
+    long_value = type(1 << 100)(getRuntimeValue("42"))
+
+    print(
+        [
+            long_value < int_value,
+            long_value <= int_value,
+            long_value > int_value,
+            long_value >= int_value,
+            long_value != int_value,
+        ]
+    )
+    print(
+        [
+            int_value < long_value,
+            int_value <= long_value,
+            int_value > long_value,
+            int_value >= long_value,
+            int_value != long_value,
+        ]
+    )
+    print(
+        [
+            int_value < 41,
+            int_value <= 41,
+            int_value > 41,
+            int_value >= 41,
+            int_value != 41,
+        ]
+    )
+    print(
+        [
+            1 if long_value < int_value else 0,
+            1 if long_value <= int_value else 0,
+            1 if long_value > int_value else 0,
+            1 if long_value >= int_value else 0,
+            1 if long_value != int_value else 0,
+        ]
+    )
+    print(
+        [
+            1 if int_value < long_value else 0,
+            1 if int_value <= long_value else 0,
+            1 if int_value > long_value else 0,
+            1 if int_value >= long_value else 0,
+            1 if int_value != long_value else 0,
+        ]
+    )
+    print(
+        [
+            1 if int_value < 41 else 0,
+            1 if int_value <= 41 else 0,
+            1 if int_value > 41 else 0,
+            1 if int_value >= 41 else 0,
+            1 if int_value != 41 else 0,
+        ]
+    )
+
 print("inf and -inf sign checks:")
 
 print("inf:", float("inf"), copysign(1.0, float("inf")))
