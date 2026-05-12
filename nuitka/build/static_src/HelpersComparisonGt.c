@@ -11671,54 +11671,6 @@ bool RICH_COMPARE_GT_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
 }
 #endif
 
-#if PYTHON_VERSION < 0x300
-static PyObject *COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-
-    const long a = PyInt_AS_LONG(operand1);
-    const long b = operand2;
-
-    bool r = a > b;
-
-    // Convert to target type.
-    PyObject *result = BOOL_FROM(r);
-    Py_INCREF_IMMORTAL(result);
-    return result;
-}
-#endif
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-PyObject *RICH_COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
-
-    return COMPARE_GT_OBJECT_INT_CLONG(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-static bool COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-
-    const long a = PyInt_AS_LONG(operand1);
-    const long b = operand2;
-
-    bool r = a > b;
-
-    // Convert to target type.
-    bool result = r;
-
-    return result;
-}
-#endif
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-bool RICH_COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
-
-    return COMPARE_GT_CBOOL_INT_CLONG(operand1, operand2);
-}
-#endif
-
 static PyObject *COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));

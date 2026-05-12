@@ -157,16 +157,6 @@ extern PyObject *RICH_COMPARE_GT_OBJECT_LONG_INT(PyObject *operand1, PyObject *o
 extern bool RICH_COMPARE_GT_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern PyObject *RICH_COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern bool RICH_COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
  * Python objects. */
 extern PyObject *RICH_COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2);

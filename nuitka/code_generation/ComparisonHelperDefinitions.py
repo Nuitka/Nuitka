@@ -106,11 +106,11 @@ specialized_cmp_helpers_set = buildOrderedSet(
     _makeTypeOps("TUPLE", may_raise_same_type=True, shortcut=False),
     _makeTypeOps("LIST", may_raise_same_type=True, shortcut=False),
     # Mixed Python types:
-    # TODO: Absolutely possible to shortcut, why aren't we doing it?
+    # TODO: Removing GT/GE/NE for this also removes LONG_CLONG internal helpers
+    # still used by dual NILONG helpers.
     _makeFriendOps("LONG", "INT", may_raise=False, shortcut=False),
-    # Partial Python with C types
-    # TODO: Absolutely possible to shortcut, why aren't we doing it?
-    _makeFriendOps("INT", "CLONG", may_raise=False, shortcut=False),
+    # Partial Python with C types: same inversion applies.
+    _makeFriendOps("INT", "CLONG", may_raise=False, shortcut=True),
     _makeFriendOps("LONG", "DIGIT", may_raise=False, shortcut=False),
     _makeFriendOps("FLOAT", "CFLOAT", may_raise=False, shortcut=False),
     # Partial dual types with C types, cannot shortcut as reverse argument versions are used.
