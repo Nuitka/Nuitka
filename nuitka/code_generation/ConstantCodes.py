@@ -211,9 +211,7 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-        module_name = getDistributionTopLevelPackageNames(
-            distribution=distribution, deep=True
-        )[0]
+        module_name = getDistributionTopLevelPackageNames(distribution=distribution)[0]
 
         _metadata_values[distribution_name] = MetaDataDescription(
             module_name=module_name,
