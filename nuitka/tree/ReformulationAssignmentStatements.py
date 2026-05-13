@@ -73,6 +73,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -628,20 +629,23 @@ def buildAnnAssignNode(provider, node, source_ref):
             else:
                 ref_class = ExpressionVariableNameRef
 
-            statements.append(
-                StatementAssignmentSubscript(
-                    subscribed=ref_class(
-                        provider=provider,
-                        variable_name="__annotations__",
+            if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
+                provider.deferred_annotations[variable_name] = annotation
+            else:
+                statements.append(
+                    StatementAssignmentSubscript(
+                        subscribed=ref_class(
+                            provider=provider,
+                            variable_name="__annotations__",
+                            source_ref=source_ref,
+                        ),
+                        subscript=makeConstantRefNode(
+                            constant=variable_name, source_ref=source_ref
+                        ),
+                        source=annotation,
                         source_ref=source_ref,
-                    ),
-                    subscript=makeConstantRefNode(
-                        constant=variable_name, source_ref=source_ref
-                    ),
-                    source=annotation,
-                    source_ref=source_ref,
+                    )
                 )
-            )
         else:
             # Functions or disabled.
             if node.simple:

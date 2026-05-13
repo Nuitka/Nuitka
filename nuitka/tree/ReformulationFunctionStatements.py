@@ -645,7 +645,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
-def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
+def makeDeferredAnnotateFunctionBody(provider, annotations, source_ref):
     function_name = "__annotate__"
     parameters = ParameterSpec(
         ps_name=function_name,
@@ -701,9 +701,7 @@ def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
             source_ref=source_ref,
         ),
         no_branch=StatementReturn(
-            expression=makeDictCreationOrConstant2(
-                keys=keys, values=values, source_ref=source_ref
-            ),
+            expression=annotations,
             source_ref=source_ref,
         ),
         source_ref=source_ref,
@@ -713,13 +711,12 @@ def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
     return outer_body
 
 
-def makeDeferredAnnotateFunctionObject(provider, keys, values, source_ref):
+def makeDeferredAnnotateFunctionObject(provider, annotations, source_ref):
     return makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=makeDeferredAnnotateFunctionBody(
                 provider=provider,
-                keys=keys,
-                values=values,
+                annotations=annotations,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -819,8 +816,9 @@ def buildParameterAnnotations(provider, node, source_ref):
         if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
             return makeDeferredAnnotateFunctionObject(
                 provider=provider,
-                keys=keys,
-                values=values,
+                annotations=makeDictCreationOrConstant2(
+                    keys=keys, values=values, source_ref=source_ref
+                ),
                 source_ref=source_ref,
             )
         else:

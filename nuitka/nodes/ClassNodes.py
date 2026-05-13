@@ -124,7 +124,12 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
-    __slots__ = ("needs_annotations_dict", "qualname_setup", "static_attributes")
+    __slots__ = (
+        "needs_annotations_dict",
+        "qualname_setup",
+        "static_attributes",
+        "deferred_annotations",
+    )
 
     # Force creation with proper type.
     locals_kind = "python_mapping_class"
@@ -142,6 +147,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
+        self.deferred_annotations = {} if python_version >= 0x3E0 else None
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)
