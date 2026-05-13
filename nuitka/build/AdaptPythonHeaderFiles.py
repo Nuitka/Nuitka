@@ -48,6 +48,8 @@ def getOffsetsJsonRequiredKeys(for_python_version_str):
         keys.extend(["imports", "static_objects", "ceval"])
         if for_python_version_tuple >= (3, 13):
             keys.append("stoptheworld")
+        if for_python_version_tuple >= (3, 14):
+            keys.append("ref_tracer")
     else:
         keys.append("gilstate")
 
@@ -361,8 +363,11 @@ def _shallCreateAdaptedPythonHeaderFiles():
         uses_default_platform_gate = True
     else:
         # Python 3.14 module mode needs adapted headers on all OSes due to
-        # cross-patch interpreter layout changes.
-        uses_default_platform_gate = not is_python314_module_mode
+        # cross-patch interpreter layout changes. For MSVC, offsetof is
+        # always correct since the compiler and runtime layouts match.
+        uses_default_platform_gate = (
+            not is_python314_module_mode or needs_windows_mingw_opt_in
+        )
 
     if uses_default_platform_gate:
         # TODO: We delay this until we have a better way to detect the compiler
