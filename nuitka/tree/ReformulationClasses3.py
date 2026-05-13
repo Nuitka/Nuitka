@@ -357,6 +357,8 @@ def buildClassNode3(provider, node, source_ref):
                     source_ref=source_ref,
                 )
             )
+
+            class_dict_creation_function.deferred_annotations = None
     elif (
         python_version >= 0x360
         and class_dict_creation_function.needsAnnotationsDictionary()
