@@ -32,8 +32,6 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
-    ExpressionConstantNoneRef,
-    ExpressionConstantStrRef,
     ExpressionConstantTupleRef,
     makeConstantRefNode,
 )
@@ -104,7 +102,7 @@ from .InternalModule import (
     once_decorator,
 )
 from .ReformulationDictionaryCreation import buildDictionaryUnpacking
-from .ReformulationFunctionStatements import makeDeferredAnnotateFunctionObject
+from .ReformulationFunctionStatements import makeDeferredAnnotateFunctionBody
 from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import (
@@ -112,6 +110,7 @@ from .ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
 )
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildFrameNode,
     buildNode,
     buildNodeTuple,
@@ -319,27 +318,45 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
-        keys = []
-        values = []
-        for key, value in class_dict_creation_function.deferred_annotations.items():
-            keys.append(key)
-            values.append(value)
-        statements.append(
-            StatementLocalsDictOperationSet(
-                locals_scope=locals_scope,
-                variable_name="__annotate__",
-                source=makeDeferredAnnotateFunctionObject(
-                    provider=class_dict_creation_function,
-                    annotations=makeDictCreationOrConstant2(
-                        keys=keys,
-                        values=values,
+        if class_dict_creation_function.deferred_annotations:
+            outer_body, return_statement = makeDeferredAnnotateFunctionBody(
+                provider=class_dict_creation_function,
+                source_ref=source_ref,
+            )
+
+            keys = []
+            values = []
+            for (
+                var_name,
+                ast_node,
+            ) in class_dict_creation_function.deferred_annotations.items():
+                keys.append(var_name)
+                values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+
+            return_statement.subnode_expression = makeDictCreationOrConstant2(
+                keys=keys,
+                values=values,
+                source_ref=source_ref,
+            )
+            return_statement.subnode_expression.parent = return_statement
+
+            statements.append(
+                StatementLocalsDictOperationSet(
+                    locals_scope=locals_scope,
+                    variable_name="__annotate_func__",
+                    source=makeExpressionFunctionCreation(
+                        function_ref=ExpressionFunctionRef(
+                            function_body=outer_body,
+                            source_ref=source_ref,
+                        ),
+                        defaults=(),
+                        kw_defaults=None,
+                        annotations=None,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
-                ),
-                source_ref=source_ref,
+                )
             )
-        )
     elif (
         python_version >= 0x360
         and class_dict_creation_function.needsAnnotationsDictionary()

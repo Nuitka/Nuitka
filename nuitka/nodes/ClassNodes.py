@@ -7,6 +7,7 @@ The classes are are at the core of the language and have their complexities.
 
 """
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
@@ -147,7 +148,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
-        self.deferred_annotations = {} if python_version >= 0x3E0 else None
+        self.deferred_annotations = OrderedDict() if python_version >= 0x3E0 else None
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)
