@@ -3968,7 +3968,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 47010086
+- module-name: 'pandas' # checksum: 1899c1ff
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3981,6 +3981,9 @@
         'pandas.core._numba.extensions': 'no numba acceleration'
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
+    - description: 'avoid pulling in matplotlib through pandas plotting'
+      no-auto-follow:
+        'pandas.plotting._matplotlib': 'plotting will not be available'
     - description: 'remove getrefcount usage'
       global_replacements_plain:
         'if sys.getrefcount(': 'if False and sys.getrefcount('
