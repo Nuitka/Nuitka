@@ -28,6 +28,37 @@ def getUnifiedDiff(
     )
 
 
+def printUnifiedDiff(
+    old_lines, new_lines, old_filename, new_filename, my_print, num_lines=3
+):
+    """Print a unified diff to the given output function.
+
+    Generates and prints a unified diff, handling the line ending so that
+    double newlines are avoided.
+
+    Args:
+        old_lines: list of lines for old content (without line endings)
+        new_lines: list of lines for new content (without line endings)
+        old_filename: label for old file
+        new_filename: label for new file
+        my_print: callable taking a string
+        num_lines: number of context lines
+    """
+
+    diff = getUnifiedDiff(
+        old_lines=old_lines,
+        new_lines=new_lines,
+        old_filename=old_filename,
+        new_filename=new_filename,
+        num_lines=num_lines,
+        lineterm="",
+    )
+
+    lines = list(diff)
+    if lines:
+        my_print("\n".join(lines) + "\n")
+
+
 def getHtmlDiffTable(
     old_lines, new_lines, old_desc, new_desc, context=False, num_lines=5
 ):

@@ -26,6 +26,7 @@ from nuitka.tools.quality.Git import (
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.Diffs import printUnifiedDiff
 from nuitka.utils.Execution import check_call, getExecutablePath
 from nuitka.utils.FileOperations import (
     addFileContentsBOM,
@@ -580,6 +581,19 @@ def withFileOpenedAndAutoFormatted(
             tmp_filename, mode="rb"
         ) != getFileContents(filename, mode="rb"):
             if check_only:
+                if not os.path.exists(filename):
+                    old_lines = []
+                else:
+                    old_lines = getFileContents(filename).splitlines()
+
+                printUnifiedDiff(
+                    old_lines=old_lines,
+                    new_lines=getFileContents(tmp_filename).splitlines(),
+                    old_filename="a/" + filename,
+                    new_filename="b/" + filename,
+                    my_print=my_print,
+                )
+
                 tools_logger.sysexit(
                     "Error, generated code for %s would change." % effective_filename
                 )
