@@ -2022,10 +2022,15 @@ void _initBuiltinModule(PyThreadState *tstate) {
             PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
         assert(res == 0);
 
-        // For actual DLL mode, we don't have this, but the form used in onefile
-        // will providing our own executable that knows what to do.
 #if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
-        PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+#if _NUITKA_ONEFILE_DLL_MODE
+        // In onefile DLL mode, the outer EXE is the one to use for child
+        // process spawning, not the loaded DLL.
+        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe",
+                                   Nuitka_String_FromFilename(getBinaryPath()));
+#else
+        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+#endif
         assert(res == 0);
 #endif
     }
