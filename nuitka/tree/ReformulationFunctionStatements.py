@@ -592,6 +592,14 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         )
     )
 
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_tuple = ExpressionMakeTuple(
+            elements=buildNodeTuple(provider, node.type_params, source_ref),
+            source_ref=source_ref,
+        )
+    else:
+        type_params_tuple = None
+
     function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=creator_function_body, source_ref=source_ref
@@ -599,6 +607,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         defaults=defaults,
         kw_defaults=kw_defaults,
         annotations=annotations,
+        type_params=type_params_tuple,
         source_ref=source_ref,
     )
 
