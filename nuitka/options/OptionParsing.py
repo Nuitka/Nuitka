@@ -255,11 +255,19 @@ from it. Default is not to use it.""",
 )
 
 parser.add_option(
-    "--pyproject-requires",
+    "--project-requires",
     action="append",
-    dest="pyproject_requires",
+    dest="project_requires",
     default=[],
     github_action=False,
+    help=SUPPRESS_HELP,
+)
+
+parser.add_option(
+    "--project-name",
+    action="store",
+    dest="project_name",
+    default=None,
     help=SUPPRESS_HELP,
 )
 

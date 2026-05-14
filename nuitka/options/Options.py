@@ -109,6 +109,13 @@ from .PathSpecs import checkPathSpec
 options = None
 positional_args = None
 extra_args = []
+
+
+def getProjectName():
+    """*str* or *None*, value of ``--project-name``, or set by build backend."""
+    return options.project_name if options is not None else None
+
+
 is_nuitka_run = None
 
 
@@ -930,6 +937,16 @@ def commentArgs():
     """
     # A ton of cases to consider.
     # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
+
+    # Option '--main-entry-point' is intended for project-based builds. Require
+    # a project name (from pyproject.toml / distutils / '--project') so we can
+    # use it for naming build artifacts.
+    if getMainEntryPointSpecs():
+        if not getProjectName():
+            return options_logger.sysexit("""\
+Error, '--main-entry-point' requires a project name. Use '--project' \
+or run from a project directory with 'pyproject.toml', 'setup.py', or \
+'setup.cfg'.""")
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
@@ -1768,8 +1785,10 @@ def getMainEntryPointFilenames():
             assert not positional_args
 
         result = tuple(options.mains)
-    else:
+    elif positional_args:
         result = (positional_args[0],)
+    else:
+        result = ()
 
     return tuple(getUserInputNormalizedPath(r) for r in result)
 
@@ -3219,7 +3238,7 @@ def getPyProjectRequiredPackages():
     # TODO: Move this to using code to avoid cyclic dependency.
     from nuitka.utils.Distributions import filterInstallRequires
 
-    return filterInstallRequires(options.pyproject_requires)
+    return filterInstallRequires(options.project_requires)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

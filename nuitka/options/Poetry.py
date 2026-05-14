@@ -13,7 +13,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import reportBuildError, setProjectName
+from .BuildPackageCommon import reportBuildError
 
 
 def getPoetryBuildConfiguration(logger):
@@ -62,9 +62,12 @@ def getPoetryBuildConfiguration(logger):
         else:
             addMainScriptDirectory(os.getcwd())
 
-    setProjectName(config.get("project_name"))
+    arguments = config.get("arguments", [])
+    project_name = config.get("project_name")
+    if project_name:
+        arguments.insert(0, "--project-name=%s" % project_name)
 
-    return config.get("arguments", [])
+    return arguments
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -17,6 +17,7 @@ from nuitka.options.Options import (
     getOutputFolderName,
     getOutputPath,
     getPgoExecutable,
+    getProjectName,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
@@ -50,9 +51,13 @@ def _getResultBaseName(suffix):
     if build_basename:
         return build_basename + suffix
 
-    return os.path.basename(
-        getTreeFilenameWithSuffix(module=_main_module, suffix=suffix)
-    )
+    if _main_module is not None:
+        return os.path.basename(
+            getTreeFilenameWithSuffix(module=_main_module, suffix=suffix)
+        )
+
+    # Using --main-entry-point option is the only way to get here.
+    return getProjectName() + suffix
 
 
 def setMainModule(main_module):

@@ -99,6 +99,9 @@ def setupImportingFromOptions():
     global _safe_path
     _safe_path = hasPythonFlagNoCurrentDirectoryInPath()
 
+    global _setup_complete
+    _setup_complete = True
+
     # Lets try and have this complete, please report failures.
     if states.is_debug and not isMonolithPy():
         _checkRaisingBuiltinComplete()
@@ -141,6 +144,9 @@ warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
 _main_paths = OrderedSet()
+
+# Flag indicating that importing layer setup has completed.
+_setup_complete = False
 
 # Additions to sys.paths from plugins.
 _extra_paths = OrderedSet()
@@ -215,6 +221,9 @@ def addMainScriptDirectory(main_dir):
 
     We use this as part of the search path for modules.
     """
+    global _setup_complete  # singleton, pylint: disable=global-statement
+    _setup_complete = True
+
     _main_paths.add(main_dir)
 
 
@@ -908,7 +917,7 @@ def getPackageSearchPath(package_name):
     # TODO: Some branches here are hard coded things that ought to be plugin
     # decisions, pylint: disable=too-many-branches
 
-    if not _main_paths:
+    if not _setup_complete:
         return None
 
     if package_name is None:
@@ -1088,7 +1097,7 @@ def locateModule(module_name, parent_package, level, logger=None):
         kind.
     """
 
-    if not _main_paths:
+    if not _setup_complete:
         raise NuitkaCodeDeficit(
             "Error, cannot locate modules before import mechanism is setup."
         )

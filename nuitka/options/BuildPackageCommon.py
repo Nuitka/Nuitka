@@ -5,20 +5,10 @@
 This module provides common functionality for build package backends.
 
 It stores global state about the project that is being built, e.g. the
-project name and the expected data files.
+expected data files.
 """
 
-_project_name = None
 _project_expected_data_files = None
-
-
-def getProjectName():
-    return _project_name
-
-
-def setProjectName(project_name):
-    global _project_name  # singleton, pylint: disable=global-statement
-    _project_name = project_name
 
 
 def getProjectExpectedDataFiles():

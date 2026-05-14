@@ -13,11 +13,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import (
-    reportBuildError,
-    setProjectExpectedDataFiles,
-    setProjectName,
-)
+from .BuildPackageCommon import reportBuildError, setProjectExpectedDataFiles
 
 
 def _maybeVirtualEnv(path):
@@ -33,6 +29,34 @@ def _maybeVirtualEnv(path):
         return True
 
     return False
+
+
+def _handleUvConfig(logger, pyproject_data):
+    uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
+    uv_build_config = dict(uv_config.pop("build-backend", {}))
+
+    module_root = uv_build_config.pop("module-root", None)
+    if module_root is not None:
+        addMainScriptDirectory(os.path.abspath(module_root))
+    elif os.path.exists("src"):
+        addMainScriptDirectory(os.path.abspath("src"))
+    else:
+        addMainScriptDirectory(os.getcwd())
+
+    if uv_build_config:
+        for unhandled_key in uv_build_config:
+            logger.warning(
+                """\
+Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
+'pyproject.toml', we might have to ignore list or handle it: %s"""
+                % (unhandled_key, uv_build_config[unhandled_key])
+            )
+
+    if uv_config:
+        for unhandled_key in uv_config:
+            logger.warning("""\
+Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
+have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
 
 
 def getUvBuildConfiguration(logger, pyproject_data):
@@ -76,7 +100,7 @@ def getUvBuildConfiguration(logger, pyproject_data):
             )
 
         if not os.path.exists(dump_filename):
-            logger.sysexit(
+            return logger.sysexit(
                 "Error, 'uv_build' configuration extraction produced no output file."
             )
 
@@ -84,32 +108,7 @@ def getUvBuildConfiguration(logger, pyproject_data):
 
         arguments = config.get("arguments", [])
 
-        # Parse tool.uv configuration
-        uv_config = dict(pyproject_data.get("tool", {}).get("uv", {}))
-        uv_build_config = dict(uv_config.pop("build-backend", {}))
-
-        module_root = uv_build_config.pop("module-root", None)
-        if module_root is not None:
-            addMainScriptDirectory(os.path.abspath(module_root))
-        elif os.path.exists("src"):
-            addMainScriptDirectory(os.path.abspath("src"))
-        else:
-            addMainScriptDirectory(os.getcwd())
-
-        if uv_build_config:
-            for unhandled_key in uv_build_config:
-                logger.warning(
-                    """\
-Unhandled UV build backend config key '%s' in [tool.uv.build-backend] of the \
-'pyproject.toml', we might have to ignore list or handle it: %s"""
-                    % (unhandled_key, uv_build_config[unhandled_key])
-                )
-
-        if uv_config:
-            for unhandled_key in uv_config:
-                logger.warning("""\
-Unhandled UV config key '%s' in [tool.uv] of the 'pyproject.toml', we might \
-have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_key]))
+        _handleUvConfig(logger, pyproject_data)
 
         detected_packages = config.get("packages", [])
 
@@ -119,8 +118,11 @@ have to ignore list or handle it: %s""" % (unhandled_key, uv_config[unhandled_ke
             arguments.append("--include-package-data=%s" % package_name)
             arguments.append("--include-package=%s" % package_name)
 
-        setProjectName(config.get("project_name"))
         setProjectExpectedDataFiles(config.get("data_files", []))
+
+        project_name = config.get("project_name")
+        if project_name:
+            arguments.insert(0, "--project-name=%s" % project_name)
 
         # TODO: Check against IncludedDataFiles set once that is considered complete
 

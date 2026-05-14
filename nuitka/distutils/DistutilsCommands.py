@@ -173,7 +173,7 @@ class build(distutils.command.build.build):
 
         if self.distribution.install_requires:
             for req in self.distribution.install_requires:
-                nuitka_command.append("--pyproject-requires=%s" % req)
+                nuitka_command.append("--project-requires=%s" % req)
 
         result = {
             "package_dir": self.distribution.package_dir,

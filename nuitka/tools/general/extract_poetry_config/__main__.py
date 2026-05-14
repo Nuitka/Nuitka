@@ -100,7 +100,7 @@ def getPoetryConfig():
 
     arguments = entry_point_args + package_args + data_file_args
     for req in package.requires:
-        arguments.append("--pyproject-requires=%s" % req)
+        arguments.append("--project-requires=%s" % req)
 
     arguments.append("--output-folder-name=%s" % package.name)
 
