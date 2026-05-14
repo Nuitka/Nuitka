@@ -4890,6 +4890,11 @@
         'cython': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'pyDOE3.orthogonal_arrays' # checksum: b8704389
+  data-files:
+    - patterns:
+        - '*.oa'
+
 - module-name: 'pyface' # checksum: a2a403b1
   data-files:
     - include-metadata:
