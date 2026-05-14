@@ -470,6 +470,20 @@ def addIncludedDataFile(included_datafile):
     Args:
         included_datafile: The IncludedDataFile object to add.
     """
+    for candidate in _included_data_files:
+        if candidate.dest_path == included_datafile.dest_path:
+            inclusion_logger.warning(
+                """\
+Duplicate data file '%s' from '%s' is already provided via '%s' -- ignored."""
+                % (
+                    included_datafile.dest_path,
+                    included_datafile.reason,
+                    candidate.reason,
+                )
+            )
+
+            return
+
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
     for external_datafile_pattern in getShallNotIncludeDataFilePatterns():
@@ -484,11 +498,6 @@ def addIncludedDataFile(included_datafile):
             return
 
     onDataFileTags(included_datafile)
-
-    # TODO: Catch duplicates sooner.
-    # for candidate in _included_data_files:
-    #     if candidate.dest_path == included_datafile.dest_path:
-    #         assert False, included_datafile
 
     if included_datafile.needsCopy():
         for external_datafile_pattern in getShallIncludeExternallyDataFilePatterns():

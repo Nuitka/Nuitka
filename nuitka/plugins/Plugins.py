@@ -886,9 +886,16 @@ through implicit import by '%s' plugin encountered."""
                 for included_datafile in _iterateIncludedDataFiles(plugin, value):
                     yield included_datafile
 
-    @staticmethod
+    _data_file_tags_cache = set()
+
+    @classmethod
     @counted_plugin_method
-    def onDataFileTags(included_datafile):
+    def onDataFileTags(cls, included_datafile):
+        if included_datafile.dest_path in cls._data_file_tags_cache:
+            return
+
+        cls._data_file_tags_cache.add(included_datafile.dest_path)
+
         for plugin in getActivePlugins():
             plugin.onDataFileTags(included_datafile)
 
