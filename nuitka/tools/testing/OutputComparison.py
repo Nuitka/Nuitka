@@ -172,7 +172,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # TODO: Maybe we need Nuitka-Prompt as a logger used there?
         if (
-            line.startswith("Nuitka will make use of ccache")
+            line.startswith("Nuitka depends on '")
+            or line.startswith("Nuitka will make use of ccache")
             or line.startswith("Fully automatic, cached.")
             or "Is it OK to download" in line
         ):
