@@ -112,28 +112,32 @@ sys.exit(%(module_name)s.%(main_name)s)
 from __future__ import absolute_import
 
 import os
-from pkg_resources import register_loader_type, EggProvider
+try:
+    from pkg_resources import register_loader_type, EggProvider
+except ImportError:
+    pass
+else:
 
-class NuitkaProvider(EggProvider):
-    def _has(self, path):
-        return os.path.exists(path)
+    class NuitkaProvider(EggProvider):
+        def _has(self, path):
+            return os.path.exists(path)
 
-    def _isdir(self, path):
-        return os.path.isdir(path)
+        def _isdir(self, path):
+            return os.path.isdir(path)
 
-    def _listdir(self, path):
-        return os.listdir(path)
+        def _listdir(self, path):
+            return os.listdir(path)
 
-    def get_resource_stream(self, manager, resource_name):
-        return open(self._fn(self.module_path, resource_name), 'rb')
+        def get_resource_stream(self, manager, resource_name):
+            return open(self._fn(self.module_path, resource_name), 'rb')
 
-    def _get(self, path):
-        with open(path, 'rb') as stream:
-            return stream.read()
+        def _get(self, path):
+            with open(path, 'rb') as stream:
+                return stream.read()
 
-assert __loader__.__class__.__name__ == "nuitka_module_loader", __loader__
+    assert __loader__.__class__.__name__ == "nuitka_module_loader", __loader__
 
-register_loader_type(__loader__.__class__, NuitkaProvider)
+    register_loader_type(__loader__.__class__, NuitkaProvider)
 """
 
             yield (
