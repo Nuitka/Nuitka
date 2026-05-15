@@ -164,6 +164,10 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
     project_name = config.get("project_name")
     if project_name:
         arguments.insert(0, "--project-name=%s" % project_name)
+    else:
+        return logger.sysexit("""\
+Error, 'setuptools' project has no 'name'. Set it in 'setup.py', \
+'setup.cfg', or the '[project]' section of 'pyproject.toml'.""")
 
     return arguments
 

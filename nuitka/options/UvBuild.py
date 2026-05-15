@@ -123,6 +123,10 @@ def getUvBuildConfiguration(logger, pyproject_data):
         project_name = config.get("project_name")
         if project_name:
             arguments.insert(0, "--project-name=%s" % project_name)
+        else:
+            return logger.sysexit("""\
+Error, 'uv_build' project has no 'name'. Set it in the '[project]' \
+section of 'pyproject.toml'.""")
 
         # TODO: Check against IncludedDataFiles set once that is considered complete
 
