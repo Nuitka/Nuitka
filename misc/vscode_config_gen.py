@@ -234,7 +234,7 @@ def main():
     print(f"Successfully generated {output_path}")
 
     # Also generate .clangd for clangd-based LSP support
-    clangd_template_path = os.path.join(repo_root, ".clangd.j2")
+    clangd_template_path = os.path.join(repo_root, "misc", "clangd.j2")
     if os.path.exists(clangd_template_path):
         print("Generating .clangd...")
 
