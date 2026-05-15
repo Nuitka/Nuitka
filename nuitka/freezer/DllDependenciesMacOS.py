@@ -324,6 +324,13 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
+        elif os.path.isabs(path) and not os.path.exists(path):
+            candidate = os.path.join(original_dir, os.path.basename(path))
+
+            if os.path.exists(candidate):
+                resolved_path = candidate
+            else:
+                resolved_path = path
         elif isMonolithPy() and not os.path.isabs(path) and not os.path.exists(path):
             # Although MonolithPy statically links all packages, some of them
             # have proprietary dependencies that cannot be statically built and
