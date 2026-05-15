@@ -221,6 +221,7 @@ def main():
     module_entry_point = hasArgValue("--module-entry-point")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
+    verify_signature = hasArg("verify_signature")
     binary_python_path = hasArg("binary_python_path")
     trace_command = (
         hasArg("trace_command") or os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0"
@@ -336,6 +337,11 @@ def main():
         else:
             standalone_mode = True
             onefile_mode = True
+
+    # Verify signature must happen before the binary runs and modifies the
+    # framework, so we enable two step execution.
+    if verify_signature and app_bundle_mode:
+        two_step_execution = True
 
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual
@@ -612,6 +618,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             )
         elif onefile_mode:
             nuitka_cmd1 = nuitka_call + extra_options + ["--mode=onefile", filename]
+        elif app_bundle_mode:
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=app", filename]
         elif standalone_mode:
             nuitka_cmd1 = nuitka_call + extra_options + ["--mode=standalone", filename]
         else:
@@ -633,14 +641,25 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if filename.endswith(".py"):
             exe_filename = exe_filename[:-3]
 
-        exe_filename = exe_filename.replace(")", "").replace("(", "")
-
-        if os.name == "nt":
-            exe_filename += ".exe"
+        if app_bundle_mode:
+            nuitka_cmd2 = [
+                os.path.join(
+                    output_dir,
+                    exe_filename + ".app",
+                    "Contents",
+                    "MacOS",
+                    exe_filename,
+                )
+            ]
         else:
-            exe_filename += ".bin"
+            exe_filename = exe_filename.replace(")", "").replace("(", "")
 
-        nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
+            if os.name == "nt":
+                exe_filename += ".exe"
+            else:
+                exe_filename += ".bin"
+
+            nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
         pdb_filename = exe_filename[:-4] + ".pdb"
 
@@ -731,6 +750,31 @@ Stderr was:
                 )
                 stderr_nuitka2 = process_result.stderr
             else:
+                if verify_signature and app_bundle_mode:
+                    app_name = os.path.splitext(os.path.basename(filename))[0]
+
+                    app_bundle_path = os.path.join(
+                        output_dir if output_dir else ".", app_name + ".app"
+                    )
+
+                    my_print(
+                        "Checking macOS code signature for app bundle '%s'."
+                        % app_bundle_path
+                    )
+
+                    verify_cmd = [
+                        "/usr/bin/codesign",
+                        "--verify",
+                        "--deep",
+                        "--strict",
+                        app_bundle_path,
+                    ]
+
+                    verify_result = callProcess(verify_cmd)
+
+                    if verify_result != 0:
+                        sys.exit("Error, app bundle code signing verification failed.")
+
                 # No execution second step for coverage mode.
                 if comparison_mode:
                     if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
