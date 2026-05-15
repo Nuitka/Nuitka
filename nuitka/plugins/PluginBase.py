@@ -1418,7 +1418,14 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
     _runtime_information_cache = {}
 
-    def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+    def queryRuntimeInformationMultiple(
+        self, info_name, setup_codes, values, warn_import_error=True
+    ):
+        # TODO: Visit all usages of queryRuntimeInformationMultiple to decide if
+        # warn_import_error=True should be passed for callers where the
+        # setup_code importing a module is expected to potentially fail, then
+        # remove the default argument.
+
         # Rather complicated error handling, pylint: disable=too-many-branches
 
         info_name = self.plugin_name + "_" + info_name
@@ -1505,10 +1512,11 @@ except Exception as e:
             feedback = check_output(command, env=env)
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
-                self.warning(
-                    "Import error (not installed?) during compile time command execution: %s"
-                    % e.stderr.splitlines()[-1]
-                )
+                if warn_import_error:
+                    self.warning(
+                        "Import error (not installed or broken?) during compile time command execution: %s"
+                        % e.stderr.splitlines()[-1]
+                    )
 
                 return None
 
