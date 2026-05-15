@@ -803,10 +803,12 @@
     - depends:
         - 'chainer.distributions.utils'
 
-- module-name: 'charset_normalizer' # checksum: 3a81fa9
+- module-name: 'charset_normalizer' # checksum: 63d29872
   implicit-imports:
     - depends:
         - 'charset_normalizer.md__mypyc'
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'chia.ssl.create_ssl' # checksum: d95c1483
   implicit-imports:
