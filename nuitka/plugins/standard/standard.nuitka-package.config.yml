@@ -3153,6 +3153,62 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
+- module-name: 'mssql_python' # checksum: 4cd7d5fd
+  variables:
+    setup_code:
+      - 'import platform, os'
+      - 'machine = platform.machine().lower()'
+    declarations:
+      'linux_arch': "'arm64' if machine in ('arm64', 'aarch64') else 'x86_64'"
+      'linux_distro': "'alpine' if os.path.exists('/etc/alpine-release') else 'suse' if os.path.exists('/etc/SuSE-release') or os.path.exists('/etc/SUSE-brand') else 'rhel' if os.path.exists('/etc/redhat-release') else 'debian_ubuntu'"
+    when: 'linux'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'pyd'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'so'
+      when: 'linux or macos'
+    - from_filenames:
+        relative_path: 'libs/windows/x64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'libs/windows/arm64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/arm64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/x86_64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_amd64'
+    - from_filenames:
+        relative_path: "os.path.join('libs', 'linux', get_variable('linux_distro'), get_variable('linux_arch'), 'lib')"
+        prefixes:
+          - 'lib'
+      when: 'linux'
+
+  implicit-imports:
+    - depends:
+        - 'mssql_python.ddbc_bindings'
+
 - module-name: 'multiprocess.util' # checksum: df30b465
   anti-bloat:
     - description: 'avoid test module usage'
