@@ -548,6 +548,7 @@ import %(binding_name)s.QtCore
             ".frag",
             "qmldir",
             ".webp",
+            ".md",
         )
 
         if dlls:
