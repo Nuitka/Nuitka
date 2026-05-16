@@ -193,6 +193,138 @@ for _ in range(100):
 print("attribute value equal to instance dict: ok")
 
 
+class AlternateAttributeA:
+    pass
+
+
+class AlternateAttributeB:
+    pass
+
+
+alt_a = AlternateAttributeA()
+alt_b = AlternateAttributeB()
+
+alt_a.shared = "from_a"
+alt_a.padding = "a_padding"
+
+alt_b.padding = "b_padding"
+alt_b.shared = "from_b"
+
+for _ in range(100):
+    assert alt_a.shared == "from_a", alt_a.shared
+    assert alt_b.shared == "from_b", alt_b.shared
+
+print("cache reuse across alternating types: ok")
+
+
+class TypeVersionDataDescriptor:
+    pass
+
+
+version_obj = TypeVersionDataDescriptor()
+version_obj.x = "from_instance"
+
+for _ in range(100):
+    assert version_obj.x == "from_instance", version_obj.x
+
+
+class ReplacementDescriptor:
+    def __get__(self, obj, objtype=None):
+        return "from_descriptor"
+
+    def __set__(self, obj, value):
+        raise AssertionError("not used")
+
+
+TypeVersionDataDescriptor.x = ReplacementDescriptor()
+
+for _ in range(100):
+    assert version_obj.x == "from_descriptor", version_obj.x
+
+print("type version invalidates for new data descriptor: ok")
+
+
+class TypeVersionGetattribute:
+    pass
+
+
+getattribute_obj = TypeVersionGetattribute()
+getattribute_obj.x = "from_instance"
+getattribute_obj.y = "from_getattribute"
+
+for _ in range(100):
+    assert getattribute_obj.x == "from_instance", getattribute_obj.x
+
+
+def replacementGetattribute(self, name):
+    if name == "x":
+        return object.__getattribute__(self, "y")
+
+    return object.__getattribute__(self, name)
+
+
+TypeVersionGetattribute.__getattribute__ = replacementGetattribute
+
+for _ in range(100):
+    assert getattribute_obj.x == "from_getattribute", getattribute_obj.x
+
+getattribute_obj.y = "updated_getattribute"
+
+for _ in range(100):
+    assert getattribute_obj.x == "updated_getattribute", getattribute_obj.x
+
+print("type version invalidates for new __getattribute__: ok")
+
+
+class TypeVersionBaseOriginal:
+    pass
+
+
+class TypeVersionBaseReplacement:
+    @property
+    def x(self):
+        return "from_base_property"
+
+
+class TypeVersionBases(TypeVersionBaseOriginal):
+    pass
+
+
+bases_obj = TypeVersionBases()
+bases_obj.x = "from_instance"
+
+for _ in range(100):
+    assert bases_obj.x == "from_instance", bases_obj.x
+
+TypeVersionBases.__bases__ = (TypeVersionBaseReplacement,)
+
+for _ in range(100):
+    assert bases_obj.x == "from_base_property", bases_obj.x
+
+print("type version invalidates for base change: ok")
+
+
+class ClassReassignmentA:
+    pass
+
+
+class ClassReassignmentB:
+    pass
+
+
+class_reassignment_obj = ClassReassignmentA()
+
+for _ in range(100):
+    assert class_reassignment_obj.__class__ is ClassReassignmentA
+
+class_reassignment_obj.__class__ = ClassReassignmentB
+
+for _ in range(100):
+    assert class_reassignment_obj.__class__ is ClassReassignmentB
+
+print("__class__ cache follows class reassignment: ok")
+
+
 class HasattrTest:
     def __init__(self):
         self.exists = 1
@@ -225,6 +357,28 @@ for _ in range(100):
     assert test_builtin_hasattr_const(ht) is True
 
 print("builtin hasattr constant (AttributeCache cached): ok")
+
+
+class HasattrSideEffect:
+    def __init__(self):
+        self.count = 0
+
+    @property
+    def observed(self):
+        self.count += 1
+        return "value"
+
+
+side_effect_obj = HasattrSideEffect()
+
+assert hasattr(side_effect_obj, "observed") is True
+assert side_effect_obj.count == 1, side_effect_obj.count
+
+for i in range(10):
+    assert hasattr(side_effect_obj, "observed") is True
+    assert side_effect_obj.count == i + 2, side_effect_obj.count
+
+print("hasattr performs one lookup per check: ok")
 
 
 #     Python tests originally created or extracted from other peoples work. The

@@ -10,20 +10,23 @@ static int {{ helper_name }}(PyThreadState *tstate, PyObject *source) {
         return hit;
     }
 
-    int result = BUILTIN_HASATTR_BOOL(tstate, source, {{ attribute_name_code }});
+    PyObject *result = LOOKUP_ATTRIBUTE(tstate, source, {{ attribute_name_code }});
 
-    if (result != -1 && cache.type_ver == 0) {
-        PyObject *val = LOOKUP_ATTRIBUTE(tstate, source, {{ attribute_name_code }});
-
-        if (val != NULL) {
-            Nuitka_AttributeCache_Fill(&cache, source, {{ attribute_name_code }}, val);
-            Py_DECREF(val);
-        } else {
-            CLEAR_ERROR_OCCURRED(tstate);
+    if (result == NULL) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+            return 0;
         }
+
+        return -1;
     }
 
-    return result;
+    if (cache.type_ver == 0) {
+        Nuitka_AttributeCache_Fill(&cache, source, {{ attribute_name_code }}, result);
+    }
+
+    Py_DECREF(result);
+
+    return 1;
 #else
     return BUILTIN_HASATTR_BOOL(tstate, source, {{ attribute_name_code }});
 #endif
