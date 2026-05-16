@@ -98,7 +98,7 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 // Called from generated code after a LOOKUP_ATTRIBUTE miss when the cache has
 // not been filled yet (cache->type_ver == 0).  Tries to record the byte offset
 // of the attribute in the object's inline values array so future accesses go
-// through Nuitka_Nitro_CachedGetAttr's hot path instead.
+// through Nuitka_AttributeCache_Get's hot path instead.
 //
 // Marks the cache as permanently not cacheable (type_ver = 0xFFFFFFFF) when:
 //   * the type has no managed dict / is not a user-defined class
@@ -107,8 +107,8 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 //   * attr_val appears at more than one slot (ambiguous -- common for None)
 //   * the attribute slot index exceeds INT32_MAX (pathological)
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
-void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_val) {
     PyTypeObject *type = Py_TYPE(obj);
     unsigned int ver = (unsigned int)type->tp_version_tag;
 
@@ -126,9 +126,9 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     // Special case: __dict__ lookup result matches the materialized dict in pre-header.
     {
 #if PYTHON_VERSION >= 0x3d0
-        PyObject *dict = *(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *));
+        PyObject *dict = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
 #else
-        PyObject *dict = *(PyObject **)((char *)obj - 2 * (int)sizeof(PyObject *));
+        PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
 #endif
         if (dict != NULL && attr_val == dict) {
             cache->offset = -3;
@@ -147,49 +147,59 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         goto not_cacheable;
     }
-#else
+#elif PYTHON_VERSION >= 0x3c0
     // 3.12: values pointer at obj-8; non-NULL = inline values in use.
     // Verify they live at obj+tp_basicsize (i.e., embedded, not heap-allocated).
     if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + type->tp_basicsize)) {
         goto not_cacheable;
     }
+#else
+    // 3.11: values pointer at obj-32 (64-bit); non-NULL = inline values in use.
+    // We don't have a capacity header in 3.11, so we'll skip caching general
+    // attributes for now until we find a safe way to bounds-check.
+    goto not_cacheable;
 #endif
 
+#if PYTHON_VERSION >= 0x3c0
     // PyDictValues is embedded at obj+tp_basicsize.
-    // Byte 0 = capacity (total allocated slots); values[] at +NITRO_DICT_VALUES_HEADER_SIZE.
+    // Byte 0 = capacity (total allocated slots); values[] at +NUITKA_DICT_VALUES_HEADER_SIZE.
     {
         char *vals_start = (char *)obj + type->tp_basicsize;
         uint8_t capacity = ((uint8_t *)vals_start)[0];
-        PyObject **vals = (PyObject **)(vals_start + NITRO_DICT_VALUES_HEADER_SIZE);
-        Py_ssize_t found = -1;
+        PyObject **vals = (PyObject **)(vals_start + NUITKA_DICT_VALUES_HEADER_SIZE);
+        int found = -1;
 
-        for (Py_ssize_t i = 0; i < (Py_ssize_t)capacity; i++) {
+        for (int i = 0; i < (int)capacity; i++) {
             if (vals[i] == attr_val) {
-                if (found >= 0)
+                if (found >= 0) {
                     goto not_cacheable; // same pointer in two slots -- don't cache
+                }
                 found = i;
             }
         }
 
-        if (found < 0)
+        if (found < 0) {
             goto not_cacheable; // attribute came from the class, not inline values
+        }
 
         Py_ssize_t raw_offset =
-            type->tp_basicsize + NITRO_DICT_VALUES_HEADER_SIZE + found * (Py_ssize_t)sizeof(PyObject *);
+            type->tp_basicsize + NUITKA_DICT_VALUES_HEADER_SIZE + found * (Py_ssize_t)sizeof(PyObject *);
 
-        if (raw_offset > (Py_ssize_t)INT32_MAX)
+        if (raw_offset > (Py_ssize_t)2147483647) {
             goto not_cacheable;
+        }
 
-        cache->offset = (int32_t)raw_offset;
+        cache->offset = (int)raw_offset;
         cache->type_ver = ver;
     }
     return;
+#endif
 
 not_cacheable:
     cache->type_ver = 0xFFFFFFFF;
     cache->offset = -1;
 }
-#endif /* PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED) */
+#endif /* PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED) */
 
 PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     /* Note: There are 2 specializations of this function, that need to be

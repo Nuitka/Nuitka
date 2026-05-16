@@ -73,9 +73,9 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 #endif
 
 // ---------------------------------------------------------------------------
-// Per-call-site version-tag inline cache for Python 3.12+ builds.
+// Per-call-site version-tag inline cache for Python 3.11+ builds.
 //
-// Codegen emits one static NitroAttrCache per LOOKUP_ATTRIBUTE call site.
+// Shared by multiple call sites in a module for the same attribute name.
 // On the hot path (type version tag matches) the cache delivers the attribute
 // with a single bounds-checked array load -- no hash probing, no C-API calls.
 //
@@ -88,29 +88,19 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 //   >= 0         -> byte offset from obj base to PyObject* slot in inline values
 //   -2           -> __class__ is standard Py_TYPE(obj)
 //   -3           -> __dict__ is standard materialized dict in pre-header
-//
-// Byte layout of PyDictValues (both 3.12 and 3.13):
-//   [0] capacity  u8      -- total allocated value slots
-//   [1..sizeof(void*)-1]  -- alignment padding
-//   [sizeof(void*)..]     -- PyObject *values[]
-//
-// Pre-header layout differs by version (all offsets from obj pointer):
-//   3.12 GIL:        obj-16 = PyObject* dict (NULL if inline), obj-8 = PyDictValues* vals
-//   3.13+ GIL:       obj-24 = PyObject* dict (NULL if inline)
-//   3.13+ no-GIL:    obj-16 = PyObject* dict (NULL if inline)
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
 
 typedef struct {
     unsigned int type_ver;
-    int offset; // >= 0: byte offset from obj base to PyObject* slot in inline values
-} NitroAttrCache;
+    int offset;
+} Nuitka_AttributeCache;
 
-#define NITRO_DICT_VALUES_HEADER_SIZE ((int)sizeof(void *))
+#define NUITKA_DICT_VALUES_HEADER_SIZE ((int)sizeof(void *))
 
 // Hot path: returns a new reference on cache hit, NULL on miss or first call.
 // On a stale version-tag mismatch resets type_ver to 0 for re-fill on next call.
-static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache *cache) {
+static inline PyObject *Nuitka_AttributeCache_Get(Nuitka_AttributeCache *cache, PyObject *obj) {
     unsigned int ver = cache->type_ver;
     if (ver == 0 || ver == 0xFFFFFFFF) {
         return NULL;
@@ -123,14 +113,10 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     }
 
     int off = cache->offset;
-    if (off == -1) {
-        return NULL;
-    }
 
     if (off == -2) {
-        PyObject *val = (PyObject *)tp;
-        Py_INCREF(val);
-        return val;
+        Py_INCREF(tp);
+        return (PyObject *)tp;
     }
 
     if (off == -3) {
@@ -147,6 +133,10 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
         return dict;
     }
 
+    if (off < 0) {
+        return NULL;
+    }
+
 #if PYTHON_VERSION >= 0x3d0
     // 3.13+: dictionary pointer is in the pre-header. If it's non-NULL, the
     // instance has transitioned to a combined dictionary and inline values
@@ -154,11 +144,17 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         return NULL;
     }
-#else
+#elif PYTHON_VERSION >= 0x3c0
     // 3.12: when an instance transitions from inline to combined dict the values
     // pointer at obj-8 is set to NULL but the inline buffer is NOT cleared.
     // We must verify the instance is still using inline values before reading.
     if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize)) {
+        return NULL;
+    }
+#else
+    // 3.11: No capacity header in PyDictValues. We'll handle this in CacheFill.
+    // Transition to combined dict in 3.11 also sets the values pointer to NULL.
+    if (*(void **)((char *)obj - 4 * (int)sizeof(void *)) == NULL) {
         return NULL;
     }
 #endif
@@ -174,7 +170,7 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 
 // Hot path for hasattr: returns 1 (found), 0 (not found), -1 (cache miss or uncacheable).
 // Bypasses INCREF/DECREF and exception handling.
-static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cache) {
+static inline int Nuitka_AttributeCache_Has(Nuitka_AttributeCache *cache, PyObject *obj) {
     unsigned int ver = cache->type_ver;
     if (ver == 0 || ver == 0xFFFFFFFF) {
         return -1;
@@ -187,21 +183,26 @@ static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cach
     }
 
     int off = cache->offset;
-    if (off == -1) {
-        return -1;
-    }
 
     if (off == -2 || off == -3) {
         // __class__ and __dict__ always exist if we're here.
         return 1;
     }
 
+    if (off < 0) {
+        return -1;
+    }
+
 #if PYTHON_VERSION >= 0x3d0
     if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         return -1;
     }
-#else
+#elif PYTHON_VERSION >= 0x3c0
     if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize)) {
+        return -1;
+    }
+#else
+    if (*(void **)((char *)obj - 4 * (int)sizeof(void *)) == NULL) {
         return -1;
     }
 #endif
@@ -211,9 +212,9 @@ static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cach
 
 // Slow path: fills *cache from the object's inline values layout.
 // Called only after a miss when cache->type_ver == 0.
-extern void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache);
+extern void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_val);
 
-#endif /* PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED) */
+#endif /* PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED) */
 
 #endif
 
