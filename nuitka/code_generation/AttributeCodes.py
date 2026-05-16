@@ -284,10 +284,55 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit(
-        "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
-        % (res_name, source_name, attr_name)
-    )
+    if python_version >= 0x3C0:
+        emit("{")
+        emit("#ifndef Py_GIL_DISABLED")
+        # BUILTIN_HASATTR_BOOL is often called with non-constants too, so we
+        # check if attr_name is a constant we can use with our static cache.
+        # But wait, BUILTIN_HASATTR_BOOL takes TWO expressions. If attr_name is
+        # not a constant, we can't easily use a static NitroAttrCache.
+        # However, if it IS a constant string, we can!
+        if expression.subnode_name.isCompileTimeConstant() and type(expression.subnode_name.getCompileTimeConstant()) is str:
+            const_code = context.getConstantCode(expression.subnode_name.getCompileTimeConstant())
+            emit("    static NitroAttrCache _nitro_cache = {0};")
+            emit(
+                "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
+                % source_name
+            )
+            emit("    if (likely(_nitro_hit != -1)) {")
+            emit("        %s = _nitro_hit;" % res_name)
+            emit("    } else {")
+            emit(
+                "        %s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+                % (res_name, source_name, attr_name)
+            )
+            emit("        if (%s != -1 && _nitro_cache.type_ver == 0u) {" % res_name)
+            emit("            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);" % (source_name, const_code))
+            emit("            if (_nitro_val != NULL) {")
+            emit("                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);" % (source_name))
+            emit("                Py_DECREF(_nitro_val);")
+            emit("            } else {")
+            emit("                CLEAR_ERROR_OCCURRED(tstate);")
+            emit("            }")
+            emit("        }")
+            emit("    }")
+        else:
+            emit(
+                "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+                % (res_name, source_name, attr_name)
+            )
+        emit("#else")
+        emit(
+            "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+            % (res_name, source_name, attr_name)
+        )
+        emit("#endif")
+        emit("}")
+    else:
+        emit(
+            "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+            % (res_name, source_name, attr_name)
+        )
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -307,45 +352,116 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    if expression.mayRaiseExceptionOperation():
-        res_name = context.getIntResName()
+    attribute_name = expression.getAttributeName()
+    const_code = context.getConstantCode(constant=attribute_name)
 
+    if python_version >= 0x3C0:
+        emit("{")
+        emit("#ifndef Py_GIL_DISABLED")
+        emit("    static NitroAttrCache _nitro_cache = {0};")
         emit(
-            "%s = HAS_ATTR_BOOL2(tstate, %s, %s);"
-            % (
-                res_name,
-                source_name,
-                context.getConstantCode(constant=expression.getAttributeName()),
-            )
+            "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
+            % source_name
         )
-
-        getErrorExitBoolCode(
-            condition="%s == -1" % res_name,
-            release_name=source_name,
-            emit=emit,
-            context=context,
-        )
-
+        emit("    if (likely(_nitro_hit != -1)) {")
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="%s != 0" % res_name, emit=emit
+            to_name=to_name, condition="_nitro_hit != 0", emit=emit
         )
+        emit("    } else {")
+        if expression.mayRaiseExceptionOperation():
+            res_name = context.getIntResName()
+            emit("%s = HAS_ATTR_BOOL2(tstate, %s, %s);" % (res_name, source_name, const_code))
+            getErrorExitBoolCode(
+                condition="%s == -1" % res_name,
+                release_name=source_name,
+                emit=emit,
+                context=context,
+            )
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition="%s != 0" % res_name, emit=emit
+            )
+        else:
+            res_name = context.getBoolResName()
+            emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
+            getReleaseCode(release_name=source_name, emit=emit, context=context)
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition=res_name, emit=emit
+            )
+
+        emit("        if (_nitro_cache.type_ver == 0u) {")
+        # For hasattr we need the value to fill the cache correctly (to verify it matches).
+        # This is slightly slower on first miss but only happens once.
+        emit("            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);" % (source_name, const_code))
+        emit("            if (_nitro_val != NULL) {")
+        emit("                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);" % (source_name))
+        emit("                Py_DECREF(_nitro_val);")
+        emit("            } else {")
+        emit("                CLEAR_ERROR_OCCURRED(tstate);")
+        emit("            }")
+        emit("        }")
+        emit("    }")
+        emit("#else")
+        if expression.mayRaiseExceptionOperation():
+            res_name = context.getIntResName()
+            emit("%s = HAS_ATTR_BOOL2(tstate, %s, %s);" % (res_name, source_name, const_code))
+            getErrorExitBoolCode(
+                condition="%s == -1" % res_name,
+                release_name=source_name,
+                emit=emit,
+                context=context,
+            )
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition="%s != 0" % res_name, emit=emit
+            )
+        else:
+            res_name = context.getBoolResName()
+            emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
+            getReleaseCode(release_name=source_name, emit=emit, context=context)
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition=res_name, emit=emit
+            )
+        emit("#endif")
+        emit("}")
     else:
-        res_name = context.getBoolResName()
+        if expression.mayRaiseExceptionOperation():
+            res_name = context.getIntResName()
 
-        emit(
-            "%s = HAS_ATTR_BOOL(tstate, %s, %s);"
-            % (
-                res_name,
-                source_name,
-                context.getConstantCode(constant=expression.getAttributeName()),
+            emit(
+                "%s = HAS_ATTR_BOOL2(tstate, %s, %s);"
+                % (
+                    res_name,
+                    source_name,
+                    const_code,
+                )
             )
-        )
 
-        getReleaseCode(release_name=source_name, emit=emit, context=context)
+            getErrorExitBoolCode(
+                condition="%s == -1" % res_name,
+                release_name=source_name,
+                emit=emit,
+                context=context,
+            )
 
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition=res_name, emit=emit
-        )
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition="%s != 0" % res_name, emit=emit
+            )
+        else:
+            res_name = context.getBoolResName()
+
+            emit(
+                "%s = HAS_ATTR_BOOL(tstate, %s, %s);"
+                % (
+                    res_name,
+                    source_name,
+                    const_code,
+                )
+            )
+
+            getReleaseCode(release_name=source_name, emit=emit, context=context)
+
+            to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                to_name=to_name, condition=res_name, emit=emit
+            )
 
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):

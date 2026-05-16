@@ -142,6 +142,34 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     return val;
 }
 
+// Hot path for hasattr: returns 1 (found), 0 (not found), -1 (cache miss or uncacheable).
+// Bypasses INCREF/DECREF and exception handling.
+static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cache) {
+    uint32_t ver = cache->type_ver;
+    if (ver == 0 || ver == 0xFFFFFFFFu)
+        return -1;
+
+    PyTypeObject *tp = Py_TYPE(obj);
+    if (ver != tp->tp_version_tag) {
+        cache->type_ver = 0; // stale
+        return -1;
+    }
+
+    int32_t off = cache->offset;
+    if (off < 0)
+        return -1;
+
+#if PYTHON_VERSION >= 0x3d0
+    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+        return -1;
+#else
+    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize))
+        return -1;
+#endif
+
+    return (*(PyObject **)((char *)obj + (uint32_t)off) != NULL) ? 1 : 0;
+}
+
 // Slow path: fills *cache from the object's inline values layout.
 // Called only after a miss when cache->type_ver == 0.
 extern void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache);

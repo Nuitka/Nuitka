@@ -121,6 +121,40 @@ for _ in range(100):
 print("ambiguous attribute access (multiple slots): ok")
 
 
+class HasattrTest:
+    def __init__(self):
+        self.exists = 1
+
+
+ht = HasattrTest()
+for _ in range(100):
+    assert hasattr(ht, "exists") is True
+    assert hasattr(ht, "missing") is False
+
+print("hasattr (Nitro cached): ok")
+
+
+def test_builtin_hasattr(o, name):
+    return hasattr(o, name)
+
+
+for _ in range(100):
+    assert test_builtin_hasattr(ht, "exists") is True
+    assert test_builtin_hasattr(ht, "missing") is False
+
+print("builtin hasattr (Nitro cached): ok")
+
+
+def test_builtin_hasattr_const(o):
+    return hasattr(o, "exists")
+
+
+for _ in range(100):
+    assert test_builtin_hasattr_const(ht) is True
+
+print("builtin hasattr constant (Nitro cached): ok")
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
