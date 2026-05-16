@@ -49,7 +49,7 @@ def _canInvertComparisonToHelperSubset(
     left_shape, right_shape, left_c_type, right_c_type
 ):
     if left_c_type is CTypePyObjectPtr and right_c_type is CTypeCLong:
-        return True
+        return left_shape in (tshape_int, tshape_long)
 
     if left_c_type is not right_c_type:
         return False
