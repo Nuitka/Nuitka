@@ -119,9 +119,7 @@ def getAttributeLookupCode(
                 "        %s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
                 % (to_name, source_name, const_code)
             )
-            emit(
-                "        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name
-            )
+            emit("        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name)
             emit(
                 "            Nuitka_Nitro_CacheFill(%s, %s, &_nitro_cache);"
                 % (source_name, to_name)
