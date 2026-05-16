@@ -1276,8 +1276,6 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     _enableC11Settings(env)
     _enableOutputSettings(env)
 
-    # Some things are supposed to be only for use with zig, so we inject a
-    # define that allows us to test for it.
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
 

@@ -92,6 +92,80 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 }
 #endif
 
+// ---------------------------------------------------------------------------
+// Per-call-site inline cache — slow path (cache fill).
+//
+// Called from generated code after a LOOKUP_ATTRIBUTE miss when the cache has
+// not been filled yet (cache->type_ver == 0).  Tries to record the byte offset
+// of the attribute in the object's inline values array so future accesses go
+// through Nuitka_Nitro_CachedGetAttr's hot path instead.
+//
+// Marks the cache as permanently not cacheable (type_ver = 0xFFFFFFFF) when:
+//   * the type has no managed dict / is not a user-defined class
+//   * the object is using a combined PyDictObject instead of inline values
+//   * attr_val appears at more than one slot (ambiguous — common for None)
+//   * the attribute slot index exceeds INT32_MAX (pathological)
+//
+// Compiled for all Python 3.13+ GIL builds.
+// ---------------------------------------------------------------------------
+#if PYTHON_VERSION >= 0x3d0
+void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
+    PyTypeObject *type = Py_TYPE(obj);
+    uint32_t ver = type->tp_version_tag;
+
+    if (ver == 0 || ver == 0xFFFFFFFFu)
+        goto not_cacheable;
+
+    // Only user-defined classes with managed instance dicts.
+    if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT))
+        goto not_cacheable;
+
+    // Python 3.13+ GIL: dict pointer lives at obj−3*sizeof(PyObject*).
+    // NULL means the object is using inline values (the common case).
+    // Non-NULL means a combined PyDictObject — the existing DMA path handles that.
+    {
+        PyObject *dict_ptr = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
+        if (dict_ptr != NULL)
+            goto not_cacheable;
+    }
+
+    // PyDictValues is embedded in the object at obj + tp_basicsize.
+    // byte 0 = capacity (total allocated slots), byte 1 = nused.
+    // values[] begins at NITRO_DICT_VALUES_HEADER_SIZE bytes past the header.
+    {
+        char *vals_start = (char *)obj + type->tp_basicsize;
+        uint8_t capacity = ((uint8_t *)vals_start)[0];
+        PyObject **vals = (PyObject **)(vals_start + NITRO_DICT_VALUES_HEADER_SIZE);
+        Py_ssize_t found = -1;
+
+        for (Py_ssize_t i = 0; i < (Py_ssize_t)capacity; i++) {
+            if (vals[i] == attr_val) {
+                if (found >= 0)
+                    goto not_cacheable; // same pointer in two slots — don't cache
+                found = i;
+            }
+        }
+
+        if (found < 0)
+            goto not_cacheable; // attribute came from the class, not inline values
+
+        Py_ssize_t raw_offset =
+            type->tp_basicsize + NITRO_DICT_VALUES_HEADER_SIZE + found * (Py_ssize_t)sizeof(PyObject *);
+
+        if (raw_offset > (Py_ssize_t)INT32_MAX)
+            goto not_cacheable;
+
+        cache->offset = (int32_t)raw_offset;
+        cache->type_ver = ver;
+    }
+    return;
+
+not_cacheable:
+    cache->type_ver = 0xFFFFFFFFu;
+    cache->offset = -1;
+}
+#endif /* PYTHON_VERSION >= 0x3d0 */
+
 PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     /* Note: There are 2 specializations of this function, that need to be
      * updated in line with this: LOOKUP_ATTRIBUTE_[DICT|CLASS]_SLOT

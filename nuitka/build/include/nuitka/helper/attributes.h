@@ -72,6 +72,65 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 #define Nuitka_Descr_IsData(object) PyDescr_IsData(object)
 #endif
 
+// ---------------------------------------------------------------------------
+// Per-call-site version-tag inline cache for Python 3.13+ GIL builds.
+//
+// Codegen emits one static NitroAttrCache per LOOKUP_ATTRIBUTE call site.
+// On the hot path (type version tag matches) the cache delivers the attribute
+// with a single bounds-checked array load — no hash probing, no C-API calls.
+//
+// Cache state encoding (type_ver field):
+//   0            → not yet filled (C zero-initialises static-storage objects)
+//   0xFFFFFFFF   → tried but not cacheable (descriptor, combined dict, etc.)
+//   otherwise    → valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
+//
+// Byte layout of PyDictValues on Python 3.13+ 64-bit GIL builds:
+//   [0] capacity  u8      — total allocated value slots
+//   [1] nused     u8      — used slots (attributes assigned so far)
+//   [2] prefix_size u8
+//   [3..7] padding        — alignment to 8 bytes
+//   [8..] PyObject *values[]
+// ---------------------------------------------------------------------------
+#if PYTHON_VERSION >= 0x3d0
+
+typedef struct {
+    uint32_t type_ver;
+    int32_t offset; // >= 0: byte offset from obj base to PyObject* slot in inline values
+} NitroAttrCache;
+
+#define NITRO_DICT_VALUES_HEADER_SIZE 8
+
+// Hot path: returns a new reference on cache hit, NULL on miss or first call.
+// On a stale version-tag mismatch resets type_ver to 0 for re-fill on next call.
+static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache *cache) {
+    uint32_t ver = cache->type_ver;
+    if (ver == 0 || ver == 0xFFFFFFFFu)
+        return NULL;
+
+    PyTypeObject *tp = Py_TYPE(obj);
+    if (ver != tp->tp_version_tag) {
+        cache->type_ver = 0; // stale — trigger refill on next miss
+        return NULL;
+    }
+
+    int32_t off = cache->offset;
+    if (off < 0)
+        return NULL; // type known not to use inline values
+
+    PyObject *val = *(PyObject **)((char *)obj + (uint32_t)off);
+    if (val == NULL)
+        return NULL; // slot empty for this instance (attribute not set)
+
+    Py_INCREF(val);
+    return val;
+}
+
+// Slow path: fills *cache from the object's inline values layout.
+// Called only after a miss when cache->type_ver == 0.
+extern void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache);
+
+#endif /* PYTHON_VERSION >= 0x3d0 */
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

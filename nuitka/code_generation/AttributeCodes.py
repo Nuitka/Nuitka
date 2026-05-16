@@ -6,6 +6,7 @@
 Attribute lookup, setting.
 """
 
+from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
 from .CodeHelpers import (
@@ -99,10 +100,40 @@ def getAttributeLookupCode(
     elif attribute_name == "__class__":
         emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);" % (to_name, source_name))
     else:
-        emit(
-            "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-            % (to_name, source_name, context.getConstantCode(attribute_name))
-        )
+        const_code = context.getConstantCode(attribute_name)
+
+        if python_version >= 0x3D0:
+            # Per-call-site version-tag inline cache for Python 3.13+ GIL builds.
+            # Hot path: version-tag check + single array load, no hash probe.
+            # Miss path: LOOKUP_ATTRIBUTE then Nuitka_Nitro_CacheFill fills the cache.
+            emit("{")
+            emit("    static NitroAttrCache _nitro_cache = {0};")
+            emit(
+                "    PyObject *_nitro_hit = Nuitka_Nitro_CachedGetAttr(%s, &_nitro_cache);"
+                % source_name
+            )
+            emit("    if (likely(_nitro_hit != NULL)) {")
+            emit("        %s = _nitro_hit;" % to_name)
+            emit("    } else {")
+            emit(
+                "        %s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+                % (to_name, source_name, const_code)
+            )
+            emit(
+                "        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name
+            )
+            emit(
+                "            Nuitka_Nitro_CacheFill(%s, %s, &_nitro_cache);"
+                % (source_name, to_name)
+            )
+            emit("        }")
+            emit("    }")
+            emit("}")
+        else:
+            emit(
+                "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+                % (to_name, source_name, const_code)
+            )
 
     getErrorExitCode(
         check_name=to_name,
