@@ -13,7 +13,7 @@ static PyObject *{{ helper_name }}(PyThreadState *tstate, PyObject *source) {
     PyObject *result = LOOKUP_ATTRIBUTE(tstate, source, {{ attribute_name_code }});
 
     if (result != NULL && cache.type_ver == 0) {
-        Nuitka_AttributeCache_Fill(&cache, source, result);
+        Nuitka_AttributeCache_Fill(&cache, source, {{ attribute_name_code }}, result);
     }
 
     return result;

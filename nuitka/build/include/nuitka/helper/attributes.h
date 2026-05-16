@@ -212,7 +212,8 @@ static inline int Nuitka_AttributeCache_Has(Nuitka_AttributeCache *cache, PyObje
 
 // Slow path: fills *cache from the object's inline values layout.
 // Called only after a miss when cache->type_ver == 0.
-extern void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_val);
+extern void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_name,
+                                       PyObject *attr_val);
 
 #endif /* PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED) */
 

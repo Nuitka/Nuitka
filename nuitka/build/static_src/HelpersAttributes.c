@@ -104,11 +104,11 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 //   * the type has no managed dict / is not a user-defined class
 //   * the object is using a combined PyDictObject instead of inline values
 //   * the inline values are not embedded at obj+tp_basicsize (heap-allocated)
-//   * attr_val appears at more than one slot (ambiguous -- common for None)
+//   * attr_name cannot be resolved to an inline values slot
 //   * the attribute slot index exceeds INT32_MAX (pathological)
 // ---------------------------------------------------------------------------
 #if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
-void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_val) {
+void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyObject *attr_name, PyObject *attr_val) {
     PyTypeObject *type = Py_TYPE(obj);
     unsigned int ver = (unsigned int)type->tp_version_tag;
 
@@ -116,8 +116,12 @@ void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyO
         goto not_cacheable;
     }
 
+    if (type->tp_getattro != PyObject_GenericGetAttr_resolved) {
+        goto not_cacheable;
+    }
+
     // Special case: __class__ lookup result is exactly the type.
-    if (attr_val == (PyObject *)type) {
+    if (attr_name == const_str_plain___class__ && attr_val == (PyObject *)type) {
         cache->offset = -2;
         cache->type_ver = ver;
         return;
@@ -130,7 +134,7 @@ void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyO
 #else
         PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
 #endif
-        if (dict != NULL && attr_val == dict) {
+        if (attr_name == const_str_plain___dict__ && dict != NULL && attr_val == dict) {
             cache->offset = -3;
             cache->type_ver = ver;
             return;
@@ -139,6 +143,16 @@ void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyO
 
     // Only user-defined classes with managed instance dicts for the rest.
     if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT)) {
+        goto not_cacheable;
+    }
+
+    if (!PyUnicode_CheckExact(attr_name)) {
+        goto not_cacheable;
+    }
+
+    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
+    if (descr != NULL && NuitkaType_HasFeatureClass(Py_TYPE(descr)) && Py_TYPE(descr)->tp_descr_get != NULL &&
+        Nuitka_Descr_IsData(descr)) {
         goto not_cacheable;
     }
 
@@ -167,19 +181,30 @@ void Nuitka_AttributeCache_Fill(Nuitka_AttributeCache *cache, PyObject *obj, PyO
         char *vals_start = (char *)obj + type->tp_basicsize;
         uint8_t capacity = ((uint8_t *)vals_start)[0];
         PyObject **vals = (PyObject **)(vals_start + NUITKA_DICT_VALUES_HEADER_SIZE);
-        int found = -1;
+        PyDictKeysObject *keys = ((PyHeapTypeObject *)type)->ht_cached_keys;
 
-        for (int i = 0; i < (int)capacity; i++) {
-            if (vals[i] == attr_val) {
-                if (found >= 0) {
-                    goto not_cacheable; // same pointer in two slots -- don't cache
-                }
-                found = i;
+        if (keys == NULL) {
+            goto not_cacheable;
+        }
+
+        Py_hash_t hash = Nuitka_Py_unicode_get_hash(attr_name);
+
+        if (hash == -1) {
+            hash = PyObject_Hash(attr_name);
+
+            if (hash == -1) {
+                goto not_cacheable;
             }
         }
 
-        if (found < 0) {
-            goto not_cacheable; // attribute came from the class, not inline values
+        Py_ssize_t found = Nuitka_Py_unicodekeys_lookup_unicode(keys, attr_name, hash);
+
+        if (found < 0 || found >= (Py_ssize_t)capacity) {
+            goto not_cacheable;
+        }
+
+        if (vals[found] != attr_val) {
+            goto not_cacheable;
         }
 
         Py_ssize_t raw_offset =

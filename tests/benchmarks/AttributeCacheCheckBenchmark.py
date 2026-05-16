@@ -12,7 +12,7 @@ obj = Bench()
 def bench_hasattr():
     count = 0
     start = time.time()
-    for _ in range(10_000_000):
+    for _ in range(10000000):
         if hasattr(obj, "a"):
             count += 1
     end = time.time()
@@ -22,4 +22,4 @@ def bench_hasattr():
 # Warmup
 bench_hasattr()
 
-print(f"hasattr time: {bench_hasattr():.4f}s")
+print("hasattr time: %.4fs" % bench_hasattr())

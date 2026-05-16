@@ -16,7 +16,7 @@ static int {{ helper_name }}(PyThreadState *tstate, PyObject *source) {
         PyObject *val = LOOKUP_ATTRIBUTE(tstate, source, {{ attribute_name_code }});
 
         if (val != NULL) {
-            Nuitka_AttributeCache_Fill(&cache, source, val);
+            Nuitka_AttributeCache_Fill(&cache, source, {{ attribute_name_code }}, val);
             Py_DECREF(val);
         } else {
             CLEAR_ERROR_OCCURRED(tstate);

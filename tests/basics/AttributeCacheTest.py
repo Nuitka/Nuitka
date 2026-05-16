@@ -43,6 +43,31 @@ obj3.__dict__["z"] = "raw_value"
 
 print("custom __getattribute__ called:", obj3.z)
 
+for _ in range(100):
+    assert obj3.z == "intercepted", obj3.z
+
+
+class RepeatedWithCustomGetattribute:
+    def __getattribute__(self, name):
+        if name == "x":
+            return self.y
+
+        return object.__getattribute__(self, name)
+
+
+obj3b = RepeatedWithCustomGetattribute()
+obj3b.y = "initial"
+
+for _ in range(100):
+    assert obj3b.x == "initial", obj3b.x
+
+obj3b.y = "updated"
+
+for _ in range(100):
+    assert obj3b.x == "updated", obj3b.x
+
+print("repeated custom __getattribute__ called: ok")
+
 
 class Plain:
     def __init__(self):
@@ -86,7 +111,7 @@ for _ in range(1000):
 
 # Add many attributes to stress the instance layout and force use of a dict.
 for i in range(10000):
-    setattr(gi, f"attr_{i}", i)
+    setattr(gi, "attr_%d" % i, i)
 
 # Access after growth to ensure the attribute cache still returns correct values.
 for _ in range(1000):
@@ -119,6 +144,53 @@ for _ in range(100):
     assert av.c == sentinel
 
 print("ambiguous attribute access (multiple slots): ok")
+
+
+class ClassAttributeSameAsInstanceValue:
+    pass
+
+
+shared = object()
+ClassAttributeSameAsInstanceValue.x = shared
+obj5 = ClassAttributeSameAsInstanceValue()
+obj5.y = shared
+
+for _ in range(100):
+    assert obj5.x is shared
+
+replacement = object()
+obj5.y = replacement
+
+for _ in range(100):
+    assert obj5.x is shared
+
+print("class attribute not confused with instance value: ok")
+
+
+class AttributeValueIsClass:
+    pass
+
+
+obj6 = AttributeValueIsClass()
+obj6.x = AttributeValueIsClass
+
+for _ in range(100):
+    assert obj6.x is AttributeValueIsClass
+
+print("attribute value equal to class object: ok")
+
+
+class AttributeValueIsDict:
+    pass
+
+
+obj7 = AttributeValueIsDict()
+obj7.x = obj7.__dict__
+
+for _ in range(100):
+    assert obj7.x is obj7.__dict__
+
+print("attribute value equal to instance dict: ok")
 
 
 class HasattrTest:
