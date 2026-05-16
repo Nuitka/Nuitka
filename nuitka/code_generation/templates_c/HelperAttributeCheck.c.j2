@@ -1,0 +1,45 @@
+{#-  Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file -#}
+
+static int {{ helper_name }}(PyThreadState *tstate, PyObject *source) {
+#if PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
+    static Nuitka_AttributeCache cache = {0, 0};
+
+    int hit = Nuitka_AttributeCache_Has(&cache, source);
+
+    if (likely(hit != -1)) {
+        return hit;
+    }
+
+    int result = BUILTIN_HASATTR_BOOL(tstate, source, {{ attribute_name_code }});
+
+    if (result != -1 && cache.type_ver == 0) {
+        PyObject *val = LOOKUP_ATTRIBUTE(tstate, source, {{ attribute_name_code }});
+
+        if (val != NULL) {
+            Nuitka_AttributeCache_Fill(&cache, source, val);
+            Py_DECREF(val);
+        } else {
+            CLEAR_ERROR_OCCURRED(tstate);
+        }
+    }
+
+    return result;
+#else
+    return BUILTIN_HASATTR_BOOL(tstate, source, {{ attribute_name_code }});
+#endif
+}
+
+{#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
+{#-  integrates with CPython, but also works on its own.                              -#}
+{#-                                                                                   -#}
+{#-  Licensed under the GNU Affero General Public License, Version 3 (the "License"); -#}
+{#-  you may not use this file except in compliance with the License.                 -#}
+{#-  You may obtain a copy of the License at                                          -#}
+{#-                                                                                   -#}
+{#-  http://www.gnu.org/licenses/agpl.txt                                             -#}
+{#-                                                                                   -#}
+{#-  Unless required by applicable law or agreed to in writing, software              -#}
+{#-  distributed under the License is distributed on an "AS IS" BASIS,                -#}
+{#-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.         -#}
+{#-  See the License for the specific language governing permissions and              -#}
+{#-  limitations under the License.                                                   -#}
