@@ -101,6 +101,26 @@ for _ in range(1000):
 print("stress attribute access across storage growth: ok")
 
 
+class AmbiguousValues:
+    pass
+
+
+av = AmbiguousValues()
+# Use a shared sentinel for multiple slots.
+sentinel = "shared_sentinel"
+av.a = sentinel
+av.b = sentinel
+av.c = sentinel
+
+# Repeated access should still work correctly even if not cacheable.
+for _ in range(100):
+    assert av.a == sentinel
+    assert av.b == sentinel
+    assert av.c == sentinel
+
+print("ambiguous attribute access (multiple slots): ok")
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

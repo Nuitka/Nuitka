@@ -109,6 +109,8 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 // ---------------------------------------------------------------------------
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
 void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
+    assert(cache->type_ver == 0u);
+
     PyTypeObject *type = Py_TYPE(obj);
     uint32_t ver = type->tp_version_tag;
 
