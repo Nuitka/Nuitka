@@ -109,13 +109,12 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 // ---------------------------------------------------------------------------
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
 void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
-    assert(cache->type_ver == 0u);
-
     PyTypeObject *type = Py_TYPE(obj);
-    uint32_t ver = type->tp_version_tag;
+    unsigned int ver = (unsigned int)type->tp_version_tag;
 
-    if (ver == 0 || ver == 0xFFFFFFFFu)
+    if (ver == 0 || ver == 0xFFFFFFFF) {
         goto not_cacheable;
+    }
 
     // Special case: __class__ lookup result is exactly the type.
     if (attr_val == (PyObject *)type) {
@@ -127,9 +126,9 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     // Special case: __dict__ lookup result matches the materialized dict in pre-header.
     {
 #if PYTHON_VERSION >= 0x3d0
-        PyObject *dict = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
+        PyObject *dict = *(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *));
 #else
-        PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
+        PyObject *dict = *(PyObject **)((char *)obj - 2 * (int)sizeof(PyObject *));
 #endif
         if (dict != NULL && attr_val == dict) {
             cache->offset = -3;
@@ -139,18 +138,21 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     }
 
     // Only user-defined classes with managed instance dicts for the rest.
-    if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT))
+    if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT)) {
         goto not_cacheable;
+    }
 
 #if PYTHON_VERSION >= 0x3d0
     // 3.13+: dict pointer in the pre-header; NULL = inline values at obj+tp_basicsize.
-    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+    if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         goto not_cacheable;
+    }
 #else
     // 3.12: values pointer at obj-8; non-NULL = inline values in use.
     // Verify they live at obj+tp_basicsize (i.e., embedded, not heap-allocated).
-    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + type->tp_basicsize))
+    if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + type->tp_basicsize)) {
         goto not_cacheable;
+    }
 #endif
 
     // PyDictValues is embedded at obj+tp_basicsize.
@@ -184,7 +186,7 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     return;
 
 not_cacheable:
-    cache->type_ver = 0xFFFFFFFFu;
+    cache->type_ver = 0xFFFFFFFF;
     cache->offset = -1;
 }
 #endif /* PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED) */

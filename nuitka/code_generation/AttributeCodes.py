@@ -104,7 +104,7 @@ def _emitNitroCacheLookup(to_name, source_name, emit, fallback_callback):
     emit("        %s = _nitro_hit;" % to_name)
     emit("    } else {")
     fallback_callback()
-    emit("        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name)
+    emit("        if (%s != NULL && _nitro_cache.type_ver == 0) {" % to_name)
     emit(
         "            Nuitka_Nitro_CacheFill(%s, %s, &_nitro_cache);"
         % (source_name, to_name)
@@ -327,7 +327,7 @@ def _emitNitroHasAttrCacheLookup(
     )
     emit("    } else {")
     fallback_callback()
-    emit("        if (_nitro_cache.type_ver == 0u) {")
+    emit("        if (_nitro_cache.type_ver == 0) {")
     # For hasattr we need the value to fill the cache correctly (to verify it matches).
     # This is slightly slower on first miss but only happens once.
     emit(

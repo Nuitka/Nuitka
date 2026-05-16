@@ -102,8 +102,8 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
 
 typedef struct {
-    uint32_t type_ver;
-    int32_t offset; // >= 0: byte offset from obj base to PyObject* slot in inline values
+    unsigned int type_ver;
+    int offset; // >= 0: byte offset from obj base to PyObject* slot in inline values
 } NitroAttrCache;
 
 #define NITRO_DICT_VALUES_HEADER_SIZE ((int)sizeof(void *))
@@ -111,19 +111,21 @@ typedef struct {
 // Hot path: returns a new reference on cache hit, NULL on miss or first call.
 // On a stale version-tag mismatch resets type_ver to 0 for re-fill on next call.
 static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache *cache) {
-    uint32_t ver = cache->type_ver;
-    if (ver == 0 || ver == 0xFFFFFFFFu)
+    unsigned int ver = cache->type_ver;
+    if (ver == 0 || ver == 0xFFFFFFFF) {
         return NULL;
+    }
 
     PyTypeObject *tp = Py_TYPE(obj);
-    if (ver != tp->tp_version_tag) {
+    if (ver != (unsigned int)tp->tp_version_tag) {
         cache->type_ver = 0; // stale -- trigger refill on next miss
         return NULL;
     }
 
-    int32_t off = cache->offset;
-    if (off == -1)
+    int off = cache->offset;
+    if (off == -1) {
         return NULL;
+    }
 
     if (off == -2) {
         PyObject *val = (PyObject *)tp;
@@ -137,8 +139,9 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 #else
         PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
 #endif
-        if (dict == NULL)
+        if (dict == NULL) {
             return NULL; // dict not yet materialized
+        }
 
         Py_INCREF(dict);
         return dict;
@@ -148,19 +151,22 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     // 3.13+: dictionary pointer is in the pre-header. If it's non-NULL, the
     // instance has transitioned to a combined dictionary and inline values
     // are no longer valid.
-    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+    if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         return NULL;
+    }
 #else
     // 3.12: when an instance transitions from inline to combined dict the values
     // pointer at obj-8 is set to NULL but the inline buffer is NOT cleared.
     // We must verify the instance is still using inline values before reading.
-    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize))
+    if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize)) {
         return NULL;
+    }
 #endif
 
-    PyObject *val = *(PyObject **)((char *)obj + (uint32_t)off);
-    if (val == NULL)
+    PyObject *val = *(PyObject **)((char *)obj + (unsigned int)off);
+    if (val == NULL) {
         return NULL; // slot empty for this instance (attribute not set)
+    }
 
     Py_INCREF(val);
     return val;
@@ -169,19 +175,21 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 // Hot path for hasattr: returns 1 (found), 0 (not found), -1 (cache miss or uncacheable).
 // Bypasses INCREF/DECREF and exception handling.
 static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cache) {
-    uint32_t ver = cache->type_ver;
-    if (ver == 0 || ver == 0xFFFFFFFFu)
+    unsigned int ver = cache->type_ver;
+    if (ver == 0 || ver == 0xFFFFFFFF) {
         return -1;
+    }
 
     PyTypeObject *tp = Py_TYPE(obj);
-    if (ver != tp->tp_version_tag) {
+    if (ver != (unsigned int)tp->tp_version_tag) {
         cache->type_ver = 0; // stale
         return -1;
     }
 
-    int32_t off = cache->offset;
-    if (off == -1)
+    int off = cache->offset;
+    if (off == -1) {
         return -1;
+    }
 
     if (off == -2 || off == -3) {
         // __class__ and __dict__ always exist if we're here.
@@ -189,14 +197,16 @@ static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cach
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+    if (*(PyObject **)((char *)obj - 3 * (int)sizeof(PyObject *)) != NULL) {
         return -1;
+    }
 #else
-    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize))
+    if (*(void **)((char *)obj - (int)sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize)) {
         return -1;
+    }
 #endif
 
-    return (*(PyObject **)((char *)obj + (uint32_t)off) != NULL) ? 1 : 0;
+    return (*(PyObject **)((char *)obj + (unsigned int)off) != NULL) ? 1 : 0;
 }
 
 // Slow path: fills *cache from the object's inline values layout.
