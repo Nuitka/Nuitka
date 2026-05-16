@@ -73,7 +73,7 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 #endif
 
 // ---------------------------------------------------------------------------
-// Per-call-site version-tag inline cache for Python 3.13+ GIL builds.
+// Per-call-site version-tag inline cache for Python 3.12+ builds.
 //
 // Codegen emits one static NitroAttrCache per LOOKUP_ATTRIBUTE call site.
 // On the hot path (type version tag matches) the cache delivers the attribute
@@ -84,14 +84,17 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 //   0xFFFFFFFF   → tried but not cacheable (descriptor, combined dict, etc.)
 //   otherwise    → valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
 //
-// Byte layout of PyDictValues on Python 3.13+ 64-bit GIL builds:
+// Byte layout of PyDictValues (both 3.12 and 3.13, 64-bit):
 //   [0] capacity  u8      — total allocated value slots
-//   [1] nused     u8      — used slots (attributes assigned so far)
-//   [2] prefix_size u8
-//   [3..7] padding        — alignment to 8 bytes
+//   [1..7] padding        — alignment to 8 bytes
 //   [8..] PyObject *values[]
+//
+// Pre-header layout differs by version (all offsets from obj pointer):
+//   3.12 GIL:        obj-16 = PyObject* dict (NULL if inline), obj-8 = PyDictValues* vals
+//   3.13+ GIL:       obj-24 = PyObject* dict (NULL if inline)
+//   3.13+ no-GIL:    obj-16 = PyObject* dict (NULL if inline)
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3c0
 
 typedef struct {
     uint32_t type_ver;
@@ -115,7 +118,15 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 
     int32_t off = cache->offset;
     if (off < 0)
-        return NULL; // type known not to use inline values
+        return NULL;
+
+#if PYTHON_VERSION < 0x3d0
+    // 3.12: when an instance transitions from inline to combined dict the values
+    // pointer at obj-8 is set to NULL but the inline buffer is NOT cleared.
+    // We must verify the instance is still using inline values before reading.
+    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + tp->tp_basicsize))
+        return NULL;
+#endif
 
     PyObject *val = *(PyObject **)((char *)obj + (uint32_t)off);
     if (val == NULL)
@@ -129,7 +140,7 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 // Called only after a miss when cache->type_ver == 0.
 extern void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache);
 
-#endif /* PYTHON_VERSION >= 0x3d0 */
+#endif /* PYTHON_VERSION >= 0x3c0 */
 
 #endif
 

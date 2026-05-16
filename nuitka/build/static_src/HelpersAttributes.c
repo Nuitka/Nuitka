@@ -103,12 +103,11 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 // Marks the cache as permanently not cacheable (type_ver = 0xFFFFFFFF) when:
 //   * the type has no managed dict / is not a user-defined class
 //   * the object is using a combined PyDictObject instead of inline values
+//   * the inline values are not embedded at obj+tp_basicsize (heap-allocated)
 //   * attr_val appears at more than one slot (ambiguous — common for None)
 //   * the attribute slot index exceeds INT32_MAX (pathological)
-//
-// Compiled for all Python 3.13+ GIL builds.
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3c0
 void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
     PyTypeObject *type = Py_TYPE(obj);
     uint32_t ver = type->tp_version_tag;
@@ -120,18 +119,24 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT))
         goto not_cacheable;
 
-    // Python 3.13+ GIL: dict pointer lives at obj−3*sizeof(PyObject*).
-    // NULL means the object is using inline values (the common case).
-    // Non-NULL means a combined PyDictObject — the existing DMA path handles that.
-    {
-        PyObject *dict_ptr = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
-        if (dict_ptr != NULL)
-            goto not_cacheable;
-    }
+#if PYTHON_VERSION >= 0x3d0
+    // 3.13+: dict pointer in the pre-header; NULL = inline values at obj+tp_basicsize.
+#ifdef Py_GIL_DISABLED
+    if (*(PyObject **)((char *)obj - 2 * sizeof(PyObject *)) != NULL)
+        goto not_cacheable;
+#else
+    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+        goto not_cacheable;
+#endif
+#else
+    // 3.12: values pointer at obj-8; non-NULL = inline values in use.
+    // Verify they live at obj+tp_basicsize (i.e., embedded, not heap-allocated).
+    if (*(void **)((char *)obj - sizeof(void *)) != (void *)((char *)obj + type->tp_basicsize))
+        goto not_cacheable;
+#endif
 
-    // PyDictValues is embedded in the object at obj + tp_basicsize.
-    // byte 0 = capacity (total allocated slots), byte 1 = nused.
-    // values[] begins at NITRO_DICT_VALUES_HEADER_SIZE bytes past the header.
+    // PyDictValues is embedded at obj+tp_basicsize.
+    // Byte 0 = capacity (total allocated slots); values[] at +NITRO_DICT_VALUES_HEADER_SIZE.
     {
         char *vals_start = (char *)obj + type->tp_basicsize;
         uint8_t capacity = ((uint8_t *)vals_start)[0];
@@ -164,7 +169,7 @@ not_cacheable:
     cache->type_ver = 0xFFFFFFFFu;
     cache->offset = -1;
 }
-#endif /* PYTHON_VERSION >= 0x3d0 */
+#endif /* PYTHON_VERSION >= 0x3c0 */
 
 PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     /* Note: There are 2 specializations of this function, that need to be

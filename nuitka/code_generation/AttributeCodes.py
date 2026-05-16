@@ -102,7 +102,7 @@ def getAttributeLookupCode(
     else:
         const_code = context.getConstantCode(attribute_name)
 
-        if python_version >= 0x3D0:
+        if python_version >= 0x3C0:
             # Per-call-site version-tag inline cache for Python 3.13+ GIL builds.
             # Hot path: version-tag check + single array load, no hash probe.
             # Miss path: LOOKUP_ATTRIBUTE then Nuitka_Nitro_CacheFill fills the cache.
