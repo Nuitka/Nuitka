@@ -103,10 +103,11 @@ def getAttributeLookupCode(
         const_code = context.getConstantCode(attribute_name)
 
         if python_version >= 0x3C0:
-            # Per-call-site version-tag inline cache for Python 3.13+ GIL builds.
+            # Per-call-site version-tag inline cache for Python 3.12+ (standard GIL builds).
             # Hot path: version-tag check + single array load, no hash probe.
             # Miss path: LOOKUP_ATTRIBUTE then Nuitka_Nitro_CacheFill fills the cache.
             emit("{")
+            emit("#ifndef Py_GIL_DISABLED")
             emit("    static NitroAttrCache _nitro_cache = {0};")
             emit(
                 "    PyObject *_nitro_hit = Nuitka_Nitro_CachedGetAttr(%s, &_nitro_cache);"
@@ -126,6 +127,12 @@ def getAttributeLookupCode(
             )
             emit("        }")
             emit("    }")
+            emit("#else")
+            emit(
+                "    %s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+                % (to_name, source_name, const_code)
+            )
+            emit("#endif")
             emit("}")
         else:
             emit(

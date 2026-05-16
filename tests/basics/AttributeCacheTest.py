@@ -12,6 +12,10 @@ obj.__dict__["x"] = "from_instance_dict"
 
 print("property shadows instance dict:", obj.x)
 
+# Test mutation of class attribute after caching to verify tp_version_tag invalidation.
+WithProperty.x = "rebound_class_attr"
+print("class attribute mutation recognized:", obj.x)
+
 
 class WithNonDataDescriptor:
     class _nd:
@@ -48,6 +52,14 @@ class Plain:
 obj4 = Plain()
 print("plain instance attribute:", obj4.value)
 
+# Test attribute deletion (transition from present to absent)
+del obj4.value
+try:
+    _ = obj4.value
+    print("error: deleted attribute still accessible")
+except AttributeError:
+    print("AttributeError on deleted attribute: ok")
+
 
 class Empty:
     pass
@@ -58,6 +70,35 @@ try:
     print("no exception raised")
 except AttributeError:
     print("AttributeError on missing attribute: ok")
+
+
+# Stress test: transition from inline storage to combined dict
+class GrowingInstance:
+    pass
+
+
+gi = GrowingInstance()
+gi.target = "initial"
+
+# Access before growth to warm up any attribute caches.
+for _ in range(1000):
+    assert gi.target == "initial", gi.target
+
+# Add many attributes to stress the instance layout and force use of a dict.
+for i in range(10000):
+    setattr(gi, f"attr_{i}", i)
+
+# Access after growth to ensure the attribute cache still returns correct values.
+for _ in range(1000):
+    assert gi.target == "initial", gi.target
+
+gi.target = "updated"
+
+# And once more after updating the attribute to ensure correctness across writes.
+for _ in range(1000):
+    assert gi.target == "updated", gi.target
+
+print("stress attribute access across storage growth: ok")
 
 
 #     Python tests originally created or extracted from other peoples work. The

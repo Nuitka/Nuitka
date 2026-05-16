@@ -84,24 +84,24 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 //   0xFFFFFFFF   → tried but not cacheable (descriptor, combined dict, etc.)
 //   otherwise    → valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
 //
-// Byte layout of PyDictValues (both 3.12 and 3.13, 64-bit):
+// Byte layout of PyDictValues (both 3.12 and 3.13):
 //   [0] capacity  u8      — total allocated value slots
-//   [1..7] padding        — alignment to 8 bytes
-//   [8..] PyObject *values[]
+//   [1..sizeof(void*)-1]  — alignment padding
+//   [sizeof(void*)..]     — PyObject *values[]
 //
 // Pre-header layout differs by version (all offsets from obj pointer):
 //   3.12 GIL:        obj-16 = PyObject* dict (NULL if inline), obj-8 = PyDictValues* vals
 //   3.13+ GIL:       obj-24 = PyObject* dict (NULL if inline)
 //   3.13+ no-GIL:    obj-16 = PyObject* dict (NULL if inline)
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3c0
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
 
 typedef struct {
     uint32_t type_ver;
     int32_t offset; // >= 0: byte offset from obj base to PyObject* slot in inline values
 } NitroAttrCache;
 
-#define NITRO_DICT_VALUES_HEADER_SIZE 8
+#define NITRO_DICT_VALUES_HEADER_SIZE ((int)sizeof(void *))
 
 // Hot path: returns a new reference on cache hit, NULL on miss or first call.
 // On a stale version-tag mismatch resets type_ver to 0 for re-fill on next call.
@@ -120,7 +120,13 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     if (off < 0)
         return NULL;
 
-#if PYTHON_VERSION < 0x3d0
+#if PYTHON_VERSION >= 0x3d0
+    // 3.13+: dictionary pointer is in the pre-header. If it's non-NULL, the
+    // instance has transitioned to a combined dictionary and inline values
+    // are no longer valid.
+    if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
+        return NULL;
+#else
     // 3.12: when an instance transitions from inline to combined dict the values
     // pointer at obj-8 is set to NULL but the inline buffer is NOT cleared.
     // We must verify the instance is still using inline values before reading.
@@ -140,7 +146,7 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 // Called only after a miss when cache->type_ver == 0.
 extern void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache);
 
-#endif /* PYTHON_VERSION >= 0x3c0 */
+#endif /* PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED) */
 
 #endif
 

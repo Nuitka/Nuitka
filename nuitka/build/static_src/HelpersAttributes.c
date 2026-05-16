@@ -107,7 +107,7 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 //   * attr_val appears at more than one slot (ambiguous — common for None)
 //   * the attribute slot index exceeds INT32_MAX (pathological)
 // ---------------------------------------------------------------------------
-#if PYTHON_VERSION >= 0x3c0
+#if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
 void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *cache) {
     PyTypeObject *type = Py_TYPE(obj);
     uint32_t ver = type->tp_version_tag;
@@ -121,13 +121,8 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
 
 #if PYTHON_VERSION >= 0x3d0
     // 3.13+: dict pointer in the pre-header; NULL = inline values at obj+tp_basicsize.
-#ifdef Py_GIL_DISABLED
-    if (*(PyObject **)((char *)obj - 2 * sizeof(PyObject *)) != NULL)
-        goto not_cacheable;
-#else
     if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)
         goto not_cacheable;
-#endif
 #else
     // 3.12: values pointer at obj-8; non-NULL = inline values in use.
     // Verify they live at obj+tp_basicsize (i.e., embedded, not heap-allocated).
@@ -169,7 +164,7 @@ not_cacheable:
     cache->type_ver = 0xFFFFFFFFu;
     cache->offset = -1;
 }
-#endif /* PYTHON_VERSION >= 0x3c0 */
+#endif /* PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED) */
 
 PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
     /* Note: There are 2 specializations of this function, that need to be
