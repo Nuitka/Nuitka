@@ -77,17 +77,17 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 //
 // Codegen emits one static NitroAttrCache per LOOKUP_ATTRIBUTE call site.
 // On the hot path (type version tag matches) the cache delivers the attribute
-// with a single bounds-checked array load — no hash probing, no C-API calls.
+// with a single bounds-checked array load -- no hash probing, no C-API calls.
 //
 // Cache state encoding (type_ver field):
-//   0            → not yet filled (C zero-initialises static-storage objects)
-//   0xFFFFFFFF   → tried but not cacheable (descriptor, combined dict, etc.)
-//   otherwise    → valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
+//   0            -> not yet filled (C zero-initialises static-storage objects)
+//   0xFFFFFFFF   -> tried but not cacheable (descriptor, combined dict, etc.)
+//   otherwise    -> valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
 //
 // Byte layout of PyDictValues (both 3.12 and 3.13):
-//   [0] capacity  u8      — total allocated value slots
-//   [1..sizeof(void*)-1]  — alignment padding
-//   [sizeof(void*)..]     — PyObject *values[]
+//   [0] capacity  u8      -- total allocated value slots
+//   [1..sizeof(void*)-1]  -- alignment padding
+//   [sizeof(void*)..]     -- PyObject *values[]
 //
 // Pre-header layout differs by version (all offsets from obj pointer):
 //   3.12 GIL:        obj-16 = PyObject* dict (NULL if inline), obj-8 = PyDictValues* vals
@@ -112,7 +112,7 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
 
     PyTypeObject *tp = Py_TYPE(obj);
     if (ver != tp->tp_version_tag) {
-        cache->type_ver = 0; // stale — trigger refill on next miss
+        cache->type_ver = 0; // stale -- trigger refill on next miss
         return NULL;
     }
 

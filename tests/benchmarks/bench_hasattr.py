@@ -1,10 +1,13 @@
 import time
 
+
 class Bench:
     def __init__(self):
         self.a = 1
 
+
 obj = Bench()
+
 
 def bench_hasattr():
     count = 0
@@ -14,6 +17,7 @@ def bench_hasattr():
             count += 1
     end = time.time()
     return end - start
+
 
 # Warmup
 bench_hasattr()

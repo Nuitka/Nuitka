@@ -93,7 +93,7 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 #endif
 
 // ---------------------------------------------------------------------------
-// Per-call-site inline cache — slow path (cache fill).
+// Per-call-site inline cache -- slow path (cache fill).
 //
 // Called from generated code after a LOOKUP_ATTRIBUTE miss when the cache has
 // not been filled yet (cache->type_ver == 0).  Tries to record the byte offset
@@ -104,7 +104,7 @@ static PyObject *LOOKUP_INSTANCE(PyThreadState *tstate, PyObject *source, PyObje
 //   * the type has no managed dict / is not a user-defined class
 //   * the object is using a combined PyDictObject instead of inline values
 //   * the inline values are not embedded at obj+tp_basicsize (heap-allocated)
-//   * attr_val appears at more than one slot (ambiguous — common for None)
+//   * attr_val appears at more than one slot (ambiguous -- common for None)
 //   * the attribute slot index exceeds INT32_MAX (pathological)
 // ---------------------------------------------------------------------------
 #if PYTHON_VERSION >= 0x3c0 && !defined(Py_GIL_DISABLED)
@@ -143,7 +143,7 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
         for (Py_ssize_t i = 0; i < (Py_ssize_t)capacity; i++) {
             if (vals[i] == attr_val) {
                 if (found >= 0)
-                    goto not_cacheable; // same pointer in two slots — don't cache
+                    goto not_cacheable; // same pointer in two slots -- don't cache
                 found = i;
             }
         }
