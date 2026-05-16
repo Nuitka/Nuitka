@@ -292,8 +292,13 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
         # But wait, BUILTIN_HASATTR_BOOL takes TWO expressions. If attr_name is
         # not a constant, we can't easily use a static NitroAttrCache.
         # However, if it IS a constant string, we can!
-        if expression.subnode_name.isCompileTimeConstant() and type(expression.subnode_name.getCompileTimeConstant()) is str:
-            const_code = context.getConstantCode(expression.subnode_name.getCompileTimeConstant())
+        if (
+            expression.subnode_name.isCompileTimeConstant()
+            and type(expression.subnode_name.getCompileTimeConstant()) is str
+        ):
+            const_code = context.getConstantCode(
+                expression.subnode_name.getCompileTimeConstant()
+            )
             emit("    static NitroAttrCache _nitro_cache = {0};")
             emit(
                 "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
@@ -307,9 +312,15 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
                 % (res_name, source_name, attr_name)
             )
             emit("        if (%s != -1 && _nitro_cache.type_ver == 0u) {" % res_name)
-            emit("            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);" % (source_name, const_code))
+            emit(
+                "            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+                % (source_name, const_code)
+            )
             emit("            if (_nitro_val != NULL) {")
-            emit("                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);" % (source_name))
+            emit(
+                "                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);"
+                % (source_name)
+            )
             emit("                Py_DECREF(_nitro_val);")
             emit("            } else {")
             emit("                CLEAR_ERROR_OCCURRED(tstate);")
@@ -347,6 +358,28 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
     )
 
 
+def _getAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context):
+    if may_raise:
+        res_name = context.getIntResName()
+        emit("%s = HAS_ATTR_BOOL2(tstate, %s, %s);" % (res_name, source_name, const_code))
+        getErrorExitBoolCode(
+            condition="%s == -1" % res_name,
+            release_name=source_name,
+            emit=emit,
+            context=context,
+        )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition="%s != 0" % res_name, emit=emit
+        )
+    else:
+        res_name = context.getBoolResName()
+        emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
+        getReleaseCode(release_name=source_name, emit=emit, context=context)
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition=res_name, emit=emit
+        )
+
+
 def generateAttributeCheckCode(to_name, expression, emit, context):
     (source_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -354,6 +387,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
 
     attribute_name = expression.getAttributeName()
     const_code = context.getConstantCode(constant=attribute_name)
+    may_raise = expression.mayRaiseExceptionOperation()
 
     if python_version >= 0x3C0:
         emit("{")
@@ -368,25 +402,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
             to_name=to_name, condition="_nitro_hit != 0", emit=emit
         )
         emit("    } else {")
-        if expression.mayRaiseExceptionOperation():
-            res_name = context.getIntResName()
-            emit("%s = HAS_ATTR_BOOL2(tstate, %s, %s);" % (res_name, source_name, const_code))
-            getErrorExitBoolCode(
-                condition="%s == -1" % res_name,
-                release_name=source_name,
-                emit=emit,
-                context=context,
-            )
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition="%s != 0" % res_name, emit=emit
-            )
-        else:
-            res_name = context.getBoolResName()
-            emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
-            getReleaseCode(release_name=source_name, emit=emit, context=context)
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition=res_name, emit=emit
-            )
+        _getAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context)
 
         emit("        if (_nitro_cache.type_ver == 0u) {")
         # For hasattr we need the value to fill the cache correctly (to verify it matches).
@@ -401,67 +417,11 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         emit("        }")
         emit("    }")
         emit("#else")
-        if expression.mayRaiseExceptionOperation():
-            res_name = context.getIntResName()
-            emit("%s = HAS_ATTR_BOOL2(tstate, %s, %s);" % (res_name, source_name, const_code))
-            getErrorExitBoolCode(
-                condition="%s == -1" % res_name,
-                release_name=source_name,
-                emit=emit,
-                context=context,
-            )
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition="%s != 0" % res_name, emit=emit
-            )
-        else:
-            res_name = context.getBoolResName()
-            emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
-            getReleaseCode(release_name=source_name, emit=emit, context=context)
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition=res_name, emit=emit
-            )
+        _getAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context)
         emit("#endif")
         emit("}")
     else:
-        if expression.mayRaiseExceptionOperation():
-            res_name = context.getIntResName()
-
-            emit(
-                "%s = HAS_ATTR_BOOL2(tstate, %s, %s);"
-                % (
-                    res_name,
-                    source_name,
-                    const_code,
-                )
-            )
-
-            getErrorExitBoolCode(
-                condition="%s == -1" % res_name,
-                release_name=source_name,
-                emit=emit,
-                context=context,
-            )
-
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition="%s != 0" % res_name, emit=emit
-            )
-        else:
-            res_name = context.getBoolResName()
-
-            emit(
-                "%s = HAS_ATTR_BOOL(tstate, %s, %s);"
-                % (
-                    res_name,
-                    source_name,
-                    const_code,
-                )
-            )
-
-            getReleaseCode(release_name=source_name, emit=emit, context=context)
-
-            to_name.getCType().emitAssignmentCodeFromBoolCondition(
-                to_name=to_name, condition=res_name, emit=emit
-            )
+        _getAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context)
 
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
