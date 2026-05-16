@@ -17,7 +17,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import (
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
