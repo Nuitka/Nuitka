@@ -369,6 +369,9 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
                     "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
                     % (res_name, source_name, attr_name)
                 )
+                to_name.getCType().emitAssignmentCodeFromBoolCondition(
+                    to_name=to_name, condition="%s != 0" % res_name, emit=emit
+                )
 
             _emitNitroHasAttrCacheLookup(
                 to_name=to_name,
