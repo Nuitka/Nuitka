@@ -408,6 +408,15 @@ static void writeContainedFile(FILE_HANDLE target_file, unsigned long long file_
     }
 #endif
 #else
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 0
+    if (target_file != FILE_HANDLE_NULL) {
+        if (writeFileChunk(target_file, payload_current, file_size) == false) {
+            fatalErrorTempFiles();
+        }
+    }
+
+    payload_current += file_size;
+#else
     while (file_size > 0) {
         static char chunk[32768];
 
@@ -432,6 +441,7 @@ static void writeContainedFile(FILE_HANDLE target_file, unsigned long long file_
     }
 
     assert(file_size == 0);
+#endif
 #endif
 }
 
