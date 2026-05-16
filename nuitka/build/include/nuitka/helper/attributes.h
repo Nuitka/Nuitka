@@ -84,6 +84,11 @@ static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object
 //   0xFFFFFFFF   -> tried but not cacheable (descriptor, combined dict, etc.)
 //   otherwise    -> valid entry; must equal Py_TYPE(obj)->tp_version_tag to hit
 //
+// Cache state encoding (offset field):
+//   >= 0         -> byte offset from obj base to PyObject* slot in inline values
+//   -2           -> __class__ is standard Py_TYPE(obj)
+//   -3           -> __dict__ is standard materialized dict in pre-header
+//
 // Byte layout of PyDictValues (both 3.12 and 3.13):
 //   [0] capacity  u8      -- total allocated value slots
 //   [1..sizeof(void*)-1]  -- alignment padding
@@ -117,8 +122,27 @@ static inline PyObject *Nuitka_Nitro_CachedGetAttr(PyObject *obj, NitroAttrCache
     }
 
     int32_t off = cache->offset;
-    if (off < 0)
+    if (off == -1)
         return NULL;
+
+    if (off == -2) {
+        PyObject *val = (PyObject *)tp;
+        Py_INCREF(val);
+        return val;
+    }
+
+    if (off == -3) {
+#if PYTHON_VERSION >= 0x3d0
+        PyObject *dict = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
+#else
+        PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
+#endif
+        if (dict == NULL)
+            return NULL; // dict not yet materialized
+
+        Py_INCREF(dict);
+        return dict;
+    }
 
 #if PYTHON_VERSION >= 0x3d0
     // 3.13+: dictionary pointer is in the pre-header. If it's non-NULL, the
@@ -156,8 +180,13 @@ static inline int Nuitka_Nitro_CachedHasAttr(PyObject *obj, NitroAttrCache *cach
     }
 
     int32_t off = cache->offset;
-    if (off < 0)
+    if (off == -1)
         return -1;
+
+    if (off == -2 || off == -3) {
+        // __class__ and __dict__ always exist if we're here.
+        return 1;
+    }
 
 #if PYTHON_VERSION >= 0x3d0
     if (*(PyObject **)((char *)obj - 3 * sizeof(PyObject *)) != NULL)

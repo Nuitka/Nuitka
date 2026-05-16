@@ -117,7 +117,28 @@ void Nuitka_Nitro_CacheFill(PyObject *obj, PyObject *attr_val, NitroAttrCache *c
     if (ver == 0 || ver == 0xFFFFFFFFu)
         goto not_cacheable;
 
-    // Only user-defined classes with managed instance dicts.
+    // Special case: __class__ lookup result is exactly the type.
+    if (attr_val == (PyObject *)type) {
+        cache->offset = -2;
+        cache->type_ver = ver;
+        return;
+    }
+
+    // Special case: __dict__ lookup result matches the materialized dict in pre-header.
+    {
+#if PYTHON_VERSION >= 0x3d0
+        PyObject *dict = *(PyObject **)((char *)obj - 3 * sizeof(PyObject *));
+#else
+        PyObject *dict = *(PyObject **)((char *)obj - 2 * sizeof(PyObject *));
+#endif
+        if (dict != NULL && attr_val == dict) {
+            cache->offset = -3;
+            cache->type_ver = ver;
+            return;
+        }
+    }
+
+    // Only user-defined classes with managed instance dicts for the rest.
     if (!(type->tp_flags & Py_TPFLAGS_MANAGED_DICT))
         goto not_cacheable;
 

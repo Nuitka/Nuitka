@@ -92,13 +92,63 @@ def generateDelAttributeCode(statement, emit, context):
         )
 
 
+def _emitNitroCacheLookup(to_name, source_name, emit, fallback_callback):
+    emit("{")
+    emit("#ifndef Py_GIL_DISABLED")
+    emit("    static NitroAttrCache _nitro_cache = {0};")
+    emit(
+        "    PyObject *_nitro_hit = Nuitka_Nitro_CachedGetAttr(%s, &_nitro_cache);"
+        % source_name
+    )
+    emit("    if (likely(_nitro_hit != NULL)) {")
+    emit("        %s = _nitro_hit;" % to_name)
+    emit("    } else {")
+    fallback_callback()
+    emit("        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name)
+    emit(
+        "            Nuitka_Nitro_CacheFill(%s, %s, &_nitro_cache);"
+        % (source_name, to_name)
+    )
+    emit("        }")
+    emit("    }")
+    emit("#else")
+    fallback_callback()
+    emit("#endif")
+    emit("}")
+
+
 def getAttributeLookupCode(
     to_name, source_name, attribute_name, needs_check, emit, context
 ):
-    if attribute_name == "__dict__":
-        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);" % (to_name, source_name))
-    elif attribute_name == "__class__":
-        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);" % (to_name, source_name))
+    if attribute_name in ("__dict__", "__class__"):
+        if python_version >= 0x3C0:
+
+            def fallback():
+                if attribute_name == "__dict__":
+                    emit(
+                        "%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);"
+                        % (to_name, source_name)
+                    )
+                else:
+                    emit(
+                        "%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);"
+                        % (to_name, source_name)
+                    )
+
+            _emitNitroCacheLookup(
+                to_name=to_name, source_name=source_name, emit=emit, fallback_callback=fallback
+            )
+        else:
+            if attribute_name == "__dict__":
+                emit(
+                    "%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);"
+                    % (to_name, source_name)
+                )
+            else:
+                emit(
+                    "%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);"
+                    % (to_name, source_name)
+                )
     else:
         const_code = context.getConstantCode(attribute_name)
 
@@ -106,34 +156,15 @@ def getAttributeLookupCode(
             # Per-call-site version-tag inline cache for Python 3.12+ (standard GIL builds).
             # Hot path: version-tag check + single array load, no hash probe.
             # Miss path: LOOKUP_ATTRIBUTE then Nuitka_Nitro_CacheFill fills the cache.
-            emit("{")
-            emit("#ifndef Py_GIL_DISABLED")
-            emit("    static NitroAttrCache _nitro_cache = {0};")
-            emit(
-                "    PyObject *_nitro_hit = Nuitka_Nitro_CachedGetAttr(%s, &_nitro_cache);"
-                % source_name
+            _emitNitroCacheLookup(
+                to_name=to_name,
+                source_name=source_name,
+                emit=emit,
+                fallback_callback=lambda: emit(
+                    "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+                    % (to_name, source_name, const_code)
+                ),
             )
-            emit("    if (likely(_nitro_hit != NULL)) {")
-            emit("        %s = _nitro_hit;" % to_name)
-            emit("    } else {")
-            emit(
-                "        %s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-                % (to_name, source_name, const_code)
-            )
-            emit("        if (%s != NULL && _nitro_cache.type_ver == 0u) {" % to_name)
-            emit(
-                "            Nuitka_Nitro_CacheFill(%s, %s, &_nitro_cache);"
-                % (source_name, to_name)
-            )
-            emit("        }")
-            emit("    }")
-            emit("#else")
-            emit(
-                "    %s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-                % (to_name, source_name, const_code)
-            )
-            emit("#endif")
-            emit("}")
         else:
             emit(
                 "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
@@ -277,6 +308,44 @@ def getAttributeLookupSpecialCode(
     context.addCleanupTempName(to_name)
 
 
+def _emitNitroHasAttrCacheLookup(to_name, source_name, const_code, emit, fallback_callback):
+    emit("{")
+    emit("#ifndef Py_GIL_DISABLED")
+    emit("    static NitroAttrCache _nitro_cache = {0};")
+    emit(
+        "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
+        % source_name
+    )
+    emit("    if (likely(_nitro_hit != -1)) {")
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition="_nitro_hit != 0", emit=emit
+    )
+    emit("    } else {")
+    fallback_callback()
+    emit("        if (_nitro_cache.type_ver == 0u) {")
+    # For hasattr we need the value to fill the cache correctly (to verify it matches).
+    # This is slightly slower on first miss but only happens once.
+    emit(
+        "            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
+        % (source_name, const_code)
+    )
+    emit("            if (_nitro_val != NULL) {")
+    emit(
+        "                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);"
+        % (source_name)
+    )
+    emit("                Py_DECREF(_nitro_val);")
+    emit("            } else {")
+    emit("                CLEAR_ERROR_OCCURRED(tstate);")
+    emit("            }")
+    emit("        }")
+    emit("    }")
+    emit("#else")
+    fallback_callback()
+    emit("#endif")
+    emit("}")
+
+
 def generateBuiltinHasattrCode(to_name, expression, emit, context):
     source_name, attr_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -285,13 +354,8 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
     res_name = context.getIntResName()
 
     if python_version >= 0x3C0:
-        emit("{")
-        emit("#ifndef Py_GIL_DISABLED")
         # BUILTIN_HASATTR_BOOL is often called with non-constants too, so we
         # check if attr_name is a constant we can use with our static cache.
-        # But wait, BUILTIN_HASATTR_BOOL takes TWO expressions. If attr_name is
-        # not a constant, we can't easily use a static NitroAttrCache.
-        # However, if it IS a constant string, we can!
         if (
             expression.subnode_name.isCompileTimeConstant()
             and type(expression.subnode_name.getCompileTimeConstant()) is str
@@ -299,46 +363,25 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
             const_code = context.getConstantCode(
                 expression.subnode_name.getCompileTimeConstant()
             )
-            emit("    static NitroAttrCache _nitro_cache = {0};")
-            emit(
-                "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
-                % source_name
+
+            def fallback():
+                emit(
+                    "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+                    % (res_name, source_name, attr_name)
+                )
+
+            _emitNitroHasAttrCacheLookup(
+                to_name=to_name,
+                source_name=source_name,
+                const_code=const_code,
+                emit=emit,
+                fallback_callback=fallback,
             )
-            emit("    if (likely(_nitro_hit != -1)) {")
-            emit("        %s = _nitro_hit;" % res_name)
-            emit("    } else {")
-            emit(
-                "        %s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
-                % (res_name, source_name, attr_name)
-            )
-            emit("        if (%s != -1 && _nitro_cache.type_ver == 0u) {" % res_name)
-            emit(
-                "            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-                % (source_name, const_code)
-            )
-            emit("            if (_nitro_val != NULL) {")
-            emit(
-                "                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);"
-                % (source_name)
-            )
-            emit("                Py_DECREF(_nitro_val);")
-            emit("            } else {")
-            emit("                CLEAR_ERROR_OCCURRED(tstate);")
-            emit("            }")
-            emit("        }")
-            emit("    }")
         else:
             emit(
                 "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
                 % (res_name, source_name, attr_name)
             )
-        emit("#else")
-        emit(
-            "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
-            % (res_name, source_name, attr_name)
-        )
-        emit("#endif")
-        emit("}")
     else:
         emit(
             "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
@@ -353,14 +396,19 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
         context=context,
     )
 
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition="%s != 0" % res_name, emit=emit
-    )
+    # Note: _emitNitroHasAttrCacheLookup already emits assignment if hit.
+    # We only need it here if not already done.
+    if not (
+        python_version >= 0x3C0
+        and expression.subnode_name.isCompileTimeConstant()
+        and type(expression.subnode_name.getCompileTimeConstant()) is str
+    ):
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition="%s != 0" % res_name, emit=emit
+        )
 
 
-def _getAttributeCheckFallbackCode(
-    to_name, source_name, const_code, may_raise, emit, context
-):
+def _emitAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context):
     if may_raise:
         res_name = context.getIntResName()
         emit(
@@ -377,9 +425,7 @@ def _getAttributeCheckFallbackCode(
         )
     else:
         res_name = context.getBoolResName()
-        emit(
-            "%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code)
-        )
+        emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
         getReleaseCode(release_name=source_name, emit=emit, context=context)
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name, condition=res_name, emit=emit
@@ -396,48 +442,17 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
     may_raise = expression.mayRaiseExceptionOperation()
 
     if python_version >= 0x3C0:
-        emit("{")
-        emit("#ifndef Py_GIL_DISABLED")
-        emit("    static NitroAttrCache _nitro_cache = {0};")
-        emit(
-            "    int _nitro_hit = Nuitka_Nitro_CachedHasAttr(%s, &_nitro_cache);"
-            % source_name
+        _emitNitroHasAttrCacheLookup(
+            to_name=to_name,
+            source_name=source_name,
+            const_code=const_code,
+            emit=emit,
+            fallback_callback=lambda: _emitAttributeCheckFallbackCode(
+                to_name, source_name, const_code, may_raise, emit, context
+            ),
         )
-        emit("    if (likely(_nitro_hit != -1)) {")
-        to_name.getCType().emitAssignmentCodeFromBoolCondition(
-            to_name=to_name, condition="_nitro_hit != 0", emit=emit
-        )
-        emit("    } else {")
-        _getAttributeCheckFallbackCode(
-            to_name, source_name, const_code, may_raise, emit, context
-        )
-
-        emit("        if (_nitro_cache.type_ver == 0u) {")
-        # For hasattr we need the value to fill the cache correctly (to verify it matches).
-        # This is slightly slower on first miss but only happens once.
-        emit(
-            "            PyObject *_nitro_val = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
-            % (source_name, const_code)
-        )
-        emit("            if (_nitro_val != NULL) {")
-        emit(
-            "                Nuitka_Nitro_CacheFill(%s, _nitro_val, &_nitro_cache);"
-            % (source_name)
-        )
-        emit("                Py_DECREF(_nitro_val);")
-        emit("            } else {")
-        emit("                CLEAR_ERROR_OCCURRED(tstate);")
-        emit("            }")
-        emit("        }")
-        emit("    }")
-        emit("#else")
-        _getAttributeCheckFallbackCode(
-            to_name, source_name, const_code, may_raise, emit, context
-        )
-        emit("#endif")
-        emit("}")
     else:
-        _getAttributeCheckFallbackCode(
+        _emitAttributeCheckFallbackCode(
             to_name, source_name, const_code, may_raise, emit, context
         )
 
