@@ -136,7 +136,10 @@ def getAttributeLookupCode(
                     )
 
             _emitNitroCacheLookup(
-                to_name=to_name, source_name=source_name, emit=emit, fallback_callback=fallback
+                to_name=to_name,
+                source_name=source_name,
+                emit=emit,
+                fallback_callback=fallback,
             )
         else:
             if attribute_name == "__dict__":
@@ -308,7 +311,9 @@ def getAttributeLookupSpecialCode(
     context.addCleanupTempName(to_name)
 
 
-def _emitNitroHasAttrCacheLookup(to_name, source_name, const_code, emit, fallback_callback):
+def _emitNitroHasAttrCacheLookup(
+    to_name, source_name, const_code, emit, fallback_callback
+):
     emit("{")
     emit("#ifndef Py_GIL_DISABLED")
     emit("    static NitroAttrCache _nitro_cache = {0};")
@@ -411,7 +416,9 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
         )
 
 
-def _emitAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise, emit, context):
+def _emitAttributeCheckFallbackCode(
+    to_name, source_name, const_code, may_raise, emit, context
+):
     if may_raise:
         res_name = context.getIntResName()
         emit(
@@ -428,7 +435,9 @@ def _emitAttributeCheckFallbackCode(to_name, source_name, const_code, may_raise,
         )
     else:
         res_name = context.getBoolResName()
-        emit("%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code))
+        emit(
+            "%s = HAS_ATTR_BOOL(tstate, %s, %s);" % (res_name, source_name, const_code)
+        )
         getReleaseCode(release_name=source_name, emit=emit, context=context)
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name, condition=res_name, emit=emit
