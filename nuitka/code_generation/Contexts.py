@@ -285,12 +285,7 @@ CodeObjectHandle = collections.namedtuple(
 )
 
 
-if isExperimental("new-code-objects"):
-
-    class CodeObjectsMixin(object):
-        __slots__ = ()
-
-else:
+if isExperimental("old-code-objects"):
 
     class CodeObjectsMixin(object):
         # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -329,6 +324,17 @@ else:
 
         def _calcHash(self, key):
             return getStringHash("-".join(str(s) for s in key))
+
+else:
+
+    class CodeObjectsMixin(object):
+        __slots__ = ()
+
+        def getCodeObjectHandle(self, code_object):
+            return (
+                "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
+                % self.getConstantCode(code_object)
+            )
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):

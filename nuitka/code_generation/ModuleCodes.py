@@ -123,7 +123,7 @@ def getModuleCode(
 
     module_init_codes = context.getModuleInitCodes()
 
-    if isExperimental("new-code-objects"):
+    if not isExperimental("old-code-objects"):
         # Create the always identical, but dynamic filename first thing.
         module_filename = module.getRunTimeFilename()
 
