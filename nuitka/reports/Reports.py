@@ -378,6 +378,8 @@ def _getReportInputData(aborted):
             "cpu_cycles": None,
         },
         "all_passes": {"time": 0.0, "count": 0, "cpu_instr": None, "cpu_cycles": None},
+        "c_compilation": None,
+        "c_linking": None,
     }
 
     _total_all_passes_module_set = set()
@@ -445,6 +447,34 @@ def _getReportInputData(aborted):
                 performance_totals["code_generation"][
                     "cpu_cycles"
                 ] += _timing_info.cpu_cycles_count
+
+    if scons_resource_usage_data:
+        _c_compilation_user = 0.0
+        _c_compilation_system = 0.0
+        _c_compilation_count = 0
+
+        for module_name, rusage in scons_resource_usage_data.items():
+            if module_name == "@linker":
+                continue
+
+            _c_compilation_user += rusage["cpu"]["user-cpu-time"]
+            _c_compilation_system += rusage["cpu"]["system-cpu-time"]
+            _c_compilation_count += 1
+
+        linker_cpu = scons_resource_usage_data.get("@linker", {}).get("cpu", {})
+
+        if _c_compilation_count > 0:
+            performance_totals["c_compilation"] = {
+                "user_cpu": _c_compilation_user,
+                "system_cpu": _c_compilation_system,
+                "count": _c_compilation_count,
+            }
+
+        if linker_cpu:
+            performance_totals["c_linking"] = {
+                "user_cpu": linker_cpu["user-cpu-time"],
+                "system_cpu": linker_cpu["system-cpu-time"],
+            }
 
     return dict(
         (var_name, var_value)
@@ -1110,6 +1140,41 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             timing_xml_node.attrib["cpu_cycles"] = str(
                 performance_totals["code_generation"]["cpu_cycles"]
             )
+
+    if performance_totals["c_compilation"] is not None:
+        c_comp_node = appendTreeElement(
+            performance_totals_node,
+            "c-compilation-time",
+        )
+        c_comp_node.attrib["user-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_compilation"]["user_cpu"]
+        )
+        c_comp_node.attrib["system-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_compilation"]["system_cpu"]
+        )
+        c_comp_node.attrib["module_count"] = str(
+            performance_totals["c_compilation"]["count"]
+        )
+
+    if performance_totals["c_linking"] is not None:
+        c_link_node = appendTreeElement(
+            performance_totals_node,
+            "c-linking-time",
+        )
+        c_link_node.attrib["user-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_linking"]["user_cpu"]
+        )
+        c_link_node.attrib["system-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_linking"]["system_cpu"]
+        )
 
     if report_input_data["backend_executable"] != "failed too early":
         python_binary_xml_node = appendTreeElement(
