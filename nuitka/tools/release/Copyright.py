@@ -17,6 +17,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.Version import getNuitkaVersionYear
 
 copyright_year = getNuitkaVersionYear()
+_default_copyright_holder = "Kay Hayen, mailto:kay.hayen@gmail.com"
 
 # spell-checker: ignore Batakrishna,Jorj,Kierzkowski,Pawe,Sahu,Teske
 
@@ -42,6 +43,15 @@ copyright_holder = {
     "tests/distutils/nested_namespaces/a/b/pkg/__init__.py": "Jan Teske, mailto:<jteske@posteo.net>",
     "tests/distutils/nested_namespaces/setup.py": "Jan Teske, mailto:<jteske@posteo.net>",
     "nuitka/tools/quality/auto_format/YamlFormatter.py": "Fire-Cube <ben7@gmx.ch>",
+}
+
+copyright_holder_year = {
+    "Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>": "2020",
+    "Jan Teske, mailto:<jteske@posteo.net>": "2020",
+    "Jorj McKie, mailto:<jorj.x.mckie@outlook.de>": "2020",
+    "Kevin Rodriguez <mailto:turcioskevinr@gmail.com>": "2024",
+    "Pawe\u0142 Kierzkowski, mailto:<pk.pawelo@gmail.com>": "2020",
+    "Tommy Li, mailto:<tommyli3318@gmail.com>": "2020",
 }
 
 # Files that have no suffix, but should be commented anyway, spell-checker: ignore restlint
@@ -87,16 +97,30 @@ def isPlainFileWithCopyright(filename):
     return os.path.basename(filename) in _plain_files
 
 
+def _normalizeCopyrightFilename(filename):
+    return filename.replace("\\", "/")
+
+
+def getCopyrightHolder(filename):
+    return copyright_holder.get(
+        _normalizeCopyrightFilename(filename),
+        _default_copyright_holder,
+    )
+
+
+def getCopyrightHolderYear(holder):
+    return copyright_holder_year.get(holder, str(copyright_year))
+
+
 def getCopyrightClaim(filename, claim):
+    holder = getCopyrightHolder(filename)
+
     r = [
         (
             "    Copyright %s, %s"
             % (
-                copyright_year,
-                copyright_holder.get(
-                    filename.replace(os.path.sep, "/"),
-                    "Kay Hayen, mailto:kay.hayen@gmail.com",
-                ),
+                getCopyrightHolderYear(holder),
+                holder,
             )
         ).encode("utf8"),
         b"",
@@ -347,6 +371,12 @@ def getLicenseTextStandard():
         while not _copyright_claim_standard[-1].strip():
             del _copyright_claim_standard[-1]
 
+        # Per file, we maintain a different wording.
+        _copyright_claim_standard[0] = _copyright_claim_standard[0].replace(
+            b"Nuitka is an",
+            b'Part of "Nuitka", an',
+        )
+
     return _copyright_claim_standard
 
 
@@ -377,7 +407,10 @@ def getLicenseTextCommercial():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

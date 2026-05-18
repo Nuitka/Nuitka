@@ -112,28 +112,32 @@ sys.exit(%(module_name)s.%(main_name)s)
 from __future__ import absolute_import
 
 import os
-from pkg_resources import register_loader_type, EggProvider
+try:
+    from pkg_resources import register_loader_type, EggProvider
+except ImportError:
+    pass
+else:
 
-class NuitkaProvider(EggProvider):
-    def _has(self, path):
-        return os.path.exists(path)
+    class NuitkaProvider(EggProvider):
+        def _has(self, path):
+            return os.path.exists(path)
 
-    def _isdir(self, path):
-        return os.path.isdir(path)
+        def _isdir(self, path):
+            return os.path.isdir(path)
 
-    def _listdir(self, path):
-        return os.listdir(path)
+        def _listdir(self, path):
+            return os.listdir(path)
 
-    def get_resource_stream(self, manager, resource_name):
-        return open(self._fn(self.module_path, resource_name), 'rb')
+        def get_resource_stream(self, manager, resource_name):
+            return open(self._fn(self.module_path, resource_name), 'rb')
 
-    def _get(self, path):
-        with open(path, 'rb') as stream:
-            return stream.read()
+        def _get(self, path):
+            with open(path, 'rb') as stream:
+                return stream.read()
 
-assert __loader__.__class__.__name__ == "nuitka_module_loader", __loader__
+    assert __loader__.__class__.__name__ == "nuitka_module_loader", __loader__
 
-register_loader_type(__loader__.__class__, NuitkaProvider)
+    register_loader_type(__loader__.__class__, NuitkaProvider)
 """
 
             yield (
@@ -153,7 +157,10 @@ register_loader_type(__loader__.__class__, NuitkaProvider)
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

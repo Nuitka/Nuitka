@@ -7,6 +7,7 @@ The classes are are at the core of the language and have their complexities.
 
 """
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
@@ -124,7 +125,12 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
     kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
-    __slots__ = ("needs_annotations_dict", "qualname_setup", "static_attributes")
+    __slots__ = (
+        "needs_annotations_dict",
+        "qualname_setup",
+        "static_attributes",
+        "deferred_annotations",
+    )
 
     # Force creation with proper type.
     locals_kind = "python_mapping_class"
@@ -142,6 +148,7 @@ class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyB
 
         self.qualname_setup = None
         self.static_attributes = OrderedSet() if python_version >= 0x3D0 else None
+        self.deferred_annotations = OrderedDict() if python_version >= 0x3E0 else None
 
     def addStaticAttribute(self, static_attribute):
         self.static_attributes.add(static_attribute)
@@ -324,7 +331,10 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

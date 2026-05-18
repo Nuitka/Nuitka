@@ -2,6 +2,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+"""Coverage rendering tool."""
+
 import os
 import shutil
 import subprocess
@@ -32,7 +34,10 @@ def main():
             continue
 
         values = {}
-        exec(open(filename).read(), values)
+        with open(filename, encoding="utf-8") as f:
+            # pylint: disable=exec-used
+            exec(f.read(), values)
+
         if "__builtins__" in values:
             del values["__builtins__"]
 
@@ -41,7 +46,7 @@ def main():
     # spell-checker: ignore coveragerc
     coverage_path = os.path.abspath(".coveragerc")
 
-    with open(coverage_path, "w") as coverage_rc_file:
+    with open(coverage_path, "w", encoding="utf-8") as coverage_rc_file:
         coverage_rc_file.write("[paths]\n")
         coverage_rc_file.write("source = \n")
 
@@ -87,7 +92,10 @@ if __name__ == "__main__":
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

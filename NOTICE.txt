@@ -1,0 +1,11 @@
+Nuitka
+======
+
+Nuitka is a Python compiler developed by Kay Hayen.
+
+Copyright (c) 2008-2026 Kay Hayen
+All rights reserved.
+
+Other individuals contributed to the development of Nuitka under
+Apache License 2.0, but this has since been relicensed under
+AGPLv3 and proprietary licenses.

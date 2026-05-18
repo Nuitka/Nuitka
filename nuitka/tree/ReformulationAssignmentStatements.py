@@ -73,6 +73,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -617,31 +618,38 @@ def buildAnnAssignNode(provider, node, source_ref):
         if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
         ):
-            annotation = buildAnnotationNode(provider, node.annotation, source_ref)
-
-            # TODO: As CPython core considers this implementation detail, and it seems
-            # mostly useless to support having this as a closure taken name after a
-            # __del__ on annotations, we might do this except in full compat mode. It
-            # will produce only noise for all annotations in classes otherwise.
-            if python_version < 0x370:
-                ref_class = ExpressionVariableLocalNameRef
+            if (
+                python_version >= 0x3E0
+                and isExperimental("deferred-annotations")
+                and provider.isExpressionClassBodyBase()
+            ):
+                provider.deferred_annotations[variable_name] = node.annotation
             else:
-                ref_class = ExpressionVariableNameRef
+                annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 
-            statements.append(
-                StatementAssignmentSubscript(
-                    subscribed=ref_class(
-                        provider=provider,
-                        variable_name="__annotations__",
+                # TODO: As CPython core considers this implementation detail, and it seems
+                # mostly useless to support having this as a closure taken name after a
+                # __del__ on annotations, we might do this except in full compat mode. It
+                # will produce only noise for all annotations in classes otherwise.
+                if python_version < 0x370:
+                    ref_class = ExpressionVariableLocalNameRef
+                else:
+                    ref_class = ExpressionVariableNameRef
+
+                statements.append(
+                    StatementAssignmentSubscript(
+                        subscribed=ref_class(
+                            provider=provider,
+                            variable_name="__annotations__",
+                            source_ref=source_ref,
+                        ),
+                        subscript=makeConstantRefNode(
+                            constant=variable_name, source_ref=source_ref
+                        ),
+                        source=annotation,
                         source_ref=source_ref,
-                    ),
-                    subscript=makeConstantRefNode(
-                        constant=variable_name, source_ref=source_ref
-                    ),
-                    source=annotation,
-                    source_ref=source_ref,
+                    )
                 )
-            )
         else:
             # Functions or disabled.
             if node.simple:
@@ -1360,7 +1368,10 @@ def buildTypeAliasNode(provider, node, source_ref):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -170,7 +170,10 @@ rem     Licensed under the GNU Affero General Public License, Version 3 (the "Li
 rem     you may not use this file except in compliance with the License.
 rem     You may obtain a copy of the License at
 rem
-rem        http://www.gnu.org/licenses/agpl.txt
+rem        https://www.gnu.org/licenses/agpl-3.0.txt
+rem
+rem     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+rem     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 rem
 rem     Unless required by applicable law or agreed to in writing, software
 rem     distributed under the License is distributed on an "AS IS" BASIS,

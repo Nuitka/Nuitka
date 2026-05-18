@@ -412,7 +412,7 @@ def _compareWithCPythonVariations(
     dirname, filename, extra_flags, search_mode, on_error=None
 ):
     if "" not in extra_flags:
-        test_logger.sysexit("Error, default flags not present")
+        return test_logger.sysexit("Error, default flags not present")
 
     # Drop empty values or identical values.
     extra_flags = OrderedDict(
@@ -511,7 +511,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=Non
         search_mode.onErrorDetected("Error exit! %s" % result)
 
     if result == 2:
-        test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
+        return test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
 
 
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
@@ -957,10 +957,15 @@ Run tests with coverage enabled.""",
     elif mode == "search":
         pass
     else:
-        test_logger.sysexit("Error, using unknown search mode %r" % mode)
+        return test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
     if options.max_failures is not None and not options.all:
-        test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+        return test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+
+    if options.pattern and options.all:
+        return test_logger.sysexit(
+            "Error, '--pattern' cannot be combined with '--all'. Use only '--pattern' to run just the matching tests."
+        )
 
     start_at = options.pattern.replace("/", os.path.sep) if options.pattern else None
 
@@ -1474,7 +1479,7 @@ def killProcessGroup(process_name, pid):
     """
 
     if isWin32Windows():
-        test_logger.sysexit("Error, cannot send kill signal on Windows")
+        return test_logger.sysexit("Error, cannot send kill signal on Windows")
     else:
         test_logger.info("Killing test process group '%s'." % process_name)
         os.killpg(pid, signal.SIGINT)
@@ -1889,6 +1894,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
             "libffi.dylib",
+            "libffi-trampolines.dylib",
             "libfribidi.dylib",
         ):
             continue
@@ -1952,7 +1958,7 @@ def getMainProgramFilename(filename, allow_none=False):
     if allow_none:
         return None
 
-    test_logger.sysexit(
+    return test_logger.sysexit(
         """\
 Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
         % (filename)
@@ -1966,7 +1972,7 @@ def getInstalledPythonVersion(python_version, must_exist):
     )
 
     if result is None and must_exist:
-        test_logger.sysexit(
+        return test_logger.sysexit(
             "Error, cannot find required Python version %s installation."
             % python_version
         )
@@ -2096,7 +2102,10 @@ def decryptOutput(project_options, output):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

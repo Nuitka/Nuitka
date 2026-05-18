@@ -211,9 +211,7 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-        module_name = getDistributionTopLevelPackageNames(
-            distribution=distribution, deep=True
-        )[0]
+        module_name = getDistributionTopLevelPackageNames(distribution=distribution)[0]
 
         _metadata_values[distribution_name] = MetaDataDescription(
             module_name=module_name,
@@ -246,7 +244,10 @@ def getDistributionMetadataValues():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

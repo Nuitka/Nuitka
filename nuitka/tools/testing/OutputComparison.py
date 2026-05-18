@@ -49,6 +49,8 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
+took_ms_re = re.compile(r"took \d+ ms")
+
 did_you_mean_re = re.compile(r"\. Did you mean:? '.*?'\?")
 # spell-checker:enable
 
@@ -172,7 +174,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # TODO: Maybe we need Nuitka-Prompt as a logger used there?
         if (
-            line.startswith("Nuitka will make use of ccache")
+            line.startswith("Nuitka depends on '")
+            or line.startswith("Nuitka will make use of ccache")
             or line.startswith("Fully automatic, cached.")
             or "Is it OK to download" in line
         ):
@@ -213,6 +216,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         line = non_ascii_error_rt.sub(r"\1 xxxx", line)
         line = timing_re.sub(r"in x.xx seconds", line)
+        line = took_ms_re.sub(r"took xx ms", line)
 
         # Windows has a different "os.path", update according to it.
         line = line.replace("ntpath", "posixpath")
@@ -308,6 +312,7 @@ exceeded while calling a Python object' in \
         # Ignore macOS system log noise emitted by GUI backends such as
         # matplotlib. This contains timestamp, process name, and ids that are
         # expected to differ between CPython and compiled binaries.
+        # spell-checker: ignore NSXPC
         if (
             "NSXPCSharedListener endpointForReply:withListenerName:replyErrorCode"
             in line
@@ -414,7 +419,10 @@ def compareOutput(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

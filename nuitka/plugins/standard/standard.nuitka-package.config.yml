@@ -803,10 +803,12 @@
     - depends:
         - 'chainer.distributions.utils'
 
-- module-name: 'charset_normalizer' # checksum: 3a81fa9
+- module-name: 'charset_normalizer' # checksum: 63d29872
   implicit-imports:
     - depends:
         - 'charset_normalizer.md__mypyc'
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'chia.ssl.create_ssl' # checksum: d95c1483
   implicit-imports:
@@ -3153,6 +3155,62 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
+- module-name: 'mssql_python' # checksum: 4cd7d5fd
+  variables:
+    setup_code:
+      - 'import platform, os'
+      - 'machine = platform.machine().lower()'
+    declarations:
+      'linux_arch': "'arm64' if machine in ('arm64', 'aarch64') else 'x86_64'"
+      'linux_distro': "'alpine' if os.path.exists('/etc/alpine-release') else 'suse' if os.path.exists('/etc/SuSE-release') or os.path.exists('/etc/SUSE-brand') else 'rhel' if os.path.exists('/etc/redhat-release') else 'debian_ubuntu'"
+    when: 'linux'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'pyd'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'so'
+      when: 'linux or macos'
+    - from_filenames:
+        relative_path: 'libs/windows/x64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'libs/windows/arm64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/arm64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/x86_64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_amd64'
+    - from_filenames:
+        relative_path: "os.path.join('libs', 'linux', get_variable('linux_distro'), get_variable('linux_arch'), 'lib')"
+        prefixes:
+          - 'lib'
+      when: 'linux'
+
+  implicit-imports:
+    - depends:
+        - 'mssql_python.ddbc_bindings'
+
 - module-name: 'multiprocess.util' # checksum: df30b465
   anti-bloat:
     - description: 'avoid test module usage'
@@ -3968,7 +4026,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 47010086
+- module-name: 'pandas' # checksum: 1899c1ff
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3981,6 +4039,9 @@
         'pandas.core._numba.extensions': 'no numba acceleration'
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
+    - description: 'avoid pulling in matplotlib through pandas plotting'
+      no-auto-follow:
+        'pandas.plotting._matplotlib': 'plotting will not be available'
     - description: 'remove getrefcount usage'
       global_replacements_plain:
         'if sys.getrefcount(': 'if False and sys.getrefcount('
@@ -4380,13 +4441,15 @@
     - depends:
         - '.region_*'
 
-- module-name: 'PIL' # checksum: ad207987
+- module-name: 'PIL' # checksum: 5a9f1ed5
   anti-bloat:
     - description: 'avoid numpy dependency'
       no-auto-follow:
         'numpy': 'ignore'
     - description: 'avoid tkinter dependency'
       no-auto-follow:
+        'PIL.ImageTk': 'PIL will not be able to create Tk image objects'
+        'PIL._tkinter_finder': 'ignore'
         'tkinter': 'PIL will not be able to create Tk image objects'
       when: 'not use_tkinter'
 
@@ -4884,6 +4947,11 @@
       no-auto-follow:
         'cython': 'ignore'
       when: 'not use_setuptools'
+
+- module-name: 'pyDOE3.orthogonal_arrays' # checksum: b8704389
+  data-files:
+    - patterns:
+        - '*.oa'
 
 - module-name: 'pyface' # checksum: a2a403b1
   data-files:
