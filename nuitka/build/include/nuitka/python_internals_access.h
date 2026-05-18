@@ -6,7 +6,7 @@
 
 #undef _PyRuntime
 
-// spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld
+// spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld,Qsbr,Reftracer
 
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {
@@ -86,6 +86,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 1452
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 1432
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer 5312
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 8812
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 5324
 
@@ -98,6 +99,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 2048
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 2008
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer 9688
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 13240
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 9712
 
@@ -233,8 +235,25 @@ static inline size_t Nuitka_PyRuntime_GetOffset__PyRuntimeState_stoptheworld(voi
 }
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld Nuitka_PyRuntime_GetOffset__PyRuntimeState_stoptheworld()
 #endif
+#if PYTHON_VERSION >= 0x3e0
+static inline size_t Nuitka_PyRuntime_GetOffset__PyRuntimeState_ref_tracer(void) {
+    size_t c_offset = offsetof(_PyRuntimeState, ref_tracer);
+#if PYTHON_VERSION >= 0x3c0
+    if (c_offset > offsetof(_PyRuntimeState, ceval)) {
+#if defined(PY_HAVE_PERF_TRAMPOLINE)
+        c_offset -= _Nuitka_perf_trampoline_get_deduction_compile_time();
 #endif
-#if (!_NUITKA_MODULE_MODE && !defined(__MINGW64__)) || (!defined(__linux__) && !defined(_WIN32))
+        if (Nuitka_RuntimeHasPerfTrampoline()) {
+            c_offset += _Nuitka_perf_trampoline_get_deduction();
+        }
+    }
+#endif
+    return c_offset;
+}
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer Nuitka_PyRuntime_GetOffset__PyRuntimeState_ref_tracer()
+#endif
+#endif
+#if (!_NUITKA_MODULE_MODE && !defined(__MINGW64__)) || defined(_MSC_VER) || (!defined(__linux__) && !defined(_WIN32))
 #define NUITKA_PYRUNTIME_PTR(struct_start, comp) ((char *)(struct_start) + offsetof(_PyRuntimeState, comp))
 #else
 #define NUITKA_PYRUNTIME_PTR(struct_start, comp)                                                                       \
@@ -263,8 +282,10 @@ static inline size_t Nuitka_PyRuntime_GetOffset__PyRuntimeState_stoptheworld(voi
  */
 PyAPI_DATA(_PyRuntimeState) _PyRuntime;
 
+#ifndef _Nuitka_PyRuntime_PTR
 static inline _PyRuntimeState *_Nuitka_Get_PyRuntime_PTR(void) { return &_PyRuntime; }
 #define _Nuitka_PyRuntime_PTR (_Nuitka_Get_PyRuntime_PTR())
+#endif
 
 /* Nuitka C API strongly-typed access macros */
 #if PYTHON_VERSION >= 0x3c0
@@ -277,6 +298,26 @@ static inline _PyRuntimeState *_Nuitka_Get_PyRuntime_PTR(void) { return &_PyRunt
 #define _PyRuntime (*((struct NUITKA_ERROR_Do_not_use_PyRuntime_directly_use_NUITKA_PYRUNTIME_PTR *)0))
 #endif
 
+// The adapted header already rewrites _PyReftracerTrack's body, but only
+// to a compile-time _Nuitka_PyRuntime_PTR->ref_tracer dereference.
+// Replace it here with the NUITKA_PYRUNTIME_DYNAMIC variant so the offset
+// survives 3.14 micro-version _PyRuntimeState layout changes (ref_tracer
+// shifts between e.g. 3.14.2/3.14.3 by 3 pointer widths).
+#if PYTHON_VERSION >= 0x3e0
+#ifdef _PyReftracerTrack
+#undef _PyReftracerTrack
+#endif
+#define _PyReftracerTrack(obj, operation)                                                                              \
+    do {                                                                                                               \
+        struct _reftracer_runtime_state *tracer =                                                                      \
+            NUITKA_PYRUNTIME_DYNAMIC(_Nuitka_PyRuntime_PTR, ref_tracer, struct _reftracer_runtime_state);              \
+        if (tracer->tracer_func != NULL) {                                                                             \
+            void *data = tracer->tracer_data;                                                                          \
+            tracer->tracer_func((obj), (operation), data);                                                             \
+        }                                                                                                              \
+    } while (0)
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -286,7 +327,10 @@ static inline _PyRuntimeState *_Nuitka_Get_PyRuntime_PTR(void) { return &_PyRunt
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

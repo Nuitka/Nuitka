@@ -425,6 +425,7 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         reason=reason,
         tracer=logger,
         tags=tags,
+        ignore_dirs=("_CodeSignature",),
         raw=True,
     )
 
@@ -469,6 +470,20 @@ def addIncludedDataFile(included_datafile):
     Args:
         included_datafile: The IncludedDataFile object to add.
     """
+    for candidate in _included_data_files:
+        if candidate.dest_path == included_datafile.dest_path:
+            inclusion_logger.warning(
+                """\
+Duplicate data file '%s' from '%s' is already provided via '%s' -- ignored."""
+                % (
+                    included_datafile.dest_path,
+                    included_datafile.reason,
+                    candidate.reason,
+                )
+            )
+
+            return
+
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
     for external_datafile_pattern in getShallNotIncludeDataFilePatterns():
@@ -483,11 +498,6 @@ def addIncludedDataFile(included_datafile):
             return
 
     onDataFileTags(included_datafile)
-
-    # TODO: Catch duplicates sooner.
-    # for candidate in _included_data_files:
-    #     if candidate.dest_path == included_datafile.dest_path:
-    #         assert False, included_datafile
 
     if included_datafile.needsCopy():
         for external_datafile_pattern in getShallIncludeExternallyDataFilePatterns():
@@ -1017,7 +1027,10 @@ plugins '--embed-*' options. Not done for '%s'.""" % included_datafile.dest_path
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

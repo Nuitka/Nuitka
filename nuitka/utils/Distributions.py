@@ -257,17 +257,13 @@ def _getDistributionInstallerFileContents(distribution):
 _distribution_top_level_cache = {}
 
 
-def getDistributionTopLevelPackageNames(distribution, deep):
+def getDistributionTopLevelPackageNames(distribution):
     """Returns the top level package names for a distribution."""
-
-    # Many cases to deal with, pylint: disable=too-many-branches
 
     # Using caching per distribution to avoid reading the same files over and
     # over.
-    key = (distribution, deep)
-
-    if key in _distribution_top_level_cache:
-        return _distribution_top_level_cache[key]
+    if distribution in _distribution_top_level_cache:
+        return _distribution_top_level_cache[distribution]
 
     result = OrderedSet()
 
@@ -290,61 +286,55 @@ def getDistributionTopLevelPackageNames(distribution, deep):
 
         if result:
             result = tuple(result)
-
-            # If we found it via top level text, it applies to deep or not deep,
-            # so cache it for both.
-            _distribution_top_level_cache[distribution, False] = result
-            _distribution_top_level_cache[distribution, True] = result
-
+            _distribution_top_level_cache[distribution] = result
             return result
 
-    if deep:
-        # If the file is not present or not satisfactory, fall back to scanning
-        # all files in the distribution.
+    # If the file is not present or not satisfactory, fall back to scanning
+    # all files in the distribution.
 
-        for filename in getDistributionFiles(distribution):
-            if filename.startswith("."):
-                continue
+    for filename in getDistributionFiles(distribution):
+        if filename.startswith("."):
+            continue
 
-            first_path_element, _, remainder = filename.partition("/")
+        first_path_element, _, remainder = filename.partition("/")
 
-            if first_path_element.endswith((".dist-info", ".egg-info")):
-                continue
-            if first_path_element == "__pycache__":
-                continue
-            if not checkModuleName(first_path_element) or first_path_element == ".":
-                continue
+        if first_path_element.endswith((".dist-info", ".egg-info")):
+            continue
+        if first_path_element == "__pycache__":
+            continue
+        if not checkModuleName(first_path_element) or first_path_element == ".":
+            continue
 
-            if remainder:
-                module_name = ModuleName(first_path_element)
-            else:
-                module_name, _kind = getModuleNameAndKindFromFilenameSuffix(
-                    first_path_element
-                )
-
-                # Ignore top level files that are not modules.
-                if module_name is None:
-                    continue
-
-            result.add(module_name)
-
-        result = OrderedSet(
-            package_name.asString()
-            for package_name in result
-            if not any(
-                package_name.isBelowNamespace(other_package_name)
-                for other_package_name in result
+        if remainder:
+            module_name = ModuleName(first_path_element)
+        else:
+            module_name, _kind = getModuleNameAndKindFromFilenameSuffix(
+                first_path_element
             )
+
+            # Ignore top level files that are not modules.
+            if module_name is None:
+                continue
+
+        result.add(module_name)
+
+    result = OrderedSet(
+        package_name.asString()
+        for package_name in result
+        if not any(
+            package_name.isBelowNamespace(other_package_name)
+            for other_package_name in result
         )
+    )
 
     # In case we found nothing, fall back to distribution name, which
     # often is a mirror of the package name.
-    if not result and deep:
+    if not result:
         result.add(getDistributionName(distribution))
 
-    _distribution_top_level_cache[key] = tuple(result)
+    _distribution_top_level_cache[distribution] = tuple(result)
 
-    return _distribution_top_level_cache[key]
+    return _distribution_top_level_cache[distribution]
 
 
 def _get_pkg_resources_module():
@@ -414,9 +404,7 @@ is typically caused by corruption of its installation."""
             _getDistributionPath(distribution),
         )
 
-        for package_name in getDistributionTopLevelPackageNames(
-            distribution, deep=True
-        ):
+        for package_name in getDistributionTopLevelPackageNames(distribution):
             # Protect against buggy packages.
             if not checkModuleName(package_name):
                 continue
@@ -869,7 +857,10 @@ def filterInstallRequires(install_requires):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

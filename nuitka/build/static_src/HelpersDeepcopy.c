@@ -293,6 +293,12 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
     } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
+        // Save and clear any pre-existing exception, so we can detect if
+        // iteration raises a new exception rather than reacting to a
+        // pre-existing one like SystemExit.
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
+
         PyObject *iterator = PyObject_GetIter(value);
         CHECK_OBJECT(iterator);
 
@@ -311,6 +317,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         }
 
         Py_DECREF(iterator);
+
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
         return result;
     } else if (PyLong_Check(value)) {
@@ -535,6 +543,14 @@ static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value)
             item_index += 1;
         }
     } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
+        // Save and clear any pre-existing exception, so we can detect if
+        // iteration raises a new exception rather than reacting to a
+        // pre-existing one like SystemExit.
+        PyThreadState *tstate = PyThreadState_GET();
+
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
+
         PyObject *iterator = PyObject_GetIter(value);
 
         if (iterator == NULL) {
@@ -547,7 +563,7 @@ static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value)
             PyObject *item = PyIter_Next(iterator);
 
             if (item == NULL) {
-                if (PyErr_Occurred()) {
+                if (HAS_ERROR_OCCURRED(tstate)) {
                     Py_DECREF(iterator);
                     abortCorruptNamedObject(name, "set iteration raised");
                 }
@@ -565,6 +581,8 @@ static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value)
         }
 
         Py_DECREF(iterator);
+
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
     }
 }
 
@@ -667,7 +685,10 @@ PyObject *DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char co
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

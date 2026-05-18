@@ -18,9 +18,10 @@ from nuitka.importing.Recursion import decideRecursion
 from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
+    getDistributionFiles,
     getDistributionsFromModuleName,
-    getDistributionTopLevelPackageNames,
 )
+from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -313,18 +314,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield used_module_name
 
             # Find mypyc dependencies, spell-checker: ignore mypyc
-            for distribution in getDistributionsFromModuleName(full_name):
-                for module_name in getDistributionTopLevelPackageNames(
-                    distribution=distribution, deep=False
-                ):
-                    # Protect against buggy packages.
-                    if not checkModuleName(module_name):
-                        continue
-
-                    module_name = ModuleName(module_name)
-
-                    if module_name.matchesToShellPattern("*__mypyc").is_match:
-                        yield module_name
+            for module_name in self._getMypycImplicitImports(full_name):
+                yield module_name
 
         if full_name == "pkg_resources.extern":
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could
@@ -345,6 +336,31 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
         for item in self._getImportsByFullname(module=module, full_name=full_name):
             yield item
+
+    @staticmethod
+    def _getMypycImplicitImports(full_name):
+        # Find mypyc dependencies, spell-checker: ignore mypyc
+        for distribution in getDistributionsFromModuleName(full_name):
+            for filename in getDistributionFiles(distribution):
+                for suffix in sorted(
+                    getExtensionModuleSuffixes(), key=lambda _suffix: -len(_suffix)
+                ):
+                    if filename.endswith(suffix):
+                        extension_module_path = filename[: -len(suffix)]
+
+                        if not extension_module_path.endswith("__mypyc"):
+                            break
+
+                        module_name = ModuleName(
+                            extension_module_path.replace("/", ".")
+                        )
+
+                        # Protect against buggy packages and avoid
+                        # self-reference.
+                        if checkModuleName(module_name) and module_name != full_name:
+                            yield module_name
+
+                        break
 
     def _getPackageExtraScanPaths(self, package_dir, config):
         for config_package_dir in config.get("package-dirs", ()):
@@ -928,7 +944,10 @@ def _lookAhead(using_module_name, module_name):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

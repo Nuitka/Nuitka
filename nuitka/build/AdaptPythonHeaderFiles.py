@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import getArchitecture, getOS, isLinux, isWin32Windows
+from nuitka.Version import getNuitkaVersion
 
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
@@ -47,6 +48,8 @@ def getOffsetsJsonRequiredKeys(for_python_version_str):
         keys.extend(["imports", "static_objects", "ceval"])
         if for_python_version_tuple >= (3, 13):
             keys.append("stoptheworld")
+        if for_python_version_tuple >= (3, 14):
+            keys.append("ref_tracer")
     else:
         keys.append("gilstate")
 
@@ -334,7 +337,8 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_files = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v9",
+        "adapted-python-headers-v1",
+        getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
     )
 
@@ -359,8 +363,11 @@ def _shallCreateAdaptedPythonHeaderFiles():
         uses_default_platform_gate = True
     else:
         # Python 3.14 module mode needs adapted headers on all OSes due to
-        # cross-patch interpreter layout changes.
-        uses_default_platform_gate = not is_python314_module_mode
+        # cross-patch interpreter layout changes. For MSVC, offsetof is
+        # always correct since the compiler and runtime layouts match.
+        uses_default_platform_gate = (
+            not is_python314_module_mode or needs_windows_mingw_opt_in
+        )
 
     if uses_default_platform_gate:
         # TODO: We delay this until we have a better way to detect the compiler
@@ -450,7 +457,10 @@ def createAdaptedPythonHeaderFiles(source_dir):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

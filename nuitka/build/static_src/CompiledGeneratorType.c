@@ -453,7 +453,14 @@ static PyObject *Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nui
 
     // Need to make it unaccessible while using it.
     generator->m_yield_from = NULL;
+
+    // Before yielding to an inner coroutine, swap the outer coroutine's
+    // exception onto the thread state so that sys.exc_info() can see it
+    SAVE_GENERATOR_EXCEPTION(tstate, generator);
+
     PyObject *yielded = _Nuitka_YieldFromGeneratorCore(tstate, generator, yield_from, send_value);
+
+    RESTORE_GENERATOR_EXCEPTION(tstate, generator);
 
     if (yielded == NULL) {
         Py_DECREF(yield_from);
@@ -1988,7 +1995,10 @@ PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

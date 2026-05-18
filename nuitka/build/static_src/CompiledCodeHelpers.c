@@ -2022,10 +2022,15 @@ void _initBuiltinModule(PyThreadState *tstate) {
             PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
         assert(res == 0);
 
-        // For actual DLL mode, we don't have this, but the form used in onefile
-        // will providing our own executable that knows what to do.
 #if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
-        PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+#if _NUITKA_ONEFILE_DLL_MODE
+        // In onefile DLL mode, the outer EXE is the one to use for child
+        // process spawning, not the loaded DLL.
+        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe",
+                                   Nuitka_String_FromFilename(getBinaryPath()));
+#else
+        res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+#endif
         assert(res == 0);
 #endif
     }
@@ -2249,7 +2254,10 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

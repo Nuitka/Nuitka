@@ -51,6 +51,58 @@ print(
     singledispatchTest("x"),
 )
 
+
+# Test class-level deferred annotations
+
+
+class TestClassAnnotations:
+    x: int = 1
+    y: str
+
+    def method(self, a: int) -> str:
+        return str(a)
+
+
+print(
+    "Class annotations:",
+    displayDict(TestClassAnnotations.__annotations__),
+)
+print("Class annotation attribute x:", TestClassAnnotations.x)
+print(
+    "Class annotation method result:",
+    TestClassAnnotations().method(42),
+)
+
+
+class TestNoClassAnnotations:
+    z = 42
+
+    def method(self, a: int) -> str:
+        return str(a)
+
+
+print(
+    "Class annotations (no class-level):",
+    displayDict(TestNoClassAnnotations.__annotations__),
+)
+print("Class attribute z:", TestNoClassAnnotations.z)
+
+
+class TestParent:
+    parent_attr: str = "hello"
+
+
+class TestChild(TestParent):
+    child_attr: int = 10
+
+
+print(
+    "Child annotations:",
+    displayDict(TestChild.__annotations__),
+)
+print("Child attr:", TestChild.child_attr)
+print("Parent attr:", TestChild.parent_attr)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

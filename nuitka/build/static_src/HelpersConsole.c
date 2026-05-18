@@ -11,6 +11,7 @@
 
 #if defined(_WIN32)
 #if defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#include <fcntl.h>
 #include <io.h>
 
 // Attach to the parent console respecting redirection only, otherwise we cannot
@@ -69,6 +70,7 @@ void inheritAttachedConsole(void) {
         assert(new_handle != NULL);
         // Win32 doesn't allow line buffering.
         setvbuf(stdout, NULL, _IONBF, 0);
+        _setmode(_fileno(stdout), _O_U8TEXT);
 
         _enableConsoleModeProcessed(win_handle, false);
         _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdout)), false);
@@ -90,6 +92,7 @@ void inheritAttachedConsole(void) {
         assert(new_handle != NULL);
         // Win32 doesn't allow line buffering.
         setvbuf(stderr, NULL, _IONBF, 0);
+        _setmode(_fileno(stderr), _O_U8TEXT);
 
         _enableConsoleModeProcessed(win_handle, false);
         _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stderr)), false);
@@ -119,6 +122,7 @@ void inheritAttachedConsole(void) {
             FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);
             assert(new_handle != NULL);
             assert(new_handle == stdin);
+            _setmode(_fileno(stdin), _O_U8TEXT);
 
             _enableConsoleModeProcessed(win_handle, true);
             _enableConsoleModeProcessed((FILE_HANDLE)_get_osfhandle(fileno(stdin)), true);
@@ -157,7 +161,10 @@ void hideConsoleIfSpawned(void) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

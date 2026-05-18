@@ -1263,10 +1263,9 @@ static void Nuitka_Py_Initialize(void) {
 #if _NUITKA_STANDALONE_MODE
     config.use_frozen_modules = 0;
 #else
-// Emulate PYTHON_FROZEN_MODULES for accelerated mode, it is only added in 3.13,
-// but we need to control it for controlling things for accelerated binaries
-// too.
-#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION <= 0x3d0
+// Emulate PYTHON_FROZEN_MODULES for accelerated mode, we need to control
+// it for controlling things for accelerated binaries too.
+#if PYTHON_VERSION >= 0x3b0
     environment_char_t const *frozen_modules_env = getEnvironmentVariable("PYTHON_FROZEN_MODULES");
 
     if (frozen_modules_env == NULL ||
@@ -2357,7 +2356,10 @@ __attribute__((weak)) void __warn_memset_zero_len(void) {}
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

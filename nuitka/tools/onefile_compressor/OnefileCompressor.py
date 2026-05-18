@@ -23,6 +23,7 @@ from nuitka.utils.Hashing import Hash, HashCRC32
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     decoratorRetries,
+    getArchitecture,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -36,6 +37,11 @@ def getCompressorLevel(low_memory):
 def getCompressorFunction(expect_compression, low_memory, job_limit):
     # spell-checker: ignore closefd
 
+    # On 32-bit Python, zstandard stream_writer at level 22 with threads >= 1
+    # fails with "Allocation error : not enough memory" even for tiny data,
+    # so we must use single-threaded compression on 32-bit.
+    effective_threads = 0 if low_memory or getArchitecture() == "x86" else job_limit
+
     if expect_compression:
         try:
             from compression import zstd
@@ -43,7 +49,7 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
             @contextmanager
             def useCompressedFile(output_file):
                 options = {
-                    zstd.CompressionParameter.nb_workers: job_limit,
+                    zstd.CompressionParameter.nb_workers: effective_threads,
                     zstd.CompressionParameter.compression_level: getCompressorLevel(
                         low_memory
                     ),
@@ -60,7 +66,7 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
             from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
 
             compressor_context = ZstdCompressor(
-                level=getCompressorLevel(low_memory), threads=job_limit
+                level=getCompressorLevel(low_memory), threads=effective_threads
             )
 
             @contextmanager
@@ -452,7 +458,10 @@ def main():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
