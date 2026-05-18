@@ -1278,6 +1278,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         }
 #endif
 
+        if (flags & NUITKA_CONSTANT_BLOB_CODE_FLAG_NOFREE) {
+            co_flags += CO_NOFREE;
+        }
+
         // Filename will be supplied later during usage.
         *output = (PyObject *)MAKE_CODE_OBJECT(Py_None, line_number, co_flags, function_name, function_qualname,
                                                arg_names, free_vars, arg_count, kw_only_count, pos_only_count);
