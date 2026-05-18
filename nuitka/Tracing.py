@@ -372,8 +372,8 @@ class OurLogger(object):
             extra_prefix = "Complex topic! "
 
         output_function(
-            """    %sMore information can be found at %s%s"""
-            % (extra_prefix, getEnableStyleCode("link"), url),
+            """    %sMore information can be found at %s"""
+            % (extra_prefix, wrapWithStyles(url, styles=["link"])),
             style=style,
         )
 
