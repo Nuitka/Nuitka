@@ -56,11 +56,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_tuple,
 )
 from nuitka.Tracing import tools_logger
-from nuitka.utils.FileOperations import (
-    getFileList,
-    getNormalizedPath,
-    makePath,
-)
+from nuitka.utils.FileOperations import getFileList, getNormalizedPath, makePath
 from nuitka.utils.Jinja2 import getTemplateC
 from nuitka.utils.Json import loadJsonFromFilename
 
