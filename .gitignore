@@ -80,3 +80,5 @@ doxygen-*
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
 nuitka/build/inline_copy/downloads
+.cache
+compile_commands.json
