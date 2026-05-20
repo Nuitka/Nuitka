@@ -189,6 +189,49 @@ standard_template_context = {
 }
 
 
+binary_ops = (
+    ("-", "SUB"),
+    ("*", "MULT"),
+    ("%", "MOD"),
+    ("|", "BITOR"),
+    ("&", "BITAND"),
+    ("^", "BITXOR"),
+    ("<<", "LSHIFT"),
+    (">>", "RSHIFT"),
+    ("//", "FLOORDIV"),
+    ("/", "TRUEDIV"),
+    ("/", "OLDDIV"),
+    ("divmod", "DIVMOD"),
+    ("**", "POW"),
+    ("@", "MATMULT"),
+)
+
+inplace_ops = (
+    ("-", "SUB"),
+    ("*", "MULT"),
+    ("%", "MOD"),
+    ("|", "BITOR"),
+    ("&", "BITAND"),
+    ("^", "BITXOR"),
+    ("<<", "LSHIFT"),
+    (">>", "RSHIFT"),
+    ("//", "FLOORDIV"),
+    ("/", "TRUEDIV"),
+    ("/", "OLDDIV"),
+    ("**", "POW"),
+    ("@", "MATMULT"),
+)
+
+comparison_ops = (
+    ("==", "EQ"),
+    ("!=", "NE"),
+    ("<=", "LE"),
+    (">=", "GE"),
+    (">", "GT"),
+    ("<", "LT"),
+)
+
+
 def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     # Many variations to consider, pylint: disable=too-many-branches
 
@@ -1614,49 +1657,6 @@ def _writeCompiledOffsetsHeader(template_groups):
         tools_logger.info("Generated C header at %s" % out_path)
 
 
-binary_ops = (
-    ("-", "SUB"),
-    ("*", "MULT"),
-    ("%", "MOD"),
-    ("|", "BITOR"),
-    ("&", "BITAND"),
-    ("^", "BITXOR"),
-    ("<<", "LSHIFT"),
-    (">>", "RSHIFT"),
-    ("//", "FLOORDIV"),
-    ("/", "TRUEDIV"),
-    ("/", "OLDDIV"),
-    ("divmod", "DIVMOD"),
-    ("**", "POW"),
-    ("@", "MATMULT"),
-)
-
-inplace_ops = (
-    ("-", "SUB"),
-    ("*", "MULT"),
-    ("%", "MOD"),
-    ("|", "BITOR"),
-    ("&", "BITAND"),
-    ("^", "BITXOR"),
-    ("<<", "LSHIFT"),
-    (">>", "RSHIFT"),
-    ("//", "FLOORDIV"),
-    ("/", "TRUEDIV"),
-    ("/", "OLDDIV"),
-    ("**", "POW"),
-    ("@", "MATMULT"),
-)
-
-comparison_ops = (
-    ("==", "EQ"),
-    ("!=", "NE"),
-    ("<=", "LE"),
-    (">=", "GE"),
-    (">", "GT"),
-    ("<", "LT"),
-)
-
-
 def main():
     parseOptions()
 
@@ -1676,17 +1676,14 @@ def main():
     makeHelperCalls()
     makeHelperLists()
 
-    for operator, name in binary_ops:
-        makeHelpersBinaryOperation(operator, name)
-
-    for operator, name in inplace_ops:
-        makeHelpersInplaceOperation(operator, name)
-
-    for operator, name in comparison_ops:
-        makeHelpersComparisonOperation(operator, name)
-
-    for operator, name in comparison_ops:
-        makeHelpersComparisonDualOperation(operator, name)
+    for ops, func in (
+        (binary_ops, makeHelpersBinaryOperation),
+        (inplace_ops, makeHelpersInplaceOperation),
+        (comparison_ops, makeHelpersComparisonOperation),
+        (comparison_ops, makeHelpersComparisonDualOperation),
+    ):
+        for operator, name in ops:
+            func(operator, name)
 
     updateCompiledOffsetsHeader()
 
