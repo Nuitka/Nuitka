@@ -48,7 +48,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
         ENFORCE_NILONG_OBJECT_VALUE(operand1);
         obj_result = BINARY_OPERATION_ADD_OBJECT_LONG_CLONG(operand1->python_value, operand2->c_value);
 
-        if (unlikely(result == NULL)) {
+        if (unlikely(obj_result == NULL)) {
             return false;
         }
 
@@ -79,7 +79,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
 
         return true;
     } else {
-        PyObject *python_result = BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1->python_value, operand1->python_value);
+        PyObject *python_result = BINARY_OPERATION_ADD_OBJECT_LONG_LONG(operand1->python_value, operand2->python_value);
 
         if (unlikely(python_result == NULL)) {
             return false;
@@ -130,7 +130,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
         ENFORCE_NILONG_OBJECT_VALUE(operand1);
         obj_result = BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(operand1->python_value, operand2);
 
-        if (unlikely(result == NULL)) {
+        if (unlikely(obj_result == NULL)) {
             return false;
         }
 
