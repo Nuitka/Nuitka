@@ -1614,6 +1614,49 @@ def _writeCompiledOffsetsHeader(template_groups):
         tools_logger.info("Generated C header at %s" % out_path)
 
 
+binary_ops = (
+    ("-", "SUB"),
+    ("*", "MULT"),
+    ("%", "MOD"),
+    ("|", "BITOR"),
+    ("&", "BITAND"),
+    ("^", "BITXOR"),
+    ("<<", "LSHIFT"),
+    (">>", "RSHIFT"),
+    ("//", "FLOORDIV"),
+    ("/", "TRUEDIV"),
+    ("/", "OLDDIV"),
+    ("divmod", "DIVMOD"),
+    ("**", "POW"),
+    ("@", "MATMULT"),
+)
+
+inplace_ops = (
+    ("-", "SUB"),
+    ("*", "MULT"),
+    ("%", "MOD"),
+    ("|", "BITOR"),
+    ("&", "BITAND"),
+    ("^", "BITXOR"),
+    ("<<", "LSHIFT"),
+    (">>", "RSHIFT"),
+    ("//", "FLOORDIV"),
+    ("/", "TRUEDIV"),
+    ("/", "OLDDIV"),
+    ("**", "POW"),
+    ("@", "MATMULT"),
+)
+
+comparison_ops = (
+    ("==", "EQ"),
+    ("!=", "NE"),
+    ("<=", "LE"),
+    (">=", "GE"),
+    (">", "GT"),
+    ("<", "LT"),
+)
+
+
 def main():
     parseOptions()
 
@@ -1633,48 +1676,17 @@ def main():
     makeHelperCalls()
     makeHelperLists()
 
-    makeHelpersBinaryOperation("-", "SUB")
-    makeHelpersBinaryOperation("*", "MULT")
-    makeHelpersBinaryOperation("%", "MOD")
-    makeHelpersBinaryOperation("|", "BITOR")
-    makeHelpersBinaryOperation("&", "BITAND")
-    makeHelpersBinaryOperation("^", "BITXOR")
-    makeHelpersBinaryOperation("<<", "LSHIFT")
-    makeHelpersBinaryOperation(">>", "RSHIFT")
-    makeHelpersBinaryOperation("//", "FLOORDIV")
-    makeHelpersBinaryOperation("/", "TRUEDIV")
-    makeHelpersBinaryOperation("/", "OLDDIV")
-    makeHelpersBinaryOperation("divmod", "DIVMOD")
-    makeHelpersBinaryOperation("**", "POW")
-    makeHelpersBinaryOperation("@", "MATMULT")
+    for operator, name in binary_ops:
+        makeHelpersBinaryOperation(operator, name)
 
-    makeHelpersInplaceOperation("-", "SUB")
-    makeHelpersInplaceOperation("*", "MULT")
-    makeHelpersInplaceOperation("%", "MOD")
-    makeHelpersInplaceOperation("|", "BITOR")
-    makeHelpersInplaceOperation("&", "BITAND")
-    makeHelpersInplaceOperation("^", "BITXOR")
-    makeHelpersInplaceOperation("<<", "LSHIFT")
-    makeHelpersInplaceOperation(">>", "RSHIFT")
-    makeHelpersInplaceOperation("//", "FLOORDIV")
-    makeHelpersInplaceOperation("/", "TRUEDIV")
-    makeHelpersInplaceOperation("/", "OLDDIV")
-    makeHelpersInplaceOperation("**", "POW")
-    makeHelpersInplaceOperation("@", "MATMULT")
+    for operator, name in inplace_ops:
+        makeHelpersInplaceOperation(operator, name)
 
-    makeHelpersComparisonOperation("==", "EQ")
-    makeHelpersComparisonOperation("!=", "NE")
-    makeHelpersComparisonOperation("<=", "LE")
-    makeHelpersComparisonOperation(">=", "GE")
-    makeHelpersComparisonOperation(">", "GT")
-    makeHelpersComparisonOperation("<", "LT")
+    for operator, name in comparison_ops:
+        makeHelpersComparisonOperation(operator, name)
 
-    makeHelpersComparisonDualOperation("==", "EQ")
-    makeHelpersComparisonDualOperation("!=", "NE")
-    makeHelpersComparisonDualOperation("<=", "LE")
-    makeHelpersComparisonDualOperation(">=", "GE")
-    makeHelpersComparisonDualOperation(">", "GT")
-    makeHelpersComparisonDualOperation("<", "LT")
+    for operator, name in comparison_ops:
+        makeHelpersComparisonDualOperation(operator, name)
 
     updateCompiledOffsetsHeader()
 
