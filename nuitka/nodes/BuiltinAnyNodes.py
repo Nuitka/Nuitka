@@ -86,6 +86,27 @@ class ExpressionBuiltinAny(
                     "Predicted truth value of built-in any argument",
                 )
 
+        # any(range(n)) = (n >= 2): range(n) has elements [0,1,...,n-1];
+        # 0 is falsy so need n>=2 to guarantee a truthy element (1) exists.
+        from .BuiltinRangeNodes import ExpressionBuiltinXrange1
+
+        if isinstance(value, ExpressionBuiltinXrange1):
+            from .ComparisonNodes import makeComparisonExpression
+            from .ConstantRefNodes import makeConstantRefNode
+
+            return (
+                makeComparisonExpression(
+                    left=value.subnode_low,
+                    right=makeConstantRefNode(
+                        constant=2, source_ref=self.source_ref, user_provided=False
+                    ),
+                    comparator="GtE",
+                    source_ref=self.source_ref,
+                ),
+                "new_expression",
+                "Fused any(range(n)) to n >= 2 comparison",
+            )
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.

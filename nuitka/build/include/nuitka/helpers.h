@@ -214,6 +214,9 @@ extern Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value);
 // For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence);
 extern PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
+extern PyObject *BUILTIN_SUM_RANGE1(PyThreadState *tstate, PyObject *stop);
+extern PyObject *BUILTIN_SUM_RANGE2(PyThreadState *tstate, PyObject *start, PyObject *stop);
+extern PyObject *BUILTIN_SUM_RANGE3(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step);
 
 // For built-in built-in abs() functionality.
 extern PyObject *BUILTIN_ABS(PyObject *o);

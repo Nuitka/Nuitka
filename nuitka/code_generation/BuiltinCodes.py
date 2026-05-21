@@ -181,6 +181,55 @@ def generateBuiltinSum2Code(to_name, expression, emit, context):
     )
 
 
+def generateBuiltinSumXrange1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SUM_RANGE1",
+        tstate=True,
+        arg_desc=(("sum_range_stop", expression.subnode_low),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinSumXrange2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SUM_RANGE2",
+        tstate=True,
+        arg_desc=(
+            ("sum_range_start", expression.subnode_low),
+            ("sum_range_stop", expression.subnode_high),
+        ),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinSumXrange3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SUM_RANGE3",
+        tstate=True,
+        arg_desc=(
+            ("sum_range_start", expression.subnode_low),
+            ("sum_range_stop", expression.subnode_high),
+            ("sum_range_step", expression.subnode_step),
+        ),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateBuiltinRange1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,

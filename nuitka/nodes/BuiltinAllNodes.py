@@ -77,6 +77,27 @@ class ExpressionBuiltinAll(
                     "Predicted truth value of built-in 'all' argument",
                 )
 
+        # all(range(n)) = (n <= 0): range(n) for n>=1 always contains 0 (falsy).
+        # Fuse to a comparison - no range object, no iterator, no loop.
+        from .BuiltinRangeNodes import ExpressionBuiltinXrange1
+
+        if isinstance(value, ExpressionBuiltinXrange1):
+            from .ComparisonNodes import makeComparisonExpression
+            from .ConstantRefNodes import makeConstantRefNode
+
+            return (
+                makeComparisonExpression(
+                    left=value.subnode_low,
+                    right=makeConstantRefNode(
+                        constant=0, source_ref=self.source_ref, user_provided=False
+                    ),
+                    comparator="LtE",
+                    source_ref=self.source_ref,
+                ),
+                "new_expression",
+                "Fused all(range(n)) to n <= 0 comparison",
+            )
+
         self.onContentEscapes(trace_collection)
 
         # All code could be run, note that.
