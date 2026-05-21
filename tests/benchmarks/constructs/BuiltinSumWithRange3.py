@@ -24,6 +24,14 @@ def test():
     assert sum(x for x in range(0, 10, 2)) == 20
     assert sum(x for x in range(10, 0, -1)) == 55
 
+    # Zero step raises ValueError (same as CPython)
+    try:
+        sum(range(0, 10, 0))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("step=0 should raise ValueError")
+
 
 def calledRepeatedly(start, stop, step, empty):
     # Force frame

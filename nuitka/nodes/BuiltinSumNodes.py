@@ -21,8 +21,8 @@ from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionIntShapeExactMixin
 
 
-def _isIdentityGenexprBody(generator_body):
-    """Check that a generator body is a simple identity transform (yield loop var directly).
+def _getGeneratorLoopBody(generator_body):  # pylint: disable=too-many-return-statements
+    """Walk down the post-optimization AST to extract the generator loop body.
 
     After optimization the AST looks like:
         StatementsSequence
@@ -33,111 +33,103 @@ def _isIdentityGenexprBody(generator_body):
                   tried: StatementsSequence
                     STATEMENT_LOOP
                       loop_body: StatementsSequence
-                        [0] STATEMENT_TRY
-                              tried: STATEMENT_ASSIGNMENT_VARIABLE_GENERIC
-                              source = BuiltinNext1(.0)
-                        [1] STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE
-                        [2] STATEMENT_EXPRESSION_ONLY (yield <loop_var>)
 
-    Returns the loop variable if identity, None otherwise.
+    Returns the loop body StatementsSequence, or None.
     """
     from .GeneratorNodes import ExpressionGeneratorObjectBody
 
     if not isinstance(generator_body, ExpressionGeneratorObjectBody):
         return None
 
-    body = generator_body.subnode_body
-    if body is None or not body.isStatementsSequence():
+    node = generator_body.subnode_body
+    if node is None or not node.isStatementsSequence():
         return None
 
-    bstmts = body.subnode_statements
-    if len(bstmts) < 1 or not bstmts[0].isStatementTry():
+    stmts = node.subnode_statements
+    if len(stmts) < 1 or not stmts[0].isStatementTry():
         return None
 
-    # Step into outer cleanup try
-    outer_try_tried = bstmts[0].subnode_tried
-    if outer_try_tried is None or not outer_try_tried.isStatementsSequence():
+    node = stmts[0].subnode_tried
+    if node is None or not node.isStatementsSequence():
         return None
 
-    outer_tried_stmts = outer_try_tried.subnode_statements
-    if (
-        len(outer_tried_stmts) < 1
-        or outer_tried_stmts[0].kind != "STATEMENTS_FRAME_GENERATOR"
-    ):
+    stmts = node.subnode_statements
+    if len(stmts) < 1 or stmts[0].kind != "STATEMENTS_FRAME_GENERATOR":
         return None
 
-    frame_gen = outer_tried_stmts[0]
-    frame_stmts = frame_gen.subnode_statements
-    if len(frame_stmts) < 1 or not frame_stmts[0].isStatementTry():
+    node = stmts[0].subnode_statements
+    if len(node) < 1 or not node[0].isStatementTry():
         return None
 
-    # Step into inner StopIteration try
-    inner_try_tried = frame_stmts[0].subnode_tried
-    if inner_try_tried is None or not inner_try_tried.isStatementsSequence():
+    node = node[0].subnode_tried
+    if node is None or not node.isStatementsSequence():
         return None
 
-    inner_tried_stmts = inner_try_tried.subnode_statements
-    if len(inner_tried_stmts) < 1 or not inner_tried_stmts[0].isStatementLoop():
+    stmts = node.subnode_statements
+    if len(stmts) < 1 or not stmts[0].isStatementLoop():
         return None
 
-    loop = inner_tried_stmts[0]
-    loop_body = loop.subnode_loop_body
+    loop_body = stmts[0].subnode_loop_body
     if loop_body is None or not loop_body.isStatementsSequence():
+        return None
+
+    return loop_body
+
+
+def _isIdentityGenexprBody(
+    generator_body,
+):  # pylint: disable=too-many-return-statements
+    """Check that a generator body is identity (yields loop variable directly).
+
+    Returns the loop variable if identity, None otherwise.
+    """
+    loop_body = _getGeneratorLoopBody(generator_body)
+    if loop_body is None:
         return None
 
     loop_stmts = loop_body.subnode_statements
 
-    # Need at least 3 statements: try/next, assign-to-var, yield
     if len(loop_stmts) < 3:
         return None
 
-    # Statement [0]: try/except with next(.0) inside
-    try_stmt = loop_stmts[0]
-    if not try_stmt.isStatementTry():
+    if not loop_stmts[0].isStatementTry():
         return None
 
-    tried = try_stmt.subnode_tried
-    if tried is None or not tried.isStatementsSequence():
+    node = loop_stmts[0].subnode_tried
+    if node is None or not node.isStatementsSequence():
         return None
 
-    tried_stmts = tried.subnode_statements
-    if len(tried_stmts) != 1:
+    stmts = node.subnode_statements
+    if len(stmts) != 1:
         return None
 
-    next_assign = tried_stmts[0]
-    if not next_assign.isStatementAssignmentVariable():
+    if not stmts[0].isStatementAssignmentVariable():
         return None
     from .BuiltinNextNodes import ExpressionBuiltinNext1
 
-    if not isinstance(next_assign.subnode_source, ExpressionBuiltinNext1):
+    if not isinstance(stmts[0].subnode_source, ExpressionBuiltinNext1):
         return None
 
-    # Statement [1]: loop_var = iter_value (from temp variable)
-    var_assign = loop_stmts[1]
-    if not var_assign.isStatementAssignmentVariable():
+    if not loop_stmts[1].isStatementAssignmentVariable():
         return None
 
-    # Statement [2]: yield loop_var
-    yield_stmt = loop_stmts[2]
-    if not yield_stmt.isStatementExpressionOnly():
+    if not loop_stmts[2].isStatementExpressionOnly():
         return None
-
     from .YieldNodes import ExpressionYield
 
-    if not isinstance(yield_stmt.subnode_expression, ExpressionYield):
+    if not isinstance(loop_stmts[2].subnode_expression, ExpressionYield):
         return None
 
-    yielded = yield_stmt.subnode_expression.subnode_expression
+    yielded = loop_stmts[2].subnode_expression.subnode_expression
 
-    # Identity check: the yielded expression is the same variable that was assigned
     from .VariableRefNodes import (
         ExpressionTempVariableRef,
         ExpressionVariableRef,
     )
 
     if isinstance(yielded, (ExpressionVariableRef, ExpressionTempVariableRef)):
-        if yielded.variable is var_assign.variable:
-            return var_assign.variable
+        if yielded.variable is loop_stmts[1].variable:
+            return loop_stmts[1].variable
 
     return None
 
@@ -170,49 +162,42 @@ def _getGeneratorExprFromTry(stmt):
 def _tryExtractRangeFromGenexprOutline(sequence):
     """If sequence is an outline body wrapping sum(x for x in range(...)),
     extract and return the raw range node (Xrange1/2/3).
-
-    The outline body structure for a genexpr is:
-        StatementsSequence:
-          [0] .0 = BuiltinIter1(Xrange1/2/3(n))
-          [1] StatementTry:
-                tried: StatementsSequence [StatementReturn(ExpressionMakeGeneratorObject(...))]
-                final: release .0
     """
     from .OutlineNodes import ExpressionOutlineBody
 
     if not isinstance(sequence, ExpressionOutlineBody):
         return None
 
-    body = sequence.subnode_body
-    if body is None or not body.isStatementsSequence():
+    if (
+        sequence.subnode_body is None
+        or not sequence.subnode_body.isStatementsSequence()
+    ):
         return None
 
-    stmts = body.subnode_statements
+    stmts = sequence.subnode_body.subnode_statements
 
     iter_assign = None
     generator_expr = None
 
     for stmt in stmts:
         if stmt.isStatementAssignmentVariable():
-            source = stmt.subnode_source
             from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 
-            if isinstance(source, ExpressionBuiltinIter1):
+            if isinstance(stmt.subnode_source, ExpressionBuiltinIter1):
                 iter_assign = stmt
         elif stmt.isStatementTry():
-            gen_expr = _getGeneratorExprFromTry(stmt)
-            if gen_expr is not None:
-                generator_expr = gen_expr
+            generator_expr = _getGeneratorExprFromTry(stmt) or generator_expr
 
     if iter_assign is None or generator_expr is None:
         return None
 
-    gen_body = generator_expr.subnode_generator_ref.getFunctionBody()
-    if _isIdentityGenexprBody(gen_body) is None:
+    if (
+        _isIdentityGenexprBody(generator_expr.subnode_generator_ref.getFunctionBody())
+        is None
+    ):
         return None
 
-    builtin_iter = iter_assign.subnode_source
-    range_node = builtin_iter.subnode_value
+    range_node = iter_assign.subnode_source.subnode_value
 
     from .BuiltinRangeNodes import (
         ExpressionBuiltinXrange1,
