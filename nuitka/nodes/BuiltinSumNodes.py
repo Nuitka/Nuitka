@@ -208,8 +208,7 @@ def _tryExtractRangeFromGenexprOutline(sequence):
         return None
 
     gen_body = generator_expr.subnode_generator_ref.getFunctionBody()
-    loop_var = _isIdentityGenexprBody(gen_body)
-    if loop_var is None:
+    if _isIdentityGenexprBody(gen_body) is None:
         return None
 
     builtin_iter = iter_assign.subnode_source
@@ -226,6 +225,35 @@ def _tryExtractRangeFromGenexprOutline(sequence):
         (ExpressionBuiltinXrange1, ExpressionBuiltinXrange2, ExpressionBuiltinXrange3),
     ):
         return range_node
+
+    return None
+
+
+def _makeSumXrangeNode(range_node, source_ref):
+    """Create the appropriate ExpressionBuiltinSumXrange* node from an Xrange* node."""
+    from .BuiltinRangeNodes import (
+        ExpressionBuiltinXrange1,
+        ExpressionBuiltinXrange2,
+        ExpressionBuiltinXrange3,
+    )
+
+    if isinstance(range_node, ExpressionBuiltinXrange1):
+        return ExpressionBuiltinSumXrange1(
+            low=range_node.subnode_low, source_ref=source_ref
+        )
+    if isinstance(range_node, ExpressionBuiltinXrange2):
+        return ExpressionBuiltinSumXrange2(
+            low=range_node.subnode_low,
+            high=range_node.subnode_high,
+            source_ref=source_ref,
+        )
+    if isinstance(range_node, ExpressionBuiltinXrange3):
+        return ExpressionBuiltinSumXrange3(
+            low=range_node.subnode_low,
+            high=range_node.subnode_high,
+            step=range_node.subnode_step,
+            source_ref=source_ref,
+        )
 
     return None
 
@@ -269,80 +297,38 @@ class ExpressionBuiltinSum1(
     def computeExpression(self, trace_collection):
         sequence = self.subnode_sequence
 
-        # Fuse sum(range(...)) into a direct arithmetic C helper - no generator
-        # object or range iterator allocation. Import lazily to avoid circular deps.
         from .BuiltinRangeNodes import (
             ExpressionBuiltinXrange1,
             ExpressionBuiltinXrange2,
             ExpressionBuiltinXrange3,
         )
 
-        if isinstance(sequence, ExpressionBuiltinXrange1):
+        if isinstance(
+            sequence,
+            (
+                ExpressionBuiltinXrange1,
+                ExpressionBuiltinXrange2,
+                ExpressionBuiltinXrange3,
+            ),
+        ):
             return (
-                ExpressionBuiltinSumXrange1(
-                    low=sequence.subnode_low,
-                    source_ref=self.source_ref,
-                ),
+                _makeSumXrangeNode(sequence, self.source_ref),
                 "new_expression",
-                "Fused sum(range(stop)) to direct C arithmetic",
+                "Fused sum(range(...)) to direct C arithmetic",
             )
 
-        if isinstance(sequence, ExpressionBuiltinXrange2):
-            return (
-                ExpressionBuiltinSumXrange2(
-                    low=sequence.subnode_low,
-                    high=sequence.subnode_high,
-                    source_ref=self.source_ref,
-                ),
-                "new_expression",
-                "Fused sum(range(start,stop)) to direct C arithmetic",
-            )
-
-        if isinstance(sequence, ExpressionBuiltinXrange3):
-            return (
-                ExpressionBuiltinSumXrange3(
-                    low=sequence.subnode_low,
-                    high=sequence.subnode_high,
-                    step=sequence.subnode_step,
-                    source_ref=self.source_ref,
-                ),
-                "new_expression",
-                "Fused sum(range(start,stop,step)) to direct C arithmetic",
-            )
-
-        # Fuse sum(x for x in range(...)) identity genexpr → sum(range(...)).
         range_node = _tryExtractRangeFromGenexprOutline(sequence)
         if range_node is not None:
-            if isinstance(range_node, ExpressionBuiltinXrange1):
-                return (
-                    ExpressionBuiltinSumXrange1(
-                        low=range_node.subnode_low,
-                        source_ref=self.source_ref,
-                    ),
-                    "new_expression",
-                    "Fused sum(x for x in range(stop)) to direct C arithmetic",
-                )
-            if isinstance(range_node, ExpressionBuiltinXrange2):
-                return (
-                    ExpressionBuiltinSumXrange2(
-                        low=range_node.subnode_low,
-                        high=range_node.subnode_high,
-                        source_ref=self.source_ref,
-                    ),
-                    "new_expression",
-                    "Fused sum(x for x in range(start,stop)) to direct C arithmetic",
-                )
-            if isinstance(range_node, ExpressionBuiltinXrange3):
-                return (
-                    ExpressionBuiltinSumXrange3(
-                        low=range_node.subnode_low,
-                        high=range_node.subnode_high,
-                        step=range_node.subnode_step,
-                        source_ref=self.source_ref,
-                    ),
-                    "new_expression",
-                    "Fused sum(x for x in range(start,stop,step)) to direct C arithmetic",
-                )
+            key = {
+                ExpressionBuiltinXrange1: "stop",
+                ExpressionBuiltinXrange2: "start,stop",
+                ExpressionBuiltinXrange3: "start,stop,step",
+            }.get(type(range_node), "...")
+            return (
+                _makeSumXrangeNode(range_node, self.source_ref),
+                "new_expression",
+                "Fused sum(x for x in range(%s)) to direct C arithmetic" % key,
+            )
 
         return self.computeBuiltinSpec(
             trace_collection=trace_collection, given_values=(sequence,)
