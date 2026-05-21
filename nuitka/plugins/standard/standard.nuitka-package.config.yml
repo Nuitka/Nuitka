@@ -2949,14 +2949,20 @@
     - dirs:
         - 'macos-certificate-truster.app'
 
-- module-name: 'mitmproxy_windows' # checksum: 4304017b
+- module-name: 'mitmproxy_windows' # checksum: b79d5c66
   data-files:
     - patterns:
-        - 'WinDivert.dll'
         - 'WinDivert.lib'
         - 'WinDivert64.sys'
         - 'WINDIVERT_VERSION'
-        - 'windows-redirector.exe'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'WinDivert'
+    - from_filenames:
+        prefixes:
+          - 'windows-redirector'
+        executable: 'yes'
 
 - module-name: 'mkl' # checksum: 9a8684da
   dlls:
