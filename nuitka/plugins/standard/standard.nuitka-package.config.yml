@@ -1473,6 +1473,12 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
+- module-name: 'emoji' # checksum: 7ebd7c38
+  data-files:
+    - patterns:
+        - 'unicode_codes/emoji.json'
+        - 'unicode_codes/emoji_*.json'
+
 - module-name: 'enchant' # checksum: 6aaa99cc
   data-files:
     - dirs:
