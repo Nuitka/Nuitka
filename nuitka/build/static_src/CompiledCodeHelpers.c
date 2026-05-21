@@ -1608,8 +1608,31 @@ PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *star
     return result;
 }
 
+// Same as CPython's range-length formula operating on C long values.
+// Used by the fused sum(range(...)) helpers below for computing n.
+static unsigned long _rangeLengthLong(long lo, long hi, long step) {
+    if (step > 0 && lo < hi) {
+        return 1UL + (hi - 1UL - lo) / step;
+    } else if (step < 0 && lo > hi) {
+        return 1UL + (lo - 1UL - hi) / (0UL - step);
+    } else {
+        return 0UL;
+    }
+}
+
+// Helper: check n * m can overflow signed long (both >= 0, m != -1/0 handled).
+static bool _mulOverflowsLong(unsigned long n, long m) {
+    if (n == 0)
+        return false;
+    if (m > 0)
+        return n > (unsigned long)(LONG_MAX / m);
+    if (m < -1)
+        return n > (unsigned long)(LONG_MIN / m);
+    return false; // m == 0 or m == -1: result is 0 or -n, always fits in long
+}
+
 // Fused sum(range(stop)): closed-form arithmetic, no range object or iterator allocated.
-// Fast path: stop fits in C long and result fits in C long → O(1), no heap alloc.
+// Fast path: stop fits in C long and result fits in C long -> O(1), no heap alloc.
 // Slow path: fall back to BUILTIN_XRANGE1 + BUILTIN_SUM1 for big/non-int args.
 PyObject *BUILTIN_SUM_RANGE1(PyThreadState *tstate, PyObject *stop_obj) {
     CHECK_OBJECT(stop_obj);
@@ -1623,11 +1646,19 @@ PyObject *BUILTIN_SUM_RANGE1(PyThreadState *tstate, PyObject *stop_obj) {
                 return PyLong_FromLong(0);
             }
 
-            // sum(range(stop)) = stop*(stop-1)/2
-            // Use __builtin_mul_overflow to detect if stop*(stop-1) overflows long.
-            long product;
-            if (!__builtin_mul_overflow(stop, stop - 1, &product)) {
-                return PyLong_FromLong(product / 2);
+            // sum(range(stop)) = n*(n-1)/2 where n = stop.
+            // Use unsigned long arithmetic and guard via division check.
+            unsigned long n = (unsigned long)stop;
+
+            if (n == 1) {
+                return PyLong_FromLong(0);
+            }
+
+            // Check n*(n-1) does not overflow unsigned long, then the
+            // division-by-2 result always fits in signed long (ULONG_MAX/2
+            // equals LONG_MAX on 32- and 64-bit two's complement platforms).
+            if (n <= ULONG_MAX / (n - 1)) {
+                return PyLong_FromLong((long)(n * (n - 1) / 2));
             }
         }
     }
@@ -1643,7 +1674,7 @@ PyObject *BUILTIN_SUM_RANGE1(PyThreadState *tstate, PyObject *stop_obj) {
 }
 
 // Fused sum(range(start, stop)): closed-form arithmetic series formula.
-// sum = n*(first+last)/2 where n=max(0,stop-start), first=start, last=stop-1.
+// sum = n*(first+last)/2 where n=length, first=start, last=stop-1.
 PyObject *BUILTIN_SUM_RANGE2(PyThreadState *tstate, PyObject *start_obj, PyObject *stop_obj) {
     CHECK_OBJECT(start_obj);
     CHECK_OBJECT(stop_obj);
@@ -1654,21 +1685,46 @@ PyObject *BUILTIN_SUM_RANGE2(PyThreadState *tstate, PyObject *start_obj, PyObjec
         long stop = PyLong_AsLongAndOverflow(stop_obj, &overflow_stop);
 
         if (!overflow_start && !overflow_stop) {
-            long n = stop - start;
-            if (n <= 0) {
+            // Use the same length formula as CPython (avoids signed overflow in stop-start).
+            unsigned long n_ul = _rangeLengthLong(start, stop, 1L);
+
+            if (n_ul == 0) {
                 return PyLong_FromLong(0);
             }
 
-            // sum = n*(start + stop - 1)/2  (first=start, last=stop-1, count=n)
-            long first_plus_last;
-            long product;
-            if (!__builtin_add_overflow(start, stop - 1, &first_plus_last) &&
-                !__builtin_mul_overflow(n, first_plus_last, &product)) {
-                return PyLong_FromLong(product / 2);
+            if (n_ul > (unsigned long)LONG_MAX) {
+                goto slow_path2;
             }
+            long n = (long)n_ul;
+
+            // Compute first_plus_last = start + (stop - 1).
+            // Guard: stop == LONG_MIN makes stop-1 overflow.
+            if (stop == LONG_MIN) {
+                goto slow_path2;
+            }
+            long stop_minus_1 = stop - 1;
+
+            // Guard: start + stop_minus_1 overflow.
+            if ((stop_minus_1 > 0 && start > LONG_MAX - stop_minus_1) ||
+                (stop_minus_1 < 0 && start < LONG_MIN - stop_minus_1)) {
+                goto slow_path2;
+            }
+            long first_plus_last = start + stop_minus_1;
+
+            if (first_plus_last == 0) {
+                return PyLong_FromLong(0);
+            }
+
+            // Guard: n * first_plus_last overflow.
+            if (_mulOverflowsLong((unsigned long)n, first_plus_last)) {
+                goto slow_path2;
+            }
+
+            return PyLong_FromLong(n * first_plus_last / 2);
         }
     }
 
+slow_path2: {
     PyObject *range_obj = BUILTIN_XRANGE2(tstate, start_obj, stop_obj);
     if (unlikely(range_obj == NULL)) {
         return NULL;
@@ -1677,9 +1733,10 @@ PyObject *BUILTIN_SUM_RANGE2(PyThreadState *tstate, PyObject *start_obj, PyObjec
     Py_DECREF(range_obj);
     return result;
 }
+}
 
-// Fused sum(range(start, stop, step)): C loop over range with no heap allocation
-// per iteration. Fast path handles integer args that fit in long; slow path falls
+// Fused sum(range(start, stop, step)): closed-form arithmetic for arithmetic
+// progression. Fast path handles integer args that fit in long; slow path falls
 // back to BUILTIN_XRANGE3 + BUILTIN_SUM1 for non-int or step=0 (which raises).
 PyObject *BUILTIN_SUM_RANGE3(PyThreadState *tstate, PyObject *start_obj, PyObject *stop_obj, PyObject *step_obj) {
     CHECK_OBJECT(start_obj);
@@ -1692,30 +1749,68 @@ PyObject *BUILTIN_SUM_RANGE3(PyThreadState *tstate, PyObject *start_obj, PyObjec
         long stop = PyLong_AsLongAndOverflow(stop_obj, &ov_stop);
         long step = PyLong_AsLongAndOverflow(step_obj, &ov_step);
 
-        if (!ov_start && !ov_stop && !ov_step && step != 0) {
-            // Compute element count using Python's range length formula.
-            long n;
-            if (step > 0) {
-                n = (stop > start) ? (stop - start + step - 1) / step : 0;
-            } else {
-                n = (start > stop) ? (start - stop - step - 1) / (-step) : 0;
+        if (!ov_start && !ov_stop && !ov_step) {
+            if (step == 0) {
+                goto slow_path3; // BUILTIN_XRANGE3 raises ValueError
             }
 
-            if (n == 0) {
+            // Use the same length formula as CPython (unsigned arithmetic avoids overflow).
+            unsigned long n_ul = _rangeLengthLong(start, stop, step);
+
+            if (n_ul == 0) {
                 return PyLong_FromLong(0);
             }
 
-            // sum = n*(2*start + (n-1)*step) / 2  (arithmetic series)
-            long two_start, n_minus_1_times_step, inner, product;
-            if (!__builtin_mul_overflow(2L, start, &two_start) &&
-                !__builtin_mul_overflow(n - 1, step, &n_minus_1_times_step) &&
-                !__builtin_add_overflow(two_start, n_minus_1_times_step, &inner) &&
-                !__builtin_mul_overflow(n, inner, &product)) {
-                return PyLong_FromLong(product / 2);
+            if (n_ul > (unsigned long)LONG_MAX) {
+                goto slow_path3;
             }
+            long n = (long)n_ul;
+
+            // Compute 2*start with overflow guard.
+            if (start > LONG_MAX / 2 || start < LONG_MIN / 2) {
+                goto slow_path3;
+            }
+            long two_start = 2 * start;
+
+            // Compute (n-1)*step with overflow guard.
+            long n_minus_1 = n - 1;
+            long nm1_times_step;
+            if (step > 0) {
+                if (_mulOverflowsLong((unsigned long)n_minus_1, step)) {
+                    goto slow_path3;
+                }
+                nm1_times_step = n_minus_1 * step;
+            } else if (step == -1) {
+                nm1_times_step = -(n_minus_1); // always fits in signed long
+            } else {
+                // step < -1
+                if (_mulOverflowsLong((unsigned long)n_minus_1, step)) {
+                    goto slow_path3;
+                }
+                nm1_times_step = n_minus_1 * step;
+            }
+
+            // Compute inner = two_start + nm1_times_step with overflow guard.
+            if ((nm1_times_step > 0 && two_start > LONG_MAX - nm1_times_step) ||
+                (nm1_times_step < 0 && two_start < LONG_MIN - nm1_times_step)) {
+                goto slow_path3;
+            }
+            long inner = two_start + nm1_times_step;
+
+            if (inner == 0) {
+                return PyLong_FromLong(0);
+            }
+
+            // Guard: n * inner overflow.
+            if (_mulOverflowsLong((unsigned long)n, inner)) {
+                goto slow_path3;
+            }
+
+            return PyLong_FromLong(n * inner / 2);
         }
     }
 
+slow_path3: {
     PyObject *range_obj = BUILTIN_XRANGE3(tstate, start_obj, stop_obj, step_obj);
     if (unlikely(range_obj == NULL)) {
         return NULL;
@@ -1723,6 +1818,7 @@ PyObject *BUILTIN_SUM_RANGE3(PyThreadState *tstate, PyObject *start_obj, PyObjec
     PyObject *result = BUILTIN_SUM1(tstate, range_obj);
     Py_DECREF(range_obj);
     return result;
+}
 }
 
 PyDictObject *dict_builtin = NULL;

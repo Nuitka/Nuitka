@@ -6,6 +6,13 @@ import itertools
 empty = ()
 
 
+def test():
+    assert all(range(0)) is True
+    assert all(range(1)) is False
+    assert all(range(2)) is False
+    assert all(range(-5)) is True
+
+
 def calledRepeatedly(n, empty):
     # Force frame
     itertools
@@ -21,6 +28,8 @@ def calledRepeatedly(n, empty):
 
     return y
 
+
+test()
 
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(1000, empty)

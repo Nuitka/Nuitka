@@ -8,6 +8,22 @@ start = 5
 stop = 1005
 
 
+def test():
+    assert sum(range(0, 0)) == 0
+    assert sum(range(0, 1)) == 0
+    assert sum(range(0, 2)) == 1
+    assert sum(range(1, 5)) == 10
+    assert sum(range(-5, 5)) == -5
+    assert sum(range(5, 0)) == 0
+    assert sum(range(0, 100)) == 4950
+    assert sum(range(0, 10000000)) == 49999995000000
+
+    # Genexpr identity: sum(x for x in range(start, stop))
+    assert sum(x for x in range(0, 0)) == 0
+    assert sum(x for x in range(1, 5)) == 10
+    assert sum(x for x in range(-5, 5)) == -5
+
+
 def calledRepeatedly(start, stop, empty):
     # Force frame
     itertools
@@ -18,11 +34,15 @@ def calledRepeatedly(start, stop, empty):
     # construct_begin
     y = sum(range(start, stop))
     # construct_alternative
+    y = sum(x for x in range(start, stop))
+    # construct_alternative
     y = sum(empty)
     # construct_end
 
     return y
 
+
+test()
 
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(start, stop, empty)

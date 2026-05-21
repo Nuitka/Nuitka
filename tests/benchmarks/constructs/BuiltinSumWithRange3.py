@@ -9,6 +9,22 @@ stop = 1005
 step = 3
 
 
+def test():
+    assert sum(range(0, 0, 1)) == 0
+    assert sum(range(0, 1, 1)) == 0
+    assert sum(range(0, 10, 2)) == 20
+    assert sum(range(0, 10, 3)) == 18
+    assert sum(range(10, 0, -1)) == 55
+    assert sum(range(10, 0, -2)) == 30
+    assert sum(range(-5, 5, 2)) == -5
+    assert sum(range(5, -5, -2)) == 5
+    assert sum(range(5, 0, 1)) == 0
+
+    # Genexpr identity: sum(x for x in range(start, stop, step))
+    assert sum(x for x in range(0, 10, 2)) == 20
+    assert sum(x for x in range(10, 0, -1)) == 55
+
+
 def calledRepeatedly(start, stop, step, empty):
     # Force frame
     itertools
@@ -19,11 +35,15 @@ def calledRepeatedly(start, stop, step, empty):
     # construct_begin
     y = sum(range(start, stop, step))
     # construct_alternative
+    y = sum(x for x in range(start, stop, step))
+    # construct_alternative
     y = sum(empty)
     # construct_end
 
     return y
 
+
+test()
 
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(start, stop, step, empty)
