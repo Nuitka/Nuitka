@@ -680,7 +680,7 @@ static PyObject *Nuitka_Function_get_type_params(PyObject *self, void *data) {
 
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_type_params == NULL) {
-        assert(_Py_IsImmortal(const_tuple_empty));
+        Py_INCREF_IMMORTAL(const_tuple_empty);
         return const_tuple_empty;
     }
     Py_INCREF(function->m_type_params);
