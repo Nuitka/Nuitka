@@ -326,8 +326,9 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         context=context,
     )
 
-    getReleaseCode(release_name=annotations_name, emit=emit, context=context)
-    getReleaseCode(release_name=type_params_name, emit=emit, context=context)
+    getReleaseCode(
+        release_name=[annotations_name, type_params_name], emit=emit, context=context
+    )
 
 
 def getClosureCopyCode(closure_variables, context):
