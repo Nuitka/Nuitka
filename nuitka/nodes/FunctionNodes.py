@@ -885,7 +885,7 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
 
 
 def makeExpressionFunctionCreation(
-    function_ref, defaults, kw_defaults, annotations, source_ref, type_params=None
+    function_ref, defaults, kw_defaults, annotations, type_params, source_ref
 ):
     if kw_defaults is not None and kw_defaults.isExpressionConstantDictEmptyRef():
         kw_defaults = None
