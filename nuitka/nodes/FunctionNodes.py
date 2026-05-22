@@ -40,8 +40,8 @@ from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ChildrenHavingDefaultsTupleFunctionRefMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefTypeParamsOptionalMixin,
     ChildrenHavingFunctionValuesTupleMixin,
 )
 from .CodeObjectSpecs import CodeObjectSpec
@@ -1105,7 +1105,7 @@ class ExpressionFunctionCreationOld(
 
 class ExpressionFunctionCreation(
     ExpressionFunctionCreationMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefTypeParamsOptionalMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_FUNCTION_CREATION"
@@ -1129,7 +1129,7 @@ class ExpressionFunctionCreation(
     def __init__(
         self, defaults, kw_defaults, annotations, function_ref, type_params, source_ref
     ):
-        ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefTypeParamsOptionalMixin.__init__(
+        ChildrenExpressionFunctionCreationMixin.__init__(
             self,
             kw_defaults=kw_defaults,
             defaults=defaults,
