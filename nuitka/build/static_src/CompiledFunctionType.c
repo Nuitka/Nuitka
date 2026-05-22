@@ -852,16 +852,16 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
     }
 #endif
 
-    struct Nuitka_FunctionObject *result =
-        Nuitka_Function_New(function->m_c_code, function->m_name,
+    struct Nuitka_FunctionObject *result = Nuitka_Function_New(function->m_c_code, function->m_name,
 #if PYTHON_VERSION >= 0x300
-                            function->m_qualname,
+                                                               function->m_qualname,
 #endif
-                            function->m_code_object, function->m_defaults,
+                                                               function->m_code_object, function->m_defaults,
 #if PYTHON_VERSION >= 0x300
-                            kwdefaults, annotations,
+                                                               kwdefaults, annotations,
 #endif
-                            function->m_module, function->m_doc, function->m_closure, function->m_closure_given, NULL);
+                                                               function->m_module, function->m_doc, function->m_closure,
+                                                               function->m_closure_given, function->m_type_params);
 
 #if PYTHON_VERSION >= 0x3e0
     if (annotations_explicit_none && result->m_annotate != NULL) {
