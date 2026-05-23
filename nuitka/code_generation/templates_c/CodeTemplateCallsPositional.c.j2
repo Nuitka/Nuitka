@@ -404,6 +404,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
 {% if not has_tuple_arg and args_count != 0 %}
                 pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
