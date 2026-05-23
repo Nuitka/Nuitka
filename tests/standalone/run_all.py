@@ -29,6 +29,7 @@ from nuitka.__past__ import subprocess
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
     getCompilationOutputMode,
+    getCompilationPythonFlavor,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import (
@@ -293,7 +294,11 @@ def main():
                 )
 
             illegal_accesses = checkLoadedFileAccesses(
-                loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+                loaded_filenames=loaded_filenames,
+                current_dir=os.getcwd(),
+                python_flavor=getCompilationPythonFlavor(
+                    compilation_report=compilation_report
+                ),
             )
 
             if illegal_accesses:

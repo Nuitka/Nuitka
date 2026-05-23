@@ -55,6 +55,10 @@ def getCompilationOutputMode(compilation_report):
     return compilation_report.attrib["mode"]
 
 
+def getCompilationPythonFlavor(compilation_report):
+    return compilation_report.find("python").attrib["python_flavor"]
+
+
 def getEmbeddedDataFilenames(compilation_report):
     result = []
 
