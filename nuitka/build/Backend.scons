@@ -43,7 +43,6 @@ from nuitka.utils.Utils import (
 )
 
 from .SconsCompilerSettings import (
-    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
     enableWindowsStackSize,
     reportCCompiler,
@@ -351,12 +350,6 @@ if (
     # spell-checker: ignore dtags
     if isLinux():
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
-
-
-addConstantBlobFiles(
-    env=env,
-    source_dir=env.source_dir,
-)
 
 
 def discoverSourceFiles():

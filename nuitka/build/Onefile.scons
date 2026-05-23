@@ -31,7 +31,6 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
 
 from .SconsCompilerSettings import (
-    addConstantBlobFiles,
     createNuitkaSconsEnvironment,
     reportCCompiler,
     setupCCompiler,
@@ -157,11 +156,6 @@ env.Append(
         os.path.join(env.nuitka_src, "static_src"),
         os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
-)
-
-addConstantBlobFiles(
-    env=env,
-    source_dir=env.source_dir,
 )
 
 # Indicate, that the common code is used to build an executable.
