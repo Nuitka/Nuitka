@@ -501,6 +501,8 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_DECREF(locals_owner->f_globals);
     Py_XDECREF(locals_owner->f_locals);
 
+    _Nuitka_Frame_tp_clear(nuitka_frame);
+
 #if PYTHON_VERSION >= 0x3e0
     PyStackRef_CLEAR(locals_owner->f_executable);
     Py_CLEAR(frame->f_extra_locals);
@@ -513,8 +515,6 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_XDECREF(frame->f_exc_value);
     Py_XDECREF(frame->f_exc_traceback);
 #endif
-
-    _Nuitka_Frame_tp_clear(nuitka_frame);
 
     if (Py_REFCNT(nuitka_frame) > 0) {
         Py_SET_REFCNT(nuitka_frame, Py_REFCNT(nuitka_frame) - 1);
