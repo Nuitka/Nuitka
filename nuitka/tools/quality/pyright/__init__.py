@@ -1,38 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-[build-system]
-requires = ["setuptools>=42", "wheel"]
 
-[tool.pyright]
-typeCheckingMode = "basic"
-pythonVersion = "3.12"
-
-reportAttributeAccessIssue = "none"
-reportMissingModuleSource = "none"
-reportMissingImports = "none"
-
-reportOptionalMemberAccess = "none"
-reportOptionalCall = "none"
-reportOptionalSubscript = "none"
-reportOptionalIterable = "none"
-reportOptionalOperand = "none"
-
-reportArgumentType = "none"
-reportAssignmentType = "none"
-reportCallIssue = "none"
-reportOperatorIssue = "none"
-reportGeneralTypeIssues = "none"
-
-reportRedeclaration = "none"
-reportPrivateImportUsage = "none"
-
-exclude = [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/.*",
-    "**/inline_copy/**",
-    "*Mini*",
-]
+"""Dummy file to make this directory a package."""
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

@@ -210,13 +210,15 @@ def _getSystemStaticLibPythonPath(python_debug):
         if python_version >= 0x3E0:
             return None
 
-        candidate = os.path.join(
-            _getSysConfigVarLIBPL(),
-            "libpython" + python_abi_version + "-pic.a",
-        )
+        libpl = _getSysConfigVarLIBPL()
+        if libpl is not None:
+            candidate = os.path.join(
+                libpl,
+                "libpython" + python_abi_version + "-pic.a",
+            )
 
-        if os.path.exists(candidate):
-            return candidate
+            if os.path.exists(candidate):
+                return candidate
 
     libpl = _getSysConfigVarLIBPL()
     if libpl is not None:

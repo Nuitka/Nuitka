@@ -3,6 +3,7 @@
 
 """Shapes for Python built-in types."""
 
+from nuitka.__past__ import long, xrange
 from nuitka.code_generation.c_types.CTypeNuitkaBooleans import (
     CTypeNuitkaBoolEnum,
 )

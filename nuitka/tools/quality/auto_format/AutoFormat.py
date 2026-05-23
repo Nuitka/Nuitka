@@ -49,7 +49,7 @@ from nuitka.utils.PrivatePipSpace import (
 
 def _shouldNotFormatCode(filename, effective_filename):
     """Check if a file should not be formatted."""
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     parts = os.path.normpath(effective_filename).split(os.path.sep)
 
@@ -67,6 +67,8 @@ def _shouldNotFormatCode(filename, effective_filename):
     if "tests" in parts and "syntax" in parts:
         return True
     if "tests" in parts and "scratch" in parts:
+        return True
+    if "tests" in parts and "nuitka_protected_strings" in parts:
         return True
     if ".dist/" in effective_filename:
         return True

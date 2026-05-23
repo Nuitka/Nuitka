@@ -105,7 +105,7 @@ except ImportError:
 
         def __cmp__(self, other):
             if isinstance(other, OrderedDict):
-                return cmp(self.items(), other.items())
+                return cmp(self.items(), other.items())  # type: ignore
             elif isinstance(other, dict):
                 return dict.__cmp__(self, other)
             return NotImplemented

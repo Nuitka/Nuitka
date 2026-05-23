@@ -39,7 +39,7 @@ from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
 def _getSysArgv():
     # During early startup on Python2, "sys.argv" may not exist yet.
-    return getattr(sys, "argv", ("__main__.py",))
+    return getattr(sys, "argv", ["__main__.py"])
 
 
 def _getNuitkaBinaryName():

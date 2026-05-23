@@ -778,7 +778,7 @@ Stderr was:
                 # No execution second step for coverage mode.
                 if comparison_mode:
                     if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
-                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"
+                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"  # type: ignore
 
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)

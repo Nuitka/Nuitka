@@ -21,8 +21,8 @@ has_perf_counters = hasPerfProfilingSupport()
 class StopWatchWallClockBase(object):
     __slots__ = ("start_time", "end_time", "perf_counters")
 
-    # For overload, pylint: disable=not-callable
-    timer = None
+    # For overload
+    timer = lambda: 0
 
     def __init__(self, use_perf_counters=False):
         self.start_time = None

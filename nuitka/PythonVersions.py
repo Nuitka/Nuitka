@@ -192,7 +192,7 @@ def getUnboundLocalErrorErrorTemplate():
         try:
             # We are doing this on purpose, to get the exception.
             # pylint: disable=undefined-variable
-            del _f
+            del _f  # type: ignore
         except UnboundLocalError as e:
             result = e.args[0].replace("_f", "%s")
             getUnboundLocalErrorErrorTemplate.result = result

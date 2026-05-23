@@ -225,6 +225,8 @@ elif env.exe_mode or env.dll_mode:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")
         )
+        assert link_data is not None
+
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
             if lib.startswith(":") and lib.endswith(".a"):
