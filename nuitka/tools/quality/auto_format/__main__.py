@@ -4,6 +4,8 @@
 
 """Main program for auto format tool."""
 
+import os
+
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
@@ -12,7 +14,7 @@ from nuitka.tools.quality.Git import (
     getCheckoutFileChangeDesc,
     getGitPaths,
 )
-from nuitka.tools.quality.ScanSources import scanTargets
+from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
 
@@ -144,12 +146,6 @@ def formatFilenames(filenames, options):
                 filename,
                 git_stage=False,
                 check_only=options.check_only,
-                limit_yaml=options.yaml,
-                limit_c=options.c,
-                limit_python=options.python,
-                limit_rst=options.rst,
-                limit_md=options.md,
-                limit_json=options.json,
                 assume_yes_for_downloads=options.assume_yes_for_downloads,
             ):
                 result += 1
@@ -168,6 +164,37 @@ make sure to have commit hook installed or run it manually.""" % result
         tools_logger.info("autoformat: Changes to formatting of %d files" % result)
     else:
         tools_logger.info("autoformat: No files needed formatting changes.")
+
+
+def _filenameMatchesLimits(filename, options):
+    # pylint: disable=too-many-return-statements
+
+    if not (
+        options.yaml
+        or options.python
+        or options.c
+        or options.rst
+        or options.md
+        or options.json
+    ):
+        return True
+
+    if options.yaml and filename.endswith(".nuitka-package.config.yml"):
+        return True
+    if options.c and (filename.endswith(".c") or filename.endswith(".h")):
+        return True
+    if options.python and isPythonFile(filename):
+        return True
+    if options.rst and (filename.endswith(".rst") or filename.endswith(".inc")):
+        return True
+    if options.md and (
+        filename.endswith(".md") or os.path.basename(filename) == ".cursorrules"
+    ):
+        return True
+    if options.json and filename.endswith(".json"):
+        return True
+
+    return False
 
 
 def _formatFromCommit(options):
@@ -229,6 +256,11 @@ def _formatFromGitPaths(options, positional_args):
             ),
         )
     )
+
+    filenames = [
+        filename for filename in filenames if _filenameMatchesLimits(filename, options)
+    ]
+
     if options.verbose:
         my_print("Selected:", ", ".join(filenames))
 

@@ -320,12 +320,6 @@ def autoFormatFile(
     check_only=False,
     effective_filename=None,
     trace=True,
-    limit_yaml=False,
-    limit_python=False,
-    limit_c=False,
-    limit_rst=False,
-    limit_md=False,
-    limit_json=False,
     ignore_errors=False,
     ignore_yaml_diff=True,
     assume_yes_for_downloads=False,
@@ -338,12 +332,6 @@ def autoFormatFile(
         check_only: bool - indicate if only checking is to be done
         effective_filename: str - derive type of file from this name
         trace: bool - indicate if progress should be traced
-        limit_yaml: bool - limit to YAML files
-        limit_python: bool - limit to Python files
-        limit_c: bool - limit to C files
-        limit_rst: bool - limit to RST files
-        limit_md: bool - limit to MD files
-        limit_json: bool - limit to JSON files
         ignore_errors: bool - ignore errors during formatting
         ignore_yaml_diff: bool - ignore diffs in YAML files
         assume_yes_for_downloads: bool - assume yes for tool downloads
@@ -352,7 +340,7 @@ def autoFormatFile(
         bool: True if changes were made (or if check failed), False otherwise.
     """
 
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -425,28 +413,6 @@ def autoFormatFile(
             )
         else:
             is_txt = False
-
-        if limit_yaml or limit_python or limit_c or limit_rst or limit_md or limit_json:
-            is_match = False
-
-            if effective_filename.endswith(".nuitka-package.config.yml") and limit_yaml:
-                is_match = True
-            elif (is_c or is_cpp) and limit_c:
-                is_match = True
-            elif is_python and limit_python:
-                is_match = True
-            elif effective_filename.endswith((".rst", ".inc")) and limit_rst:
-                is_match = True
-            elif (
-                effective_filename.endswith(".md")
-                or os.path.basename(effective_filename) == ".cursorrules"
-            ) and limit_md:
-                is_match = True
-            elif is_json and limit_json:
-                is_match = True
-
-            if not is_match:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
 
         if not (is_python or is_c or is_cpp or is_txt or is_json or is_png or is_jpeg):
             deleteFile(tmp_filename, must_exist=True)

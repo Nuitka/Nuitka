@@ -41,8 +41,6 @@ def checkSchema(logger, document, effective_filename, assume_yes_for_downloads):
         reject_message="Checking YAML schema requires 'jsonschema'.",
     )
 
-    logger.info("OK, schema validated.", style="blue")
-
 
 module_allow_list = ("mozilla-ca",)
 
@@ -106,9 +104,7 @@ def _checkValues(logger, filename, effective_filename):
             ):
                 result = False
 
-    if result:
-        logger.info("OK, manual value tests passed.", style="blue")
-    else:
+    if not result:
         return logger.sysexit(
             "Error, coded checks for '%s' are not clean." % effective_filename
         )
@@ -142,8 +138,6 @@ def checkYamllint(logger, document, effective_filename):
             "Error, yamllint didn't raise expected SystemExit exception for '%s'."
             % effective_filename
         )
-
-    logger.info("OK, yamllint passed.", style="blue")
 
 
 def checkOrUpdateChecksum(filename, update, logger):
@@ -196,8 +190,6 @@ def checkOrUpdateChecksum(filename, update, logger):
             putTextFileContents(filename, lines, encoding="utf8")
             cleanupWindowsNewlines(filename, filename)
 
-            logger.info("OK, checksums updated.", style="blue")
-
 
 def checkYamlSchema(logger, filename, effective_filename, update):
     """Check the YAML schema and values, and update checksums.
@@ -210,8 +202,6 @@ def checkYamlSchema(logger, filename, effective_filename, update):
         effective_filename: name to use for reports (e.g. repo path)
         update: if checksums should be updated in the file
     """
-    logger.info("Checking '%s' for proper contents:" % effective_filename, style="blue")
-
     checkSchema(
         logger,
         filename,
