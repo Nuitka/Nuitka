@@ -28,7 +28,7 @@ from .FileOperations import getFileContents
 from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
-from .PrivatePipSpace import getPrivatePackage
+from .PrivatePipSpace import getPrivatePackage, getRequiredVersion
 
 
 def _isParsable(value):
@@ -299,7 +299,7 @@ def getJsonschemaPackage(logger, assume_yes_for_downloads, reject_message):
         logger=logger,
         package_name="jsonschema",
         module_name="jsonschema",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "jsonschema"),
         submodule_names=("validators",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
@@ -312,7 +312,7 @@ def getRuamelYamlPackage(logger, assume_yes_for_downloads):
         logger=logger,
         package_name="ruamel.yaml",
         module_name="ruamel.yaml",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "ruamel.yaml"),
         submodule_names=None,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message="Autoformat YAML needs ruamel.yaml.",
@@ -325,7 +325,7 @@ def getYamllintPackage(logger, assume_yes_for_downloads, reject_message):
         logger=logger,
         package_name="yamllint",
         module_name="yamllint",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "yamllint"),
         submodule_names=("cli",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
@@ -338,7 +338,7 @@ def getDeepDiffPackage(logger, assume_yes_for_downloads):
         logger=logger,
         package_name="deepdiff",
         module_name="deepdiff",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "deepdiff"),
         submodule_names=("diff",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message="Autoformat YAML needs deepdiff.",
