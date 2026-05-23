@@ -15,6 +15,7 @@ from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
+    getFileSize,
     getNormalizedPathJoin,
     getReportPath,
     listDir,
@@ -975,9 +976,19 @@ def addConstantBlobFile(env, blob_filename):
         )
 
 
-def addConstantBlobFiles(env, source_dir):
+def _addConstantBlobFiles(env, source_dir):
+    """Add constant blob files to the build environment.
+
+    Args:
+        env: The Scons environment.
+        source_dir: The source directory containing the blobs/ subdirectory.
+
+    Returns:
+        int: Total size of all blob .bin files in bytes.
+    """
     env.resource_mode = "absent"
 
+    total_blob_size = 0
     blobs_dir = os.path.join(source_dir, "blobs")
     if os.path.exists(blobs_dir):
         blob_filenames = []
@@ -985,12 +996,15 @@ def addConstantBlobFiles(env, source_dir):
         for filename_full, filename in listDir(blobs_dir):
             if filename.endswith(".bin"):
                 blob_filenames.append(filename_full)
+                total_blob_size += getFileSize(filename_full)
 
         for blob_filename in blob_filenames:
             addConstantBlobFile(
                 env=env,
                 blob_filename=blob_filename,
             )
+
+    return total_blob_size
 
 
 def _enableMacOSTargetSettings(env):
@@ -1660,6 +1674,29 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # are always added and consider_environment_variables does not apply
     # since that's about selecting the compiler, not configuring it.
     importEnvironmentVariableSettings(env)
+
+    # Add constant blob files and compute their total size. Must be after all
+    # compiler settings are established so the resource mode decision is
+    # correct. On x86_64 Linux, the default code model (small) limits
+    # code+data to within 2GB, causing "relocation truncated to fit:
+    # R_X86_64_PC32" linker errors when blobs are large. Use the medium code
+    # model when blobs exceed a threshold.
+    total_blob_size = _addConstantBlobFiles(
+        env=env,
+        source_dir=env.source_dir,
+    )
+
+    if (
+        total_blob_size >= 1600 * 1024 * 1024
+        and env.target_arch == "x86_64"
+        and isLinux()
+    ):
+        if env.gcc_mode or env.clang_mode or env.zig_mode:
+            scons_details_logger.info(
+                "Total constant blob size is %.2f GB, using -mcmodel=medium"
+                % (total_blob_size / (1024.0 * 1024.0 * 1024.0))
+            )
+            env.Append(CCFLAGS=["-mcmodel=medium"])
 
 
 def _enablePgoSettings(env):
