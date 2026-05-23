@@ -501,7 +501,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
 
     CHECK_OBJECT(func);
 
-    if (!PyCallable_Check(func)) {
+    if (!Nuitka_PyCheckCallable(func)) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "first argument must be callable");

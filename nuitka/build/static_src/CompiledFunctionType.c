@@ -573,7 +573,7 @@ static int Nuitka_Function_set_annotate(PyObject *self, PyObject *value, void *d
         value = NULL;
     }
 
-    if (unlikely(value != NULL && !PyCallable_Check(value))) {
+    if (unlikely(value != NULL && !Nuitka_PyCheckCallable(value))) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__annotate__ must be callable or None");
@@ -1597,7 +1597,7 @@ Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualnam
     if (annotations == NULL) {
         result->m_annotations = NULL;
         result->m_annotate = NULL;
-    } else if (PyCallable_Check(annotations)) {
+    } else if (Nuitka_PyCheckCallable(annotations)) {
         result->m_annotations = NULL;
         result->m_annotate = annotations;
     } else {

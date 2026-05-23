@@ -15,6 +15,19 @@ extern char const *GET_CLASS_NAME(PyObject *class_object);
 extern char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance);
 
 // Also used in generated helper code.
+NUITKA_MAY_BE_UNUSED static inline bool Nuitka_PyCheckCallable(PyObject *object) {
+    CHECK_OBJECT(object);
+
+#if PYTHON_VERSION < 0x300
+    // Python2: old-style classes and their instances.
+    if (PyClass_Check(object) || PyInstance_Check(object)) {
+        return true;
+    }
+#endif
+
+    return Py_TYPE(object)->tp_call != NULL;
+}
+
 NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyThreadState *tstate, PyObject *callable,
                                                                         PyObject *result) {
     if (result == NULL) {
