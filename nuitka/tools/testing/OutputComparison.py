@@ -380,13 +380,46 @@ def compareOutput(
     syntax_errors,
     trace_result=True,
     no_diffable=False,
+    compiled_only_exclusive_lines=(),
+    uncompiled_only_exclusive_lines=(),
 ):
+    # Many cases to deal with, pylint: disable=too-many-branches,too-many-locals
     if no_diffable:
         old_lines = splitOutputLines(out_cpython)
         new_lines = splitOutputLines(out_nuitka)
     else:
         old_lines = makeDiffable(out_cpython, ignore_warnings, syntax_errors)
         new_lines = makeDiffable(out_nuitka, ignore_warnings, syntax_errors)
+
+    exclusive_line_failures = 0
+
+    if compiled_only_exclusive_lines:
+        for expected in compiled_only_exclusive_lines:
+            if expected not in new_lines:
+                if trace_result:
+                    my_print(
+                        "Error: Expected compiled-only line %r not found in Nuitka output."
+                        % expected,
+                    )
+                exclusive_line_failures += 1
+
+        new_lines = [
+            line for line in new_lines if line not in compiled_only_exclusive_lines
+        ]
+
+    if uncompiled_only_exclusive_lines:
+        for expected in uncompiled_only_exclusive_lines:
+            if expected not in old_lines:
+                if trace_result:
+                    my_print(
+                        "Error: Expected uncompiled-only line %r not found in CPython output."
+                        % expected,
+                    )
+                exclusive_line_failures += 1
+
+        old_lines = [
+            line for line in old_lines if line not in uncompiled_only_exclusive_lines
+        ]
 
     diff = getUnifiedDiff(
         old_lines=old_lines,
@@ -407,6 +440,8 @@ def compareOutput(
             for line in result:
                 my_print(line)
 
+        return 1
+    elif exclusive_line_failures:
         return 1
     else:
         return 0

@@ -33,7 +33,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
-from nuitka.utils.FileOperations import deleteFile
+from nuitka.utils.FileOperations import deleteFile, getFileContentByLine
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
@@ -176,6 +176,48 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
+def _getExclusiveLines(filename):
+    compiled_stdout_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-compiled-only[ \t]*:[ \t]*stdout[ \t]*:(.*)"
+    )
+    compiled_stderr_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-compiled-only[ \t]*:[ \t]*stderr[ \t]*:(.*)"
+    )
+    uncompiled_stdout_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-uncompiled-only[ \t]*:[ \t]*stdout[ \t]*:(.*)"
+    )
+    uncompiled_stderr_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-uncompiled-only[ \t]*:[ \t]*stderr[ \t]*:(.*)"
+    )
+
+    result_compiled_stdout = []
+    result_compiled_stderr = []
+    result_uncompiled_stdout = []
+    result_uncompiled_stderr = []
+
+    try:
+        for line in getFileContentByLine(filename, mode="rb"):
+            for regex, target in [
+                (compiled_stdout_re, result_compiled_stdout),
+                (compiled_stderr_re, result_compiled_stderr),
+                (uncompiled_stdout_re, result_uncompiled_stdout),
+                (uncompiled_stderr_re, result_uncompiled_stderr),
+            ]:
+                match = regex.match(line)
+                if match:
+                    target.append(match.group(1).strip().decode("utf8"))
+                    break
+    except (OSError, IOError):
+        pass
+
+    return (
+        result_compiled_stdout,
+        result_compiled_stderr,
+        result_uncompiled_stdout,
+        result_uncompiled_stderr,
+    )
+
+
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
@@ -307,6 +349,14 @@ def main():
     project_options = getNuitkaProjectOptions(
         logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
+
+    (
+        compiled_only_stdout,
+        compiled_only_stderr,
+        uncompiled_only_stdout,
+        uncompiled_only_stderr,
+    ) = _getExclusiveLines(filename)
+
     decryption_project_options = []
 
     for project_option in project_options:
@@ -859,6 +909,8 @@ Stderr was:
                     ignore_warnings,
                     syntax_errors,
                     no_diffable=no_diffable,
+                    compiled_only_exclusive_lines=compiled_only_stdout,
+                    uncompiled_only_exclusive_lines=uncompiled_only_stdout,
                 )
 
             if ignore_stderr:
@@ -871,6 +923,8 @@ Stderr was:
                     ignore_warnings,
                     syntax_errors,
                     no_diffable=no_diffable,
+                    compiled_only_exclusive_lines=compiled_only_stderr,
+                    uncompiled_only_exclusive_lines=uncompiled_only_stderr,
                 )
 
             exit_code_return = exit_cpython != exit_nuitka
