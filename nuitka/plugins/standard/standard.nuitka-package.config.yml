@@ -2936,6 +2936,20 @@
     - depends:
         - 'passlib.handlers.sha1_crypt'
 
+- module-name: 'mitmproxy.addons.onboardingapp' # checksum: 55a22be6
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+
+- module-name: 'mitmproxy.tools.web' # checksum: 78317e6c
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+    - patterns:
+        - 'index.html'
+
 - module-name: 'mitmproxy_macos' # checksum: a855017f
   data-files:
     - patterns:
