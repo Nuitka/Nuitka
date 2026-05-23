@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# To enable this hook, execute "python misc/install-git-hook.py". It
+# To enable this hook, execute "python misc/install-git-hooks.py". It
 # makes sure pushed code is checked.
 
 # Redirect output to stderr.
