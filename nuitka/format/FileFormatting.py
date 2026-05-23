@@ -127,11 +127,24 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads, reject_messa
             )
 
 
+def _cleanupEmDashes(filename):
+    """Replace em-dashes and en-dashes with regular dashes in C files."""
+
+    with open(filename, "rb") as f:
+        source_code = f.read()
+
+    updated_code = source_code.replace(b"\xe2\x80\x94", b"-")
+    updated_code = updated_code.replace(b"\xe2\x80\x93", b"-")
+
+    if updated_code != source_code:
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_code)
+
+
 def formatC(
     logger,
     filename,
     effective_filename,
-    check_only,
     assume_yes_for_downloads,
     reject_message,
 ):
@@ -141,18 +154,26 @@ def formatC(
         filename: path to the file
         effective_filename: filename to use for errors
         logger: logger to use
-        check_only: bool - if only checking is to be done
         assume_yes_for_downloads: bool - if downloads are allowed
     """
-    if check_only:
-        try:
-            getFileContents(filename, encoding="ascii")
-        except UnicodeDecodeError:
-            if logger:
-                logger.warning(
-                    "All C files must be pure ASCII, need to convert it manually."
-                )
-            return True
+    _cleanupEmDashes(filename)
+
+    try:
+        getFileContents(filename, encoding="ascii")
+    except UnicodeDecodeError:
+        line_no = 0
+
+        with open(filename, "rb") as f:
+            for line_no, line in enumerate(f, start=1):
+                try:
+                    line.decode("ascii")
+                except UnicodeDecodeError:
+                    break
+
+        return logger.sysexit(
+            "All C files must be pure ASCII, need to convert it manually: %s (line %d)"
+            % (effective_filename, line_no)
+        )
 
     cleanupWindowsNewlines(filename, effective_filename)
     _cleanupClangFormat(
@@ -162,8 +183,6 @@ def formatC(
         reject_message=reject_message,
     )
     cleanupWindowsNewlines(filename, effective_filename)
-
-    return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
