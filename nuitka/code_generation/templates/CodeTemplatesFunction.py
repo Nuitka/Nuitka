@@ -29,6 +29,9 @@ static PyObject *%(function_maker_identifier)s(%(function_creation_args)s) {
         %(function_doc)s,
         %(closure_name)s,
         %(closure_count)d
+#if PYTHON_VERSION >= 0x300
+        , %(type_params)s
+#endif
     );
 %(constant_return_code)s
 

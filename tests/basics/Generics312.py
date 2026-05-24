@@ -103,6 +103,23 @@ print(tuple(a is b for a, b in zip(TypeParams.__type_params__, TypeParams.saved)
 print(TypeParams.__bases__)
 print(TypeParams.__orig_bases__)
 
+
+def functionTypeParams[T, *Ts, **P]():
+    pass
+
+
+async def asyncFunctionTypeParams[T, *Ts, **P]():
+    pass
+
+
+async def asyncGenTypeParams[T, *Ts, **P]():
+    pass
+
+
+print(functionTypeParams, functionTypeParams.__type_params__)
+print(asyncFunctionTypeParams, asyncFunctionTypeParams.__type_params__)
+print(asyncGenTypeParams, asyncGenTypeParams.__type_params__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

@@ -277,6 +277,7 @@ def buildDictionaryUnpacking(provider, keys, values, source_ref):
             defaults=(),
             kw_defaults=None,
             annotations=None,
+            type_params=None,
             source_ref=source_ref,
         ),
         values=(makeExpressionMakeTuple(helper_args, source_ref),),
