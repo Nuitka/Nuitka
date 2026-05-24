@@ -20,8 +20,11 @@ from nuitka.utils.Execution import (
 )
 
 
-def _findPyrightBinary():
+def _findPyrightBinary(basedpyright):
     """Find the pyright binary on the system.
+
+    Args:
+        basedpyright: If True, look for 'basedpyright' instead of 'pyright'.
 
     Returns:
         Path to the pyright executable.
@@ -34,11 +37,13 @@ def _findPyrightBinary():
     else:
         extra_path = None
 
-    pyright_binary = getExecutablePath("pyright", extra_dir=extra_path)
+    binary_name = "basedpyright" if basedpyright else "pyright"
+    pyright_binary = getExecutablePath(binary_name, extra_dir=extra_path)
 
     if pyright_binary is None:
         sys.exit(
-            "Error, pyright is not installed. Install it with 'npm install -g pyright'."
+            "Error, %s is not installed. Install it with 'npm install -g %s'."
+            % (binary_name, binary_name)
         )
 
     return pyright_binary
@@ -47,8 +52,11 @@ def _findPyrightBinary():
 _pyright_version = None
 
 
-def getPyrightVersion():
+def getPyrightVersion(basedpyright):
     """Get the installed pyright version.
+
+    Args:
+        basedpyright: If True, use basedpyright instead of pyright.
 
     Returns:
         str - version string.
@@ -57,7 +65,7 @@ def getPyrightVersion():
     global _pyright_version
 
     if _pyright_version is None:
-        pyright_binary = _findPyrightBinary()
+        pyright_binary = _findPyrightBinary(basedpyright=basedpyright)
 
         version_output = check_output([pyright_binary, "--version"])
 
@@ -69,17 +77,18 @@ def getPyrightVersion():
     return _pyright_version
 
 
-def _buildPyrightCommand(filenames, extra_options):
+def _buildPyrightCommand(filenames, extra_options, basedpyright):
     """Build the pyright command line.
 
     Args:
         filenames: List of files to check.
         extra_options: Extra CLI options from environment variable.
+        basedpyright: If True, use basedpyright instead of pyright.
 
     Returns:
         List of command arguments.
     """
-    pyright_binary = _findPyrightBinary()
+    pyright_binary = _findPyrightBinary(basedpyright=basedpyright)
 
     command = [pyright_binary]
 
@@ -114,12 +123,13 @@ def _cleanupPyrightOutput(output):
     return [line for line in output.split("\n") if line]
 
 
-def _executePyright(filenames, extra_options):
+def _executePyright(filenames, extra_options, basedpyright):
     """Execute pyright on the given files.
 
     Args:
         filenames: List of file paths to check.
         extra_options: Extra CLI options.
+        basedpyright: If True, use basedpyright instead of pyright.
 
     Returns:
         int - exit code (0 on success, 1 on errors).
@@ -127,6 +137,7 @@ def _executePyright(filenames, extra_options):
     command = _buildPyrightCommand(
         filenames=filenames,
         extra_options=extra_options,
+        basedpyright=basedpyright,
     )
 
     process_result = executeProcess(command)
@@ -151,20 +162,23 @@ def _executePyright(filenames, extra_options):
     return exit_code
 
 
-def executePyright(filenames, verbose):
+def executePyright(filenames, verbose, basedpyright):
     """Run pyright on a list of files.
 
     Args:
         filenames: List of file paths to check.
         verbose: If True, output extra diagnostic information.
+        basedpyright: If True, use basedpyright instead of pyright.
 
     Returns:
         int - exit code (0 on success, 1 on errors).
     """
     filenames = list(filenames)
 
-    version = getPyrightVersion()
-    my_print("Using pyright version:", version)
+    version = getPyrightVersion(basedpyright=basedpyright)
+
+    tool_name = "basedpyright" if basedpyright else "pyright"
+    my_print("Using %s version:" % tool_name, version)
 
     if verbose:
         my_print("Checking", filenames, "...")
@@ -173,7 +187,7 @@ def executePyright(filenames, verbose):
     if "" in extra_options:
         extra_options.remove("")
 
-    return _executePyright(filenames, extra_options)
+    return _executePyright(filenames, extra_options, basedpyright=basedpyright)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

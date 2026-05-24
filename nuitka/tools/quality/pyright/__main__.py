@@ -122,6 +122,15 @@ Insist on Pyright to be installed. Default is %default.""",
 Watch files for changes. Default is %default.""",
     )
 
+    parser.add_option(
+        "--basedpyright",
+        action="store_true",
+        dest="basedpyright",
+        default=False,
+        help="""\
+Use basedpyright instead of pyright. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     return options, positional_args
@@ -138,9 +147,10 @@ def main():
     options, positional_args = _parseArguments()
 
     if options.not_installed_is_no_error:
-        if getPyrightVersion() is None:
+        if getPyrightVersion(basedpyright=options.basedpyright) is None:
+            tool_name = "basedpyright" if options.basedpyright else "pyright"
             tools_logger.warning(
-                "Pyright is not installed: SKIPPED",
+                "%s is not installed: SKIPPED" % tool_name,
                 style="yellow",
             )
             return tools_logger.sysexit(exit_code=0)
@@ -182,6 +192,7 @@ def main():
                         executePyright(
                             filenames=filenames,
                             verbose=options.verbose,
+                            basedpyright=options.basedpyright,
                         )
                     except SystemExit:
                         pass
@@ -207,6 +218,7 @@ def main():
     exit_code = executePyright(
         filenames=filenames,
         verbose=options.verbose,
+        basedpyright=options.basedpyright,
     )
 
     return tools_logger.sysexit(exit_code=exit_code)
