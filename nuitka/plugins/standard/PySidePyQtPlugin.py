@@ -551,8 +551,12 @@ import %(binding_name)s.QtCore
             ".md",
         )
 
+        # File types that are build artifacts, not DLLs and not data files,
+        # spell-checker: ignore prl
+        non_dll_artifact_suffixes = (".a", ".la", ".prl")
+
         if dlls:
-            ignore_suffixes = datafile_suffixes
+            ignore_suffixes = datafile_suffixes + non_dll_artifact_suffixes
             only_suffixes = ()
         else:
             ignore_suffixes = ()
