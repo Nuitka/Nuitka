@@ -331,24 +331,13 @@ class NuitkaProgressBarBarflow(object):
 
         self.min_total = min_total
         self.item = None
-        self.stage = stage
-        self.unit_label = (" " + unit + "s") if unit else ""
         # Current item is rendered by a trailing callback column, NOT folded
         # into the description — folding it in changes the description width
         # per module and shifts the whole bar sideways (a staircase). Keeping
         # the description fixed anchors the bar, exactly like tqdm's postfix.
         self._postfix = ""
 
-        effective_total = self.total
-        if self.total is not None:
-            if self.min_total is not None:
-                effective_total = max(self.total, self.min_total)
-            else:
-                effective_total = max(self.total, 0)
-        elif self.min_total is not None and self.min_total > 0:
-            effective_total = self.min_total
-        else:
-            effective_total = None
+        effective_total = self._effectiveTotal(self.total, self.min_total)
 
         # barflow renders on its own thread straight to stderr's file
         # descriptor, exactly like tqdm, so it must use the original stream
@@ -368,13 +357,16 @@ class NuitkaProgressBarBarflow(object):
         # then the bar, then percentage/count/unit, and finally the current
         # item via a callback column at the very end (the only part that
         # changes width). Mirrors tqdm's "{desc}|{bar}| n/total unit postfix".
-        from barflow import columns as _bfcols
+        from barflow import (  # pylint: disable=I0021,import-error
+            columns as _bfcols,
+        )
 
         # Match Nuitka's tqdm/rich styling: bold-blue description + postfix
         # (info style), bold-green percentage. barflow.style speaks the same
         # "bold blue" grammar, so reuse the module-level style tuples.
         info_style = " ".join(_progress_info_style)
         pct_style = " ".join(_progress_percentage_style)
+        unit_label = (" " + unit + "s") if unit else ""
 
         columns = [
             _bfcols.DescriptionColumn(style=info_style),
@@ -384,17 +376,27 @@ class NuitkaProgressBarBarflow(object):
             _bfcols.PercentColumn(style=pct_style),
             _bfcols.TextColumn(" "),
             _bfcols.CountColumn(),
-            _bfcols.TextColumn(self.unit_label),
+            _bfcols.TextColumn(unit_label),
             _bfcols.CallbackColumn(lambda task: self._postfix, style=info_style),
         ]
 
-        self.bar = _barflow.Progress(
+        self.barflow_progress = _barflow.Progress(
             *columns,
             total=effective_total,
             desc=stage,
             disable=disable
         )
-        self.bar.__enter__()
+        self.barflow_progress.__enter__()
+
+    @staticmethod
+    def _effectiveTotal(total, min_total):
+        if total is not None:
+            if min_total is not None:
+                return max(total, min_total)
+            return max(total, 0)
+        if min_total is not None and min_total > 0:
+            return min_total
+        return None
 
     def __iter__(self):
         for val in self.iterable:
@@ -404,10 +406,9 @@ class NuitkaProgressBarBarflow(object):
     def updateTotal(self, total):
         if total != self.total:
             self.total = total
-            effective_total = total
-            if self.min_total is not None:
-                effective_total = max(total, self.min_total)
-            self.bar.set_total(0, effective_total)
+            self.barflow_progress.set_total(
+                0, self._effectiveTotal(total, self.min_total)
+            )
 
     def setCurrent(self, item):
         # Update only the trailing postfix (rendered by the callback column),
@@ -417,7 +418,7 @@ class NuitkaProgressBarBarflow(object):
             self._postfix = (" - %s" % item) if item is not None else ""
 
     def update(self):
-        self.bar.advance(1)
+        self.barflow_progress.advance(1)
 
     def _eraseLine(self):
         # barflow's close() only stops the render thread; it does not clear
@@ -435,7 +436,7 @@ class NuitkaProgressBarBarflow(object):
 
     def close(self):
         with withNoExceptions():
-            self.bar.close()
+            self.barflow_progress.close()
         self._eraseLine()
 
     @contextmanager
@@ -446,12 +447,12 @@ class NuitkaProgressBarBarflow(object):
         # without a true suspend, barflow's autonomous render thread would
         # repaint mid-write and tear the output, unlike tqdm/rich which only
         # paint synchronously.
-        self.bar.pause()
+        self.barflow_progress.pause()
         try:
             yield
         finally:
             with withNoExceptions():
-                self.bar.resume()
+                self.barflow_progress.resume()
 
 
 def _getTqdmModule():
@@ -545,8 +546,18 @@ def _getBarflowModule():
     try:
         import barflow as barflow_installed  # pylint: disable=I0021,import-error
 
+        # pause()/resume() and the callback-column threading fix landed in
+        # 0.3.1; older releases would tear or deadlock under threaded use, so
+        # treat them as unavailable and fall back to tqdm/rich.
+        version = tuple(
+            int(part) for part in barflow_installed.__version__.split(".")[:3]
+        )
+        if version < (0, 3, 1):
+            _barflow = False
+            return None
+
         _barflow = barflow_installed
-    except ImportError:
+    except (ImportError, AttributeError, ValueError):
         _barflow = False
         return None
 
@@ -750,6 +761,7 @@ def wrapWithProgressBar(iterable, stage, unit):
 
 @contextmanager
 def withNuitkaDownloadProgressBar(*args, **kwargs):
+    # Three backend branches (barflow/rich/tqdm), pylint: disable=too-many-locals
     if use_progress_bar in (None, "none"):
         yield None
         return
@@ -761,30 +773,30 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
         description = kwargs.get("desc", "Downloading")
         total_size_bytes = kwargs.get("total", 0)
 
-        bar = _barflow.Progress(
+        barflow_progress = _barflow.Progress(
             total=total_size_bytes or None,
             desc=description,
             disable=not is_tty,
         )
-        bar.__enter__()
+        barflow_progress.__enter__()
 
         seen = {"n": 0}
 
         def onProgressBarflow(block_num=1, block_size=1, total_size=None):
             if total_size is not None and total_size > 0:
-                bar.set_total(0, total_size)
+                barflow_progress.set_total(0, total_size)
 
             current = block_num * block_size
             delta = current - seen["n"]
             if delta > 0:
-                bar.advance(delta)
+                barflow_progress.advance(delta)
                 seen["n"] = current
 
         try:
             yield onProgressBarflow
         finally:
             with withNoExceptions():
-                bar.close()
+                barflow_progress.close()
     elif use_progress_bar == "rich":
         description = kwargs.get("desc", "Downloading")
         total_size_bytes = kwargs.get("total", 0)
