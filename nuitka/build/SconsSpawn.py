@@ -30,6 +30,16 @@ from .SconsUtils import (
     writeSconsResourceUsageReport,
 )
 
+# On Python 2, subprocess.Popen(close_fds=True) internally does
+# "import resource" which can race with the import lock held by
+# the main thread when running under a compiled binary.
+if str is bytes:
+    try:
+        import resource  # Ensure in sys.modules before spawning threads, pylint: disable=unused-import
+    except ImportError:
+        pass
+
+
 SubprocessSpawnResult = makeNamedtupleClass(
     "SubprocessSpawnResult",
     (
