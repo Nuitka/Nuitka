@@ -129,7 +129,6 @@ fi
 
 # These are all Windows only or used only there.
 rm -rf nuitka/build/inline_copy/clcache
-rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
 rm -rf nuitka/build/inline_copy/pefile
 
@@ -145,6 +144,8 @@ then
 fi
 
 %check
+
+export NUITKA_UPDATE_CHECK=never
 
 echo "Environment variables during build:"
 env
