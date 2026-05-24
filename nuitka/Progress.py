@@ -332,7 +332,7 @@ class NuitkaProgressBarBarflow(object):
         self.min_total = min_total
         self.item = None
         # Current item is rendered by a trailing callback column, NOT folded
-        # into the description — folding it in changes the description width
+        # into the description -- folding it in changes the description width
         # per module and shifts the whole bar sideways (a staircase). Keeping
         # the description fixed anchors the bar, exactly like tqdm's postfix.
         self._postfix = ""
@@ -450,7 +450,7 @@ class NuitkaProgressBarBarflow(object):
         # the parity-critical path: without a true suspend, barflow's
         # autonomous render thread would repaint mid-write and tear the output,
         # unlike tqdm/rich which only paint synchronously. No separate
-        # _eraseLine() is needed — pause() already clears.
+        # _eraseLine() is needed -- pause() already clears.
         self.barflow_progress.pause()
         try:
             yield
@@ -551,7 +551,7 @@ def _getBarflowModule():
         import barflow as barflow_installed  # pylint: disable=I0021,import-error
 
         # Validate it is really barflow with the API we use, like
-        # _getRichModule() checks for Progress — a wrong/partial module named
+        # _getRichModule() checks for Progress -- a wrong/partial module named
         # "barflow" should fall back cleanly rather than crash at a call site.
         if not hasattr(barflow_installed, "Progress"):
             _barflow = False
