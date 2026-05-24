@@ -34,6 +34,17 @@ exclude = [
     "*Mini*",
 ]
 
+[tool.ruff]
+builtins = ["__compiled__", "cmp", "intern", "unicode", "long"]
+lint.ignore = ["E402", "E731", "F401"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/inline_copy/**",
+    "*Mini*",
+]
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
