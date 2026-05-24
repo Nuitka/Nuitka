@@ -348,7 +348,6 @@ def buildClassNode3(provider, node, source_ref):
                         function_ref=ExpressionFunctionRef(
                             function_body=outer_body,
                             source_ref=source_ref,
-                            type_params=None,
                         ),
                         defaults=(),
                         kw_defaults=None,
