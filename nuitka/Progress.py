@@ -351,7 +351,10 @@ class NuitkaProgressBarBarflow(object):
         try:
             disable = not self._stream.isatty()
         except Exception:  # Catch all the things, pylint: disable=broad-except
-            disable = False
+            # Fail closed: if TTY capability cannot be determined, disable the
+            # bar rather than risk spamming a non-interactive log/CI with
+            # escape codes.
+            disable = True
 
         # Fixed-layout columns so the bar never moves: a constant description,
         # then the bar, then percentage/count/unit, and finally the current
@@ -441,12 +444,13 @@ class NuitkaProgressBarBarflow(object):
 
     @contextmanager
     def withExternalWritingPause(self):
-        # Suspend barflow's render thread and clear the bar area so the
-        # external writer owns the screen, then resume (which repaints the
-        # bar below the written lines). This is the parity-critical path:
-        # without a true suspend, barflow's autonomous render thread would
-        # repaint mid-write and tear the output, unlike tqdm/rich which only
-        # paint synchronously.
+        # barflow's pause() both suspends the render thread AND erases the bar
+        # area (via the same walk-back write_above uses), so the external
+        # writer owns a clean screen; resume() repaints the bar below. This is
+        # the parity-critical path: without a true suspend, barflow's
+        # autonomous render thread would repaint mid-write and tear the output,
+        # unlike tqdm/rich which only paint synchronously. No separate
+        # _eraseLine() is needed — pause() already clears.
         self.barflow_progress.pause()
         try:
             yield
@@ -545,6 +549,13 @@ def _getBarflowModule():
 
     try:
         import barflow as barflow_installed  # pylint: disable=I0021,import-error
+
+        # Validate it is really barflow with the API we use, like
+        # _getRichModule() checks for Progress — a wrong/partial module named
+        # "barflow" should fall back cleanly rather than crash at a call site.
+        if not hasattr(barflow_installed, "Progress"):
+            _barflow = False
+            return None
 
         # pause()/resume() and the callback-column threading fix landed in
         # 0.3.1; older releases would tear or deadlock under threaded use, so
@@ -773,10 +784,21 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
         description = kwargs.get("desc", "Downloading")
         total_size_bytes = kwargs.get("total", 0)
 
+        # barflow renders to stderr, so base disable on stderr's TTY status
+        # (unwrapping our redirector), not the stdout-derived is_tty used by
+        # the rich branch.
+        bf_stream = sys.stderr
+        if hasattr(bf_stream, "original_stream"):
+            bf_stream = bf_stream.original_stream
+        try:
+            bf_disable = not bf_stream.isatty()
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            bf_disable = True
+
         barflow_progress = _barflow.Progress(
             total=total_size_bytes or None,
             desc=description,
-            disable=not is_tty,
+            disable=bf_disable,
         )
         barflow_progress.__enter__()
 

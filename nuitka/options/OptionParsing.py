@@ -1630,7 +1630,7 @@ tracing_group.add_option(
     help="""\
 Select the progress bar mode. The 'auto' selects 'barflow' if available,
 then 'tqdm', otherwise 'rich'. The values 'barflow', 'tqdm' and 'rich'
-force a specific library. Use 'none' to disables progress bars. Defaults
+force a specific library. Use 'none' to disable progress bars. Defaults
 to 'auto'.""",
 )
 
