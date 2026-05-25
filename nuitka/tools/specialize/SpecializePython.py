@@ -718,7 +718,7 @@ def _addFromNode(node_class):
     children_mixing_setters_needed[mixin_name].update(setters_needed)
 
     for base in node_class.__mro__:
-        if base.__name__ == mixin_name:
+        if base.__name__ in (mixin_name, "_" + mixin_name):
             break
     else:
         # if named_children == ("operand",):

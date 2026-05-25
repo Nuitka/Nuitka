@@ -39,7 +39,7 @@ from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
-class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
+class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -85,12 +85,12 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
-    NoChildHavingFinalNoRaiseMixin
+    _NoChildHavingFinalNoRaiseMixin
 )
-ExpressionImportlibMetadataEntryPointValueRefBase = NoChildHavingFinalNoRaiseMixin
+ExpressionImportlibMetadataEntryPointValueRefBase = _NoChildHavingFinalNoRaiseMixin
 
 
-class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
+class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -174,12 +174,12 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionParameterSpecificationBase = NoChildHavingFinalNoRaiseNameMixin
-ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
-ExpressionTypeVariableTupleBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionParameterSpecificationBase = _NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableBase = _NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableTupleBase = _NoChildHavingFinalNoRaiseNameMixin
 
 
-class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
+class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -307,10 +307,10 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionBuiltinMakeExceptionBase = ChildHavingArgsTupleFinalNoRaiseMixin
+ExpressionBuiltinMakeExceptionBase = _ChildHavingArgsTupleFinalNoRaiseMixin
 
 
-class ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
+class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -518,11 +518,11 @@ class ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionAttributeErrorBase = (
-    ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin
+    _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin
 )
 
 
-class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
+class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -731,14 +731,14 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
-    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
+    _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
 )
 ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
-    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
+    _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
 )
 
 
-class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
+class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -868,10 +868,10 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionBuiltinIter2Base = ChildrenHavingCallableArgSentinelFinalMixin
+ExpressionBuiltinIter2Base = _ChildrenHavingCallableArgSentinelFinalMixin
 
 
-class ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
+class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -964,14 +964,14 @@ class ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportDistributionFailedCallBase = (
-    ChildHavingDistributionNameFinalChildrenMixin
+    _ChildHavingDistributionNameFinalChildrenMixin
 )
 ExpressionImportlibMetadataDistributionFailedCallBase = (
-    ChildHavingDistributionNameFinalChildrenMixin
+    _ChildHavingDistributionNameFinalChildrenMixin
 )
 
 
-class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
+class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1103,14 +1103,14 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
-    ChildHavingElementsTupleFinalNoRaiseMixin
+    _ChildHavingElementsTupleFinalNoRaiseMixin
 )
 ExpressionImportlibMetadataEntryPointsValueRefBase = (
-    ChildHavingElementsTupleFinalNoRaiseMixin
+    _ChildHavingElementsTupleFinalNoRaiseMixin
 )
 
 
-class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
+class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1220,11 +1220,11 @@ class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
-ExpressionAttributeLookupSpecialBase = ChildHavingExpressionAttributeNameMixin
+ExpressionAttributeLookupBase = _ChildHavingExpressionAttributeNameMixin
+ExpressionAttributeLookupSpecialBase = _ChildHavingExpressionAttributeNameMixin
 
 
-class ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
+class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1368,10 +1368,10 @@ class ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionBuiltinHasattrBase = ChildrenHavingExpressionNameRaiseWaitConstantNameMixin
+ExpressionBuiltinHasattrBase = _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin
 
 
-class ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
+class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1504,10 +1504,10 @@ class ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionTemplateStringBase = ChildHavingInterpolationsTupleStrValuesMixin
+ExpressionTemplateStringBase = _ChildHavingInterpolationsTupleStrValuesMixin
 
 
-class ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
+class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1645,10 +1645,10 @@ class ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionSubtypeCheckBase = ChildrenHavingLeftRightFinalNoRaiseMixin
+ExpressionSubtypeCheckBase = _ChildrenHavingLeftRightFinalNoRaiseMixin
 
 
-class ChildHavingListArgNoRaiseMixin(ExpressionBase):
+class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1758,11 +1758,11 @@ class ChildHavingListArgNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionListOperationClearBase = ChildHavingListArgNoRaiseMixin
-ExpressionListOperationReverseBase = ChildHavingListArgNoRaiseMixin
+ExpressionListOperationClearBase = _ChildHavingListArgNoRaiseMixin
+ExpressionListOperationReverseBase = _ChildHavingListArgNoRaiseMixin
 
 
-class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
+class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -1905,10 +1905,10 @@ class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionListOperationAppendBase = ChildrenHavingListArgItemNoRaiseMixin
+ExpressionListOperationAppendBase = _ChildrenHavingListArgItemNoRaiseMixin
 
 
-class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
+class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2046,10 +2046,10 @@ class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionListOperationCountBase = ChildrenHavingListArgValueFinalNoRaiseMixin
+ExpressionListOperationCountBase = _ChildrenHavingListArgValueFinalNoRaiseMixin
 
 
-class ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
+class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -2256,11 +2256,11 @@ class ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
 
 # Assign the names that are easier to import with a stable name.
 ExpressionCallMetaclassBase = (
-    ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin
+    _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin
 )
 
 
-class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
+class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2390,14 +2390,14 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
-    ChildHavingPairsTupleFinalNoRaiseMixin
+    _ChildHavingPairsTupleFinalNoRaiseMixin
 )
 ExpressionImportlibMetadataSelectableGroupsValueRefBase = (
-    ChildHavingPairsTupleFinalNoRaiseMixin
+    _ChildHavingPairsTupleFinalNoRaiseMixin
 )
 
 
-class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
+class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2513,10 +2513,10 @@ class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionBuiltinInputBase = ChildHavingPromptOptionalFinalMixin
+ExpressionBuiltinInputBase = _ChildHavingPromptOptionalFinalMixin
 
 
-class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
+class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2621,11 +2621,11 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionBuiltinClassmethodBase = ChildHavingValueFinalNoRaiseMixin
-ExpressionBuiltinStaticmethodBase = ChildHavingValueFinalNoRaiseMixin
+ExpressionBuiltinClassmethodBase = _ChildHavingValueFinalNoRaiseMixin
+ExpressionBuiltinStaticmethodBase = _ChildHavingValueFinalNoRaiseMixin
 
 
-class ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBase):
+class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2783,7 +2783,7 @@ class ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBas
 
 # Assign the names that are easier to import with a stable name.
 ExpressionTemplateInterpolationBase = (
-    ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin
+    _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin
 )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
