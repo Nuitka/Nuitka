@@ -243,6 +243,7 @@ def main():
         clangd_output = getTemplateFromString(clangd_template_str).render(
             python_include_path=python_include,
             python_version_hex=python_version,
+            repo_root=repo_root,
         )
 
         clangd_output_path = os.path.join(repo_root, ".clangd")
