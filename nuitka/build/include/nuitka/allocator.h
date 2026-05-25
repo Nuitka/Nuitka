@@ -5,7 +5,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
 #endif
 
 // For Python2.6, these assertions cannot be done easily, just disable them with dummy code.

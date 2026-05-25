@@ -5,6 +5,11 @@
 
 // Exception helpers for generated code and compiled code helpers.
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "stdbool.h"
+#endif
+
 // Fundamental, because we use it for print style debugging in everything.
 #include "nuitka/checkers.h"
 #include "nuitka/constants.h"

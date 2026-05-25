@@ -3,6 +3,10 @@
 #ifndef __NUITKA_CONSTANTS_H__
 #define __NUITKA_CONSTANTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__

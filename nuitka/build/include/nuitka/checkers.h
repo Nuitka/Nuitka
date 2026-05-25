@@ -3,6 +3,9 @@
 #ifndef __NUITKA_CHECKERS_H__
 #define __NUITKA_CHECKERS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
