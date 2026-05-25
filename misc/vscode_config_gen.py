@@ -251,6 +251,11 @@ def main():
 
         print(f"Successfully generated {clangd_output_path}")
 
+    # Also generate .python_alias_path for the bin/*.cmd launchers on Windows.
+    python_alias_path = os.path.join(repo_root, ".vscode", ".python_alias_path")
+    putTextFileContents(python_alias_path, sys.executable + "\n")
+    print("Successfully generated %s" % python_alias_path)
+
     return 0
 
 

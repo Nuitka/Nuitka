@@ -96,6 +96,7 @@ Before marking a task as complete, you must verify the changes using the project
 - **Linting:** You must run the project's pylint script on any modified files.
 
   - Command: `./bin/check-nuitka-with-pylint --un-pushed`
+  - On Windows, use `.\bin\check-nuitka-with-pylint.cmd --un-pushed` instead.
   - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
     unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
     diagnosis.
@@ -106,12 +107,15 @@ Before marking a task as complete, you must verify the changes using the project
 - **Auto-Formatting:** Apply auto-formatting to any file you touch (Python or C).
 
   - Command: `./bin/autoformat-nuitka-source --un-pushed`
+  - On Windows, use `.\bin\autoformat-nuitka-source.cmd --un-pushed` instead.
   - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
     unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
     diagnosis.
   - Can be run on the entire project with `./bin/autoformat-nuitka-source`
   - This script applies `black`, `isort` (for Python), and `clang-format` (for C) as well as other
     tools.
+  - On Windows, if the command fails with "Python not found", run
+    `{Python.exe} misc\vscode_config_gen.py` first to generate the config files needed.
 
 - **Temporary Verification Files:**
 
