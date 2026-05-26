@@ -81,6 +81,7 @@ def createPlistInfoFile(logger):
             ("CFBundleInfoDictionaryVersion", "6.0"),
             ("CFBundlePackageType", "APPL"),  # spell-checker: ignore appl
             ("CFBundleShortVersionString", app_version),
+            ("CFBundleVersion", app_version),
         ]
     )
 
