@@ -269,7 +269,6 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
         logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
     )
     YAML = ruamel_yaml.YAML
-    _F = ruamel_yaml.compat._F  # pylint: disable=protected-access
     ConstructorError = ruamel_yaml.constructor.ConstructorError
     ScalarNode = ruamel_yaml.nodes.ScalarNode
     DoubleQuotedScalarString = ruamel_yaml.scalarstring.DoubleQuotedScalarString
@@ -285,8 +284,8 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
                 raise ConstructorError(
                     None,
                     None,
-                    _F(
-                        "expected a scalar node, but found {node_id!s}", node_id=node.id
+                    "expected a scalar node, but found {node_id!s}".format(
+                        node_id=node.id
                     ),
                     node.start_mark,
                 )
