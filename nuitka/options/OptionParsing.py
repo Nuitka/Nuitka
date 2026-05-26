@@ -19,7 +19,12 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import displayRecommendedVersion, isPythonWithGil
+from nuitka.PythonVersions import (
+    displayRecommendedVersion,
+    isPythonWithGil,
+    python_version_full_str,
+    python_version_str,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -2343,6 +2348,8 @@ def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
         "Arch": wrap(getArchitecture()),
         "Flavor": wrap(getPythonFlavorName()),
         "Version": getNuitkaVersion(),
+        "PYTHON_VERSION": wrap(python_version_str),
+        "PYTHON_VERSION_FULL": wrap(python_version_full_str),
         "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
         "GIL": isPythonWithGil(),
