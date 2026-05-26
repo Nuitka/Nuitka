@@ -2023,6 +2023,17 @@ not given.""",
 )
 
 macos_group.add_option(
+    "--macos-app-macos-min-version",
+    action="store",
+    dest="macos_app_macos_min_version",
+    metavar="MACOS_APP_MACOS_MIN_VERSION",
+    default=None,
+    help="""\
+Minimum macOS version required by the application. Defaults to the
+version detected from the Python binary used.""",
+)
+
+macos_group.add_option(
     "--macos-app-protected-resource",
     action="append",
     dest="macos_protected_resources",

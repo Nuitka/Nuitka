@@ -1081,6 +1081,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnMacOSBundleSpecificOption("--macos-signed-app-name")
     if getMacOSAppVersion():
         _warnMacOSBundleSpecificOption("--macos-app-version")
+    if options.macos_app_macos_min_version is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-macos-min-version")
     if options.macos_protected_resources:
         _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
@@ -2645,6 +2647,11 @@ def getMacOSSignedAppName():
 def getMacOSAppVersion():
     """*str* version of the app to use for bundle"""
     return options.macos_app_version
+
+
+def getMacOSAppMacOSMinVersion():
+    """*str* minimum macOS version for the app bundle"""
+    return options.macos_app_macos_min_version
 
 
 # Mapping of Info.plist keys to the corresponding entitlement keys for hardened
