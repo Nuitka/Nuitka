@@ -1083,6 +1083,8 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnMacOSBundleSpecificOption("--macos-app-version")
     if options.macos_app_macos_min_version is not None:
         _warnMacOSBundleSpecificOption("--macos-app-macos-min-version")
+    if options.macos_app_category_type is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-category-type")
     if options.macos_protected_resources:
         _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
@@ -2652,6 +2654,11 @@ def getMacOSAppVersion():
 def getMacOSAppMacOSMinVersion():
     """*str* minimum macOS version for the app bundle"""
     return options.macos_app_macos_min_version
+
+
+def getMacOSAppCategoryType():
+    """*str* App Store category type for the application"""
+    return options.macos_app_category_type
 
 
 # Mapping of Info.plist keys to the corresponding entitlement keys for hardened

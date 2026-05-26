@@ -9,6 +9,7 @@ from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import (
     getLegalInformation,
+    getMacOSAppCategoryType,
     getMacOSAppConsoleMode,
     getMacOSAppMacOSMinVersion,
     getMacOSAppName,
@@ -52,7 +53,7 @@ def _writePlist(filename, data):
 
 
 def createPlistInfoFile(logger):
-    # Many details, pylint: disable=too-many-branches,too-many-locals
+    # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
     if isStandaloneMode():
         bundle_dir = os.path.dirname(
             getStandaloneDirectoryPath(bundle=True, real=False)
@@ -87,6 +88,10 @@ def createPlistInfoFile(logger):
 
     if macos_min_version is not None:
         infos["LSMinimumSystemVersion"] = macos_min_version
+
+    app_category = getMacOSAppCategoryType()
+    if app_category is not None:
+        infos["LSApplicationCategoryType"] = app_category
 
     icon_paths = getMacOSIconPaths()
 

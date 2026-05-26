@@ -2034,6 +2034,17 @@ version detected from the Python binary used.""",
 )
 
 macos_group.add_option(
+    "--macos-app-category-type",
+    action="store",
+    dest="macos_app_category_type",
+    metavar="MACOS_APP_CATEGORY_TYPE",
+    default=None,
+    help="""\
+App Store category type for the application, e.g.
+public.app-category.utilities.""",
+)
+
+macos_group.add_option(
     "--macos-app-protected-resource",
     action="append",
     dest="macos_protected_resources",

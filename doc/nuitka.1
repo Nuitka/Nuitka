@@ -430,6 +430,9 @@ Product version to use in macOS bundle information. Defaults to "1.0" if not giv
 \fB\-\-macos\-app\-macos\-min\-version\fR=\fI\,MACOS_APP_MACOS_MIN_VERSION\/\fR
 Minimum macOS version required by the application. Defaults to the version detected from the Python binary used.
 .TP
+\fB\-\-macos\-app\-category\-type\fR=\fI\,MACOS_APP_CATEGORY_TYPE\/\fR
+App Store category type for the application, e.g. public.app\-category.utilities.
+.TP
 \fB\-\-macos\-app\-protected\-resource\fR=\fI\,RESOURCE_DESC\/\fR
 Request an entitlement for access to a macOS protected resources, e.g. "NSMicrophoneUsageDescription:Microphone access for recording audio." requests access to the microphone and provides an informative text for the user, why that is needed. Before the colon, is an OS identifier for an access right, then the informative text. Legal values can be found on https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources and the option can be specified multiple times. Default empty.
 .TP
