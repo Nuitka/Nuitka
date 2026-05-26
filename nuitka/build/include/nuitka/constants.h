@@ -163,6 +163,8 @@ extern PyObject **global_constants;
 #define const_str_plain_normpath global_constants[42]
 // 'path'
 #define const_str_plain_path global_constants[42]
+// '__qualname__'
+#define const_str_plain___qualname__ global_constants[43]
 // '__newobj__'
 #define const_str_plain___newobj__ global_constants[44]
 // '.'

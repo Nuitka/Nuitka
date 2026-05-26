@@ -40,8 +40,8 @@ from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ChildrenHavingDefaultsTupleFunctionRefMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
     ChildrenHavingFunctionValuesTupleMixin,
 )
 from .CodeObjectSpecs import CodeObjectSpec
@@ -885,7 +885,7 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
 
 
 def makeExpressionFunctionCreation(
-    function_ref, defaults, kw_defaults, annotations, source_ref
+    function_ref, defaults, kw_defaults, annotations, type_params, source_ref
 ):
     if kw_defaults is not None and kw_defaults.isExpressionConstantDictEmptyRef():
         kw_defaults = None
@@ -904,6 +904,7 @@ def makeExpressionFunctionCreation(
             defaults=defaults,
             kw_defaults=kw_defaults,
             annotations=annotations,
+            type_params=type_params,
             source_ref=source_ref,
         )
 
@@ -1082,6 +1083,7 @@ class ExpressionFunctionCreationOld(
     # So the can share code generation with the new version.
     subnode_annotations = None
     subnode_kw_defaults = None
+    subnode_type_params = None
 
     named_children = (
         "defaults|tuple",
@@ -1104,7 +1106,7 @@ class ExpressionFunctionCreationOld(
 
 class ExpressionFunctionCreation(
     ExpressionFunctionCreationMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_FUNCTION_CREATION"
@@ -1120,17 +1122,21 @@ class ExpressionFunctionCreation(
         "kw_defaults|optional",
         "annotations|optional",
         "function_ref",
+        "type_params|optional",
     )
 
     __slots__ = ("variable_closure_traces",)
 
-    def __init__(self, defaults, kw_defaults, annotations, function_ref, source_ref):
-        ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin.__init__(
+    def __init__(
+        self, defaults, kw_defaults, annotations, function_ref, type_params, source_ref
+    ):
+        ChildrenExpressionFunctionCreationMixin.__init__(
             self,
             kw_defaults=kw_defaults,
             defaults=defaults,
             annotations=annotations,
             function_ref=function_ref,
+            type_params=type_params,
         )
 
         ExpressionBase.__init__(self, source_ref)

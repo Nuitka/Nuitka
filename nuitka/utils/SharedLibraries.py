@@ -770,7 +770,9 @@ def isStaticallyLinked(filename):
         return "statically linked" in file_output
 
     if isMacOS():
-        # Telling statically linked as easy for macOS, but this will be good
+        file_output = _getFileCommandOutput(filename)
+
+        # Telling statically linked is not as easy for macOS, but this will be good
         # enough for some things.
         if "dynamically linked" in file_output:
             return False

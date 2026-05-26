@@ -1473,6 +1473,12 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
+- module-name: 'emoji' # checksum: 7ebd7c38
+  data-files:
+    - patterns:
+        - 'unicode_codes/emoji.json'
+        - 'unicode_codes/emoji_*.json'
+
 - module-name: 'enchant' # checksum: 6aaa99cc
   data-files:
     - dirs:
@@ -2931,11 +2937,24 @@
         - 'mercurial.charencode'
         - 'mercurial.cext.parsers'
 
-- module-name: 'mitmproxy' # checksum: 4eec16b2
+- module-name: 'mitmproxy' # checksum: 467c5986
   implicit-imports:
     - depends:
-        - 'mitmproxy_macos'
         - 'passlib.handlers.sha1_crypt'
+
+- module-name: 'mitmproxy.addons.onboardingapp' # checksum: 55a22be6
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+
+- module-name: 'mitmproxy.tools.web' # checksum: 78317e6c
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+    - patterns:
+        - 'index.html'
 
 - module-name: 'mitmproxy_macos' # checksum: a855017f
   data-files:
@@ -2943,6 +2962,33 @@
         - 'Mitmproxy Redirector.app.tar'
     - dirs:
         - 'macos-certificate-truster.app'
+
+- module-name: 'mitmproxy_rs' # checksum: 9d75b64
+  implicit-imports:
+    - depends:
+        - 'mitmproxy_linux'
+      when: 'linux'
+    - depends:
+        - 'mitmproxy_macos'
+      when: 'macos'
+    - depends:
+        - 'mitmproxy_windows'
+      when: 'win32'
+
+- module-name: 'mitmproxy_windows' # checksum: b79d5c66
+  data-files:
+    - patterns:
+        - 'WinDivert.lib'
+        - 'WinDivert64.sys'
+        - 'WINDIVERT_VERSION'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'WinDivert'
+    - from_filenames:
+        prefixes:
+          - 'windows-redirector'
+        executable: 'yes'
 
 - module-name: 'mkl' # checksum: 9a8684da
   dlls:

@@ -1269,6 +1269,7 @@ _stdlib_module_raises = {
     "_posixsubprocess": False,
     "_queue": False,
     "_random": False,
+    "_remote_debugging": False,
     "_scproxy": False,
     "_sha": False,  # TODO: Not entirely clear if that's true
     "_sha1": False,
@@ -1310,6 +1311,7 @@ _stdlib_module_raises = {
     "_xxsubinterpreters": False,
     "_xxinterpchannels": False,
     "_zoneinfo": False,
+    "_zstd": False,
     "array": False,
     "atexit": False,
     "audioop": False,

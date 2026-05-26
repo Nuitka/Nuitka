@@ -122,7 +122,6 @@ struct Nuitka_FrameObject {
 #if PYTHON_VERSION >= 0x3b0
     PyObject *m_generator;
     PyFrameState m_frame_state;
-    _PyInterpreterFrame m_interpreter_frame;
 
     // In Python 3.11, the frame object is no longer variable size, and as such
     // we inherit the wrong kind of header, not PyVarObject, leading to f_back
@@ -135,8 +134,22 @@ struct Nuitka_FrameObject {
 
     // Our own extra stuff, attached variables.
     char const *m_type_description;
+#if PYTHON_VERSION >= 0x3b0
+    _PyInterpreterFrame m_interpreter_frame;
+#else
     char m_locals_storage[1];
+#endif
 };
+
+// TODO: We ought to start using the localsplus slots directly for storing Nuitka's
+// compiled local variables in the future, rather than having a separate shift-based
+// storage offset, which will make them automatically visible to CPython stack-walking.
+#if PYTHON_VERSION >= 0x3b0
+#define NUITKA_FRAME_LOCALS_STORAGE(frame)                                                                             \
+    ((char *)&(frame)->m_interpreter_frame.localsplus[Nuitka_GetFrameCodeObject(frame)->co_nlocalsplus])
+#else
+#define NUITKA_FRAME_LOCALS_STORAGE(frame) ((frame)->m_locals_storage)
+#endif
 
 inline static void CHECK_CODE_OBJECT(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 

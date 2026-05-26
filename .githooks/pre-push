@@ -28,7 +28,20 @@ do
 
     if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]
     then
-        against="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+        against=""
+        for base_branch in "$1/develop" "$1/main" "origin/develop" "origin/main"
+        do
+            against=$(git merge-base "$local_oid" "$base_branch" 2>/dev/null)
+            if [ -n "$against" ]
+            then
+                break
+            fi
+        done
+
+        if [ -z "$against" ]
+        then
+            against="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+        fi
     else
         against="$remote_oid"
     fi

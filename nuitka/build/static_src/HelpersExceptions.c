@@ -27,7 +27,29 @@ void SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyObject *exception_type, char const *f
 }
 
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
+#if PYTHON_VERSION >= 0x3e0
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *type = (PyObject *)Py_TYPE(mistyped);
+    PyObject *qualname = LOOKUP_ATTRIBUTE(tstate, type, const_str_plain___qualname__);
+
+    if (qualname != NULL && PyUnicode_Check(qualname)) {
+        char const *name = PyUnicode_AsUTF8(qualname);
+
+        if (name != NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, name);
+            Py_DECREF(qualname);
+            return;
+        }
+
+        Py_DECREF(qualname);
+    } else {
+        CLEAR_ERROR_OCCURRED(tstate);
+    }
+
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+#endif
 }
 
 static char const *TYPE_NAME_DESC(PyObject *type) {

@@ -182,7 +182,7 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
         PyObject **var_names = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
         char const *w = nuitka_frame->m_type_description;
-        char const *t = nuitka_frame->m_locals_storage;
+        char const *t = NUITKA_FRAME_LOCALS_STORAGE(nuitka_frame);
 
         while (*w != 0) {
             switch (*w) {
@@ -415,7 +415,7 @@ static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
 static void _Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
     if (frame->m_type_description) {
         char const *w = frame->m_type_description;
-        char const *t = frame->m_locals_storage;
+        char const *t = NUITKA_FRAME_LOCALS_STORAGE(frame);
 
         while (*w != 0) {
             switch (*w) {
@@ -501,6 +501,8 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_DECREF(locals_owner->f_globals);
     Py_XDECREF(locals_owner->f_locals);
 
+    _Nuitka_Frame_tp_clear(nuitka_frame);
+
 #if PYTHON_VERSION >= 0x3e0
     PyStackRef_CLEAR(locals_owner->f_executable);
     Py_CLEAR(frame->f_extra_locals);
@@ -513,8 +515,6 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Py_XDECREF(frame->f_exc_value);
     Py_XDECREF(frame->f_exc_traceback);
 #endif
-
-    _Nuitka_Frame_tp_clear(nuitka_frame);
 
     if (Py_REFCNT(nuitka_frame) > 0) {
         Py_SET_REFCNT(nuitka_frame, Py_REFCNT(nuitka_frame) - 1);
@@ -567,7 +567,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 
     // Traverse attached locals too.
     char const *w = frame->m_type_description;
-    char const *t = frame->m_locals_storage;
+    char const *t = NUITKA_FRAME_LOCALS_STORAGE(frame);
 
     while (w != NULL && *w != 0) {
         switch (*w) {
@@ -827,10 +827,20 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
     struct Nuitka_FrameObject *result;
 
+#if PYTHON_VERSION >= 0x3b0
+    Py_ssize_t total_locals_size = (code->co_nlocalsplus * sizeof(PyObject *)) + locals_size;
+#else
+    Py_ssize_t total_locals_size = locals_size;
+#endif
+
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(free_list_frames, struct Nuitka_FrameObject, Nuitka_Frame_Type, locals_size);
+    allocateFromFreeList(free_list_frames, struct Nuitka_FrameObject, Nuitka_Frame_Type, total_locals_size);
 
     result->m_type_description = NULL;
+
+#if PYTHON_VERSION >= 0x3b0
+    memset(&result->m_interpreter_frame.localsplus[0], 0, code->co_nlocalsplus * sizeof(PyObject *));
+#endif
 
     PyFrameObject *frame = &result->m_frame;
     // Globals and locals are stored differently before Python 3.11
@@ -1224,7 +1234,7 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
     frame_object->m_type_description = type_description;
 
     char const *w = type_description;
-    char *t = frame_object->m_locals_storage;
+    char *t = NUITKA_FRAME_LOCALS_STORAGE(frame_object);
 
     va_list(ap);
     va_start(ap, type_description);
@@ -1304,7 +1314,7 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
 
     va_end(ap);
 
-    assert(t - frame_object->m_locals_storage <= Nuitka_Frame_GetSize(frame_object));
+    assert(t - NUITKA_FRAME_LOCALS_STORAGE(frame_object) <= Nuitka_Frame_GetSize(frame_object));
 }
 
 // Make a dump of the active frame stack. For debugging purposes only.

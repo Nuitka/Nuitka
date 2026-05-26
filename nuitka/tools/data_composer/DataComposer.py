@@ -420,6 +420,9 @@ def _writeConstantValueCodeObject(output, code_object, blob_spec):
     if "CO_FUTURE_BARRY_AS_BDFL" in future_flags:
         flags |= blob_spec.code_flag_future_barry_as_bdfl
 
+    if python_version < 0x3B0 and not code_object.getFreeVarNames():
+        flags |= blob_spec.code_flag_nofree
+
     output.write(_encodeVariableLength(flags))
 
     # Name is mandatory, no flag needed.

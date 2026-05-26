@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "misc/nuitka-completion.zsh usr/share/zsh/vendor-completions/"
+echo misc/nuitka-completion.zsh usr/share/zsh/vendor-completions/

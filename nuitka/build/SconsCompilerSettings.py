@@ -500,6 +500,16 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     return env
 
 
+def _disableCcacheInEnvironment(env):
+    """Disable ccache in the Scons environment.
+
+    Setting 'CCACHE_DISABLE=1' causes ccache to transparently forward
+    to the real compiler, even when the compiler binary is a ccache
+    symlink (e.g. Debian's ccache package).
+    """
+    setEnvironmentVariable(env, "CCACHE_DISABLE", "1")
+
+
 def createEnvironmentAndCheckCompiler(
     mingw_mode,
     msvc_version,
@@ -1161,6 +1171,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     progress_bar = getArgumentDefaulted("progress_bar", "auto")
     enableSconsProgressBar(progress_bar)
 
+    disable_ccache = getArgumentBool("disable_ccache", False)
+
     # Patch the compiler detection.
     Environment.Detect = getEnhancedToolDetect()
 
@@ -1180,6 +1192,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         experimental_flags=experimental_flags,
         source_dir=source_dir,
     )
+
+    if disable_ccache:
+        _disableCcacheInEnvironment(env=env)
 
     # Consider switching from gcc to its g++ compiler as a workaround that makes
     # us work without C11.
@@ -1218,6 +1233,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.uninstalled_python = uninstalled_python
     env.onefile_windows_static_runtime = onefile_windows_static_runtime
     env.cf_protection = cf_protection
+    env.disable_ccache = disable_ccache
 
     if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
         raiseNoCompilerFoundErrorExit()
@@ -1239,18 +1255,14 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     if needs_source_dir:
         setupScons(env, source_dir)
 
-        # Check if ccache is installed, and complain if it is not.
-        disable_ccache = getArgumentBool("disable_ccache", False)
-
         if env.gcc_mode:
             enableCcache(
                 env=env,
                 source_dir=source_dir,
                 python_prefix=env.python_prefix_external,
-                disable_ccache=disable_ccache,
             )
 
-        if env.msvc_mode and not disable_ccache:
+        if env.msvc_mode and not env.disable_ccache:
             enableClcache(
                 env=env,
                 source_dir=source_dir,

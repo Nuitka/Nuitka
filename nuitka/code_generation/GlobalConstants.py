@@ -228,8 +228,12 @@ def getConstantDefaultPopulation():
         # Exception group split method call
         result.append("split")
 
-    if python_version >= 0x3C0:
-        result.append("Unpack")
+        if python_version >= 0x3C0:
+            result.append("Unpack")
+
+    if python_version >= 0x3E0:
+        # For exception complaint using __qualname__.
+        result.append("__qualname__")
 
     if isWin32Windows():
         result.append("fileno")

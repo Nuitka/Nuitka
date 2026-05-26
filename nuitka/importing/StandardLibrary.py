@@ -17,6 +17,7 @@ import os
 from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
 from nuitka.utils.FileOperations import (
     getFileContents,
+    getFilenameRealPath,
     getNormalizedPath,
     isFilenameBelowPath,
 )
@@ -120,9 +121,19 @@ def _isStandardLibraryPath(filename):
     if any(candidate in filename for candidate in getSitePackageCandidateNames()):
         return False
 
-    for candidate in getStandardLibraryPaths():
+    stdlib_paths = getStandardLibraryPaths()
+
+    for candidate in stdlib_paths:
         if isFilenameBelowPath(path=candidate, filename=filename):
             return True
+
+    # Also check the realpath, as there can be symlinks in directory
+    # components, e.g. with Python Build Standalone.
+    real_filename = getFilenameRealPath(filename)
+    if real_filename != filename:
+        for candidate in stdlib_paths:
+            if isFilenameBelowPath(path=candidate, filename=real_filename):
+                return True
 
     return False
 
