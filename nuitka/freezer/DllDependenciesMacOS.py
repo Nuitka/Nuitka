@@ -441,6 +441,23 @@ def _resolveBinaryPathDLLsMacOS(
                             ):
                                 # Versioned dependency on itself in non-existent path.
                                 resolved_path = binary_filename
+                            else:
+                                # The resolved path may reference a less-versioned
+                                # variant of the binary itself, e.g.
+                                # libfoo.1.dylib when binary is libfoo.1.2.3.dylib.
+                                binary_match = re.match(
+                                    pattern, os.path.basename(binary_filename)
+                                )
+                                resolved_match = re.match(
+                                    pattern, os.path.basename(resolved_path)
+                                )
+
+                                if (
+                                    binary_match is not None
+                                    and resolved_match is not None
+                                    and binary_match.group(1) == resolved_match.group(1)
+                                ):
+                                    resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = isAcceptableMissingDLL(

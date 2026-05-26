@@ -165,6 +165,7 @@ def buildLambdaNode(provider, node, source_ref):
         defaults=defaults,
         kw_defaults=kw_defaults,
         annotations=annotations,
+        type_params=None,
         source_ref=source_ref,
     )
 

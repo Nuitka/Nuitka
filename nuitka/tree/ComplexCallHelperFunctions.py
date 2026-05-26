@@ -328,6 +328,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                                     defaults=(),
                                     kw_defaults=None,
                                     annotations=None,
+                                    type_params=None,
                                     source_ref=internal_source_ref,
                                 ),
                                 values=(
@@ -460,6 +461,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
                                     defaults=(),
                                     kw_defaults=None,
                                     annotations=None,
+                                    type_params=None,
                                     source_ref=internal_source_ref,
                                 ),
                                 values=(
@@ -679,6 +681,7 @@ def _makeRaiseNoStringItem(called_variable):
                     kw_defaults=None,
                     annotations=None,
                     source_ref=internal_source_ref,
+                    type_params=None,
                 ),
                 values=(
                     ExpressionVariableRef(
@@ -734,6 +737,7 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
                                     defaults=(),
                                     kw_defaults=None,
                                     annotations=None,
+                                    type_params=None,
                                     source_ref=internal_source_ref,
                                 ),
                                 values=(

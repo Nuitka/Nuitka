@@ -1298,6 +1298,7 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         defaults=(),
         kw_defaults=None,
         annotations=None,
+        type_params=None,
         source_ref=source_ref,
     )
 

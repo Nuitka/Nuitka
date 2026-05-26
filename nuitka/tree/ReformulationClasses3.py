@@ -352,6 +352,7 @@ def buildClassNode3(provider, node, source_ref):
                         defaults=(),
                         kw_defaults=None,
                         annotations=None,
+                        type_params=None,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
@@ -614,6 +615,7 @@ def buildClassNode3(provider, node, source_ref):
                     defaults=(),
                     kw_defaults=None,
                     annotations=None,
+                    type_params=None,
                     source_ref=source_ref,
                 ),
                 values=(
@@ -1069,6 +1071,7 @@ def makeExpressionSelectMetaclass(metaclass, bases, source_ref):
                 defaults=(),
                 kw_defaults=None,
                 annotations=None,
+                type_params=None,
                 source_ref=source_ref,
             ),
             values=(metaclass, bases),

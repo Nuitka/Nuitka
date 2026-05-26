@@ -269,6 +269,76 @@ static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long fea
     return ((type->tp_flags & feature) != 0);
 }
 
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3d0
+
+static inline Py_ssize_t Nuitka_shared_keys_usable_size(PyDictKeysObject *keys) {
+    return keys->dk_nentries + keys->dk_usable;
+}
+
+// Initialize managed dict inline values for Python 3.11/3.12.
+// This follows CPython's init_inline_values() from Objects/dictobject.c.
+static inline int Nuitka_PyObject_InitInlineValuesLegacy(PyObject *obj, PyTypeObject *tp) {
+    if (tp->tp_dictoffset == 0) {
+        return 0;
+    }
+
+    if (!Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT)) {
+        return 0;
+    }
+
+    // GCC 11+ can still emit a false-positive "-Warray-bounds" for the
+    // PyHeapTypeObject cast after the heap type check above.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+    PyDictKeysObject *keys = ((PyHeapTypeObject *)tp)->ht_cached_keys;
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
+    assert(keys != NULL);
+
+    if (keys->dk_usable > 1) {
+        keys->dk_usable--;
+    }
+
+    Py_ssize_t size = Nuitka_shared_keys_usable_size(keys);
+    assert(size > 0);
+
+    Py_ssize_t values_size = sizeof(PyObject *) * size;
+
+    size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
+    size_t n = prefix_size + values_size;
+    uint8_t *mem = (uint8_t *)NuitkaMem_Malloc(n);
+    if (mem == NULL) {
+        return -1;
+    }
+
+    assert(prefix_size % sizeof(PyObject *) == 0);
+    mem[prefix_size - 1] = (uint8_t)prefix_size;
+
+    PyDictValues *values = (PyDictValues *)(mem + prefix_size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        values->values[i] = NULL;
+    }
+
+    // Initialize the insertion order counter.
+    ((uint8_t *)values)[-2] = 0;
+
+#if PYTHON_VERSION >= 0x3c0
+    // Python 3.12+: tagged pointer through PyDictOrValues
+    _PyDictOrValues_SetValues((PyDictOrValues *)_PyObject_DictOrValuesPointer(obj), values);
+#else
+    // Python 3.11: direct pointer
+    *_PyObject_ValuesPointer(obj) = values;
+#endif
+
+    return 0;
+}
+
+#endif
+
 #if PYTHON_VERSION >= 0x3d0
 
 static inline bool Nuitka_PyType_HasInlineValues(PyTypeObject *tp) {
