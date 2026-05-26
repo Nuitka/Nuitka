@@ -3,6 +3,13 @@
 #ifndef __NUITKA_MAPPINGS_H__
 #define __NUITKA_MAPPINGS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 extern Py_ssize_t Nuitka_PyMapping_Size(PyObject *mapping);
 
 NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyThreadState *tstate, PyObject *mapping, PyObject *key) {

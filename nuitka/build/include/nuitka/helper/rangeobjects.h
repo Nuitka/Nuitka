@@ -3,6 +3,11 @@
 #ifndef __NUITKA_HELPER_RANGEOBJECTS_H__
 #define __NUITKA_HELPER_RANGEOBJECTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 /* For built-in built-in range() functionality. */
 
 extern PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step);

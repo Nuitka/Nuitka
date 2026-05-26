@@ -3,6 +3,12 @@
 #ifndef __NUITKA_IMPORTING_H__
 #define __NUITKA_IMPORTING_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 /* These are for the built-in import.
  *
  * They call the real thing with varying amount of arguments. For keyword

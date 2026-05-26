@@ -3,6 +3,13 @@
 #ifndef __NUITKA_HELPER_RAISING_H__
 #define __NUITKA_HELPER_RAISING_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 #if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject *exception_value) {
     // Implicit chain of exception already existing.

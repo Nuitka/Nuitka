@@ -3,6 +3,12 @@
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 #if PYTHON_VERSION >= 0x300
 extern PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right);
 extern bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right);

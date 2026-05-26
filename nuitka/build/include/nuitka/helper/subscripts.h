@@ -4,7 +4,9 @@
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
 #endif
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);

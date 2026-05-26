@@ -3,6 +3,11 @@
 #ifndef __NUITKA_HELPER_SEQUENCES_H__
 #define __NUITKA_HELPER_SEQUENCES_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 // TODO: Provide enhanced form of PySequence_Contains with less overhead as well.
 
 extern bool SEQUENCE_SET_ITEM(PyObject *sequence, Py_ssize_t index, PyObject *value);

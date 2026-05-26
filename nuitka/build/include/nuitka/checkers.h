@@ -26,6 +26,15 @@ extern void CHECK_OBJECT_DEEP(PyObject *value);
 extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
+// Our replacement for "PyType_IsSubtype"
+extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
+    return Py_TYPE(obj) == type || Nuitka_Type_IsSubtype(Py_TYPE(obj), type);
+}
+
+// Our replacement for "PyObject_IsInstance"
+extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

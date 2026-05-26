@@ -1,22 +1,26 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-#ifndef __NUITKA_HELPER_STRINGS_H__
-#define __NUITKA_HELPER_STRINGS_H__
+#ifndef __NUITKA_DEFINES_H__
+#define __NUITKA_DEFINES_H__
 
-#ifdef __IDE_ONLY__
-#include "Python.h"
+/* A way to not give warnings about things that are declared, but might not
+ * be used like in-line helper functions in headers or static per module
+ * variables from headers.
+ */
+#if defined(__GNUC__) || defined(__clang__)
+#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
+#else
+#define NUITKA_MAY_BE_UNUSED
 #endif
 
-#if PYTHON_VERSION < 0x300
-extern PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
-#endif
+#include "hedley.h"
 
-extern PyObject *UNICODE_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);
-extern PyObject *UNICODE_PARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep);
-extern PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep);
+/* Use annotations for branch prediction. They still make sense as the L1
+ * cache space is saved.
+ */
 
-extern PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size);
-extern PyObject *Nuitka_Unicode_New(Py_ssize_t size, Py_UCS4 max_char);
+#define likely(x) HEDLEY_LIKELY(x)
+#define unlikely(x) HEDLEY_UNLIKELY(x)
 
 #endif
 

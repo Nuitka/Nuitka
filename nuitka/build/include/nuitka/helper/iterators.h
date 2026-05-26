@@ -3,6 +3,13 @@
 #ifndef __NUITKA_HELPER_ITERATORS_H__
 #define __NUITKA_HELPER_ITERATORS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 #if PYTHON_VERSION >= 0x270
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
 // which emulates "PyCheck_Iter" but is bug free.

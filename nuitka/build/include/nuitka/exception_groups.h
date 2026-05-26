@@ -5,6 +5,13 @@
 
 // Exception group helpers for generated code and compiled code helpers.
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
 
 NUITKA_MAY_BE_UNUSED static void FORMAT_CLASS_CATCH_ERROR(PyThreadState *tstate) {

@@ -107,16 +107,20 @@ Do not error if clangd is not installed. Default is %default.""",
     return options, positional_args
 
 
-def _checkClangdFile(filename):
+def _checkClangdFile(filename, verbose):
     """Run clangd --check on a single C source file.
 
     Args:
         filename: str - path to the file.
+        verbose: bool - if True, echo command.
 
     Returns:
         tuple: (exit_code, stderr_text)
     """
     command = ["clangd", "--check=%s" % filename]
+
+    if verbose:
+        my_print("Running: %s" % " ".join(command))
 
     process_result = executeProcess(command)
 
@@ -181,7 +185,7 @@ def _checkFiles(filenames, verbose):
     exit_code = 0
 
     for filename in filenames:
-        file_exit_code, stderr = _checkClangdFile(filename)
+        file_exit_code, stderr = _checkClangdFile(filename, verbose=verbose)
 
         diagnostics = _filterClangdDiagnostics(stderr)
 

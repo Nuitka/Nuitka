@@ -3,6 +3,11 @@
 #ifndef __NUITKA_HELPER_TUPLES_H__
 #define __NUITKA_HELPER_TUPLES_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 // Like PyTuple_SET_ITEM, but takes a reference to the item.
 #define PyTuple_SET_ITEM0(tuple, index, value)                                                                         \
     {                                                                                                                  \

@@ -3,6 +3,13 @@
 #ifndef __NUITKA_HELPER_COMPLEX_H__
 #define __NUITKA_HELPER_COMPLEX_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/calling.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_COMPLEX1(PyThreadState *tstate, PyObject *real) {
     CHECK_OBJECT(real);
 

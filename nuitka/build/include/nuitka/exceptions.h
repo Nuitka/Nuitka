@@ -7,6 +7,7 @@
 
 #ifdef __IDE_ONLY__
 #include "Python.h"
+#include "nuitka/defines.h"
 #include "stdbool.h"
 #endif
 
