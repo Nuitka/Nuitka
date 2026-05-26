@@ -154,7 +154,7 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
 
         if (0, 10) <= patchelf_version_tuple < (0, 12):
-            self.sysexit("""\
+            return self.sysexit("""\
 Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
 for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
 newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
@@ -408,7 +408,7 @@ import %(binding_name)s.QtCore
         )
 
         if info is None:
-            self.sysexit(
+            return self.sysexit(
                 "Error, it seems '%s' is not installed or broken." % self.binding_name
             )
 
@@ -562,15 +562,33 @@ import %(binding_name)s.QtCore
             ignore_suffixes = ()
             only_suffixes = datafile_suffixes
 
-        return getFileList(
-            qml_plugin_dir,
-            ignore_suffixes=ignore_suffixes,
-            only_suffixes=only_suffixes,
-        )
+        try:
+            return getFileList(
+                qml_plugin_dir,
+                ignore_suffixes=ignore_suffixes,
+                only_suffixes=only_suffixes,
+            )
+        except PermissionError:
+            return self.sysexit(
+                """\
+Error, failed to scan QML directory '%s' (Permission denied). This \
+indicates a corrupt '%s' installation with wrong file permissions. \
+Try reinstalling the package, or fix the permissions on the directory."""
+                % (qml_plugin_dir, self.binding_name)
+            )
 
     def _findQtPluginDLLs(self):
         for qt_plugins_dir in self.getQtPluginDirs():
-            for filename in getFileList(qt_plugins_dir):
+            try:
+                file_list = getFileList(qt_plugins_dir)
+            except PermissionError:
+                self.sysexit("""\
+Error, failed to scan Qt plugin directory '%s' (Permission denied). \
+This indicates a corrupt '%s' installation with wrong file \
+permissions. Try reinstalling the package, or fix the permissions on \
+the directory.""" % (qt_plugins_dir, self.binding_name))
+
+            for filename in file_list:
                 filename_relative = os.path.relpath(filename, start=qt_plugins_dir)
 
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]

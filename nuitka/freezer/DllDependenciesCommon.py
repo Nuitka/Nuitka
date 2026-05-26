@@ -5,6 +5,7 @@
 
 import os
 
+from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Hooks import getModuleSpecificDllPaths
@@ -144,13 +145,47 @@ that should not happen. Please report the issue.""" % package_name)
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
-            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
+            try:
+                scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
+            except PermissionError as e:
+                return inclusion_logger.sysexit(
+                    """\
+Error, failed to scan directory '%s' (Permission denied) while \
+looking up DLL dependencies of '%s'. This indicates a corrupt \
+package installation with wrong file permissions. Try reinstalling \
+the package, or fix the permissions on the directory."""
+                    % (
+                        (
+                            e.filename
+                            if hasattr(e, "filename") and e.filename
+                            else package_dir
+                        ),
+                        package_name,
+                    )
+                )
 
         if consider_plugins:
             for plugin_provided_dir in getModuleSpecificDllPaths(package_name):
                 if os.path.isdir(plugin_provided_dir):
                     scan_dirs.add(plugin_provided_dir)
-                    scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))
+                    try:
+                        scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))
+                    except PermissionError as e:
+                        return inclusion_logger.sysexit(
+                            """\
+Error, failed to scan directory '%s' (Permission denied) while \
+looking up DLL dependencies of '%s'. This indicates a corrupt \
+package installation with wrong file permissions. Try reinstalling \
+the package, or fix the permissions on the directory."""
+                            % (
+                                (
+                                    e.filename
+                                    if hasattr(e, "filename") and e.filename
+                                    else plugin_provided_dir
+                                ),
+                                package_name,
+                            )
+                        )
 
     # TODO: Move this to plugins DLLs section.
     if package_name == "torchvision" and consider_plugins:
