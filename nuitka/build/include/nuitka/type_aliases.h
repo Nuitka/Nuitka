@@ -10,7 +10,7 @@
 
 // Helpers for type aliases, type variables, and generic base classes.
 extern PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value, PyObject *module_name);
-extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name);
+extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *bound);
 extern PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params);

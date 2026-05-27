@@ -120,6 +120,20 @@ print(functionTypeParams, functionTypeParams.__type_params__)
 print(asyncFunctionTypeParams, asyncFunctionTypeParams.__type_params__)
 print(asyncGenTypeParams, asyncGenTypeParams.__type_params__)
 
+
+def sideEffect():
+    print("Side effect")
+
+
+def withBound[T: str, UnionT: str | int, Deferred: sideEffect()]():
+    print("T.__bound__", T.__bound__)
+    print("UnionT.__bound__", UnionT.__bound__)
+    print("Deferred.__bound__", Deferred.__bound__)
+
+
+print("With bound")
+withBound()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
