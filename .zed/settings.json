@@ -1,0 +1,26 @@
+{
+  "languages": {
+    "Python": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "./bin/autoformat-nuitka-source-stdio",
+          "arguments": [
+            "{buffer_path}"
+          ]
+        }
+      }
+    },
+    "C": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "./bin/autoformat-nuitka-source-stdio",
+          "arguments": [
+            "{buffer_path}"
+          ]
+        }
+      }
+    }
+  }
+}
