@@ -1557,8 +1557,11 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     // Attach to the parent console respecting redirection only, otherwise we
-    // cannot even output traces.
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) && !_NUITKA_DLL_MODE
+    // cannot even output traces. In onefile DLL mode the bootstrap (static
+    // CRT) already attached, but the DLL (dynamic CRT) has a separate CRT
+    // instance whose stdout is still uninitialized.
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) &&                                                       \
+    (!_NUITKA_DLL_MODE || defined(_NUITKA_ONEFILE_DLL_MODE))
     inheritAttachedConsole();
 #endif
 

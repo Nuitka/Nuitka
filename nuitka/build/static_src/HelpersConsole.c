@@ -49,7 +49,67 @@ static void _enableConsoleModeProcessed(FILE_HANDLE handle, bool is_input) {
 void inheritAttachedConsole(void) {
     is_attachable = AttachConsole(ATTACH_PARENT_PROCESS);
 
+#ifdef _NUITKA_ONEFILE_DLL_MODE
+    // In onefile DLL mode the bootstrap (static CRT) already attached,
+    // so AttachConsole fails. But GetStdHandle has valid handles from
+    // the bootstrap, so we can still initialize this CRT instance.
+    if (!is_attachable) {
+        FILE_HANDLE h_out = GetStdHandle(STD_OUTPUT_HANDLE);
+        is_attachable = ((h_out != NULL) && (h_out != INVALID_HANDLE_VALUE));
+    }
+#endif
+
     if (is_attachable) {
+        // The static CRT (/MT) skips _ioinit() for GUI subsystem. The
+        // dynamic CRT (/MD) may have initialized with NULL handles
+        // before AttachConsole ran. In either case, if fds are -2,
+        // wire them up from GetStdHandle so the else-branch works.
+        if (fileno(stdout) < 0) {
+            freopen("NUL", "w", stdout);
+            FILE_HANDLE win_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+            if ((win_handle != NULL) && (win_handle != INVALID_HANDLE_VALUE)) {
+                int fd = _open_osfhandle((intptr_t)win_handle, _O_WRONLY | _O_TEXT);
+                if (fd >= 0) {
+                    _dup2(fd, _fileno(stdout));
+                    _close(fd);
+                }
+                _setmode(_fileno(stdout), _O_U8TEXT);
+                _enableConsoleModeProcessed(win_handle, false);
+            }
+            clearerr(stdout);
+        }
+#if !defined(NUITKA_FORCED_STDERR_PATH) && !defined(NUITKA_FORCED_STDERR_NONE_BOOL) &&                                 \
+    !defined(NUITKA_FORCED_STDERR_NULL_BOOL)
+        if (fileno(stderr) < 0) {
+            freopen("NUL", "w", stderr);
+            FILE_HANDLE win_handle = GetStdHandle(STD_ERROR_HANDLE);
+            if ((win_handle != NULL) && (win_handle != INVALID_HANDLE_VALUE)) {
+                int fd = _open_osfhandle((intptr_t)win_handle, _O_WRONLY | _O_TEXT);
+                if (fd >= 0) {
+                    _dup2(fd, _fileno(stderr));
+                    _close(fd);
+                }
+                _setmode(_fileno(stderr), _O_U8TEXT);
+                _enableConsoleModeProcessed(win_handle, false);
+            }
+            clearerr(stderr);
+        }
+#endif
+        if (fileno(stdin) < 0) {
+            freopen("NUL", "r", stdin);
+            FILE_HANDLE win_handle = GetStdHandle(STD_INPUT_HANDLE);
+            if ((win_handle != NULL) && (win_handle != INVALID_HANDLE_VALUE)) {
+                int fd = _open_osfhandle((intptr_t)win_handle, _O_TEXT | _O_RDONLY);
+                if (fd >= 0) {
+                    _dup2(fd, _fileno(stdin));
+                    _close(fd);
+                }
+                _setmode(_fileno(stdin), _O_U8TEXT);
+                _enableConsoleModeProcessed(win_handle, true);
+            }
+            clearerr(stdin);
+        }
+
         needs_stdin_attaching = fileno(stdin) < 0;
         needs_stdout_attaching = fileno(stdout) < 0;
 #if !defined(NUITKA_FORCED_STDERR_PATH) && !defined(NUITKA_FORCED_STDERR_NONE_BOOL) &&                                 \
