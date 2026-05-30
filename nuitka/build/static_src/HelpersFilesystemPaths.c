@@ -78,6 +78,18 @@ void normalizePath(filename_char_t *filename) {
 }
 
 #if defined(_WIN32)
+void makeAbsolutePath(filename_char_t *path, size_t buffer_size) {
+    filename_char_t temp[MAXPATHLEN];
+
+    DWORD res = GetFullPathNameW(path, buffer_size, temp, NULL);
+
+    if (res == 0 || res >= buffer_size) {
+        abort();
+    }
+
+    copyStringSafeFilename(path, temp, buffer_size);
+}
+
 // Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
 static wchar_t *stripFilenameW(wchar_t *path) {
     wchar_t *last_slash = NULL;

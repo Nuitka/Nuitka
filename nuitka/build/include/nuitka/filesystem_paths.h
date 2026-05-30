@@ -105,6 +105,9 @@ extern filename_char_t *stripBaseFilename(filename_char_t const *filename);
 // with separators.
 extern void normalizePath(filename_char_t *filename);
 
+// Make a path absolute using Win32 GetFullPathNameW. The buffer is overwritten.
+extern void makeAbsolutePath(filename_char_t *path, size_t buffer_size);
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
