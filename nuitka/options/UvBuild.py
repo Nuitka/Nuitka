@@ -13,7 +13,11 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import reportBuildError, setProjectExpectedDataFiles
+from .BuildPackageCommon import (
+    applyNuitkaProjectOptions,
+    reportBuildError,
+    setProjectExpectedDataFiles,
+)
 
 
 def _maybeVirtualEnv(path):
@@ -127,6 +131,9 @@ def getUvBuildConfiguration(logger, pyproject_data):
             return logger.sysexit("""\
 Error, 'uv_build' project has no 'name'. Set it in the '[project]' \
 section of 'pyproject.toml'.""")
+
+        # Apply options from [tool.nuitka] section of pyproject.toml
+        arguments.extend(applyNuitkaProjectOptions(pyproject_data=pyproject_data))
 
         # TODO: Check against IncludedDataFiles set once that is considered complete
 

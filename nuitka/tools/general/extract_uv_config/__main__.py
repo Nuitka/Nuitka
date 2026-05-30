@@ -16,7 +16,18 @@ import sys
 import tempfile
 import zipfile
 
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")),
+)
+
+# isort:start
+
 from nuitka.containers.OrderedDicts import OrderedDict
+
+del sys.path[0]
 
 # We expect `uv_build` to be installed in the environment running this script.
 try:
