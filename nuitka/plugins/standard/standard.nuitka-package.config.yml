@@ -930,11 +930,15 @@
     - empty_dirs:
         - '.'
 
-- module-name: 'ctypes' # checksum: d5efbb6f
+- module-name: 'ctypes' # checksum: a4aa9e10
   anti-bloat:
     - description: 'remove comtypes dependency'
       no-auto-follow:
         'comtypes': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'ctypes._layout'
+      when: 'has_builtin_module("_ctypes")'
 
 - module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
