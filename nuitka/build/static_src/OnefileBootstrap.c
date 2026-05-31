@@ -105,14 +105,7 @@
 #endif
 
 // Some handy macro definitions, e.g. unlikely and NUITKA_MAY_BE_UNUSED
-#include "nuitka/hedley.h"
-#define likely(x) HEDLEY_LIKELY(x)
-#define unlikely(x) HEDLEY_UNLIKELY(x)
-#ifdef __GNUC__
-#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
-#else
-#define NUITKA_MAY_BE_UNUSED
-#endif
+#include "nuitka/defines.h"
 
 #if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES
 #include "extra_onefile_includes.h"
