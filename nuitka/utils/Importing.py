@@ -215,7 +215,7 @@ def importFromCompileTime(module_name, must_exist):
 
 
 def isBuiltinModuleName(module_name):
-    result = imp.is_builtin(module_name) or imp.is_frozen(module_name)
+    result = bool(imp.is_builtin(module_name) or imp.is_frozen(module_name))
 
     # Some frozen modules are not actually in that list, e.g.
     # "importlib._bootstrap_external" on Python3.10 doesn't report to
