@@ -1234,7 +1234,9 @@ def buildTypeVarNode(provider, node, source_ref):
         evaluate_bound = _makeDeferredEvaluationFunction(
             provider=provider,
             function_name=node.name,
-            expression=buildNode(provider, node.bound, source_ref),
+            expression=lambda inner_provider: buildNode(
+                inner_provider, node.bound, source_ref
+            ),
             source_ref=source_ref,
         )
     else:
@@ -1253,7 +1255,9 @@ def buildTypeParamSpec(node, source_ref):
     return ExpressionParameterSpecification(name=node.name, source_ref=source_ref)
 
 
-def _makeDeferredEvaluationFunction(provider, function_name, expression, source_ref):
+def _makeDeferredEvaluationFunction(
+    provider, function_name, create_expression, source_ref
+):
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),
@@ -1293,7 +1297,9 @@ def _makeDeferredEvaluationFunction(provider, function_name, expression, source_
     )
 
     body.setChildBody(
-        makeStatementsSequenceFromStatement(StatementReturn(expression, source_ref))
+        makeStatementsSequenceFromStatement(
+            StatementReturn(create_expression(body), source_ref)
+        )
     )
 
     return makeExpressionFunctionCreation(
@@ -1310,13 +1316,13 @@ def _makeDeferredEvaluationFunction(provider, function_name, expression, source_
 
 
 def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
-    type_expression = _createTypeExpression(
-        provider=provider, node=node, source_ref=source_ref
+    type_expression = lambda inner_provider: _createTypeExpression(
+        provider=inner_provider, node=node, source_ref=source_ref
     )
     return _makeDeferredEvaluationFunction(
         provider=provider,
         function_name=function_name,
-        expression=type_expression,
+        create_expression=type_expression,
         source_ref=source_ref,
     )
 
