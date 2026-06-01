@@ -39,7 +39,7 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
-from nuitka.utils.Utils import isLinux, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
 def initScons(arguments):
@@ -236,6 +236,15 @@ def createEnvironment(
         zig_mode_env = False
 
     zig_mode = zig_mode_env or bool(zig_exe_path)
+
+    if isMacOS() and "auto-homebrew-clang" in experimental_flags:
+        if target_arch == "arm64":
+            _candidate = "/opt/homebrew/opt/llvm/bin"
+        else:
+            _candidate = "/usr/local/opt/llvm/bin"
+
+        if os.path.isdir(_candidate):
+            addToPATH(None, _candidate, prefix=True)
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
