@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
+from nuitka.PythonVersions import getSystemPrefixPath
 
 
 def getOS():
@@ -26,6 +27,11 @@ def getOS():
         # Handle msys2 posix nature still meaning it's Windows.
         if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
             result = "Windows"
+
+        # OS400 (IBM i) is effectively AIX when using the native
+        # QOpenSys Python port running in PASE.
+        if result == "OS400" and getSystemPrefixPath().startswith("/QOpenSys/pkgs"):
+            result = "AIX"
 
         return result
     else:
@@ -281,6 +287,11 @@ def isMacOS():
 def isAIX():
     """The AIX platform."""
     return getOS() == "AIX"
+
+
+def isOS400():
+    """The OS400 (IBM i) platform."""
+    return os.name == "posix" and os.uname()[0] == "OS400"
 
 
 def hasMacOSIntelSupport():

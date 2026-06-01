@@ -642,6 +642,9 @@ Apply encryption to standard error.
 .TP
 \fB\-\-encrypt\-debug\-init\fR
 In case the encryption fails to install, do not abort, but run normally and trace error unencrypted.
+.TP
+\fB\-\-obfuscate\-line\-numbers\fR=\fI\,MODE\/\fR
+Obfuscate source line numbers in the generated code. In 'original' mode, line numbers are kept as\-is. In 'removed' mode, all traceback line numbers become constant '1'. In 'encrypted' mode, line numbers are replaced with deterministic encrypted values via a per\-source\-file shuffle, and a reverse mapping is written to a '<result>.secrets' directory for use in bug report analysis. Module and function entries use line number '1' in both modes since obfuscating them provides no protection.
 .IP
 Plugin options of 'source\-inclusion' (categories: feature, package\-support):
 .TP
