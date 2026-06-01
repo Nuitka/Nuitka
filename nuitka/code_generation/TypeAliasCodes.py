@@ -77,13 +77,14 @@ def generateTypeVarCode(to_name, expression, emit, context):
 
         getErrorExitCode(
             check_name=value_name,
-            release_names=(compute_bound_name,),
             emit=emit,
             context=context,
             needs_check=False,
         )
 
         context.addCleanupTempName(value_name)
+        if expression.subnode_bound is not None:
+            context.addCleanupTempName(compute_bound_name)
 
 
 def generateExoticTypeVarCode(to_name, expression, emit, context):
