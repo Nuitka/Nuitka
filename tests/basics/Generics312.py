@@ -126,19 +126,19 @@ def sideEffect():
     return 42
 
 
-def withBound[T: str, UnionT: str | int, Deferred: sideEffect()]():
+def usingBound[T: str, UnionT: str | int, Deferred: sideEffect()]():
     print("T.__bound__", T.__bound__)
     print("UnionT.__bound__", UnionT.__bound__)
     print("Deferred.__bound__", Deferred.__bound__)
 
 
 print("Function with bound")
-withBound()
+usingBound()
 
 print("Class with bound")
 
 
-class WithBound[T: str, UnionT: str | int, Deferred: sideEffect()]:
+class UsingBound[T: str, UnionT: str | int, Deferred: sideEffect()]:
     print("T.__bound__", T.__bound__)
     print("UnionT.__bound__", UnionT.__bound__)
     print("Deferred.__bound__", Deferred.__bound__)
