@@ -32,7 +32,7 @@ def _filterCreateDmgOutput(stderr):
     return filterOutputByLine(stderr, isNonErrorExit)
 
 
-def _getCreateDmgPath():
+def getCreateDmgPath():
     create_dmg_path = getExecutablePath("create-dmg")
 
     if create_dmg_path is not None:
@@ -50,11 +50,7 @@ def _getCreateDmgPath():
 
 def createDmgFile(logger):
     """Create a DMG file for the application bundle."""
-    create_dmg_path = _getCreateDmgPath()
-
-    # TODO: Move that to options checking.
-    if create_dmg_path is None:
-        return logger.sysexit("Cannot find 'create-dmg' tool, not creating DMG.")
+    create_dmg_path = getCreateDmgPath()
 
     app_bundle_path = getStandaloneDirectoryPath(bundle=False, real=True)
 
