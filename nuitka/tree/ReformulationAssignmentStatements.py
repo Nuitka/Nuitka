@@ -1234,7 +1234,7 @@ def buildTypeVarNode(provider, node, source_ref):
         evaluate_bound = _makeDeferredEvaluationFunction(
             provider=provider,
             function_name=node.name,
-            expression=lambda inner_provider: buildNode(
+            create_expression=lambda inner_provider: buildNode(
                 inner_provider, node.bound, source_ref
             ),
             source_ref=source_ref,

@@ -75,16 +75,18 @@ def generateTypeVarCode(to_name, expression, emit, context):
             )
         )
 
+        release_names = (
+            (compute_bound_name,) if expression.subnode_bound is not None else ()
+        )
         getErrorExitCode(
             check_name=value_name,
+            release_names=release_names,
             emit=emit,
             context=context,
             needs_check=False,
         )
 
         context.addCleanupTempName(value_name)
-        if expression.subnode_bound is not None:
-            context.addCleanupTempName(compute_bound_name)
 
 
 def generateExoticTypeVarCode(to_name, expression, emit, context):
