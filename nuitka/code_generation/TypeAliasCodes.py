@@ -5,6 +5,7 @@
 
 from .CodeHelpers import (
     generateChildExpressionCode,
+    generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
@@ -52,14 +53,11 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
 
 def generateTypeVarCode(to_name, expression, emit, context):
-    if expression.subnode_bound is not None:
-        compute_bound_name = generateChildExpressionCode(
-            expression=expression.subnode_bound,
-            emit=emit,
-            context=context,
-        )
-    else:
-        compute_bound_name = None
+    (compute_bound_name,) = generateChildExpressionsCode(
+        expression=expression,
+        emit=emit,
+        context=context,
+    )
 
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_value", expression, emit, context
