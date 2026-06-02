@@ -59,7 +59,7 @@ def generateTypeVarCode(to_name, expression, emit, context):
             context=context,
         )
     else:
-        compute_bound_name = "NULL"
+        compute_bound_name = None
 
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_value", expression, emit, context
@@ -71,16 +71,13 @@ def generateTypeVarCode(to_name, expression, emit, context):
             % (
                 value_name,
                 context.getConstantCode(constant=expression.name),
-                compute_bound_name,
+                compute_bound_name or "NULL",
             )
         )
 
-        release_names = (
-            (compute_bound_name,) if expression.subnode_bound is not None else ()
-        )
         getErrorExitCode(
             check_name=value_name,
-            release_names=release_names,
+            release_name=compute_bound_name,
             emit=emit,
             context=context,
             needs_check=False,
