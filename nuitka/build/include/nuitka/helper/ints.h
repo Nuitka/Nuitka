@@ -7,6 +7,7 @@
 #include "Python.h"
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
+#include "nuitka/printing.h"
 #endif
 
 // Our "PyLong_FromLong" replacement.
