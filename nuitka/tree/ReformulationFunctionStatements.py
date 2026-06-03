@@ -663,6 +663,9 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
+_annotate_flags = frozenset(("annotate",))
+
+
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
     parameters = ParameterSpec(
@@ -695,7 +698,7 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         provider=provider,
         name=function_name,
         code_object=code_object,
-        flags=set(),
+        flags=_annotate_flags,
         doc=None,
         parameters=parameters,
         auto_release=None,

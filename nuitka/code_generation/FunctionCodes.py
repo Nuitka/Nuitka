@@ -6,6 +6,7 @@
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .AnnotateFunctionCodes import generateAnnotateFunctionCreationCode
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -30,6 +31,11 @@ from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonSourceCodeGeneration import (
+    PythonSourceGenerationError,
+    getFunctionEntryPointIdentifier,
+    getFunctionMakerIdentifier,
+)
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -45,6 +51,28 @@ from .VariableCodes import (
     decideLocalVariableCodeType,
     getLocalVariableDeclaration,
 )
+
+
+def getFunctionQualnameObj(owner, context):
+    """Get code to pass to function alike object creation for qualname.
+
+    If identical to the name, NULL is returned instead.
+    """
+
+    if owner.isExpressionFunctionBody():
+        min_version = 0x300
+    else:
+        min_version = 0x350
+
+    if python_version < min_version:
+        return "NULL"
+
+    function_qualname = owner.getFunctionQualname()
+
+    if function_qualname == owner.getFunctionName():
+        return "NULL"
+    else:
+        return context.getConstantCode(constant=function_qualname)
 
 
 def getFunctionCreationArgs(
@@ -96,40 +124,6 @@ def getFunctionMakerDecl(
     }
 
 
-def _getFunctionEntryPointIdentifier(function_identifier):
-    return "impl_" + function_identifier
-
-
-def _getFunctionMakerIdentifier(function_identifier):
-    return "MAKE_FUNCTION_" + function_identifier
-
-
-def getFunctionQualnameObj(owner, context):
-    """Get code to pass to function alike object creation for qualname.
-
-    Qualname for functions existed for Python3, generators only after
-    3.5 and coroutines and asyncgen for as long as they existed.
-
-    If identical to the name, we do not pass it as a value, but
-    NULL instead.
-    """
-
-    if owner.isExpressionFunctionBody():
-        min_version = 0x300
-    else:
-        min_version = 0x350
-
-    if python_version < min_version:
-        return "NULL"
-
-    function_qualname = owner.getFunctionQualname()
-
-    if function_qualname == owner.getFunctionName():
-        return "NULL"
-    else:
-        return context.getConstantCode(constant=function_qualname)
-
-
 def getFunctionMakerCode(
     function_body,
     function_identifier,
@@ -177,12 +171,12 @@ def getFunctionMakerCode(
                 % context.getConstantCode(constant_return_value)
             )
     else:
-        function_impl_identifier = _getFunctionEntryPointIdentifier(
+        function_impl_identifier = getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
         constant_return_code = ""
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -223,6 +217,19 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
+
+    if function_body.hasFlag("annotate"):
+        try:
+            generateAnnotateFunctionCreationCode(
+                to_name=to_name,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
+            return
+        except PythonSourceGenerationError:
+            pass
+
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults
     annotations = expression.subnode_annotations
@@ -400,7 +407,7 @@ def getFunctionCreationCode(
     if type_params_name:
         args.append(type_params_name)
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -436,7 +443,7 @@ def getDirectFunctionCallCode(
     emit,
     context,
 ):
-    function_identifier = _getFunctionEntryPointIdentifier(
+    function_identifier = getFunctionEntryPointIdentifier(
         function_identifier=function_identifier
     )
 
