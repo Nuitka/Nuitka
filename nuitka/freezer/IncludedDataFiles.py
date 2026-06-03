@@ -48,7 +48,9 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     isFilenameBelowPath,
     isLegalPath,
+    isLink,
     isRelativePath,
+    listDir,
     makePath,
     openTextFile,
     relpath,
@@ -404,6 +406,29 @@ def _registerIncludedFrameworkDirectory(logger, source_path, dest_path):
         )
 
 
+def _getFrameworkVersionDir(source_path):
+    versions_dir = os.path.join(source_path, "Versions")
+
+    if not os.path.isdir(versions_dir):
+        return None
+
+    framework_name = os.path.basename(source_path)
+    if framework_name.endswith(".framework"):
+        framework_name = framework_name[: -len(".framework")]
+
+    for _entry_path, entry_name in listDir(versions_dir):
+        if entry_name == "Current":
+            continue
+
+        if not os.path.isdir(_entry_path):
+            continue
+
+        if os.path.exists(os.path.join(_entry_path, framework_name)):
+            return entry_name
+
+    return None
+
+
 def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags):
     assert isMacOS(), source_path
     assert os.path.isdir(source_path), source_path
@@ -419,15 +444,78 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         dest_path=dest_path,
     )
 
-    return makeIncludedDataDirectory(
-        source_path=source_path,
-        dest_path=dest_path,
-        reason=reason,
-        tracer=logger,
-        tags=tags,
-        ignore_dirs=("_CodeSignature",),
-        raw=True,
-    )
+    version_dir_name = _getFrameworkVersionDir(source_path)
+
+    if version_dir_name is not None:
+        # Some frameworks (like Qt 5.15 shipped with PySide2) place
+        # 'Resources/' at the framework root rather than under
+        # 'Versions/X/'.  That layout is accepted by codesign as long as
+        # no 'Versions/Current' symlink exists, but the framework
+        # normalizer in 'Standalone.py' also adds one to get standard
+        # '@rpath/Versions/Current/...' load paths working after rpath
+        # rewriting.  Once the symlink is there, codesign expects every
+        # top-level directory to live under 'Versions/Current/' too.
+        #
+        # Redirect those root-level directories into 'Versions/X/' now
+        # so the files arrive in the right place from the start.  The
+        # normalizer will then create the root-level symlink.
+
+        version_dir_path = os.path.join(source_path, "Versions", version_dir_name)
+        ignore_dirs = ["_CodeSignature"]
+
+        for entry_path, entry_name in listDir(source_path):
+            if entry_name in ("Versions", "_CodeSignature"):
+                continue
+
+            if isLink(entry_path):
+                continue
+
+            if not os.path.isdir(entry_path):
+                continue
+
+            versioned_entry_path = os.path.join(version_dir_path, entry_name)
+
+            if not os.path.exists(versioned_entry_path):
+                ignore_dirs.append(entry_name)
+
+                for r in makeIncludedDataDirectory(
+                    source_path=entry_path,
+                    dest_path=os.path.normpath(
+                        os.path.join(
+                            dest_path,
+                            "Versions",
+                            version_dir_name,
+                            entry_name,
+                        )
+                    ),
+                    reason=reason,
+                    tracer=logger,
+                    tags=tags,
+                    raw=True,
+                ):
+                    yield r
+
+        for r in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=logger,
+            tags=tags,
+            ignore_dirs=tuple(ignore_dirs),
+            raw=True,
+        ):
+            yield r
+    else:
+        for r in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=logger,
+            tags=tags,
+            ignore_dirs=("_CodeSignature",),
+            raw=True,
+        ):
+            yield r
 
 
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
