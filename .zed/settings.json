@@ -21,6 +21,30 @@
           ]
         }
       }
+    },
+    "YAML": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "./bin/autoformat-nuitka-source-stdio",
+          "arguments": [
+            "{buffer_path}"
+          ]
+        }
+      }
+    }
+  },
+  "lsp": {
+    "yaml-language-server": {
+      "settings": {
+        "yaml": {
+          "schemas": {
+            "./nuitka/package_config/nuitka-package-config-schema.json": [
+              "*.nuitka-package.config.yml"
+            ]
+          }
+        }
+      }
     }
   }
 }
