@@ -12,6 +12,7 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
@@ -590,6 +591,7 @@ def _generateModuleCode(module, data_filename):
         module_const_blob_name=encodePythonStringToC(
             deriveModuleConstantsBlobName(data_filename)
         ),
+        module_const_blob_symbol_name=getConstantBlobSymbolName(data_filename),
         context=context,
     )
 

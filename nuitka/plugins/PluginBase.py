@@ -1419,7 +1419,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def onDataComposerResult(self, blob_filename):
+    def onDataComposerResult(self, blob_filenames):
         """Internal use only.
 
         Returns:

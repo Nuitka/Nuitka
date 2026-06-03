@@ -489,7 +489,7 @@ def _getWrappedSpawnFunction(env):
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if source_filename is not None and source_name == "__constants_data":
+        if source_filename is not None and source_name.startswith("__constants_data"):
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 

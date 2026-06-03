@@ -2220,6 +2220,12 @@ def getExperimentalIndications():
     return tuple(sorted(_experimental))
 
 
+def shallUseDirectConstantBlobs():
+    """Decide if direct per-blob constants access shall be used."""
+
+    return isExperimental("direct-constant-blobs")
+
+
 def getDebugModeIndications():
     result = []
 

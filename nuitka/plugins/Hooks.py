@@ -315,8 +315,8 @@ def onDataComposerRun():
     return Plugins.onDataComposerRun()
 
 
-def onDataComposerResult(blob_filename):
-    return Plugins.onDataComposerResult(blob_filename=blob_filename)
+def onDataComposerResult(blob_filenames):
+    return Plugins.onDataComposerResult(blob_filenames=blob_filenames)
 
 
 def getModuleSpecificDllPaths(module_name):

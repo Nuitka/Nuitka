@@ -17,9 +17,14 @@ import os
 import sys
 
 from nuitka.__past__ import unicode
+from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.ModuleRegistry import getRootTopModule, hasDoneModule
-from nuitka.options.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import (
+    isStandaloneMode,
+    shallMakeModule,
+    shallUseDirectConstantBlobs,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -166,6 +171,10 @@ def getConstantsDefinitionCode():
             getRootTopModule().getFullName().asString().encode("utf8")
         ),
         "global_constants_count": constant_accessor.getConstantsCount(),
+        "global_constants_blob_symbol_name": getConstantBlobSymbolName(
+            "__constants.const"
+        ),
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "sys_executable": sys_executable,
         "sys_prefix": sys_prefix,
         "sys_base_prefix": sys_base_prefix,

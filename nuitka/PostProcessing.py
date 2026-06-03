@@ -7,8 +7,6 @@ import ctypes
 import os
 import sys
 
-from nuitka.build.DataComposerInterface import getConstantBlobFilename
-from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
@@ -504,19 +502,6 @@ def executePostProcessing(result_filename):
 
             executePostProcessingResources(
                 result_filename=result_filename, manifest=manifest, onefile=False
-            )
-
-        source_dir = getSourceDirectoryPath(onefile=False, create=True)
-
-        # Attach the binary blob as a Windows resource if we used that mode.
-        if getSconsReportValue(source_dir, "resource_mode") == "win_resource":
-            addResourceToFile(
-                target_filename=result_filename,
-                data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
-                resource_kind=RT_RCDATA,
-                res_name=3,
-                lang_id=0,
-                logger=postprocessing_logger,
             )
 
     # On macOS, we update the executable path for searching the "libpython"

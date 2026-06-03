@@ -11,6 +11,7 @@ from nuitka.options.Options import (
     getFileReferenceMode,
     isExperimental,
     shallMakeModule,
+    shallUseDirectConstantBlobs,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -44,7 +45,12 @@ def getModuleAccessCode(context):
 
 
 def getModuleCode(
-    module, function_decl_codes, function_body_codes, module_const_blob_name, context
+    module,
+    function_decl_codes,
+    function_body_codes,
+    module_const_blob_name,
+    module_const_blob_symbol_name,
+    context,
 ):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -239,6 +245,8 @@ assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s) && "
         "module_constants_check_hash": module_constants_check_hash,
         "module_constants_check_object": module_constants_check_object,
         "module_const_blob_name": module_const_blob_name,
+        "module_const_blob_symbol_name": module_const_blob_symbol_name,
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(

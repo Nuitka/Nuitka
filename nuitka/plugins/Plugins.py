@@ -1687,9 +1687,9 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def onDataComposerResult(cls, blob_filename):
+    def onDataComposerResult(cls, blob_filenames):
         for plugin in getActivePlugins():
-            plugin.onDataComposerResult(blob_filename)
+            plugin.onDataComposerResult(blob_filenames)
 
     @classmethod
     def deriveModuleConstantsBlobName(cls, data_filename):
