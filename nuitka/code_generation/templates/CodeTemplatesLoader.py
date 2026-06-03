@@ -73,9 +73,8 @@ static unsigned char **bytecode_data = NULL;
  */
 %(metapath_module_decls)s
 
-static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] = {
+static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[%(entry_count)d] = {
 %(metapath_loader_inittab)s
-    {NULL, NULL, 0, 0, 0}
 };
 
 static void _loadBytesCodesBlob(PyThreadState *tstate) {
@@ -83,7 +82,7 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
 
     if (init_done == false) {
         // Note needed for mere data.
-        loadConstantsBlob(tstate, (PyObject **)bytecode_data, ".bytecode");
+        loadConstantsBlob(tstate, bytecode_data, ".bytecode");
 
         init_done = true;
     }
@@ -93,7 +92,7 @@ void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == false) {
         _loadBytesCodesBlob(tstate);
-        registerMetaPathBasedLoader(meta_path_loader_entries, bytecode_data);
+        registerMetaPathBasedLoader(meta_path_loader_entries, bytecode_data, %(entry_count)d);
 
         init_done = true;
     }
@@ -148,20 +147,15 @@ void copyFrozenModulesTo(struct _frozen *destination) {
 
 #if _NUITKA_MODULE_MODE
 
+#ifndef NUITKA_LOADER_COMPARE_NAME
+#define NUITKA_LOADER_COMPARE_NAME(name, index, entry) strcmp(name, (entry)->name)
+#endif
+
 struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
-    struct Nuitka_MetaPathBasedLoaderEntry *current = meta_path_loader_entries;
-
-    while (current->name != NULL) {
-        if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UN_TRANSLATE_NAME(current->name);
-            current->flags -= NUITKA_TRANSLATED_FLAG;
+    for (int i = 0; i < %(entry_count)d; i++) {
+        if (NUITKA_LOADER_COMPARE_NAME(name, i, &meta_path_loader_entries[i]) == 0) {
+            return &meta_path_loader_entries[i];
         }
-
-        if (strcmp(name, current->name) == 0) {
-            return current;
-        }
-
-        current++;
     }
 
     assert(false);

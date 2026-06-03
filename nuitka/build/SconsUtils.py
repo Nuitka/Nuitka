@@ -468,6 +468,11 @@ def createEnvironment(
     if env.dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_DLL_MODE"])
 
+    # Python flag isolated: -I mode
+    env.python_flag_isolated = getArgumentBool("python_sysflag_isolated", False)
+    if env.python_flag_isolated:
+        env.Append(CPPDEFINES=["_NUITKA_FLAG_ISOLATED"])
+
     # EXE mode: Create an EXE (using Python for this config)
     env.exe_mode = getArgumentBool("exe_mode", False)
     if env.exe_mode:
