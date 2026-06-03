@@ -57,7 +57,6 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
@@ -713,7 +712,7 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
 
     body = makeStatementConditional(
         condition=ExpressionComparisonGt(
-            ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionVariableNameRef(outer_body, "format", source_ref=source_ref),
             ExpressionConstantIntRef(2, source_ref=source_ref),
             source_ref,
         ),
