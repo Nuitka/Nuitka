@@ -348,9 +348,7 @@ def getArchitecture():
         result = os.uname()[4]
 
         if isAIX():
-            # Translate known values to what -X would expect.
-            if result == "00C63E504B00":
-                return "64"
+            return "powerpc"
 
         return result
 

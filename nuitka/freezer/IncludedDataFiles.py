@@ -57,7 +57,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.Utils import getArchitecture, isAIX, isMacOS
+from nuitka.utils.Utils import isAIX, isMacOS
 
 data_file_tags = []
 
@@ -781,29 +781,27 @@ def addIncludedDataFilesFromFlavor():
         Example: AIX requires libpython embedded.
     """
     if isAIX():
+        import sysconfig
+
         # On AIX, the Python DLL is hidden in an archive.
-        filename = "libpython%s.a" % python_version_str
-        system_prefix = getSystemPrefixPath()
+        lib_filename = "libpython%s.a" % python_version_str
 
-        if getArchitecture() == "64":
-            lib_part = "lib64"
-        else:
-            return inclusion_logger.sysexit("""\
-Error, change Nuitka code to define the path of the '%s' \
-file in the Python installation '%s'.""" % (filename, system_prefix))
+        lib_filename_full = os.path.join(
+            sysconfig.get_config_var("LIBPL"),
+            lib_filename,
+        )
 
-        filename_full = os.path.join(system_prefix, lib_part, filename)
-
-        if not os.path.exists(filename_full):
+        if not os.path.exists(lib_filename_full):
             return inclusion_logger.sysexit(
-                "Error, the defined path of the '%s' file in the Python installation '%s' is wrong."
-                % (filename_full, system_prefix)
+                """\
+Error, the defined path of the '%s' file in the Python installation '%s' is wrong."""
+                % (lib_filename_full, getSystemPrefixPath())
             )
 
         addIncludedDataFile(
             makeIncludedDataFile(
-                source_path=filename_full,
-                dest_path=filename,
+                source_path=lib_filename_full,
+                dest_path=lib_filename,
                 reason="Required Python DLL",
                 tracer=inclusion_logger,
                 tags="flavor",
