@@ -284,6 +284,17 @@ def next_extractor(node):
 
 
 def enumerate_extractor(node):
+    if node.subnode_args is None:
+        if python_version < 0x3A0:
+            message = "enumerate() missing required argument 'iterable' (pos 1)"
+        else:
+            message = "enumerate() missing required argument 'iterable'"
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression=node,
+            exception=TypeError(message),
+        )
+
     def selectEnumerateBuiltin(sequence, start, source_ref):
         if start is None:
             return ExpressionBuiltinEnumerate1(sequence=sequence, source_ref=source_ref)

@@ -1311,6 +1311,7 @@ struct Nuitka_EnumerateObject {
     PyObject *enumerate_source;
     PyObject *enumerate_long_index;
 
+    Py_ssize_t enumerate_source_index;
     Py_ssize_t enumerate_index;
 };
 
@@ -1345,20 +1346,20 @@ static PyObject *Nuitka_Enumerate_tp_iternext(struct Nuitka_EnumerateObject *enu
     if (enumerate->enumerate_mode == ENUMERATE_TUPLE) {
         PyTupleObject *tuple = (PyTupleObject *)enumerate->enumerate_source;
 
-        if (enumerate->enumerate_index >= PyTuple_GET_SIZE(tuple)) {
+        if (enumerate->enumerate_source_index >= PyTuple_GET_SIZE(tuple)) {
             return NULL;
         }
 
-        item = PyTuple_GET_ITEM(tuple, enumerate->enumerate_index);
+        item = PyTuple_GET_ITEM(tuple, enumerate->enumerate_source_index);
         Py_INCREF(item);
     } else if (enumerate->enumerate_mode == ENUMERATE_LIST) {
         PyListObject *list = (PyListObject *)enumerate->enumerate_source;
 
-        if (enumerate->enumerate_index >= PyList_GET_SIZE(list)) {
+        if (enumerate->enumerate_source_index >= PyList_GET_SIZE(list)) {
             return NULL;
         }
 
-        item = PyList_GET_ITEM(list, enumerate->enumerate_index);
+        item = PyList_GET_ITEM(list, enumerate->enumerate_source_index);
         Py_INCREF(item);
     } else {
         item = ITERATOR_NEXT_ITERATOR(enumerate->enumerate_iterator);
@@ -1401,6 +1402,8 @@ static PyObject *Nuitka_Enumerate_tp_iternext(struct Nuitka_EnumerateObject *enu
 
         Py_SETREF(enumerate->enumerate_long_index, next_index);
     }
+
+    enumerate->enumerate_source_index += 1;
 
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 2);
 
@@ -1468,6 +1471,7 @@ static PyObject *MAKE_ENUMERATE(PyThreadState *tstate, PyObject *sequence, PyObj
     result->enumerate_iterator = NULL;
     result->enumerate_source = NULL;
     result->enumerate_long_index = NULL;
+    result->enumerate_source_index = 0;
     result->enumerate_index = 0;
 
     PyObject *start_index = Nuitka_Number_IndexAsLong(start);
