@@ -1782,7 +1782,7 @@
     - patterns:
         - '*.zip'
 
-- module-name: 'gevent' # checksum: ce776b5f
+- module-name: 'gevent' # checksum: 61ff4595
   implicit-imports:
     - depends:
         - '_cffi_backend'
@@ -1795,6 +1795,7 @@
         - 'gevent.thread'
         - 'gevent.threading'
         - 'gevent.select'
+        - 'gevent.selectors'
         - 'gevent.hub'
         - 'gevent.greenlet'
         - 'gevent.local'
