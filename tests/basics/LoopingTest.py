@@ -56,6 +56,9 @@ def loopingFunction(a=1 * 2):
     x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
     print(x)
 
+    x = [(index, value) for (index, value) in enumerate(range(8), 2)]
+    print(x)
+
     x = [(u if u % 2 == 0 else 0) for u in range(10)]
     print(x)
 
