@@ -254,6 +254,74 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
             return None
 
 
+class EnumerateIterationHandle(IterationHandleBase):
+    """Iteration handle for built-in enumerate values."""
+
+    __slots__ = (
+        "iteration_handle",
+        "start",
+        "next_index",
+        "source_ref",
+    )
+
+    def __init__(self, iteration_handle, start, source_ref):
+        self.iteration_handle = iteration_handle
+        self.start = start
+        self.next_index = start
+        self.source_ref = source_ref
+
+    def __repr__(self):
+        return "<%s of %r starting at %r>" % (
+            self.__class__.__name__,
+            self.iteration_handle,
+            self.start,
+        )
+
+    def getNextValueExpression(self):
+        iteration_value = self.iteration_handle.getNextValueExpression()
+
+        if iteration_value is None:
+            return None
+
+        from .ConstantRefNodes import makeConstantRefNode
+        from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+
+        result = makeExpressionMakeTupleOrConstant(
+            elements=(
+                makeConstantRefNode(
+                    constant=self.next_index, source_ref=self.source_ref
+                ),
+                iteration_value,
+            ),
+            user_provided=False,
+            source_ref=self.source_ref,
+        )
+
+        self.next_index += 1
+
+        return result
+
+    def getIterationValueWithIndex(self, value_index):
+        iteration_value = self.iteration_handle.getIterationValueWithIndex(value_index)
+
+        if iteration_value is None or iteration_value is IndexError:
+            return None
+
+        from .ConstantRefNodes import makeConstantRefNode
+        from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+
+        return makeExpressionMakeTupleOrConstant(
+            elements=(
+                makeConstantRefNode(
+                    constant=self.start + value_index, source_ref=self.source_ref
+                ),
+                iteration_value,
+            ),
+            user_provided=False,
+            source_ref=self.source_ref,
+        )
+
+
 class RangeIterationHandleBase(IterationHandleBase):
     """Iteration handle class for range nodes
 

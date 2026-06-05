@@ -13,7 +13,11 @@ good.
 from nuitka.PythonVersions import python_version
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
-from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ChildrenHavingMixins import (
+    ChildHavingSequenceMixin,
+    ChildrenHavingSequenceStartMixin,
+)
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
@@ -140,6 +144,174 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
+
+
+class ExpressionBuiltinEnumerateMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def getEnumerateChildren(self):
+        return (self.subnode_sequence,)
+
+    @staticmethod
+    def getEnumerateStartInteger():
+        return 0
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            return self.subnode_sequence.getTypeShape().hasShapeSlotIter()
+
+        return self.subnode_sequence.isKnownToBeIterable(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        return self.subnode_sequence.isKnownToBeIterableAtMin(count)
+
+    def getIterationLength(self):
+        return self.subnode_sequence.getIterationLength()
+
+    def canPredictIterationValues(self):
+        return (
+            self.subnode_sequence.canPredictIterationValues()
+            and self.getEnumerateStartInteger() is not None
+        )
+
+    def getIterationValue(self, element_index):
+        start_value = self.getEnumerateStartInteger()
+
+        if start_value is None:
+            return None
+
+        sequence_value = self.subnode_sequence.getIterationValue(element_index)
+
+        if sequence_value is None:
+            return None
+
+        from .ConstantRefNodes import makeConstantRefNode
+        from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+
+        return makeExpressionMakeTupleOrConstant(
+            elements=(
+                makeConstantRefNode(
+                    constant=start_value + element_index,
+                    source_ref=self.source_ref,
+                ),
+                sequence_value,
+            ),
+            user_provided=False,
+            source_ref=self.source_ref,
+        )
+
+    def getIterationHandle(self):
+        start_value = self.getEnumerateStartInteger()
+
+        if start_value is None:
+            return None
+
+        sequence_handle = self.subnode_sequence.getIterationHandle()
+
+        if sequence_handle is None:
+            return None
+
+        from .IterationHandles import EnumerateIterationHandle
+
+        return EnumerateIterationHandle(
+            iteration_handle=sequence_handle,
+            start=start_value,
+            source_ref=self.source_ref,
+        )
+
+    def computeExpressionNext1(self, next_node, trace_collection):
+        sequence = self.subnode_sequence
+        start_value = self.getEnumerateStartInteger()
+
+        if (
+            start_value is not None
+            and sequence.isKnownToBeIterableAtMin(1)
+            and sequence.canPredictIterationValues()
+        ):
+            result = self.getIterationValue(0)
+
+            if result is not None:
+                result = wrapExpressionWithSideEffects(
+                    side_effects=self.getEnumerateChildren(),
+                    old_node=self,
+                    new_node=result,
+                )
+
+                return False, (
+                    result,
+                    "new_expression",
+                    "Predicted 'next' value from built-in enumerate.",
+                )
+
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return True, (next_node, None, None)
+
+    def mayRaiseException(self, exception_type):
+        sequence = self.subnode_sequence
+
+        if sequence.mayRaiseException(exception_type):
+            return True
+
+        if not sequence.getTypeShape().hasShapeSlotIter():
+            return True
+
+        for child in self.getEnumerateChildren():
+            if child.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+
+class ExpressionBuiltinEnumerate1(
+    ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE1"
+
+    named_children = ("sequence",)
+
+    def __init__(self, sequence, source_ref):
+        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinEnumerate2(
+    ExpressionBuiltinEnumerateMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE2"
+
+    named_children = ("sequence", "start")
+
+    def __init__(self, sequence, start, source_ref):
+        ChildrenHavingSequenceStartMixin.__init__(
+            self,
+            sequence=sequence,
+            start=start,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getEnumerateChildren(self):
+        return (self.subnode_sequence, self.subnode_start)
+
+    def getEnumerateStartInteger(self):
+        return self.subnode_start.getIntegerValue()
 
 
 class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
