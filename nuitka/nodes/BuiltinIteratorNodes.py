@@ -11,10 +11,12 @@ good.
 """
 
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
 from .ChildrenHavingMixins import (
     ChildHavingSequenceMixin,
+    ChildHavingValuesTupleMixin,
     ChildrenHavingSequenceStartMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
@@ -278,6 +280,140 @@ class ExpressionBuiltinEnumerateMixin(object):
         return False
 
 
+class ExpressionBuiltinZipMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def getZipChildren(self):
+        return self.subnode_values
+
+    def computeExpression(self, trace_collection):
+        for value in self.subnode_values:
+            shape = value.getTypeShape()
+
+            if not shape.hasShapeSlotIter():
+                type_name = shape.getTypeName()
+
+                if type_name is None:
+                    continue
+
+                trace_collection.onExceptionRaiseExit(BaseException)
+
+                return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    template="'%s' object is not iterable",
+                    operation="zip",
+                    original_node=self,
+                    value_node=value,
+                )
+
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            for value in self.subnode_values:
+                if not value.getTypeShape().hasShapeSlotIter():
+                    return False
+
+            return True
+
+        return self.isKnownToBeIterableAtMin(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        if not self.subnode_values:
+            return count == 0
+
+        for value in self.subnode_values:
+            if not value.isKnownToBeIterableAtMin(count):
+                return False
+
+        return True
+
+    def getIterationLength(self):
+        lengths = []
+
+        for value in self.subnode_values:
+            iteration_length = value.getIterationLength()
+
+            if iteration_length is None:
+                return None
+
+            lengths.append(iteration_length)
+
+        if not lengths:
+            return 0
+
+        return min(lengths)
+
+    def canPredictIterationValues(self):
+        for value in self.subnode_values:
+            if not value.canPredictIterationValues():
+                return False
+
+        return True
+
+    def getIterationHandle(self):
+        from .IterationHandles import ZipIterationHandle
+
+        iteration_handles = []
+
+        for value in self.subnode_values:
+            iteration_handle = value.getIterationHandle()
+
+            if iteration_handle is None:
+                return None
+
+            iteration_handles.append(iteration_handle)
+
+        return ZipIterationHandle(
+            iteration_handles=tuple(iteration_handles), source_ref=self.source_ref
+        )
+
+    def computeExpressionNext1(self, next_node, trace_collection):
+        if self.isKnownToBeIterableAtMin(1) and self.canPredictIterationValues():
+            iteration_handle = self.getIterationHandle()
+
+            if iteration_handle is not None:
+                result = iteration_handle.getNextValueExpression()
+
+                if result is not None:
+                    result = wrapExpressionWithSideEffects(
+                        side_effects=self.getZipChildren(),
+                        old_node=self,
+                        new_node=result,
+                    )
+
+                    return False, (
+                        result,
+                        "new_expression",
+                        "Predicted 'next' value from built-in zip.",
+                    )
+
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return True, (next_node, None, None)
+
+    def mayRaiseException(self, exception_type):
+        for value in self.subnode_values:
+            if value.mayRaiseException(exception_type):
+                return True
+
+            if not value.getTypeShape().hasShapeSlotIter():
+                return True
+
+        return False
+
+
 class ExpressionBuiltinEnumerate1(
     ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
 ):
@@ -312,6 +448,68 @@ class ExpressionBuiltinEnumerate2(
 
     def getEnumerateStartInteger(self):
         return self.subnode_start.getIntegerValue()
+
+
+class ExpressionBuiltinZip(
+    ExpressionBuiltinZipMixin, ChildHavingValuesTupleMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ZIP"
+
+    named_children = ("values",)
+
+    builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
+
+    def __init__(self, values, source_ref):
+        ChildHavingValuesTupleMixin.__init__(self, values=values)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinZip0(ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_ZIP0"
+
+    __slots__ = ()
+
+    def finalize(self):
+        del self.parent
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def getIterationLength(self):
+        return 0
+
+    @staticmethod
+    def canPredictIterationValues():
+        return True
+
+    def getIterationHandle(self):
+        from .IterationHandles import ZipIterationHandle
+
+        return ZipIterationHandle(iteration_handles=(), source_ref=self.source_ref)
+
+    def computeExpressionNext1(self, next_node, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return True, (next_node, None, None)
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
