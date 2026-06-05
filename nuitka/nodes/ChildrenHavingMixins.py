@@ -16090,6 +16090,7 @@ class ChildHavingSequenceMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionBuiltinEnumerate1
     #   ExpressionBuiltinSum1
 
     def __init__(
@@ -16184,6 +16185,7 @@ class ChildHavingSequenceMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinEnumerate1Mixin = ChildHavingSequenceMixin
 ChildrenExpressionBuiltinSum1Mixin = ChildHavingSequenceMixin
 
 
@@ -16192,6 +16194,7 @@ class ChildrenHavingSequenceStartMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionBuiltinEnumerate2
     #   ExpressionBuiltinSum2
 
     def __init__(
@@ -16319,6 +16322,7 @@ class ChildrenHavingSequenceStartMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinEnumerate2Mixin = ChildrenHavingSequenceStartMixin
 ChildrenExpressionBuiltinSum2Mixin = ChildrenHavingSequenceStartMixin
 
 
