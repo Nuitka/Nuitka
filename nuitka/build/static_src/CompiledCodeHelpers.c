@@ -1522,6 +1522,14 @@ PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject
     return MAKE_ENUMERATE(tstate, sequence, start);
 }
 
+PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
+    CHECK_OBJECT(iterables);
+
+    return PyObject_Call((PyObject *)&PyZip_Type, iterables, NULL);
+}
+
+PyObject *BUILTIN_ZIP0(PyThreadState *tstate) { return PyObject_CallFunctionObjArgs((PyObject *)&PyZip_Type, NULL); }
+
 static bool MAKE_QUICK_ITERATOR(PyThreadState *tstate, PyObject *sequence, struct Nuitka_QuickIterator *qiter) {
     if (Nuitka_Generator_Check(sequence)) {
         qiter->iterator_mode = ITERATOR_COMPILED_GENERATOR;

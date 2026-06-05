@@ -49,6 +49,8 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinEnumerate2,
     ExpressionBuiltinIter1,
     ExpressionBuiltinIter2,
+    ExpressionBuiltinZip,
+    ExpressionBuiltinZip0,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import (
@@ -307,6 +309,17 @@ def enumerate_extractor(node):
         node=node,
         builtin_class=selectEnumerateBuiltin,
         builtin_spec=BuiltinParameterSpecs.builtin_enumerate_spec,
+    )
+
+
+def zip_extractor(node):
+    if node.subnode_args is None:
+        return ExpressionBuiltinZip0(source_ref=node.getSourceReference())
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinZip,
+        builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
     )
 
 
@@ -1476,6 +1489,7 @@ _dispatch_dict = {
     "divmod": divmod_extractor,
     "input": input_extractor,
     "enumerate": enumerate_extractor,
+    "zip": zip_extractor,
 }
 
 if python_version < 0x300:
@@ -1516,9 +1530,6 @@ _builtin_ignore_list = (
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
     "sorted",
-    # TODO: This would be very worthwhile, as it could easily optimize
-    # its iteration away.
-    "zip",
     # TODO: Also worthwhile for known values.
     "reversed",
     # TODO: Not sure what this really is about.
