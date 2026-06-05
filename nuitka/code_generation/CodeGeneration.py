@@ -211,6 +211,8 @@ from .IntegerCodes import (
 from .IteratorCodes import (
     generateBuiltinAllCode,
     generateBuiltinAnyCode,
+    generateBuiltinEnumerate1Code,
+    generateBuiltinEnumerate2Code,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,
@@ -654,6 +656,8 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ITER_FOR_UNPACK": generateBuiltinIterForUnpackCode,
         "EXPRESSION_BUILTIN_ITER1": generateBuiltinIter1Code,
         "EXPRESSION_BUILTIN_ITER2": generateBuiltinIter2Code,
+        "EXPRESSION_BUILTIN_ENUMERATE1": generateBuiltinEnumerate1Code,
+        "EXPRESSION_BUILTIN_ENUMERATE2": generateBuiltinEnumerate2Code,
         "EXPRESSION_BUILTIN_NEXT1": generateBuiltinNext1Code,
         "EXPRESSION_BUILTIN_NEXT2": generateBuiltinNext2Code,
         "EXPRESSION_BUILTIN_SUM1": generateBuiltinSum1Code,

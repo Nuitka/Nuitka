@@ -175,6 +175,10 @@ extern PyObject *BUILTIN_CALLABLE(PyObject *value);
 // For quicker iter() functionality if 2 arguments arg given.
 extern PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel);
 
+// For quicker enumerate() functionality.
+extern PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence);
+extern PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
+
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1(PyObject *arg);
 

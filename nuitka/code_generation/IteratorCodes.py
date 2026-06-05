@@ -72,6 +72,49 @@ if (%(to_name)s == NULL) {
         context.addCleanupTempName(result_name)
 
 
+def generateBuiltinEnumerate1Code(to_name, expression, emit, context):
+    (sequence_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "enumerate_value", expression, emit, context
+    ) as result_name:
+        emit("%s = BUILTIN_ENUMERATE1(tstate, %s);" % (result_name, sequence_name))
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=sequence_name,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
+    sequence_name, start_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "enumerate_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = BUILTIN_ENUMERATE2(tstate, %s, %s);"
+            % (result_name, sequence_name, start_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(sequence_name, start_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
 def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
     if expression.getTypeShape().isShapeIterator():
         emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
