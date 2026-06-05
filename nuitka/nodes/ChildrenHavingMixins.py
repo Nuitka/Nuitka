@@ -23048,6 +23048,7 @@ class ChildHavingValuesTupleMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionBuiltinZip
     #   ExpressionStringConcatenation
 
     def __init__(
@@ -23172,6 +23173,7 @@ class ChildHavingValuesTupleMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinZipMixin = ChildHavingValuesTupleMixin
 ChildrenExpressionStringConcatenationMixin = ChildHavingValuesTupleMixin
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

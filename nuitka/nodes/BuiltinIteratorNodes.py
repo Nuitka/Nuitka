@@ -455,7 +455,7 @@ class ExpressionBuiltinZip(
 ):
     kind = "EXPRESSION_BUILTIN_ZIP"
 
-    named_children = ("values",)
+    named_children = ("values|tuple",)
 
     builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
 
