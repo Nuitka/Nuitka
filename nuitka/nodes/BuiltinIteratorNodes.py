@@ -22,9 +22,7 @@ from .ChildrenHavingMixins import (
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
-    makeRaiseExceptionReplacementExpressionFromInstance,
     makeRaiseExceptionReplacementStatement,
-    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
 from .shapes.IteratorShapes import tshape_iterator
@@ -292,26 +290,6 @@ class ExpressionBuiltinZipMixin(object):
         return self.subnode_values
 
     def computeExpression(self, trace_collection):
-        for count, value in enumerate(self.subnode_values):
-            if value.getTypeShape().hasShapeSlotIter() is False:
-                trace_collection.onExceptionRaiseExit(BaseException)
-
-                return (
-                    wrapExpressionWithSideEffects(
-                        side_effects=(value,),
-                        old_node=value,
-                        new_node=makeRaiseExceptionReplacementExpressionFromInstance(
-                            expression=self,
-                            exception=TypeError(
-                                "zip argument #%d must support iteration" % (count + 1)
-                            ),
-                        ),
-                    ),
-                    "new_raise",
-                    lambda: "Built-in zip argument #%d must support iteration."
-                    % (count + 1),
-                )
-
         self.onContentEscapes(trace_collection)
 
         trace_collection.onControlFlowEscape(self)
