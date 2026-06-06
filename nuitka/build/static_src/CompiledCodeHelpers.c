@@ -1525,6 +1525,22 @@ PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject
 PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
     CHECK_OBJECT(iterables);
 
+    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(iterables); i++) {
+        PyObject *iterable = PyTuple_GET_ITEM(iterables, i);
+        PyObject *iterator = MAKE_ITERATOR(tstate, iterable);
+
+        if (unlikely(iterator == NULL)) {
+            if (PyErr_ExceptionMatches(PyExc_TypeError)) {
+                PyErr_Clear();
+                PyErr_Format(PyExc_TypeError, "zip argument #%zd must support iteration", i + 1);
+            }
+
+            return NULL;
+        }
+
+        Py_DECREF(iterator);
+    }
+
     return PyObject_Call((PyObject *)&PyZip_Type, iterables, NULL);
 }
 

@@ -22,6 +22,7 @@ from .ChildrenHavingMixins import (
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpressionFromInstance,
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
@@ -291,22 +292,24 @@ class ExpressionBuiltinZipMixin(object):
         return self.subnode_values
 
     def computeExpression(self, trace_collection):
-        for value in self.subnode_values:
-            shape = value.getTypeShape()
-
-            if not shape.hasShapeSlotIter():
-                type_name = shape.getTypeName()
-
-                if type_name is None:
-                    continue
-
+        for count, value in enumerate(self.subnode_values):
+            if value.getTypeShape().hasShapeSlotIter() is False:
                 trace_collection.onExceptionRaiseExit(BaseException)
 
-                return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                    template="'%s' object is not iterable",
-                    operation="zip",
-                    original_node=self,
-                    value_node=value,
+                return (
+                    wrapExpressionWithSideEffects(
+                        side_effects=(value,),
+                        old_node=value,
+                        new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                            expression=self,
+                            exception=TypeError(
+                                "zip argument #%d must support iteration" % (count + 1)
+                            ),
+                        ),
+                    ),
+                    "new_raise",
+                    lambda: "Built-in zip argument #%d must support iteration."
+                    % (count + 1),
                 )
 
         self.onContentEscapes(trace_collection)
@@ -319,7 +322,7 @@ class ExpressionBuiltinZipMixin(object):
     def isKnownToBeIterable(self, count):
         if count is None:
             for value in self.subnode_values:
-                if not value.getTypeShape().hasShapeSlotIter():
+                if value.getTypeShape().hasShapeSlotIter() is False:
                     return False
 
             return True
@@ -408,7 +411,7 @@ class ExpressionBuiltinZipMixin(object):
             if value.mayRaiseException(exception_type):
                 return True
 
-            if not value.getTypeShape().hasShapeSlotIter():
+            if value.getTypeShape().hasShapeSlotIter() is False:
                 return True
 
         return False
