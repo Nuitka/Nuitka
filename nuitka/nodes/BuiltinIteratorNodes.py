@@ -23,6 +23,7 @@ from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
 from .shapes.IteratorShapes import tshape_iterator
