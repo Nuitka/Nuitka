@@ -102,6 +102,32 @@ jobs:
         run: |
           python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
 
+  check-codegen:
+    runs-on: ubuntu-24.04
+    name: Check / Codegen
+    steps:
+      - name: 🛎️ Checkout
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: actions/checkout@v4
+          with: |
+            fetch-depth: 1
+            fetch-tags: false
+          attempt_limit: 3
+          attempt_delay: 120000
+
+      - name: 🐍 Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: 🧳 Install Nuitka
+        run: |
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
+
       - name: 🔎 Specialized C code check
         run: |
           python ./bin/generate-specialized-c-code --check
@@ -151,7 +177,7 @@ jobs:
           python ./bin/check-nuitka-with-codespell
 
   linux:
-    needs: [check-pylint, check-format, check-lint]
+    needs: [check-pylint, check-format, check-codegen, check-lint]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -292,6 +318,18 @@ jobs:
           otool -L $(which python)
           otool -l $(which python)
           ls -lR $(dirname $(dirname $(which python)))
+
+      - name: 📦 Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew/downloads
+          key: homebrew-${{ runner.os }}-${{ runner.arch }}-ccache
+
+      - name: 📦 Install system dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
+        run: brew install ccache
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
