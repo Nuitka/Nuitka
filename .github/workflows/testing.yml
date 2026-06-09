@@ -234,7 +234,7 @@ jobs:
           if [ "${{ steps.apt-cache.outputs.cache-hit }}" != "true" ]; then
             sudo apt-get update
           fi
-          sudo apt-get install -y --no-upgrade patchelf gdb ccache libfuse2
+          sudo apt-get install -y --no-upgrade --no-install-recommends patchelf gdb ccache libfuse2
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
@@ -255,6 +255,8 @@ jobs:
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: ⚙️ Verbose scons output in compilation
+        env:
+          CCACHE_MAXSIZE: 200M
         run: |
           set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
@@ -366,6 +368,8 @@ jobs:
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
+        env:
+          CCACHE_MAXSIZE: 200M
         run: |
           set -x
 
