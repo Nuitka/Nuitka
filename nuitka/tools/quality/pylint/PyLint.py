@@ -180,7 +180,7 @@ redefined-slots-in-subclass
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
---persistent=no
+--persistent=yes
 --method-rgx=[a-z_][a-zA-Z0-9_]{2,55}$
 --module-rgx=.*
 --function-rgx=.*
