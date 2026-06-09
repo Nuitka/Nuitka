@@ -21,6 +21,7 @@ permissions:
 
 env:
   NUITKA_UPDATE_CHECK: "never"
+  NUITKA_CACHE_DIR: ~/.cache/Nuitka
 
 jobs:
   checks:
@@ -30,7 +31,7 @@ jobs:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -45,7 +46,7 @@ jobs:
         if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -60,7 +61,7 @@ jobs:
         if: steps.checkout_retry_1.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         id: checkout_retry_2
@@ -73,6 +74,13 @@ jobs:
           cache-dependency-path: |
             requirements-devel.txt
             requirements.txt
+
+      - name: 📦 Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-patchelf-gdb-ccache-libfuse2
+          restore-keys: apt-${{ runner.os }}-
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -128,7 +136,7 @@ jobs:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -143,7 +151,7 @@ jobs:
         if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -158,7 +166,7 @@ jobs:
         if: steps.checkout_retry_1.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         id: checkout_retry_2
@@ -171,6 +179,13 @@ jobs:
           cache-dependency-path: |
             requirements-devel.txt
             requirements.txt
+
+      - name: 📦 Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-patchelf-gdb-ccache-libfuse2
+          restore-keys: apt-${{ runner.os }}-
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -187,6 +202,13 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.python_version }}-
             ccache-${{ runner.os }}-
+
+      - name: 🔧 Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
@@ -242,7 +264,7 @@ jobs:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -257,7 +279,7 @@ jobs:
         if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -272,7 +294,7 @@ jobs:
         if: steps.checkout_retry_1.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         id: checkout_retry_2
@@ -307,6 +329,13 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.python_version }}-
             ccache-${{ runner.os }}-
+
+      - name: 🔧 Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
         run: |
@@ -388,7 +417,7 @@ jobs:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -403,7 +432,7 @@ jobs:
         if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -418,7 +447,7 @@ jobs:
         if: steps.checkout_retry_1.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         id: checkout_retry_2
@@ -438,6 +467,13 @@ jobs:
         run: |
           pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔧 Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
         run: |
@@ -479,7 +515,7 @@ jobs:
       - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -494,7 +530,7 @@ jobs:
         if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         continue-on-error: true
@@ -509,7 +545,7 @@ jobs:
         if: steps.checkout_retry_1.outcome == 'failure'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: false
           filter: blob:none
         id: checkout_retry_2
@@ -531,6 +567,13 @@ jobs:
         run: |
           pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔧 Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
         run: |
