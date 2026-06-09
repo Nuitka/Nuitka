@@ -88,6 +88,7 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
+          sudo rm -f /usr/bin/clang-format
           python -m pip install --no-python-version-warning --disable-pip-version-check -r nuitka/utils/requirements-private.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
