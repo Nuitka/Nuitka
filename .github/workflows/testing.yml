@@ -83,12 +83,13 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: |
-            requirements-devel.txt
+            nuitka/utils/requirements-private.txt
             requirements.txt
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r nuitka/utils/requirements-private.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔧 Cache Nuitka downloads
