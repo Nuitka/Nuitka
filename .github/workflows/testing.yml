@@ -69,6 +69,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -109,6 +113,7 @@ jobs:
     needs: checks
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.8"
@@ -162,6 +167,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -169,6 +178,15 @@ jobs:
           sudo apt-get install patchelf gdb ccache libfuse2
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔧 Cache ccache data
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.python_version }}-
+            ccache-${{ runner.os }}-
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
@@ -186,6 +204,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
+
           path: |
             *.xml
             standalone-binary-readelf.txt
@@ -209,6 +228,7 @@ jobs:
     needs: linux
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.9"
@@ -261,6 +281,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
 
       - name: ⚙️ Verbose installation output for Python
         run: |
@@ -274,6 +298,15 @@ jobs:
         run: |
           pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔧 Cache ccache data
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.python_version }}-
+            ccache-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
         run: |
@@ -313,6 +346,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
+
           path: |
             *.xml
 
@@ -338,6 +372,7 @@ jobs:
     needs: linux
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.7"
@@ -392,6 +427,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
 
       - uses: ilammy/msvc-dev-cmd@v1
 
@@ -414,6 +453,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
+
           path: |
             *.xml
 
@@ -427,6 +467,7 @@ jobs:
     needs: linux
     runs-on: windows-11-arm
     strategy:
+      fail-fast: false
       matrix:
         python_version:
           - "3.11"
@@ -477,6 +518,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
 
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -501,6 +546,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
+
           path: |
             *.xml
 
