@@ -63,6 +63,7 @@ jobs:
         run: |
           python ./bin/check-nuitka-with-pylint
 
+
   check-format:
     runs-on: ubuntu-24.04
     name: Check / Format & Codegen
