@@ -62,6 +62,13 @@ jobs:
           python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
+      - name: 🔧 Cache Nuitka downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka/downloads
+          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: nuitka-downloads-${{ runner.os }}-
+
       - name: 🔎 PyLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-pylint
