@@ -555,5 +555,3 @@ jobs:
           Get-ChildItem env:
           python -m nuitka --version
           python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
-
-          warm cache
