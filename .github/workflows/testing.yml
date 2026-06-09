@@ -35,7 +35,6 @@ jobs:
           with: |
             fetch-depth: 1
             fetch-tags: false
-            filter: blob:none
           attempt_limit: 3
           attempt_delay: 120000
 
@@ -111,7 +110,6 @@ jobs:
           with: |
             fetch-depth: 1
             fetch-tags: false
-            filter: blob:none
           attempt_limit: 3
           attempt_delay: 120000
 
@@ -212,7 +210,6 @@ jobs:
           with: |
             fetch-depth: 1
             fetch-tags: false
-            filter: blob:none
           attempt_limit: 3
           attempt_delay: 120000
 
@@ -338,7 +335,6 @@ jobs:
           with: |
             fetch-depth: 1
             fetch-tags: false
-            filter: blob:none
           attempt_limit: 3
           attempt_delay: 120000
 
@@ -409,7 +405,6 @@ jobs:
           with: |
             fetch-depth: 1
             fetch-tags: false
-            filter: blob:none
           attempt_limit: 3
           attempt_delay: 120000
 
