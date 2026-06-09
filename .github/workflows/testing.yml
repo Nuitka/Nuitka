@@ -24,9 +24,48 @@ env:
   NUITKA_CACHE_DIR: ~/.cache/Nuitka
 
 jobs:
-  checks:
+  check-pylint:
     runs-on: ubuntu-24.04
-    name: Checks
+    name: Check / PyLint
+    steps:
+      - name: 🛎️ Checkout
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: actions/checkout@v4
+          with: |
+            fetch-depth: 1
+            fetch-tags: false
+          attempt_limit: 3
+          attempt_delay: 120000
+
+      - name: 🐍 Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: 🔧 Cache PyLint results
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pylint
+          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
+          restore-keys: pylint-${{ runner.os }}-
+
+      - name: 🔎 PyLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-pylint
+
+  check-format:
+    runs-on: ubuntu-24.04
+    name: Check / Format & Codegen
     steps:
       - name: 🛎️ Checkout
         uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
@@ -59,17 +98,45 @@ jobs:
           key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
-      - name: 🔧 Cache PyLint results
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pylint
-          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
-          restore-keys: pylint-${{ runner.os }}-
-
-
-      - name: 🔎 PyLint on Nuitka source code
+      - name: 🔎 Auto-format check on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-pylint
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
+
+      - name: 🔎 Specialized C code check
+        run: |
+          python ./bin/generate-specialized-c-code --check
+
+      - name: 🔎 Specialized Python code check
+        run: |
+          python ./bin/generate-specialized-python-code --check
+
+  check-lint:
+    runs-on: ubuntu-24.04
+    name: Check / Lint
+    steps:
+      - name: 🛎️ Checkout
+        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        with:
+          action: actions/checkout@v4
+          with: |
+            fetch-depth: 1
+            fetch-tags: false
+          attempt_limit: 3
+          attempt_delay: 120000
+
+      - name: 🐍 Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements-devel.txt
+            requirements.txt
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔎 RestLint on Nuitka source code
         run: |
@@ -83,20 +150,8 @@ jobs:
         run: |
           python ./bin/check-nuitka-with-codespell
 
-      - name: 🔎 Auto-format check on Nuitka source code
-        run: |
-          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
-
-      - name: 🔎 Specialized C code check
-        run: |
-          python ./bin/generate-specialized-c-code --check
-
-      - name: 🔎 Specialized Python code check
-        run: |
-          python ./bin/generate-specialized-python-code --check
-
   linux:
-    needs: checks
+    needs: [check-pylint, check-format, check-lint]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
