@@ -59,6 +59,13 @@ jobs:
           key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
+      - name: 🔧 Cache PyLint results
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pylint
+          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
+          restore-keys: pylint-${{ runner.os }}-
+
       - name: 🔎 PyLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-pylint
