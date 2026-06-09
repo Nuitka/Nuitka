@@ -183,7 +183,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ github.sha }}
+          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('requirements.txt', 'requirements-devel.txt') }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.python_version }}-
             ccache-${{ runner.os }}-
@@ -303,7 +303,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ github.sha }}
+          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('requirements.txt', 'requirements-devel.txt') }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.python_version }}-
             ccache-${{ runner.os }}-
