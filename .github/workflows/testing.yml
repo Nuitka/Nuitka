@@ -52,8 +52,7 @@ jobs:
       - name: 🧳 Install Nuitka and dependencies
         run: |
           sudo rm -f /usr/bin/clang-format
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r nuitka/utils/requirements-private.txt -r requirements-devel.txt -r requirements.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
+          uv pip install --python "$(command -v python)" -r requirements-devel.txt .
         shell: bash
 
       - name: 🔧 Cache PyLint results
