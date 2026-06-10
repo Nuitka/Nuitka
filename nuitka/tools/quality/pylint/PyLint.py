@@ -29,15 +29,24 @@ def checkVersion():
         )
 
     if _pylint_version is None:
-        with getNullOutput() as null_output:
-            _pylint_version = check_output(
-                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=null_output
-            )
+        try:
+            import pylint
 
-        if str is not bytes:
-            _pylint_version = _pylint_version.decode("utf8")
+            _pylint_version = getattr(pylint, "__version__", None)
+        except Exception:
+            _pylint_version = None
 
-        _pylint_version = _pylint_version.split("\n")[0].split()[-1].strip(",")
+        if _pylint_version is None:
+            with getNullOutput() as null_output:
+                _pylint_version = check_output(
+                    [os.environ["PYTHON"], "-m", "pylint", "--version"],
+                    stderr=null_output,
+                )
+
+            if str is not bytes:
+                _pylint_version = _pylint_version.decode("utf8")
+
+            _pylint_version = _pylint_version.split("\n")[0].split()[-1].strip(",")
 
     my_print("Using PyLint version:", _pylint_version)
 
