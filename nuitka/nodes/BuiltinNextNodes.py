@@ -85,6 +85,20 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     def getStarred(self):
         return self.starred
 
+    def getTypeShape(self):
+        if hasattr(self.subnode_value, "getIterationLength"):
+            iteration_length = self.subnode_value.getIterationLength()
+
+            if iteration_length is not None and self.count - 1 >= iteration_length:
+                return tshape_unknown
+
+        result = self.subnode_value.getIterationValueShape(self.count - 1)
+
+        if result is None:
+            return tshape_unknown
+
+        return result
+
 
 class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
