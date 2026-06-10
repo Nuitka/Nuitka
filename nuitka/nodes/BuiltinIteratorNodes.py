@@ -98,8 +98,11 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def canPredictIterationValues(self):
         return self.subnode_value.canPredictIterationValues()
 
-    def getIterationValue(self, element_index):
-        return self.subnode_value.getIterationValue(element_index)
+    def getIterationValue(self, count):
+        return self.subnode_value.getIterationValue(count)
+
+    def getNextValueShape(self):
+        return self.subnode_value.getNextValueShape()
 
     def getIterationHandle(self):
         return self.subnode_value.getIterationHandle()
