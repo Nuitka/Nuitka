@@ -27,7 +27,7 @@ from .IterationHandles import (
     IterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import tshape_xrange
+from .shapes.BuiltinTypeShapes import tshape_int_or_long, tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
@@ -121,6 +121,10 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
 
+    @staticmethod
+    def getNextValueShape():
+        return tshape_int_or_long
+
 
 class ExpressionBuiltinRange1(
     ExpressionBuiltinRangeMixin, ChildHavingLowMixin, ExpressionBase
@@ -161,19 +165,19 @@ class ExpressionBuiltinRange1(
 
         return IterationHandleRange1(low, self.source_ref)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         length = self.getIterationLength()
 
         if length is None:
             return None
 
-        if element_index > length:
+        if count > length:
             return None
 
-        # TODO: Make sure to cast element_index to what CPython will give, for
+        # TODO: Make sure to cast count to what CPython will give, for
         # now a downcast will do.
         return makeConstantReplacementNode(
-            constant=int(element_index), node=self, user_provided=False
+            constant=int(count), node=self, user_provided=False
         )
 
     def isKnownToBeIterable(self, count):
@@ -240,7 +244,7 @@ class ExpressionBuiltinRange2(
 
         return IterationHandleRange2(low, high, self.source_ref)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         low = self.subnode_low
         high = self.subnode_high
 
@@ -254,7 +258,7 @@ class ExpressionBuiltinRange2(
         if high is None:
             return None
 
-        result = low + element_index
+        result = low + count
 
         if result >= high:
             return None
@@ -360,7 +364,7 @@ class ExpressionBuiltinRange3(
 
         return IterationHandleRange3(low, high, step, self.source_ref)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         low = self.subnode_low.getIntegerValue()
 
         if low is None:
@@ -373,7 +377,7 @@ class ExpressionBuiltinRange3(
 
         step = self.subnode_step.getIntegerValue()
 
-        result = low + step * element_index
+        result = low + step * count
 
         if result >= high:
             return None
@@ -397,6 +401,10 @@ class ExpressionBuiltinXrangeMixin(object):
     @staticmethod
     def getTypeShape():
         return tshape_xrange
+
+    @staticmethod
+    def getNextValueShape():
+        return tshape_int_or_long
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
@@ -491,19 +499,19 @@ class ExpressionBuiltinXrange1(
 
         return max(0, low)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         length = self.getIterationLength()
 
         if length is None:
             return None
 
-        if element_index > length:
+        if count > length:
             return None
 
-        # TODO: Make sure to cast element_index to what CPython will give, for
+        # TODO: Make sure to cast count to what CPython will give, for
         # now a downcast will do.
         return makeConstantReplacementNode(
-            constant=int(element_index), node=self, user_provided=False
+            constant=int(count), node=self, user_provided=False
         )
 
 
@@ -549,7 +557,7 @@ class ExpressionBuiltinXrange2(
 
         return max(0, high - low)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         low = self.subnode_low
         high = self.subnode_high
 
@@ -563,7 +571,7 @@ class ExpressionBuiltinXrange2(
         if high is None:
             return None
 
-        result = low + element_index
+        result = low + count
 
         if result >= high:
             return None
@@ -640,7 +648,7 @@ class ExpressionBuiltinXrange3(
 
         return int(estimate)
 
-    def getIterationValue(self, element_index):
+    def getIterationValue(self, count):
         low = self.subnode_low.getIntegerValue()
 
         if low is None:
@@ -653,7 +661,7 @@ class ExpressionBuiltinXrange3(
 
         step = self.subnode_step.getIntegerValue()
 
-        result = low + step * element_index
+        result = low + step * count
 
         if result >= high:
             return None
