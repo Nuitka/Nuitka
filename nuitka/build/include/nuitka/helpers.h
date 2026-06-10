@@ -28,6 +28,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *calle
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
 extern Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value);
+extern void DEEP_HASH_BLOB(Py_hash_t *hash, void const *s, Py_ssize_t size);
 #endif
 
 // For profiling of Nuitka compiled binaries

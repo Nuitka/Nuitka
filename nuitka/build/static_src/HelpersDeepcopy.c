@@ -237,9 +237,10 @@ static Py_hash_t DEEP_HASH_INIT(PyThreadState *tstate, PyObject *value) {
     return result;
 }
 
-static void DEEP_HASH_BLOB(Py_hash_t *hash, char const *s, Py_ssize_t size) {
+void DEEP_HASH_BLOB(Py_hash_t *hash, void const *s, Py_ssize_t size) {
+    unsigned char const *p = (unsigned char const *)s;
     while (size > 0) {
-        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*s++);
+        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*p++);
         size--;
     }
 }

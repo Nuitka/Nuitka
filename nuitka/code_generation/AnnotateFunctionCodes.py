@@ -14,6 +14,7 @@ from .PythonSourceCodeGeneration import (
     generateFunctionSourceFromBody,
     getFunctionMakerIdentifier,
 )
+from .SpecialConstantData import BlobData
 
 
 def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
@@ -46,7 +47,13 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
     compiled = compile(source, function_identifier, "exec")
     marshalled = marshal.dumps(compiled.co_consts[0])
     marshalled_size = len(marshalled)
-    marshalled_ref = context.getConstantCode(constant=marshalled)
+
+    marshalled_ptr = context.getConstantCode(
+        BlobData(
+            marshalled,
+            "annotate marshalled code for '%s'" % function_identifier,
+        )
+    )
 
     module_code_name = context.getModuleCodeName()
     module_dict_name = "(PyObject *)moduledict_%s" % module_code_name
@@ -57,7 +64,7 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
 static PyObject *%(maker)s(PyThreadState *tstate) {
     PyObject *result;
     PyObject *code = PyMarshal_ReadObjectFromString(
-        PyBytes_AS_STRING(%(marshalled)s),
+        %(marshalled)s,
         %(marshalled_size)d);
     if (unlikely(code == NULL)) {
         return NULL;
@@ -68,7 +75,7 @@ static PyObject *%(maker)s(PyThreadState *tstate) {
 }
 """ % {
         "maker": maker_identifier,
-        "marshalled": marshalled_ref,
+        "marshalled": marshalled_ptr,
         "marshalled_size": marshalled_size,
         "module_dict": module_dict_name,
         "qualname": qualname_obj,

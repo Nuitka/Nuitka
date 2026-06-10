@@ -23,6 +23,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
+from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
@@ -190,33 +191,12 @@ def getModuleCode(
             }
         )
 
-    constants_count = context.getConstantsCount()
-
-    # If no constants are present.
-    if constants_count > 0:
-        module_constants_decl = "\n".join(
-            "PyObject *%s;" % name for name in context.getConstantNames()
-        )
-
-        module_constants_check_hash = "\n".join(
-            """\
-CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
-mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"""
-            % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-
-        module_constants_check_object = "\n".join(
-            """\
-CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
-assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s) && "mod_consts.%(name)s");"""
-            % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-    else:
-        module_constants_decl = "PyObject *empty;"
-        module_constants_check_hash = ""
-        module_constants_check_object = ""
+    (
+        constants_count,
+        module_constants_decl,
+        module_constants_check_hash,
+        module_constants_check_object,
+    ) = getModuleConstantsDeclAndChecks(context)
 
     return template % {
         "module_name_cstr": encodePythonStringToC(

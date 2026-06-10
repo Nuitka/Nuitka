@@ -933,6 +933,12 @@ class PythonModuleContext(
     def getConstantNames(self):
         return self.constant_accessor.getConstantNames()
 
+    def getConstantInfos(self):
+        return self.constant_accessor.getConstantInfos()
+
+    def getConstantDetails(self, name):
+        return self.constant_accessor.getConstantDetails(name)
+
     def getModuleInitCodes(self):
         return self.module_init_codes
 

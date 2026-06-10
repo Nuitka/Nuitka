@@ -38,6 +38,7 @@ from .CodeHelpers import withObjectCodeTemporaryAssignment
 from .ErrorCodes import getAssertionCode
 from .GlobalConstants import getConstantDefaultPopulation
 from .Namify import namifyConstant
+from .SpecialConstantData import hasSpecialDetails
 from .templates.CodeTemplatesConstants import template_constants_reading
 from .templates.CodeTemplatesModules import template_header_guard
 
@@ -188,6 +189,57 @@ def getConstantsDefinitionCode():
     }
 
     return header, body
+
+
+def getModuleConstantsDeclAndChecks(context):
+    constants_count = context.getConstantsCount()
+    constant_infos = context.getConstantInfos()
+
+    module_constants_decl = "\n".join(
+        "%s %s;" % (c_type, name) for name, c_type in constant_infos
+    )
+
+    check_lines = []
+    verify_lines = []
+
+    for i, (name, c_type) in enumerate(constant_infos):
+        if hasSpecialDetails(name):
+            details = context.getConstantDetails(name)
+            check_lines.append(
+                """\
+mod_consts_hash[%(index)d] = 0;
+DEEP_HASH_BLOB(&mod_consts_hash[%(index)d], mod_consts.%(name)s, %(size)d);"""
+                % {"index": i, "name": name, "size": details["size"]}
+            )
+            verify_lines.append("""\
+{
+    Py_hash_t h = 0;
+    DEEP_HASH_BLOB(&h, mod_consts.%(name)s, %(size)d);
+    assert(mod_consts_hash[%(index)d] == h);
+}""" % {"name": name, "index": i, "size": details["size"]})
+        else:
+            check_lines.append(
+                """\
+CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
+mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"""
+                % {"name": name, "index": i}
+            )
+            verify_lines.append(
+                """\
+CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
+assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s) && "mod_consts.%(name)s");"""
+                % {"name": name, "index": i}
+            )
+
+    module_constants_check_hash = "\n".join(check_lines)
+    module_constants_check_object = "\n".join(verify_lines)
+
+    return (
+        constants_count,
+        module_constants_decl,
+        module_constants_check_hash,
+        module_constants_check_object,
+    )
 
 
 MetaDataDescription = makeNamedtupleClass(

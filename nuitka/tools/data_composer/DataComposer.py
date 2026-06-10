@@ -16,11 +16,11 @@ from nuitka.build.DataComposerInterface import (
     getConstantBlobFilenameForDataFilename,
 )
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
+from nuitka.code_generation.SpecialConstantData import BlobData
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
-    BlobData,
     BuiltinAnonValue,
     BuiltinGenericAliasValue,
     BuiltinSpecialValue,
