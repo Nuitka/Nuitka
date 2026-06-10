@@ -9474,6 +9474,13 @@
     - depends:
         - 'uvloop._noop'
 
+- module-name: 'vcs_versioning._version_cls' # checksum: b1522f54
+  anti-bloat:
+    - description: 'avoid setuptools as fallback for packaging'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'vedo' # checksum: 35ad0fe8
   data-files:
     - dirs:
