@@ -807,7 +807,22 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 }
 
 #else
-void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
+void ourConsoleCtrlHandler(int sig, siginfo_t *info, void *ucontext) {
+#if defined(SI_KERNEL)
+    bool signal_from_terminal = (info->si_code == SI_KERNEL);
+#else
+    // On BSD/macOS, terminal-originated signals have si_code == 0,
+    // while kill(2) sends with si_code == SI_USER.
+    bool signal_from_terminal = (info->si_code == 0);
+#endif
+
+    // Forward to child only when the signal did NOT originate from the
+    // terminal kernel delivery. Terminal signals (Ctrl+C) are delivered
+    // to the foreground process group, so both parent and child already
+    // receive them. Targeted signals (kill(2), Docker) only reach this
+    // process and must be forwarded.
+    cleanupChildProcess(!signal_from_terminal);
+}
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
@@ -1037,11 +1052,9 @@ int main(int argc, char **argv) {
 
 #if defined(_WIN32)
     if (process_role != NULL) {
-        errno = 0;
-        wchar_t *endptr = NULL;
-        unsigned long onefile_parent_pid = wcstoul(process_role, &endptr, 10);
+        long onefile_parent_pid;
 
-        if (errno == 0 && *endptr == 0) {
+        if (getEnvironmentVariableValueAsLong(process_role, &onefile_parent_pid)) {
             HANDLE parent_process = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, onefile_parent_pid);
 
             if (parent_process != NULL) {
@@ -1150,9 +1163,16 @@ int main(int argc, char **argv) {
             fatalError("Error, failed to register signal handler.");
         }
 #else
-        signal(SIGINT, ourConsoleCtrlHandler);
-        signal(SIGQUIT, ourConsoleCtrlHandler);
-        signal(SIGTERM, ourConsoleCtrlHandler);
+        {
+            struct sigaction sa;
+            sa.sa_sigaction = ourConsoleCtrlHandler;
+            sa.sa_flags = SA_SIGINFO;
+            sigemptyset(&sa.sa_mask);
+
+            sigaction(SIGINT, &sa, NULL);
+            sigaction(SIGQUIT, &sa, NULL);
+            sigaction(SIGTERM, &sa, NULL);
+        }
 #endif
     }
 
