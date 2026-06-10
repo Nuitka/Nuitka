@@ -6569,6 +6569,13 @@
         - 'enum'
         - 'logging'
 
+- module-name: 'shtab' # checksum: 6c4e35a6
+  anti-bloat:
+    - description: 'remove setuptools_scm version detection'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'sip' # checksum: 1cf87ab4
   implicit-imports:
     - depends:
