@@ -29,14 +29,10 @@ jobs:
     name: Check / All
     steps:
       - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        uses: actions/checkout@v4
         with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: 🐍 Use Python 3.11
         uses: actions/setup-python@v5
@@ -121,14 +117,10 @@ jobs:
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        uses: actions/checkout@v4
         with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
@@ -154,7 +146,7 @@ jobs:
           if [ "${{ steps.apt-cache.outputs.cache-hit }}" != "true" ]; then
             sudo apt-get update
           fi
-          sudo apt-get install -y --no-upgrade --no-install-recommends patchelf gdb ccache libfuse2
+          sudo apt-get install patchelf gdb ccache libfuse2
           uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
           uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
         shell: bash
@@ -176,8 +168,6 @@ jobs:
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: ⚙️ Verbose scons output in compilation
-        env:
-          CCACHE_MAXSIZE: 200M
         run: |
           set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
@@ -229,14 +219,10 @@ jobs:
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        uses: actions/checkout@v4
         with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
@@ -292,8 +278,6 @@ jobs:
           restore-keys: nuitka-downloads-${{ runner.os }}-
 
       - name: Verbose scons output in compilation
-        env:
-          CCACHE_MAXSIZE: 200M
         run: |
           set -x
 
@@ -371,14 +355,10 @@ jobs:
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        uses: actions/checkout@v4
         with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
@@ -444,14 +424,10 @@ jobs:
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
+        uses: actions/checkout@v4
         with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
+          fetch-depth: 1
+          fetch-tags: false
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
