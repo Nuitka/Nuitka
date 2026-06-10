@@ -21,6 +21,7 @@ permissions:
 
 env:
   NUITKA_UPDATE_CHECK: "never"
+  UV_SYSTEM_PYTHON: "1"
 
 jobs:
   checks:
