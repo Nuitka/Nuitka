@@ -78,6 +78,62 @@ class ExpressionVariableRefBase(ExpressionBase):
         else:
             return self.variable_trace.getTypeShape()
 
+    def _getIterationSourceNode(self):
+        if self.variable_trace is None:
+            return None
+
+        return self.variable_trace.getIterationSourceNode()
+
+    def getIterationValue(self, count):
+        iteration_source_node = self._getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getIterationValue"
+        ):
+            return iteration_source_node.getIterationValue(count)
+
+        return None
+
+    def getIterationValueShape(self, count):
+        iteration_source_node = self._getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getIterationValueShape"
+        ):
+            return iteration_source_node.getIterationValueShape(count)
+
+        return None
+
+    def getNextValueShape(self):
+        iteration_source_node = self._getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getNextValueShape"
+        ):
+            return iteration_source_node.getNextValueShape()
+
+        return None
+
+    def getIterationLength(self):
+        iteration_source_node = self._getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getIterationLength"
+        ):
+            return iteration_source_node.getIterationLength()
+
+        return None
+
+    def isKnownToBeIterableAtMin(self, count):
+        iteration_source_node = self._getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "isKnownToBeIterableAtMin"
+        ):
+            return iteration_source_node.isKnownToBeIterableAtMin(count)
+
+        return None
+
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)
 
@@ -872,11 +928,6 @@ class ExpressionTempVariableRef(
 
         else:
             return True
-
-    @staticmethod
-    def isKnownToBeIterableAtMin(count):
-        # TODO: See through the variable current trace.
-        return None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

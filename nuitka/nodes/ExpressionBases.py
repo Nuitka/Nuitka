@@ -46,6 +46,10 @@ class ExpressionBase(NodeBase):
     def getTypeShape():
         return tshape_unknown
 
+    def getIterationValue(self, count):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def getValueShape(self):
         return self
 
@@ -99,6 +103,21 @@ class ExpressionBase(NodeBase):
         """
 
         # Virtual method, pylint: disable=no-self-use
+        return None
+
+    def getNextValueShape(self):
+        """Shape of the next value produced by this node, if known."""
+
+        iteration_length = self.getIterationLength()
+
+        if iteration_length == 0:
+            return None
+
+        result = self.getIterationValue(0)
+
+        if result is not None:
+            return result.getTypeShape()
+
         return None
 
     def getIterationMinLength(self):

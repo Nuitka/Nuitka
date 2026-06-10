@@ -690,6 +690,20 @@ class ShapeTypeIntOrLongDerived(ShapeTypeUnknown):
 tshape_int_or_long_derived = ShapeTypeIntOrLongDerived()
 
 
+def isNuitkaIntOrLongShape(shape):
+    """Check whether a shape belongs to Nuitka's int-or-long family."""
+
+    if shape is None:
+        return False
+
+    return shape in (
+        tshape_int,
+        tshape_long,
+        tshape_int_or_long,
+        tshape_int_or_long_derived,
+    )
+
+
 class ShapeTypeFloat(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     __slots__ = ()
 
