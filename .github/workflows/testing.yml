@@ -24,52 +24,9 @@ env:
   NUITKA_CACHE_DIR: ~/.cache/Nuitka
 
 jobs:
-  check-pylint:
+  checks:
     runs-on: ubuntu-24.04
-    name: Check / PyLint
-    steps:
-      - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
-        with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
-
-      - name: 🐍 Use Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: "3.11"
-          enable-cache: true
-
-      - name: 🧳 Install Nuitka and dependencies
-        run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
-      - name: 🔧 Cache PyLint results
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pylint
-          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
-          restore-keys: pylint-${{ runner.os }}-
-
-      - name: 🔎 PyLint on Nuitka source code
-        run: |
-          python ./bin/check-nuitka-with-pylint
-
-
-  check-format:
-    runs-on: ubuntu-24.04
-    name: Check / Format & Codegen
+    name: Check / All
     steps:
       - name: 🛎️ Checkout
         uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
@@ -95,10 +52,20 @@ jobs:
       - name: 🧳 Install Nuitka and dependencies
         run: |
           sudo rm -f /usr/bin/clang-format
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r nuitka/utils/requirements-private.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements.txt
+          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r nuitka/utils/requirements-private.txt -r requirements-devel.txt -r requirements.txt
           uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
         shell: bash
+
+      - name: 🔧 Cache PyLint results
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pylint
+          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
+          restore-keys: pylint-${{ runner.os }}-
+
+      - name: 🔎 PyLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-pylint
 
       - name: 🔧 Cache Nuitka downloads
         uses: actions/cache@v4
@@ -118,37 +85,6 @@ jobs:
         run: |
           python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
 
-  check-codegen:
-    runs-on: ubuntu-24.04
-    name: Check / Codegen
-    steps:
-      - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
-        with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
-
-      - name: 🐍 Use Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: "3.11"
-          enable-cache: true
-
-      - name: 🧳 Install Nuitka
-        run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
       - name: 🔎 Specialized C code check
         run: |
           python ./bin/generate-specialized-c-code --check
@@ -156,37 +92,6 @@ jobs:
       - name: 🔎 Specialized Python code check
         run: |
           python ./bin/generate-specialized-python-code --check
-
-  check-lint:
-    runs-on: ubuntu-24.04
-    name: Check / Lint
-    steps:
-      - name: 🛎️ Checkout
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
-        with:
-          action: actions/checkout@v4
-          with: |
-            fetch-depth: 1
-            fetch-tags: false
-          attempt_limit: 3
-          attempt_delay: 120000
-
-      - name: 🐍 Use Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: "3.11"
-          enable-cache: true
-
-      - name: 🧳 Install Nuitka and dependencies
-        run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
 
       - name: 🔎 RestLint on Nuitka source code
         run: |
@@ -201,7 +106,7 @@ jobs:
           python ./bin/check-nuitka-with-codespell
 
   linux:
-    needs: [check-pylint, check-format, check-codegen, check-lint]
+    needs: checks
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
