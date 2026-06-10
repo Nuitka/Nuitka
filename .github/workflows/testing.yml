@@ -21,12 +21,11 @@ permissions:
 
 env:
   NUITKA_UPDATE_CHECK: "never"
-  NUITKA_CACHE_DIR: ~/.cache/Nuitka
 
 jobs:
   checks:
     runs-on: ubuntu-24.04
-    name: Check / All
+    name: Checks
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v4
