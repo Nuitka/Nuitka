@@ -31,10 +31,10 @@ def checkVersion():
     if _pylint_version is None:
         try:
             import pylint
-
-            _pylint_version = getattr(pylint, "__version__", None)
-        except Exception:
+        except ImportError:
             _pylint_version = None
+        else:
+            _pylint_version = getattr(pylint, "__version__", None)
 
         if _pylint_version is None:
             with getNullOutput() as null_output:
