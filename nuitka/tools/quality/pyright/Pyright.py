@@ -41,7 +41,10 @@ def _findPyrightBinary(basedpyright):
     pyright_binary = getExecutablePath(binary_name, extra_dir=extra_path)
 
     if pyright_binary is None:
-        return None
+        sys.exit(
+            "Error, %s is not installed. Install it with 'npm install -g %s'."
+            % (binary_name, binary_name)
+        )
 
     return pyright_binary
 
@@ -63,9 +66,6 @@ def getPyrightVersion(basedpyright):
 
     if _pyright_version is None:
         pyright_binary = _findPyrightBinary(basedpyright=basedpyright)
-
-        if pyright_binary is None:
-            return None
 
         version_output = check_output([pyright_binary, "--version"])
 
@@ -89,13 +89,6 @@ def _buildPyrightCommand(filenames, extra_options, basedpyright):
         List of command arguments.
     """
     pyright_binary = _findPyrightBinary(basedpyright=basedpyright)
-
-    if pyright_binary is None:
-        binary_name = "basedpyright" if basedpyright else "pyright"
-        sys.exit(
-            "Error, %s is not installed. Install it with 'npm install -g %s'."
-            % (binary_name, binary_name)
-        )
 
     command = [pyright_binary]
 
@@ -183,12 +176,6 @@ def executePyright(filenames, verbose, basedpyright):
     filenames = list(filenames)
 
     version = getPyrightVersion(basedpyright=basedpyright)
-    if version is None:
-        tool_name = "basedpyright" if basedpyright else "pyright"
-        sys.exit(
-            "Error, %s is not installed. Install it with 'npm install -g %s'."
-            % (tool_name, tool_name)
-        )
 
     tool_name = "basedpyright" if basedpyright else "pyright"
     my_print("Using %s version:" % tool_name, version)

@@ -27,65 +27,59 @@ jobs:
     runs-on: ubuntu-24.04
     name: Checks
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: "3.11"
-          enable-cache: true
-
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          sudo rm -f /usr/bin/clang-format
-          uv pip install --python "$(command -v python)" -r requirements-devel.txt .
-        shell: bash
-
-      - name: 🔧 Cache PyLint results
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pylint
-          key: pylint-${{ runner.os }}-${{ hashFiles('requirements-devel.txt') }}
-          restore-keys: pylint-${{ runner.os }}-
+          sudo apt-get update
+          sudo apt-get install patchelf gdb ccache libfuse2
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔎 PyLint on Nuitka source code
         run: |
           python ./bin/check-nuitka-with-pylint
-
-      - name: 🔧 Cache Nuitka downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
-          restore-keys: nuitka-downloads-${{ runner.os }}-
-
-      - name: 🔧 Cache autoformat results
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/autoformat
-          key: nuitka-autoformat-${{ runner.os }}-${{ hashFiles('nuitka/utils/requirements-private.txt') }}
-          restore-keys: nuitka-autoformat-${{ runner.os }}-
-
-      - name: 🔎 Auto-format check on Nuitka source code
-        run: |
-          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
-
-      - name: 🔎 Specialized C code check
-        run: |
-          python ./bin/generate-specialized-c-code --check
-
-      - name: 🔎 Specialized Python code check
-        run: |
-          python ./bin/generate-specialized-python-code --check
 
       - name: 🔎 RestLint on Nuitka source code
         run: |
@@ -99,11 +93,22 @@ jobs:
         run: |
           python ./bin/check-nuitka-with-codespell
 
+      - name: 🔎 Auto-format check on Nuitka source code
+        run: |
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
+
+      - name: 🔎 Specialized C code check
+        run: |
+          python ./bin/generate-specialized-c-code --check
+
+      - name: 🔎 Specialized Python code check
+        run: |
+          python ./bin/generate-specialized-python-code --check
+
   linux:
     needs: checks
     runs-on: ubuntu-24.04
     strategy:
-      fail-fast: false
       matrix:
         python_version:
           - "3.8"
@@ -115,56 +120,55 @@ jobs:
           - "3.14"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: ${{ matrix.python_version }}
-          enable-cache: true
-
-      - name: 📦 Cache apt packages
-        id: apt-cache
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: apt-${{ runner.os }}-patchelf-gdb-ccache-libfuse2
-          restore-keys: apt-${{ runner.os }}-
-
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          if [ "${{ steps.apt-cache.outputs.cache-hit }}" != "true" ]; then
-            sudo apt-get update
-          fi
+          sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
-      - name: 🔧 Cache ccache data
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('requirements.txt', 'requirements-devel.txt') }}
-          restore-keys: |
-            ccache-${{ runner.os }}-${{ matrix.python_version }}-
-            ccache-${{ runner.os }}-
-
-      - name: 🔧 Cache Nuitka downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
-          restore-keys: nuitka-downloads-${{ runner.os }}-
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
@@ -182,7 +186,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
-
           path: |
             *.xml
             standalone-binary-readelf.txt
@@ -206,7 +209,6 @@ jobs:
     needs: linux
     runs-on: macos-latest
     strategy:
-      fail-fast: false
       matrix:
         python_version:
           - "3.9"
@@ -217,22 +219,48 @@ jobs:
           - "3.14"
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
-
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: ${{ matrix.python_version }}
-          enable-cache: true
 
       - name: ⚙️ Verbose installation output for Python
         run: |
@@ -242,39 +270,10 @@ jobs:
           otool -l $(which python)
           ls -lR $(dirname $(dirname $(which python)))
 
-      - name: 📦 Cache Homebrew downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/Homebrew/downloads
-          key: homebrew-${{ runner.os }}-${{ runner.arch }}-ccache
-
-      - name: 📦 Install system dependencies
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
-        run: brew install ccache
-
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
-      - name: 🔧 Cache ccache data
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.python_version }}-${{ hashFiles('requirements.txt', 'requirements-devel.txt') }}
-          restore-keys: |
-            ccache-${{ runner.os }}-${{ matrix.python_version }}-
-            ccache-${{ runner.os }}-
-
-      - name: 🔧 Cache Nuitka downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
-          restore-keys: nuitka-downloads-${{ runner.os }}-
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -314,7 +313,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
-
           path: |
             *.xml
 
@@ -340,7 +338,6 @@ jobs:
     needs: linux
     runs-on: windows-latest
     strategy:
-      fail-fast: false
       matrix:
         python_version:
           - "3.7"
@@ -353,37 +350,55 @@ jobs:
           - "3.14"
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: ${{ matrix.python_version }}
-          enable-cache: true
-
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
-      - name: 🔧 Cache Nuitka downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
-          restore-keys: nuitka-downloads-${{ runner.os }}-
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -399,7 +414,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
-
           path: |
             *.xml
 
@@ -413,7 +427,6 @@ jobs:
     needs: linux
     runs-on: windows-11-arm
     strategy:
-      fail-fast: false
       matrix:
         python_version:
           - "3.11"
@@ -422,22 +435,48 @@ jobs:
           - "3.14"
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
-      - name: 🛎️ Checkout
+      - name: 🛎️ Checkout (Attempt 1)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout
+
+      - name: ⏳ Wait for checkout retry 1
+        if: steps.checkout.outcome == 'failure'
+        run: sleep 120s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 2)
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        continue-on-error: true
+        id: checkout_retry_1
+
+      - name: ⏳ Wait for checkout retry 2
+        if: steps.checkout_retry_1.outcome == 'failure'
+        run: sleep 300s
+        shell: bash
+
+      - name: 🛎️ Checkout (Attempt 3)
+        if: steps.checkout_retry_1.outcome == 'failure'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          filter: blob:none
+        id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
-
-      - name: 🧰 Set up uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: ${{ matrix.python_version }}
-          enable-cache: true
 
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -445,16 +484,8 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" -r requirements-devel.txt
-          uv pip install --python "$(python -c 'import sys; print(sys.executable)')" .
-        shell: bash
-
-      - name: 🔧 Cache Nuitka downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Nuitka/downloads
-          key: nuitka-downloads-${{ runner.os }}-${{ runner.arch }}
-          restore-keys: nuitka-downloads-${{ runner.os }}-
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -470,7 +501,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: compilation-reports-${{ runner.os }}-arm64-${{ matrix.python_version }}
-
           path: |
             *.xml
 
