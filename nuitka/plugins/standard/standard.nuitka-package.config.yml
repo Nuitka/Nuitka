@@ -641,8 +641,6 @@
     - patterns:
         - '*.json'
 
-- module-name: 'brotli._brotli' # checksum: cbbec2a6
-
 - module-name: 'bsdiff4' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -2262,8 +2260,6 @@
         '_load_toml': 'un-callable'
       when: 'standalone'
 
-- module-name: 'ipcqueue' # checksum: cbbec2a6
-
 - module-name: 'IPython.core.oinspect' # checksum: e7304002
   implicit-imports:
     - depends:
@@ -3257,8 +3253,6 @@
     - description: 'avoid test module usage'
       no-auto-follow:
         'test': 'ignore'
-
-- module-name: 'nacl._sodium' # checksum: cbbec2a6
 
 - module-name: 'names' # checksum: 4b523fa4
   data-files:
@@ -4462,8 +4456,6 @@
       replacements_plain:
         "os.getenv('PURE_PYTHON')": '"1"'
         "os.environ.get('PURE_PYTHON')": '"1"'
-
-- module-name: 'persistent.ring' # checksum: cbbec2a6
 
 - module-name: 'phonenumbers.data' # checksum: ed193c22
   implicit-imports:
