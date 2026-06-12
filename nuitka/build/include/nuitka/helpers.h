@@ -179,7 +179,6 @@ extern PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel);
 extern PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence);
 extern PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
 extern PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables);
-extern PyObject *BUILTIN_ZIP0(PyThreadState *tstate);
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1(PyObject *arg);

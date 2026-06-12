@@ -119,15 +119,12 @@ def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
 def generateBuiltinZipCode(to_name, expression, emit, context):
     values_name = context.allocateTempName("zip_iterables")
 
-    if len(expression.subnode_values) == 0:
-        emit("%s = MAKE_TUPLE_EMPTY(tstate, 0);" % (values_name,))
-    else:
-        getTupleCreationCode(
-            to_name=values_name,
-            elements=expression.subnode_values,
-            emit=emit,
-            context=context,
-        )
+    getTupleCreationCode(
+        to_name=values_name,
+        elements=expression.subnode_values,
+        emit=emit,
+        context=context,
+    )
 
     with withObjectCodeTemporaryAssignment(
         to_name, "zip_value", expression, emit, context
@@ -137,21 +134,6 @@ def generateBuiltinZipCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=result_name,
             release_name=values_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.addCleanupTempName(result_name)
-
-
-def generateBuiltinZip0Code(to_name, expression, emit, context):
-    with withObjectCodeTemporaryAssignment(
-        to_name, "zip_value", expression, emit, context
-    ) as result_name:
-        emit("%s = BUILTIN_ZIP0(tstate);" % (result_name,))
-
-        getErrorExitCode(
-            check_name=result_name,
             emit=emit,
             context=context,
         )

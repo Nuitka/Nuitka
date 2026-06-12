@@ -50,7 +50,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinIter2,
     ExpressionBuiltinZip,
-    ExpressionBuiltinZip0,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import (
@@ -286,17 +285,6 @@ def next_extractor(node):
 
 
 def enumerate_extractor(node):
-    if node.subnode_args is None:
-        if python_version < 0x3B0:
-            message = "enumerate() missing required argument 'iterable' (pos 1)"
-        else:
-            message = "enumerate() missing required argument 'iterable'"
-
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression=node,
-            exception=TypeError(message),
-        )
-
     def selectEnumerateBuiltin(sequence, start, source_ref):
         if start is None:
             return ExpressionBuiltinEnumerate1(sequence=sequence, source_ref=source_ref)
@@ -313,9 +301,6 @@ def enumerate_extractor(node):
 
 
 def zip_extractor(node):
-    if node.subnode_args is None:
-        return ExpressionBuiltinZip0(source_ref=node.getSourceReference())
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=ExpressionBuiltinZip,

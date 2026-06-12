@@ -155,13 +155,6 @@ class ExpressionBuiltinEnumerateMixin(object):
     def getTypeShape():
         return tshape_iterator
 
-    def getEnumerateChildren(self):
-        return (self.subnode_sequence,)
-
-    @staticmethod
-    def getEnumerateStartInteger():
-        return 0
-
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
 
@@ -182,88 +175,6 @@ class ExpressionBuiltinEnumerateMixin(object):
     def getIterationLength(self):
         return self.subnode_sequence.getIterationLength()
 
-    def canPredictIterationValues(self):
-        return (
-            self.subnode_sequence.canPredictIterationValues()
-            and self.getEnumerateStartInteger() is not None
-        )
-
-    def getIterationValue(self, element_index):
-        start_value = self.getEnumerateStartInteger()
-
-        if start_value is None:
-            return None
-
-        sequence_value = self.subnode_sequence.getIterationValue(element_index)
-
-        if sequence_value is None:
-            return None
-
-        from .ConstantRefNodes import makeConstantRefNode
-        from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-
-        return makeExpressionMakeTupleOrConstant(
-            elements=(
-                makeConstantRefNode(
-                    constant=start_value + element_index,
-                    source_ref=self.source_ref,
-                ),
-                sequence_value,
-            ),
-            user_provided=False,
-            source_ref=self.source_ref,
-        )
-
-    def getIterationHandle(self):
-        start_value = self.getEnumerateStartInteger()
-
-        if start_value is None:
-            return None
-
-        sequence_handle = self.subnode_sequence.getIterationHandle()
-
-        if sequence_handle is None:
-            return None
-
-        from .IterationHandles import EnumerateIterationHandle
-
-        return EnumerateIterationHandle(
-            iteration_handle=sequence_handle,
-            start=start_value,
-            source_ref=self.source_ref,
-        )
-
-    def computeExpressionNext1(self, next_node, trace_collection):
-        sequence = self.subnode_sequence
-        start_value = self.getEnumerateStartInteger()
-
-        if (
-            start_value is not None
-            and sequence.isKnownToBeIterableAtMin(1)
-            and sequence.canPredictIterationValues()
-        ):
-            result = self.getIterationValue(0)
-
-            if result is not None:
-                result = wrapExpressionWithSideEffects(
-                    side_effects=self.getEnumerateChildren(),
-                    old_node=self,
-                    new_node=result,
-                )
-
-                return False, (
-                    result,
-                    "new_expression",
-                    "Predicted 'next' value from built-in enumerate.",
-                )
-
-        self.onContentEscapes(trace_collection)
-
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return True, (next_node, None, None)
-
     def mayRaiseException(self, exception_type):
         sequence = self.subnode_sequence
 
@@ -273,22 +184,63 @@ class ExpressionBuiltinEnumerateMixin(object):
         if not sequence.getTypeShape().hasShapeSlotIter():
             return True
 
-        for child in self.getEnumerateChildren():
-            if child.mayRaiseException(exception_type):
-                return True
+        return False
+
+
+class ExpressionBuiltinEnumerate1(
+    ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE1"
+
+    named_children = ("sequence",)
+
+    def __init__(self, sequence, source_ref):
+        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinEnumerate2(
+    ExpressionBuiltinEnumerateMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE2"
+
+    named_children = ("sequence", "start")
+
+    def __init__(self, sequence, start, source_ref):
+        ChildrenHavingSequenceStartMixin.__init__(
+            self,
+            sequence=sequence,
+            start=start,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def mayRaiseException(self, exception_type):
+        if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
+            return True
+
+        if self.subnode_start.mayRaiseException(exception_type):
+            return True
 
         return False
 
 
-class ExpressionBuiltinZipMixin(object):
-    __slots__ = ()
+class ExpressionBuiltinZip(ChildHavingValuesTupleMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_ZIP"
+
+    named_children = ("values|tuple",)
+
+    builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
+
+    def __init__(self, values, source_ref):
+        ChildHavingValuesTupleMixin.__init__(self, values=values)
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def getTypeShape():
         return tshape_iterator
-
-    def getZipChildren(self):
-        return self.subnode_values
 
     def computeExpression(self, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -334,57 +286,6 @@ class ExpressionBuiltinZipMixin(object):
 
         return min(lengths)
 
-    def canPredictIterationValues(self):
-        for value in self.subnode_values:
-            if not value.canPredictIterationValues():
-                return False
-
-        return True
-
-    def getIterationHandle(self):
-        from .IterationHandles import ZipIterationHandle
-
-        iteration_handles = []
-
-        for value in self.subnode_values:
-            iteration_handle = value.getIterationHandle()
-
-            if iteration_handle is None:
-                return None
-
-            iteration_handles.append(iteration_handle)
-
-        return ZipIterationHandle(
-            iteration_handles=tuple(iteration_handles), source_ref=self.source_ref
-        )
-
-    def computeExpressionNext1(self, next_node, trace_collection):
-        if self.isKnownToBeIterableAtMin(1) and self.canPredictIterationValues():
-            iteration_handle = self.getIterationHandle()
-
-            if iteration_handle is not None:
-                result = iteration_handle.getNextValueExpression()
-
-                if result is not None:
-                    result = wrapExpressionWithSideEffects(
-                        side_effects=self.getZipChildren(),
-                        old_node=self,
-                        new_node=result,
-                    )
-
-                    return False, (
-                        result,
-                        "new_expression",
-                        "Predicted 'next' value from built-in zip.",
-                    )
-
-        self.onContentEscapes(trace_collection)
-
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return True, (next_node, None, None)
-
     def mayRaiseException(self, exception_type):
         for value in self.subnode_values:
             if value.mayRaiseException(exception_type):
@@ -393,104 +294,6 @@ class ExpressionBuiltinZipMixin(object):
             if value.getTypeShape().hasShapeSlotIter() is False:
                 return True
 
-        return False
-
-
-class ExpressionBuiltinEnumerate1(
-    ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
-):
-    kind = "EXPRESSION_BUILTIN_ENUMERATE1"
-
-    named_children = ("sequence",)
-
-    def __init__(self, sequence, source_ref):
-        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
-
-        ExpressionBase.__init__(self, source_ref)
-
-
-class ExpressionBuiltinEnumerate2(
-    ExpressionBuiltinEnumerateMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
-):
-    kind = "EXPRESSION_BUILTIN_ENUMERATE2"
-
-    named_children = ("sequence", "start")
-
-    def __init__(self, sequence, start, source_ref):
-        ChildrenHavingSequenceStartMixin.__init__(
-            self,
-            sequence=sequence,
-            start=start,
-        )
-
-        ExpressionBase.__init__(self, source_ref)
-
-    def getEnumerateChildren(self):
-        return (self.subnode_sequence, self.subnode_start)
-
-    def getEnumerateStartInteger(self):
-        return self.subnode_start.getIntegerValue()
-
-
-class ExpressionBuiltinZip(
-    ExpressionBuiltinZipMixin, ChildHavingValuesTupleMixin, ExpressionBase
-):
-    kind = "EXPRESSION_BUILTIN_ZIP"
-
-    named_children = ("values|tuple",)
-
-    builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
-
-    def __init__(self, values, source_ref):
-        ChildHavingValuesTupleMixin.__init__(self, values=values)
-
-        ExpressionBase.__init__(self, source_ref)
-
-
-class ExpressionBuiltinZip0(ExpressionBase):
-    kind = "EXPRESSION_BUILTIN_ZIP0"
-
-    __slots__ = ()
-
-    def finalize(self):
-        del self.parent
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_iterator
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
-    def computeExpression(self, trace_collection):
-        self.onContentEscapes(trace_collection)
-
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
-
-    def getIterationLength(self):
-        return 0
-
-    @staticmethod
-    def canPredictIterationValues():
-        return True
-
-    def getIterationHandle(self):
-        from .IterationHandles import ZipIterationHandle
-
-        return ZipIterationHandle(iteration_handles=(), source_ref=self.source_ref)
-
-    def computeExpressionNext1(self, next_node, trace_collection):
-        self.onContentEscapes(trace_collection)
-
-        trace_collection.onControlFlowEscape(self)
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return True, (next_node, None, None)
-
-    def mayRaiseException(self, exception_type):
         return False
 
 
