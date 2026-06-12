@@ -19,6 +19,7 @@ from nuitka.utils.FileOperations import (
     getFileModificationTime,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
 
 
 def _getPathParts(filename):
@@ -147,6 +148,15 @@ Insist on PyLint to be installed. Default is %default.""",
 Watch files for changes. Default is %default.""",
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     return options, positional_args
@@ -161,13 +171,30 @@ def main():
 
     options, positional_args = _parseArguments()
 
-    if options.not_installed_is_no_error and not hasModule("pylint"):
-        tools_logger.warning(
-            "PyLint is not installed for this interpreter version: SKIPPED",
-            style="yellow",
-        )
+    if not hasModule("pylint"):
+        if options.not_installed_is_no_error:
+            tools_logger.warning(
+                "PyLint is not installed for this interpreter version: SKIPPED",
+                style="yellow",
+            )
 
-        return tools_logger.sysexit(exit_code=0)
+            return tools_logger.sysexit(exit_code=0)
+
+        if options.assume_yes_for_downloads:
+            tools_logger.info("Installing PyLint...")
+
+            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+                logger=tools_logger,
+                package_name="pylint",
+                module_name="pylint",
+                package_version=None,
+                force_update=False,
+                assume_yes_for_downloads=True,
+                reject_message="PyLint is needed for checking source code.",
+            )
+
+            if site_packages_folder is not None:
+                addPYTHONPATH(site_packages_folder)
 
     # Scan files for changes periodically, for use in Visual Code task to
     # present errors.
