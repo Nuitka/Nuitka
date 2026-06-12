@@ -74,7 +74,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔎 PyLint on Nuitka source code
@@ -167,7 +166,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
@@ -272,7 +270,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -397,7 +394,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -484,7 +480,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
