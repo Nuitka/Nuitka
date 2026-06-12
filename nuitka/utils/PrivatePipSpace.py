@@ -425,6 +425,11 @@ def _getPrivatePipBinaryPath(
             if isWin32Windows():
                 possible += ".exe"
 
+            # Clear any cached version check failure from the first
+            # attempt, since the binary was re-downloaded and might
+            # work now.
+            _check_required_version_cache.pop((possible, "--version"), None)
+
             if os.path.exists(possible):
                 ok, _message = _checkPrivatePipBinaryPath(
                     logger=logger,
@@ -762,6 +767,22 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
     return binary_path
 
 
+def getCodespellBinaryPath(logger, assume_yes_for_downloads):
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="codespell",
+            package_name="codespell",
+            module_name="codespell_lib",
+            dependencies=(),
+            check_binary=None,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Spell checking needs to use 'codespell'.",
+        )
+    )
+    return binary_path
+
+
 def getBlackBinaryPath(logger, assume_yes_for_downloads):
     """Get the path of the black binary from the private pip space."""
     binary_path, _site_packages_folder, _assume_yes_for_downloads = (
@@ -1043,7 +1064,8 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
                     return result
 
     actual_version = None
-    for line in version_output.splitlines():
+    version_lines = version_output.splitlines()
+    for line in version_lines:
         line = line.strip()
 
         if line.startswith(
@@ -1064,6 +1086,11 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         if line.startswith("clang-format version "):
             actual_version = line.split()[2]
             break
+
+    if not actual_version and len(version_lines) == 1:
+        candidate = version_lines[0].strip()
+        if re.match(r"^\d[\d.]*$", candidate):
+            actual_version = candidate
 
     if not actual_version:
         result = False, "Error, couldn't determine version output of '%s' ('%s')" % (
