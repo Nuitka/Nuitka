@@ -162,6 +162,61 @@ Allow download and execution of tools if needed. Default is %default.""",
     return options, positional_args
 
 
+def _watchPylint(options, positional_args):
+    prev_filenames = set()
+    prev_modification_times = {}
+
+    while True:
+        try:
+            filenames = _resolveFilenames(
+                options=options, positional_args=positional_args
+            )
+
+            # Check for changes
+            new_filenames = set(filenames)
+            new_modification_times = {}
+
+            for filename in filenames:
+                try:
+                    new_modification_times[filename] = getFileModificationTime(filename)
+                except OSError:
+                    new_modification_times[filename] = None
+
+            changed = new_filenames != prev_filenames
+            if not changed:
+                for filename, modification_time in new_modification_times.items():
+                    if (
+                        filename not in prev_modification_times
+                        or prev_modification_times[filename] != modification_time
+                    ):
+                        changed = True
+                        break
+
+            if changed:
+                my_print(">>> Pylint Start")
+                try:
+                    executePyLint(
+                        filenames=filenames,
+                        show_todo=options.todo,
+                        verbose=options.verbose,
+                        one_by_one=options.one_by_one,
+                    )
+                except SystemExit:
+                    pass
+
+                my_print(">>> Pylint End")
+
+                prev_filenames = new_filenames
+                prev_modification_times = new_modification_times
+
+            time.sleep(0.5)
+
+        except KeyboardInterrupt:
+            break
+
+    return tools_logger.sysexit(exit_code=0)
+
+
 def main():
     setup(go_main=False)
 
@@ -196,63 +251,8 @@ def main():
             if site_packages_folder is not None:
                 addPYTHONPATH(site_packages_folder)
 
-    # Scan files for changes periodically, for use in Visual Code task to
-    # present errors.
     if options.watch:
-        prev_filenames = set()
-        prev_modification_times = {}
-
-        while True:
-            try:
-                filenames = _resolveFilenames(
-                    options=options, positional_args=positional_args
-                )
-
-                # Check for changes
-                new_filenames = set(filenames)
-                new_modification_times = {}
-
-                for filename in filenames:
-                    try:
-                        new_modification_times[filename] = getFileModificationTime(
-                            filename
-                        )
-                    except OSError:
-                        new_modification_times[filename] = None
-
-                changed = new_filenames != prev_filenames
-                if not changed:
-                    for filename, modification_time in new_modification_times.items():
-                        if (
-                            filename not in prev_modification_times
-                            or prev_modification_times[filename] != modification_time
-                        ):
-                            changed = True
-                            break
-
-                if changed:
-                    my_print(">>> Pylint Start")
-                    try:
-                        executePyLint(
-                            filenames=filenames,
-                            show_todo=options.todo,
-                            verbose=options.verbose,
-                            one_by_one=options.one_by_one,
-                        )
-                    except SystemExit:
-                        pass
-
-                    my_print(">>> Pylint End")
-
-                    prev_filenames = new_filenames
-                    prev_modification_times = new_modification_times
-
-                time.sleep(0.5)
-
-            except KeyboardInterrupt:
-                break
-
-        return tools_logger.sysexit(exit_code=0)
+        return _watchPylint(options=options, positional_args=positional_args)
 
     filenames = _resolveFilenames(options=options, positional_args=positional_args)
 
