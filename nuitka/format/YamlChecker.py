@@ -191,7 +191,13 @@ def checkOrUpdateChecksum(filename, update, logger):
             cleanupWindowsNewlines(filename, filename)
 
 
-def checkYamlSchema(logger, filename, effective_filename, update):
+def checkYamlSchema(
+    logger,
+    filename,
+    effective_filename,
+    update,
+    assume_yes_for_downloads,
+):
     """Check the YAML schema and values, and update checksums.
 
     This is the main entry point for YAML checking of package configs.
@@ -201,12 +207,13 @@ def checkYamlSchema(logger, filename, effective_filename, update):
         filename: current path to the YAML file
         effective_filename: name to use for reports (e.g. repo path)
         update: if checksums should be updated in the file
+        assume_yes_for_downloads: if tools should be downloaded automatically
     """
     checkSchema(
         logger,
         filename,
         effective_filename=effective_filename,
-        assume_yes_for_downloads=False,
+        assume_yes_for_downloads=assume_yes_for_downloads,
     )
     _checkValues(logger, filename, effective_filename=effective_filename)
     checkOrUpdateChecksum(filename=filename, update=update, logger=logger)
