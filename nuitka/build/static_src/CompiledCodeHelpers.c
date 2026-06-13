@@ -1293,6 +1293,24 @@ struct Nuitka_QuickIterator {
     } iterator_data;
 };
 
+// TODO: Accept PyObject ** with a count to avoid the intermediate args array.
+PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence) {
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)&PyEnum_Type, sequence);
+}
+
+PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start) {
+    PyObject *args[2] = {sequence, start};
+
+    return CALL_FUNCTION_WITH_ARGS2(tstate, (PyObject *)&PyEnum_Type, args);
+}
+
+// TODO: Accept PyObject ** with a count to avoid the intermediate tuple object.
+PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
+    CHECK_OBJECT(iterables);
+
+    return CALL_FUNCTION_WITH_POS_ARGS(tstate, (PyObject *)&PyZip_Type, iterables);
+}
+
 static bool MAKE_QUICK_ITERATOR(PyThreadState *tstate, PyObject *sequence, struct Nuitka_QuickIterator *qiter) {
     if (Nuitka_Generator_Check(sequence)) {
         qiter->iterator_mode = ITERATOR_COMPILED_GENERATOR;

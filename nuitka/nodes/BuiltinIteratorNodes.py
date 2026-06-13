@@ -11,9 +11,15 @@ good.
 """
 
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
-from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ChildrenHavingMixins import (
+    ChildHavingSequenceMixin,
+    ChildHavingValuesTupleMixin,
+    ChildrenHavingSequenceStartMixin,
+)
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
@@ -140,6 +146,155 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
+
+
+class ExpressionBuiltinEnumerateMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            return self.subnode_sequence.getTypeShape().hasShapeSlotIter()
+
+        return self.subnode_sequence.isKnownToBeIterable(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        return self.subnode_sequence.isKnownToBeIterableAtMin(count)
+
+    def getIterationLength(self):
+        return self.subnode_sequence.getIterationLength()
+
+    def mayRaiseException(self, exception_type):
+        sequence = self.subnode_sequence
+
+        if sequence.mayRaiseException(exception_type):
+            return True
+
+        if not sequence.getTypeShape().hasShapeSlotIter():
+            return True
+
+        return False
+
+
+class ExpressionBuiltinEnumerate1(
+    ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE1"
+
+    named_children = ("sequence",)
+
+    def __init__(self, sequence, source_ref):
+        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinEnumerate2(
+    ExpressionBuiltinEnumerateMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE2"
+
+    named_children = ("sequence", "start")
+
+    def __init__(self, sequence, start, source_ref):
+        ChildrenHavingSequenceStartMixin.__init__(
+            self,
+            sequence=sequence,
+            start=start,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def mayRaiseException(self, exception_type):
+        if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
+            return True
+
+        if self.subnode_start.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+
+class ExpressionBuiltinZip(ChildHavingValuesTupleMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_ZIP"
+
+    named_children = ("values|tuple",)
+
+    builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
+
+    def __init__(self, values, source_ref):
+        ChildHavingValuesTupleMixin.__init__(self, values=values)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            for value in self.subnode_values:
+                if value.getTypeShape().hasShapeSlotIter() is False:
+                    return False
+
+            return True
+
+        return self.isKnownToBeIterableAtMin(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        if not self.subnode_values:
+            return count == 0
+
+        for value in self.subnode_values:
+            if not value.isKnownToBeIterableAtMin(count):
+                return False
+
+        return True
+
+    def getIterationLength(self):
+        lengths = []
+
+        for value in self.subnode_values:
+            iteration_length = value.getIterationLength()
+
+            if iteration_length is None:
+                return None
+
+            lengths.append(iteration_length)
+
+        if not lengths:
+            return 0
+
+        return min(lengths)
+
+    def mayRaiseException(self, exception_type):
+        for value in self.subnode_values:
+            if value.mayRaiseException(exception_type):
+                return True
+
+            if value.getTypeShape().hasShapeSlotIter() is False:
+                return True
+
+        return False
 
 
 class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):

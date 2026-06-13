@@ -567,6 +567,36 @@ class ForLoops(Test):
             pass
 
 
+class EnumerateLoops(Test):
+
+    version = 2.0
+    operations = 5 * (100 + 100 + 100)
+    rounds = 1000
+
+    def test(self):
+
+        values = range(100)
+        values_list = list(values)
+
+        for i in xrange(self.rounds):
+            for index, value in enumerate(values):
+                i = index + value
+
+            for index, value in enumerate(values_list):
+                i = index + value
+
+            for index, value in enumerate(values_list, 10):
+                i = index + value
+
+    def calibrate(self):
+
+        values = range(100)
+        values_list = list(values)
+
+        for i in xrange(self.rounds):
+            pass
+
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be

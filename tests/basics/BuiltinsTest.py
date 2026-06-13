@@ -755,6 +755,16 @@ print(x)
 for v in zip([1, 2, 3], "String"):
     print(v)
 
+print("Tests for enumerate():")
+print(list(enumerate("abc")))
+print(list(enumerate([1, 2, 3], 5)))
+print(next(enumerate("abc")))
+print(next(enumerate([1, 2, 3], 5)))
+try:
+    enumerate()
+except TypeError as e:
+    print("Occurred", type(e).__name__)
+
 # This used to crash, because of how variables are to be picked apart rather
 # that propagated as call argument.
 func = "{foo}".format
