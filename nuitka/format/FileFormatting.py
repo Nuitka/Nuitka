@@ -15,6 +15,7 @@ from nuitka.utils.PrivatePipSpace import (
     getClangFormatBinaryPath,
     withPrivatePipSitePackagesPathAdded,
 )
+from nuitka.utils.Utils import counted
 
 
 def cleanupWindowsNewlines(filename, effective_filename):
@@ -62,7 +63,6 @@ def cleanupTrailingWhitespace(filename):
         cleanupWindowsNewlines(filename, filename)
 
 
-_warned_clang_format = False
 _clang_format_path = False
 
 
@@ -74,7 +74,7 @@ def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
         assume_yes_for_downloads: bool
     """
     # pylint: disable=global-statement
-    global _warned_clang_format, _clang_format_path
+    global _clang_format_path
 
     if _clang_format_path is False:
         clang_format_path = getClangFormatBinaryPath(
@@ -88,14 +88,12 @@ def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
         else:
             return None
 
-    if (
-        _clang_format_path is None
-        and reject_message is not None
-        and not _warned_clang_format
-    ):
-        if logger is not None:
-            logger.warning("Need to accept clang-format download to format C files.")
-        _warned_clang_format = True
+    if _clang_format_path is None and reject_message is not None and logger is not None:
+        with counted("clang_format_warned") as count:
+            if count == 1:
+                logger.warning(
+                    "Need to accept clang-format download to format C files."
+                )
 
     return _clang_format_path
 

@@ -549,6 +549,20 @@ def isCoffUsingPlatform():
     return isAIX()
 
 
+_counted = {}
+
+
+@contextmanager
+def counted(key):
+    """Context manager that yields an incrementing count, starting from 1.
+
+    Each time the same key is used, the count increments.
+    """
+    count = _counted.get(key, 0) + 1
+    _counted[key] = count
+    yield count
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
