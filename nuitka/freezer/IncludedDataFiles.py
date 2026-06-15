@@ -26,6 +26,7 @@ from nuitka.options.Options import (
     getShallNotIncludeDataFilePatterns,
     isAcceleratedMode,
     isStandaloneMode,
+    isUnstripped,
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
@@ -39,6 +40,7 @@ from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     areSamePaths,
+    changeFilenameExtension,
     containsPathElements,
     copyFileWithPermissions,
     getFileContents,
@@ -57,7 +59,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.Utils import isAIX, isMacOS
+from nuitka.utils.Utils import counted, isAIX, isMacOS, isWin32Windows
 
 data_file_tags = []
 
@@ -136,7 +138,8 @@ class IncludedDataFile(object):
         the standalone distribution.
 
     Args:
-        kind: The kind of data file ("data_file" or "data_blob").
+        kind: The kind of data file ("data_file", "data_blob", or
+            "data_file_generated").
         source_path: The source path of the file (if kind is "data_file").
         dest_path: The destination path in the distribution.
         reason: The reason for inclusion.
@@ -206,10 +209,18 @@ class IncludedDataFile(object):
         """
         if self.kind == "data_file":
             return getFileContents(filename=self.source_path, mode="rb")
+        elif self.kind == "data_file_generated":
+            return getFileContents(
+                filename=os.path.join(
+                    getStandaloneDirectoryPath(bundle=True, real=True),
+                    self.dest_path,
+                ),
+                mode="rb",
+            )
         elif self.kind == "data_blob":
             return self.data
         else:
-            assert False
+            assert False, self.kind
 
     def getFileSize(self):
         """Get the size of the data file.
@@ -219,10 +230,17 @@ class IncludedDataFile(object):
         """
         if self.kind == "data_file":
             return getFileSize(self.source_path)
+        elif self.kind == "data_file_generated":
+            return getFileSize(
+                os.path.join(
+                    getStandaloneDirectoryPath(bundle=True, real=True),
+                    self.dest_path,
+                )
+            )
         elif self.kind == "data_blob":
             return len(self.data)
         else:
-            assert False
+            assert False, self.kind
 
 
 def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
@@ -549,6 +567,34 @@ def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     )
 
 
+def makeIncludedDataFileGenerated(dest_path, reason, tracer, tags):
+    """Create an included data file for a build-generated file already in place.
+
+    Notes:
+        Use this for files produced by the build process (e.g. PDB debug
+        symbols) that are already present at their destination and do not
+        need to be copied.
+
+    Args:
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with this file.
+
+    Returns:
+        IncludedDataFile: The created data file object.
+    """
+    return IncludedDataFile(
+        kind="data_file_generated",
+        source_path=None,
+        dest_path=dest_path,
+        data=None,
+        reason=reason,
+        tracer=tracer,
+        tags=tags,
+    )
+
+
 _included_data_files = []
 
 
@@ -604,6 +650,54 @@ Error, when asking to copy files external data, you cannot output to\
 same directory and need to use '--output-dir' option.""")
 
     _included_data_files.append(included_datafile)
+
+
+def addIncludedPdbFile(entry_point):
+    """Register a .pdb debug symbol file alongside a binary, if applicable.
+
+    Args:
+        entry_point: The IncludedEntryPoint for the binary.
+    """
+    if isWin32Windows() and isUnstripped():
+        pdb_source_candidate = changeFilenameExtension(
+            path=entry_point.source_path, extension=".pdb"
+        )
+
+        if os.path.exists(pdb_source_candidate):
+            pdb_dest = changeFilenameExtension(
+                path=entry_point.dest_path, extension=".pdb"
+            )
+
+            with counted("pdb_files_added") as count:
+                if count == 1:
+                    entry_point.logger.info(
+                        "Including debug symbol files (.pdb) for the distribution."
+                    )
+
+            pdb_dest_full = os.path.join(
+                getStandaloneDirectoryPath(bundle=True, real=False),
+                pdb_dest,
+            )
+
+            if pdb_source_candidate == pdb_dest_full:
+                addIncludedDataFile(
+                    makeIncludedDataFileGenerated(
+                        dest_path=pdb_dest,
+                        reason="Debug symbols for '%s'" % entry_point.dest_path,
+                        tracer=entry_point.logger,
+                        tags="pdb",
+                    )
+                )
+            else:
+                addIncludedDataFile(
+                    makeIncludedDataFile(
+                        source_path=pdb_source_candidate,
+                        dest_path=pdb_dest,
+                        reason="Debug symbols for '%s'" % entry_point.dest_path,
+                        tracer=entry_point.logger,
+                        tags="copy,pdb",
+                    )
+                )
 
 
 def getIncludedDataFiles():
@@ -966,7 +1060,7 @@ def _reportDataFiles():
                             reason,
                         )
                     )
-                elif kind == "data_file":
+                elif kind in ("data_file", "data_file_generated"):
                     tracer.info(
                         "Included data file '%s' due to %s."
                         % (
@@ -1058,6 +1152,8 @@ def _handleDataFile(included_datafile, standalone_entry_points):
             dest_path=dest_path,
             target_dir=dist_dir,
         )
+    elif included_datafile.kind == "data_file_generated":
+        pass
     else:
         assert False, included_datafile
 
