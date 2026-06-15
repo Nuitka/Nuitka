@@ -66,6 +66,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
+    is32BitPython,
     python_version,
     python_version_full_str,
     python_version_str,
@@ -164,8 +165,8 @@ def _getEvaluationContext():
             "win32": isWin32Windows(),
             "linux": isLinux(),
             "android": isAndroidBasedLinux(),
-            "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
-            "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
+            "android32": isAndroidBasedLinux() and is32BitPython(),
+            "android64": isAndroidBasedLinux() and not is32BitPython(),
             "anaconda": isAnacondaPython(),
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
