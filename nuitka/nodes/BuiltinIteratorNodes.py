@@ -48,7 +48,12 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         return self, "new_builtin", "Eliminated useless iterator creation."
 
     def getTypeShape(self):
-        return self.subnode_value.getTypeShape().getShapeIter()
+        result = self.subnode_value.getTypeShape().getShapeIter()
+
+        if result is None:
+            return tshape_iterator
+
+        return result
 
     def computeExpressionNext1(self, next_node, trace_collection):
         value = self.subnode_value

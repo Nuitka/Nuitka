@@ -250,6 +250,10 @@ class ExpressionDictShapeExactMixin(
     def isKnownToBeHashable():
         return False
 
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(
             constant=dict, node=self, user_provided=False
@@ -289,6 +293,10 @@ class ExpressionListShapeExactMixin(
     @staticmethod
     def isKnownToBeHashable():
         return False
+
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
 
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(
@@ -382,6 +390,10 @@ class ExpressionTupleShapeExactMixin(
     def isKnownToBeHashable():
         return None
 
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
 
 class ExpressionBoolShapeExactMixin(
     ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
@@ -442,6 +454,10 @@ class ExpressionStrShapeExactMixin(
     def isKnownToBeHashable():
         return True
 
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
 
 class ExpressionBytesShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
@@ -468,6 +484,10 @@ class ExpressionBytesShapeExactMixin(
 
     @staticmethod
     def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isKnownToBeIndexable():
         return True
 
 
@@ -497,6 +517,10 @@ class ExpressionBytearrayShapeExactMixin(
     @staticmethod
     def isKnownToBeHashable():
         return False
+
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
 
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(
@@ -535,6 +559,10 @@ class ExpressionUnicodeShapeExactMixin(
     def isKnownToBeHashable():
         return True
 
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
 
 if str is not bytes:
     ExpressionStrOrUnicodeExactMixin = ExpressionStrShapeExactMixin
@@ -567,6 +595,10 @@ else:
 
         @staticmethod
         def isKnownToBeHashable():
+            return True
+
+        @staticmethod
+        def isKnownToBeIndexable():
             return True
 
 
@@ -845,6 +877,10 @@ class ExpressionStrDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
     def getTypeShape():
         return tshape_str_derived
 
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
 
 class ExpressionUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
     """Mixin for nodes with unicode derived shape."""
@@ -854,6 +890,10 @@ class ExpressionUnicodeDerivedShapeMixin(ExpressionSpecificDerivedMixinBase):
     @staticmethod
     def getTypeShape():
         return tshape_unicode_derived
+
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
 
 
 if str is not bytes:
@@ -868,6 +908,10 @@ else:
         @staticmethod
         def getTypeShape():
             return tshape_str_or_unicode_derived
+
+        @staticmethod
+        def isKnownToBeIndexable():
+            return True
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

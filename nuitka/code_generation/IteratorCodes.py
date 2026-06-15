@@ -206,37 +206,24 @@ def generateUnpackCheckCode(statement, emit, context):
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):
-    iteration_length_name = context.allocateTempName("iteration_length", unique=True)
-
-    generateExpressionCode(
-        to_name=iteration_length_name,
-        expression=statement.subnode_iterated_length,
-        emit=emit,
-        context=context,
-    )
-
     to_name = context.getBoolResName()
 
+    # TODO: Have a way to pass a C integer value to getRichComparisonCode
+    # without creating a temporary constant ref node.
     getRichComparisonCode(
         to_name=to_name,
         comparator="Gt",
         left=statement.subnode_iterated_length,
-        # Creating a temporary node on the fly, knowing it's not used for many
-        # things. TODO: Once we have value shapes, we ought to use those.
         right=makeConstantRefNode(
             constant=statement.count,
             source_ref=statement.source_ref,
             user_provided=True,
         ),
-        # We know that cannot fail.
         needs_check=False,
         source_ref=statement.source_ref,
         emit=emit,
         context=context,
     )
-
-    # TODO: Why is this necessary, to_name doesn't allow storage.
-    context.removeCleanupTempName(to_name)
 
     # TODO: This exception ought to have a creator function.
     emit("""

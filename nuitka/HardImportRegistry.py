@@ -243,6 +243,7 @@ module_os_trust = {
     "listdir": trust_node,
     "stat": trust_node,
     "lstat": trust_node,
+    "uname": trust_node,
     "curdir": trust_constant,
     "pardir": trust_constant,
     "sep": trust_constant,

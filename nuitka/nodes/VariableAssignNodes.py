@@ -473,6 +473,12 @@ class StatementAssignmentVariableIterator(
             temp_scope=self.temp_scope, name="iterated_value", temp_type="object"
         )
 
+        # Ensure temp variables are initialized in the active trace collection,
+        # not just the provider's (which can be stale or a different branch).
+        trace_collection.initVariableUninitialized(
+            self.tmp_iterated_variable, None
+        ).addUsage()
+
         reference_iterated = ExpressionTempVariableRef(
             variable=self.tmp_iterated_variable,
             source_ref=self.subnode_source.source_ref,
@@ -490,6 +496,10 @@ class StatementAssignmentVariableIterator(
             temp_scope=self.temp_scope, name="iteration_count", temp_type="object"
         )
 
+        trace_collection.initVariableUninitialized(
+            self.tmp_iteration_count_variable, None
+        ).addUsage()
+
         assign_iteration_count = makeStatementAssignmentVariable(
             source=makeConstantRefNode(constant=0, source_ref=self.source_ref),
             variable=self.tmp_iteration_count_variable,
@@ -497,7 +507,7 @@ class StatementAssignmentVariableIterator(
         )
 
         # TODO: Unclear what node this really is right now, need to try out.
-        self.subnode_source.setChildValue(reference_iterated)
+        self.subnode_source.replaceChild(iterated_value, reference_iterated)
 
         # Make sure variable trace is computed.
         assign_iterated.computeStatement(trace_collection)
@@ -514,6 +524,10 @@ class StatementAssignmentVariableIterator(
         self.tmp_iteration_next_variable = provider.allocateTempVariable(
             temp_scope=self.temp_scope, name="next_value", temp_type="object"
         )
+
+        trace_collection.initVariableUninitialized(
+            self.tmp_iteration_next_variable, None
+        ).addUsage()
 
         result = makeStatementsSequenceReplacementNode(
             (assign_iteration_count, assign_iterated, self), self
@@ -552,9 +566,7 @@ class StatementAssignmentVariableIterator(
 
                 if last_trace is not None:
                     # Might not be allowed, remember if it's not allowed, otherwise retry.
-                    self.is_indexable = (
-                        source.subnode_value.getTypeShape().hasShapeIndexLookup()
-                    )
+                    self.is_indexable = source.subnode_value.isKnownToBeIndexable()
 
                     if self.is_indexable:
                         return self._replaceWithDirectAccess(
