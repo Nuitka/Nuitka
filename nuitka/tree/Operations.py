@@ -18,7 +18,7 @@ def visitTree(tree, visitor):
             stack.append((node, True))
             for child in reversed(list(node.getVisitableNodes())):
                 if child is None:
-                    raise AssertionError("'None' child encountered", tree, node.source_ref)
+                    raise AssertionError("'None' child encountered", node, node.source_ref)
                 stack.append((child, False))
         else:
             visitor.onLeaveNode(node)
