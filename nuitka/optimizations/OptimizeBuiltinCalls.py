@@ -45,8 +45,12 @@ from nuitka.nodes.BuiltinIntegerNodes import (
     ExpressionBuiltinInt2,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionBuiltinEnumerate1,
+    ExpressionBuiltinEnumerate2,
     ExpressionBuiltinIter1,
     ExpressionBuiltinIter2,
+    ExpressionBuiltinZip,
+    ExpressionBuiltinZip310,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import (
@@ -279,6 +283,46 @@ def next_extractor(node):
         builtin_class=selectNextBuiltinClass,
         builtin_spec=BuiltinParameterSpecs.builtin_next_spec,
     )
+
+
+def enumerate_extractor(node):
+    def selectEnumerateBuiltin(sequence, start, source_ref):
+        if start is None:
+            return ExpressionBuiltinEnumerate1(sequence=sequence, source_ref=source_ref)
+        else:
+            return ExpressionBuiltinEnumerate2(
+                sequence=sequence, start=start, source_ref=source_ref
+            )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=selectEnumerateBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_enumerate_spec,
+    )
+
+
+def zip_extractor(node):
+    if python_version >= 0x3A0:
+
+        def selectZipBuiltin(values, strict, source_ref):
+            if strict is None:
+                return ExpressionBuiltinZip(values=values, source_ref=source_ref)
+            else:
+                return ExpressionBuiltinZip310(
+                    strict=strict, values=values, source_ref=source_ref
+                )
+
+        return BuiltinParameterSpecs.extractBuiltinArgs(
+            node=node,
+            builtin_class=selectZipBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_zip310_spec,
+        )
+    else:
+        return BuiltinParameterSpecs.extractBuiltinArgs(
+            node=node,
+            builtin_class=ExpressionBuiltinZip,
+            builtin_spec=BuiltinParameterSpecs.builtin_zip_spec,
+        )
 
 
 def sum_extractor(node):
@@ -1446,6 +1490,8 @@ _dispatch_dict = {
     "classmethod": classmethod_extractor,
     "divmod": divmod_extractor,
     "input": input_extractor,
+    "enumerate": enumerate_extractor,
+    "zip": zip_extractor,
 }
 
 if python_version < 0x300:
@@ -1486,11 +1532,6 @@ _builtin_ignore_list = (
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
     "sorted",
-    # TODO: This would be very worthwhile, as it could easily optimize
-    # its iteration away.
-    "zip",
-    # TODO: This would be most precious due to the type hint it gives
-    "enumerate",
     # TODO: Also worthwhile for known values.
     "reversed",
     # TODO: Not sure what this really is about.
