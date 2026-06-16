@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - develop
+      - integration
   push:
     branches:
       - main
       - develop
+      - integration
       - factory
       - release/**
       - hotfix/**
