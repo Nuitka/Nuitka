@@ -154,7 +154,9 @@ class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
                         "Removed dead statements.",
                     )
 
-                    for s in statements[statements.index(statement) + 1 :]:
+                    dead_statements = statements[count + 1 :]
+
+                    for s in dead_statements:
                         s.finalize()
 
                     break
