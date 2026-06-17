@@ -201,6 +201,9 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
                         "Removed dead statements.",
                     )
 
+                    for s in statements[count + 1 :]:
+                        s.finalize()
+
                     break
 
         if not new_statements:
