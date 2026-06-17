@@ -16,6 +16,7 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import (
     getFileSize,
+    getNormalizedPath,
     getNormalizedPathJoin,
     getReportPath,
     listDir,
@@ -846,9 +847,11 @@ def _addConstantBlobFileCode(env, blob_filename):
 
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
-    constants_generated_filename = os.path.join(
-        env.source_dir,
-        "__constants_data_%s.c" % blob_basename[:-4],
+    constants_generated_filename = getNormalizedPath(
+        os.path.join(
+            env.source_dir,
+            "__constants_data_%s.c" % blob_basename[:-4],
+        )
     )
 
     def writeConstantsDataSource():
