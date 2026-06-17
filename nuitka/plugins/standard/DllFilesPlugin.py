@@ -21,7 +21,7 @@ from nuitka.utils.Distributions import (
     isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import (
-    getNormalizedPath,
+    getNormalizedAbsPath,
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
 )
@@ -212,7 +212,7 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
 
     def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
         # Expecting absolute paths internally for DLL sources.
-        filename = getNormalizedPath(os.path.abspath(filename))
+        filename = getNormalizedAbsPath(filename)
 
         if dest_path is None:
             module_filename = self.locateModule(full_name)
