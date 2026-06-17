@@ -33,6 +33,7 @@ from .Utils import (
     getOS,
     isAlpineLinux,
     isAndroidBasedLinux,
+    isArchBasedLinux,
     isBSD,
     isCoffUsingPlatform,
     isDebianBasedLinux,
@@ -518,6 +519,7 @@ def checkPatchElfPresenceAndUsability(logger):
         version_tuple == (0, 18, 0)
         and not isDebianBasedLinux()
         and not isAndroidBasedLinux()
+        and not isArchBasedLinux()
         and not isFedoraBasedLinux()
         and not isSuseBasedLinux()
     ):
