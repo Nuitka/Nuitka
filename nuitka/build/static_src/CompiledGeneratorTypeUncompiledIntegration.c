@@ -541,7 +541,7 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf);
 
 // Private opcode mapping, that we need too
 const uint8_t Nuitka_PyOpcode_Deopt[256] = {
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3f0
     [120] = 120,
     [121] = 121,
     [122] = 122,
