@@ -2080,6 +2080,14 @@ def getNormalizedPathJoin(*paths):
     """
     return getNormalizedPath(os.path.join(*paths))
 
+def getNormalizedPathSep():
+    """Return the path separator as a normalized path that is also a native path,
+       i.e. only legal characters.
+
+    Needed, because MSYS2 likes to keep "/" in normalized paths.
+    """
+    return getNormalizedPath(os.path.sep)
+
 def getNormalizedAbsPath(path):
     """Return abspath of path elements as a normalized path that is also a native path,
        i.e. only legal characters.
