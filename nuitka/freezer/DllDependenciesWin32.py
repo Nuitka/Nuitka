@@ -19,7 +19,7 @@ from nuitka.options.Options import (
     isShowProgress,
 )
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
@@ -524,6 +524,9 @@ def _getScanDirectories(package_name, original_dir, use_path):
         return _scan_dir_cache[cache_key]
 
     scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
+
+    if isMSYS2MingwPython():
+        scan_dirs.append(getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
 
     # Add the VCRedist path to the list of directories to search if it exists
     msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
