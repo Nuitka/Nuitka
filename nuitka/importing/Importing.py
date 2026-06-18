@@ -600,6 +600,7 @@ ImportScanFinding = collections.namedtuple(
 )
 
 _list_dir_cache = {}
+_normalized_list_dir_cache = {}
 
 
 def listDirCached(path):
@@ -611,6 +612,20 @@ def listDirCached(path):
     return _list_dir_cache[path]
 
 
+def normalizedListDirCached(path):
+    """Cached normalized listing of a directory."""
+
+    if path not in _normalized_list_dir_cache:
+        normalized_entries = {}
+
+        for fullname, _filename in listDirCached(path):
+            normalized_entries[os.path.normcase(fullname)] = fullname
+
+        _normalized_list_dir_cache[path] = normalized_entries
+
+    return _normalized_list_dir_cache[path]
+
+
 def flushImportCache():
     """Clear import related caches.
 
@@ -619,6 +634,7 @@ def flushImportCache():
     as it throws away so much.
     """
     _list_dir_cache.clear()
+    _normalized_list_dir_cache.clear()
     module_search_cache.clear()
 
 
@@ -808,9 +824,13 @@ def _pickBestModuleScanCandidate(candidates):
         if candidate.found_in is None:
             return candidate
 
-        for fullname, _filename in listDirCached(candidate.found_in):
-            if fullname == candidate.full_path:
-                return candidate
+        if (
+            normalizedListDirCached(candidate.found_in).get(
+                os.path.normcase(candidate.full_path)
+            )
+            == candidate.full_path
+        ):
+            return candidate
 
     return None
 
