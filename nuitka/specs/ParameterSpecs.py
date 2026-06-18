@@ -398,6 +398,11 @@ def matchCall(
     num_pos = len(positional)
     num_total = num_pos + len([p for p in pairs if p[0] not in kw_only_args])
     num_args = len(args)
+    arg_names = args + kw_only_args
+    arg_name_to_index = {}
+
+    for index, arg_name in enumerate(arg_names):
+        arg_name_to_index[arg_name] = index
 
     for arg, value in zip(args, positional):
         assign(arg, value)
@@ -406,8 +411,8 @@ def matchCall(
     if python_version >= 0x300 and not star_dict_arg:
         for pair in pairs:
             try:
-                arg_index = (args + kw_only_args).index(pair[0])
-            except ValueError:
+                arg_index = arg_name_to_index[pair[0]]
+            except KeyError:
                 if python_version < 0x370 and not improved:
                     template = "'%(arg_name)s' is an invalid keyword argument for this function"
                 elif python_version < 0x3D0 and not improved:
