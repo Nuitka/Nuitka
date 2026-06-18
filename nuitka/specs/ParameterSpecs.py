@@ -148,11 +148,13 @@ class ParameterSpec(object):
 
     def checkParametersValid(self):
         arg_names = self.getParameterNames()
+        seen_names = set()
 
         # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
-            if arg_names.count(arg_name) != 1:
+            if arg_name in seen_names:
                 return "duplicate argument '%s' in function definition" % arg_name
+            seen_names.add(arg_name)
 
         return None
 
