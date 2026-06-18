@@ -398,11 +398,9 @@ def matchCall(
     num_pos = len(positional)
     num_total = num_pos + len([p for p in pairs if p[0] not in kw_only_args])
     num_args = len(args)
-    arg_names = args + kw_only_args
-    arg_name_to_index = {}
-
-    for index, arg_name in enumerate(arg_names):
-        arg_name_to_index[arg_name] = index
+    arg_name_to_index = dict(
+        (arg_name, index) for index, arg_name in enumerate(args + kw_only_args)
+    )
 
     for arg, value in zip(args, positional):
         assign(arg, value)
