@@ -1655,7 +1655,7 @@ static inline bool _Nuitka_is_resume(_Py_CODEUNIT *instr) {
 #endif
 
 PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3f0
     int8_t frame_state = gen->gi_frame_state;
     if (frame_state != FRAME_SUSPENDED_YIELD_FROM) {
         Py_RETURN_NONE;
