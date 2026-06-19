@@ -3,6 +3,51 @@
 
 from __future__ import print_function
 
+import os
+
+from nuitka.importing import Importing as ImportingModule
+from nuitka.importing.Importing import (
+    flushImportCache,
+    normalizedListDirCached,
+)
+
+
+def testNormalizedListDirCacheKeepsCaseVariants():
+    original_list_dir_cached = ImportingModule.listDirCached
+    original_normcase = ImportingModule.os.path.normcase
+
+    try:
+
+        def fakeListDirCached(path):
+            return (
+                (os.path.join(path, "Spam.py"), "Spam.py"),
+                (os.path.join(path, "spam.py"), "spam.py"),
+            )
+
+        def fakeNormcase(path):
+            return path.lower()
+
+        ImportingModule.listDirCached = fakeListDirCached
+        ImportingModule.os.path.normcase = fakeNormcase
+        flushImportCache()
+
+        temp_dir = "/virtual/import-test"
+        normalized_entries = normalizedListDirCached(temp_dir)
+        case_key = fakeNormcase(os.path.join(temp_dir, "Spam.py"))
+
+        assert case_key in normalized_entries
+        assert normalized_entries[case_key] == [
+            os.path.join(temp_dir, "Spam.py"),
+            os.path.join(temp_dir, "spam.py"),
+        ]
+    finally:
+        ImportingModule.listDirCached = original_list_dir_cached
+        ImportingModule.os.path.normcase = original_normcase
+
+
+testNormalizedListDirCacheKeepsCaseVariants()
+print("Normalized import directory cache keeps case variants")
+
 
 def localImporter1():
     import os

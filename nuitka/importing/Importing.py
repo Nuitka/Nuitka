@@ -619,7 +619,12 @@ def normalizedListDirCached(path):
         normalized_entries = {}
 
         for fullname, _filename in listDirCached(path):
-            normalized_entries[os.path.normcase(fullname)] = fullname
+            normalized_fullname = os.path.normcase(fullname)
+
+            if normalized_fullname not in normalized_entries:
+                normalized_entries[normalized_fullname] = []
+
+            normalized_entries[normalized_fullname].append(fullname)
 
         _normalized_list_dir_cache[path] = normalized_entries
 
@@ -824,12 +829,11 @@ def _pickBestModuleScanCandidate(candidates):
         if candidate.found_in is None:
             return candidate
 
-        if (
-            normalizedListDirCached(candidate.found_in).get(
-                os.path.normcase(candidate.full_path)
-            )
-            == candidate.full_path
-        ):
+        normalized_entries = normalizedListDirCached(candidate.found_in).get(
+            os.path.normcase(candidate.full_path)
+        )
+
+        if normalized_entries is not None and candidate.full_path in normalized_entries:
             return candidate
 
     return None
