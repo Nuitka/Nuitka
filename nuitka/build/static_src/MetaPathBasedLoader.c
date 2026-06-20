@@ -738,6 +738,7 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
     struct _import_runtime_state *imports = Nuitka_PyRuntime__imports;
     const char *old_context = imports->pkgcontext;
     imports->pkgcontext = new_context;
+// TODO: Peter: Potentially need to add a 3.15 API upstream for this
 #if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API) && PYTHON_VERSION < 0x3f0
     pkgcontext = new_context;
 #endif
