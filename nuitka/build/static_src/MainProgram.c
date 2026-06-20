@@ -1777,7 +1777,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if NO_PYTHON_WARNINGS
     NUITKA_PRINT_TRACE("main(): Disabling Python warnings.");
     {
-#if PYTHON_VERSION < 0x3f0
 
 #if PYTHON_VERSION >= 0x300
         wchar_t ignore[] = L"ignore";
@@ -1786,7 +1785,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
         PySys_ResetWarnOptions();
         PySys_AddWarnOption(ignore);
-#endif
     }
 #endif
 

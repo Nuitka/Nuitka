@@ -979,20 +979,6 @@ extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 
 #if PYTHON_VERSION >= 0x3f0
 #define FRAME_COMPLETED FRAME_CLEARED
-
-// Forward port of removed function
-static NUITKA_MAY_BE_UNUSED void Nuitka_ResetWarnOptions(void) {
-    assert(PyThreadState_GetUnchecked() != NULL);
-    PyObject *warnoptions;
-    if (PySys_GetOptionalAttrString("warnoptions", &warnoptions) < 0) {
-        PyErr_Clear();
-        return;
-    }
-    if (warnoptions != NULL && PyList_Check(warnoptions)) {
-        PyList_Clear(warnoptions);
-    }
-    Py_XDECREF(warnoptions);
-}
 #endif
 
 #endif
