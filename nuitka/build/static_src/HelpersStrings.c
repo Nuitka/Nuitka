@@ -154,6 +154,8 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 #define _PyUnicode_HAS_WSTR_MEMORY(op)                                                                                 \
     ((_PyUnicode_WSTR(op) && (!PyUnicode_IS_READY(op) || _PyUnicode_WSTR(op) != PyUnicode_DATA(op))))
 
+// This is available in internal headers starting in 3.15
+#if PYTHON_VERSION < 0x3f0
 #define _PyUnicode_CONVERT_BYTES(from_type, to_type, begin, end, to)                                                   \
     do {                                                                                                               \
         to_type *_to = (to_type *)(to);                                                                                \
@@ -172,6 +174,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
         while (_iter < (_end))                                                                                         \
             *_to++ = (to_type)(*_iter++);                                                                              \
     } while (0)
+#endif
 
 extern int ucs1lib_find_max_char(const Py_UCS1 *begin, const Py_UCS1 *end);
 
