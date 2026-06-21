@@ -193,7 +193,7 @@ redefined-slots-in-subclass
 --no-docstring-rgx=.*
 --max-module-lines=6000
 --min-public-methods=0
---max-public-methods=100
+--max-public-methods=200
 --max-args=11
 --max-parents=17
 --max-statements=50

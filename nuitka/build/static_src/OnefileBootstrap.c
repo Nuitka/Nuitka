@@ -1109,6 +1109,10 @@ int main(int argc, char **argv) {
     filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
     bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
 
+#if defined(_WIN32)
+    makeAbsolutePath(payload_path, sizeof(payload_path) / sizeof(filename_char_t));
+#endif
+
     // _putws(payload_path);
 
     // If we are the onefile initial bootstrap binary, show the splash screen.

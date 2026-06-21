@@ -9,10 +9,11 @@
     - depends:
         - 'asyncio'
 
-- module-name: '_ctypes' # checksum: b31a8f6b
+- module-name: '_ctypes' # checksum: 65b980ed
   implicit-imports:
     - depends:
         - 'ctypes._layout'
+      when: 'not has_builtin_module("_ctypes")'
 
 - module-name: '_curses_panel' # checksum: c9b072ec
   implicit-imports:

@@ -930,11 +930,15 @@
     - empty_dirs:
         - '.'
 
-- module-name: 'ctypes' # checksum: d5efbb6f
+- module-name: 'ctypes' # checksum: a4aa9e10
   anti-bloat:
     - description: 'remove comtypes dependency'
       no-auto-follow:
         'comtypes': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'ctypes._layout'
+      when: 'has_builtin_module("_ctypes")'
 
 - module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
@@ -6565,6 +6569,13 @@
         - 'enum'
         - 'logging'
 
+- module-name: 'shtab' # checksum: 6c4e35a6
+  anti-bloat:
+    - description: 'remove setuptools_scm version detection'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'sip' # checksum: 1cf87ab4
   implicit-imports:
     - depends:
@@ -9462,6 +9473,13 @@
   implicit-imports:
     - depends:
         - 'uvloop._noop'
+
+- module-name: 'vcs_versioning._version_cls' # checksum: b1522f54
+  anti-bloat:
+    - description: 'avoid setuptools as fallback for packaging'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'vedo' # checksum: 35ad0fe8
   data-files:

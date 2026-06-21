@@ -87,6 +87,7 @@ active_plugins_with_decide_doc_strings = []
 active_plugins_with_decide_assertions = []
 active_plugins_with_function_body_parsing = []
 active_plugins_with_class_body_parsing = []
+active_plugins_with_variable_constant_value = []
 plugin_name2plugin_classes = {}
 plugin_options = OrderedDict()
 plugin_values = {}
@@ -161,6 +162,7 @@ def _addActivePlugin(plugin_class, args, force=False):
         ("decideAssertions", active_plugins_with_decide_assertions),
         ("onFunctionBodyParsing", active_plugins_with_function_body_parsing),
         ("onClassBodyParsing", active_plugins_with_class_body_parsing),
+        ("getVariableConstantValue", active_plugins_with_variable_constant_value),
     ):
         if getattr(plugin_type, callback_name) is not getattr(
             NuitkaPluginBase, callback_name
@@ -1737,6 +1739,33 @@ through incomplete set import by '%s' plugin encountered."""
                 class_name=class_name,
                 node=node,
             )
+
+    _variable_constant_cache = {}
+
+    @classmethod
+    def getVariableConstantValue(cls, module_name, variable_name):
+        """Let plugins provide compile-time constant values for module-level variables.
+
+        Returns:
+            The constant value from the first plugin that returns non-None,
+            or None if no plugin provides a value.
+        """
+        cache_key = (module_name, variable_name)
+
+        if cache_key in cls._variable_constant_cache:
+            return cls._variable_constant_cache[cache_key]
+
+        for plugin in active_plugins_with_variable_constant_value:
+            result = plugin.getVariableConstantValue(
+                module_name=module_name, variable_name=variable_name
+            )
+
+            if result is not None:
+                cls._variable_constant_cache[cache_key] = result
+                return result
+
+        cls._variable_constant_cache[cache_key] = None
+        return None
 
     cache_contribution_values_cache = {}
 

@@ -528,7 +528,12 @@ def _getScanDirectories(package_name, original_dir, use_path):
     # Add the VCRedist path to the list of directories to search if it exists
     msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if msvc_redist_path is not None:
-        scan_dirs.extend(getSubDirectoriesWithDlls(msvc_redist_path))
+        scan_dirs.extend(
+            getSubDirectoriesWithDlls(
+                path=msvc_redist_path,
+                ignore_permission_error=False,
+            )
+        )
 
     if package_name is not None:
         scan_dirs.extend(
@@ -540,7 +545,12 @@ def _getScanDirectories(package_name, original_dir, use_path):
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectoriesWithDlls(original_dir))
+        scan_dirs.extend(
+            getSubDirectoriesWithDlls(
+                path=original_dir,
+                ignore_permission_error=True,
+            )
+        )
 
     if package_name is not None and package_name.isBelowNamespace("win32com"):
         py_win32_dir = getPyWin32Dir()

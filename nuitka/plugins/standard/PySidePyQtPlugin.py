@@ -1362,20 +1362,18 @@ behavior with the uncompiled code."""
             module_set=module_set, plugin_binding_name=self.binding_name
         )
 
-    def onModuleSourceCode(self, module_name, source_filename, source_code):
-        """Third party packages that make binding selections."""
-        # spell-checker: ignore pyqtgraph
-        if module_name.hasNamespace("pyqtgraph"):
-            # TODO: Add a mechanism to force all variable references of a name to something
-            # during tree building, that would cover all uses in a nicer way.
-            source_code = source_code.replace(
-                "{QT_LIB.lower()}", self.binding_name.lower()
-            )
-            source_code = source_code.replace(
-                "QT_LIB.lower()", repr(self.binding_name.lower())
-            )
+    def getVariableConstantValue(self, module_name, variable_name):
+        """Resolve QT_LIB to the active binding name in pyqtgraph modules.
 
-        return source_code
+        This allows the tree builder to replace QT_LIB references with
+        compile-time constants, which enables dead code elimination of
+        Qt binding branches and static resolution of importlib.import_module
+        calls that depend on QT_LIB.
+        """
+        if module_name.hasNamespace("pyqtgraph") and variable_name == "QT_LIB":
+            return self.binding_name
+
+        return None
 
     def onDataFileTags(self, included_datafile):
         if included_datafile.dest_path.endswith(
