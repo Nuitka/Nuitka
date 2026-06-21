@@ -119,6 +119,7 @@ int dladdr(void* s, Dl_info* i) {
 	i->dli_sname = NULL;
 	int r = loadquery (L_GETINFO, buf, 10000);
 	if (r == -1) {
+		free(buf);
 		return 0;
 	}
 	/* The loader info structures are also a linked list. */

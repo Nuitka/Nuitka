@@ -590,6 +590,27 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def getVariableConstantValue(self, module_name, variable_name):
+        """Return a compile-time constant value for a module-level variable.
+
+        Notes:
+            During tree building, when a variable reference is being resolved,
+            this hook is consulted. If a non-None value is returned, the
+            variable reference is replaced with a compile-time constant of
+            that value, enabling dead code elimination and static resolution
+            of dynamic imports that depend on the variable.
+
+        Args:
+            module_name: full module name object
+            variable_name: name of the variable being referenced
+
+        Returns:
+            A constant Python value (str, int, etc.) to use instead of the
+            variable reference, or None to use the variable normally.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Inspect or modify source code.
 

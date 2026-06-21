@@ -195,6 +195,18 @@ def onClassBodyParsing(provider, class_name, node):
     )
 
 
+def getVariableConstantValue(module_name, variable_name):
+    """Let plugins provide compile-time constant values for module-level variables.
+
+    Returns:
+        The constant value from the first plugin that returns non-None,
+        or None if no plugin provides a value.
+    """
+    return Plugins.getVariableConstantValue(
+        module_name=module_name, variable_name=variable_name
+    )
+
+
 def onFunctionBodyParsing(provider, function_name, body):
     return Plugins.onFunctionBodyParsing(
         provider=provider, function_name=function_name, body=body
