@@ -977,6 +977,10 @@ extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #include "extra_python_includes.h"
 #endif
 
+#if PYTHON_VERSION >= 0x3f0
+#define FRAME_COMPLETED FRAME_CLEARED
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
