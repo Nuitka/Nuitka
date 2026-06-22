@@ -3784,7 +3784,6 @@
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
-      dest_path: '.'
       when: 'not win32'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
