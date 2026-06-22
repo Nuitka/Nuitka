@@ -864,10 +864,17 @@ def buildClassNode3(provider, node, source_ref):
                     variables=tmp_variables,
                     source_ref=source_ref,
                 ),
-                StatementReturn(
-                    expression=ExpressionTempVariableRef(
-                        variable=tmp_class, source_ref=source_ref
+                makeTryFinallyReleaseStatement(
+                    provider=type_params_scope,
+                    tried=makeStatementsSequenceFromStatement(
+                        StatementReturn(
+                            expression=ExpressionTempVariableRef(
+                                variable=tmp_class, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        )
                     ),
+                    variables=[tmp_class],
                     source_ref=source_ref,
                 ),
             )
