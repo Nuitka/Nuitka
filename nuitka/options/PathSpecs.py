@@ -4,7 +4,11 @@
 """Path specifications and templating."""
 
 from nuitka.Tracing import onefile_logger, options_logger
-from nuitka.utils.FileOperations import getNormalizedPathSep, getUserInputNormalizedPath, isLegalPath
+from nuitka.utils.FileOperations import (
+    getNormalizedPathSep,
+    getUserInputNormalizedPath,
+    isLegalPath,
+)
 
 from .OptionParsing import run_time_variable_names
 
