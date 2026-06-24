@@ -211,9 +211,6 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                     )
 
     def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
-        # Expecting absolute paths internally for DLL sources.
-        filename = getNormalizedAbsPath(filename)
-
         if dest_path is None:
             module_filename = self.locateModule(full_name)
 
@@ -281,6 +278,10 @@ conditions are missing, or this version of the module needs treatment added."""
             filenames = (filename,)
 
         for filename in filenames:
+            # We are otherwise expecting absolute paths internally for DLL sources, but we
+            # shall tolerate relative paths by the config.
+            filename = getNormalizedAbsPath(filename)
+
             yield self._handleDllConfigByCodeResult(
                 filename=filename,
                 full_name=full_name,
