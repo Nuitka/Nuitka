@@ -2090,15 +2090,6 @@ def getNormalizedPathSep():
     return getNormalizedPath(os.path.sep)
 
 
-def getNormalizedAbsPath(path):
-    """Return abspath of path elements as a normalized path that is also a native path,
-       i.e. only legal characters.
-
-    Needed, because MSYS2 likes to keep "/" in normalized paths.
-    """
-    return getNormalizedPath(os.path.abspath(path))
-
-
 def doesFileContainBytes(filename, search):
     """Check if a file contains a specific byte sequence.
 

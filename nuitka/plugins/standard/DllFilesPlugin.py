@@ -21,7 +21,7 @@ from nuitka.utils.Distributions import (
     isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import (
-    getNormalizedAbsPath,
+    getNormalizedPath,
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
 )
@@ -280,7 +280,7 @@ conditions are missing, or this version of the module needs treatment added."""
         for filename in filenames:
             # We are otherwise expecting absolute paths internally for DLL sources, but we
             # shall tolerate relative paths by the config.
-            filename = getNormalizedAbsPath(filename)
+            filename = getNormalizedPath(os.path.abspath(filename))
 
             yield self._handleDllConfigByCodeResult(
                 filename=filename,
