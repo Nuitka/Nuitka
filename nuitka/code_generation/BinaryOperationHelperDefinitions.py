@@ -443,6 +443,21 @@ def _makeModOps(in_place):
                 result_types=("NILONG",),
             )
             if not in_place
+            else (
+                _makeFriendOps(
+                    op_code="MOD",
+                    friend_type_names=("NILONG", "DIGIT"),
+                    result_types=None,
+                )
+            )
+        ),
+        (
+            _makeTypeOps(
+                "MOD",
+                "NILONG",
+                result_types=None if in_place else standard_result_types,
+            )
+            if in_place
             else ()
         ),
     )
