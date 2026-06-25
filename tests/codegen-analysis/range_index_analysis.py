@@ -26,12 +26,25 @@ def assign_with_start(values):
     return values
 
 
+def inplace_with_start(values):
+    total = 0
+
+    for index in range(10, len(values) + 10):
+        offset = index - 10
+        offset += index
+        offset -= index
+        total += values[offset]
+
+    return total
+
+
 def main():
     values = list(range(100))
 
     print(consume(values))
     print(consume_with_start(values))
     print(assign_with_start([0, 0, 0, 0, 0]))
+    print(inplace_with_start(values))
 
 
 main()

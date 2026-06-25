@@ -131,7 +131,7 @@ def _getBinaryOperationCode(
     dual_inplace_binary_result = False
 
     if (
-        inplace
+        operator[0] == "I"
         and helper_type is None
         and (
             left_c_type is CTypeNuitkaIntOrLongStruct
@@ -256,7 +256,7 @@ def _getBinaryOperationCode(
 
     # We must assume to write to a variable if "inplace" is active, not e.g.
     # a constant reference. That was asserted before calling us.
-    if inplace or "INPLACE" in helper_function:
+    if dual_inplace_binary_result or inplace or "INPLACE" in helper_function:
         assert not needs_argument_swap
 
         if dual_inplace_binary_result:
