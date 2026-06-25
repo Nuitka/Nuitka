@@ -2081,6 +2081,29 @@ def getNormalizedPathJoin(*paths):
     return getNormalizedPath(os.path.join(*paths))
 
 
+def doesFileContainBytes(filename, search):
+    """Check if a file contains a specific byte sequence.
+
+    Args:
+        filename: Path to the file.
+        search: Bytes to search for.
+
+    Returns:
+        bool: True if the byte sequence was found.
+    """
+    try:
+        with open(filename, "rb") as f:
+            chunk = f.read(65536)
+            while chunk:
+                if search in chunk:
+                    return True
+                chunk = f.read(65536)
+    except OSError:
+        pass
+
+    return False
+
+
 def getFileContentsHash(filename, as_string=True, line_filter=None):
     """Get the hash of a file's content.
 

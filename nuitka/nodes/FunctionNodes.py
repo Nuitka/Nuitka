@@ -166,6 +166,9 @@ class ExpressionFunctionBodyBase(
 
     def discardFlag(self, flag):
         if self.flags is not None:
+            if isinstance(self.flags, frozenset):
+                self.flags = set(self.flags)
+
             self.flags.discard(flag)
 
     @staticmethod

@@ -22,10 +22,10 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import reportBuildError
+from .BuildPackageCommon import applyNuitkaProjectOptions, reportBuildError
 
 
-def getBuildBackendConfiguration(logger):
+def getBuildBackendConfiguration(logger, pyproject_data):
     """
     Get the build configuration from a project using the 'build' backend.
     """
@@ -168,6 +168,8 @@ setuptools.command.egg_info.egg_info.initialize_options = new_egg_info_initializ
         return logger.sysexit("""\
 Error, 'setuptools' project has no 'name'. Set it in 'setup.py', \
 'setup.cfg', or the '[project]' section of 'pyproject.toml'.""")
+
+    arguments.extend(applyNuitkaProjectOptions(pyproject_data=pyproject_data))
 
     return arguments
 

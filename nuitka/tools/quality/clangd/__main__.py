@@ -224,8 +224,10 @@ def main():
 
     if not os.path.exists(".clangd"):
         tools_logger.warning(
-            "No .clangd configuration found. "
-            "Run 'python misc/vscode_config_gen.py' to generate one.",
+            """\
+No .clangd configuration found. \
+Run 'python misc/vscode_config_gen.py' to generate one.\
+""",
             style="yellow",
         )
 

@@ -81,6 +81,31 @@ void setEnvironmentVariableFromLong(char const *name, long value) {
 #endif
 }
 
+bool getEnvironmentVariableValueAsLong(environment_char_t const *value, long *result) {
+#if defined(_WIN32)
+    errno = 0;
+    wchar_t *endptr = NULL;
+    long parsed = wcstol(value, &endptr, 10);
+
+    if (errno == ERANGE || endptr == value || *endptr != '\0') {
+        return false;
+    }
+
+    *result = parsed;
+#else
+    errno = 0;
+    char *endptr = NULL;
+    long parsed = strtol(value, &endptr, 10);
+
+    if (errno == ERANGE || endptr == value || *endptr != '\0') {
+        return false;
+    }
+
+    *result = parsed;
+#endif
+    return true;
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

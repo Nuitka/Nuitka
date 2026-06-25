@@ -19,9 +19,6 @@ rstcheck == 6.2.5 ; python_version >= '3.11'
 # Auto-format needs and private pip space requirements
 -r nuitka/utils/requirements-private.txt
 
-# Codespell can be used as well, no need to fix the version
-codespell ; python_version >= '3.11'
-
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 

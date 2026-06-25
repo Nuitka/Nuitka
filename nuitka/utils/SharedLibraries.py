@@ -11,18 +11,13 @@ from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-buil
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import (
-    getMacOSTargetArch,
-    isShowInclusion,
-    isUnstripped,
-)
+from nuitka.options.Options import getMacOSTargetArch, isShowInclusion
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
 from .Execution import executeToolChecked, filterOutputByLine
 from .FileOperations import (
     addFileExecutablePermission,
-    changeFilenameExtension,
     copyFile,
     getFileList,
     makeContainingPath,
@@ -274,6 +269,62 @@ def _getSharedLibraryRPATHsElf(filename):
 _dump_usage = "The 'dump' is used to analyse dependencies on COFF using systems and required to be found."
 
 
+def _parseCoffDumpImportFileStrings(output):
+    """Parse the Import File Strings section of 'dump -H' output.
+
+    Args:
+        output: The stdout of 'dump -H <filename>' as a string.
+
+    Returns:
+        Tuple of (import_paths, imported_libraries) where
+        import_paths is a list of library search path strings and
+        imported_libraries is a list of (base, member) tuples.
+
+    Notes:
+        The AIX 'dump -H' command outputs the loader header which includes
+        an Import File Strings section. INDEX 0 contains the library search
+        path (LIBPATH), and subsequent indices contain (archive, member) or
+        (.so) entries for imported shared libraries.
+    """
+    header = "INDEX  PATH                          BASE                MEMBER"
+    assert header in output, output
+
+    after_header = output.split(header, 1)[1]
+
+    import_paths = []
+    imported_libraries = []
+
+    for line in after_header.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if line[0] not in "0123456789":
+            continue
+
+        parts = line.split(None, 1)
+        if len(parts) != 2:
+            continue
+
+        index_str, rest = parts
+        index = int(index_str)
+
+        rest = rest.strip()
+        if not rest:
+            continue
+
+        if index == 0:
+            import_paths.append(rest)
+        else:
+            rest_parts = rest.split()
+            if len(rest_parts) == 2:
+                base, member = rest_parts
+                imported_libraries.append((base, member))
+            elif len(rest_parts) == 1:
+                imported_libraries.append((rest_parts[0], ""))
+
+    return import_paths, imported_libraries
+
+
 def _getSharedLibraryRPATHsCoff(filename):
     rpaths = []
 
@@ -284,24 +335,183 @@ def _getSharedLibraryRPATHsCoff(filename):
         decoding=True,
     )
 
-    assert (
-        "INDEX  PATH                          BASE                MEMBER" in output
-    ), output
+    import_paths, _imported_libraries = _parseCoffDumpImportFileStrings(output)
 
-    output = output.split(
-        "INDEX  PATH                          BASE                MEMBER", 1
-    )[1]
-    start_offset = len("INDEX  P")
-
-    for line in output.split("\n"):
-        if len(line) < start_offset:
-            continue
-        if line[start_offset] != " ":
-            continue
-
-        rpaths.append(line[start_offset:])
+    for import_path in import_paths:
+        for part in import_path.split(":"):
+            part = part.strip()
+            if part:
+                rpaths.append(part)
 
     return rpaths
+
+
+def getCoffImportedLibraries(filename):
+    """Get the list of shared libraries imported by a COFF (AIX) binary.
+
+    Args:
+        filename: Path to the COFF binary or shared object.
+
+    Returns:
+        List of (base, member) tuples for imported libraries.
+    """
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("dump", "-H", "-X", "any", filename),
+        absence_message=_dump_usage,
+        decoding=True,
+    )
+
+    _import_paths, imported_libraries = _parseCoffDumpImportFileStrings(output)
+
+    return imported_libraries
+
+
+def getCoffLibrarySearchPaths(filename):
+    """Get the library search paths embedded in a COFF (AIX) binary.
+
+    Args:
+        filename: Path to the COFF binary or shared object.
+
+    Returns:
+        List of library search path strings from INDEX 0 of dump -H output.
+    """
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("dump", "-H", "-X", "any", filename),
+        absence_message=_dump_usage,
+        decoding=True,
+    )
+
+    import_paths, _imported_libraries = _parseCoffDumpImportFileStrings(output)
+
+    result = []
+    for import_path in import_paths:
+        for part in import_path.split(":"):
+            part = part.strip()
+            if part and part not in result:
+                result.append(part)
+
+    return result
+
+
+_coff_dependency_cache = {}
+
+
+def _resolveCoffLibraryPath(base, member, search_paths):
+    """Resolve a COFF imported library to a full path on the filesystem.
+
+    Args:
+        base: The archive name or .so filename (e.g. 'libc.a', 'libpython3.13.so').
+        member: The member name within the archive (e.g. 'shr_64.o'), or empty.
+        search_paths: List of directory paths to search.
+
+    Returns:
+        Absolute path to the found library, or None if not found.
+    """
+    for search_path in search_paths:
+        search_path = search_path.strip()
+        if not search_path or not os.path.isdir(search_path):
+            continue
+
+        if member:
+            archive_path = os.path.join(search_path, base)
+            if os.path.isfile(archive_path):
+                return archive_path
+
+        candidate = os.path.join(search_path, base)
+        if os.path.isfile(candidate):
+            return candidate
+
+        if member:
+            candidate = os.path.join(search_path, member)
+            if os.path.isfile(candidate):
+                return candidate
+
+        candidate = os.path.join(search_path, os.path.basename(base))
+        if os.path.isfile(candidate):
+            return candidate
+
+    return None
+
+
+def _getCoffLibrarySearchPaths(filename):
+    """Assemble library search paths for COFF binary dependency resolution.
+
+    Args:
+        filename: Path to the COFF binary being analyzed.
+
+    Returns:
+        List of directory paths to search for shared libraries.
+    """
+    search_paths = []
+
+    libpath = os.environ.get("LIBPATH", "")
+    if libpath:
+        search_paths.extend(libpath.split(":"))
+
+    try:
+        binary_search_paths = getCoffLibrarySearchPaths(filename)
+    except Exception:  # pylint: disable=broad-except
+        binary_search_paths = []
+
+    search_paths.extend(binary_search_paths)
+
+    binary_dir = os.path.dirname(os.path.abspath(filename))
+    search_paths.append(binary_dir)
+
+    return search_paths
+
+
+def detectBinaryPathDLLsCoff(filename, package_name):
+    """Detect the shared libraries needed by a COFF (AIX) binary.
+
+    Uses 'dump -H' to determine which shared libraries are imported, and
+    'dump -Tv' to resolve symbol-level dependencies.
+
+    Args:
+        filename: Path to the COFF binary or shared object.
+        package_name: Name of the package being processed.
+
+    Returns:
+        OrderedSet of absolute paths to required shared libraries.
+
+    Notes:
+        This is the COFF/XCOFF equivalent of 'detectBinaryPathDLLsPosix'
+        which uses 'ldd' on ELF platforms. AIX does not have ldd, so we
+        use the 'dump' command instead to inspect the loader section and
+        symbol table.
+    """
+    if filename in _coff_dependency_cache:
+        return _coff_dependency_cache[filename]
+
+    result_set = OrderedSet()
+
+    imported_libraries = getCoffImportedLibraries(filename)
+
+    search_paths = _getCoffLibrarySearchPaths(filename)
+
+    for base, member in imported_libraries:
+        if not base or base == ".":
+            continue
+
+        found_path = _resolveCoffLibraryPath(base, member, search_paths)
+
+        if found_path and os.path.isabs(found_path):
+            result_set.add(found_path)
+
+    _coff_dependency_cache[filename] = result_set
+
+    complete_result = OrderedSet(result_set)
+    for sub_dll_filename in result_set:
+        complete_result.update(
+            detectBinaryPathDLLsCoff(
+                filename=sub_dll_filename,
+                package_name=package_name,
+            )
+        )
+
+    return complete_result
 
 
 _otool_output_cache = {}
@@ -862,17 +1072,6 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
 
         setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
-    if isWin32Windows() and isUnstripped():
-        pdb_filename = changeFilenameExtension(path=source_path, extension=".pdb")
-
-        if os.path.exists(pdb_filename):
-            copyFile(
-                source_path=pdb_filename,
-                dest_path=changeFilenameExtension(
-                    path=target_filename, extension=".pdb"
-                ),
-            )
-
     if executable:
         addFileExecutablePermission(target_filename)
 
@@ -1098,12 +1297,11 @@ def getDllExportedSymbols(logger, filename):
             if entry_point.name is not None
         )
     else:
-        if isLinux():
+        if isLinux() or isCoffUsingPlatform() or isBSD():
             command = ("nm", "-D", filename)
         elif isMacOS():
             command = ("nm", "-gU", filename) + _getMacOSArchOption()
         else:
-            # Need to add e.g. FreeBSD here.
             assert False
 
         output = executeToolChecked(

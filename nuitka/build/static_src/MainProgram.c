@@ -22,6 +22,14 @@
 
 #include "nuitka/prelude.h"
 
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+#include <time.h>
+#include <unistd.h>
+#endif
+
 #ifndef __IDE_ONLY__
 // Generated during build with optional defines.
 #include "build_definitions.h"
@@ -720,10 +728,11 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
 }
 
-#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE
 
 static long onefile_ppid;
 
+#if defined(_WIN32)
 static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
 
@@ -759,6 +768,29 @@ static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
 
     return 0;
 }
+#else
+static void *doOnefileParentMonitoring(void *arg) {
+    NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
+
+    for (;;) {
+        sleep(1);
+
+        if (kill(onefile_ppid, 0) == -1 && errno == ESRCH) {
+            break;
+        }
+    }
+
+    NUITKA_PRINT_TRACE("Onefile parent monitoring causes KeyboardInterrupt.");
+    PyErr_SetInterrupt();
+
+    usleep(_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT * 1000);
+
+    NUITKA_PRINT_TRACE("Onefile parent monitoring hard kills after ignored KeyboardInterrupt.");
+    _exit(1);
+
+    return NULL;
+}
+#endif
 #endif
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
@@ -1530,6 +1562,42 @@ void setLANGSystemLocaleMacOS(void) {
 }
 #endif
 
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+// In onefile mode, the onefile bootstrap parent process forwards signals
+// to the child. When SIGINT is delivered to the process group (killpg),
+// the child receives it both from the group delivery and from the parent
+// forwarding. This detects and suppresses the duplicate.
+
+static void (*_python_saved_sigint_handler)(int) = NULL;
+static volatile struct timespec _last_sigint_timespec = {0, 0};
+static volatile sig_atomic_t _last_sigint_from_parent = 0;
+
+static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
+    bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
+    struct timespec now;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+        if (_last_sigint_timespec.tv_sec != 0) {
+            long elapsed_ms = (now.tv_sec - _last_sigint_timespec.tv_sec) * 1000 +
+                              (now.tv_nsec - _last_sigint_timespec.tv_nsec) / 1000000;
+
+            if (elapsed_ms < 100) {
+                if (from_parent || _last_sigint_from_parent) {
+                    // Duplicate detected, suppress.s
+                    return;
+                }
+            }
+        }
+        _last_sigint_timespec = now;
+        _last_sigint_from_parent = from_parent;
+    }
+
+    if (_python_saved_sigint_handler != NULL) {
+        _python_saved_sigint_handler(sig);
+    }
+}
+#endif
+
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
@@ -1812,6 +1880,26 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
+
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+    // Install a SIGINT wrapper that suppresses duplicate signals from
+    // killpg + parent forwarding in onefile mode.
+    {
+        struct sigaction old_action;
+
+        if (sigaction(SIGINT, NULL, &old_action) == 0) {
+            if (old_action.sa_handler != SIG_DFL && old_action.sa_handler != SIG_IGN) {
+                _python_saved_sigint_handler = old_action.sa_handler;
+
+                struct sigaction new_action;
+                new_action.sa_sigaction = _ourSigintDeduplicationHandler;
+                new_action.sa_flags = SA_SIGINFO;
+                sigemptyset(&new_action.sa_mask);
+                sigaction(SIGINT, &new_action, NULL);
+            }
+        }
+    }
+#endif
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -2196,15 +2284,20 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else {
 #endif
-#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE
         {
-            char buffer[128] = {0};
-            DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
+            environment_char_t const *parent_pid_str = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
 
-            if (size > 0 && size < 127) {
-                onefile_ppid = atol(buffer);
-
-                CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+            if (parent_pid_str != NULL && parent_pid_str[0] != 0) {
+                if (getEnvironmentVariableValueAsLong(parent_pid_str, &onefile_ppid)) {
+#if defined(_WIN32)
+                    CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+#else
+                    pthread_t thread;
+                    pthread_create(&thread, NULL, doOnefileParentMonitoring, NULL);
+                    pthread_detach(thread);
+#endif
+                }
             }
         }
 #endif

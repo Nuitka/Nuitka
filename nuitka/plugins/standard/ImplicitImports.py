@@ -19,8 +19,10 @@ from nuitka.options.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionFiles,
+    getDistributionRequirements,
     getDistributionsFromModuleName,
 )
+from nuitka.utils.FileOperations import doesFileContainBytes
 from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
@@ -299,10 +301,6 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield full_name.getChildNamed("_win32")
             else:
                 yield full_name.getChildNamed("_xorg")
-        elif full_name == "cryptography":
-            yield "_cffi_backend"
-        elif full_name == "bcrypt._bcrypt":
-            yield "_cffi_backend"
 
     def getImplicitImports(self, module):
         full_name = module.getFullName()
@@ -316,6 +314,11 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
             # Find mypyc dependencies, spell-checker: ignore mypyc
             for module_name in self._getMypycImplicitImports(full_name):
                 yield module_name
+
+            # cffi-generated extension modules need _cffi_backend at runtime
+            if full_name != "_cffi_backend":
+                for module_name in self._checkForCffiBackend(module):
+                    yield module_name
 
         if full_name == "pkg_resources.extern":
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could
@@ -336,6 +339,29 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
         for item in self._getImportsByFullname(module=module, full_name=full_name):
             yield item
+
+    @staticmethod
+    def _checkForCffiBackend(module):
+        # spell-checker: ignore cffi
+        """Check if an extension module needs '_cffi_backend'.
+
+        cffi-generated extension modules import '_cffi_backend' at the
+        C level via PyImport_ImportModule. We first check if the module's
+        distribution depends on 'cffi', and only then confirm by scanning
+        the binary for the '_cffi_backend' string.
+        """
+
+        full_name = module.getFullName()
+
+        for distribution in getDistributionsFromModuleName(full_name):
+            for req_name, _req_spec in getDistributionRequirements(distribution):
+                if req_name == "cffi":
+                    # Distribution depends on cffi, now confirm the
+                    # specific extension module actually references it.
+                    if doesFileContainBytes(module.getFilename(), b"_cffi_backend"):
+                        yield "_cffi_backend"
+
+                    break
 
     @staticmethod
     def _getMypycImplicitImports(full_name):

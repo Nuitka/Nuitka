@@ -295,7 +295,9 @@ def getBuildConfigurationOptions(logger):
             if "poetry" in tool_data:
                 from .Poetry import getPoetryBuildConfiguration
 
-                return getPoetryBuildConfiguration(logger)
+                return getPoetryBuildConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             build_system_data = pyproject_data.get("build-system", {})
             build_backend = build_system_data.get("build-backend", "")
@@ -308,12 +310,16 @@ def getBuildConfigurationOptions(logger):
             ):
                 from .BuildPackage import getBuildBackendConfiguration
 
-                return getBuildBackendConfiguration(logger)
+                return getBuildBackendConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             if build_backend == "uv_build":
                 from .UvBuild import getUvBuildConfiguration
 
-                return getUvBuildConfiguration(logger, pyproject_data)
+                return getUvBuildConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             return logger.sysexit(
                 "Error, unrecognized build-backend '%s' in 'pyproject.toml'."
@@ -324,7 +330,7 @@ def getBuildConfigurationOptions(logger):
     if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
         from .BuildPackage import getBuildBackendConfiguration
 
-        return getBuildBackendConfiguration(logger)
+        return getBuildBackendConfiguration(logger=logger, pyproject_data={})
 
     logger.sysexit(
         "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."

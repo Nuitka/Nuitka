@@ -46,12 +46,11 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.States import states
-from nuitka.Tracing import onefile_logger, postprocessing_logger
+from nuitka.Tracing import onefile_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
-    getFileContents,
     getFileSize,
     makeContainingPath,
     removeDirectory,
@@ -66,7 +65,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
 from .IncludedDataFiles import getIncludedDataFiles
@@ -324,21 +322,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if isMacOS():
         addMacOSCodeSignature(
             filenames=[onefile_output_filename], entitlements_filename=None
-        )
-
-    if (
-        has_payload
-        and getSconsReportValue(source_dir, "resource_mode") == "win_resource"
-    ):
-        assert isWin32Windows()
-
-        addResourceToFile(
-            target_filename=onefile_output_filename,
-            data=getFileContents(onefile_payload_filename, mode="rb"),
-            resource_kind=RT_RCDATA,
-            lang_id=0,
-            res_name=27,
-            logger=postprocessing_logger,
         )
 
     if isRemoveBuildDir():

@@ -641,11 +641,6 @@
     - patterns:
         - '*.json'
 
-- module-name: 'brotli._brotli' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
-
 - module-name: 'bsdiff4' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -880,15 +875,11 @@
           - 'cmsis'
           - 'libcmsis'
 
-- module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
+- module-name: 'coincurve._libsecp256k1' # checksum: baebd794
   dlls:
     - from_filenames:
         prefixes:
           - 'libsecp256k1'
-
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'comm' # checksum: 7d07a2d1
   anti-bloat:
@@ -951,14 +942,10 @@
         'from cupy import testing': 'testing = None'
       when: 'not use_pytest'
 
-- module-name: 'curl_cffi' # checksum: 30c8f50c
+- module-name: 'curl_cffi' # checksum: 8215c061
   data-files:
     - patterns:
         - 'cacert.pem'
-
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'curses' # checksum: 6982eea
   implicit-imports:
@@ -1786,10 +1773,9 @@
     - patterns:
         - '*.zip'
 
-- module-name: 'gevent' # checksum: ce776b5f
+- module-name: 'gevent' # checksum: e22f6639
   implicit-imports:
     - depends:
-        - '_cffi_backend'
         - 'gevent._config'
         - 'gevent.core'
         - 'gevent.resolver_thread'
@@ -2273,11 +2259,6 @@
         '_load_pyproject_toml': 'un-callable'
         '_load_toml': 'un-callable'
       when: 'standalone'
-
-- module-name: 'ipcqueue' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'IPython.core.oinspect' # checksum: e7304002
   implicit-imports:
@@ -3272,11 +3253,6 @@
     - description: 'avoid test module usage'
       no-auto-follow:
         'test': 'ignore'
-
-- module-name: 'nacl._sodium' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'names' # checksum: 4b523fa4
   data-files:
@@ -4480,11 +4456,6 @@
         "os.getenv('PURE_PYTHON')": '"1"'
         "os.environ.get('PURE_PYTHON')": '"1"'
 
-- module-name: 'persistent.ring' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
-
 - module-name: 'phonenumbers.data' # checksum: ed193c22
   implicit-imports:
     - depends:
@@ -5491,13 +5462,6 @@
         - 'libqtquickscene3dplugin'
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
-
-- module-name: 'PySide2.QtWebEngineCore' # checksum: 66facbd0
-  options:
-    checks:
-      - description: 'PySide2 cannot be signed unless onefile'
-        macos_bundle_as_onefile: 'yes'
-        when: 'macos and use_pyside2'
 
 - module-name: 'PySide6' # checksum: 498a67fc
   implicit-imports:

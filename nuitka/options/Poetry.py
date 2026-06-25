@@ -13,10 +13,10 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import reportBuildError
+from .BuildPackageCommon import applyNuitkaProjectOptions, reportBuildError
 
 
-def getPoetryBuildConfiguration(logger):
+def getPoetryBuildConfiguration(logger, pyproject_data):
     """
     Get the build configuration from a Poetry project.
     """
@@ -70,6 +70,9 @@ def getPoetryBuildConfiguration(logger):
         return logger.sysexit("""\
 Error, 'poetry' project has no 'name'. Set it in the '[project]' \
 section of 'pyproject.toml'.""")
+
+    # Apply options from [tool.nuitka] section of pyproject.toml
+    arguments.extend(applyNuitkaProjectOptions(pyproject_data=pyproject_data))
 
     return arguments
 

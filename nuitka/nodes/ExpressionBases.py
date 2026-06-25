@@ -830,10 +830,15 @@ class ExpressionBase(NodeBase):
 
     # TODO: Maybe this is a shape slot thing.
     @staticmethod
-    def isIndexable():
-        """Unless we are told otherwise, it's not indexable."""
+    def isKnownToBeValidIndex():
+        """Unless we are told otherwise, the value is not a valid index."""
 
         return False
+
+    def isKnownToBeIndexable(self):
+        """Value supports index lookup, based on type shape."""
+
+        return self.getTypeShape().hasShapeIndexLookup()
 
     # TODO: There ought to be a type shape check for that too.
     @staticmethod

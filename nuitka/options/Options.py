@@ -1091,6 +1091,14 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnMacOSBundleSpecificOption("--macos-app-mode")
     if options.macos_create_dmg:
         _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
+
+        if isMacOS():
+            from nuitka.freezer.MacOSDmg import getCreateDmgPath
+
+            if getCreateDmgPath() is None:
+                return options_logger.sysexit(
+                    "Error, cannot find 'create-dmg' tool. It is required for '--macos-app-create-dmg'."
+                )
     if options.macos_prohibit_multiple_instances:
         _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
     if options.macos_app_console_mode is not None:
@@ -2210,6 +2218,12 @@ def enableExperimental(indication):
 def getExperimentalIndications():
     """*tuple*, items of ``--experimental=`` and runtime enabled indications."""
     return tuple(sorted(_experimental))
+
+
+def shallUseDirectConstantBlobs():
+    """Decide if direct per-blob constants access shall be used."""
+
+    return isExperimental("direct-constant-blobs")
 
 
 def getDebugModeIndications():

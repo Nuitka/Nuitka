@@ -283,6 +283,7 @@ def formatText(
             filename=filename,
             effective_filename=effective_filename,
             update=True,
+            assume_yes_for_downloads=assume_yes_for_downloads,
         )
         formatYaml(
             logger=logger,

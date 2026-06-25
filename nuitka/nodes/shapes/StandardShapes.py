@@ -39,7 +39,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
     @staticmethod
     def getShapeIter():
-        return tshape_unknown
+        return None
 
     @staticmethod
     def hasShapeIndexLookup():

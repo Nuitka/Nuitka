@@ -29,7 +29,7 @@ static void Nuitka_ResourceReader_tp_dealloc(struct Nuitka_ResourceReaderObject 
 }
 
 static PyObject *Nuitka_ResourceReader_tp_repr(struct Nuitka_ResourceReaderObject *reader) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", reader->m_loader_entry->name);
+    return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", entryDisplayName(reader->m_loader_entry));
 }
 
 // Obligatory, even if we have nothing to own

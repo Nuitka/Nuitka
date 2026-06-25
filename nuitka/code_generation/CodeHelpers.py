@@ -18,20 +18,24 @@ from nuitka.Tracing import printError
 from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
 
-expression_dispatch_dict = {}
+_expression_dispatch_dict = {}
 
 _ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
 
+def getExpressionDispatchDict():
+    return _expression_dispatch_dict
+
+
 def addExpressionDispatchDict(dispatch_dict):
     for key, value in dispatch_dict.items():
-        if key in expression_dispatch_dict:
+        if key in _expression_dispatch_dict:
             if key not in _ignore_list_overrides:
                 assert False, key
 
             continue
 
-        expression_dispatch_dict[key] = value
+        _expression_dispatch_dict[key] = value
 
 
 def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
@@ -70,7 +74,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     expression.code_generated = True
 
     try:
-        code_generator = expression_dispatch_dict[expression.kind]
+        code_generator = _expression_dispatch_dict[expression.kind]
     except KeyError:
         raise NuitkaNodeDesignError(
             expression.__class__.__name__,
@@ -159,18 +163,22 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
     return value_name
 
 
-statement_dispatch_dict = {}
+_statement_dispatch_dict = {}
+
+
+def getStatementDispatchDict():
+    return _statement_dispatch_dict
 
 
 def setStatementDispatchDict(dispatch_dict, update=False):
     # Please call us only once or explicitly for update.
-    assert not statement_dispatch_dict or update
-    statement_dispatch_dict.update(dispatch_dict)
+    assert not _statement_dispatch_dict or update
+    _statement_dispatch_dict.update(dispatch_dict)
 
 
 def generateStatementCode(statement, emit, context):
     try:
-        statement_dispatch_dict[statement.kind](
+        _statement_dispatch_dict[statement.kind](
             statement=statement, emit=emit, context=context
         )
 

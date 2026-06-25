@@ -11,6 +11,7 @@ from nuitka.options.Options import (
     getFileReferenceMode,
     isExperimental,
     shallMakeModule,
+    shallUseDirectConstantBlobs,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -22,6 +23,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
+from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
@@ -44,7 +46,12 @@ def getModuleAccessCode(context):
 
 
 def getModuleCode(
-    module, function_decl_codes, function_body_codes, module_const_blob_name, context
+    module,
+    function_decl_codes,
+    function_body_codes,
+    module_const_blob_name,
+    module_const_blob_symbol_name,
+    context,
 ):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -184,33 +191,12 @@ def getModuleCode(
             }
         )
 
-    constants_count = context.getConstantsCount()
-
-    # If no constants are present.
-    if constants_count > 0:
-        module_constants_decl = "\n".join(
-            "PyObject *%s;" % name for name in context.getConstantNames()
-        )
-
-        module_constants_check_hash = "\n".join(
-            """\
-CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
-mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"""
-            % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-
-        module_constants_check_object = "\n".join(
-            """\
-CHECK_OBJECT_DEEP_NAMED("mod_consts.%(name)s", mod_consts.%(name)s);
-assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s) && "mod_consts.%(name)s");"""
-            % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-    else:
-        module_constants_decl = "PyObject *empty;"
-        module_constants_check_hash = ""
-        module_constants_check_object = ""
+    (
+        constants_count,
+        module_constants_decl,
+        module_constants_check_hash,
+        module_constants_check_object,
+    ) = getModuleConstantsDeclAndChecks(context)
 
     return template % {
         "module_name_cstr": encodePythonStringToC(
@@ -239,6 +225,8 @@ assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s) && "
         "module_constants_check_hash": module_constants_check_hash,
         "module_constants_check_object": module_constants_check_object,
         "module_const_blob_name": module_const_blob_name,
+        "module_const_blob_symbol_name": module_const_blob_symbol_name,
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(

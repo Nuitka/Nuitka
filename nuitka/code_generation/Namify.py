@@ -19,6 +19,8 @@ from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.Tracing import general
 
+from .SpecialConstantData import BlobData
+
 
 class ExceptionCannotNamify(Exception):
     pass
@@ -174,6 +176,8 @@ def namifyConstant(constant):
         return "uniontype_%s" % namifyConstant(constant.__args__)
     elif constant is sys.version_info:
         return "sys_version_info"
+    elif constant_type is BlobData:
+        return "blob_" + _namifyString(constant.getData())
     else:
         raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 

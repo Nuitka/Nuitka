@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - develop
+      - integration
   push:
     branches:
       - main
       - develop
+      - integration
       - factory
       - release/**
       - hotfix/**
@@ -74,24 +76,23 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔎 PyLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-pylint
+          python ./bin/check-nuitka-with-pylint --assume-yes-for-downloads
 
       - name: 🔎 RestLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-restlint
+          python ./bin/check-nuitka-with-restlint --assume-yes-for-downloads
 
       - name: 🔎 YamlLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-yamllint
+          python ./bin/check-nuitka-with-yamllint --assume-yes-for-downloads
 
       - name: 🔎 Codespell on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-codespell
+          python ./bin/check-nuitka-with-codespell --assume-yes-for-downloads
 
       - name: 🔎 Auto-format check on Nuitka source code
         run: |
@@ -167,7 +168,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
@@ -272,7 +272,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -397,7 +396,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -484,7 +482,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
