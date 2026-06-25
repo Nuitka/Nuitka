@@ -78,6 +78,23 @@ def inplace_modulo_with_start(values):
     return result
 
 
+def while_increment(values):
+    index = 0
+    limit = len(values)
+
+    while index < limit:
+        index += 1
+
+    return index
+
+
+def compare_large_limit():
+    index = 1
+    limit = 10**100
+
+    return index < limit, limit > index, index == limit, index != limit
+
+
 def floordiv_with_start(values):
     result = 0
 
@@ -99,6 +116,8 @@ def main():
     print(floordiv_with_start([0, 0, 0]))
     print(modulo_with_start([0, 0, 0]))
     print(inplace_modulo_with_start([0, 0, 0]))
+    print(while_increment([0, 0, 0]))
+    print(compare_large_limit())
 
 
 main()

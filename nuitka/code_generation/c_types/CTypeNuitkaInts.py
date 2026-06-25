@@ -48,7 +48,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             assert False  # TODO
         else:
             if int_value is None:
-                emit("SET_NILONG_OBJECT_VALUE(&%s, %s);" % (to_name, ilong_value_name))
+                emit("%s = Nuitka_NILONG_FromObject(%s);" % (to_name, ilong_value_name))
             else:
                 emit(
                     "SET_NILONG_OBJECT_AND_C_VALUE(&%s, %s, %s );"

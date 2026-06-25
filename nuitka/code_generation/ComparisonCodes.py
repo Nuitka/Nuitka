@@ -78,6 +78,7 @@ def getRichComparisonCode(
         right=right,
         may_swap_arguments="always",
         context=context,
+        use_storage_types=True,
     )
 
     if unknown_types:
