@@ -199,39 +199,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_OBJECT_LONG(PyObject *operand1, 
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyLong_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_BITOR_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_OBJECT_LONG(operand1, operand2);
@@ -400,39 +368,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_LONG_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_BITOR_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_LONG_OBJECT(operand1, operand2);
@@ -641,40 +577,7 @@ static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_OBJECT_LONG(PyObject *operand1,
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyLong_Type) {
-        nuitka_bool result;
-
-        // return _BINARY_OPERATION_BITOR_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NUITKA_BOOL_EXCEPTION;
+        return _BINARY_OPERATION_BITOR_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_NBOOL_OBJECT_LONG(operand1, operand2);
@@ -851,40 +754,7 @@ static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_LONG_OBJECT(PyObject *operand1,
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        nuitka_bool result;
-
-        // return _BINARY_OPERATION_BITOR_NBOOL_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NUITKA_BOOL_EXCEPTION;
+        return _BINARY_OPERATION_BITOR_NBOOL_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_NBOOL_LONG_OBJECT(operand1, operand2);
@@ -1086,42 +956,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_OBJECT_INT(PyObject *operand1, P
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyInt_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-        result = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
+        return _BINARY_OPERATION_BITOR_OBJECT_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_OBJECT_INT(operand1, operand2);
@@ -1288,42 +1123,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_INT_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-        result = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
+        return _BINARY_OPERATION_BITOR_OBJECT_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_INT_OBJECT(operand1, operand2);
@@ -1534,42 +1334,7 @@ static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_OBJECT_INT(PyObject *operand1, 
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyInt_Type) {
-        nuitka_bool result;
-
-        // return _BINARY_OPERATION_BITOR_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
+        return _BINARY_OPERATION_BITOR_NBOOL_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_NBOOL_OBJECT_INT(operand1, operand2);
@@ -1744,42 +1509,7 @@ static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_INT_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        nuitka_bool result;
-
-        // return _BINARY_OPERATION_BITOR_NBOOL_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
+        return _BINARY_OPERATION_BITOR_NBOOL_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_NBOOL_INT_OBJECT(operand1, operand2);
@@ -2131,32 +1861,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_OBJECT_SET(PyObject *operand1, P
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PySet_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_SET_SET(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PySet_Type.tp_as_number->nb_or(operand1, operand2);
-
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_BITOR_OBJECT_SET_SET(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_OBJECT_SET(operand1, operand2);
@@ -2287,32 +1992,7 @@ static PyObject *_BINARY_OPERATION_BITOR_OBJECT_SET_OBJECT(PyObject *operand1, P
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PySet_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_BITOR_OBJECT_SET_SET(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PySet_Type.tp_as_number->nb_or(operand1, operand2);
-
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_BITOR_OBJECT_SET_SET(operand1, operand2);
     }
 
     return __BINARY_OPERATION_BITOR_OBJECT_SET_OBJECT(operand1, operand2);

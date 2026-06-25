@@ -98,20 +98,8 @@ static {{ target.getTypeDecl() }} _BINARY_OPERATION_{{op_code}}_{{target.getHelp
 {% endif %}
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
-        {{ target.getTypeDecl() }} result;
-
         {# There is special code for same types. #}
-        // return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
-
-        {{ call_binary_slot(props, operator, nb_slot, nb_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
-
-        exit_result_ok:
-        return result;
-
-{% if "exit_result_exception" in props["exits"] %}
-        exit_result_exception:
-        return {{target.getExceptionResultIndicatorValue()}};
-{% endif %}
+        return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
     }
 
     return __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);

@@ -243,84 +243,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INT(PyObject *operand1, 
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyInt_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b == 0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
-            goto exit_result_exception;
-        }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
-        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-            long a_div_b = a / b;
-            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-            if (a_mod_b && (b ^ a_mod_b) < 0) {
-                a_mod_b += b;
-                a_div_b -= 1;
-            }
-
-            clong_result = a_div_b;
-            goto exit_result_ok_clong;
-        }
-
-        {
-            PyObject *operand1_object = operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
-            assert(r != Py_NotImplemented);
-
-            obj_result = r;
-            goto exit_result_object;
-        }
-
-    exit_result_ok_clong:
-        result = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_INT(operand1, operand2);
@@ -487,84 +410,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_INT_OBJECT(PyObject *operand1, 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_INT_INT(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyInt_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b == 0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
-            goto exit_result_exception;
-        }
-
-        /* TODO: Isn't this a very specific value only, of which we could
-         * hardcode the constant result. Not sure how well the C compiler
-         * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-         * -1 has to be rare anyway.
-         */
-
-        if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-            long a_div_b = a / b;
-            long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-            if (a_mod_b && (b ^ a_mod_b) < 0) {
-                a_mod_b += b;
-                a_div_b -= 1;
-            }
-
-            clong_result = a_div_b;
-            goto exit_result_ok_clong;
-        }
-
-        {
-            PyObject *operand1_object = operand1;
-            PyObject *operand2_object = operand2;
-
-            PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
-            assert(r != Py_NotImplemented);
-
-            obj_result = r;
-            goto exit_result_object;
-        }
-
-    exit_result_ok_clong:
-        result = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_INT_INT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_INT_OBJECT(operand1, operand2);
@@ -768,39 +614,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_LONG(PyObject *operand1,
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyLong_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_divide(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_LONG(operand1, operand2);
@@ -971,39 +785,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_LONG_OBJECT(PyObject *operand1,
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_LONG_LONG(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_divide(operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        result = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_LONG_LONG(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_LONG_OBJECT(operand1, operand2);
@@ -1217,53 +999,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1
     PyTypeObject *type1 = Py_TYPE(operand1);
 
     if (type1 == &PyFloat_Type) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyFloat_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyFloat_CheckExact(operand2));
-
-        const double a = PyFloat_AS_DOUBLE(operand1);
-        const double b = PyFloat_AS_DOUBLE(operand2);
-
-        if (unlikely(b == 0.0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
-            goto exit_result_exception;
-        }
-
-        {
-            double r = a / b;
-
-            cfloat_result = r;
-            goto exit_result_ok_cfloat;
-        }
-
-    exit_result_ok_cfloat:
-        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_FLOAT(operand1, operand2);
@@ -1430,53 +1166,7 @@ static PyObject *_BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyFloat_Type == type2) {
-        PyObject *result;
-
-        // return _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
-
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(operand1);
-        assert(PyFloat_CheckExact(operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyFloat_CheckExact(operand2));
-
-        const double a = PyFloat_AS_DOUBLE(operand1);
-        const double b = PyFloat_AS_DOUBLE(operand2);
-
-        if (unlikely(b == 0.0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
-            goto exit_result_exception;
-        }
-
-        {
-            double r = a / b;
-
-            cfloat_result = r;
-            goto exit_result_ok_cfloat;
-        }
-
-    exit_result_ok_cfloat:
-        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return result;
-
-    exit_result_exception:
-        return NULL;
+        return _BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
     }
 
     return __BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_OBJECT(operand1, operand2);
