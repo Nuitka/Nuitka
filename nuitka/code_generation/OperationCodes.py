@@ -129,6 +129,7 @@ def _getBinaryOperationCode(
 
     helper_type = target_type = None if operator[0] == "I" else to_name.getCType()
     dual_inplace_binary_result = False
+    dual_binary_result = False
 
     if (
         operator[0] == "I"
@@ -160,6 +161,33 @@ def _getBinaryOperationCode(
         if not dual_inplace_binary_result:
             helper_type = None
 
+    if (
+        not dual_inplace_binary_result
+        and operator in ("Add", "Sub")
+        and helper_type is CTypePyObjectPtr
+        and (
+            left_c_type is CTypeNuitkaIntOrLongStruct
+            or right_c_type is CTypeNuitkaIntOrLongStruct
+        )
+    ):
+        helper_type, helper_function = selectCodeHelper(
+            prefix=prefix,
+            specialized_helpers_set=specialized_helpers_set,
+            non_specialized_helpers_set=non_specialized_helpers_set,
+            result_type=CTypeNuitkaIntOrLongStruct,
+            left_shape=left_shape,
+            right_shape=right_shape,
+            left_c_type=left_c_type,
+            right_c_type=right_c_type,
+            argument_swap=needs_argument_swap,
+            report_missing=False,
+            source_ref=source_ref,
+        )
+
+        dual_binary_result = helper_function is not None
+        if not dual_binary_result:
+            helper_type = target_type
+
     if helper_type is not None and not dual_inplace_binary_result:
         if needs_check and helper_type is not None:
             # If an exception may occur, we do not have the "NVOID" helpers though, we
@@ -188,7 +216,7 @@ def _getBinaryOperationCode(
                 report_missing = False
 
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
-    if not dual_inplace_binary_result:
+    if not dual_inplace_binary_result and not dual_binary_result:
         helper_type, helper_function = selectCodeHelper(
             prefix=prefix,
             specialized_helpers_set=specialized_helpers_set,

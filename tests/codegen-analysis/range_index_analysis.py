@@ -38,6 +38,15 @@ def inplace_with_start(values):
     return total
 
 
+def object_result_with_start(values):
+    result = []
+
+    for index in range(1, len(values) + 1):
+        result.append(index + 1)
+
+    return result
+
+
 def main():
     values = list(range(100))
 
@@ -45,6 +54,7 @@ def main():
     print(consume_with_start(values))
     print(assign_with_start([0, 0, 0, 0, 0]))
     print(inplace_with_start(values))
+    print(object_result_with_start([0, 0, 0]))
 
 
 main()
