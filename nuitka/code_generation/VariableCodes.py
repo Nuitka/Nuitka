@@ -55,6 +55,12 @@ def generateAssignmentVariableCode(statement, emit, context):
             and variable_declaration.c_type == "nuitka_ilong"
         ):
             tmp_name = context.allocateTempName("assign_source", "nuitka_ilong")
+        elif (
+            variable_declaration.c_type == "nuitka_ilong"
+            and assign_source.isExpressionOperationInplace()
+            and assign_source.getOperator() in ("IAdd", "ISub", "IMod", "IFloorDiv")
+        ):
+            tmp_name = context.allocateTempName("assign_source", "nuitka_ilong")
         else:
             tmp_name = context.allocateTempName("assign_source")
 

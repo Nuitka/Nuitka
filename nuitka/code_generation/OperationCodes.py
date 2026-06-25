@@ -115,6 +115,7 @@ def _getBinaryOperationCode(
             )
         ),
         context=context,
+        use_storage_types=inplace,
     )
 
     prefix = "%s_OPERATION_%s" % (
