@@ -93,6 +93,24 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     def getStarred(self):
         return self.starred
 
+    def getTypeShape(self):
+        element_index = self.count - 1
+
+        if not self.subnode_value.isKnownToBeIterableAtMin(self.count):
+            return tshape_unknown
+
+        result = self.getIterationValue(element_index)
+
+        if result is not None:
+            return result.getTypeShape()
+
+        result = self.getIterationValueShape(element_index)
+
+        if result is None:
+            return tshape_unknown
+
+        return result
+
 
 class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"

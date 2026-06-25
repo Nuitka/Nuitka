@@ -148,7 +148,7 @@ _bytes_argument_normalization = {
 def decideExpressionCTypes(
     left, right, may_swap_arguments, context, use_storage_types=False
 ):
-    # Complex stuff with many cases, pylint: disable=too-many-branches
+    # Complex stuff with many cases, pylint: disable=too-many-branches,too-many-statements
 
     left_shape = left.getTypeShape()
     right_shape = right.getTypeShape()
@@ -245,10 +245,7 @@ def decideExpressionCTypes(
                 right_storage_c_type is not None
                 and left_shape in _int_storage_types_family
             )
-            or (
-                left_storage_c_type is not None
-                and right_storage_c_type is not None
-            )
+            or (left_storage_c_type is not None and right_storage_c_type is not None)
         ):
             may_swap_arguments = may_swap_arguments in ("number", "always")
 

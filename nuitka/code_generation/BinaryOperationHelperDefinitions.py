@@ -226,8 +226,7 @@ def _makeNumberOps(op_code, result_types):
             _makeFriendOps(
                 op_code, friend_type_names=("NILONG", "DIGIT"), result_types=("NILONG",)
             )
-            if op_code in ("ADD", "SUB", "FLOORDIV", "MOD")
-            and result_types is not None
+            if op_code in ("ADD", "SUB", "FLOORDIV", "MOD") and result_types is not None
             else ()
         ),
     )

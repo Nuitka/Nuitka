@@ -163,7 +163,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             # TODO: That doesn't seem right, maybe this function makes no sense
             # after all, and should be one for checking, and one for releasing
             # instead.
-            emit("%s = %s.validity == NUITKA_ILONG_UNASSIGNED" % (to_name, value_name))
+            emit("%s = %s.validity == NUITKA_ILONG_UNASSIGNED;" % (to_name, value_name))
             emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
 
     @classmethod

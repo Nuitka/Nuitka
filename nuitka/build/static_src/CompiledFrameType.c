@@ -187,7 +187,8 @@ static PyObject *_Nuitka_Frame_get_locals(PyObject *self, void *data) {
         while (*w != 0) {
             switch (*w) {
             case NUITKA_TYPE_DESCRIPTION_OBJECT:
-            case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
+            case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR:
+            case NUITKA_TYPE_DESCRIPTION_NILONG: {
                 PyObject *value = *(PyObject **)t;
                 CHECK_OBJECT_X(value);
 
@@ -572,7 +573,8 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     while (w != NULL && *w != 0) {
         switch (*w) {
         case NUITKA_TYPE_DESCRIPTION_OBJECT:
-        case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
+        case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR:
+        case NUITKA_TYPE_DESCRIPTION_NILONG: {
             PyObject *value = *(PyObject **)t;
             CHECK_OBJECT_X(value);
 
