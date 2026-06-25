@@ -436,6 +436,15 @@ def _makeModOps(in_place):
         _makeDefaultOps(
             "MOD", result_types=None if in_place else standard_result_types
         ),
+        (
+            _makeFriendOps(
+                op_code="MOD",
+                friend_type_names=("NILONG", "DIGIT"),
+                result_types=("NILONG",),
+            )
+            if not in_place
+            else ()
+        ),
     )
 
 

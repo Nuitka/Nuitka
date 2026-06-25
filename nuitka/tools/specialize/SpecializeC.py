@@ -1643,6 +1643,7 @@ def main():
 
     makeHelpersBinaryDualOperation("+", "ADD")
     makeHelpersBinaryDualOperation("//", "FLOORDIV")
+    makeHelpersBinaryDualOperation("%", "MOD")
     makeHelpersBinaryDualOperation("-", "SUB")
 
     makeDictCopyHelperCodes()
