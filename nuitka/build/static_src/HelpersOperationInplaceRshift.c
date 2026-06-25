@@ -229,39 +229,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_LONG(PyObject **operand1, Py
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyLong_Type) {
-        // return _BINARY_OPERATION_RSHIFT_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(*operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_RSHIFT_LONG_LONG(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_RSHIFT_OBJECT_LONG(operand1, operand2);
@@ -447,39 +415,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_LONG_OBJECT(PyObject **operand1, Py
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        // return _BINARY_OPERATION_RSHIFT_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_rshift(*operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_RSHIFT_LONG_LONG(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_RSHIFT_LONG_OBJECT(operand1, operand2);
@@ -753,84 +689,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyO
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyInt_Type) {
-        // return _BINARY_OPERATION_RSHIFT_INT_INT_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b < 0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
-            goto exit_result_exception;
-        }
-
-        /* Short cut for zero shift or shifting zero. */
-        if (a == 0 || b == 0) {
-            goto exit_result_ok_left;
-        } else if (b >= LONG_BIT) {
-            if (a < 0) {
-                goto exit_result_ok_const_int_neg_1;
-            } else {
-                goto exit_result_ok_const_int_0;
-            }
-        } else {
-            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
-
-            clong_result = r;
-            goto exit_result_ok_clong;
-        }
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok_left:
-        goto exit_result_ok;
-
-    exit_result_ok_const_int_0:
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        Py_INCREF(const_int_0);
-        *operand1 = const_int_0;
-        goto exit_result_ok;
-
-    exit_result_ok_const_int_neg_1:
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        Py_INCREF(const_int_neg_1);
-        *operand1 = const_int_neg_1;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_RSHIFT_INT_INT(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_RSHIFT_OBJECT_INT(operand1, operand2);
@@ -1014,84 +873,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_OBJECT(PyObject **operand1, PyO
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        // return _BINARY_OPERATION_RSHIFT_INT_INT_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        if (unlikely(b < 0)) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
-            goto exit_result_exception;
-        }
-
-        /* Short cut for zero shift or shifting zero. */
-        if (a == 0 || b == 0) {
-            goto exit_result_ok_left;
-        } else if (b >= LONG_BIT) {
-            if (a < 0) {
-                goto exit_result_ok_const_int_neg_1;
-            } else {
-                goto exit_result_ok_const_int_0;
-            }
-        } else {
-            long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
-
-            clong_result = r;
-            goto exit_result_ok_clong;
-        }
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok_left:
-        goto exit_result_ok;
-
-    exit_result_ok_const_int_0:
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        Py_INCREF(const_int_0);
-        *operand1 = const_int_0;
-        goto exit_result_ok;
-
-    exit_result_ok_const_int_neg_1:
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        Py_INCREF(const_int_neg_1);
-        *operand1 = const_int_neg_1;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_RSHIFT_INT_INT(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_RSHIFT_INT_OBJECT(operand1, operand2);

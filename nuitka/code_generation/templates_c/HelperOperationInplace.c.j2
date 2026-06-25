@@ -234,17 +234,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
         {# There is special code for same types. #}
-        // return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
-
-        {{ call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
-
-        exit_result_ok:
-        return true;
-
-{% if "exit_result_exception" in props["exits"] %}
-        exit_result_exception:
-        return false;
-{% endif %}
+        return _INPLACE_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);

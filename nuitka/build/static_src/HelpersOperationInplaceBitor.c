@@ -229,39 +229,7 @@ static inline bool _INPLACE_OPERATION_BITOR_OBJECT_LONG(PyObject **operand1, PyO
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyLong_Type) {
-        // return _BINARY_OPERATION_BITOR_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(*operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_BITOR_LONG_LONG(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_OBJECT_LONG(operand1, operand2);
@@ -446,39 +414,7 @@ static inline bool _INPLACE_OPERATION_BITOR_LONG_OBJECT(PyObject **operand1, PyO
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
-        // return _BINARY_OPERATION_BITOR_LONG_LONG_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        PyObject *x = PyLong_Type.tp_as_number->nb_or(*operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_BITOR_LONG_LONG(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_LONG_OBJECT(operand1, operand2);
@@ -714,46 +650,7 @@ static inline bool _INPLACE_OPERATION_BITOR_OBJECT_INT(PyObject **operand1, PyOb
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PyInt_Type) {
-        // return _BINARY_OPERATION_BITOR_INT_INT_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
+        return _INPLACE_OPERATION_BITOR_INT_INT(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_OBJECT_INT(operand1, operand2);
@@ -936,46 +833,7 @@ static inline bool _INPLACE_OPERATION_BITOR_INT_OBJECT(PyObject **operand1, PyOb
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
-        // return _BINARY_OPERATION_BITOR_INT_INT_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-        NUITKA_MAY_BE_UNUSED bool cbool_result;
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-        NUITKA_MAY_BE_UNUSED long clong_result;
-        NUITKA_MAY_BE_UNUSED double cfloat_result;
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-        CHECK_OBJECT(*operand1);
-        assert(PyInt_CheckExact(*operand1));
-        CHECK_OBJECT(operand2);
-        assert(PyInt_CheckExact(operand2));
-
-        const long a = PyInt_AS_LONG(*operand1);
-        const long b = PyInt_AS_LONG(operand2);
-
-        const long r = a | b;
-
-        clong_result = r;
-        goto exit_result_ok_clong;
-
-    exit_result_ok_clong:
-
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        // That's our return value then. As we use a dedicated variable, it's
-        // OK that way.
-        *operand1 = Nuitka_PyInt_FromLong(clong_result);
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
+        return _INPLACE_OPERATION_BITOR_INT_INT(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_INT_OBJECT(operand1, operand2);
@@ -1351,33 +1209,7 @@ static inline bool _INPLACE_OPERATION_BITOR_OBJECT_SET(PyObject **operand1, PyOb
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
     if (type1 == &PySet_Type) {
-        // return _BINARY_OPERATION_BITOR_SET_SET_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PySet_Type.tp_as_number->nb_inplace_or(*operand1, operand2);
-
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_BITOR_SET_SET(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_OBJECT_SET(operand1, operand2);
@@ -1535,33 +1367,7 @@ static inline bool _INPLACE_OPERATION_BITOR_SET_OBJECT(PyObject **operand1, PyOb
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PySet_Type == type2) {
-        // return _BINARY_OPERATION_BITOR_SET_SET_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PySet_Type.tp_as_number->nb_inplace_or(*operand1, operand2);
-
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
+        return _INPLACE_OPERATION_BITOR_SET_SET(operand1, operand2);
     }
 
     return __INPLACE_OPERATION_BITOR_SET_OBJECT(operand1, operand2);
