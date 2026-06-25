@@ -2233,6 +2233,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #endif
 
 #include "HelpersOperationBinaryDualAdd.c"
+#include "HelpersOperationBinaryDualFloordiv.c"
+#include "HelpersOperationBinaryDualMod.c"
 #include "HelpersOperationBinaryDualSub.c"
 
 #include "HelpersOperationInplaceAdd.c"

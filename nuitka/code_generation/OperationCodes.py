@@ -289,9 +289,13 @@ def _getBinaryOperationCode(
 
         if dual_inplace_binary_result:
             res_name = context.getBoolResName()
-            result_name = context.allocateTempName(
-                "%s_result" % operator.lower(), type_name=helper_type.c_type
-            )
+
+            if to_name.getCType() is helper_type:
+                result_name = to_name
+            else:
+                result_name = context.allocateTempName(
+                    "%s_result" % operator.lower(), type_name=helper_type.c_type
+                )
 
             emit(
                 "%s = %s(&%s, %s%s, %s%s);"
@@ -314,13 +318,14 @@ def _getBinaryOperationCode(
                 context=context,
             )
 
-            to_name.getCType().emitAssignConversionCode(
-                to_name=to_name,
-                value_name=result_name,
-                needs_check=False,
-                emit=emit,
-                context=context,
-            )
+            if result_name is not to_name:
+                to_name.getCType().emitAssignConversionCode(
+                    to_name=to_name,
+                    value_name=result_name,
+                    needs_check=False,
+                    emit=emit,
+                    context=context,
+                )
         else:
             res_name = context.getBoolResName()
 
