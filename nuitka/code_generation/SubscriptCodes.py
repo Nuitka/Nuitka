@@ -30,6 +30,31 @@ def decideIntegerSubscript(subscript):
     return None, False
 
 
+def decideNuitkaIntOrLongSubscript(subscript, context):
+    if subscript.getTypeShape() is tshape_int_or_long:
+        return True
+
+    if not subscript.isExpressionVariableRefOrTempVariableRef():
+        return False
+
+    variable = subscript.getVariable()
+
+    # TODO: Module variables are not doing it (yet?)
+    # TODO: Closure variables should be possible to have non PyObject eventually.
+    if not variable.isLocalVariable() or variable.isSharedTechnically():
+        return False
+
+    from .VariableCodes import getLocalVariableDeclaration  # Avoid import cycle.
+
+    variable_declaration = getLocalVariableDeclaration(
+        context=context,
+        variable=variable,
+        variable_trace=subscript.getVariableTrace(),
+    )
+
+    return variable_declaration.c_type == "nuitka_ilong"
+
+
 def generateAssignmentSubscriptCode(statement, emit, context):
     subscribed = statement.subnode_subscribed
     subscript = statement.subnode_subscript
@@ -48,7 +73,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
         to_name=subscribed_name, expression=subscribed, emit=emit, context=context
     )
 
-    if not integer_subscript and subscript.getTypeShape() is tshape_int_or_long:
+    if not integer_subscript and decideNuitkaIntOrLongSubscript(subscript, context):
         subscript_name = context.allocateTempName("ass_subscript", "nuitka_ilong")
     else:
         subscript_name = context.allocateTempName("ass_subscript")
@@ -123,7 +148,7 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
 
     subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
 
-    if not integer_subscript and subscript.getTypeShape() is tshape_int_or_long:
+    if not integer_subscript and decideNuitkaIntOrLongSubscript(subscript, context):
         subscript_name = context.allocateTempName("subscript_value", "nuitka_ilong")
 
         generateExpressionCode(
