@@ -14,10 +14,12 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
+from nuitka.nodes.BuiltinRangeNodes import makeExpressionBuiltinXrange
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_xrange
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
@@ -28,12 +30,63 @@ from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
+    getKind,
     makeStatementsSequence,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceWithNone,
     popBuildContext,
     pushBuildContext,
 )
+
+
+def _buildRangeLoopSource(provider, node, source_ref):
+    if getattr(node.iter, "func", None) is None:
+        return None
+
+    if getattr(node.iter.func, "id", None) != "range":
+        return None
+
+    range_args = node.iter.args
+
+    if len(range_args) == 1:
+        return makeExpressionBuiltinXrange(
+            low=buildNode(provider, range_args[0], source_ref),
+            high=None,
+            step=None,
+            source_ref=source_ref,
+        )
+
+    if len(range_args) == 2:
+        return makeExpressionBuiltinXrange(
+            low=buildNode(provider, range_args[0], source_ref),
+            high=buildNode(provider, range_args[1], source_ref),
+            step=None,
+            source_ref=source_ref,
+        )
+
+    if len(range_args) == 3:
+        return makeExpressionBuiltinXrange(
+            low=buildNode(provider, range_args[0], source_ref),
+            high=buildNode(provider, range_args[1], source_ref),
+            step=buildNode(provider, range_args[2], source_ref),
+            source_ref=source_ref,
+        )
+
+    return None
+
+
+def _makeForLoopNextExpression(tmp_iter_variable, sync, source_ref):
+    tmp_iter_ref = ExpressionTempVariableRef(
+        variable=tmp_iter_variable, source_ref=source_ref
+    )
+
+    if sync:
+        return ExpressionBuiltinNext1(value=tmp_iter_ref, source_ref=source_ref)
+
+    return ExpressionYieldFromAwaitable(
+        expression=ExpressionAsyncNext(value=tmp_iter_ref, source_ref=source_ref),
+        source_ref=source_ref,
+    )
 
 
 def _buildForLoopNode(provider, node, sync, source_ref):
@@ -46,15 +99,31 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     source = buildNode(provider, node.iter, source_ref)
 
+    if sync:
+        range_source = _buildRangeLoopSource(provider, node, source_ref)
+
+        if range_source is not None:
+            source = range_source
+
     # Temporary variables, we need one for the iterator, and one for the current
     # value.
     temp_scope = provider.allocateTempScope("for_loop")
+
+    tmp_value_variable_type = "object"
+
+    if sync and getKind(node.target) == "Name":
+        source_shape = source.getTypeShape()
+
+        if source_shape is tshape_xrange:
+            tmp_value_variable_type = "nuitka_ilong"
 
     tmp_iter_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="for_iterator", temp_type="object"
     )
     tmp_value_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="iter_value", temp_type="object"
+        temp_scope=temp_scope,
+        name="iter_value",
+        temp_type=tmp_value_variable_type,
     )
 
     # ast naming, spell-checker: ignore orelse
@@ -84,23 +153,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     handler_body = makeStatementsSequence(statements=statements, source_ref=source_ref)
 
-    if sync:
-        next_node = ExpressionBuiltinNext1(
-            value=ExpressionTempVariableRef(
-                variable=tmp_iter_variable, source_ref=source_ref
-            ),
-            source_ref=source_ref,
-        )
-    else:
-        next_node = ExpressionYieldFromAwaitable(
-            expression=ExpressionAsyncNext(
-                value=ExpressionTempVariableRef(
-                    variable=tmp_iter_variable, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        )
+    next_node = _makeForLoopNextExpression(
+        tmp_iter_variable=tmp_iter_variable, sync=sync, source_ref=source_ref
+    )
 
     statements = (
         makeTryExceptSingleHandlerNode(

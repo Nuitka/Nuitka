@@ -125,7 +125,7 @@ def decideExpressionCTypes(left, right, may_swap_arguments, context):
         needs_argument_swap = (
             may_swap_arguments
             and left_c_type is not right_c_type
-            and _long_argument_normalization[(left_c_type, right_c_type)]
+            and _long_argument_normalization.get((left_c_type, right_c_type), False)
         )
 
         # TODO: The INT and LONG types, do not have distinct C types yet, and maybe

@@ -112,7 +112,10 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         return self.subnode_value.canPredictIterationValues()
 
     def getIterationValue(self, element_index):
-        return self.subnode_value.getIterationValue(element_index)
+        if hasattr(self.subnode_value, "getIterationValue"):
+            return self.subnode_value.getIterationValue(element_index)
+
+        return None
 
     def getIterationHandle(self):
         return self.subnode_value.getIterationHandle()

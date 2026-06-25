@@ -158,6 +158,42 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Long_GetSmallValue(medium_re
 
 #endif
 
+NUITKA_MAY_BE_UNUSED static nuitka_ilong Nuitka_NILONG_FromObject(PyObject *python_value) {
+    nuitka_ilong result;
+
+    result.validity = NUITKA_ILONG_OBJECT_VALID;
+    result.python_value = python_value;
+    result.c_value = 0;
+
+    if (python_value == Py_False) {
+        result.validity = NUITKA_ILONG_BOTH_VALID;
+    } else if (python_value == Py_True) {
+        result.validity = NUITKA_ILONG_BOTH_VALID;
+        result.c_value = 1;
+    }
+#if PYTHON_VERSION < 0x300
+    else if (PyInt_CheckExact(python_value)) {
+        result.c_value = PyInt_AS_LONG(python_value);
+        result.validity = NUITKA_ILONG_BOTH_VALID;
+    }
+#endif
+    else if (PyLong_CheckExact(python_value)) {
+        int overflow;
+
+        result.c_value = Nuitka_PyLong_AsLongAndOverflow(python_value, &overflow);
+
+        if (overflow == 0) {
+            result.validity = NUITKA_ILONG_BOTH_VALID;
+        }
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static void SET_NILONG_BOOL_VALUE(nuitka_ilong *dual_value, int truth_value) {
+    SET_NILONG_OBJECT_AND_C_VALUE(dual_value, Nuitka_Long_GetSmallValue(truth_value ? 1 : 0), truth_value ? 1 : 0);
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

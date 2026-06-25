@@ -27,7 +27,7 @@ from .IterationHandles import (
     IterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import tshape_xrange
+from .shapes.BuiltinTypeShapes import tshape_int_or_long, tshape_xrange
 
 
 class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
@@ -120,6 +120,12 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
+
+    @staticmethod
+    def getIterationValueShape(element_index):
+        del element_index
+
+        return tshape_int_or_long
 
 
 class ExpressionBuiltinRange1(
@@ -452,6 +458,12 @@ class ExpressionBuiltinXrangeMixin(object):
             description="Built-in call to '%s' computed."
             % (self.builtin_spec.getName()),
         )
+
+    @staticmethod
+    def getIterationValueShape(element_index):
+        del element_index
+
+        return tshape_int_or_long
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # No exception will be raised on xrange iteration, but there is nothing to

@@ -9,6 +9,7 @@ text, explaining things about its context.
 
 from .ChildrenHavingMixins import ChildrenHavingIteratorDefaultMixin
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
@@ -35,6 +36,31 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 
     def mayRaiseException(self, exception_type):
         return self.may_raise or self.subnode_value.mayRaiseException(exception_type)
+
+    def getIterationValue(self, element_index):
+        if hasattr(self.subnode_value, "getIterationValue"):
+            return self.subnode_value.getIterationValue(element_index)
+
+        return None
+
+    def getIterationValueShape(self, element_index):
+        if hasattr(self.subnode_value, "getIterationValueShape"):
+            return self.subnode_value.getIterationValueShape(element_index)
+
+        return None
+
+    def getTypeShape(self):
+        result = self.getIterationValue(0)
+
+        if result is not None:
+            return result.getTypeShape()
+
+        result = self.getIterationValueShape(0)
+
+        if result is None:
+            return tshape_unknown
+
+        return result
 
 
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):

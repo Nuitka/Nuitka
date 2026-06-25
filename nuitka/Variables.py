@@ -120,6 +120,10 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         return False
 
     @staticmethod
+    def isTempVariableNuitkaIntOrLong():
+        return False
+
+    @staticmethod
     def isLocalsDictVariable():
         return False
 
@@ -419,6 +423,9 @@ class TempVariable(Variable):
 
     def isTempVariableBool(self):
         return self.variable_type == "bool"
+
+    def isTempVariableNuitkaIntOrLong(self):
+        return self.variable_type == "nuitka_ilong"
 
     def getDescription(self):
         return "temp variable '%s'" % self.variable_name

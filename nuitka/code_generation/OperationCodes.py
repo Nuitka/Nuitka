@@ -17,6 +17,7 @@ from .BinaryOperationHelperDefinitions import (
 )
 from .c_types.CTypeBooleans import CTypeBool
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
+from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .c_types.CTypeVoids import CTypeVoid
@@ -127,8 +128,39 @@ def _getBinaryOperationCode(
     report_missing = True
 
     helper_type = target_type = None if operator[0] == "I" else to_name.getCType()
+    dual_inplace_binary_result = False
 
-    if helper_type is not None:
+    if (
+        inplace
+        and helper_type is None
+        and (
+            left_c_type is CTypeNuitkaIntOrLongStruct
+            or right_c_type is CTypeNuitkaIntOrLongStruct
+        )
+    ):
+        helper_type, helper_function = selectCodeHelper(
+            prefix="BINARY_OPERATION_%s" % getCodeNameForBinaryOperation(operator),
+            specialized_helpers_set=getSpecializedBinaryOperations(
+                getCodeNameForBinaryOperation(operator)
+            ),
+            non_specialized_helpers_set=getNonSpecializedBinaryOperations(
+                getCodeNameForBinaryOperation(operator)
+            ),
+            result_type=CTypeNuitkaIntOrLongStruct,
+            left_shape=left_shape,
+            right_shape=right_shape,
+            left_c_type=left_c_type,
+            right_c_type=right_c_type,
+            argument_swap=needs_argument_swap,
+            report_missing=report_missing,
+            source_ref=source_ref,
+        )
+
+        dual_inplace_binary_result = helper_function is not None
+        if not dual_inplace_binary_result:
+            helper_type = None
+
+    if helper_type is not None and not dual_inplace_binary_result:
         if needs_check and helper_type is not None:
             # If an exception may occur, we do not have the "NVOID" helpers though, we
             # instead can use the CTypeNuitkaBoolEnum that will easily convert to
@@ -156,19 +188,20 @@ def _getBinaryOperationCode(
                 report_missing = False
 
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
-    helper_type, helper_function = selectCodeHelper(
-        prefix=prefix,
-        specialized_helpers_set=specialized_helpers_set,
-        non_specialized_helpers_set=non_specialized_helpers_set,
-        result_type=helper_type,
-        left_shape=left_shape,
-        right_shape=right_shape,
-        left_c_type=left_c_type,
-        right_c_type=right_c_type,
-        argument_swap=needs_argument_swap,
-        report_missing=report_missing,
-        source_ref=source_ref,
-    )
+    if not dual_inplace_binary_result:
+        helper_type, helper_function = selectCodeHelper(
+            prefix=prefix,
+            specialized_helpers_set=specialized_helpers_set,
+            non_specialized_helpers_set=non_specialized_helpers_set,
+            result_type=helper_type,
+            left_shape=left_shape,
+            right_shape=right_shape,
+            left_c_type=left_c_type,
+            right_c_type=right_c_type,
+            argument_swap=needs_argument_swap,
+            report_missing=report_missing,
+            source_ref=source_ref,
+        )
 
     # If we failed to find CTypeBool, that should be OK.
     if helper_function is None and target_type is CTypeBool:
@@ -226,30 +259,79 @@ def _getBinaryOperationCode(
     if inplace or "INPLACE" in helper_function:
         assert not needs_argument_swap
 
-        res_name = context.getBoolResName()
+        if dual_inplace_binary_result:
+            res_name = context.getBoolResName()
+            result_name = context.allocateTempName(
+                "%s_result" % operator.lower(), type_name=helper_type.c_type
+            )
 
-        # For module variable C type to reference later.
-        if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
-            emit("%s = %s;" % (context.getInplaceLeftName(), left_name))
+            emit(
+                "%s = %s(&%s, %s%s, %s%s);"
+                % (
+                    res_name,
+                    helper_function,
+                    result_name,
+                    "&" if left_c_type.isDualType() else "",
+                    left_name,
+                    "&" if right_c_type.isDualType() else "",
+                    right_name,
+                )
+            )
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
-            if not context.needsCleanup(left_name):
-                getTakeReferenceCode(left_name, emit)
+            getErrorExitBoolCode(
+                condition="%s == false" % res_name,
+                release_names=(left_name, right_name),
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
 
-        emit("%s = %s(&%s, %s);" % (res_name, helper_function, left_name, right_name))
+            to_name.getCType().emitAssignConversionCode(
+                to_name=to_name,
+                value_name=result_name,
+                needs_check=False,
+                emit=emit,
+                context=context,
+            )
+        else:
+            res_name = context.getBoolResName()
 
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_names=(left_name, right_name),
-            needs_check=needs_check,
-            emit=emit,
-            context=context,
-        )
+            # For module variable C type to reference later.
+            if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
+                emit("%s = %s;" % (context.getInplaceLeftName(), left_name))
 
-        emit("%s = %s;" % (to_name, left_name))
+            if not left.isExpressionVariableRefOrTempVariableRef():
+                if not context.needsCleanup(left_name):
+                    getTakeReferenceCode(left_name, emit)
 
-        if not left.isExpressionVariableRefOrTempVariableRef():
-            context.addCleanupTempName(to_name)
+            emit(
+                "%s = %s(&%s, %s);" % (res_name, helper_function, left_name, right_name)
+            )
+
+            getErrorExitBoolCode(
+                condition="%s == false" % res_name,
+                release_names=(left_name, right_name),
+                needs_check=needs_check,
+                emit=emit,
+                context=context,
+            )
+
+            if to_name.c_type == left_name.c_type:
+                emit("%s = %s;" % (to_name, left_name))
+            else:
+                to_name.getCType().emitAssignConversionCode(
+                    to_name=to_name,
+                    value_name=left_name,
+                    needs_check=False,
+                    emit=emit,
+                    context=context,
+                )
+
+            if (
+                to_name.c_type == left_name.c_type
+                and not left.isExpressionVariableRefOrTempVariableRef()
+            ):
+                context.addCleanupTempName(to_name)
     else:
         if needs_argument_swap:
             arg1_name = right_name

@@ -38,6 +38,7 @@ from .NodeMakingHelpers import (
 )
 from .OutlineNodes import ExpressionOutlineBody
 from .ReturnNodes import makeStatementReturn
+from .shapes.BuiltinTypeShapes import tshape_int_or_long
 from .shapes.StandardShapes import tshape_unknown
 from .SubscriptNodes import ExpressionSubscriptLookupForUnpack
 
@@ -731,6 +732,12 @@ class ExpressionTempVariableRef(
     def isExpressionVariableRefOrTempVariableRef():
         return True
 
+    def getTypeShape(self):
+        if self.variable.isTempVariableNuitkaIntOrLong():
+            return tshape_int_or_long
+
+        return ExpressionVariableRefBase.getTypeShape(self)
+
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         assert cls is ExpressionTempVariableRef, cls
@@ -863,6 +870,32 @@ class ExpressionTempVariableRef(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return True, (next_node, None, None)
+
+    def getIterationValue(self, count):
+        if self.variable_trace is None:
+            return None
+
+        iteration_source_node = self.variable_trace.getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getIterationValue"
+        ):
+            return iteration_source_node.getIterationValue(count)
+
+        return None
+
+    def getIterationValueShape(self, count):
+        if self.variable_trace is None:
+            return None
+
+        iteration_source_node = self.variable_trace.getIterationSourceNode()
+
+        if iteration_source_node is not None and hasattr(
+            iteration_source_node, "getIterationValueShape"
+        ):
+            return iteration_source_node.getIterationValueShape(count)
+
+        return None
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():

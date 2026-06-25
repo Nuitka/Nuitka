@@ -8,7 +8,7 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_unclear,
 )
 
-from ..ErrorCodes import getTakeReferenceCode
+from ..ErrorCodes import getErrorExitBoolCode, getTakeReferenceCode
 from .CTypeBases import CTypeBase
 
 
@@ -32,7 +32,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             emit("%s = %s;" % (value_name, tmp_name))
         else:
             if tmp_name.c_type == "PyObject *":
-                emit("SET_NILONG_OBJECT_VALUE(&%s, %s);" % (value_name, tmp_name))
+                emit("%s = Nuitka_NILONG_FromObject(%s);" % (value_name, tmp_name))
             else:
                 assert False, repr(tmp_name)
 
@@ -59,7 +59,14 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
-        return "%s != 0" % value_name
+        return (
+            "IS_NILONG_C_VALUE_VALID(&%s) ? %s.c_value != 0 : CHECK_IF_TRUE(%s.python_value) == 1"
+            % (
+                value_name,
+                value_name,
+                value_name,
+            )
+        )
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -84,13 +91,36 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             )
 
     @classmethod
+    def emitAssignmentCodeToNuitkaBool(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        truth_name = context.allocateTempName("truth_name", "int")
+
+        emit("if (IS_NILONG_C_VALUE_VALID(&%s)) {" % value_name)
+        emit("%s = %s.c_value != 0;" % (truth_name, value_name))
+        emit("} else {")
+        emit("%s = CHECK_IF_TRUE(%s.python_value);" % (truth_name, value_name))
+        emit("}")
+
+        getErrorExitBoolCode(
+            condition="%s == -1" % truth_name,
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
+        )
+
+        emit(
+            "%s = %s == 0 ? NUITKA_BOOL_FALSE : NUITKA_BOOL_TRUE;"
+            % (to_name, truth_name)
+        )
+
+    @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
             # TODO: In debug mode, use more crash prone maybe.
-            return "{NUITKA_ILONG_UNASSIGNED, NULL, 0}"
+            return "(nuitka_ilong){NUITKA_ILONG_UNASSIGNED, NULL, 0}"
         else:
-            assert False, init_from
-            return init_from
+            return "Nuitka_NILONG_FromObject(%s)" % init_from
 
     @classmethod
     def getInitTestConditionCode(cls, value_name, inverted):

@@ -11,6 +11,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
+from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -281,7 +282,15 @@ def getPickedCType(variable, context):
         else:
             shapes = variable.getTypeShapes()
 
-            if len(shapes) != 1:
+            int_like_shapes = [
+                shape for shape in shapes if shape.getTypeName() in ("int", "long")
+            ]
+
+            if int_like_shapes and all(
+                shape.getTypeName() in ("int", "long", None) for shape in shapes
+            ):
+                result = CTypeNuitkaIntOrLongStruct
+            elif len(shapes) != 1:
                 # Avoiding this for now, but we will have to use our enum
                 # based code variants, either generated or hard coded in
                 # the future.
@@ -323,6 +332,8 @@ def decideLocalVariableCodeType(context, variable):
 
     if variable.isTempVariableBool():
         c_type = CTypeNuitkaBoolEnum
+    elif variable.isTempVariableNuitkaIntOrLong():
+        c_type = CTypeNuitkaIntOrLongStruct
     else:
         c_type = getPickedCType(variable, context)
 
