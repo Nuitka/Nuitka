@@ -54,7 +54,15 @@ def _pickIntFamilyType(expression, context):
         else:
             c_type = CTypePyObjectPtr
     else:
-        c_type = CTypePyObjectPtr
+        if expression.isExpressionOperationBinary() and expression.getOperator() in (
+            "Add",
+            "Sub",
+            "IAdd",
+            "ISub",
+        ):
+            c_type = CTypeNuitkaIntOrLongStruct
+        else:
+            c_type = CTypePyObjectPtr
 
     return c_type
 

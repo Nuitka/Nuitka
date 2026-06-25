@@ -47,6 +47,17 @@ def object_result_with_start(values):
     return result
 
 
+def comparison_with_start(values):
+    result = 0
+    limit = len(values)
+
+    for index in range(1, limit + 1):
+        if index + 1 > limit:
+            result += index
+
+    return result
+
+
 def main():
     values = list(range(100))
 
@@ -55,6 +66,7 @@ def main():
     print(assign_with_start([0, 0, 0, 0, 0]))
     print(inplace_with_start(values))
     print(object_result_with_start([0, 0, 0]))
+    print(comparison_with_start([0, 0, 0]))
 
 
 main()
