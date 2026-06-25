@@ -66,6 +66,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
+    is32BitPython,
     python_version,
     python_version_full_str,
     python_version_str,
@@ -164,8 +165,8 @@ def _getEvaluationContext():
             "win32": isWin32Windows(),
             "linux": isLinux(),
             "android": isAndroidBasedLinux(),
-            "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
-            "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
+            "android32": isAndroidBasedLinux() and is32BitPython(),
+            "android64": isAndroidBasedLinux() and not is32BitPython(),
             "anaconda": isAnacondaPython(),
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
@@ -589,6 +590,27 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def getVariableConstantValue(self, module_name, variable_name):
+        """Return a compile-time constant value for a module-level variable.
+
+        Notes:
+            During tree building, when a variable reference is being resolved,
+            this hook is consulted. If a non-None value is returned, the
+            variable reference is replaced with a compile-time constant of
+            that value, enabling dead code elimination and static resolution
+            of dynamic imports that depend on the variable.
+
+        Args:
+            module_name: full module name object
+            variable_name: name of the variable being referenced
+
+        Returns:
+            A constant Python value (str, int, etc.) to use instead of the
+            variable reference, or None to use the variable normally.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Inspect or modify source code.
@@ -1398,7 +1420,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def onDataComposerResult(self, blob_filename):
+    def onDataComposerResult(self, blob_filenames):
         """Internal use only.
 
         Returns:

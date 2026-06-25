@@ -68,7 +68,7 @@ struct Nuitka_MetaPathBasedLoaderEntry {
  * program/package only.
  */
 extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
-                                        unsigned char **bytecode_data);
+                                        unsigned char **bytecode_data, int entry_count);
 
 // For module mode, embedded modules may have to be shifted to below the
 // namespace they are loaded into.

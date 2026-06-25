@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
+from nuitka.PythonVersions import getSystemPrefixPath
 
 
 def getOS():
@@ -26,6 +27,11 @@ def getOS():
         # Handle msys2 posix nature still meaning it's Windows.
         if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
             result = "Windows"
+
+        # OS400 (IBM i) is effectively AIX when using the native
+        # QOpenSys Python port running in PASE.
+        if result == "OS400" and getSystemPrefixPath().startswith("/QOpenSys/pkgs"):
+            result = "AIX"
 
         return result
     else:
@@ -283,6 +289,11 @@ def isAIX():
     return getOS() == "AIX"
 
 
+def isOS400():
+    """The OS400 (IBM i) platform."""
+    return os.name == "posix" and os.uname()[0] == "OS400"
+
+
 def hasMacOSIntelSupport():
     """macOS with either Intel hardware or Rosetta being installed."""
     return isMacOS() and (
@@ -337,9 +348,7 @@ def getArchitecture():
         result = os.uname()[4]
 
         if isAIX():
-            # Translate known values to what -X would expect.
-            if result == "00C63E504B00":
-                return "64"
+            return "powerpc"
 
         return result
 
@@ -538,6 +547,20 @@ def isElfUsingPlatform():
 def isCoffUsingPlatform():
     """Does the OS use the COFF file format."""
     return isAIX()
+
+
+_counted = {}
+
+
+@contextmanager
+def counted(key):
+    """Context manager that yields an incrementing count, starting from 1.
+
+    Each time the same key is used, the count increments.
+    """
+    count = _counted.get(key, 0) + 1
+    _counted[key] = count
+    yield count
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

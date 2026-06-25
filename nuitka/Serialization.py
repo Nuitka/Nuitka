@@ -24,6 +24,11 @@ from nuitka.Builtins import (
 # TODO: Move to constants
 from nuitka.code_generation.GlobalConstants import getConstantDefaultPopulation
 from nuitka.code_generation.Namify import namifyConstant
+from nuitka.code_generation.SpecialConstantData import (
+    BlobData,
+    SpecialConstantBase,
+    getConstantCType,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
@@ -78,22 +83,6 @@ class BuiltinSpecialValue(object):
             return to_byte(2)
         else:
             assert False, self.value
-
-
-class BlobData(object):
-    """Used to pickle bytes to become raw pointers."""
-
-    __slots__ = ("data", "name")
-
-    def __init__(self, data, name):
-        self.data = data
-        self.name = name
-
-    def getData(self):
-        return self.data
-
-    def __repr__(self):
-        return "<nuitka.Serialization.BlobData %s>" % self.name
 
 
 def _pickleAnonValues(pickler, value):
@@ -168,12 +157,13 @@ class ConstantStreamReader(object):
 
 
 class GlobalConstantAccessor(object):
-    __slots__ = ("constants", "constants_writer", "top_level_name")
+    __slots__ = ("constants", "constants_writer", "top_level_name", "special_details")
 
     global_constant_keys = set()
 
     def __init__(self, data_filename, top_level_name):
         self.constants = OrderedSet()
+        self.special_details = {}
 
         self.constants_writer = ConstantStreamWriter(data_filename)
         self.top_level_name = top_level_name
@@ -265,6 +255,8 @@ class GlobalConstantAccessor(object):
 
         if key not in self.constants:
             self.constants.add(key)
+            blob = BlobData(data, name)
+            self.special_details[key] = blob.getConstantDetails()
             self.constants_writer.addBlobData(data=data, name=name)
 
         key = "%s[%d]" % (self.top_level_name, self.constants.index(key))
@@ -280,17 +272,31 @@ class GlobalConstantAccessor(object):
     def getConstantNames(self):
         return tuple(self.constants)
 
+    def getConstantInfos(self):
+        result = []
+
+        for name in self.constants:
+            result.append((name, getConstantCType(name)))
+
+        return tuple(result)
+
+    def getConstantDetails(self, name):
+        return self.special_details.get(name)
+
 
 class ConstantAccessor(GlobalConstantAccessor):
     __slots__ = ()
 
     def _getConstantCode(self, constant):
         key = "const_" + namifyConstant(constant)
+
         if key in self.global_constant_keys:
             return key
 
         if key not in self.constants:
             self.constants.add(key)
+            if isinstance(constant, SpecialConstantBase):
+                self.special_details[key] = constant.getConstantDetails()
             self.constants_writer.addConstantValue(constant)
 
         return "%s.%s" % (self.top_level_name, key)
@@ -300,6 +306,8 @@ class ConstantAccessor(GlobalConstantAccessor):
 
         if key not in self.constants:
             self.constants.add(key)
+            blob = BlobData(data, name)
+            self.special_details[key] = blob.getConstantDetails()
             self.constants_writer.addBlobData(data=data, name=name)
 
         return "%s[%d]" % (self.top_level_name, self.constants.index(key))

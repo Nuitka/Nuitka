@@ -1,25 +1,41 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Tests that reads a data file via path"""
+"""Test dataclass forward references with deferred annotations."""
 
-# nuitka-project: --include-package=some_package
+# TODO: Once 3.14 has this as a default, remove the experimental flag
+# nuitka-project: --experimental=deferred-annotations
 
-from importlib.resources import contents, is_resource, path
+import typing
+from dataclasses import dataclass, fields
 
-# Test contents (returns iterable of resource names)
-print("CONTENTS", sorted(contents("some_package")))
 
-# Test is_resource
-assert is_resource("some_package", "DATA_FILE.txt") is True
-assert is_resource("some_package", "missing.txt") is False
+def displayDict(d):
+    result = "{"
+    first = True
+    for key, value in sorted(d.items()):
+        if not first:
+            result += ","
 
-# Test path
-with path("some_package", "DATA_FILE.txt") as data_path:
-    with open(data_path, encoding="utf8") as data_file:
-        print("RES", data_file.read())
+        result += "%s: %s" % (repr(key), repr(value))
+        first = False
+    result += "}"
 
-print("OK.")
+    return result
+
+
+@dataclass
+class Node:
+    name: str
+    weight: NodeWeight
+
+
+class NodeWeight:
+    kind: str = "default"
+
+
+print("Fields:", sorted(f.name for f in fields(Node)))
+print("Type hints:", displayDict(typing.get_type_hints(Node)))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

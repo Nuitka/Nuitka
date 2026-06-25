@@ -124,6 +124,10 @@ def isRunningInInterpreter():
     return not hasattr(sys.modules.get("__main__"), "__compiled__")
 
 
+def is32BitPython():
+    return sys.maxsize < 2**32
+
+
 # TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a

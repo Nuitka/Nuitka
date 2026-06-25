@@ -12,6 +12,7 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
@@ -219,6 +220,8 @@ from .IteratorCodes import (
     generateBuiltinLenCode,
     generateBuiltinNext1Code,
     generateBuiltinNext2Code,
+    generateBuiltinZip310Code,
+    generateBuiltinZipCode,
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
@@ -592,6 +595,7 @@ def _generateModuleCode(module, data_filename):
         module_const_blob_name=encodePythonStringToC(
             deriveModuleConstantsBlobName(data_filename)
         ),
+        module_const_blob_symbol_name=getConstantBlobSymbolName(data_filename),
         context=context,
     )
 
@@ -658,6 +662,8 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ITER2": generateBuiltinIter2Code,
         "EXPRESSION_BUILTIN_ENUMERATE1": generateBuiltinEnumerate1Code,
         "EXPRESSION_BUILTIN_ENUMERATE2": generateBuiltinEnumerate2Code,
+        "EXPRESSION_BUILTIN_ZIP": generateBuiltinZipCode,
+        "EXPRESSION_BUILTIN_ZIP310": generateBuiltinZip310Code,
         "EXPRESSION_BUILTIN_NEXT1": generateBuiltinNext1Code,
         "EXPRESSION_BUILTIN_NEXT2": generateBuiltinNext2Code,
         "EXPRESSION_BUILTIN_SUM1": generateBuiltinSum1Code,

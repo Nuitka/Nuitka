@@ -74,8 +74,8 @@ static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFi
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReaderFilesObject *files) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>", files->m_loader_entry->name,
-                                files->m_path);
+    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>",
+                                entryDisplayName(files->m_loader_entry), files->m_path);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {

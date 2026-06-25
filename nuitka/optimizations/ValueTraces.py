@@ -1143,6 +1143,9 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def isWritingTrace():
         return False
 
+    def compareValueTrace(self, other):
+        return other.isLoopTrace() and self.loop_node is other.loop_node
+
     def getTypeShape(self):
         if self.type_shape is None:
             if len(self.type_shapes) > 1:
@@ -1222,14 +1225,6 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
         # TODO: May consider the shapes for better result
         return ControlFlowDescriptionFullEscape
 
-    def compareValueTrace(self, other):
-        # Incomplete loop value traces behave the same.
-        return (
-            self.__class__ is other.__class__
-            and self.loop_node == other.loop_node
-            and self.type_shapes == other.type_shapes
-        )
-
     # TODO: These could be better
     @staticmethod
     def mustHaveValue():
@@ -1260,10 +1255,6 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getReleaseEscape():
         return ControlFlowDescriptionFullEscape
-
-    def compareValueTrace(self, other):
-        # Incomplete loop value traces behave the same.
-        return self.__class__ is other.__class__ and self.loop_node == other.loop_node
 
     @staticmethod
     def mustHaveValue():

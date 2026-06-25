@@ -987,6 +987,15 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
             )
+        elif included_datafile.kind == "data_file_generated":
+            appendTreeElement(
+                root,
+                "data_file_generated",
+                name=included_datafile.dest_path,
+                size=str(included_datafile.getFileSize()),
+                reason=included_datafile.reason,
+                tags=",".join(included_datafile.tags),
+            )
 
     if report_input_data["included_metadata"]:
         metadata_node = appendTreeElement(

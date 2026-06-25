@@ -746,6 +746,38 @@ def getDistributionLicense(distribution):
     return license_name
 
 
+def getDistributionRequirements(distribution):
+    """Get the distribution requirements in a portable way.
+
+    Returns:
+        Tuple of (package_name, spec) tuples. The spec is the remainder
+        of the requirement string after the package name, or empty string
+        if there is no version spec or marker.
+    """
+    requires = getattr(distribution, "requires", None)
+
+    if requires is None:
+        return ()
+
+    if callable(requires):
+        # pkg_resources: requires() is a method returning Requirement objects.
+        req_strings = [str(req) for req in requires()]
+    else:
+        # importlib.metadata: requires is a list of strings.
+        req_strings = list(requires)
+
+    result = []
+
+    for req_string in req_strings:
+        match = re.match(r"^([a-zA-Z0-9][a-zA-Z0-9._-]*)", req_string)
+        if match:
+            name = match.group(1)
+            spec = req_string[match.end() :]
+            result.append((name, spec))
+
+    return tuple(result)
+
+
 def _getEntryPointGroup(group_name):
     try:
         if isExperimental("force-pkg-resources-metadata"):

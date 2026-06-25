@@ -425,6 +425,11 @@ def _getPrivatePipBinaryPath(
             if isWin32Windows():
                 possible += ".exe"
 
+            # Clear any cached version check failure from the first
+            # attempt, since the binary was re-downloaded and might
+            # work now.
+            _check_required_version_cache.pop((possible, "--version"), None)
+
             if os.path.exists(possible):
                 ok, _message = _checkPrivatePipBinaryPath(
                     logger=logger,
@@ -499,8 +504,9 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
         return True
 
     # Basic check for dist-info specific to version
+    normalized_name = _normalizePrivatePipPackageName(package_name)
     dist_info_name = "%s-%s" % (
-        package_name.replace("-", "_"),
+        normalized_name,
         package_version,
     )
 
@@ -520,7 +526,7 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
         # e.g. when an upgrade was done, but not fully clean.
         for filename in os.listdir(site_packages_folder):
             if (
-                filename.startswith(package_name + "-")
+                filename.startswith(normalized_name + "-")
                 and (filename.endswith(".dist-info") or filename.endswith(".egg-info"))
                 and filename != os.path.basename(dist_info_path)
                 and filename != os.path.basename(egg_info_path)
@@ -570,6 +576,13 @@ def tryDownloadPackageName(
         download_ok=True,
     ):
         assume_yes_for_downloads = True
+
+        if site_packages_folder is not None:
+            _cleanupPrivatePipMetadataState(
+                logger=logger,
+                site_packages_folder=site_packages_folder,
+                package_name=package_name,
+            )
 
         if package_version is not None:
             package_spec = "%s==%s" % (package_name, package_version)
@@ -757,6 +770,22 @@ def getClangFormatBinaryPath(logger, assume_yes_for_downloads, reject_message):
             check_binary=None,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=reject_message,
+        )
+    )
+    return binary_path
+
+
+def getCodespellBinaryPath(logger, assume_yes_for_downloads):
+    binary_path, _site_packages_folder, _assume_yes_for_downloads = (
+        _getPrivatePipBinaryPath(
+            logger=logger,
+            binary_name="codespell",
+            package_name="codespell",
+            module_name="codespell_lib",
+            dependencies=(),
+            check_binary=None,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+            reject_message="Spell checking needs to use 'codespell'.",
         )
     )
     return binary_path
@@ -1028,7 +1057,7 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
             plugin_ver = getRequiredVersion(logger, dep_package_name)
             if plugin_ver:
                 search_name_1 = dep_package_name
-                search_name_2 = dep_package_name.replace("-", "_")
+                search_name_2 = _normalizePrivatePipPackageName(dep_package_name)
 
                 if not any(
                     "%s %s" % (name, plugin_ver) in version_output
@@ -1043,7 +1072,8 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
                     return result
 
     actual_version = None
-    for line in version_output.splitlines():
+    version_lines = version_output.splitlines()
+    for line in version_lines:
         line = line.strip()
 
         if line.startswith(
@@ -1061,9 +1091,14 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         if line.startswith("rstfmt "):
             actual_version = line.split()[-1]
             break
-        if line.startswith("clang-format version "):
+        if "clang-format version " in line:
             actual_version = line.split()[2]
             break
+
+    if not actual_version and len(version_lines) == 1:
+        candidate = version_lines[0].strip()
+        if re.match(r"^\d[\d.]*$", candidate):
+            actual_version = candidate
 
     if not actual_version:
         result = False, "Error, couldn't determine version output of '%s' ('%s')" % (

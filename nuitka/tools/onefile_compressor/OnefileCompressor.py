@@ -16,6 +16,7 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.PythonVersions import is32BitPython
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import areSamePaths, getFileList, getFileSize
@@ -23,7 +24,6 @@ from nuitka.utils.Hashing import Hash, HashCRC32
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     decoratorRetries,
-    getArchitecture,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -40,7 +40,7 @@ def getCompressorFunction(expect_compression, low_memory, job_limit):
     # On 32-bit Python, zstandard stream_writer at level 22 with threads >= 1
     # fails with "Allocation error : not enough memory" even for tiny data,
     # so we must use single-threaded compression on 32-bit.
-    effective_threads = 0 if low_memory or getArchitecture() == "x86" else job_limit
+    effective_threads = 0 if low_memory or is32BitPython() else job_limit
 
     if expect_compression:
         try:

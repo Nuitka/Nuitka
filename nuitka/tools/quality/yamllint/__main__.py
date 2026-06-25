@@ -35,6 +35,15 @@ def main():
 Update the version checksum after checking, so Nuitka knowns it can be trusted.""",
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if not positional_args:
@@ -69,6 +78,7 @@ Update the version checksum after checking, so Nuitka knowns it can be trusted."
             filename=filename,
             effective_filename=filename,
             update=options.update_checksum,
+            assume_yes_for_downloads=options.assume_yes_for_downloads,
             logger=tools_logger,
         )
 

@@ -189,7 +189,7 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         # This is expected to be overloaded by child classes that disagree, bool, int, long and float
         return False
 
-    def isIndexable(self):
+    def isKnownToBeValidIndex(self):
         # TODO: Suspiciously this doesn't use isIndexConstant, which includes float, bug?
         return self.constant is None or self.isNumberConstant()
 

@@ -10,9 +10,6 @@
 # nuitka-project-else:
 #   nuitka-project: --mode=app
 
-# TODO: App bundles with contained onefile as a workaround are nothing the mode
-# argument even allows to say.
-
 from __future__ import print_function
 
 from PyQt5.QtCore import (

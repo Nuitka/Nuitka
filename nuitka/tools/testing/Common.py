@@ -1280,7 +1280,7 @@ def scanDirectoryForTestCases(
         ]
 
     for filename in sorted(filenames):
-        if filename.endswith((".build", ".onefile-build", ".dist", ".app")):
+        if filename.endswith((".build", ".onefile-build", ".dist", ".app", ".secrets")):
             continue
 
         filename_full = os.path.join(dirname, filename)
@@ -1331,7 +1331,9 @@ def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith((".build", ".onefile-build", ".dist", ".app"))
+            or filename.endswith(
+                (".build", ".onefile-build", ".dist", ".app", ".secrets")
+            )
             or os.path.basename(filename).startswith("venv_")
         ):
             continue

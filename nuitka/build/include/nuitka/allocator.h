@@ -7,6 +7,7 @@
 #ifdef __IDE_ONLY__
 #include "Python.h"
 #include "nuitka/defines.h"
+#include <stdbool.h>
 #endif
 
 // For Python2.6, these assertions cannot be done easily, just disable them with dummy code.

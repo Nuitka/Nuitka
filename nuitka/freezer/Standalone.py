@@ -65,6 +65,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.SharedLibraries import (
     copyDllFile,
+    detectBinaryPathDLLsCoff,
     getStandaloneEntryPointRPATHs,
     setSharedLibraryRPATH,
 )
@@ -72,6 +73,7 @@ from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
     getOS,
+    isCoffUsingPlatform,
     isDebianBasedLinux,
     isElfUsingPlatform,
     isMacOS,
@@ -89,7 +91,10 @@ from .DllDependenciesWin32 import (
     detectBinaryPathDLLsWin32,
     shallIncludeVCRedistDLL,
 )
-from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
+from .IncludedDataFiles import (
+    addIncludedPdbFile,
+    getIncludedFrameworkDistPathFromSourcePath,
+)
 from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
@@ -166,9 +171,12 @@ def _detectBinaryDLLs(
 
     if is_main_executable and isMonolithPy():
         return OrderedSet()
-    elif (
-        getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD", "AIX") or isPosixWindows()
-    ):
+    elif isCoffUsingPlatform():
+        return detectBinaryPathDLLsCoff(
+            filename=original_filename,
+            package_name=package_name,
+        )
+    elif getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
         return detectBinaryPathDLLsPosix(
             dll_filename=original_filename,
             package_name=package_name,
@@ -297,6 +305,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
     )
+
+    addIncludedPdbFile(main_standalone_entry_point)
 
     return main_standalone_entry_point, copy_standalone_entry_points
 

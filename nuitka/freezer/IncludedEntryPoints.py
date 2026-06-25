@@ -32,6 +32,8 @@ from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
+from .IncludedDataFiles import addIncludedPdbFile
+
 dll_tags = []
 
 
@@ -417,6 +419,9 @@ def addIncludedEntryPoint(entry_point):
         # Allow plugins to tag it
         onDllTags(entry_point)
 
+    if not entry_point.kind.endswith("_ignored"):
+        addIncludedPdbFile(entry_point)
+
     standalone_entry_points.append(entry_point)
 
 
@@ -457,6 +462,8 @@ def addExtensionModuleEntryPoint(module):
     )
 
     onDllTags(entry_point)
+
+    addIncludedPdbFile(entry_point)
 
     standalone_entry_points.append(entry_point)
 

@@ -545,6 +545,17 @@ else:
         "enumerate", ("iterable", "start"), default_count=1
     )
 
+builtin_zip_spec = BuiltinParameterSpecNoKeywords(
+    "zip", (), default_count=0, list_star_arg="iterables"
+)
+
+if python_version >= 0x3A0:
+    builtin_zip310_spec = BuiltinParameterSpec(
+        "zip", (), default_count=1, list_star_arg="iterables", kw_only_args=("strict",)
+    )
+else:
+    builtin_zip310_spec = None
+
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def isCompileTimeComputable(self, values):

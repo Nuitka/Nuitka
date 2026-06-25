@@ -62,23 +62,23 @@ static PyObject *module_filename_obj = NULL;
 /* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
+NUITKA_DECLARE_CONSTANT_BLOB(
+    %(module_const_blob_symbol_name)s,
+    %(module_const_blob_symbol_name)s,
+    const
+);
+
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        NUITKA_MAY_BE_UNUSED int constants_loaded_count =
-            loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+#if %(use_direct_constant_blobs)d
+        LOAD_DIRECT_CONSTANTS_BLOB(tstate, (PyObject **)&mod_consts, %(module_const_blob_symbol_name)s);
+#else
+        loadConstantsBlob(tstate, &mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+#endif
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
-        if (constants_loaded_count != %(constants_count)d) {
-            fprintf(stderr,
-                    "Corrupt constants blob for %%s: expected %(constants_count)d values, got %%d\n",
-                    UN_TRANSLATE(%(module_const_blob_name)s),
-                    constants_loaded_count);
-            fflush(stderr);
-            abort();
-        }
-
 %(module_constants_check_hash)s
 #endif
     }
