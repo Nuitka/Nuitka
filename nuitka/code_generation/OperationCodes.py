@@ -115,7 +115,8 @@ def _getBinaryOperationCode(
             )
         ),
         context=context,
-        use_storage_types=inplace,
+        use_storage_types=operator
+        in ("Add", "Sub", "Mod", "FloorDivide", "IAdd", "ISub", "IMod", "IFloorDiv"),
     )
 
     prefix = "%s_OPERATION_%s" % (
