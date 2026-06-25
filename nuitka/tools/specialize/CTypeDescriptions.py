@@ -712,7 +712,11 @@ return %(return_value)s;""" % {
         elif cls.isDualType():
             ref_taking = "Py_INCREF(%s); " if take_ref else ""
 
-            return "%sSET_NILONG_OBJECT_VALUE(%s, %s);" % (ref_taking, result, operand)
+            return "%s*%s = Nuitka_NILONG_FromObject(%s);" % (
+                ref_taking,
+                result,
+                operand,
+            )
         else:
             if take_ref:
                 return """%s = %s; """ % (
@@ -1735,7 +1739,7 @@ class DualTypeBase(ConcreteCTypeBase):
         if value_choice == "C":
             helper = "SET_%s_C_VALUE" % cls.type_name.upper()
         elif value_choice == "Python":
-            helper = "SET_%s_OBJECT_VALUE" % cls.type_name.upper()
+            return "*%s = Nuitka_NILONG_FromObject(%s);" % (target, value)
         else:
             assert False
 

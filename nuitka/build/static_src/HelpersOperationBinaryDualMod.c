@@ -66,7 +66,7 @@ bool BINARY_OPERATION_MOD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
             return false;
         }
 
-        SET_NILONG_OBJECT_VALUE(result, obj_result);
+        *result = Nuitka_NILONG_FromObject(obj_result);
         return true;
 
     exit_result_ok_clong:
@@ -82,7 +82,7 @@ bool BINARY_OPERATION_MOD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
             return false;
         }
 
-        SET_NILONG_OBJECT_VALUE(result, python_result);
+        *result = Nuitka_NILONG_FromObject(python_result);
         return true;
     } else {
         NUITKA_CANNOT_GET_HERE("cannot happen with types NILONG DIGIT");
@@ -147,7 +147,7 @@ bool BINARY_OPERATION_MOD_NILONG_DIGIT_NILONG(nuitka_ilong *result, long operand
             return false;
         }
 
-        SET_NILONG_OBJECT_VALUE(result, obj_result);
+        *result = Nuitka_NILONG_FromObject(obj_result);
         return true;
 
     exit_result_ok_clong:
@@ -163,7 +163,7 @@ bool BINARY_OPERATION_MOD_NILONG_DIGIT_NILONG(nuitka_ilong *result, long operand
             return false;
         }
 
-        SET_NILONG_OBJECT_VALUE(result, python_result);
+        *result = Nuitka_NILONG_FromObject(python_result);
 
         return true;
     } else {
