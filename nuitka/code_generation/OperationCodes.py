@@ -163,7 +163,7 @@ def _getBinaryOperationCode(
 
     if (
         not dual_inplace_binary_result
-        and operator in ("Add", "Sub")
+        and operator in ("Add", "Sub", "FloorDivide")
         and helper_type is CTypePyObjectPtr
         and (
             left_c_type is CTypeNuitkaIntOrLongStruct

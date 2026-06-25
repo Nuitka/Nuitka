@@ -58,6 +58,15 @@ def comparison_with_start(values):
     return result
 
 
+def floordiv_with_start(values):
+    result = 0
+
+    for index in range(2, len(values) + 2):
+        result += index // 2
+
+    return result
+
+
 def main():
     values = list(range(100))
 
@@ -67,6 +76,7 @@ def main():
     print(inplace_with_start(values))
     print(object_result_with_start([0, 0, 0]))
     print(comparison_with_start([0, 0, 0]))
+    print(floordiv_with_start([0, 0, 0]))
 
 
 main()

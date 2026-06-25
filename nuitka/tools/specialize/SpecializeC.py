@@ -656,6 +656,29 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
 
 def _getSpecializedBinaryOperations(op_code, dual):
+    if dual:
+        filtered_helpers = OrderedSet()
+        for helper in getSpecializedBinaryOperations(op_code):
+            if not any(part in helper for part in ("NILONG", "NFLOAT")):
+                continue
+            if op_code == "FLOORDIV":
+                target_code, left_code, right_code = parseTypesFromHelper(helper)
+                if target_code != "NILONG":
+                    continue
+
+                if left_code not in ("NILONG", "DIGIT") or right_code not in (
+                    "NILONG",
+                    "DIGIT",
+                ):
+                    continue
+
+                filtered_helpers.add(helper)
+            else:
+                # Existing dual families are expected to be narrowly scoped.
+                filtered_helpers.add(helper)
+
+        return filtered_helpers
+
     return OrderedSet(
         helper
         for helper in getSpecializedBinaryOperations(op_code)
@@ -1619,6 +1642,7 @@ def main():
     parseOptions()
 
     makeHelpersBinaryDualOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("//", "FLOORDIV")
     makeHelpersBinaryDualOperation("-", "SUB")
 
     makeDictCopyHelperCodes()
