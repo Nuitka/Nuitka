@@ -48,7 +48,11 @@ def generateAssignmentSubscriptCode(statement, emit, context):
         to_name=subscribed_name, expression=subscribed, emit=emit, context=context
     )
 
-    subscript_name = context.allocateTempName("ass_subscript")
+    if not integer_subscript and subscript.getTypeShape() is tshape_int_or_long:
+        subscript_name = context.allocateTempName("ass_subscript", "nuitka_ilong")
+    else:
+        subscript_name = context.allocateTempName("ass_subscript")
+
     generateExpressionCode(
         to_name=subscript_name, expression=subscript, emit=emit, context=context
     )
@@ -63,6 +67,14 @@ def generateAssignmentSubscriptCode(statement, emit, context):
                 subscribed_name=subscribed_name,
                 subscript_name=subscript_name,
                 subscript_value=subscript_constant,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
+        elif subscript_name.c_type == "nuitka_ilong":
+            _getNuitkaIntOrLongSubscriptAssignmentCode(
+                target_name=subscribed_name,
+                subscript_name=subscript_name,
                 value_name=value_name,
                 emit=emit,
                 context=context,
@@ -259,6 +271,25 @@ def _getSubscriptAssignmentCode(target_name, subscript_name, value_name, emit, c
 
     emit(
         "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
+        % (res_name, target_name, subscript_name, value_name)
+    )
+
+    getErrorExitBoolCode(
+        condition="%s == false" % res_name,
+        release_names=(target_name, subscript_name, value_name),
+        emit=emit,
+        context=context,
+    )
+
+
+def _getNuitkaIntOrLongSubscriptAssignmentCode(
+    target_name, subscript_name, value_name, emit, context
+):
+    res_name = context.getBoolResName()
+
+    emit("assert(%s.validity != NUITKA_ILONG_UNASSIGNED);" % subscript_name)
+    emit(
+        "%s = SET_SUBSCRIPT_NILONG(tstate, %s, &%s, %s);"
         % (res_name, target_name, subscript_name, value_name)
     )
 

@@ -453,6 +453,56 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyThreadState *tstate, PyObject *
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_NILONG(PyThreadState *tstate, PyObject *target, nuitka_ilong *subscript,
+                                                      PyObject *value) {
+    CHECK_OBJECT(value);
+    CHECK_OBJECT(target);
+    assert(subscript->validity != NUITKA_ILONG_UNASSIGNED);
+
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    ENFORCE_NILONG_OBJECT_VALUE(subscript);
+
+    int res = PyObject_SetItem(target, subscript->python_value, value);
+    return res == 0;
+#else
+    if (IS_NILONG_C_VALUE_VALID(subscript)) {
+        Py_ssize_t int_subscript = subscript->c_value;
+        PyMappingMethods *tp_as_mapping = Py_TYPE(target)->tp_as_mapping;
+
+        if (tp_as_mapping != NULL && tp_as_mapping->mp_ass_subscript) {
+            if (PyList_CheckExact(target)) {
+                Py_ssize_t list_size = PyList_GET_SIZE(target);
+
+                if (int_subscript < 0) {
+                    if (-int_subscript > list_size) {
+                        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
+
+                        return false;
+                    }
+
+                    int_subscript += list_size;
+                }
+
+                PyListObject *target_list = (PyListObject *)target;
+
+                PyObject *old_value = target_list->ob_item[int_subscript];
+                Py_INCREF(value);
+                target_list->ob_item[int_subscript] = value;
+                Py_DECREF(old_value);
+
+                return true;
+            }
+        } else if (Py_TYPE(target)->tp_as_sequence) {
+            return SEQUENCE_SET_ITEM(target, int_subscript, value);
+        }
+    }
+
+    ENFORCE_NILONG_OBJECT_VALUE(subscript);
+
+    return SET_SUBSCRIPT(tstate, target, subscript->python_value, value);
+#endif
+}
+
 NUITKA_MAY_BE_UNUSED static bool DEL_SUBSCRIPT(PyObject *target, PyObject *subscript) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(subscript);
