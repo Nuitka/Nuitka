@@ -28,6 +28,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
+from nuitka.plugins.Hooks import getVariableConstantValue
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -258,6 +259,26 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         # pylint: disable=too-many-branches
 
         if node.isExpressionVariableNameRef():
+            # Check if a plugin wants to provide a compile-time constant
+            # value for this variable reference, before any scope resolution.
+            constant_value = getVariableConstantValue(
+                module_name=node.getParentModule().getFullName(),
+                variable_name=node.getVariableName(),
+            )
+
+            if constant_value is not None:
+                new_node = makeConstantReplacementNode(
+                    constant=constant_value,
+                    node=node,
+                    user_provided=True,
+                )
+
+                parent = node.parent
+                node.finalize()
+
+                parent.replaceChild(node, new_node)
+                return
+
             provider = node.provider
 
             if provider.isExpressionClassBodyBase():

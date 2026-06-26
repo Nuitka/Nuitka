@@ -5,11 +5,16 @@
 
 # nuitka-project: --include-package=some_package
 
-# print(get_resource_reader(some_package).get_path("DATA_FILE.txt"))
+from importlib.resources import contents, is_resource, path
 
-from importlib.resources import path
+# Test contents (returns iterable of resource names)
+print("CONTENTS", sorted(contents("some_package")))
 
-# Wrong kind of use of course.
+# Test is_resource
+assert is_resource("some_package", "DATA_FILE.txt") is True
+assert is_resource("some_package", "missing.txt") is False
+
+# Test path
 with path("some_package", "DATA_FILE.txt") as data_path:
     with open(data_path, encoding="utf8") as data_file:
         print("RES", data_file.read())

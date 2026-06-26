@@ -83,6 +83,44 @@ static PyObject *Nuitka_ResourceReader_open_resource(PyObject *reader_obj, PyObj
     return BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
 }
 
+static PyObject *Nuitka_ResourceReader_is_resource(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)reader_obj;
+    PyObject *resource;
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_resource", (char **)_kw_list_get_data, &resource);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *filename = _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
+    if (unlikely(filename == NULL)) {
+        return NULL;
+    }
+
+    PyObject *result = OS_PATH_FILE_ISFILE(tstate, filename);
+    Py_DECREF(filename);
+    return result;
+}
+
+static PyObject *Nuitka_ResourceReader_contents(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)reader_obj;
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *dir_name = getModuleDirectory(tstate, reader->m_loader_entry);
+
+    if (unlikely(dir_name == NULL)) {
+        return NULL;
+    }
+
+    PyObject *result = OS_LISTDIR(tstate, dir_name);
+    Py_DECREF(dir_name);
+    return result;
+}
+
 #include "MetaPathBasedLoaderResourceReaderFiles.c"
 
 static PyObject *Nuitka_ResourceReader_files(PyObject *reader_obj, PyObject *args, PyObject *kwds) {
@@ -95,6 +133,8 @@ static PyObject *Nuitka_ResourceReader_files(PyObject *reader_obj, PyObject *arg
 static PyMethodDef Nuitka_ResourceReader_methods[] = {
     {"resource_path", CAST_METHOD_KW(Nuitka_ResourceReader_resource_path), METH_VARARGS | METH_KEYWORDS, NULL},
     {"open_resource", CAST_METHOD_KW(Nuitka_ResourceReader_open_resource), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"is_resource", CAST_METHOD_KW(Nuitka_ResourceReader_is_resource), METH_VARARGS | METH_KEYWORDS, NULL},
+    {"contents", CAST_METHOD_KW(Nuitka_ResourceReader_contents), METH_NOARGS, NULL},
     {"files", CAST_METHOD_KW(Nuitka_ResourceReader_files), METH_NOARGS, NULL},
     {NULL}};
 
