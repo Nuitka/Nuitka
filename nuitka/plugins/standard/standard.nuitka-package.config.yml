@@ -3757,6 +3757,8 @@
           - 'onnxruntime'
       when: 'win32'
     - from_filenames:
+        # on linux, previous defined `dest_path: '.'` did place dlls directly under
+        # "*.dist/*" instead of expected location at "*.dist/onnxruntime/capi/*"
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
