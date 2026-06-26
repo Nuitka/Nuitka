@@ -105,6 +105,7 @@ from nuitka.specs.BuiltinListOperationSpecs import (
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.BuiltinStrOperationSpecs import (
     str_capitalize_spec,
+    str_casefold_spec,
     str_center_spec,
     str_count_spec,
     str_decode_spec,
@@ -116,8 +117,12 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_index_spec,
     str_isalnum_spec,
     str_isalpha_spec,
+    str_isdecimal_spec,
     str_isdigit_spec,
+    str_isidentifier_spec,
     str_islower_spec,
+    str_isnumeric_spec,
+    str_isprintable_spec,
     str_isspace_spec,
     str_istitle_spec,
     str_isupper_spec,
@@ -266,6 +271,7 @@ from .NodeMakingHelpers import (
 )
 from .StrNodes import (
     ExpressionStrOperationCapitalize,
+    ExpressionStrOperationCasefold,
     ExpressionStrOperationCenter2,
     ExpressionStrOperationCenter3,
     ExpressionStrOperationCount2,
@@ -290,8 +296,12 @@ from .StrNodes import (
     ExpressionStrOperationIndex4,
     ExpressionStrOperationIsalnum,
     ExpressionStrOperationIsalpha,
+    ExpressionStrOperationIsdecimal,
     ExpressionStrOperationIsdigit,
+    ExpressionStrOperationIsidentifier,
     ExpressionStrOperationIslower,
+    ExpressionStrOperationIsnumeric,
+    ExpressionStrOperationIsprintable,
     ExpressionStrOperationIsspace,
     ExpressionStrOperationIstitle,
     ExpressionStrOperationIsupper,
@@ -781,7 +791,45 @@ class ExpressionAttributeLookupStrCasefold(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCasefold is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationCasefold(source_ref):
+            return ExpressionStrOperationCasefold(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCasefold,
+            builtin_spec=str_casefold_spec,
+        )
+
+        return result, "new_expression", "Call to 'casefold' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCasefold)
@@ -3972,7 +4020,45 @@ class ExpressionAttributeLookupStrIsdecimal(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsdecimal is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsdecimal(source_ref):
+            return ExpressionStrOperationIsdecimal(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsdecimal,
+            builtin_spec=str_isdecimal_spec,
+        )
+
+        return result, "new_expression", "Call to 'isdecimal' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsdecimal)
@@ -4204,7 +4290,45 @@ class ExpressionAttributeLookupStrIsidentifier(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsidentifier is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsidentifier(source_ref):
+            return ExpressionStrOperationIsidentifier(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsidentifier,
+            builtin_spec=str_isidentifier_spec,
+        )
+
+        return result, "new_expression", "Call to 'isidentifier' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsidentifier)
@@ -4436,7 +4560,45 @@ class ExpressionAttributeLookupStrIsnumeric(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsnumeric is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsnumeric(source_ref):
+            return ExpressionStrOperationIsnumeric(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsnumeric,
+            builtin_spec=str_isnumeric_spec,
+        )
+
+        return result, "new_expression", "Call to 'isnumeric' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsnumeric)
@@ -4498,7 +4660,45 @@ class ExpressionAttributeLookupStrIsprintable(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationIsprintable is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationIsprintable(source_ref):
+            return ExpressionStrOperationIsprintable(
+                str_arg=str_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationIsprintable,
+            builtin_spec=str_isprintable_spec,
+        )
+
+        return result, "new_expression", "Call to 'isprintable' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsprintable)

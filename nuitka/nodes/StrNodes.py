@@ -5,6 +5,7 @@
 
 from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationCapitalizeBase,
+    ExpressionStrOperationCasefoldBase,
     ExpressionStrOperationCenter2Base,
     ExpressionStrOperationCenter3Base,
     ExpressionStrOperationCount2Base,
@@ -30,8 +31,12 @@ from .BuiltinOperationNodeBasesGenerated import (
     ExpressionStrOperationIndex4Base,
     ExpressionStrOperationIsalnumBase,
     ExpressionStrOperationIsalphaBase,
+    ExpressionStrOperationIsdecimalBase,
     ExpressionStrOperationIsdigitBase,
+    ExpressionStrOperationIsidentifierBase,
     ExpressionStrOperationIslowerBase,
+    ExpressionStrOperationIsnumericBase,
+    ExpressionStrOperationIsprintableBase,
     ExpressionStrOperationIsspaceBase,
     ExpressionStrOperationIstitleBase,
     ExpressionStrOperationIsupperBase,
@@ -338,6 +343,16 @@ class ExpressionStrOperationCapitalize(ExpressionStrOperationCapitalizeBase):
         return False
 
 
+class ExpressionStrOperationCasefold(ExpressionStrOperationCasefoldBase):
+    """This operation represents s.casefold()."""
+
+    kind = "EXPRESSION_STR_OPERATION_CASEFOLD"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
 class ExpressionStrOperationUpper(ExpressionStrOperationUpperBase):
     """This operation represents s.upper()."""
 
@@ -408,10 +423,50 @@ class ExpressionStrOperationIsdigit(ExpressionStrOperationIsdigitBase):
         return False
 
 
+class ExpressionStrOperationIsdecimal(ExpressionStrOperationIsdecimalBase):
+    """This operation represents s.isdecimal()."""
+
+    kind = "EXPRESSION_STR_OPERATION_ISDECIMAL"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsidentifier(ExpressionStrOperationIsidentifierBase):
+    """This operation represents s.isidentifier()."""
+
+    kind = "EXPRESSION_STR_OPERATION_ISIDENTIFIER"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
 class ExpressionStrOperationIslower(ExpressionStrOperationIslowerBase):
     """This operation represents s.islower()."""
 
     kind = "EXPRESSION_STR_OPERATION_ISLOWER"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsnumeric(ExpressionStrOperationIsnumericBase):
+    """This operation represents s.isnumeric()."""
+
+    kind = "EXPRESSION_STR_OPERATION_ISNUMERIC"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionStrOperationIsprintable(ExpressionStrOperationIsprintableBase):
+    """This operation represents s.isprintable()."""
+
+    kind = "EXPRESSION_STR_OPERATION_ISPRINTABLE"
 
     @staticmethod
     def mayRaiseExceptionOperation():

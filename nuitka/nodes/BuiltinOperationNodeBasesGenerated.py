@@ -183,7 +183,9 @@ class ExpressionBytesOperationCapitalizeBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationCasefoldBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationCasefoldBase(
+    ExpressionStrShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2742,7 +2744,9 @@ class ExpressionStrOperationIsasciiBase(ChildHavingStrArgMixin, ExpressionBase):
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsdecimalBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsdecimalBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2860,7 +2864,9 @@ class ExpressionBytesOperationIsdigitBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsidentifierBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsidentifierBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -2978,7 +2984,9 @@ class ExpressionBytesOperationIslowerBase(
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsnumericBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsnumericBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):
@@ -3016,7 +3024,9 @@ class ExpressionStrOperationIsnumericBase(ChildHavingStrArgMixin, ExpressionBase
         """Does the operation part raise an exception possibly."""
 
 
-class ExpressionStrOperationIsprintableBase(ChildHavingStrArgMixin, ExpressionBase):
+class ExpressionStrOperationIsprintableBase(
+    ExpressionBoolShapeExactMixin, ChildHavingStrArgMixin, ExpressionBase
+):
     named_children = ("str_arg",)
 
     def __init__(self, str_arg, source_ref):

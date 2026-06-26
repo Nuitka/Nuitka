@@ -95,6 +95,9 @@ str_format_spec = StrMethodSpec(
 str_capitalize_spec = StrMethodSpecNoKeywords(
     "capitalize", arg_names=(), type_shape=tshape_str
 )
+str_casefold_spec = StrMethodSpecNoKeywords(
+    "casefold", arg_names=(), type_shape=tshape_str
+)
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=(), type_shape=tshape_str)
 str_lower_spec = StrMethodSpecNoKeywords("lower", arg_names=(), type_shape=tshape_str)
 str_swapcase_spec = StrMethodSpecNoKeywords(
@@ -110,8 +113,20 @@ str_isalpha_spec = StrMethodSpecNoKeywords(
 str_isdigit_spec = StrMethodSpecNoKeywords(
     "isdigit", arg_names=(), type_shape=tshape_bool
 )
+str_isdecimal_spec = StrMethodSpecNoKeywords(
+    "isdecimal", arg_names=(), type_shape=tshape_bool
+)
+str_isidentifier_spec = StrMethodSpecNoKeywords(
+    "isidentifier", arg_names=(), type_shape=tshape_bool
+)
 str_islower_spec = StrMethodSpecNoKeywords(
     "islower", arg_names=(), type_shape=tshape_bool
+)
+str_isnumeric_spec = StrMethodSpecNoKeywords(
+    "isnumeric", arg_names=(), type_shape=tshape_bool
+)
+str_isprintable_spec = StrMethodSpecNoKeywords(
+    "isprintable", arg_names=(), type_shape=tshape_bool
 )
 str_isupper_spec = StrMethodSpecNoKeywords(
     "isupper", arg_names=(), type_shape=tshape_bool
