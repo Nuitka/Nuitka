@@ -2080,6 +2080,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
+
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled. Must be initialized
+    // before the meta path loader, otherwise PGO probes triggered during
+    // loader setup will write to an uninitialized 'pgo_output' and crash.
+    PGO_Initialize();
+#endif
+
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
@@ -2099,11 +2107,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     // Two times, so "__warningregistry__" version matches.
     CALL_FUNCTION_NO_ARGS(tstate, meth);
 #endif
-#endif
-
-#if _NUITKA_PGO_PYTHON
-    // Profiling with our own Python PGO if enabled.
-    PGO_Initialize();
 #endif
 
 #if PYTHON_VERSION >= 0x300

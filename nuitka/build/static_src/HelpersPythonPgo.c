@@ -56,8 +56,8 @@ void PGO_Initialize(void) {
 
     pgo_output = fopen(output_filename, "wb");
 
-    if (unlikely(output_filename == NULL)) {
-        fprintf(stderr, "Error, failed to open '%s' for writing.", output_filename);
+    if (unlikely(pgo_output == NULL)) {
+        fprintf(stderr, "Error, failed to open '%s' for writing.\n", output_filename);
         exit(27);
     }
 
