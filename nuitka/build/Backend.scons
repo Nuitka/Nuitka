@@ -12,8 +12,8 @@ build process for itself, although it can be compiled using the same method.
 
 # Make nuitka package importable from calling installation
 
-import sys
 import os
+import sys
 import types
 
 sys.modules["nuitka"] = types.ModuleType("nuitka")
