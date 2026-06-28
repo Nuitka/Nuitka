@@ -93,7 +93,7 @@ def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 
 
-def getPreprocessorSymbols():
+def getPreprocessorSymbols(onefile):
     """Let plugins provide C defines to be used in compilation.
 
     Notes:
@@ -104,8 +104,7 @@ def getPreprocessorSymbols():
         OrderedDict(), where None value indicates no define value,
         i.e. "-Dkey=value" vs. "-Dkey"
     """
-    # spell-checker: ignore Dkey
-    return Plugins.getPreprocessorSymbols()
+    return Plugins.getPreprocessorSymbols(onefile=onefile)
 
 
 def getExtraIncludeDirectories():

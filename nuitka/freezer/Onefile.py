@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
@@ -129,6 +130,8 @@ def _runOnefileScons(
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
+
+    applyPreprocessorSymbols(scons_options, onefile=True)
 
     result = runScons(
         scons_options=scons_options,

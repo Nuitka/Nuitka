@@ -1292,18 +1292,21 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def getPreprocessorSymbols(self):
+    def getPreprocessorSymbols(self, onefile):
         """Decide which C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
             a namespace for their defines.
 
+        Args:
+            onefile: bool, True if onefile compilation mode
+
         Returns:
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
         """
-        # Virtual method, pylint: disable=no-self-use
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         # spell-checker: ignore -Dkey
         return None
 

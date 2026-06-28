@@ -15,7 +15,10 @@ import sys
 
 from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
+from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
+    provideStaticSourceFilesBackend,
+)
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsReportValue,
@@ -871,6 +874,8 @@ def runSconsBackend():
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
 
+        applyPreprocessorSymbols(scons_options, onefile=False)
+
         result = runScons(
             scons_options=scons_options,
             env_values=env_values,
@@ -896,6 +901,8 @@ def runSconsBackend():
         if isCPgoMode():
             scons_options["pgo_mode"] = "generate"
 
+            applyPreprocessorSymbols(scons_options, onefile=False)
+
             result = runScons(
                 scons_options=scons_options,
                 env_values=env_values,
@@ -911,6 +918,8 @@ def runSconsBackend():
             executePostProcessing(scons_options["result_exe"])
             _runCPgoBinary()
             scons_options["pgo_mode"] = "use"
+
+    applyPreprocessorSymbols(scons_options, onefile=False)
 
     result = (
         runScons(

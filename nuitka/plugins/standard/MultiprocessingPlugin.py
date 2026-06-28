@@ -330,7 +330,7 @@ __nuitka_freeze_support()
         # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
 
     @staticmethod
-    def getPreprocessorSymbols():
+    def getPreprocessorSymbols(onefile):
         if getModuleInclusionInfoByName("__parents_main__"):
             return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
 

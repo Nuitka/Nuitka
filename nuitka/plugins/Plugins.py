@@ -1499,7 +1499,7 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def getPreprocessorSymbols(cls):
+    def getPreprocessorSymbols(cls, onefile):
         """Let plugins provide C defines to be used in compilation.
 
         Notes:
@@ -1517,7 +1517,7 @@ through incomplete set import by '%s' plugin encountered."""
             cls.preprocessor_symbols = OrderedDict()
 
             for plugin in getActivePlugins():
-                value = plugin.getPreprocessorSymbols()
+                value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
