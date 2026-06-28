@@ -11,3 +11,5 @@ socio-economic
 PASE
 # isort needs this as argument name
 thirdparty
+# pylint dependency package name
+astroid
