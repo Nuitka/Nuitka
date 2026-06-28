@@ -9323,6 +9323,13 @@
     - patterns:
         - 'cfg/default.yaml'
 
+- module-name: 'univers.maven' # checksum: 92a7c459
+  anti-bloat:
+    # TODO: Remove once recursion of generator expressions is enhanced.
+    - description: 'avoid recursion for deeply nested values'
+      change_function:
+        'list2tuple': "'''if True:\n    stack = [[l, 0, None]]\n    result = None\n    while stack:\n        frame = stack[-1]\n        src, idx, _ = frame\n        if result is not None:\n            frame[2] = frame[2] or []\n            frame[2].append(result)\n            result = None\n        if idx >= len(src):\n            frame = stack.pop()\n            result = tuple(frame[2]) if frame[2] is not None else ()\n            continue\n        item = src[idx]\n        frame[1] = idx + 1\n        if isinstance(item, list):\n            stack.append([item, 0, None])\n        else:\n            frame[2] = frame[2] or []\n            frame[2].append(item)\n    return result'''"
+
 - module-name: 'unstructured' # checksum: e17b7f4d
   data-files:
     - patterns:
