@@ -169,7 +169,7 @@ from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
-    callProcess,
+    executeCompiledBinary,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -626,6 +626,10 @@ def makeSourceDirectory():
     return module_filenames
 
 
+def _getPgoCommand():
+    return [getExternalUsePath(OutputDirectories.getPgoRunExecutable())] + getPgoArgs()
+
+
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
 
@@ -634,9 +638,10 @@ def _runPgoBinary():
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
-    return callProcess(
-        [getExternalUsePath(pgo_executable)] + getPgoArgs(),
+    return executeCompiledBinary(
+        args=_getPgoCommand(),
         shell=False,
+        logger=pgo_logger,
     )
 
 
@@ -712,8 +717,21 @@ def _runPythonPgoBinary():
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
+    pgo_executable = OutputDirectories.getPgoRunExecutable()
+
+    if not os.path.isfile(pgo_executable):
+        return general.sysexit(
+            "Error, failed to produce PGO binary '%s'" % pgo_executable
+        )
+
+    pgo_command = _getPgoCommand()
+
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
-        exit_code = _runPgoBinary()
+        exit_code = executeCompiledBinary(
+            args=pgo_command,
+            shell=False,
+            logger=pgo_logger,
+        )
 
     if not os.path.exists(pgo_filename):
         return general.sysexit("""\
@@ -954,7 +972,11 @@ def callExecPython(args, add_path, uac):
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
 
-    callExecProcess(args, shell=uac)
+    callExecProcess(
+        args=args,
+        shell=uac,
+        logger=general,
+    )
 
 
 def _executeMain(binary_filename):
