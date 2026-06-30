@@ -306,7 +306,13 @@ def _parseCoffDumpImportFileStrings(output):
             continue
 
         index_str, rest = parts
-        index = int(index_str)
+
+        try:
+            index = int(index_str)
+        except ValueError:
+            # Hex values or other non-decimal content means we have
+            # left the Import File Strings section.
+            continue
 
         rest = rest.strip()
         if not rest:
