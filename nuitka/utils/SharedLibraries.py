@@ -1264,12 +1264,17 @@ def getPEFileUsedDllNames(filename):
                 import_dllnames_only=True,  # spell-checker: ignore import_dllnames_only
             )
             pe_info.parse_data_directories(
-                directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],)
+                directories=(
+                    pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],
+                )
             )
 
             result = OrderedSet()
 
-            for entry_name in ("DIRECTORY_ENTRY_IMPORT", "DIRECTORY_ENTRY_DELAY_IMPORT"):
+            for entry_name in (
+                "DIRECTORY_ENTRY_IMPORT",
+                "DIRECTORY_ENTRY_DELAY_IMPORT",
+            ):
                 for dll_entry in getattr(pe_info, entry_name, ()):
                     # TODO: The PE/COFF docs describe these names as ASCII, but
                     # they do not actually specify the encoding here.
