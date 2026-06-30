@@ -3766,7 +3766,7 @@
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
-        # on linux,  dlls are expected to be located at "*.dist/onnxruntime/capi/*"
+        # on linux,  shared objects are expected to be located at "*.dist/onnxruntime/capi/*"
       when: 'linux'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
