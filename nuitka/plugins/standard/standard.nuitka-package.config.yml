@@ -3757,12 +3757,17 @@
           - 'onnxruntime'
       when: 'win32'
     - from_filenames:
-        # on linux, previous defined `dest_path: '.'` did place dlls directly under
-        # "*.dist/*" instead of expected location at "*.dist/onnxruntime/capi/*"
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
-      when: 'not win32'
+        dest_path: '.'
+      when: 'not win32 and not linux'
+    - from_filenames:
+        relative_path: 'capi'
+        prefixes:
+          - 'libonnxruntime'
+        # on linux,  dlls are expected to be located at "*.dist/onnxruntime/capi/*"
+      when: 'linux'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
   implicit-imports:
