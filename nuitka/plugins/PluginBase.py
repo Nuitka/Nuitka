@@ -1353,6 +1353,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         """Format a source reference suitable for user output."""
         return getReportSourceReference(source_ref)
 
+    def onMetaPathLoaderEntryTemplate(self, module, template_args):
+        """Modify template arguments for meta path loader entry generation.
+
+        Args:
+            module: the module node
+            template_args: dict of template arguments (mutated in-place),
+                e.g. 'flags' (list), 'module_name', 'file_path', etc.
+        """
+
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
 

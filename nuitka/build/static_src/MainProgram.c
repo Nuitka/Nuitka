@@ -500,7 +500,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
             memset(buffer, 0, sizeof(buffer));
             memcpy(buffer, module_name, s - module_name);
 
-            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer);
+            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer, false);
 
             if (HAS_ERROR_OCCURRED(tstate)) {
                 return result;
@@ -508,7 +508,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
         }
     }
 
-    return IMPORT_EMBEDDED_MODULE(tstate, module_name);
+    return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED

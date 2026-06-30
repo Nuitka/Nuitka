@@ -1502,6 +1502,13 @@ def _splitShellPattern(value):
     return value.split(",") if "{" not in value else [value]
 
 
+def splitShellPatterns(values):
+    result = []
+    for value in values:
+        result += _splitShellPattern(value)
+    return tuple(result)
+
+
 def getShallFollowInNoCase():
     """*list*, items of ``--nofollow-import-to=``"""
     return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])

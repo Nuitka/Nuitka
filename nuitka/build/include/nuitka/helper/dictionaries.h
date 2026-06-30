@@ -6,6 +6,7 @@
 #ifdef __IDE_ONLY__
 #include "Python.h"
 #include "nuitka/checkers.h"
+#include "nuitka/compiled_module.h"
 #include "nuitka/defines.h"
 #endif
 

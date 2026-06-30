@@ -93,6 +93,11 @@ def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 
 
+def onMetaPathLoaderEntryTemplate(module, template_args):
+    """Let plugins modify meta path loader entry template arguments."""
+    Plugins.onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
+
+
 def getPreprocessorSymbols(onefile):
     """Let plugins provide C defines to be used in compilation.
 

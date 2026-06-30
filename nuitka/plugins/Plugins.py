@@ -707,6 +707,15 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def onMetaPathLoaderEntryTemplate(module, template_args):
+        """Let plugins modify meta path loader entry template arguments."""
+        for plugin in getActivePlugins():
+            plugin.onMetaPathLoaderEntryTemplate(
+                module=module, template_args=template_args
+            )
+
+    @staticmethod
+    @counted_plugin_method
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():

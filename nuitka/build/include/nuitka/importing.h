@@ -7,6 +7,8 @@
 #include "Python.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/dictionaries.h"
+#include "nuitka/string_functions.h"
 #endif
 
 /* These are for the built-in import.
@@ -32,7 +34,7 @@ extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_
 extern PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name);
 
 // Import an embedded module directly.
-extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name);
+extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name, bool internal);
 
 // Execute a module, the module object is prepared empty, but with __name__.
 extern PyObject *EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module);
@@ -135,6 +137,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyThreadState *ts
 
     return filename;
 }
+
+// Make a parent package name string from a module name, or NULL for top-level.
+extern PyObject *makeParentModuleName(PyObject *module_name);
 
 #endif
 

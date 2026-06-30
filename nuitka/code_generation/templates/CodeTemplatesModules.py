@@ -310,7 +310,7 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
     }
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad");
+    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad", false);
     if (pre_load == NULL) {
         return NULL;
     }
@@ -352,40 +352,25 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
             %(dunder_main_package)s
         );
 #elif %(is_package)s
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-
         UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
-            module_name
+            GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__)
         );
 #else
-
-#if PYTHON_VERSION < 0x300
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-        char const *module_name_cstr = PyString_AS_STRING(module_name);
-
-        char const *last_dot = strrchr(module_name_cstr, '.');
-
-        if (last_dot != NULL) {
-            UPDATE_STRING_DICT1(
-                moduledict_%(module_identifier)s,
-                (Nuitka_StringObject *)const_str_plain___package__,
-                PyString_FromStringAndSize(module_name_cstr, last_dot - module_name_cstr)
+        {
+            PyObject *parent_name = makeParentModuleName(
+                GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__)
             );
-        }
-#else
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-        Py_ssize_t dot_index = PyUnicode_Find(module_name, const_str_dot, 0, PyUnicode_GetLength(module_name), -1);
 
-        if (dot_index != -1) {
-            UPDATE_STRING_DICT1(
-                moduledict_%(module_identifier)s,
-                (Nuitka_StringObject *)const_str_plain___package__,
-                PyUnicode_Substring(module_name, 0, dot_index)
-            );
+            if (parent_name != NULL) {
+                UPDATE_STRING_DICT1(
+                    moduledict_%(module_identifier)s,
+                    (Nuitka_StringObject *)const_str_plain___package__,
+                    parent_name
+                );
+            }
         }
-#endif
 #endif
     }
 
@@ -462,7 +447,7 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
     {
-        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
+        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad", false);
         if (post_load == NULL) {
             return NULL;
         }
