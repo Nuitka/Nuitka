@@ -182,6 +182,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
 
         if syntax_error_caret_re.match(line):
+            # Nuitka does not produce PEP 657 caret lines in traceback output.
+            # Drop them from CPython's side to match.
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
@@ -328,11 +330,19 @@ exceeded while calling a Python object' in \
         if 'File "' in line:
             end_index = None
 
+            # Nuitka: The C-API traceback_print produces blank lines between
+            # frames that CPython does not. Strip them from both sides.
+            while index + 1 < len(lines) and lines[index + 1] == "":
+                lines.pop(index + 1)
+
             if index + 1 < len(lines):
                 next_line = lines[index + 1]
 
                 if next_line.startswith("  "):
                     lines[index + 1] = _normalizeTracebackSourceLine(next_line)
+
+                while index + 2 < len(lines) and lines[index + 2] == "":
+                    lines.pop(index + 2)
 
             for next_index, next_line in enumerate(lines[index + 1 :]):
                 # TODO: Deduplicate this code.
