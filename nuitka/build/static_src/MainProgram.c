@@ -410,7 +410,9 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
                             "<frozen importlib._bootstrap>")) {
                 tstate->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
+                // Process is exiting, not releasing the old head frame
+                // here is acceptable.
+                Py_XINCREF(tb->tb_next);
 
                 continue;
             }
