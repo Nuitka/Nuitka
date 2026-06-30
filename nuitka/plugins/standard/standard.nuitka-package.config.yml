@@ -3760,7 +3760,7 @@
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
-        dest_path: '.'
+      dest_path: '.'
       when: 'not win32 and not linux'
     - from_filenames:
         relative_path: 'capi'
