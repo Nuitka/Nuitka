@@ -311,6 +311,9 @@ PGO compilation choices:
 \fB\-\-pgo\-c\fR
 Enables C level profile guided optimization (PGO), by executing a dedicated build first for a profiling run, and then using the result to feedback into the C compilation. Note: This is experimental and not working with standalone modes of Nuitka yet. Defaults to off.
 .TP
+\fB\-\-pgo\-python\-error\-exit\fR=\fI\,PYTHON_PGO_ERROR_EXIT\/\fR
+Control how non\-zero exit codes of the PGO profiling run are handled. The default 'no' tolerates no error exits and aborts compilation on a non\-zero exit code, but that can be disabled with 'yes'.
+.TP
 \fB\-\-pgo\-args\fR=\fI\,PGO_ARGS\/\fR
 Arguments to be passed in case of profile guided optimization. These are passed to the special built executable during the PGO profiling run. Default empty.
 .TP
@@ -645,6 +648,9 @@ In case the encryption fails to install, do not abort, but run normally and trac
 .TP
 \fB\-\-obfuscate\-line\-numbers\fR=\fI\,MODE\/\fR
 Obfuscate source line numbers in the generated code. In 'original' mode, line numbers are kept as\-is. In 'removed' mode, all traceback line numbers become constant '1'. In 'encrypted' mode, line numbers are replaced with deterministic encrypted values via a per\-source\-file shuffle, and a reverse mapping is written to a '<result>.secrets' directory for use in bug report analysis. Module and function entries use line number '1' in both modes since obfuscating them provides no protection.
+.TP
+\fB\-\-private\-import\-patterns\fR=\fI\,PATTERN\/\fR
+Shell pattern of module names to treat as private hard imports. Matching modules are compiled as dynamic hard imports and hidden from sys.modules. Can be given multiple times.
 .IP
 Plugin options of 'source\-inclusion' (categories: feature, package\-support):
 .TP

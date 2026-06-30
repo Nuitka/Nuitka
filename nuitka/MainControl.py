@@ -100,6 +100,7 @@ from nuitka.options.Options import (
     isLowMemory,
     isMultidistMode,
     isOnefileMode,
+    isPythonPgoErrorExitStrict,
     isRemoveBuildDir,
     isRuntimeProfile,
     isShowInclusion,
@@ -737,6 +738,17 @@ def _runPythonPgoBinary():
         return general.sysexit("""\
 Error, no Python PGO information produced, did the created binary
 run (exit code %d) as expected?""" % exit_code)
+
+    if isPythonPgoErrorExitStrict() and exit_code != 0:
+        return general.sysexit(
+            """\
+Error, the command '%s' exited with code %d. Use
+'--pgo-python-error-exit=yes' to tolerate error exits."""
+            % (
+                " ".join(pgo_command),
+                exit_code,
+            )
+        )
 
     return pgo_filename
 

@@ -2381,6 +2381,11 @@ def getPythonPgoUnseenModulePolicy():
     return options.python_pgo_policy_unused_module
 
 
+def isPythonPgoErrorExitStrict():
+    """*bool* = ``--pgo-python-error-exit``"""
+    return options.python_pgo_error_exit == "no"
+
+
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
     result = options.onefile_tempdir_spec

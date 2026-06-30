@@ -1557,6 +1557,18 @@ pgo_group.add_option(
 )
 
 pgo_group.add_option(
+    "--pgo-python-error-exit",
+    action="store",
+    dest="python_pgo_error_exit",
+    choices=("yes", "no"),
+    default="no",
+    help="""\
+Control how non-zero exit codes of the PGO profiling run are handled. The default
+'no' tolerates no error exits and aborts compilation on a non-zero exit code, but
+that can be disabled with 'yes'.""",
+)
+
+pgo_group.add_option(
     "--pgo-args",
     action="store",
     dest="pgo_args",
