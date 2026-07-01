@@ -22,6 +22,7 @@ from .utils.AppDirs import getCacheDir
 from .utils.Download import withUrlOpen
 from .utils.FileOperations import (
     deleteFile,
+    getNormalizedPathJoin,
     replaceFileAtomic,
     withTemporaryFilename,
 )
@@ -82,7 +83,7 @@ def _getCachedAge(cache_data, current_time):
 
 
 def _getUpdateCheckCacheFilename():
-    return os.path.join(
+    return getNormalizedPathJoin(
         getCacheDir("updates", create=True),
         _update_check_cache_filename,
     )

@@ -1095,7 +1095,7 @@ def withTemporaryFilename(prefix="", suffix="", temp_path=None):
         delete=False,
         dir=temp_path,
     ) as temp_file:
-        filename = temp_file.name
+        filename = getNormalizedPath(temp_file.name)
         temp_file.close()
         deleteFile(filename, must_exist=True)
 
@@ -2079,6 +2079,14 @@ def getNormalizedPathJoin(*paths):
     Needed, because MSYS2 likes to keep "/" in normalized paths.
     """
     return getNormalizedPath(os.path.join(*paths))
+
+
+def getNormalizedPathSep():
+    """Return the normalized native path separator.
+
+    Needed, because on MSYS2 'os.path.sep' is '/' rather than the native '\\'.
+    """
+    return getNormalizedPath(os.path.sep)
 
 
 def doesFileContainBytes(filename, search):

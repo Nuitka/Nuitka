@@ -21,6 +21,8 @@ from nuitka.utils.Distributions import (
     isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import (
+    getNormalizedPath,
+    getNormalizedPathJoin,
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
 )
@@ -210,28 +212,23 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                     )
 
     def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
-        # Expecting absolute paths internally for DLL sources.
-        filename = os.path.abspath(filename)
-
         if dest_path is None:
             module_filename = self.locateModule(full_name)
 
             if os.path.isdir(module_filename):
                 dest_path = full_name.asPath()
             else:
-                dest_path = os.path.join(full_name.asPath(), "..")
+                dest_path = getNormalizedPathJoin(full_name.asPath(), "..")
 
-            dest_path = os.path.join(
+            dest_path = getNormalizedPathJoin(
                 dest_path,
                 os.path.relpath(filename, os.path.dirname(module_filename)),
             )
         else:
-            dest_path = os.path.join(
+            dest_path = getNormalizedPathJoin(
                 dest_path,
                 os.path.basename(filename),
             )
-
-        dest_path = os.path.normpath(dest_path)
 
         if executable:
             return self.makeExeEntryPoint(
@@ -280,6 +277,10 @@ conditions are missing, or this version of the module needs treatment added."""
             filenames = (filename,)
 
         for filename in filenames:
+            # We are otherwise expecting absolute paths internally for DLL sources, but we
+            # shall tolerate relative paths by the config.
+            filename = getNormalizedPath(os.path.abspath(filename))
+
             yield self._handleDllConfigByCodeResult(
                 filename=filename,
                 full_name=full_name,
@@ -289,6 +290,8 @@ conditions are missing, or this version of the module needs treatment added."""
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")
+        if dest_path is not None:
+            dest_path = getNormalizedPath(dest_path)
 
         found = False
 

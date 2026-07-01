@@ -846,7 +846,7 @@ def _addConstantBlobFileCode(env, blob_filename):
 
     blob_basename = os.path.basename(blob_filename)
     assert blob_basename.endswith(".bin"), blob_basename
-    constants_generated_filename = os.path.join(
+    constants_generated_filename = getNormalizedPathJoin(
         env.source_dir,
         "__constants_data_%s.c" % blob_basename[:-4],
     )
