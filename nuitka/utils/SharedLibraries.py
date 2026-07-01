@@ -1257,29 +1257,32 @@ def getPEFileUsedDllNames(filename):
     """
 
     pefile = importFromInlineCopy("pefile", must_exist=True)
-
     try:
-        pe_info = pefile.PE(filename)
+        with pefile.PE(filename) as pe_info:
+            pe_info.parse_data_directories(
+                directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"],),
+                import_dllnames_only=True,  # spell-checker: ignore import_dllnames_only
+            )
+            pe_info.parse_data_directories(
+                directories=(
+                    pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],
+                )
+            )
+
+            result = OrderedSet()
+
+            for entry_name in (
+                "DIRECTORY_ENTRY_IMPORT",
+                "DIRECTORY_ENTRY_DELAY_IMPORT",
+            ):
+                for dll_entry in getattr(pe_info, entry_name, ()):
+                    # TODO: The PE/COFF docs describe these names as ASCII, but
+                    # they do not actually specify the encoding here.
+                    result.add(dll_entry.dll.decode("utf8"))
+
+            return result
     except pefile.PEFormatError:
         return None
-
-    pe_info.parse_data_directories(
-        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"],),
-        import_dllnames_only=True,  # spell-checker: ignore import_dllnames_only
-    )
-    pe_info.parse_data_directories(
-        directories=(pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"],)
-    )
-
-    result = OrderedSet()
-
-    for entry_name in ("DIRECTORY_ENTRY_IMPORT", "DIRECTORY_ENTRY_DELAY_IMPORT"):
-        for dll_entry in getattr(pe_info, entry_name, ()):
-            # TODO: The PE/COFF docs describe these names as ASCII, but
-            # they do not actually specify the encoding here.
-            result.add(dll_entry.dll.decode("utf8"))
-
-    return result
 
 
 def getDllExportedSymbols(logger, filename):
@@ -1287,15 +1290,14 @@ def getDllExportedSymbols(logger, filename):
         pefile = importFromInlineCopy("pefile", must_exist=True)
 
         try:
-            pe_info = pefile.PE(filename)
+            with pefile.PE(filename) as pe_info:
+                return tuple(
+                    _decodeWin32EntryPoint(entry_point.name)
+                    for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
+                    if entry_point.name is not None
+                )
         except pefile.PEFormatError:
             return None
-
-        return tuple(
-            _decodeWin32EntryPoint(entry_point.name)
-            for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
-            if entry_point.name is not None
-        )
     else:
         if isLinux() or isCoffUsingPlatform() or isBSD():
             command = ("nm", "-D", filename)
