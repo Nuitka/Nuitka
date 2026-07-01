@@ -937,7 +937,7 @@ def _addConstantBlobFileMacSection(env, blob_filename):
 
     section_name = _getSymbolName(blob_filename)
 
-    # spell-checker: ignore linkflags, sectcreate
+    # spell-checker: ignore linkflags,sectcreate
     env.Append(
         LINKFLAGS=[
             "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"

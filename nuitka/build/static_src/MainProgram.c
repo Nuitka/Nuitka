@@ -271,7 +271,7 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 
 #if _DEBUG_REFCOUNTS
 static void PRINT_REFCOUNTS(void) {
-    // spell-checker: ignore Asend, Athrow
+    // spell-checker: ignore Asend,Athrow
 
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");

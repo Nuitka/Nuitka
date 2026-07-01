@@ -115,7 +115,7 @@ def getMSVCInfo():
             print("Error: MSVC directory not found.")
             return None, None
 
-    # Determine architecture, spell-checker: ignore Hostx64, Hostx86
+    # Determine architecture, spell-checker: ignore Hostx64,Hostx86
     arch = "x64" if sys.maxsize > 2**32 else "x86"
     host_arch = (
         "Hostx64" if os.getenv("PROCESSOR_ARCHITECTURE") == "AMD64" else "Hostx86"

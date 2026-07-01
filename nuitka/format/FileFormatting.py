@@ -36,6 +36,25 @@ def cleanupWindowsNewlines(filename, effective_filename):
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
         updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
 
+        # Normalize 'spell-checker: ignore' lines:
+        # - Prose prefix: restore standard spacing after comma.
+        # - Word list: no spaces after commas (word1,word2).
+        def _fixSpellCheckerIgnoreSpaces(match):
+            prefix = re.sub(
+                b"(,[a-zA-Z])",
+                lambda m: b", " + m.group(0)[1:],
+                match.group(1),
+            )
+            word_list = match.group(2).replace(b", ", b",")
+            return prefix + word_list
+
+        updated_code = re.sub(
+            b"(^.*spell-checker:\\s*ignore\\s+)(.*)",
+            _fixSpellCheckerIgnoreSpaces,
+            updated_code,
+            flags=re.MULTILINE,
+        )
+
         def replacer(match):
             return b"PYTHON_VERSION %s %s" % (match.group(1), match.group(2).lower())
 

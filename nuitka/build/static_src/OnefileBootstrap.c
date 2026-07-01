@@ -1387,7 +1387,7 @@ int main(int argc, char **argv) {
 
 #if defined(_WIN32)
 
-    // spell-checker: ignore STARTUPINFOW, STARTF_USESTDHANDLES
+    // spell-checker: ignore STARTUPINFOW,STARTF_USESTDHANDLES
     STARTUPINFOW si;
     memset(&si, 0, sizeof(si));
     si.dwFlags = STARTF_USESTDHANDLES;

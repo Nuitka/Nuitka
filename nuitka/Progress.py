@@ -619,7 +619,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
     else:
 
         class NuitkaDownloadProgressBarTqdm(_tqdm):
-            # spell-checker: ignore bsize, tsize
+            # spell-checker: ignore bsize,tsize
             def onProgress(self, b=1, bsize=1, tsize=None):
                 if tsize is not None:
                     self.total = tsize  # false alarm, pylint: disable=I0021,attribute-defined-outside-init

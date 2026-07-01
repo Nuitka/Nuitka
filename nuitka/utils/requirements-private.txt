@@ -1,4 +1,5 @@
 # These are requirements of tools used by Nuitka in a private pip space.
+# spell-checker: disable
 
 # Auto-format and checking.
 black == 26.3.1 ; python_version >= '3.11'

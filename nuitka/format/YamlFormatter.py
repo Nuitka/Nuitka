@@ -3,7 +3,7 @@
 
 """Automatic formatting of Yaml files.
 
-spell-checker: ignore ruamel, scalarstring
+spell-checker: ignore ruamel,scalarstring
 """
 
 import json
