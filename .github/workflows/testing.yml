@@ -119,6 +119,7 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)

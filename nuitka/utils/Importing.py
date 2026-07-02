@@ -215,6 +215,17 @@ def importFromCompileTime(module_name, must_exist):
 
 
 def isBuiltinModuleName(module_name):
+    """Check if a module name refers to a built-in or frozen module.
+
+    Also recognizes submodules of built-in packages, e.g. "math.integer"
+    where "math" is built-in.
+
+    Args:
+        module_name: ModuleName of the module to check.
+
+    Returns:
+        bool
+    """
     result = bool(imp.is_builtin(module_name) or imp.is_frozen(module_name))
 
     # Some frozen modules are not actually in that list, e.g.
@@ -231,6 +242,14 @@ def isBuiltinModuleName(module_name):
                 result = loader.__name__ == "FrozenImporter"
             except AttributeError:
                 pass
+
+    # Submodules of built-in packages are effectively built-in, e.g.
+    # "math.integer" is a submodule of the built-in "math" package.
+    if result is False:
+        parent_package = module_name.getPackageName()
+
+        if parent_package is not None and isBuiltinModuleName(parent_package):
+            result = True
 
     return result
 
