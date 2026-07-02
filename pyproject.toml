@@ -31,17 +31,20 @@ exclude = [
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
+    "tests/CPython*",
     "*Mini*",
 ]
 
 [tool.ruff]
 builtins = ["__compiled__", "cmp", "intern", "unicode", "long"]
 lint.ignore = ["E402", "E731", "F401"]
+force-exclude = true
 exclude = [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/inline_copy/**",
+    "tests/CPython*",
     "*Mini*",
 ]
 
