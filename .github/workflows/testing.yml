@@ -161,9 +161,19 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
+        if: matrix.python_version != '3.15'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+
+      - name: 🐍 Use Python 3.15 (deadsnakes)
+        if: matrix.python_version == '3.15'
+        run: |
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
+          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.15 1
+          sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.15 1
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
