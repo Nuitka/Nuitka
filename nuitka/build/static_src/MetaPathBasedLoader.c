@@ -883,6 +883,93 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
     return entrypoint;
 }
 
+#if PYTHON_VERSION >= 0x30f0
+// Python 3.15 comes with PyImport_CreateModuleFromInitfunc, which saves us
+// from a lot of the hacks that we're doing in other versions. Most importantly,
+// we don't need access to the package context (which isn't exported anywhere
+// starting in 3.15).
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
+                                         bool is_package) {
+    entrypoint_t entrypoint = _loadExtensionModuleInitAddress(tstate, full_name, filename);
+
+    if (entrypoint == NULL) {
+        return NULL;
+    }
+
+    PyObject *full_name_obj = Nuitka_String_FromString(full_name);
+    PyObject *origin = Nuitka_String_FromFilename(filename);
+
+    PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package);
+    CHECK_OBJECT(spec_value);
+
+    PGO_onModuleEntered(full_name);
+
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # calling entrypoint\n", full_name);
+    }
+
+    Nuitka_DelModuleString(tstate, full_name);
+
+    // Fancy new function in 3.15!
+    // For single-phase modules, this will return the fully constructed module
+    // object, and for multi-phase this returns the moduledef.
+    PyObject *module = PyImport_CreateModuleFromInitfunc(spec_value, entrypoint);
+
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # return from entrypoint\n", full_name);
+    }
+
+    PGO_onModuleExit(full_name, module == NULL);
+
+    if (unlikely(module == NULL)) {
+        Py_DECREF(spec_value);
+        Py_DECREF(full_name_obj);
+        Py_DECREF(origin);
+
+        if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
+            PyErr_Format(PyExc_SystemError, "dynamic module '%s' not initialized properly", full_name);
+        }
+
+        return NULL;
+    }
+
+    if (unlikely(PyModule_Exec(module) != 0)) {
+        Py_DECREF(module);
+        Py_DECREF(spec_value);
+        Py_DECREF(full_name_obj);
+        Py_DECREF(origin);
+
+        return NULL;
+    }
+
+    SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
+    setModuleFileValue(tstate, module, filename);
+
+    if (is_package) {
+        PyObject *path_list = _makeDunderPathObject(tstate, origin);
+
+        int res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
+        Py_DECREF(path_list);
+
+        if (unlikely(res != 0)) {
+            Py_DECREF(module);
+            Py_DECREF(spec_value);
+            Py_DECREF(full_name_obj);
+            Py_DECREF(origin);
+
+            return NULL;
+        }
+    }
+
+    Nuitka_SetModule(full_name_obj, module);
+
+    Py_DECREF(spec_value);
+    Py_DECREF(full_name_obj);
+    Py_DECREF(origin);
+
+    return module;
+}
+#else
 static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
                                          bool is_package) {
     // Determine the package name and basename of the module to load.
@@ -1275,6 +1362,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
     return module;
 }
+#endif
 
 static void loadTriggeredModule(PyThreadState *tstate, char const *name, char const *trigger_name) {
     char trigger_module_name[2048];
