@@ -166,19 +166,24 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: 🐍 Use Python 3.15 (deadsnakes)
+      - name: 🎒 Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf gdb ccache libfuse2
+
+      - name: 🐍 Install Python 3.15 (deadsnakes)
         if: matrix.python_version == '3.15'
         run: |
           sudo add-apt-repository -y ppa:deadsnakes/ppa
           sudo apt-get update
           sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
-          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.15 1
-          sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.15 1
+          mkdir -p "$HOME/.local/python3.15/bin"
+          ln -s /usr/bin/python3.15 "$HOME/.local/python3.15/bin/python"
+          ln -s /usr/bin/python3.15 "$HOME/.local/python3.15/bin/python3"
+          echo "$HOME/.local/python3.15/bin" >> $GITHUB_PATH
 
-      - name: 🧳 Install Nuitka and dependencies
+      - name: 🧳 Install Nuitka
         run: |
-          sudo apt-get update
-          sudo apt-get install patchelf gdb ccache libfuse2
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
