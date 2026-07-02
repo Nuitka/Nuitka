@@ -809,7 +809,14 @@ def getSubDirectoriesWithDlls(path, ignore_permission_error=False):
 
 
 def _getSubDirectoriesWithDlls(path, ignore_permission_error=False):
-    for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
+    ignore_dirs = ["__pycache__"]
+
+    # On macOS the "Resources" directories of frameworks contain no DLLs and
+    # can have restrictive permissions, so we exclude them from the scan.
+    if isMacOS():
+        ignore_dirs.append("Resources")
+
+    for sub_directory in getSubDirectories(path=path, ignore_dirs=ignore_dirs):
         if any(
             listDllFilesFromDirectory(
                 path=sub_directory,
