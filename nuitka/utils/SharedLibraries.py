@@ -285,9 +285,20 @@ def _parseCoffDumpImportFileStrings(output):
         an Import File Strings section. INDEX 0 contains the library search
         path (LIBPATH), and subsequent indices contain (archive, member) or
         (.so) entries for imported shared libraries.
+
+        The columns are fixed-width: PATH (where to find the library),
+        BASE (the library name), MEMBER (archive member name). When PATH
+        is populated (e.g. '/' for '/unix'), the entry refers to an import
+        with an explicit path prefix. These entries are skipped here since
+        they refer to kernel or system-level imports that don't need to be
+        bundled.
     """
     header = "INDEX  PATH                          BASE                MEMBER"
     assert header in output, output
+
+    path_start = header.index("PATH")
+    base_start = header.index("BASE")
+    member_start = header.index("MEMBER")
 
     after_header = output.split(header, 1)[1]
 
@@ -295,17 +306,13 @@ def _parseCoffDumpImportFileStrings(output):
     imported_libraries = []
 
     for line in after_header.split("\n"):
-        line = line.strip()
-        if not line:
+        line_stripped = line.strip()
+        if not line_stripped:
             continue
-        if line[0] not in "0123456789":
-            continue
-
-        parts = line.split(None, 1)
-        if len(parts) != 2:
+        if line_stripped[0] not in "0123456789":
             continue
 
-        index_str, rest = parts
+        index_str = line_stripped.split(None, 1)[0]
 
         try:
             index = int(index_str)
@@ -314,19 +321,24 @@ def _parseCoffDumpImportFileStrings(output):
             # left the Import File Strings section.
             continue
 
-        rest = rest.strip()
-        if not rest:
-            continue
-
         if index == 0:
-            import_paths.append(rest)
+            path_col = line[path_start:].strip()
+            if path_col:
+                import_paths.append(path_col)
         else:
-            rest_parts = rest.split()
-            if len(rest_parts) == 2:
-                base, member = rest_parts
-                imported_libraries.append((base, member))
-            elif len(rest_parts) == 1:
-                imported_libraries.append((rest_parts[0], ""))
+            base = line[base_start:member_start].strip()
+            member = line[member_start:].strip()
+
+            if not base:
+                continue
+
+            path_col = line[path_start:base_start].strip()
+            if path_col:
+                # Entries with explicit PATH (e.g. '/unix') are
+                # kernel or system imports, skip them.
+                continue
+
+            imported_libraries.append((base, member))
 
     return import_paths, imported_libraries
 
