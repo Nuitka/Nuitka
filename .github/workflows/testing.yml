@@ -177,14 +177,14 @@ jobs:
           sudo add-apt-repository -y ppa:deadsnakes/ppa
           sudo apt-get update
           sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
-          echo "PYTHON=python3.15" >> $GITHUB_ENV
+          python3.15 -m venv .venv-3.15
+          echo "VIRTUAL_ENV=$PWD/.venv-3.15" >> $GITHUB_ENV
+          echo "$PWD/.venv-3.15/bin" >> $GITHUB_PATH
 
       - name: 🧳 Install Nuitka
         run: |
-          ${PYTHON:-python} -m ensurepip --upgrade
-          ${PYTHON:-python} -m pip install --upgrade --no-python-version-warning --disable-pip-version-check setuptools wheel
-          export PYTHONPATH="$(${PYTHON:-python} -m site --user-site):$PYTHONPATH"
-          ${PYTHON:-python} -m pip install --no-python-version-warning --disable-pip-version-check .
+          python -m pip install --upgrade --no-python-version-warning --disable-pip-version-check pip setuptools wheel
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
