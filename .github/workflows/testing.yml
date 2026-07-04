@@ -177,26 +177,23 @@ jobs:
           sudo add-apt-repository -y ppa:deadsnakes/ppa
           sudo apt-get update
           sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
-          mkdir -p "$HOME/.local/python3.15/bin"
-          ln -s /usr/bin/python3.15 "$HOME/.local/python3.15/bin/python"
-          ln -s /usr/bin/python3.15 "$HOME/.local/python3.15/bin/python3"
-          echo "$HOME/.local/python3.15/bin" >> $GITHUB_PATH
+          echo "PYTHON=python3.15" >> $GITHUB_ENV
 
       - name: 🧳 Install Nuitka
         run: |
-          python -m ensurepip --upgrade
-          python -m pip install --upgrade --no-python-version-warning --disable-pip-version-check setuptools wheel
-          python -m pip install --no-python-version-warning --disable-pip-version-check .
+          ${PYTHON:-python} -m ensurepip --upgrade
+          ${PYTHON:-python} -m pip install --upgrade --no-python-version-warning --disable-pip-version-check setuptools wheel
+          ${PYTHON:-python} -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
           set -x
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
           ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
@@ -219,9 +216,9 @@ jobs:
 
       - name: 🧪 Run Nuitka test suite
         run: |
-          python -m nuitka --version
+          ${PYTHON:-python} -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+          ${PYTHON:-python} ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
     needs: linux
