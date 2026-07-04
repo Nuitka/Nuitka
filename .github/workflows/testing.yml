@@ -183,6 +183,7 @@ jobs:
         run: |
           ${PYTHON:-python} -m ensurepip --upgrade
           ${PYTHON:-python} -m pip install --upgrade --no-python-version-warning --disable-pip-version-check setuptools wheel
+          export PYTHONPATH="$(${PYTHON:-python} -m site --user-site):$PYTHONPATH"
           ${PYTHON:-python} -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
