@@ -81,7 +81,7 @@ function_return_exit:
    assert(had_error || !HAS_ERROR_OCCURRED(tstate));
    return tmp_return_value;"""
 
-function_direct_body_template = """\
+template_function_direct_body = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
     NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);

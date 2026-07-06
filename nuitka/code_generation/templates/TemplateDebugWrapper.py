@@ -179,7 +179,17 @@ def emitTemplate(template, emit, values):
     elif hasattr(template, "render"):
         emit(template.render(values))
     else:
-        emit(template % values)
+        # Fallback for a plain, non-prepared template string. Deferred code
+        # objects (collectors, template expansions) must be rendered to their
+        # source string here, as '%s' formatting would otherwise emit their
+        # Python repr into the generated code.
+        emit(
+            template
+            % {
+                key: value.asCode() if hasattr(value, "asCode") else value
+                for key, value in values.items()
+            }
+        )
 
 
 def enableDebug(globals_dict):

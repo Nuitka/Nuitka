@@ -264,7 +264,7 @@ def _emit_006_template_constants_reading(emit, values):
     )
     emit(values["nuitka_version_level"])
     emit(
-        '"));\n\nPyObject *containing_directory = getContainingDirectoryObject(false);\n#if _NUITKA_STANDALONE_MODE\n#if !_NUITKA_ONEFILE_MODE\ncontaining_directory = STRIP_DIRNAME(containing_directory);\n#endif\n\n#if _NUITKA_MACOS_BUNDLE_MODE\ncontaining_directory = STRIP_DIRNAME(containing_directory);\ncontaining_directory = STRIP_DIRNAME(containing_directory);\n#endif\n#endif\n\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, containing_directory);\n\n#if _NUITKA_STANDALONE_MODE\nPyObject *is_standalone_mode = Py_True;\n#else\nPyObject *is_standalone_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_standalone_mode);\n#ifdef _NUITKA_ONEFILE_MODE\nPyObject *is_onefile_mode = Py_True;\n#else\nPyObject *is_onefile_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_onefile_mode);\n\n#if _NUITKA_MACOS_BUNDLE_MODE\nPyObject *is_macos_bundle_mode = Py_True;\n#else\nPyObject *is_macos_bundle_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 7, is_macos_bundle_mode);\n\n#if _NUITKA_NO_ASSERTS == 1\nPyObject *is_no_asserts = Py_True;\n#else\nPyObject *is_no_asserts = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 8, is_no_asserts);\n\n#if _NUITKA_NO_DOCSTRINGS == 1\nPyObject *is_no_docstrings = Py_True;\n#else\nPyObject *is_no_docstrings = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 9, is_no_docstrings);\n\n#if _NUITKA_NO_ANNOTATIONS == 1\nPyObject *is_no_annotations = Py_True;\n#else\nPyObject *is_no_annotations = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 10, is_no_annotations);\n\n#if _NUITKA_MODULE_MODE\nPyObject *is_module_mode = Py_True;\n#else\nPyObject *is_module_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);\n\n#if _NUITKA_MODULE_MODE\nPyObject *main_name = real_module_name;\nPy_INCREF(real_module_name);\n#else\nPyObject *main_name = Nuitka_String_FromString("__main__");\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);\n\n#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE\nPyObject *original_argv0 = getOriginalArgv0Object();\n#else\nPyObject *original_argv0 = Py_None;\n# endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);\n\n#if _NUITKA_MODULE_MODE\nPyObject *extension_filename = getDllFilenameObject();\n#else\nPyObject *extension_filename = Py_None;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);\n\n// Prevent users from creating the Nuitka version type object.\nNuitka_VersionInfoType.tp_init = NULL;\nNuitka_VersionInfoType.tp_new = NULL;\n\n// Register included meta data.\nsetDistributionsMetadata(tstate, '
+        '"));\n\nPyObject *containing_directory = getContainingDirectoryObject(false);\n#if _NUITKA_STANDALONE_MODE\n#if !_NUITKA_ONEFILE_MODE\ncontaining_directory = STRIP_DIRNAME(containing_directory);\n#endif\n\n#if _NUITKA_MACOS_BUNDLE_MODE\ncontaining_directory = STRIP_DIRNAME(containing_directory);\ncontaining_directory = STRIP_DIRNAME(containing_directory);\n#endif\n#endif\n\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, containing_directory);\n\n#if _NUITKA_STANDALONE_MODE\nPyObject *is_standalone_mode = Py_True;\n#else\nPyObject *is_standalone_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_standalone_mode);\n#ifdef _NUITKA_ONEFILE_MODE\nPyObject *is_onefile_mode = Py_True;\n#else\nPyObject *is_onefile_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_onefile_mode);\n\n#if _NUITKA_MACOS_BUNDLE_MODE\nPyObject *is_macos_bundle_mode = Py_True;\n#else\nPyObject *is_macos_bundle_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 7, is_macos_bundle_mode);\n\n#if _NUITKA_NO_ASSERTS == 1\nPyObject *is_no_asserts = Py_True;\n#else\nPyObject *is_no_asserts = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 8, is_no_asserts);\n\n#if _NUITKA_NO_DOCSTRINGS == 1\nPyObject *is_no_docstrings = Py_True;\n#else\nPyObject *is_no_docstrings = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 9, is_no_docstrings);\n\n#if _NUITKA_NO_ANNOTATIONS == 1\nPyObject *is_no_annotations = Py_True;\n#else\nPyObject *is_no_annotations = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 10, is_no_annotations);\n\n#if _NUITKA_MODULE_MODE\nPyObject *is_module_mode = Py_True;\n#else\nPyObject *is_module_mode = Py_False;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);\n\n#if _NUITKA_MODULE_MODE\nPyObject *main_name = real_module_name;\nPy_INCREF(real_module_name);\n#else\nPyObject *main_name = Nuitka_String_FromString("__main__");\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);\n\n#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE\nPyObject *original_argv0 = getOriginalArgv0Object();\n#else\nPyObject *original_argv0 = Py_None;\n# endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);\n\n#if _NUITKA_MODULE_MODE\nPyObject *extension_filename = getDllFilenameObject();\n#else\nPyObject *extension_filename = Py_None;\n#endif\nPyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);\n\n\nNuitka_VersionInfoType.tp_init = NULL;\nNuitka_VersionInfoType.tp_new = NULL;\n\n\nsetDistributionsMetadata(tstate, '
     )
     emit(values["metadata_values"])
     emit(
@@ -936,7 +936,41 @@ def _emit_026_template_function_return_exit_readable(emit, values):
     )
 
 
-def _emit_027_template_generator_context_maker_decl(emit, values):
+def _emit_027_template_function_direct_body(emit, values):
+    emit(values["file_scope"])
+    emit(" PyObject *impl_")
+    emit(values["function_identifier"])
+    emit("(PyThreadState *tstate, ")
+    emit(values["direct_call_arg_spec"])
+    emit(
+        ") {\n#ifndef __NUITKA_NO_ASSERT__\nNUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);\nassert(!had_error); \n#endif\n\n\n"
+    )
+    emit(values["function_locals"])
+    emit("\n\n\n")
+    emit(values["function_body"])
+    emit("\n\n")
+    emit(values["function_exit"])
+    emit("\n}\n")
+
+
+def _emit_027_template_function_direct_body_readable(emit, values):
+    emit(values["file_scope"])
+    emit(" PyObject *impl_")
+    emit(values["function_identifier"])
+    emit("(PyThreadState *tstate, ")
+    emit(values["direct_call_arg_spec"])
+    emit(
+        ") {\n#ifndef __NUITKA_NO_ASSERT__\n    NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);\n    assert(!had_error); // Do not enter inlined functions with error set.\n#endif\n\n    // Local variable declarations.\n"
+    )
+    emit(values["function_locals"])
+    emit("\n\n    // Actual function body.\n")
+    emit(values["function_body"])
+    emit("\n\n")
+    emit(values["function_exit"])
+    emit("\n}\n")
+
+
+def _emit_028_template_generator_context_maker_decl(emit, values):
     emit("static PyObject *")
     emit(values["generator_maker_identifier"])
     emit("(")
@@ -944,7 +978,7 @@ def _emit_027_template_generator_context_maker_decl(emit, values):
     emit(");\n")
 
 
-def _emit_027_template_generator_context_maker_decl_readable(emit, values):
+def _emit_028_template_generator_context_maker_decl_readable(emit, values):
     emit("static PyObject *")
     emit(values["generator_maker_identifier"])
     emit("(")
@@ -952,7 +986,7 @@ def _emit_027_template_generator_context_maker_decl_readable(emit, values):
     emit(");\n")
 
 
-def _emit_028_template_generator_context_body_template(emit, values):
+def _emit_029_template_generator_context_body_template(emit, values):
     emit("\n#if ")
     emit(values["has_heap_declaration"])
     emit("\nstruct ")
@@ -1000,7 +1034,7 @@ def _emit_028_template_generator_context_body_template(emit, values):
     emit("_locals)\n#else\n0\n#endif\n);\n}\n")
 
 
-def _emit_028_template_generator_context_body_template_readable(emit, values):
+def _emit_029_template_generator_context_body_template_readable(emit, values):
     emit("\n#if ")
     emit(values["has_heap_declaration"])
     emit("\nstruct ")
@@ -1048,7 +1082,7 @@ def _emit_028_template_generator_context_body_template_readable(emit, values):
     emit("_locals)\n#else\n        0\n#endif\n    );\n}\n")
 
 
-def _emit_029_template_make_generator(emit, values):
+def _emit_030_template_make_generator(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
@@ -1059,7 +1093,7 @@ def _emit_029_template_make_generator(emit, values):
     emit(");\n")
 
 
-def _emit_029_template_make_generator_readable(emit, values):
+def _emit_030_template_make_generator_readable(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
@@ -1070,7 +1104,7 @@ def _emit_029_template_make_generator_readable(emit, values):
     emit(");\n")
 
 
-def _emit_030_template_make_empty_generator(emit, values):
+def _emit_031_template_make_empty_generator(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
@@ -1089,7 +1123,7 @@ def _emit_030_template_make_empty_generator(emit, values):
     emit("\n);\n")
 
 
-def _emit_030_template_make_empty_generator_readable(emit, values):
+def _emit_031_template_make_empty_generator_readable(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
@@ -1108,7 +1142,7 @@ def _emit_030_template_make_empty_generator_readable(emit, values):
     emit("\n);\n")
 
 
-def _emit_031_template_generator_exception_exit(emit, values):
+def _emit_032_template_generator_exception_exit(emit, values):
     emit(values["function_cleanup"])
     emit("\nreturn NULL;\n\nfunction_exception_exit:\n")
     emit(values["function_cleanup"])
@@ -1119,7 +1153,7 @@ def _emit_031_template_generator_exception_exit(emit, values):
     emit(");\n\nreturn NULL;\n")
 
 
-def _emit_031_template_generator_exception_exit_readable(emit, values):
+def _emit_032_template_generator_exception_exit_readable(emit, values):
     emit(values["function_cleanup"])
     emit("\n    return NULL;\n\n    function_exception_exit:\n")
     emit(values["function_cleanup"])
@@ -1130,19 +1164,19 @@ def _emit_031_template_generator_exception_exit_readable(emit, values):
     emit(");\n\n    return NULL;\n")
 
 
-def _emit_032_template_generator_no_exception_exit(emit, values):
+def _emit_033_template_generator_no_exception_exit(emit, values):
     emit("\n")
     emit(values["function_cleanup"])
     emit("\nreturn NULL;\n")
 
 
-def _emit_032_template_generator_no_exception_exit_readable(emit, values):
+def _emit_033_template_generator_no_exception_exit_readable(emit, values):
     emit("    // Return statement need not be present.\n")
     emit(values["function_cleanup"])
     emit("\n    return NULL;\n")
 
 
-def _emit_033_template_generator_return_exit(emit, values):
+def _emit_034_template_generator_return_exit(emit, values):
     emit(
         'NUITKA_CANNOT_GET_HERE("Generator must have exited already.");\nreturn NULL;\n\nfunction_return_exit:\n#if PYTHON_VERSION >= 0x300\ngenerator->m_returned = '
     )
@@ -1152,7 +1186,7 @@ def _emit_033_template_generator_return_exit(emit, values):
     emit("\nreturn NULL;\n")
 
 
-def _emit_033_template_generator_return_exit_readable(emit, values):
+def _emit_034_template_generator_return_exit_readable(emit, values):
     emit(
         '    NUITKA_CANNOT_GET_HERE("Generator must have exited already.");\n    return NULL;\n\n    function_return_exit:\n#if PYTHON_VERSION >= 0x300\n    generator->m_returned = '
     )
@@ -1162,7 +1196,7 @@ def _emit_033_template_generator_return_exit_readable(emit, values):
     emit("\n    return NULL;\n")
 
 
-def _emit_034_template_loop_break_next(emit, values):
+def _emit_035_template_loop_break_next(emit, values):
     emit("if (")
     emit(values["to_name"])
     emit(" == NULL) {\nif (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate)) {\n")
@@ -1182,7 +1216,7 @@ def _emit_034_template_loop_break_next(emit, values):
     emit(";\n}\n}\n")
 
 
-def _emit_034_template_loop_break_next_readable(emit, values):
+def _emit_035_template_loop_break_next_readable(emit, values):
     emit("if (")
     emit(values["to_name"])
     emit(" == NULL) {\n    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate)) {\n")
@@ -1202,7 +1236,7 @@ def _emit_034_template_loop_break_next_readable(emit, values):
     emit(";\n    }\n}\n")
 
 
-def _emit_035_template_metapath_loader_body(emit, values):
+def _emit_036_template_metapath_loader_body(emit, values):
     emit(
         '\n\n\n#include "nuitka/prelude.h"\n\n\n#if PY_MICRO_VERSION < 16\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)\n#else\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)\n#endif\n\n#include "nuitka/constants_blob.h"\n\n#include "nuitka/tracing.h"\n#include "nuitka/unfreezing.h"\n\n\n#ifndef __cplusplus\n#include <stdbool.h>\n#endif\n\n#if '
     )
@@ -1234,7 +1268,7 @@ def _emit_035_template_metapath_loader_body(emit, values):
     )
 
 
-def _emit_035_template_metapath_loader_body_readable(emit, values):
+def _emit_036_template_metapath_loader_body_readable(emit, values):
     emit(
         '\n/* Code to register embedded modules for meta path based loading if any. */\n\n#include "nuitka/prelude.h"\n\n/* Use a hex version of our own to compare for versions. We do not care about pre-releases */\n#if PY_MICRO_VERSION < 16\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)\n#else\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)\n#endif\n\n#include "nuitka/constants_blob.h"\n\n#include "nuitka/tracing.h"\n#include "nuitka/unfreezing.h"\n\n/* Type bool, spell-checker: ignore stdbool */\n#ifndef __cplusplus\n#include <stdbool.h>\n#endif\n\n#if '
     )
@@ -1266,18 +1300,13 @@ def _emit_035_template_metapath_loader_body_readable(emit, values):
     )
 
 
-def _emit_036_template_global_copyright(emit, values):
-    emit(values["module_identifier"])
-    emit("'\n* created by Nuitka version ")
-    emit(values["version"])
-    emit("\n*\n* This code is in part copyright ")
-    emit(values["year"])
-    emit(
-        ' Kay Hayen.\n*\n* Licensed under the GNU Affero General Public License, Version 3 (the "License");\n* you may not use this file except in compliance with the License.\n*\n* You may obtain a copy of the License in "LICENSE.txt" and the runtime\n* exception granted in "LICENSE-RUNTIME.txt" from Nuitka source code. For\n* deploying the generated code it is intended to not restrict distributing\n* created binaries.\n*\n* Unless required by applicable law or agreed to in writing, software\n* distributed under the License is distributed on an "AS IS" BASIS,\n* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n* See the License for the specific language governing permissions and\n* limitations under the License.\n*/\n'
-    )
+def _emit_037_template_global_copyright(emit, values):
+    emit("\n")
+    emit("\n\n")
+    emit("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
 
-def _emit_036_template_global_copyright_readable(emit, values):
+def _emit_037_template_global_copyright_readable(emit, values):
     emit("/* Generated code for Python module '")
     emit(values["module_identifier"])
     emit("'\n * created by Nuitka version ")
@@ -1289,16 +1318,13 @@ def _emit_036_template_global_copyright_readable(emit, values):
     )
 
 
-def _emit_037_template_module_body_template(emit, values):
+def _emit_038_template_module_body_template(emit, values):
     emit(
         '\n#include "nuitka/prelude.h"\n\n#include "nuitka/unfreezing.h"\n\n#include "__helpers.h"\n\n'
     )
     emit(values["module_includes"])
     emit("\n\n")
-    emit(values["module_identifier"])
-    emit(
-        '" is a Python object pointer of module type.\n*\n* Note: For full compatibility with CPython, every module variable access\n* needs to go through it except for cases where the module cannot possibly\n* have changed in the mean time.\n*/\n\nPyObject *module_'
-    )
+    emit("\n\n\n\n\n\n\nPyObject *module_")
     emit(values["module_identifier"])
     emit(";\nPyDictObject *moduledict_")
     emit(values["module_identifier"])
@@ -1378,7 +1404,7 @@ def _emit_037_template_module_body_template(emit, values):
         '(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {\n\nPGO_onModuleEntered("'
     )
     emit(values["module_identifier"])
-    emit('");\n\n// Store the module for future use.\nmodule_')
+    emit('");\n\n\nmodule_')
     emit(values["module_identifier"])
     emit(" = module;\n\nmoduledict_")
     emit(values["module_identifier"])
@@ -1399,7 +1425,7 @@ def _emit_037_template_module_body_template(emit, values):
     emit(' >= 0\n#ifdef _NUITKA_TRACE\nPRINT_STRING("')
     emit(values["module_identifier"])
     emit(
-        ': Calling updateMetaPathBasedLoaderModuleRoot().\\n");\n#endif\nupdateMetaPathBasedLoaderModuleRoot(module_full_name);\n#endif\n\n\n#if PYTHON_VERSION >= 0x300\npatchInspectModule(tstate);\n#endif\n\n#endif\n\n/* The constants only used by this module are created now. */\nNUITKA_PRINT_TRACE("'
+        ': Calling updateMetaPathBasedLoaderModuleRoot().\\n");\n#endif\nupdateMetaPathBasedLoaderModuleRoot(module_full_name);\n#endif\n\n\n#if PYTHON_VERSION >= 0x300\npatchInspectModule(tstate);\n#endif\n\n#endif\n\n\nNUITKA_PRINT_TRACE("'
     )
     emit(values["module_identifier"])
     emit(
@@ -1409,9 +1435,8 @@ def _emit_037_template_module_body_template(emit, values):
     emit("\nPyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, ")
     emit(values["module_name_cstr"])
     emit(' "-preLoad");\nif (pre_load == NULL) {\nreturn NULL;\n}\n#endif\n\n')
-    emit(values["module_identifier"])
     emit(
-        '\\n");\n\n#ifdef _NUITKA_PLUGIN_DILL_ENABLED\n{\nchar const *module_name_c;\nif (loader_entry != NULL) {\nmodule_name_c = loader_entry->name;\n} else {\nPyObject *module_name = GET_STRING_DICT_VALUE(moduledict_'
+        "\n\n#ifdef _NUITKA_PLUGIN_DILL_ENABLED\n{\nchar const *module_name_c;\nif (loader_entry != NULL) {\nmodule_name_c = loader_entry->name;\n} else {\nPyObject *module_name = GET_STRING_DICT_VALUE(moduledict_"
     )
     emit(values["module_identifier"])
     emit(
@@ -1515,7 +1540,7 @@ def _emit_037_template_module_body_template(emit, values):
     emit("\n")
 
 
-def _emit_037_template_module_body_template_readable(emit, values):
+def _emit_038_template_module_body_template_readable(emit, values):
     emit(
         '\n#include "nuitka/prelude.h"\n\n#include "nuitka/unfreezing.h"\n\n#include "__helpers.h"\n\n'
     )
@@ -1765,7 +1790,7 @@ def _emit_037_template_module_body_template_readable(emit, values):
     emit("\n")
 
 
-def _emit_038_template_module_external_entry_point(emit, values):
+def _emit_039_template_module_external_entry_point(emit, values):
     emit(
         '\n\n\n#if defined(__GNUC__)\n\n#if PYTHON_VERSION < 0x300\n\n#if defined(_WIN32)\n#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyMODINIT_FUNC\n#else\n#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))\n#endif\n\n#else\n\n#if defined(_WIN32)\n#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyObject *\n#else\n\n#ifdef __cplusplus\n#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__((visibility("default"))) PyObject *\n#else\n#define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *\n#endif\n\n#endif\n#endif\n\n#else\n#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC\n#endif\n\nstatic PyObject *orig_dunder_file_value;\n\n#if PYTHON_VERSION >= 0x300\nstatic setattrofunc orig_PyModule_Type_tp_setattro;\n\n\nstatic int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {\nPyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;\n\nif (orig_dunder_file_value != NULL) {\nUPDATE_STRING_DICT0(\nmoduledict_'
     )
@@ -1837,7 +1862,7 @@ def _emit_038_template_module_external_entry_point(emit, values):
     emit("_phase2(module);\n#endif\n}\n")
 
 
-def _emit_038_template_module_external_entry_point_readable(emit, values):
+def _emit_039_template_module_external_entry_point_readable(emit, values):
     emit(
         '\n\n/* Visibility definitions to make the DLL entry point exported */\n#if defined(__GNUC__)\n\n#if PYTHON_VERSION < 0x300\n\n#if defined(_WIN32)\n#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyMODINIT_FUNC\n#else\n#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))\n#endif\n\n#else\n\n#if defined(_WIN32)\n#define NUITKA_MODULE_INIT_FUNCTION __declspec(dllexport) PyObject *\n#else\n\n#ifdef __cplusplus\n#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__((visibility("default"))) PyObject *\n#else\n#define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *\n#endif\n\n#endif\n#endif\n\n#else\n#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC\n#endif\n\nstatic PyObject *orig_dunder_file_value;\n\n#if PYTHON_VERSION >= 0x300\nstatic setattrofunc orig_PyModule_Type_tp_setattro;\n\n/* This is used one time only. */\nstatic int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {\n    PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;\n\n    if (orig_dunder_file_value != NULL) {\n        UPDATE_STRING_DICT0(\n            moduledict_'
     )
@@ -1913,7 +1938,7 @@ def _emit_038_template_module_external_entry_point_readable(emit, values):
     emit("_phase2(module);\n#endif\n}\n")
 
 
-def _emit_039_template_module_exception_exit(emit, values):
+def _emit_040_template_module_exception_exit(emit, values):
     emit("module_exception_exit:\n\n#if _NUITKA_MODULE_MODE && ")
     emit(str(values["is_top"]))
     emit("\n{\nPyObject *module_name = GET_STRING_DICT_VALUE(moduledict_")
@@ -1927,7 +1952,7 @@ def _emit_039_template_module_exception_exit(emit, values):
     )
 
 
-def _emit_039_template_module_exception_exit_readable(emit, values):
+def _emit_040_template_module_exception_exit_readable(emit, values):
     emit("    module_exception_exit:\n\n#if _NUITKA_MODULE_MODE && ")
     emit(str(values["is_top"]))
     emit("\n    {\n        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_")
@@ -1941,27 +1966,27 @@ def _emit_039_template_module_exception_exit_readable(emit, values):
     )
 
 
-def _emit_040_template_module_no_exception_exit(emit, values):
+def _emit_041_template_module_no_exception_exit(emit, values):
     emit("}")
 
 
-def _emit_040_template_module_no_exception_exit_readable(emit, values):
+def _emit_041_template_module_no_exception_exit_readable(emit, values):
     emit("}")
 
 
-def _emit_041_template_helper_impl_decl(emit, values):
+def _emit_042_template_helper_impl_decl(emit, values):
     emit(
         '\n\n\n#include "nuitka/prelude.h"\n\nextern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);\n\n'
     )
 
 
-def _emit_041_template_helper_impl_decl_readable(emit, values):
+def _emit_042_template_helper_impl_decl_readable(emit, values):
     emit(
         '// This file contains helper functions that are automatically created from\n// templates.\n\n#include "nuitka/prelude.h"\n\nextern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);\n\n'
     )
 
 
-def _emit_042_template_header_guard(emit, values):
+def _emit_043_template_header_guard(emit, values):
     emit("#ifndef ")
     emit(values["header_guard_name"])
     emit("\n#define ")
@@ -1971,7 +1996,7 @@ def _emit_042_template_header_guard(emit, values):
     emit("\n#endif\n")
 
 
-def _emit_042_template_header_guard_readable(emit, values):
+def _emit_043_template_header_guard_readable(emit, values):
     emit("#ifndef ")
     emit(values["header_guard_name"])
     emit("\n#define ")
@@ -1981,7 +2006,7 @@ def _emit_042_template_header_guard_readable(emit, values):
     emit("\n#endif\n")
 
 
-def _emit_043_template_write_local_unclear_ref0(emit, values):
+def _emit_044_template_write_local_unclear_ref0(emit, values):
     emit("{\nPyObject *old = ")
     emit(values["identifier"])
     emit(";\n")
@@ -1991,7 +2016,7 @@ def _emit_043_template_write_local_unclear_ref0(emit, values):
     emit(";\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_043_template_write_local_unclear_ref0_readable(emit, values):
+def _emit_044_template_write_local_unclear_ref0_readable(emit, values):
     emit("{\n    PyObject *old = ")
     emit(values["identifier"])
     emit(";\n    ")
@@ -2001,7 +2026,7 @@ def _emit_043_template_write_local_unclear_ref0_readable(emit, values):
     emit(";\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_044_template_write_local_unclear_ref1(emit, values):
+def _emit_045_template_write_local_unclear_ref1(emit, values):
     emit("{\nPyObject *old = ")
     emit(values["identifier"])
     emit(";\n")
@@ -2013,7 +2038,7 @@ def _emit_044_template_write_local_unclear_ref1(emit, values):
     emit(");\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_044_template_write_local_unclear_ref1_readable(emit, values):
+def _emit_045_template_write_local_unclear_ref1_readable(emit, values):
     emit("{\n    PyObject *old = ")
     emit(values["identifier"])
     emit(";\n    ")
@@ -2025,7 +2050,7 @@ def _emit_044_template_write_local_unclear_ref1_readable(emit, values):
     emit(");\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_045_template_write_local_empty_ref0(emit, values):
+def _emit_046_template_write_local_empty_ref0(emit, values):
     emit("assert(")
     emit(values["identifier"])
     emit(" == NULL);\n")
@@ -2035,7 +2060,7 @@ def _emit_045_template_write_local_empty_ref0(emit, values):
     emit(";")
 
 
-def _emit_045_template_write_local_empty_ref0_readable(emit, values):
+def _emit_046_template_write_local_empty_ref0_readable(emit, values):
     emit("assert(")
     emit(values["identifier"])
     emit(" == NULL);\n")
@@ -2045,7 +2070,7 @@ def _emit_045_template_write_local_empty_ref0_readable(emit, values):
     emit(";")
 
 
-def _emit_046_template_write_local_empty_ref1(emit, values):
+def _emit_047_template_write_local_empty_ref1(emit, values):
     emit("assert(")
     emit(values["identifier"])
     emit(" == NULL);\nPy_INCREF(")
@@ -2057,7 +2082,7 @@ def _emit_046_template_write_local_empty_ref1(emit, values):
     emit(";")
 
 
-def _emit_046_template_write_local_empty_ref1_readable(emit, values):
+def _emit_047_template_write_local_empty_ref1_readable(emit, values):
     emit("assert(")
     emit(values["identifier"])
     emit(" == NULL);\nPy_INCREF(")
@@ -2069,7 +2094,7 @@ def _emit_046_template_write_local_empty_ref1_readable(emit, values):
     emit(";")
 
 
-def _emit_047_template_write_local_clear_ref0(emit, values):
+def _emit_048_template_write_local_clear_ref0(emit, values):
     emit("{\nPyObject *old = ")
     emit(values["identifier"])
     emit(";\nassert(old != NULL);\n")
@@ -2079,7 +2104,7 @@ def _emit_047_template_write_local_clear_ref0(emit, values):
     emit(";\nPy_DECREF(old);\n}\n")
 
 
-def _emit_047_template_write_local_clear_ref0_readable(emit, values):
+def _emit_048_template_write_local_clear_ref0_readable(emit, values):
     emit("{\n    PyObject *old = ")
     emit(values["identifier"])
     emit(";\n    assert(old != NULL);\n    ")
@@ -2089,21 +2114,21 @@ def _emit_047_template_write_local_clear_ref0_readable(emit, values):
     emit(";\n    Py_DECREF(old);\n}\n")
 
 
-def _emit_048_template_write_local_inplace(emit, values):
+def _emit_049_template_write_local_inplace(emit, values):
     emit(values["identifier"])
     emit(" = ")
     emit(values["tmp_name"])
     emit(";\n")
 
 
-def _emit_048_template_write_local_inplace_readable(emit, values):
+def _emit_049_template_write_local_inplace_readable(emit, values):
     emit(values["identifier"])
     emit(" = ")
     emit(values["tmp_name"])
     emit(";\n")
 
 
-def _emit_049_template_write_shared_inplace(emit, values):
+def _emit_050_template_write_shared_inplace(emit, values):
     emit("Nuitka_Cell_SET(")
     emit(values["identifier"])
     emit(", ")
@@ -2111,7 +2136,7 @@ def _emit_049_template_write_shared_inplace(emit, values):
     emit(");\n")
 
 
-def _emit_049_template_write_shared_inplace_readable(emit, values):
+def _emit_050_template_write_shared_inplace_readable(emit, values):
     emit("Nuitka_Cell_SET(")
     emit(values["identifier"])
     emit(", ")
@@ -2119,7 +2144,7 @@ def _emit_049_template_write_shared_inplace_readable(emit, values):
     emit(");\n")
 
 
-def _emit_050_template_write_local_clear_ref1(emit, values):
+def _emit_051_template_write_local_clear_ref1(emit, values):
     emit("{\nPyObject *old = ")
     emit(values["identifier"])
     emit(";\nassert(old != NULL);\n")
@@ -2131,7 +2156,7 @@ def _emit_050_template_write_local_clear_ref1(emit, values):
     emit(");\nPy_DECREF(old);\n}\n")
 
 
-def _emit_050_template_write_local_clear_ref1_readable(emit, values):
+def _emit_051_template_write_local_clear_ref1_readable(emit, values):
     emit("{\n    PyObject *old = ")
     emit(values["identifier"])
     emit(";\n    assert(old != NULL);\n    ")
@@ -2143,7 +2168,7 @@ def _emit_050_template_write_local_clear_ref1_readable(emit, values):
     emit(");\n    Py_DECREF(old);\n}\n")
 
 
-def _emit_051_template_write_shared_unclear_ref0(emit, values):
+def _emit_052_template_write_shared_unclear_ref0(emit, values):
     emit("{\nPyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\nNuitka_Cell_SET(")
@@ -2153,7 +2178,7 @@ def _emit_051_template_write_shared_unclear_ref0(emit, values):
     emit(");\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_051_template_write_shared_unclear_ref0_readable(emit, values):
+def _emit_052_template_write_shared_unclear_ref0_readable(emit, values):
     emit("{\n    PyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n    Nuitka_Cell_SET(")
@@ -2163,7 +2188,7 @@ def _emit_051_template_write_shared_unclear_ref0_readable(emit, values):
     emit(");\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_052_template_write_shared_unclear_ref1(emit, values):
+def _emit_053_template_write_shared_unclear_ref1(emit, values):
     emit("{\nPyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\nNuitka_Cell_SET(")
@@ -2175,7 +2200,7 @@ def _emit_052_template_write_shared_unclear_ref1(emit, values):
     emit(");\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_052_template_write_shared_unclear_ref1_readable(emit, values):
+def _emit_053_template_write_shared_unclear_ref1_readable(emit, values):
     emit("{\n    PyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n    Nuitka_Cell_SET(")
@@ -2187,7 +2212,7 @@ def _emit_052_template_write_shared_unclear_ref1_readable(emit, values):
     emit(");\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_053_template_write_shared_clear_ref0(emit, values):
+def _emit_054_template_write_shared_clear_ref0(emit, values):
     emit("assert(Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(") == NULL);\nNuitka_Cell_SET(")
@@ -2197,7 +2222,7 @@ def _emit_053_template_write_shared_clear_ref0(emit, values):
     emit(");\n")
 
 
-def _emit_053_template_write_shared_clear_ref0_readable(emit, values):
+def _emit_054_template_write_shared_clear_ref0_readable(emit, values):
     emit("assert(Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(") == NULL);\nNuitka_Cell_SET(")
@@ -2207,7 +2232,7 @@ def _emit_053_template_write_shared_clear_ref0_readable(emit, values):
     emit(");\n")
 
 
-def _emit_054_template_write_shared_clear_ref1(emit, values):
+def _emit_055_template_write_shared_clear_ref1(emit, values):
     emit("assert(Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(") == NULL);\nPy_INCREF(")
@@ -2219,7 +2244,7 @@ def _emit_054_template_write_shared_clear_ref1(emit, values):
     emit(");\n")
 
 
-def _emit_054_template_write_shared_clear_ref1_readable(emit, values):
+def _emit_055_template_write_shared_clear_ref1_readable(emit, values):
     emit("assert(Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(") == NULL);\nPy_INCREF(")
@@ -2231,7 +2256,7 @@ def _emit_054_template_write_shared_clear_ref1_readable(emit, values):
     emit(");\n")
 
 
-def _emit_055_template_del_local_tolerant(emit, values):
+def _emit_056_template_del_local_tolerant(emit, values):
     emit("Py_XDECREF(")
     emit(values["identifier"])
     emit(");\n")
@@ -2239,7 +2264,7 @@ def _emit_055_template_del_local_tolerant(emit, values):
     emit(" = NULL;\n")
 
 
-def _emit_055_template_del_local_tolerant_readable(emit, values):
+def _emit_056_template_del_local_tolerant_readable(emit, values):
     emit("Py_XDECREF(")
     emit(values["identifier"])
     emit(");\n")
@@ -2247,7 +2272,7 @@ def _emit_055_template_del_local_tolerant_readable(emit, values):
     emit(" = NULL;\n")
 
 
-def _emit_056_template_del_shared_tolerant(emit, values):
+def _emit_057_template_del_shared_tolerant(emit, values):
     emit("{\nPyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\nNuitka_Cell_SET(")
@@ -2255,7 +2280,7 @@ def _emit_056_template_del_shared_tolerant(emit, values):
     emit(", NULL);\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_056_template_del_shared_tolerant_readable(emit, values):
+def _emit_057_template_del_shared_tolerant_readable(emit, values):
     emit("{\n    PyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n    Nuitka_Cell_SET(")
@@ -2263,7 +2288,7 @@ def _emit_056_template_del_shared_tolerant_readable(emit, values):
     emit(", NULL);\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_057_template_del_local_intolerant(emit, values):
+def _emit_058_template_del_local_intolerant(emit, values):
     emit(values["result"])
     emit(" = ")
     emit(values["identifier"])
@@ -2276,7 +2301,7 @@ def _emit_057_template_del_local_intolerant(emit, values):
     emit(" = NULL;\n}\n")
 
 
-def _emit_057_template_del_local_intolerant_readable(emit, values):
+def _emit_058_template_del_local_intolerant_readable(emit, values):
     emit(values["result"])
     emit(" = ")
     emit(values["identifier"])
@@ -2289,7 +2314,7 @@ def _emit_057_template_del_local_intolerant_readable(emit, values):
     emit(" = NULL;\n}\n")
 
 
-def _emit_058_template_del_shared_intolerant(emit, values):
+def _emit_059_template_del_shared_intolerant(emit, values):
     emit("{\nPyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\nNuitka_Cell_SET(")
@@ -2299,7 +2324,7 @@ def _emit_058_template_del_shared_intolerant(emit, values):
     emit(" = old != NULL;\n}\n")
 
 
-def _emit_058_template_del_shared_intolerant_readable(emit, values):
+def _emit_059_template_del_shared_intolerant_readable(emit, values):
     emit("{\n    PyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n    Nuitka_Cell_SET(")
@@ -2309,7 +2334,7 @@ def _emit_058_template_del_shared_intolerant_readable(emit, values):
     emit(" = old != NULL;\n}\n")
 
 
-def _emit_059_template_del_local_known(emit, values):
+def _emit_060_template_del_local_known(emit, values):
     emit("CHECK_OBJECT(")
     emit(values["identifier"])
     emit(");\nPy_DECREF(")
@@ -2319,7 +2344,7 @@ def _emit_059_template_del_local_known(emit, values):
     emit(" = NULL;\n")
 
 
-def _emit_059_template_del_local_known_readable(emit, values):
+def _emit_060_template_del_local_known_readable(emit, values):
     emit("CHECK_OBJECT(")
     emit(values["identifier"])
     emit(");\nPy_DECREF(")
@@ -2329,7 +2354,7 @@ def _emit_059_template_del_local_known_readable(emit, values):
     emit(" = NULL;\n")
 
 
-def _emit_060_template_del_shared_known(emit, values):
+def _emit_061_template_del_shared_known(emit, values):
     emit("{\nPyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\nNuitka_Cell_SET(")
@@ -2337,7 +2362,7 @@ def _emit_060_template_del_shared_known(emit, values):
     emit(", NULL);\n\nCHECK_OBJECT(old);\nPy_DECREF(old);\n}\n")
 
 
-def _emit_060_template_del_shared_known_readable(emit, values):
+def _emit_061_template_del_shared_known_readable(emit, values):
     emit("{\n    PyObject *old = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n    Nuitka_Cell_SET(")
@@ -2345,19 +2370,19 @@ def _emit_060_template_del_shared_known_readable(emit, values):
     emit(", NULL);\n\n    CHECK_OBJECT(old);\n    Py_DECREF(old);\n}\n")
 
 
-def _emit_061_template_release_object_unclear(emit, values):
+def _emit_062_template_release_object_unclear(emit, values):
     emit("Py_XDECREF(")
     emit(values["identifier"])
     emit(");")
 
 
-def _emit_061_template_release_object_unclear_readable(emit, values):
+def _emit_062_template_release_object_unclear_readable(emit, values):
     emit("Py_XDECREF(")
     emit(values["identifier"])
     emit(");")
 
 
-def _emit_062_template_release_object_clear(emit, values):
+def _emit_063_template_release_object_clear(emit, values):
     emit("CHECK_OBJECT(")
     emit(values["identifier"])
     emit(");\nPy_DECREF(")
@@ -2365,7 +2390,7 @@ def _emit_062_template_release_object_clear(emit, values):
     emit(");")
 
 
-def _emit_062_template_release_object_clear_readable(emit, values):
+def _emit_063_template_release_object_clear_readable(emit, values):
     emit("CHECK_OBJECT(")
     emit(values["identifier"])
     emit(");\nPy_DECREF(")
@@ -2373,21 +2398,21 @@ def _emit_062_template_release_object_clear_readable(emit, values):
     emit(");")
 
 
-def _emit_063_template_read_shared_known(emit, values):
+def _emit_064_template_read_shared_known(emit, values):
     emit(values["tmp_name"])
     emit(" = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n")
 
 
-def _emit_063_template_read_shared_known_readable(emit, values):
+def _emit_064_template_read_shared_known_readable(emit, values):
     emit(values["tmp_name"])
     emit(" = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n")
 
 
-def _emit_064_template_read_mvar_unclear(emit, values):
+def _emit_065_template_read_mvar_unclear(emit, values):
     emit(values["tmp_name"])
     emit(" = LOOKUP_MODULE_VALUE(moduledict_")
     emit(values["module_identifier"])
@@ -2396,7 +2421,7 @@ def _emit_064_template_read_mvar_unclear(emit, values):
     emit(");\n")
 
 
-def _emit_064_template_read_mvar_unclear_readable(emit, values):
+def _emit_065_template_read_mvar_unclear_readable(emit, values):
     emit(values["tmp_name"])
     emit(" = LOOKUP_MODULE_VALUE(moduledict_")
     emit(values["module_identifier"])
@@ -2405,7 +2430,7 @@ def _emit_064_template_read_mvar_unclear_readable(emit, values):
     emit(");\n")
 
 
-def _emit_065_template_read_locals_dict_with_fallback(emit, values):
+def _emit_066_template_read_locals_dict_with_fallback(emit, values):
     emit(values["to_name"])
     emit(" = ")
     emit(values["dict_get_item"])
@@ -2420,7 +2445,7 @@ def _emit_065_template_read_locals_dict_with_fallback(emit, values):
     emit("\n}\n")
 
 
-def _emit_065_template_read_locals_dict_with_fallback_readable(emit, values):
+def _emit_066_template_read_locals_dict_with_fallback_readable(emit, values):
     emit(values["to_name"])
     emit(" = ")
     emit(values["dict_get_item"])
@@ -2435,7 +2460,7 @@ def _emit_065_template_read_locals_dict_with_fallback_readable(emit, values):
     emit("\n}\n")
 
 
-def _emit_066_template_read_locals_dict_without_fallback(emit, values):
+def _emit_067_template_read_locals_dict_without_fallback(emit, values):
     emit(values["to_name"])
     emit(" = DICT_GET_ITEM0(tstate, ")
     emit(values["locals_dict"])
@@ -2444,7 +2469,7 @@ def _emit_066_template_read_locals_dict_without_fallback(emit, values):
     emit(");\n")
 
 
-def _emit_066_template_read_locals_dict_without_fallback_readable(emit, values):
+def _emit_067_template_read_locals_dict_without_fallback_readable(emit, values):
     emit(values["to_name"])
     emit(" = DICT_GET_ITEM0(tstate, ")
     emit(values["locals_dict"])
@@ -2453,7 +2478,7 @@ def _emit_066_template_read_locals_dict_without_fallback_readable(emit, values):
     emit(");\n")
 
 
-def _emit_067_template_read_locals_mapping_with_fallback_no_ref(emit, values):
+def _emit_068_template_read_locals_mapping_with_fallback_no_ref(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2472,7 +2497,7 @@ def _emit_067_template_read_locals_mapping_with_fallback_no_ref(emit, values):
     emit(";\n}\n}\n")
 
 
-def _emit_067_template_read_locals_mapping_with_fallback_no_ref_readable(emit, values):
+def _emit_068_template_read_locals_mapping_with_fallback_no_ref_readable(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2491,7 +2516,7 @@ def _emit_067_template_read_locals_mapping_with_fallback_no_ref_readable(emit, v
     emit(";\n    }\n}\n")
 
 
-def _emit_068_template_read_locals_mapping_with_fallback_ref(emit, values):
+def _emit_069_template_read_locals_mapping_with_fallback_ref(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2508,7 +2533,7 @@ def _emit_068_template_read_locals_mapping_with_fallback_ref(emit, values):
     emit(";\n}\n}\n")
 
 
-def _emit_068_template_read_locals_mapping_with_fallback_ref_readable(emit, values):
+def _emit_069_template_read_locals_mapping_with_fallback_ref_readable(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2525,7 +2550,7 @@ def _emit_068_template_read_locals_mapping_with_fallback_ref_readable(emit, valu
     emit(";\n    }\n}\n")
 
 
-def _emit_069_template_read_locals_mapping_without_fallback(emit, values):
+def _emit_070_template_read_locals_mapping_without_fallback(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2534,7 +2559,7 @@ def _emit_069_template_read_locals_mapping_without_fallback(emit, values):
     emit(");\n")
 
 
-def _emit_069_template_read_locals_mapping_without_fallback_readable(emit, values):
+def _emit_070_template_read_locals_mapping_without_fallback_readable(emit, values):
     emit(values["to_name"])
     emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
@@ -2543,7 +2568,7 @@ def _emit_069_template_read_locals_mapping_without_fallback_readable(emit, value
     emit(");\n")
 
 
-def _emit_070_template_del_global_unclear(emit, values):
+def _emit_071_template_del_global_unclear(emit, values):
     emit(values["result"])
     emit(" = DICT_REMOVE_ITEM((PyObject *)moduledict_")
     emit(values["module_identifier"])
@@ -2554,7 +2579,7 @@ def _emit_070_template_del_global_unclear(emit, values):
     emit(" == false) CLEAR_ERROR_OCCURRED(tstate);\n")
 
 
-def _emit_070_template_del_global_unclear_readable(emit, values):
+def _emit_071_template_del_global_unclear_readable(emit, values):
     emit(values["result"])
     emit(" = DICT_REMOVE_ITEM((PyObject *)moduledict_")
     emit(values["module_identifier"])
@@ -2565,7 +2590,7 @@ def _emit_070_template_del_global_unclear_readable(emit, values):
     emit(" == false) CLEAR_ERROR_OCCURRED(tstate);\n")
 
 
-def _emit_071_template_del_global_known(emit, values):
+def _emit_072_template_del_global_known(emit, values):
     emit("if (DICT_REMOVE_ITEM((PyObject *)moduledict_")
     emit(values["module_identifier"])
     emit(", ")
@@ -2573,7 +2598,7 @@ def _emit_071_template_del_global_known(emit, values):
     emit(") == false) {\nCLEAR_ERROR_OCCURRED(tstate);\n}\n")
 
 
-def _emit_071_template_del_global_known_readable(emit, values):
+def _emit_072_template_del_global_known_readable(emit, values):
     emit("if (DICT_REMOVE_ITEM((PyObject *)moduledict_")
     emit(values["module_identifier"])
     emit(", ")
@@ -2581,7 +2606,7 @@ def _emit_071_template_del_global_known_readable(emit, values):
     emit(") == false) {\n    CLEAR_ERROR_OCCURRED(tstate);\n}\n")
 
 
-def _emit_072_template_update_locals_dict_value(emit, values):
+def _emit_073_template_update_locals_dict_value(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\nPyObject *value;\n")
@@ -2597,7 +2622,7 @@ def _emit_072_template_update_locals_dict_value(emit, values):
     emit(") == false) {\nCLEAR_ERROR_OCCURRED(tstate);\n}\n}\n")
 
 
-def _emit_072_template_update_locals_dict_value_readable(emit, values):
+def _emit_073_template_update_locals_dict_value_readable(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\n    PyObject *value;\n")
@@ -2613,7 +2638,7 @@ def _emit_072_template_update_locals_dict_value_readable(emit, values):
     emit(") == false) {\n        CLEAR_ERROR_OCCURRED(tstate);\n    }\n}\n")
 
 
-def _emit_073_template_set_locals_dict_value(emit, values):
+def _emit_074_template_set_locals_dict_value(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\nPyObject *value;\n")
@@ -2625,7 +2650,7 @@ def _emit_073_template_set_locals_dict_value(emit, values):
     emit(",\nvalue\n);\n\nassert(res == 0);\n}\n")
 
 
-def _emit_073_template_set_locals_dict_value_readable(emit, values):
+def _emit_074_template_set_locals_dict_value_readable(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\n    PyObject *value;\n")
@@ -2637,7 +2662,7 @@ def _emit_073_template_set_locals_dict_value_readable(emit, values):
     emit(",\n        value\n    );\n\n    assert(res == 0);\n}\n")
 
 
-def _emit_074_template_update_locals_mapping_value(emit, values):
+def _emit_075_template_update_locals_mapping_value(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\nPyObject *value;\n")
@@ -2665,7 +2690,7 @@ def _emit_074_template_update_locals_mapping_value(emit, values):
     emit(" = true;\n}\n}\n")
 
 
-def _emit_074_template_update_locals_mapping_value_readable(emit, values):
+def _emit_075_template_update_locals_mapping_value_readable(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\n    PyObject *value;\n")
@@ -2695,7 +2720,7 @@ def _emit_074_template_update_locals_mapping_value_readable(emit, values):
     emit(" = true;\n    }\n}\n")
 
 
-def _emit_075_template_set_locals_mapping_value(emit, values):
+def _emit_076_template_set_locals_mapping_value(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\nPyObject *value;\n")
@@ -2711,7 +2736,7 @@ def _emit_075_template_set_locals_mapping_value(emit, values):
     emit(" = true;\n}\n")
 
 
-def _emit_075_template_set_locals_mapping_value_readable(emit, values):
+def _emit_076_template_set_locals_mapping_value_readable(emit, values):
     emit("if (")
     emit(values["test_code"])
     emit(") {\n    PyObject *value;\n")
@@ -2727,7 +2752,7 @@ def _emit_075_template_set_locals_mapping_value_readable(emit, values):
     emit(" = true;\n}\n")
 
 
-def _emit_076_template_module_variable_accessor_function(emit, values):
+def _emit_077_template_module_variable_accessor_function(emit, values):
     emit("static PyObject *")
     emit(values["accessor_function_name"])
     emit("(PyThreadState *tstate) {\n#if ")
@@ -2781,7 +2806,7 @@ def _emit_076_template_module_variable_accessor_function(emit, values):
     emit(");\n}\n\nreturn result;\n}\n")
 
 
-def _emit_076_template_module_variable_accessor_function_readable(emit, values):
+def _emit_077_template_module_variable_accessor_function_readable(emit, values):
     emit("static PyObject *")
     emit(values["accessor_function_name"])
     emit("(PyThreadState *tstate) {\n#if ")
@@ -2837,7 +2862,7 @@ def _emit_076_template_module_variable_accessor_function_readable(emit, values):
     emit(");\n    }\n\n    return result;\n}\n")
 
 
-def _emit_077_template_write_py_cell_inplace(emit, values):
+def _emit_078_template_write_py_cell_inplace(emit, values):
     emit("PyCell_SET((PyObject *)")
     emit(values["identifier"])
     emit(", ")
@@ -2845,7 +2870,7 @@ def _emit_077_template_write_py_cell_inplace(emit, values):
     emit(");\n")
 
 
-def _emit_077_template_write_py_cell_inplace_readable(emit, values):
+def _emit_078_template_write_py_cell_inplace_readable(emit, values):
     emit("PyCell_SET((PyObject *)")
     emit(values["identifier"])
     emit(", ")
@@ -2853,7 +2878,7 @@ def _emit_077_template_write_py_cell_inplace_readable(emit, values):
     emit(");\n")
 
 
-def _emit_078_template_write_py_cell_unclear_ref0(emit, values):
+def _emit_079_template_write_py_cell_unclear_ref0(emit, values):
     emit("{\nPyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\nPyCell_SET((PyObject *)")
@@ -2863,7 +2888,7 @@ def _emit_078_template_write_py_cell_unclear_ref0(emit, values):
     emit(");\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_078_template_write_py_cell_unclear_ref0_readable(emit, values):
+def _emit_079_template_write_py_cell_unclear_ref0_readable(emit, values):
     emit("{\n    PyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\n    PyCell_SET((PyObject *)")
@@ -2873,7 +2898,7 @@ def _emit_078_template_write_py_cell_unclear_ref0_readable(emit, values):
     emit(");\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_079_template_write_py_cell_unclear_ref1(emit, values):
+def _emit_080_template_write_py_cell_unclear_ref1(emit, values):
     emit("{\nPyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\nPyCell_SET((PyObject *)")
@@ -2885,7 +2910,7 @@ def _emit_079_template_write_py_cell_unclear_ref1(emit, values):
     emit(");\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_079_template_write_py_cell_unclear_ref1_readable(emit, values):
+def _emit_080_template_write_py_cell_unclear_ref1_readable(emit, values):
     emit("{\n    PyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\n    PyCell_SET((PyObject *)")
@@ -2897,7 +2922,7 @@ def _emit_079_template_write_py_cell_unclear_ref1_readable(emit, values):
     emit(");\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_080_template_del_py_cell_tolerant(emit, values):
+def _emit_081_template_del_py_cell_tolerant(emit, values):
     emit("{\nPyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\nPyCell_SET((PyObject *)")
@@ -2905,7 +2930,7 @@ def _emit_080_template_del_py_cell_tolerant(emit, values):
     emit(", NULL);\nPy_XDECREF(old);\n}\n")
 
 
-def _emit_080_template_del_py_cell_tolerant_readable(emit, values):
+def _emit_081_template_del_py_cell_tolerant_readable(emit, values):
     emit("{\n    PyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\n    PyCell_SET((PyObject *)")
@@ -2913,7 +2938,7 @@ def _emit_080_template_del_py_cell_tolerant_readable(emit, values):
     emit(", NULL);\n    Py_XDECREF(old);\n}\n")
 
 
-def _emit_081_template_del_py_cell_intolerant(emit, values):
+def _emit_082_template_del_py_cell_intolerant(emit, values):
     emit("{\nPyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\nPyCell_SET((PyObject *)")
@@ -2923,7 +2948,7 @@ def _emit_081_template_del_py_cell_intolerant(emit, values):
     emit(" = old != NULL;\n}\n")
 
 
-def _emit_081_template_del_py_cell_intolerant_readable(emit, values):
+def _emit_082_template_del_py_cell_intolerant_readable(emit, values):
     emit("{\n    PyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\n    PyCell_SET((PyObject *)")
@@ -2933,7 +2958,7 @@ def _emit_081_template_del_py_cell_intolerant_readable(emit, values):
     emit(" = old != NULL;\n}\n")
 
 
-def _emit_082_template_del_py_cell_known(emit, values):
+def _emit_083_template_del_py_cell_known(emit, values):
     emit("{\nPyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\nPyCell_SET((PyObject *)")
@@ -2941,7 +2966,7 @@ def _emit_082_template_del_py_cell_known(emit, values):
     emit(", NULL);\n\nCHECK_OBJECT(old);\nPy_DECREF(old);\n}\n")
 
 
-def _emit_082_template_del_py_cell_known_readable(emit, values):
+def _emit_083_template_del_py_cell_known_readable(emit, values):
     emit("{\n    PyObject *old = PyCell_GET((PyObject *)")
     emit(values["identifier"])
     emit(");\n    PyCell_SET((PyObject *)")
@@ -3165,6 +3190,19 @@ template_infos = {
         _emit_024_template_function_body,
         _emit_024_template_function_body_readable,
     ),
+    "nuitka.code_generation.templates.CodeTemplatesFunction.template_function_direct_body": (
+        "812f0cfdb03205d9a3f6c1d2e47cccdbf034f20f52a48b38abc151fa629b74e1",
+        (
+            "direct_call_arg_spec",
+            "file_scope",
+            "function_body",
+            "function_exit",
+            "function_identifier",
+            "function_locals",
+        ),
+        _emit_027_template_function_direct_body,
+        _emit_027_template_function_direct_body_readable,
+    ),
     "nuitka.code_generation.templates.CodeTemplatesFunction.template_function_direct_declaration": (
         "5fd5c08bee3a373a51d5e622b3f64fe6b2065ef75e0d37382a73eb3c944dac02",
         ("direct_call_arg_spec", "file_scope", "function_identifier"),
@@ -3237,32 +3275,32 @@ template_infos = {
             "has_heap_declaration",
             "heap_declaration",
         ),
-        _emit_028_template_generator_context_body_template,
-        _emit_028_template_generator_context_body_template_readable,
+        _emit_029_template_generator_context_body_template,
+        _emit_029_template_generator_context_body_template_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_generator_context_maker_decl": (
         "4841f0b6421846e27390df65257fe96abf7e40d49834810445261474ca913234",
         ("generator_creation_args", "generator_maker_identifier"),
-        _emit_027_template_generator_context_maker_decl,
-        _emit_027_template_generator_context_maker_decl_readable,
+        _emit_028_template_generator_context_maker_decl,
+        _emit_028_template_generator_context_maker_decl_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_generator_exception_exit": (
         "430ad39a236f3d3c0e4c34d54d8a77b3e62dd83968284b2adfe52cd12a2f9b91",
         ("exception_state_name", "function_cleanup"),
-        _emit_031_template_generator_exception_exit,
-        _emit_031_template_generator_exception_exit_readable,
+        _emit_032_template_generator_exception_exit,
+        _emit_032_template_generator_exception_exit_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_generator_no_exception_exit": (
         "87995cc27186872b078370fc4dfba2b182d6a19360233f080640b3061ce0c4ed",
         ("function_cleanup",),
-        _emit_032_template_generator_no_exception_exit,
-        _emit_032_template_generator_no_exception_exit_readable,
+        _emit_033_template_generator_no_exception_exit,
+        _emit_033_template_generator_no_exception_exit_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_generator_return_exit": (
         "f06ad373e40a6038b3e2569fc28ca1ab262ef37815156fd2e0c6fbe6f3589b60",
         ("function_cleanup", "return_value"),
-        _emit_033_template_generator_return_exit,
-        _emit_033_template_generator_return_exit_readable,
+        _emit_034_template_generator_return_exit,
+        _emit_034_template_generator_return_exit_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_make_empty_generator": (
         "b99cf335642cd23e7ce6dd8de5d28c547e4dce566169ba9a137990b9c53fc676",
@@ -3276,14 +3314,14 @@ template_infos = {
             "generator_qualname_obj",
             "to_name",
         ),
-        _emit_030_template_make_empty_generator,
-        _emit_030_template_make_empty_generator_readable,
+        _emit_031_template_make_empty_generator,
+        _emit_031_template_make_empty_generator_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesGeneratorFunction.template_make_generator": (
         "ef18f2f53fae77d87d02568d173349aab047ab21aeba825b26ab6473ff665c7e",
         ("args", "closure_copy", "generator_maker_identifier", "to_name"),
-        _emit_029_template_make_generator,
-        _emit_029_template_make_generator_readable,
+        _emit_030_template_make_generator,
+        _emit_030_template_make_generator_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesIterators.template_loop_break_next": (
         "92add9ba69be2a694b88e75c06b386542d271d43c9a21dd11bd2f47516b8eb20",
@@ -3297,8 +3335,8 @@ template_infos = {
             "to_name",
             "var_description_code",
         ),
-        _emit_034_template_loop_break_next,
-        _emit_034_template_loop_break_next_readable,
+        _emit_035_template_loop_break_next,
+        _emit_035_template_loop_break_next_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesLoader.template_metapath_loader_body": (
         "1f90f9fd9849405949fd86dc4397208da06b0b8f3239f4c751e05ffa6af3e7ce",
@@ -3309,26 +3347,26 @@ template_infos = {
             "metapath_loader_inittab",
             "metapath_module_decls",
         ),
-        _emit_035_template_metapath_loader_body,
-        _emit_035_template_metapath_loader_body_readable,
+        _emit_036_template_metapath_loader_body,
+        _emit_036_template_metapath_loader_body_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_global_copyright": (
         "16bd6ceb6d060356654eb1bf718a9e1b04d44ad1a3ed96d41f30c0346de14001",
         ("module_identifier", "version", "year"),
-        _emit_036_template_global_copyright,
-        _emit_036_template_global_copyright_readable,
+        _emit_037_template_global_copyright,
+        _emit_037_template_global_copyright_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_header_guard": (
         "1fffdd3b3c781d73b532acd2667d4c3701bf8da886bed3bc5be2a948e01f3008",
         ("header_body", "header_guard_name"),
-        _emit_042_template_header_guard,
-        _emit_042_template_header_guard_readable,
+        _emit_043_template_header_guard,
+        _emit_043_template_header_guard_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_helper_impl_decl": (
         "b4dbfc627b20fb92231456a7edb1a3a689ede4ddcb1b01b879911ab239a2fd3a",
         (),
-        _emit_041_template_helper_impl_decl,
-        _emit_041_template_helper_impl_decl_readable,
+        _emit_042_template_helper_impl_decl,
+        _emit_042_template_helper_impl_decl_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_module_body_template": (
         "929231ce442e0b271649c7b370813a1d7e7296b0aeb68d585e28fc4ae0943f9e",
@@ -3360,14 +3398,14 @@ template_infos = {
             "temps_decl",
             "use_direct_constant_blobs",
         ),
-        _emit_037_template_module_body_template,
-        _emit_037_template_module_body_template_readable,
+        _emit_038_template_module_body_template,
+        _emit_038_template_module_body_template_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_module_exception_exit": (
         "7545624bdd6f885197f6c6962c271d2169176b2619f7cbab5175f2558524d452",
         ("is_top", "module_identifier"),
-        _emit_039_template_module_exception_exit,
-        _emit_039_template_module_exception_exit_readable,
+        _emit_040_template_module_exception_exit,
+        _emit_040_template_module_exception_exit_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_module_external_entry_point": (
         "e6ccf0cd90836dcc9581272fc6769743f2d933010dcaa9c40fe2faed75d0c68e",
@@ -3377,98 +3415,98 @@ template_infos = {
             "module_identifier",
             "module_name_cstr",
         ),
-        _emit_038_template_module_external_entry_point,
-        _emit_038_template_module_external_entry_point_readable,
+        _emit_039_template_module_external_entry_point,
+        _emit_039_template_module_external_entry_point_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesModules.template_module_no_exception_exit": (
         "d10b36aa74a59bcf4a88185837f658afaf3646eff2bb16c3928d0e9335e945d2",
         (),
-        _emit_040_template_module_no_exception_exit,
-        _emit_040_template_module_no_exception_exit_readable,
+        _emit_041_template_module_no_exception_exit,
+        _emit_041_template_module_no_exception_exit_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_global_known": (
         "d52dabfbda2d73a75b60f8517c134170b673ebc5625dab0e4b117113f1aaa277",
         ("module_identifier", "var_name"),
-        _emit_071_template_del_global_known,
-        _emit_071_template_del_global_known_readable,
+        _emit_072_template_del_global_known,
+        _emit_072_template_del_global_known_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_global_unclear": (
         "e19f5a72a151a717a270dc98327195283acfd7b8e7d64ceaf4f9b69202a0ac4d",
         ("module_identifier", "result", "var_name"),
-        _emit_070_template_del_global_unclear,
-        _emit_070_template_del_global_unclear_readable,
+        _emit_071_template_del_global_unclear,
+        _emit_071_template_del_global_unclear_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_local_intolerant": (
         "fc2bcef2d97262102249aad6861201353e36b8cbd127c98a74d4532d99e040c6",
         ("identifier", "result"),
-        _emit_057_template_del_local_intolerant,
-        _emit_057_template_del_local_intolerant_readable,
+        _emit_058_template_del_local_intolerant,
+        _emit_058_template_del_local_intolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_local_known": (
         "ae5576a4e417926a6b8eaa943c8c79acfa65a057eb58f9997b1481e891bda0b0",
         ("identifier",),
-        _emit_059_template_del_local_known,
-        _emit_059_template_del_local_known_readable,
+        _emit_060_template_del_local_known,
+        _emit_060_template_del_local_known_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_local_tolerant": (
         "7c519e95013bbe50865ee8bdf7e1927a9b98f8d10e67604acd13b76b12462295",
         ("identifier",),
-        _emit_055_template_del_local_tolerant,
-        _emit_055_template_del_local_tolerant_readable,
+        _emit_056_template_del_local_tolerant,
+        _emit_056_template_del_local_tolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_py_cell_intolerant": (
         "26d8c64439200a202fd0963d8b602913897455bfec7faf97303e84d1a2172d68",
         ("identifier", "result"),
-        _emit_081_template_del_py_cell_intolerant,
-        _emit_081_template_del_py_cell_intolerant_readable,
+        _emit_082_template_del_py_cell_intolerant,
+        _emit_082_template_del_py_cell_intolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_py_cell_known": (
         "9b803de889dc98ab0a644cbe18256966ecd44342a12f8f76446175bf9ef5bc52",
         ("identifier",),
-        _emit_082_template_del_py_cell_known,
-        _emit_082_template_del_py_cell_known_readable,
+        _emit_083_template_del_py_cell_known,
+        _emit_083_template_del_py_cell_known_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_py_cell_tolerant": (
         "70b2303a20bfc14342ed69a42e0c0d204f02fe207056d5aa6bc6cc2375450eb9",
         ("identifier",),
-        _emit_080_template_del_py_cell_tolerant,
-        _emit_080_template_del_py_cell_tolerant_readable,
+        _emit_081_template_del_py_cell_tolerant,
+        _emit_081_template_del_py_cell_tolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_shared_intolerant": (
         "ddf1157ea0de7012d54093e6cffdee00f8dd5050b6d63162d17b66c166d3ae54",
         ("identifier", "result"),
-        _emit_058_template_del_shared_intolerant,
-        _emit_058_template_del_shared_intolerant_readable,
+        _emit_059_template_del_shared_intolerant,
+        _emit_059_template_del_shared_intolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_shared_known": (
         "417c1768ca66c155bd9c48d2ada3bf6aebdeedd6da4643b5620fdc39f5fce0f4",
         ("identifier",),
-        _emit_060_template_del_shared_known,
-        _emit_060_template_del_shared_known_readable,
+        _emit_061_template_del_shared_known,
+        _emit_061_template_del_shared_known_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_del_shared_tolerant": (
         "2e0d1aa2d273ac3be4aa858f4ad5d60ca15295a09fc0107cd151d16766143abf",
         ("identifier",),
-        _emit_056_template_del_shared_tolerant,
-        _emit_056_template_del_shared_tolerant_readable,
+        _emit_057_template_del_shared_tolerant,
+        _emit_057_template_del_shared_tolerant_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_module_variable_accessor_function": (
         "e6d5affebd0b8808d0fd3537203650ed25009ab4f65d6b0bce4d95c25b982dd6",
         ("accessor_function_name", "caching", "module_identifier", "var_name"),
-        _emit_076_template_module_variable_accessor_function,
-        _emit_076_template_module_variable_accessor_function_readable,
+        _emit_077_template_module_variable_accessor_function,
+        _emit_077_template_module_variable_accessor_function_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_locals_dict_with_fallback": (
         "26ee6849e18e5334d362a7e2411510fa02896be7b9fff97bfdc47b46f3d06f36",
         ("dict_get_item", "fallback", "locals_dict", "to_name", "var_name"),
-        _emit_065_template_read_locals_dict_with_fallback,
-        _emit_065_template_read_locals_dict_with_fallback_readable,
+        _emit_066_template_read_locals_dict_with_fallback,
+        _emit_066_template_read_locals_dict_with_fallback_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_locals_dict_without_fallback": (
         "5f07e5195932f38611856adaddbc68ff3452e5ffa81a93a035aff354250c6842",
         ("locals_dict", "to_name", "var_name"),
-        _emit_066_template_read_locals_dict_without_fallback,
-        _emit_066_template_read_locals_dict_without_fallback_readable,
+        _emit_067_template_read_locals_dict_without_fallback,
+        _emit_067_template_read_locals_dict_without_fallback_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_locals_mapping_with_fallback_no_ref": (
         "4d673ff262ce29766823cbfef3c60f8e264e8d6210d36dfbf42631163a77f3be",
@@ -3480,8 +3518,8 @@ template_infos = {
             "to_name",
             "var_name",
         ),
-        _emit_067_template_read_locals_mapping_with_fallback_no_ref,
-        _emit_067_template_read_locals_mapping_with_fallback_no_ref_readable,
+        _emit_068_template_read_locals_mapping_with_fallback_no_ref,
+        _emit_068_template_read_locals_mapping_with_fallback_no_ref_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_locals_mapping_with_fallback_ref": (
         "bea3d667173723884aeb8e387b9bd2882b365b49ef26d2507a0a4a3d13079ce1",
@@ -3493,152 +3531,152 @@ template_infos = {
             "to_name",
             "var_name",
         ),
-        _emit_068_template_read_locals_mapping_with_fallback_ref,
-        _emit_068_template_read_locals_mapping_with_fallback_ref_readable,
+        _emit_069_template_read_locals_mapping_with_fallback_ref,
+        _emit_069_template_read_locals_mapping_with_fallback_ref_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_locals_mapping_without_fallback": (
         "a1e8dceb6a326ffbf9e3492637406666a6cf25770e66df8db00e82b80c93a2ff",
         ("locals_dict", "to_name", "var_name"),
-        _emit_069_template_read_locals_mapping_without_fallback,
-        _emit_069_template_read_locals_mapping_without_fallback_readable,
+        _emit_070_template_read_locals_mapping_without_fallback,
+        _emit_070_template_read_locals_mapping_without_fallback_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_mvar_unclear": (
         "edfa07c85fa85055bf44003e44de9dc22aab0bcad78ceec5c8282846d8a79c76",
         ("module_identifier", "tmp_name", "var_name"),
-        _emit_064_template_read_mvar_unclear,
-        _emit_064_template_read_mvar_unclear_readable,
+        _emit_065_template_read_mvar_unclear,
+        _emit_065_template_read_mvar_unclear_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_read_shared_known": (
         "fd308f64b50e21c8f68921086401e41b3c0a4dd16d84644d2a05dd085547f69e",
         ("identifier", "tmp_name"),
-        _emit_063_template_read_shared_known,
-        _emit_063_template_read_shared_known_readable,
+        _emit_064_template_read_shared_known,
+        _emit_064_template_read_shared_known_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_release_object_clear": (
         "6cc31fe6f8c8c5bc622389deb2a50a23baa6e33861249043997def820b8cc5ca",
         ("identifier",),
-        _emit_062_template_release_object_clear,
-        _emit_062_template_release_object_clear_readable,
+        _emit_063_template_release_object_clear,
+        _emit_063_template_release_object_clear_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_release_object_unclear": (
         "4673b63d7274ed62ee911fab568304a54ba15172fac5807feb319f40980413ac",
         ("identifier",),
-        _emit_061_template_release_object_unclear,
-        _emit_061_template_release_object_unclear_readable,
+        _emit_062_template_release_object_unclear,
+        _emit_062_template_release_object_unclear_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_set_locals_dict_value": (
         "e12be7b1c99f8ce52bca406a677a0e2b4c3f91a34d0166674077b6c9009234e9",
         ("access_code", "dict_name", "test_code", "var_name"),
-        _emit_073_template_set_locals_dict_value,
-        _emit_073_template_set_locals_dict_value_readable,
+        _emit_074_template_set_locals_dict_value,
+        _emit_074_template_set_locals_dict_value_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_set_locals_mapping_value": (
         "65e3faa0b16044876f203e0e27b89c01d61bc2fffa0f34a1e331289db87abf4f",
         ("access_code", "mapping_name", "test_code", "tmp_name", "var_name"),
-        _emit_075_template_set_locals_mapping_value,
-        _emit_075_template_set_locals_mapping_value_readable,
+        _emit_076_template_set_locals_mapping_value,
+        _emit_076_template_set_locals_mapping_value_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_update_locals_dict_value": (
         "d138fbf7934aea407c19732e68a8d428f3be62e9f8d009a804a22829ca8bac6f",
         ("access_code", "dict_name", "test_code", "var_name"),
-        _emit_072_template_update_locals_dict_value,
-        _emit_072_template_update_locals_dict_value_readable,
+        _emit_073_template_update_locals_dict_value,
+        _emit_073_template_update_locals_dict_value_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_update_locals_mapping_value": (
         "2763851919448fde41dbd1a23d1a1f6d865d3219a3241c873c062c6cc11412c6",
         ("access_code", "mapping_name", "test_code", "tmp_name", "var_name"),
-        _emit_074_template_update_locals_mapping_value,
-        _emit_074_template_update_locals_mapping_value_readable,
+        _emit_075_template_update_locals_mapping_value,
+        _emit_075_template_update_locals_mapping_value_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_clear_ref0": (
         "a79a193ae3f6f03bb44483feb56bce2461277064436ecc4e62bba12d99d87a44",
         ("identifier", "tmp_name"),
-        _emit_047_template_write_local_clear_ref0,
-        _emit_047_template_write_local_clear_ref0_readable,
+        _emit_048_template_write_local_clear_ref0,
+        _emit_048_template_write_local_clear_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_clear_ref1": (
         "7187806a4d01c37782eb5b370cc23b688465b881a0cc5c86ae928978dbb9073a",
         ("identifier", "tmp_name"),
-        _emit_050_template_write_local_clear_ref1,
-        _emit_050_template_write_local_clear_ref1_readable,
+        _emit_051_template_write_local_clear_ref1,
+        _emit_051_template_write_local_clear_ref1_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_empty_ref0": (
         "0f28bb1b6eb41e78703952a33bb5bb3c49601bc22dd1ea52f8efd9c36a752360",
         ("identifier", "tmp_name"),
-        _emit_045_template_write_local_empty_ref0,
-        _emit_045_template_write_local_empty_ref0_readable,
+        _emit_046_template_write_local_empty_ref0,
+        _emit_046_template_write_local_empty_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_empty_ref1": (
         "6231a9e663b590213380cd3e0f8e9f56655c7d89f437ff4c9ce6f256d73b593e",
         ("identifier", "tmp_name"),
-        _emit_046_template_write_local_empty_ref1,
-        _emit_046_template_write_local_empty_ref1_readable,
+        _emit_047_template_write_local_empty_ref1,
+        _emit_047_template_write_local_empty_ref1_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_inplace": (
         "6b24114fbcb93f554d4781e910348485bc78f481a014561090ada2455a5ec3fd",
         ("identifier", "tmp_name"),
-        _emit_048_template_write_local_inplace,
-        _emit_048_template_write_local_inplace_readable,
+        _emit_049_template_write_local_inplace,
+        _emit_049_template_write_local_inplace_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_unclear_ref0": (
         "68600ea7a983e8b1aa261d952eac01d16b755a50fc9471a38420ee6b46f8e044",
         ("identifier", "tmp_name"),
-        _emit_043_template_write_local_unclear_ref0,
-        _emit_043_template_write_local_unclear_ref0_readable,
+        _emit_044_template_write_local_unclear_ref0,
+        _emit_044_template_write_local_unclear_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_local_unclear_ref1": (
         "0f9acd29e95ee650e8a1fd1da3f93b7a203824f3fd4653f35187c8c926651eab",
         ("identifier", "tmp_name"),
-        _emit_044_template_write_local_unclear_ref1,
-        _emit_044_template_write_local_unclear_ref1_readable,
+        _emit_045_template_write_local_unclear_ref1,
+        _emit_045_template_write_local_unclear_ref1_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_py_cell_inplace": (
         "fc77fd03121d1e92e3fe96f671c15ac7b2ae79a48aca3c7ad54244cfe03b19a3",
         ("identifier", "tmp_name"),
-        _emit_077_template_write_py_cell_inplace,
-        _emit_077_template_write_py_cell_inplace_readable,
+        _emit_078_template_write_py_cell_inplace,
+        _emit_078_template_write_py_cell_inplace_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_py_cell_unclear_ref0": (
         "4c6ebda925fecb94e4ddb776400505503e564fe6826f0a7406553b25b00e9fa4",
         ("identifier", "tmp_name"),
-        _emit_078_template_write_py_cell_unclear_ref0,
-        _emit_078_template_write_py_cell_unclear_ref0_readable,
+        _emit_079_template_write_py_cell_unclear_ref0,
+        _emit_079_template_write_py_cell_unclear_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_py_cell_unclear_ref1": (
         "585df5b46aee34892618de24cd09ace82adc3896f5933ac50b774eea56f55b59",
         ("identifier", "tmp_name"),
-        _emit_079_template_write_py_cell_unclear_ref1,
-        _emit_079_template_write_py_cell_unclear_ref1_readable,
+        _emit_080_template_write_py_cell_unclear_ref1,
+        _emit_080_template_write_py_cell_unclear_ref1_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_shared_clear_ref0": (
         "9ef33805b0a960ae8d02ed8ec5e301511cf817db9fac344f022d35500b084bfb",
         ("identifier", "tmp_name"),
-        _emit_053_template_write_shared_clear_ref0,
-        _emit_053_template_write_shared_clear_ref0_readable,
+        _emit_054_template_write_shared_clear_ref0,
+        _emit_054_template_write_shared_clear_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_shared_clear_ref1": (
         "9e6b8b16a7e64f00f1e7a4af6351c029804798364c40cf4832e5db20bf6de789",
         ("identifier", "tmp_name"),
-        _emit_054_template_write_shared_clear_ref1,
-        _emit_054_template_write_shared_clear_ref1_readable,
+        _emit_055_template_write_shared_clear_ref1,
+        _emit_055_template_write_shared_clear_ref1_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_shared_inplace": (
         "e8d516dfe1e92289de7d98e57e5ca7276fedb034c40fc670225c3af9c2850215",
         ("identifier", "tmp_name"),
-        _emit_049_template_write_shared_inplace,
-        _emit_049_template_write_shared_inplace_readable,
+        _emit_050_template_write_shared_inplace,
+        _emit_050_template_write_shared_inplace_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_shared_unclear_ref0": (
         "fdc9447573fc677fc96af34112a885dda897ee604699ff2e7d86f9c195f25002",
         ("identifier", "tmp_name"),
-        _emit_051_template_write_shared_unclear_ref0,
-        _emit_051_template_write_shared_unclear_ref0_readable,
+        _emit_052_template_write_shared_unclear_ref0,
+        _emit_052_template_write_shared_unclear_ref0_readable,
     ),
     "nuitka.code_generation.templates.CodeTemplatesVariables.template_write_shared_unclear_ref1": (
         "4b91c4cfef66190226abf7510f5c24ae23b23c9bbf410048b91e9632c3494349",
         ("identifier", "tmp_name"),
-        _emit_052_template_write_shared_unclear_ref1,
-        _emit_052_template_write_shared_unclear_ref1_readable,
+        _emit_053_template_write_shared_unclear_ref1,
+        _emit_053_template_write_shared_unclear_ref1_readable,
     ),
 }
 
@@ -3805,6 +3843,14 @@ template_variables = {
     "nuitka.code_generation.templates.CodeTemplatesFunction.template_function_body": (
         ("function_identifier", "s"),
         ("parameter_objects_decl", "s"),
+        ("function_locals", "s"),
+        ("function_body", "s"),
+        ("function_exit", "s"),
+    ),
+    "nuitka.code_generation.templates.CodeTemplatesFunction.template_function_direct_body": (
+        ("file_scope", "s"),
+        ("function_identifier", "s"),
+        ("direct_call_arg_spec", "s"),
         ("function_locals", "s"),
         ("function_body", "s"),
         ("function_exit", "s"),

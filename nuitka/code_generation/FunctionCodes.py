@@ -37,8 +37,8 @@ from .PythonSourceCodeGeneration import (
     getFunctionMakerIdentifier,
 )
 from .templates.CodeTemplatesFunction import (
-    function_direct_body_template,
     template_function_body,
+    template_function_direct_body,
     template_function_direct_declaration,
     template_function_exception_exit,
     template_function_make_declaration,
@@ -767,7 +767,7 @@ def _getFunctionCode(
             )
 
         emitTemplate(
-            function_direct_body_template,
+            template_function_direct_body,
             result,
             {
                 "file_scope": file_scope,

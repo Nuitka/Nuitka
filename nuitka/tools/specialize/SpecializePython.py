@@ -254,101 +254,116 @@ def _getTemplateEmitFunctionName(template_name, count):
     return "_emit_%03d_%s" % (count, template_name)
 
 
-def _stripCommentsFromTemplateLiteral(value):
-    result = []
-    pos = 0
-    in_string = None
-    escaped = False
-    length = len(value)
+class _TemplateCompactor(object):
+    """Compact a template's literal parts for non-readable code generation.
 
-    while pos < length:
-        char = value[pos]
-        next_char = value[pos + 1] if pos + 1 < length else ""
+    Comment and whitespace stripping must track lexer state across the whole
+    template, not per fragment: a C comment or string literal can span a
+    substituted value, and a literal fragment can begin in the middle of a
+    line, right after a substituted value.
 
-        if in_string is not None:
-            result.append(char)
+    Handling each fragment independently previously (1) stripped a "/*" opener
+    while keeping its "*/" closer when a block comment spanned a value, and
+    (2) stripped inline leading whitespace after a value, joining tokens like
+    "%(file_scope)s PyObject" -> "<value>PyObject". Both produced invalid C in
+    compact (non-readable) builds.
+    """
 
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == in_string:
-                in_string = None
+    def __init__(self):
+        self.in_string = None
+        self.escaped = False
+        self.in_block_comment = False
+        self.in_line_comment = False
+        self.at_line_start = True
 
-            pos += 1
-        elif char in ("'", '"'):
-            in_string = char
-            result.append(char)
-            pos += 1
-        elif char == "/" and next_char == "/":
-            pos += 2
+    @property
+    def _in_comment(self):
+        return self.in_block_comment or self.in_line_comment
 
-            while pos < length and value[pos] not in "\r\n":
+    def _compactLiteral(self, value):
+        # Character-level lexer state machine, pylint: disable=too-many-branches
+        result = []
+        pos = 0
+        length = len(value)
+
+        while pos < length:
+            char = value[pos]
+            next_char = value[pos + 1] if pos + 1 < length else ""
+
+            if self.in_block_comment:
+                if char == "*" and next_char == "/":
+                    self.in_block_comment = False
+                    pos += 2
+                    continue
+
+                # Preserve newlines so line structure and line-start tracking
+                # stay intact even after a comment is removed.
+                if char in "\r\n":
+                    result.append(char)
+                    self.at_line_start = True
+
                 pos += 1
-        elif char == "/" and next_char == "*":
-            pos += 2
-
-            while pos + 1 < length and not (
-                value[pos] == "*" and value[pos + 1] == "/"
-            ):
-                if value[pos] in "\r\n":
-                    result.append(value[pos])
+            elif self.in_line_comment:
+                if char in "\r\n":
+                    self.in_line_comment = False
+                    result.append(char)
+                    self.at_line_start = True
 
                 pos += 1
+            elif self.in_string is not None:
+                result.append(char)
 
-            pos += 2
-        else:
-            result.append(char)
-            pos += 1
+                if self.escaped:
+                    self.escaped = False
+                elif char == "\\":
+                    self.escaped = True
+                elif char == self.in_string:
+                    self.in_string = None
 
-    return "".join(result)
+                self.at_line_start = char in "\r\n"
+                pos += 1
+            elif char in ("'", '"'):
+                self.in_string = char
+                result.append(char)
+                self.at_line_start = False
+                pos += 1
+            elif char == "/" and next_char == "/":
+                self.in_line_comment = True
+                pos += 2
+            elif char == "/" and next_char == "*":
+                self.in_block_comment = True
+                pos += 2
+            elif self.at_line_start and char in (" ", "\t"):
+                pos += 1
+            else:
+                result.append(char)
+                self.at_line_start = char in "\r\n"
+                pos += 1
 
+        return "".join(result)
 
-def _stripLeadingWhitespaceFromTemplateLiteral(value, at_line_start):
-    result = []
+    def compact(self, parts):
+        result = []
 
-    for char in value:
-        if at_line_start and char in (" ", "\t"):
-            continue
+        for kind, value in parts:
+            if kind == "literal":
+                value = self._compactLiteral(value)
 
-        result.append(char)
-        at_line_start = char in "\r\n"
+                if value:
+                    result.append((kind, value))
+            elif not self._in_comment:
+                # A substituted value is opaque inline content (a code
+                # identifier, type, number, ...). Keep it only when it is not
+                # inside a comment; it never toggles string or comment state,
+                # and it means the next literal is no longer at a line start.
+                result.append((kind, value))
+                self.at_line_start = False
 
-    return "".join(result), at_line_start
-
-
-def _compactTemplateLiteral(value, at_line_start):
-    value = _stripCommentsFromTemplateLiteral(value)
-    value, at_line_start = _stripLeadingWhitespaceFromTemplateLiteral(
-        value, at_line_start
-    )
-
-    return value, at_line_start
+        return tuple(result)
 
 
 def _compactTemplateParts(parts):
-    result = []
-
-    # Leading whitespace may only be stripped at the start of a line. Track this
-    # across parts, because a literal fragment can begin in the middle of a line,
-    # right after a substituted value. Stripping its leading whitespace there
-    # would join tokens, e.g. "%(file_scope)s PyObject" -> "<value>PyObject".
-    at_line_start = True
-
-    for kind, value in parts:
-        if kind == "literal":
-            value, at_line_start = _compactTemplateLiteral(value, at_line_start)
-
-            if value:
-                result.append((kind, value))
-        else:
-            # A substituted value emits inline content of unknown shape, so the
-            # following literal is not at a line start and its leading
-            # whitespace must be preserved.
-            result.append((kind, value))
-            at_line_start = False
-
-    return tuple(result)
+    return _TemplateCompactor().compact(parts)
 
 
 def _writePreparedTemplateEmitter(emit, function_name, parts):
