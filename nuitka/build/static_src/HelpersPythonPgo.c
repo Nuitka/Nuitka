@@ -86,16 +86,63 @@ void PGO_Finalize(void) {
     fclose(pgo_output);
 }
 
-void PGO_onProbePassed(char const *probe_str, char const *module_name, uint32_t probe_arg) {
+void PGO_onProbePassed(char const *probe_str, char const *format, ...) {
+    va_list args;
+    va_start(args, format);
+
     PGO_writeString(probe_str);
-    PGO_writeString(module_name);
-    // TODO: Variable args depending on probe type?
-    fwrite(&probe_arg, sizeof(probe_arg), 1, pgo_output);
+    size_t len = strlen(format);
+    for (size_t index = 0; index < len; ++index) {
+        char character = format[index];
+        switch (character) {
+        case 'u': { // uint32
+            uint32_t arg = va_arg(args, uint32_t);
+            fwrite(&arg, sizeof(arg), 1, pgo_output);
+            break;
+        }
+
+        case 's': { // const char *
+            const char *arg = va_arg(args, const char *);
+            PGO_writeString(arg);
+            break;
+        }
+
+        case 'o': { // PyObject *
+            // TODO: Error handling
+            PyObject *arg = va_arg(args, PyObject *);
+            CHECK_OBJECT(arg);
+            PyObject *marshal = PyImport_ImportModule("marshal");
+            CHECK_OBJECT(marshal);
+            PyObject *dumps = PyObject_GetAttrString(marshal, "dumps");
+            CHECK_OBJECT(dumps);
+            PyObject *result = PyObject_CallOneArg(dumps, arg);
+            if (result == NULL) {
+                PyErr_Clear();
+                result = PyObject_CallOneArg(dumps, Py_None);
+            }
+            CHECK_OBJECT(result);
+            char *result_str;
+            Py_ssize_t length;
+            PyBytes_AsStringAndSize(result, &result_str, &length);
+            fwrite(result_str, sizeof(char), length, pgo_output);
+            fputc(0, pgo_output);
+            Py_DECREF(result);
+            Py_DECREF(dumps);
+            Py_DECREF(marshal);
+            break;
+        }
+        }
+    }
+
+    va_end(args);
 }
 
-void PGO_onModuleEntered(char const *module_name) { PGO_onProbePassed("ModuleEnter", module_name, 0); }
-void PGO_onModuleExit(char const *module_name, bool error) { PGO_onProbePassed("ModuleExit", module_name, error); }
-void PGO_onTechnicalModule(char const *module_name) { PGO_onProbePassed("ModuleTechnical", module_name, 0); }
+void PGO_onModuleEntered(char const *module_name) { PGO_onProbePassed("ModuleEnter", "s", module_name); }
+void PGO_onModuleExit(char const *module_name, bool error) {
+    PGO_onProbePassed("ModuleExit", "su", module_name, error);
+}
+void PGO_onTechnicalModule(char const *module_name) { PGO_onProbePassed("ModuleTechnical", "s", module_name); }
+void PGO_onClassPrepareCalled(const char *id, PyObject *result) { PGO_onProbePassed("ClassPrepare", "so", id, result); }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

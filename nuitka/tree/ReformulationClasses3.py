@@ -19,6 +19,7 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
+    ExpressionCallClassPrepare,
     ExpressionCallMetaclass,
     ExpressionClassDictBody,
     ExpressionClassMappingBody,
@@ -92,6 +93,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.options.Options import isExperimental
+from nuitka.pgo.PGO import getClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -153,6 +155,32 @@ def _needsOrigBases(_static_qualname):
         return False
     else:
         return True
+
+
+def makeExpressionClassPrepareCall(
+    code_name, metaclass, name, bases, class_decl_dict, source_ref
+):
+    return ExpressionCallClassPrepare(
+        called=makeExpressionCall(
+            called=makeExpressionAttributeLookup(
+                expression=metaclass.makeClone(),
+                attribute_name="__prepare__",
+                source_ref=source_ref,
+            ),
+            args=makeExpressionMakeTuple(
+                elements=(
+                    name,
+                    bases,
+                ),
+                source_ref=source_ref,
+            ),
+            kw=class_decl_dict,
+            source_ref=source_ref,
+        ),
+        pgo_result=getClassPrepareResult(code_name),
+        code_name=code_name,
+        source_ref=source_ref,
+    )
 
 
 def buildClassNode3(provider, node, source_ref):
@@ -696,24 +724,16 @@ def buildClassNode3(provider, node, source_ref):
 
     call_prepare = makeStatementAssignmentVariable(
         variable=tmp_prepared,
-        source=makeExpressionCall(
-            called=makeExpressionAttributeLookup(
-                expression=ExpressionTempVariableRef(
-                    variable=tmp_metaclass, source_ref=source_ref
-                ),
-                attribute_name="__prepare__",
-                source_ref=source_ref,
+        source=makeExpressionClassPrepareCall(
+            code_name=tmp_metaclass.getName(),
+            metaclass=ExpressionTempVariableRef(
+                variable=tmp_metaclass, source_ref=source_ref
             ),
-            args=makeExpressionMakeTuple(
-                elements=(
-                    makeConstantRefNode(
-                        constant=node.name, source_ref=source_ref, user_provided=True
-                    ),
-                    makeBasesRef(),
-                ),
-                source_ref=source_ref,
+            name=makeConstantRefNode(
+                constant=node.name, source_ref=source_ref, user_provided=True
             ),
-            kw=ExpressionTempVariableRef(
+            bases=makeBasesRef(),
+            class_decl_dict=ExpressionTempVariableRef(
                 variable=tmp_class_decl_dict, source_ref=source_ref
             ),
             source_ref=source_ref,

@@ -24,7 +24,9 @@ extern void PGO_onModuleEntered(char const *module_name);
 // When a module is exited.
 extern void PGO_onModuleExit(char const *module_name, bool had_error);
 
-extern void PGO_onProbePassed(char const *module_name, char const *probe_id, uint32_t probe_arg);
+void PGO_onClassPrepareCalled(const char *id, PyObject *result);
+
+extern void PGO_onProbePassed(char const *probe_str, char const *format, ...);
 
 extern void PGO_onTechnicalModule(char const *module_name);
 
@@ -35,8 +37,9 @@ extern void PGO_onTechnicalModule(char const *module_name);
 
 #define PGO_onModuleEntered(module_name) ;
 #define PGO_onModuleExit(module_name, had_error) ;
+#define PGO_onClassPrepareCalled(id, object) ;
 
-#define PGO_onProbePassed(module_name, probe_id, probe_arg) ;
+#define PGO_onProbePassed(module_name, format, ...) ;
 
 #endif
 
