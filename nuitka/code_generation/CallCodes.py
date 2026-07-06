@@ -17,12 +17,14 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
+from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesModules import (
     template_header_guard,
     template_helper_impl_decl,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 
 
 def _generateCallCodePosOnly(
@@ -1208,9 +1210,9 @@ def getTemplateCodeDeclaredFunction(code):
 
 def getCallsCode():
     header_codes = []
-    body_codes = []
+    body_codes = SourceCodeCollector()
 
-    body_codes.append(template_helper_impl_decl % {})
+    emitTemplate(template_helper_impl_decl, body_codes, {})
 
     for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         if quick_call_used <= max_quick_call:
@@ -1251,13 +1253,19 @@ def getCallsCode():
         body_codes.append(code)
         header_codes.append(getTemplateCodeDeclaredFunction(code))
 
-    return (
-        template_header_guard
-        % {
+    header = SourceCodeCollector()
+    emitTemplate(
+        template_header_guard,
+        header,
+        {
             "header_guard_name": "__NUITKA_CALLS_H__",
             "header_body": "\n".join(header_codes),
         },
-        "\n".join(body_codes),
+    )
+
+    return (
+        header.asCode(),
+        body_codes.asCode(),
     )
 
 

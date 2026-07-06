@@ -1,24 +1,21 @@
+#!/usr/bin/env python3
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Indentation of code.
+"""Launcher for prepared code template benchmarking."""
 
-Language independent, the amount of the spaces is not configurable, as it needs
-to be the same as in templates.
-"""
+import os
+import sys
 
-from .Emission import getCodeString
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought to be there.
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
+# isort:start
 
-def indented(codes):
-    if type(codes) is not str:
-        if hasattr(codes, "asCode"):
-            codes = codes.asCode()
-        else:
-            codes = "\n".join(getCodeString(code) for code in codes)
+from nuitka.tools.specialize.BenchmarkPreparedTemplates import main
 
-    return codes
-
+main()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

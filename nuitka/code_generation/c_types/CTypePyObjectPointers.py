@@ -36,6 +36,7 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_write_shared_unclear_ref0,
     template_write_shared_unclear_ref1,
 )
+from nuitka.code_generation.templates.TemplateDebugWrapper import emitTemplate
 from nuitka.Constants import getConstantValueGuide, isMutable
 
 from .CTypeBases import CTypeBase
@@ -81,7 +82,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
             if ref_count:
                 context.removeCleanupTempName(tmp_name)
 
-        emit(template % {"identifier": value_name, "tmp_name": tmp_name})
+        emitTemplate(template, emit, {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
     def emitAssignmentCodeToNuitkaIntOrLong(
@@ -118,7 +119,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
         else:
             template = template_release_object_clear
 
-        emit(template % {"identifier": value_name})
+        emitTemplate(template, emit, {"identifier": value_name})
 
     @classmethod
     def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
@@ -352,13 +353,14 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
         if not needs_check:
-            emit(template_del_local_known % {"identifier": value_name})
+            emitTemplate(template_del_local_known, emit, {"identifier": value_name})
         elif tolerant:
-            emit(template_del_local_tolerant % {"identifier": value_name})
+            emitTemplate(template_del_local_tolerant, emit, {"identifier": value_name})
         else:
-            emit(
-                template_del_local_intolerant
-                % {"identifier": value_name, "result": to_name}
+            emitTemplate(
+                template_del_local_intolerant,
+                emit,
+                {"identifier": value_name, "result": to_name},
             )
 
     @classmethod
@@ -413,7 +415,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         else:
             template = template_release_object_clear
 
-        emit(template % {"identifier": value_name})
+        emitTemplate(template, emit, {"identifier": value_name})
 
     @classmethod
     def getTakeReferenceCode(cls, value_name, emit):
@@ -496,7 +498,7 @@ class CTypeCellObject(CTypeBase):
                 else:
                     template = template_write_shared_unclear_ref1
 
-        emit(template % {"identifier": value_name, "tmp_name": tmp_name})
+        emitTemplate(template, emit, {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -528,13 +530,14 @@ class CTypeCellObject(CTypeBase):
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
         if not needs_check:
-            emit(template_del_shared_known % {"identifier": value_name})
+            emitTemplate(template_del_shared_known, emit, {"identifier": value_name})
         elif tolerant:
-            emit(template_del_shared_tolerant % {"identifier": value_name})
+            emitTemplate(template_del_shared_tolerant, emit, {"identifier": value_name})
         else:
-            emit(
-                template_del_shared_intolerant
-                % {"identifier": value_name, "result": to_name}
+            emitTemplate(
+                template_del_shared_intolerant,
+                emit,
+                {"identifier": value_name, "result": to_name},
             )
 
     @classmethod
@@ -544,7 +547,7 @@ class CTypeCellObject(CTypeBase):
         else:
             template = template_release_object_clear
 
-        emit(template % {"identifier": value_name})
+        emitTemplate(template, emit, {"identifier": value_name})
 
     @classmethod
     def emitReInitCode(cls, value_name, emit):
@@ -599,7 +602,7 @@ class CTypePyCellObject(CTypeCellObject):
             else:
                 template = template_write_py_cell_unclear_ref1
 
-        emit(template % {"identifier": value_name, "tmp_name": tmp_name})
+        emitTemplate(template, emit, {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -621,13 +624,16 @@ class CTypePyCellObject(CTypeCellObject):
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
         if not needs_check:
-            emit(template_del_py_cell_known % {"identifier": value_name})
+            emitTemplate(template_del_py_cell_known, emit, {"identifier": value_name})
         elif tolerant:
-            emit(template_del_py_cell_tolerant % {"identifier": value_name})
+            emitTemplate(
+                template_del_py_cell_tolerant, emit, {"identifier": value_name}
+            )
         else:
-            emit(
-                template_del_py_cell_intolerant
-                % {"identifier": value_name, "result": to_name}
+            emitTemplate(
+                template_del_py_cell_intolerant,
+                emit,
+                {"identifier": value_name, "result": to_name},
             )
 
     @classmethod

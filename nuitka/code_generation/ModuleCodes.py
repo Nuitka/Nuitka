@@ -35,6 +35,7 @@ from .templates.CodeTemplatesModules import (
 from .templates.CodeTemplatesVariables import (
     template_module_variable_accessor_function,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 from .VariableCodes import (
     getModuleVariableAccessorCodeName,
     getModuleVariableReferenceCode,
@@ -89,8 +90,8 @@ def getModuleCode(
     for _identifier, code in sorted(iterItems(context.getDeclarations())):
         function_decl_codes.append(code)
 
-    function_body_codes = "\n\n".join(function_body_codes)
-    function_decl_codes = "\n\n".join(function_decl_codes)
+    function_body_codes = "\n\n".join(indented(code) for code in function_body_codes)
+    function_decl_codes = "\n\n".join(indented(code) for code in function_decl_codes)
 
     _cleanup = finalizeFunctionLocalVariables(context)
 
@@ -100,12 +101,18 @@ def getModuleCode(
     module_identifier = module.getCodeName()
 
     if module_body is not None and module_body.mayRaiseException(BaseException):
-        module_exit = template_module_exception_exit % {
-            "module_identifier": module_identifier,
-            "is_top": 1 if module.isTopModule() else 0,
-        }
+        module_exit = Emission.SourceCodeCollector()
+        emitTemplate(
+            template_module_exception_exit,
+            module_exit,
+            {
+                "module_identifier": module_identifier,
+                "is_top": 1 if module.isTopModule() else 0,
+            },
+        )
     else:
-        module_exit = template_module_no_exception_exit
+        module_exit = Emission.SourceCodeCollector()
+        emitTemplate(template_module_no_exception_exit, module_exit, {})
 
     local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 
@@ -119,11 +126,6 @@ def getModuleCode(
     is_top = module.isTopModule()
 
     module_identifier = module.getCodeName()
-
-    template = template_global_copyright + template_module_body_template
-
-    if is_top == 1 and shallMakeModule():
-        template += template_module_external_entry_point
 
     module_code_objects_decl = getCodeObjectsDeclCode(context)
     module_code_objects_init = getCodeObjectsInitCode(context)
@@ -179,17 +181,20 @@ def getModuleCode(
     for module_variable_name, caching in sorted(
         context.getModuleVariableAccessors().items()
     ):
-        module_variable_accessor_codes.append(
-            template_module_variable_accessor_function
-            % {
+        module_variable_accessor_code = Emission.SourceCodeCollector()
+        emitTemplate(
+            template_module_variable_accessor_function,
+            module_variable_accessor_code,
+            {
                 "accessor_function_name": getModuleVariableAccessorCodeName(
                     module_identifier, module_variable_name
                 ),
                 "var_name": context.getConstantCode(constant=module_variable_name),
                 "module_identifier": module_identifier,
                 "caching": "1" if caching else "0",
-            }
+            },
         )
+        module_variable_accessor_codes.append(module_variable_accessor_code)
 
     (
         constants_count,
@@ -198,7 +203,7 @@ def getModuleCode(
         module_constants_check_object,
     ) = getModuleConstantsDeclAndChecks(context)
 
-    return template % {
+    template_values = {
         "module_name_cstr": encodePythonStringToC(
             module_name.asString().encode("utf8")
         ),
@@ -233,6 +238,16 @@ def getModuleCode(
             '#include "%s"' % include for include in context.getModuleIncludes()
         ),
     }
+
+    result = Emission.SourceCodeCollector()
+    result(template_global_copyright % template_values)
+
+    emitTemplate(template_module_body_template, result, template_values)
+
+    if is_top == 1 and shallMakeModule():
+        emitTemplate(template_module_external_entry_point, result, template_values)
+
+    return result.asCode()
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):

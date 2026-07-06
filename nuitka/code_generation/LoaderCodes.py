@@ -37,6 +37,7 @@ from nuitka.Tracing import inclusion_logger
 from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
 from nuitka.utils.Utils import isWin32Windows
 
+from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
@@ -45,6 +46,7 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_excluded_module_entry,
     template_metapath_loader_extension_module_entry,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 
 
 def _getMetaPathLoaderNameCode(module_name, name_index):
@@ -98,37 +100,58 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, name_index):
             name="bytecode of module '%s'" % module.getFullName(),
         )
 
-        return template_metapath_loader_bytecode_module_entry % {
-            "module_name": module_c_name,
-            "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
-            "size": len(code_data),
-            "flags": " | ".join(flags),
-            "file_path": file_path,
-        }
+        result = SourceCodeCollector()
+        emitTemplate(
+            template_metapath_loader_bytecode_module_entry,
+            result,
+            {
+                "module_name": module_c_name,
+                "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
+                "size": len(code_data),
+                "flags": " | ".join(flags),
+                "file_path": file_path,
+            },
+        )
+
+        return result
     elif module.isPythonExtensionModule():
         flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
         if module.isExtensionModulePackage():
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        return template_metapath_loader_extension_module_entry % {
-            "module_name": module_c_name,
-            "flags": " | ".join(flags),
-            "file_path": file_path,
-        }
+        result = SourceCodeCollector()
+        emitTemplate(
+            template_metapath_loader_extension_module_entry,
+            result,
+            {
+                "module_name": module_c_name,
+                "flags": " | ".join(flags),
+                "file_path": file_path,
+            },
+        )
+
+        return result
     else:
         if module.isCompiledPythonPackage():
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        return template_metapath_loader_compiled_module_entry % {
-            "module_name": module_c_name,
-            "module_identifier": module.getCodeName(),
-            "flags": " | ".join(flags),
-            "file_path": file_path,
-        }
+        result = SourceCodeCollector()
+        emitTemplate(
+            template_metapath_loader_compiled_module_entry,
+            result,
+            {
+                "module_name": module_c_name,
+                "module_identifier": module.getCodeName(),
+                "flags": " | ".join(flags),
+                "file_path": file_path,
+            },
+        )
+
+        return result
 
 
-def getMetaPathLoaderBodyCode(bytecode_accessor):
+def getMetaPathLoaderBodyCode(bytecode_accessor):  # pylint: disable=too-many-locals
     metapath_loader_inittab = []
     metapath_module_decls = []
 
@@ -211,22 +234,32 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
             # but for now we include all rejected modules that have a reason.
             # We might want to filter this better, e.g. only if it starts with "Module ... instructed by user"
             # For now, let's include all explicit 'False' decisions where we have a module name.
-            metapath_loader_inittab.append(
-                template_metapath_loader_excluded_module_entry
-                % {
+            excluded_module_entry = SourceCodeCollector()
+            emitTemplate(
+                template_metapath_loader_excluded_module_entry,
+                excluded_module_entry,
+                {
                     "module_name": module_c_name,
                     "flags": "NUITKA_TRANSLATED_FLAG | NUITKA_EXCLUDED_MODULE_FLAG",
                     "exclusion_reason": reason_c_string,
-                }
+                },
             )
+            metapath_loader_inittab.append(excluded_module_entry)
 
-    return template_metapath_loader_body % {
-        "metapath_module_decls": indented(metapath_module_decls),
-        "metapath_loader_inittab": indented(metapath_loader_inittab),
-        "entry_count": len(metapath_loader_inittab),
-        "bytecode_count": bytecode_accessor.getConstantsCount(),
-        "frozen_modules": indented(frozen_defs),
-    }
+    result = SourceCodeCollector()
+    emitTemplate(
+        template_metapath_loader_body,
+        result,
+        {
+            "metapath_module_decls": indented(metapath_module_decls),
+            "metapath_loader_inittab": indented(metapath_loader_inittab),
+            "entry_count": len(metapath_loader_inittab),
+            "bytecode_count": bytecode_accessor.getConstantsCount(),
+            "frozen_modules": indented(frozen_defs),
+        },
+    )
+
+    return result.asCode()
 
 
 perfect_supported = set()

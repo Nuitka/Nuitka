@@ -26,6 +26,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_make_empty_generator,
     template_make_generator,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 from .YieldCodes import getYieldReturnDispatchCode
 
 
@@ -42,10 +43,20 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         type_params_name=None,
     )
 
-    return template_generator_context_maker_decl % {
-        "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
-        "generator_creation_args": ", ".join(generator_creation_args),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_generator_context_maker_decl,
+        result,
+        {
+            "generator_maker_identifier": _getGeneratorMakerIdentifier(
+                function_identifier
+            ),
+            "generator_creation_args": ", ".join(generator_creation_args),
+        },
+    )
+
+    return result
 
 
 def getGeneratorObjectCode(
@@ -85,22 +96,34 @@ def getGeneratorObjectCode(
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
-        generator_exit = template_generator_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
-            "exception_state_name": exception_state_name,
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_generator_exception_exit,
+            generator_exit,
+            {
+                "function_cleanup": indented(function_cleanup),
+                "exception_state_name": exception_state_name,
+            },
+        )
     else:
-        generator_exit = template_generator_no_exception_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_generator_no_exception_exit,
+            generator_exit,
+            {"function_cleanup": indented(function_cleanup)},
+        )
 
     if needs_generator_return:
-        generator_exit += template_generator_return_exit % {
-            "return_value": (
-                context.getReturnValueName() if python_version >= 0x300 else None
-            ),
-            "function_cleanup": indented(function_cleanup),
-        }
+        emitTemplate(
+            template_generator_return_exit,
+            generator_exit,
+            {
+                "return_value": (
+                    context.getReturnValueName() if python_version >= 0x300 else None
+                ),
+                "function_cleanup": indented(function_cleanup),
+            },
+        )
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
@@ -126,30 +149,40 @@ struct %(function_identifier)s_locals *generator_heap = \
         type_params_name=None,
     )
 
-    return template_generator_context_body_template % {
-        "function_identifier": function_identifier,
-        "function_body": indented(function_codes),
-        "heap_declaration": indented(heap_declaration),
-        "has_heap_declaration": 1 if heap_declaration != "" else 0,
-        "function_local_types": indented(local_type_decl),
-        "function_var_inits": indented(function_locals),
-        "function_dispatch": indented(getYieldReturnDispatchCode(context)),
-        "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
-        "generator_creation_args": ", ".join(generator_creation_args),
-        "generator_exit": generator_exit,
-        "generator_module": getModuleAccessCode(context),
-        "generator_name_obj": context.getConstantCode(
-            constant=generator_object_body.getFunctionName()
-        ),
-        "generator_qualname_obj": getFunctionQualnameObj(
-            generator_object_body, context
-        ),
-        "code_identifier": getCodeObjectAccessCode(
-            code_object=generator_object_body.getCodeObject(), context=context
-        ),
-        "closure_name": "closure" if closure_variables else "NULL",
-        "closure_count": len(closure_variables),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_generator_context_body_template,
+        result,
+        {
+            "function_identifier": function_identifier,
+            "function_body": function_codes,
+            "heap_declaration": indented(heap_declaration),
+            "has_heap_declaration": 1 if heap_declaration != "" else 0,
+            "function_local_types": indented(local_type_decl),
+            "function_var_inits": indented(function_locals),
+            "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+            "generator_maker_identifier": _getGeneratorMakerIdentifier(
+                function_identifier
+            ),
+            "generator_creation_args": ", ".join(generator_creation_args),
+            "generator_exit": generator_exit,
+            "generator_module": getModuleAccessCode(context),
+            "generator_name_obj": context.getConstantCode(
+                constant=generator_object_body.getFunctionName()
+            ),
+            "generator_qualname_obj": getFunctionQualnameObj(
+                generator_object_body, context
+            ),
+            "code_identifier": getCodeObjectAccessCode(
+                code_object=generator_object_body.getCodeObject(), context=context
+            ),
+            "closure_name": "closure" if closure_variables else "NULL",
+            "closure_count": len(closure_variables),
+        },
+    )
+
+    return result
 
 
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
@@ -167,9 +200,10 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
 
     # Special case empty generators.
     if generator_object_body.subnode_body is None:
-        emit(
-            template_make_empty_generator
-            % {
+        emitTemplate(
+            template_make_empty_generator,
+            emit,
+            {
                 "closure_copy": indented(closure_copy),
                 "to_name": to_name,
                 "generator_module": getModuleAccessCode(context),
@@ -184,19 +218,20 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                 ),
                 "closure_name": closure_name if closure_name is not None else "NULL",
                 "closure_count": len(closure_variables),
-            }
+            },
         )
     else:
-        emit(
-            template_make_generator
-            % {
+        emitTemplate(
+            template_make_generator,
+            emit,
+            {
                 "generator_maker_identifier": _getGeneratorMakerIdentifier(
                     generator_object_body.getCodeName()
                 ),
                 "to_name": to_name,
                 "args": ", ".join(str(arg) for arg in args),
                 "closure_copy": indented(closure_copy),
-            }
+            },
         )
 
     context.addCleanupTempName(to_name)

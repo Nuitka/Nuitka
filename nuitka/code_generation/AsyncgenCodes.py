@@ -23,6 +23,7 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_return_exit,
     template_make_asyncgen,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 from .YieldCodes import getYieldReturnDispatchCode
 
 
@@ -39,10 +40,20 @@ def getAsyncgenObjectDeclCode(function_identifier, closure_variables):
         type_params_name=None,
     )
 
-    return template_asyncgen_object_maker_template % {
-        "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(function_identifier),
-        "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_asyncgen_object_maker_template,
+        result,
+        {
+            "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
+                function_identifier
+            ),
+            "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
+        },
+    )
+
+    return result
 
 
 def getAsyncgenObjectCode(
@@ -84,17 +95,25 @@ def getAsyncgenObjectCode(
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
-        generator_exit = template_asyncgen_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
-            "exception_state_name": exception_state_name,
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_asyncgen_exception_exit,
+            generator_exit,
+            {
+                "function_cleanup": indented(function_cleanup),
+                "exception_state_name": exception_state_name,
+            },
+        )
     else:
-        generator_exit = template_asyncgen_no_exception_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_asyncgen_no_exception_exit,
+            generator_exit,
+            {"function_cleanup": indented(function_cleanup)},
+        )
 
     if needs_generator_return:
-        generator_exit += template_asyncgen_return_exit % {}
+        emitTemplate(template_asyncgen_return_exit, generator_exit, {})
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
@@ -118,28 +137,40 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         type_params_name=None,
     )
 
-    return template_asyncgen_object_body % {
-        "function_identifier": function_identifier,
-        "function_body": indented(function_codes),
-        "heap_declaration": indented(heap_declaration),
-        "has_heap_declaration": 1 if heap_declaration != "" else 0,
-        "function_local_types": indented(local_type_decl),
-        "function_var_inits": indented(function_locals),
-        "function_dispatch": indented(getYieldReturnDispatchCode(context)),
-        "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(function_identifier),
-        "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
-        "asyncgen_exit": generator_exit,
-        "asyncgen_module": getModuleAccessCode(context),
-        "asyncgen_name_obj": context.getConstantCode(
-            constant=asyncgen_object_body.getFunctionName()
-        ),
-        "asyncgen_qualname_obj": getFunctionQualnameObj(asyncgen_object_body, context),
-        "code_identifier": getCodeObjectAccessCode(
-            code_object=asyncgen_object_body.getCodeObject(), context=context
-        ),
-        "closure_name": "closure" if closure_variables else "NULL",
-        "closure_count": len(closure_variables),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_asyncgen_object_body,
+        result,
+        {
+            "function_identifier": function_identifier,
+            "function_body": function_codes,
+            "heap_declaration": indented(heap_declaration),
+            "has_heap_declaration": 1 if heap_declaration != "" else 0,
+            "function_local_types": indented(local_type_decl),
+            "function_var_inits": indented(function_locals),
+            "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+            "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
+                function_identifier
+            ),
+            "asyncgen_creation_args": ", ".join(asyncgen_creation_args),
+            "asyncgen_exit": generator_exit,
+            "asyncgen_module": getModuleAccessCode(context),
+            "asyncgen_name_obj": context.getConstantCode(
+                constant=asyncgen_object_body.getFunctionName()
+            ),
+            "asyncgen_qualname_obj": getFunctionQualnameObj(
+                asyncgen_object_body, context
+            ),
+            "code_identifier": getCodeObjectAccessCode(
+                code_object=asyncgen_object_body.getCodeObject(), context=context
+            ),
+            "closure_name": "closure" if closure_variables else "NULL",
+            "closure_count": len(closure_variables),
+        },
+    )
+
+    return result
 
 
 def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
@@ -155,16 +186,17 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    emit(
-        template_make_asyncgen
-        % {
+    emitTemplate(
+        template_make_asyncgen,
+        emit,
+        {
             "to_name": to_name,
             "asyncgen_maker_identifier": _getAsyncgenMakerIdentifier(
                 asyncgen_object_body.getCodeName()
             ),
             "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy),
-        }
+        },
     )
 
     context.addCleanupTempName(to_name)

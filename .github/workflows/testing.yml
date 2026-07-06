@@ -106,6 +106,10 @@ jobs:
         run: |
           python ./bin/generate-specialized-python-code --check
 
+      - name: 🔎 Prepared code template check
+        run: |
+          python ./bin/check-prepared-code-templates
+
   linux:
     needs: checks
     runs-on: ubuntu-24.04

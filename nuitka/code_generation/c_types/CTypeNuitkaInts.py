@@ -7,6 +7,7 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,
     template_release_object_unclear,
 )
+from nuitka.code_generation.templates.TemplateDebugWrapper import emitTemplate
 
 from ..ErrorCodes import getTakeReferenceCode
 from .CTypeBases import CTypeBase
@@ -117,7 +118,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
         else:
             template = template_release_object_clear
 
-        emit(template % {"identifier": "%s.python_value" % value_name})
+        emitTemplate(template, emit, {"identifier": "%s.python_value" % value_name})
 
         emit("}")
 

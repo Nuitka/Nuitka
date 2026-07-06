@@ -3,6 +3,9 @@
 
 """This tool is generating node variants from Jinja templates."""
 
+import ast
+import hashlib
+import os
 import sys
 
 from nuitka.States import states
@@ -44,7 +47,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
-from nuitka.utils.FileOperations import getNormalizedPath
+from nuitka.utils.FileOperations import getFileContents, getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
@@ -101,27 +104,388 @@ attribute_shape_static = {}
 node_factory_translations = {}
 
 
-def _getMixinForShape(shape):
-    # Return driven for better debugging experience, pylint: disable=too-many-return-statements
+def _getAstStringValue(node):
+    if (
+        hasattr(ast, "Constant")
+        and type(node) is ast.Constant
+        and type(node.value) is str
+    ):
+        return node.value
 
-    if shape is tshape_str:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionStrShapeExactMixin"
-    elif shape is tshape_list:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionListShapeExactMixin"
-    elif shape is tshape_tuple:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionTupleShapeExactMixin"
-    elif shape is tshape_int:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionIntShapeExactMixin"
-    elif shape is tshape_bool:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionBoolShapeExactMixin"
-    elif shape is tshape_none:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionNoneShapeExactMixin"
-    elif shape is tshape_dict:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionDictShapeExactMixin"
-    elif shape is tshape_bytes:
-        return "nuitka.nodes.ExpressionShapeMixins.ExpressionBytesShapeExactMixin"
+    if hasattr(ast, "Str") and type(node) is ast.Str:
+        return node.s
+
+    return None
+
+
+def _parseFormatSpec(template_value, percent_pos):
+    result = None
+
+    if percent_pos + 1 < len(template_value) and template_value[percent_pos + 1] == "(":
+        end_pos = template_value.find(")", percent_pos + 2)
+
+        if end_pos != -1:
+            variable_name = template_value[percent_pos + 2 : end_pos]
+            format_pos = end_pos + 1
+
+            while format_pos < len(template_value) and template_value[format_pos] in (
+                "#",
+                "0",
+                " ",
+                "+",
+                "-",
+            ):
+                format_pos += 1
+
+            while (
+                format_pos < len(template_value)
+                and template_value[format_pos].isdigit()
+            ):
+                format_pos += 1
+
+            if format_pos < len(template_value) and template_value[format_pos] == ".":
+                format_pos += 1
+
+            while (
+                format_pos < len(template_value)
+                and template_value[format_pos].isdigit()
+            ):
+                format_pos += 1
+
+            if format_pos < len(template_value):
+                conversion = template_value[format_pos]
+
+                if conversion in ("s", "d") and format_pos == end_pos + 1:
+                    result = variable_name, conversion, format_pos + 1
+
+    return result
+
+
+def _addTemplateLiteral(result, template_value, start_pos, end_pos):
+    if start_pos < end_pos:
+        result.append(("literal", template_value[start_pos:end_pos]))
+
+
+def _parsePercentTemplate(template_value):
+    if "{%" in template_value or "{{" in template_value:
+        return None
+
+    result = []
+    variables = []
+    pos = 0
+
+    while True:
+        percent_pos = template_value.find("%", pos)
+
+        if percent_pos == -1:
+            _addTemplateLiteral(result, template_value, pos, len(template_value))
+
+            return result, tuple(variables)
+
+        if percent_pos + 1 >= len(template_value):
+            return None
+
+        if template_value[percent_pos + 1] == "%":
+            _addTemplateLiteral(result, template_value, pos, percent_pos)
+            result.append(("literal", "%"))
+
+            pos = percent_pos + 2
+            continue
+
+        format_spec = _parseFormatSpec(template_value, percent_pos)
+        if format_spec is None:
+            return None
+
+        variable_name, conversion, next_pos = format_spec
+
+        _addTemplateLiteral(result, template_value, pos, percent_pos)
+        result.append((conversion, variable_name))
+        variables.append((variable_name, conversion))
+
+        pos = next_pos
+
+
+def _getCodeTemplateValues():
+    template_dir = getNormalizedPath("nuitka/code_generation/templates")
+
+    for filename in sorted(os.listdir(template_dir)):
+        if not filename.startswith("CodeTemplates") or not filename.endswith(".py"):
+            continue
+
+        if filename == "CodeTemplatesGenerated.py":
+            continue
+
+        module_name = (
+            "nuitka.code_generation.templates.%s" % os.path.splitext(filename)[0]
+        )
+        full_path = os.path.join(template_dir, filename)
+
+        tree = ast.parse(getFileContents(full_path, encoding="utf8"))
+
+        for node in ast.walk(tree):
+            if type(node) is not ast.Assign:
+                continue
+
+            template_value = _getAstStringValue(node.value)
+
+            if template_value is None:
+                continue
+
+            for target in node.targets:
+                if type(target) is not ast.Name:
+                    continue
+
+                if not target.id.startswith("template_"):
+                    continue
+
+                parse_result = _parsePercentTemplate(template_value)
+
+                if parse_result is None:
+                    continue
+
+                yield module_name, target.id, template_value, parse_result
+
+
+def _getTemplateHash(template_value):
+    return hashlib.sha256(template_value.encode("utf8")).hexdigest()
+
+
+def _getTemplateEmitFunctionName(template_name, count):
+    return "_emit_%03d_%s" % (count, template_name)
+
+
+def _stripCommentsFromTemplateLiteral(value):
+    result = []
+    pos = 0
+    in_string = None
+    escaped = False
+    length = len(value)
+
+    while pos < length:
+        char = value[pos]
+        next_char = value[pos + 1] if pos + 1 < length else ""
+
+        if in_string is not None:
+            result.append(char)
+
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == in_string:
+                in_string = None
+
+            pos += 1
+        elif char in ("'", '"'):
+            in_string = char
+            result.append(char)
+            pos += 1
+        elif char == "/" and next_char == "/":
+            pos += 2
+
+            while pos < length and value[pos] not in "\r\n":
+                pos += 1
+        elif char == "/" and next_char == "*":
+            pos += 2
+
+            while pos + 1 < length and not (
+                value[pos] == "*" and value[pos + 1] == "/"
+            ):
+                if value[pos] in "\r\n":
+                    result.append(value[pos])
+
+                pos += 1
+
+            pos += 2
+        else:
+            result.append(char)
+            pos += 1
+
+    return "".join(result)
+
+
+def _stripLeadingWhitespaceFromTemplateLiteral(value):
+    result = []
+    at_line_start = True
+
+    for char in value:
+        if at_line_start and char in (" ", "\t"):
+            continue
+
+        result.append(char)
+        at_line_start = char in "\r\n"
+
+    return "".join(result)
+
+
+def _compactTemplateLiteral(value):
+    value = _stripCommentsFromTemplateLiteral(value)
+    value = _stripLeadingWhitespaceFromTemplateLiteral(value)
+
+    return value
+
+
+def _compactTemplateParts(parts):
+    result = []
+
+    for kind, value in parts:
+        if kind == "literal":
+            value = _compactTemplateLiteral(value)
+
+            if value:
+                result.append((kind, value))
+        else:
+            result.append((kind, value))
+
+    return tuple(result)
+
+
+def _writePreparedTemplateEmitter(emit, function_name, parts):
+    emit("def %s(emit, values):" % function_name)
+
+    if parts:
+        for kind, value in parts:
+            if kind == "literal":
+                emit("    emit(%r)" % value)
+            elif kind == "s":
+                emit("    emit(values[%r])" % value)
+            elif kind == "d":
+                emit("    emit(str(values[%r]))" % value)
+            else:
+                assert False, kind
     else:
-        assert False, shape
+        emit("    pass")
+
+    emit()
+
+
+def _writePreparedTemplateInfoTables(emit, template_infos):
+    emit("template_infos = {")
+
+    for (
+        template_key,
+        function_name,
+        readable_function_name,
+        template_hash,
+        variables,
+        _variables,
+    ) in sorted(template_infos):
+        emit(
+            "    %r: (%r, %r, %s, %s),"
+            % (
+                template_key,
+                template_hash,
+                variables,
+                function_name,
+                readable_function_name,
+            )
+        )
+
+    emit("}")
+    emit()
+    emit("template_variables = {")
+
+    for (
+        template_key,
+        _function_name,
+        _readable_function_name,
+        _template_hash,
+        _variables,
+        variables,
+    ) in sorted(template_infos):
+        emit("    %r: %r," % (template_key, variables))
+
+    emit("}")
+
+
+def _makeTemplateInfo(template_desc, count):
+    module_name, template_name, template_value, parse_result = template_desc
+    parts, variables = parse_result
+
+    function_name = _getTemplateEmitFunctionName(template_name, count)
+    readable_function_name = function_name + "_readable"
+    template_key = "%s.%s" % (module_name, template_name)
+
+    return (
+        template_key,
+        function_name,
+        readable_function_name,
+        _getTemplateHash(template_value),
+        tuple(sorted(set(variable_name for variable_name, _ in variables))),
+        variables,
+        _compactTemplateParts(parts),
+        parts,
+    )
+
+
+def makeCodeTemplatesGenerated():
+    filename_python = getNormalizedPath(
+        "nuitka/code_generation/templates/CodeTemplatesGenerated.py"
+    )
+
+    with withFileOpenedAndAutoFormattedWithClaim(
+        filename_python,
+        ignore_errors=False,
+        claim=getLicenseGeneratedCode(),
+    ) as output_python:
+
+        def emit(*args):
+            writeLine(output_python, *args)
+
+        emitGenerationWarning(
+            emit, "Prepared code generation templates", "CodeTemplates*.py"
+        )
+        emit("# pylint: disable=unused-argument")
+        emit()
+
+        template_infos = []
+
+        for count, template_desc in enumerate(_getCodeTemplateValues()):
+            template_info = _makeTemplateInfo(template_desc, count)
+
+            (
+                template_key,
+                function_name,
+                readable_function_name,
+                template_hash,
+                variables,
+                variable_descriptions,
+                compact_parts,
+                parts,
+            ) = template_info
+
+            _writePreparedTemplateEmitter(emit, function_name, compact_parts)
+            _writePreparedTemplateEmitter(emit, readable_function_name, parts)
+
+            template_infos.append(
+                (
+                    template_key,
+                    function_name,
+                    readable_function_name,
+                    template_hash,
+                    variables,
+                    variable_descriptions,
+                )
+            )
+
+        _writePreparedTemplateInfoTables(emit, template_infos)
+
+
+def _getMixinForShape(shape):
+    mixin_names = {
+        tshape_bool: "nuitka.nodes.ExpressionShapeMixins.ExpressionBoolShapeExactMixin",
+        tshape_bytes: "nuitka.nodes.ExpressionShapeMixins.ExpressionBytesShapeExactMixin",
+        tshape_dict: "nuitka.nodes.ExpressionShapeMixins.ExpressionDictShapeExactMixin",
+        tshape_int: "nuitka.nodes.ExpressionShapeMixins.ExpressionIntShapeExactMixin",
+        tshape_list: "nuitka.nodes.ExpressionShapeMixins.ExpressionListShapeExactMixin",
+        tshape_none: "nuitka.nodes.ExpressionShapeMixins.ExpressionNoneShapeExactMixin",
+        tshape_str: "nuitka.nodes.ExpressionShapeMixins.ExpressionStrShapeExactMixin",
+        tshape_tuple: "nuitka.nodes.ExpressionShapeMixins.ExpressionTupleShapeExactMixin",
+    }
+
+    assert shape in mixin_names, shape
+
+    return mixin_names[shape]
 
 
 def processTypeShapeAttribute(
@@ -478,30 +842,35 @@ def makeCodeCased(value):
 
 
 def getCallModuleName(module_name, function_name):
-    # return driven, pylint: disable=too-many-return-statements
-
     if module_name in ("pkg_resources", "importlib.metadata", "importlib_metadata"):
         if function_name in ("resource_stream", "resource_string"):
             return "PackageResourceNodes"
 
         return "PackageMetadataNodes"
-    if module_name in ("pkgutil", "importlib.resources", "importlib_resources"):
-        return "PackageResourceNodes"
-    if module_name in ("os", "sys", "os.path"):
-        return "OsSysNodes"
-    if module_name == "ctypes":
-        return "CtypesNodes"
-    if module_name == "builtins":
-        if function_name == "open":
-            return "BuiltinOpenNodes"
 
-    if module_name == "tensorflow":
-        return "TensorflowNodes"
+    module_names = {
+        "builtins": {"open": "BuiltinOpenNodes"},
+        "ctypes": "CtypesNodes",
+        "importlib.resources": "PackageResourceNodes",
+        "importlib_resources": "PackageResourceNodes",
+        "os": "OsSysNodes",
+        "os.path": "OsSysNodes",
+        "pkgutil": "PackageResourceNodes",
+        "sys": "OsSysNodes",
+        "tensorflow": "TensorflowNodes",
+    }
 
     if module_name.startswith("networkx"):
-        return "NetworkxNodes"
+        result = "NetworkxNodes"
+    else:
+        result = module_names.get(module_name)
 
-    assert False, (module_name, function_name)
+        if type(result) is dict:
+            result = result.get(function_name)
+
+    assert result is not None, (module_name, function_name)
+
+    return result
 
 
 def translateNodeClassName(node_class_name):
@@ -763,9 +1132,8 @@ def addFromNodes():
 addFromNodes()
 
 
-def makeChildrenHavingMixinNodes():
+def makeChildrenHavingMixinNodes():  # pylint: disable=too-many-locals,too-many-statements
     # Complex stuff with many details due to 2 files and modes,
-    # pylint: disable=too-many-locals,too-many-statements
 
     filename_python = getNormalizedPath("nuitka/nodes/ChildrenHavingMixins.py")
     filename_python2 = getNormalizedPath("nuitka/nodes/ExpressionBasesGenerated.py")
@@ -985,9 +1353,7 @@ def getSpecVersions(spec_module):
     return tuple(sorted(result.values()))
 
 
-def makeHardImportNodes():
-    # Too many details, pylint: disable=too-many-locals
-
+def makeHardImportNodes():  # pylint: disable=too-many-locals
     filename_python = getNormalizedPath("nuitka/nodes/HardImportNodesGenerated.py")
 
     template_ref_node = getTemplate(
@@ -1130,6 +1496,7 @@ hard_import_node_classes = {}
 def main():
     parseOptions()
 
+    makeCodeTemplatesGenerated()
     makeHardImportNodes()
     makeAttributeNodes()
     makeBuiltinOperationNodes()

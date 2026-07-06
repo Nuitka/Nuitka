@@ -26,6 +26,7 @@ from .templates.CodeTemplatesFrames import (
     template_frame_guard_normal_main_block,
     template_frame_guard_normal_return_handler,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 
 
 def getFrameLocalsStorageSize(type_descriptions):
@@ -201,11 +202,19 @@ def getFrameAttachLocalsCode(context, frame_identifier):
     if frame_variable_codes:
         frame_variable_codes = ",\n    " + frame_variable_codes
 
-    return template_frame_attach_locals % {
-        "frame_identifier": frame_identifier,
-        "type_description": context.getFrameTypeDescriptionDeclaration(),
-        "frame_variable_refs": frame_variable_codes,
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_frame_attach_locals,
+        result,
+        {
+            "frame_identifier": frame_identifier,
+            "type_description": context.getFrameTypeDescriptionDeclaration(),
+            "frame_variable_refs": frame_variable_codes,
+        },
+    )
+
+    return result
 
 
 def getFrameGuardHeavyCode(
@@ -238,7 +247,9 @@ def getFrameGuardHeavyCode(
 
     # Expose the locals dictionary with the frame locals if it exists.
     if frame_node.isStatementsFrameClass():
-        attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
+        attach_locals_code = indented(
+            getFrameAttachLocalsCode(context, frame_identifier)
+        )
         module_identifier = getModuleAccessCode(context)
         locals_dict_name = context.variable_storage.getVariableDeclarationTop(
             frame_node.getLocalsScope().getCodeName()
@@ -278,7 +289,9 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
                 "frame_identifier": frame_identifier,
             }
     elif frame_node.isStatementsFrameFunction():
-        attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
+        attach_locals_code = indented(
+            getFrameAttachLocalsCode(context, frame_identifier)
+        )
 
         make_frame_code = (
             """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""

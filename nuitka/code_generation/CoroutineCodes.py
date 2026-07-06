@@ -29,6 +29,7 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 from .YieldCodes import getYieldReturnDispatchCode
 
 
@@ -45,10 +46,20 @@ def getCoroutineObjectDeclCode(function_identifier, closure_variables):
         type_params_name=None,
     )
 
-    return template_coroutine_object_maker % {
-        "coroutine_maker_identifier": _getCoroutineMakerIdentifier(function_identifier),
-        "coroutine_creation_args": ", ".join(coroutine_creation_args),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_coroutine_object_maker,
+        result,
+        {
+            "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
+                function_identifier
+            ),
+            "coroutine_creation_args": ", ".join(coroutine_creation_args),
+        },
+    )
+
+    return result
 
 
 def getCoroutineObjectCode(
@@ -90,19 +101,29 @@ def getCoroutineObjectCode(
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
-        generator_exit = template_coroutine_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
-            "exception_state_name": exception_state_name,
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_coroutine_exception_exit,
+            generator_exit,
+            {
+                "function_cleanup": indented(function_cleanup),
+                "exception_state_name": exception_state_name,
+            },
+        )
     else:
-        generator_exit = template_coroutine_no_exception_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        generator_exit = SourceCodeCollector()
+        emitTemplate(
+            template_coroutine_no_exception_exit,
+            generator_exit,
+            {"function_cleanup": indented(function_cleanup)},
+        )
 
     if needs_generator_return:
-        generator_exit += template_coroutine_return_exit % {
-            "return_value": context.getReturnValueName()
-        }
+        emitTemplate(
+            template_coroutine_return_exit,
+            generator_exit,
+            {"return_value": context.getReturnValueName()},
+        )
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
@@ -126,30 +147,40 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         type_params_name=None,
     )
 
-    return template_coroutine_object_body % {
-        "function_identifier": function_identifier,
-        "function_body": indented(function_codes),
-        "heap_declaration": indented(heap_declaration),
-        "has_heap_declaration": 1 if heap_declaration != "" else 0,
-        "function_local_types": indented(local_type_decl),
-        "function_var_inits": indented(function_locals),
-        "function_dispatch": indented(getYieldReturnDispatchCode(context)),
-        "coroutine_maker_identifier": _getCoroutineMakerIdentifier(function_identifier),
-        "coroutine_creation_args": ", ".join(coroutine_creation_args),
-        "coroutine_exit": generator_exit,
-        "coroutine_module": getModuleAccessCode(context),
-        "coroutine_name_obj": context.getConstantCode(
-            constant=coroutine_object_body.getFunctionName()
-        ),
-        "coroutine_qualname_obj": getFunctionQualnameObj(
-            coroutine_object_body, context
-        ),
-        "code_identifier": getCodeObjectAccessCode(
-            code_object=coroutine_object_body.getCodeObject(), context=context
-        ),
-        "closure_name": "closure" if closure_variables else "NULL",
-        "closure_count": len(closure_variables),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_coroutine_object_body,
+        result,
+        {
+            "function_identifier": function_identifier,
+            "function_body": function_codes,
+            "heap_declaration": indented(heap_declaration),
+            "has_heap_declaration": 1 if heap_declaration != "" else 0,
+            "function_local_types": indented(local_type_decl),
+            "function_var_inits": indented(function_locals),
+            "function_dispatch": indented(getYieldReturnDispatchCode(context)),
+            "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
+                function_identifier
+            ),
+            "coroutine_creation_args": ", ".join(coroutine_creation_args),
+            "coroutine_exit": generator_exit,
+            "coroutine_module": getModuleAccessCode(context),
+            "coroutine_name_obj": context.getConstantCode(
+                constant=coroutine_object_body.getFunctionName()
+            ),
+            "coroutine_qualname_obj": getFunctionQualnameObj(
+                coroutine_object_body, context
+            ),
+            "code_identifier": getCodeObjectAccessCode(
+                code_object=coroutine_object_body.getCodeObject(), context=context
+            ),
+            "closure_name": "closure" if closure_variables else "NULL",
+            "closure_count": len(closure_variables),
+        },
+    )
+
+    return result
 
 
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
@@ -165,16 +196,17 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     if closure_name:
         args.append(closure_name)
 
-    emit(
-        template_make_coroutine
-        % {
+    emitTemplate(
+        template_make_coroutine,
+        emit,
+        {
             "to_name": to_name,
             "coroutine_maker_identifier": _getCoroutineMakerIdentifier(
                 coroutine_object_body.getCodeName()
             ),
             "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy),
-        }
+        },
     )
 
     context.addCleanupTempName(to_name)

@@ -19,6 +19,7 @@ class GlobalState(object):
     __slots__ = (
         "is_debug",
         "is_non_debug",
+        "is_readable_code",
         "is_full_compat",
         "report_missing_code_helpers",
         "report_missing_trust",
@@ -30,6 +31,7 @@ class GlobalState(object):
     def __init__(self):
         self.is_debug = None
         self.is_non_debug = None
+        self.is_readable_code = None
         self.is_full_compat = None
         self.report_missing_code_helpers = None
         self.report_missing_trust = None

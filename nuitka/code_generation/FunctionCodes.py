@@ -46,6 +46,7 @@ from .templates.CodeTemplatesFunction import (
     template_make_function,
     template_maker_function_body,
 )
+from .templates.TemplateDebugWrapper import emitTemplate
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     decideLocalVariableCodeType,
@@ -118,10 +119,18 @@ def getFunctionMakerDecl(
         type_params_name=type_params_name,
     )
 
-    return template_function_make_declaration % {
-        "function_identifier": function_identifier,
-        "function_creation_args": ", ".join(function_creation_args),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_function_make_declaration,
+        result,
+        {
+            "function_identifier": function_identifier,
+            "function_creation_args": ", ".join(function_creation_args),
+        },
+    )
+
+    return result
 
 
 def getFunctionMakerCode(
@@ -182,27 +191,33 @@ def getFunctionMakerCode(
 
     module_identifier = getModuleAccessCode(context=context)
 
-    result = template_maker_function_body % {
-        "function_name_obj": context.getConstantCode(
-            constant=function_body.getFunctionName()
-        ),
-        "function_qualname_obj": getFunctionQualnameObj(function_body, context),
-        "function_maker_identifier": function_maker_identifier,
-        "function_impl_identifier": function_impl_identifier,
-        "function_creation_args": ", ".join(function_creation_args),
-        "code_identifier": getCodeObjectAccessCode(
-            code_object=function_body.getCodeObject(), context=context
-        ),
-        "function_doc": function_doc,
-        "defaults": "defaults" if defaults_name else "NULL",
-        "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
-        "annotations": "annotations" if annotations_name else "NULL",
-        "closure_count": len(closure_variables),
-        "closure_name": "closure" if closure_variables else "NULL",
-        "module_identifier": module_identifier,
-        "constant_return_code": indented(constant_return_code),
-        "type_params": "type_params" if type_params_name else "NULL",
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_maker_function_body,
+        result,
+        {
+            "function_name_obj": context.getConstantCode(
+                constant=function_body.getFunctionName()
+            ),
+            "function_qualname_obj": getFunctionQualnameObj(function_body, context),
+            "function_maker_identifier": function_maker_identifier,
+            "function_impl_identifier": function_impl_identifier,
+            "function_creation_args": ", ".join(function_creation_args),
+            "code_identifier": getCodeObjectAccessCode(
+                code_object=function_body.getCodeObject(), context=context
+            ),
+            "function_doc": function_doc,
+            "defaults": "defaults" if defaults_name else "NULL",
+            "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
+            "annotations": "annotations" if annotations_name else "NULL",
+            "closure_count": len(closure_variables),
+            "closure_name": "closure" if closure_variables else "NULL",
+            "module_identifier": module_identifier,
+            "constant_return_code": indented(constant_return_code),
+            "type_params": "type_params" if type_params_name else "NULL",
+        },
+    )
 
     # TODO: Make it optional, only dill plugin really uses that table to
     # transport the C code implementation pointers.
@@ -411,14 +426,15 @@ def getFunctionCreationCode(
         function_identifier=function_identifier
     )
 
-    emit(
-        template_make_function
-        % {
+    emitTemplate(
+        template_make_function,
+        emit,
+        {
             "to_name": to_name,
             "function_maker_identifier": function_maker_identifier,
             "args": ", ".join(str(arg) for arg in args),
             "closure_copy": indented(closure_copy),
-        }
+        },
     )
 
     if context.needsCleanup(defaults_name):
@@ -526,11 +542,17 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
             variable_c_type.getVariableArgDeclarationCode(variable_declaration)
         )
 
-    result = template_function_direct_declaration % {
-        "file_scope": file_scope,
-        "function_identifier": function_identifier,
-        "direct_call_arg_spec": ", ".join(parameter_objects_decl),
-    }
+    result = SourceCodeCollector()
+
+    emitTemplate(
+        template_function_direct_declaration,
+        result,
+        {
+            "file_scope": file_scope,
+            "function_identifier": function_identifier,
+            "direct_call_arg_spec": ", ".join(parameter_objects_decl),
+        },
+    )
 
     return result
 
@@ -692,16 +714,14 @@ def _getFunctionCode(
 
     function_doc = context.getConstantCode(constant=function_doc)
 
-    result = ""
+    result = SourceCodeCollector()
 
-    emit = SourceCodeCollector()
+    function_exit = SourceCodeCollector()
 
     getMustNotGetHereCode(
-        reason="Return statement must have exited already.", emit=emit
+        reason="Return statement must have exited already.", emit=function_exit
     )
-
-    function_exit = indented(emit) + "\n\n"
-    del emit
+    function_exit.append("")
 
     if needs_exception_exit:
         (
@@ -709,15 +729,21 @@ def _getFunctionCode(
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
-        function_exit += template_function_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
-            "exception_state_name": exception_state_name,
-        }
+        emitTemplate(
+            template_function_exception_exit,
+            function_exit,
+            {
+                "function_cleanup": indented(function_cleanup),
+                "exception_state_name": exception_state_name,
+            },
+        )
 
     if context.hasTempName("return_value"):
-        function_exit += template_function_return_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        emitTemplate(
+            template_function_return_exit,
+            function_exit,
+            {"function_cleanup": indented(function_cleanup)},
+        )
 
     if context.isForCreatedFunction():
         parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
@@ -740,22 +766,30 @@ def _getFunctionCode(
                 variable_c_type.getVariableArgDeclarationCode(variable_declaration)
             )
 
-        result += function_direct_body_template % {
-            "file_scope": file_scope,
-            "function_identifier": function_identifier,
-            "direct_call_arg_spec": ", ".join(parameter_objects_decl),
-            "function_locals": indented(function_locals),
-            "function_body": indented(function_codes),
-            "function_exit": function_exit,
-        }
+        emitTemplate(
+            function_direct_body_template,
+            result,
+            {
+                "file_scope": file_scope,
+                "function_identifier": function_identifier,
+                "direct_call_arg_spec": ", ".join(parameter_objects_decl),
+                "function_locals": indented(function_locals),
+                "function_body": function_codes,
+                "function_exit": function_exit,
+            },
+        )
     else:
-        result += template_function_body % {
-            "function_identifier": function_identifier,
-            "parameter_objects_decl": ", ".join(parameter_objects_decl),
-            "function_locals": indented(function_locals),
-            "function_body": indented(function_codes),
-            "function_exit": function_exit,
-        }
+        emitTemplate(
+            template_function_body,
+            result,
+            {
+                "function_identifier": function_identifier,
+                "parameter_objects_decl": ", ".join(parameter_objects_decl),
+                "function_locals": indented(function_locals),
+                "function_body": function_codes,
+                "function_exit": function_exit,
+            },
+        )
 
     return result
 

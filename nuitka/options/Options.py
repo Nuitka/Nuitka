@@ -331,6 +331,7 @@ def parseArgs():
 
     states.is_debug = _isDebug()
     states.is_non_debug = not states.is_debug
+    states.is_readable_code = shallGenerateReadableCode()
     states.is_full_compat = _isFullCompat()
 
     if hasattr(options, "experimental"):

@@ -12,13 +12,113 @@ use of these will occur.
 import contextlib
 
 
+def getCodeString(code):
+    if type(code) is str:
+        return code
+
+    if hasattr(code, "asCode"):
+        return code.asCode()
+
+    return str(code)
+
+
+def _appendCodeString(result, code):
+    if type(code) is str:
+        result.append(code)
+    elif type(code) is SourceCodeTemplateExpansion:
+        code.appendToCodeStringFlattened(result)
+    elif type(code) is SourceCodeCollector:
+        code.appendToCodeStringFlattened(result)
+    else:
+        result.append(getCodeString(code))
+
+
+def _joinCodeStrings(codes):
+    try:
+        return "".join(codes)
+    except TypeError:
+        result = []
+
+        for code in codes:
+            _appendCodeString(result, code)
+
+        return "".join(result)
+
+
+class SourceCodeTemplateExpansion(object):
+    __slots__ = ("template", "values")
+
+    def __init__(self, template, values):
+        self.template = template
+        self.values = values
+
+    def appendToCodeString(self, result):
+        self.template.emit(result.append, self.values)
+
+    def appendToCodeStringFlattened(self, result):
+        def append(part):
+            _appendCodeString(result, part)
+
+        self.template.emit(append, self.values)
+
+    def asCode(self):
+        result = []
+
+        self.appendToCodeString(result)
+
+        return _joinCodeStrings(result)
+
+
 class SourceCodeCollector(list):
-    __slots__ = ()
+    __slots__ = ("has_template_fragments",)
+
+    def __init__(self):
+        list.__init__(self)
+
+        self.has_template_fragments = False
 
     def __call__(self, code):
         self.append(code)
 
     emit = __call__
+
+    def emitTemplate(self, template, values):
+        self.append(SourceCodeTemplateExpansion(template, values))
+        self.has_template_fragments = True
+
+    def reset(self):
+        del self[:]
+        self.has_template_fragments = False
+
+    def appendToCodeString(self, result):
+        for count, code in enumerate(self):
+            if count:
+                result.append("\n")
+
+            if type(code) is SourceCodeTemplateExpansion:
+                code.appendToCodeString(result)
+            else:
+                result.append(code)
+
+    def appendToCodeStringFlattened(self, result):
+        for count, code in enumerate(self):
+            if count:
+                result.append("\n")
+
+            _appendCodeString(result, code)
+
+    def asCode(self):
+        if not self.has_template_fragments:
+            try:
+                return "\n".join(self)
+            except TypeError:
+                pass
+
+        result = []
+
+        self.appendToCodeString(result)
+
+        return _joinCodeStrings(result)
 
 
 @contextlib.contextmanager

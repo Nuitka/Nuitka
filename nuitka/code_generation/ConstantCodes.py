@@ -35,12 +35,14 @@ from nuitka.utils.Distributions import (
 from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
+from .Emission import SourceCodeCollector
 from .ErrorCodes import getAssertionCode
 from .GlobalConstants import getConstantDefaultPopulation
 from .Namify import namifyConstant
 from .SpecialConstantData import hasSpecialDetails
 from .templates.CodeTemplatesConstants import template_constants_reading
 from .templates.CodeTemplatesModules import template_header_guard
+from .templates.TemplateDebugWrapper import emitTemplate
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -160,35 +162,45 @@ def getConstantsDefinitionCode():
         % constant_accessor.getConstantsCount(),
     )
 
-    header = template_header_guard % {
-        "header_guard_name": "__NUITKA_GLOBAL_CONSTANTS_H__",
-        "header_body": "\n".join(lines),
-    }
+    header = SourceCodeCollector()
+    emitTemplate(
+        template_header_guard,
+        header,
+        {
+            "header_guard_name": "__NUITKA_GLOBAL_CONSTANTS_H__",
+            "header_body": "\n".join(lines),
+        },
+    )
 
     major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
-    body = template_constants_reading % {
-        "module_name_cstr": encodePythonStringToC(
-            getRootTopModule().getFullName().asString().encode("utf8")
-        ),
-        "global_constants_count": constant_accessor.getConstantsCount(),
-        "global_constants_blob_symbol_name": getConstantBlobSymbolName(
-            "__constants.const"
-        ),
-        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
-        "sys_executable": sys_executable,
-        "sys_prefix": sys_prefix,
-        "sys_base_prefix": sys_base_prefix,
-        "sys_exec_prefix": sys_exec_prefix,
-        "sys_base_exec_prefix": sys_base_exec_prefix,
-        "nuitka_version_major": major,
-        "nuitka_version_minor": minor,
-        "nuitka_version_micro": micro,
-        "nuitka_version_level": "release" if is_final else "candidate",
-        "metadata_values": metadata_values_code,
-    }
+    body = SourceCodeCollector()
+    emitTemplate(
+        template_constants_reading,
+        body,
+        {
+            "module_name_cstr": encodePythonStringToC(
+                getRootTopModule().getFullName().asString().encode("utf8")
+            ),
+            "global_constants_count": constant_accessor.getConstantsCount(),
+            "global_constants_blob_symbol_name": getConstantBlobSymbolName(
+                "__constants.const"
+            ),
+            "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
+            "sys_executable": sys_executable,
+            "sys_prefix": sys_prefix,
+            "sys_base_prefix": sys_base_prefix,
+            "sys_exec_prefix": sys_exec_prefix,
+            "sys_base_exec_prefix": sys_base_exec_prefix,
+            "nuitka_version_major": major,
+            "nuitka_version_minor": minor,
+            "nuitka_version_micro": micro,
+            "nuitka_version_level": "release" if is_final else "candidate",
+            "metadata_values": metadata_values_code,
+        },
+    )
 
-    return header, body
+    return header.asCode(), body.asCode()
 
 
 def getModuleConstantsDeclAndChecks(context):
