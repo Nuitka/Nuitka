@@ -138,6 +138,9 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
 #ifdef NUITKA_USE_PYCORE_THREAD_STATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
+#if PYTHON_VERSION >= 0x3f0
+#define Py_BUILD_CORE_MODULE
+#endif
 #undef _PyGC_FINALIZED
 
 #if PYTHON_VERSION < 0x380
