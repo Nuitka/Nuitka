@@ -46,8 +46,8 @@ def _readModuleIdentifierValue(input_file):
     return module_identifier
 
 
-def getClassPrepareResult(id):
-    return _class_prepare_calls.get(id)
+def getClassPrepareResult(code_name):
+    return _class_prepare_calls.get(code_name)
 
 
 def readPGOInputFile(input_filename):
@@ -100,9 +100,9 @@ def readPGOInputFile(input_filename):
 
                 _module_exits[module_name] = had_error
             elif probe_name == b"ClassPrepare":
-                id = _readStringValue(input_file)
+                code_name = _readStringValue(input_file)
                 result = _readObjectValue(input_file)
-                _class_prepare_calls[id.decode("utf8")] = result
+                _class_prepare_calls[code_name.decode("utf8")] = result
             elif probe_name == b"END":
                 break
             else:
