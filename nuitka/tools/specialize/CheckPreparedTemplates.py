@@ -5,13 +5,13 @@
 
 import sys
 
+from nuitka.code_generation.Emission import SourceCodeCollector
+from nuitka.code_generation.Indentation import indented
 from nuitka.code_generation.templates.CodeTemplatesGenerated import (
     template_infos,
     template_variables,
 )
 from nuitka.code_generation.templates.TemplateDebugWrapper import emitTemplate
-from nuitka.code_generation.Emission import SourceCodeCollector
-from nuitka.code_generation.Indentation import indented
 from nuitka.States import states
 
 
