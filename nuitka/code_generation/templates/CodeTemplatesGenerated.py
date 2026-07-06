@@ -150,7 +150,7 @@ def _emit_002_template_make_asyncgen(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
-    emit("= ")
+    emit(" = ")
     emit(values["asyncgen_maker_identifier"])
     emit("(")
     emit(values["args"])
@@ -452,7 +452,7 @@ def _emit_009_template_make_coroutine(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
-    emit("= ")
+    emit(" = ")
     emit(values["coroutine_maker_identifier"])
     emit("(")
     emit(values["args"])
@@ -527,7 +527,7 @@ def _emit_013_template_publish_exception_to_handler(emit, values):
     emit(values["keeper_exception_state_name"])
     emit(", exception_tb);\n} else if (")
     emit(values["keeper_lineno"])
-    emit("!= 0) {\nexception_tb = ADD_TRACEBACK(exception_tb, ")
+    emit(" != 0) {\nexception_tb = ADD_TRACEBACK(exception_tb, ")
     emit(values["frame_identifier"])
     emit(", ")
     emit(values["keeper_lineno"])
@@ -760,7 +760,7 @@ def _emit_020_template_function_make_declaration_readable(emit, values):
 
 def _emit_021_template_function_direct_declaration(emit, values):
     emit(values["file_scope"])
-    emit("PyObject *impl_")
+    emit(" PyObject *impl_")
     emit(values["function_identifier"])
     emit("(PyThreadState *tstate, ")
     emit(values["direct_call_arg_spec"])
@@ -850,7 +850,7 @@ def _emit_023_template_make_function(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
-    emit("= ")
+    emit(" = ")
     emit(values["function_maker_identifier"])
     emit("(")
     emit(values["args"])
@@ -1052,7 +1052,7 @@ def _emit_029_template_make_generator(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
-    emit("= ")
+    emit(" = ")
     emit(values["generator_maker_identifier"])
     emit("(")
     emit(values["args"])
@@ -1074,7 +1074,7 @@ def _emit_030_template_make_empty_generator(emit, values):
     emit(values["closure_copy"])
     emit("\n")
     emit(values["to_name"])
-    emit("= Nuitka_Generator_NewEmpty(\n")
+    emit(" = Nuitka_Generator_NewEmpty(\n")
     emit(values["generator_module"])
     emit(",\n")
     emit(values["generator_name_obj"])
@@ -1165,7 +1165,7 @@ def _emit_033_template_generator_return_exit_readable(emit, values):
 def _emit_034_template_loop_break_next(emit, values):
     emit("if (")
     emit(values["to_name"])
-    emit("== NULL) {\nif (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate)) {\n")
+    emit(" == NULL) {\nif (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate)) {\n")
     emit(values["break_indicator_code"])
     emit("\ngoto ")
     emit(values["break_target"])
@@ -1207,7 +1207,7 @@ def _emit_035_template_metapath_loader_body(emit, values):
         '\n\n\n#include "nuitka/prelude.h"\n\n\n#if PY_MICRO_VERSION < 16\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)\n#else\n#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)\n#endif\n\n#include "nuitka/constants_blob.h"\n\n#include "nuitka/tracing.h"\n#include "nuitka/unfreezing.h"\n\n\n#ifndef __cplusplus\n#include <stdbool.h>\n#endif\n\n#if '
     )
     emit(str(values["bytecode_count"]))
-    emit("> 0\nstatic unsigned char *bytecode_data[")
+    emit(" > 0\nstatic unsigned char *bytecode_data[")
     emit(str(values["bytecode_count"]))
     emit(
         "];\n#else\nstatic unsigned char **bytecode_data = NULL;\n#endif\n\n\n#ifdef __cplusplus\n#define NUITKA_CAST_INIT_REASON(x) reinterpret_cast<module_init_func>((void*)(x))\n#else\n#define NUITKA_CAST_INIT_REASON(x) (module_init_func)(x)\n#endif\n\n\n\n\n\n"
@@ -1273,7 +1273,7 @@ def _emit_036_template_global_copyright(emit, values):
     emit("\n*\n* This code is in part copyright ")
     emit(values["year"])
     emit(
-        'Kay Hayen.\n*\n* Licensed under the GNU Affero General Public License, Version 3 (the "License");\n* you may not use this file except in compliance with the License.\n*\n* You may obtain a copy of the License in "LICENSE.txt" and the runtime\n* exception granted in "LICENSE-RUNTIME.txt" from Nuitka source code. For\n* deploying the generated code it is intended to not restrict distributing\n* created binaries.\n*\n* Unless required by applicable law or agreed to in writing, software\n* distributed under the License is distributed on an "AS IS" BASIS,\n* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n* See the License for the specific language governing permissions and\n* limitations under the License.\n*/\n'
+        ' Kay Hayen.\n*\n* Licensed under the GNU Affero General Public License, Version 3 (the "License");\n* you may not use this file except in compliance with the License.\n*\n* You may obtain a copy of the License in "LICENSE.txt" and the runtime\n* exception granted in "LICENSE-RUNTIME.txt" from Nuitka source code. For\n* deploying the generated code it is intended to not restrict distributing\n* created binaries.\n*\n* Unless required by applicable law or agreed to in writing, software\n* distributed under the License is distributed on an "AS IS" BASIS,\n* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n* See the License for the specific language governing permissions and\n* limitations under the License.\n*/\n'
     )
 
 
@@ -1380,9 +1380,9 @@ def _emit_037_template_module_body_template(emit, values):
     emit(values["module_identifier"])
     emit('");\n\n// Store the module for future use.\nmodule_')
     emit(values["module_identifier"])
-    emit("= module;\n\nmoduledict_")
+    emit(" = module;\n\nmoduledict_")
     emit(values["module_identifier"])
-    emit("= MODULE_DICT(module_")
+    emit(" = MODULE_DICT(module_")
     emit(values["module_identifier"])
     emit(
         ");\n\n\nstatic bool init_done = false;\n\nif (init_done == false) {\n#if _NUITKA_MODULE_MODE && "
@@ -1396,7 +1396,7 @@ def _emit_037_template_module_body_template(emit, values):
         ': Calling setupMetaPathBasedLoader().\\n");\n#endif\nsetupMetaPathBasedLoader(tstate);\n#if '
     )
     emit(values["module_def_size"])
-    emit('>= 0\n#ifdef _NUITKA_TRACE\nPRINT_STRING("')
+    emit(' >= 0\n#ifdef _NUITKA_TRACE\nPRINT_STRING("')
     emit(values["module_identifier"])
     emit(
         ': Calling updateMetaPathBasedLoaderModuleRoot().\\n");\n#endif\nupdateMetaPathBasedLoaderModuleRoot(module_full_name);\n#endif\n\n\n#if PYTHON_VERSION >= 0x300\npatchInspectModule(tstate);\n#endif\n\n#endif\n\n/* The constants only used by this module are created now. */\nNUITKA_PRINT_TRACE("'
@@ -1408,7 +1408,7 @@ def _emit_037_template_module_body_template(emit, values):
     emit(str(values["is_top"]))
     emit("\nPyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, ")
     emit(values["module_name_cstr"])
-    emit('"-preLoad");\nif (pre_load == NULL) {\nreturn NULL;\n}\n#endif\n\n')
+    emit(' "-preLoad");\nif (pre_load == NULL) {\nreturn NULL;\n}\n#endif\n\n')
     emit(values["module_identifier"])
     emit(
         '\\n");\n\n#ifdef _NUITKA_PLUGIN_DILL_ENABLED\n{\nchar const *module_name_c;\nif (loader_entry != NULL) {\nmodule_name_c = loader_entry->name;\n} else {\nPyObject *module_name = GET_STRING_DICT_VALUE(moduledict_'
@@ -1484,10 +1484,10 @@ def _emit_037_template_module_body_template(emit, values):
         ");\nPy_DECREF(_spec_from_module);\n\n\n\n\nif (spec_value == NULL) {\nPyErr_PrintEx(0);\nabort();\n}\n\n\nSET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);\n\n#if _NUITKA_MODULE_MODE && "
     )
     emit(str(values["is_top"]))
-    emit("&& ")
+    emit(" && ")
     emit(values["module_def_size"])
     emit(
-        ">= 0\n\nSET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);\n#endif\n\nUPDATE_STRING_DICT1(moduledict_"
+        " >= 0\n\nSET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);\n#endif\n\nUPDATE_STRING_DICT1(moduledict_"
     )
     emit(values["module_identifier"])
     emit(
@@ -1505,7 +1505,7 @@ def _emit_037_template_module_body_template(emit, values):
     emit("\n{\nPyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, ")
     emit(values["module_name_cstr"])
     emit(
-        '"-postLoad");\nif (post_load == NULL) {\nreturn NULL;\n}\n}\n#endif\n\nPy_INCREF(module_'
+        ' "-postLoad");\nif (post_load == NULL) {\nreturn NULL;\n}\n}\n#endif\n\nPy_INCREF(module_'
     )
     emit(values["module_identifier"])
     emit(");\nreturn module_")
@@ -1774,7 +1774,7 @@ def _emit_038_template_module_external_entry_point(emit, values):
         ",\n(Nuitka_StringObject *)const_str_plain___file__,\norig_dunder_file_value\n);\n}\n\n\n#if PYTHON_VERSION >= 0x300\nif (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {\nreturn 0;\n}\n#endif\n\nreturn orig_PyModule_Type_tp_setattro(module, name, value);\n}\n#endif\n\n#if PYTHON_VERSION >= 0x300\nstatic struct PyModuleDef mdef_"
     )
     emit(values["module_identifier"])
-    emit("= {\nPyModuleDef_HEAD_INIT,\nNULL,                \nNULL,                \n")
+    emit(" = {\nPyModuleDef_HEAD_INIT,\nNULL,                \nNULL,                \n")
     emit(values["module_def_size"])
     emit(
         ", \nNULL,                \nNULL,                \nNULL,                \nNULL,                \nNULL,                \n};\n#endif\n\n#if PYTHON_VERSION < 0x300\nstatic void onModuleFileValueRelease(void *v) {\nif (orig_dunder_file_value != NULL) {\nUPDATE_STRING_DICT0(\nmoduledict_"
@@ -1804,7 +1804,7 @@ def _emit_038_template_module_external_entry_point(emit, values):
     emit(values["module_identifier"])
     emit(", const_str_plain___file__);\n}\n#endif\n\nreturn result;\n}\n\n#if ")
     emit(values["module_def_size"])
-    emit(">= 0\nstatic int ")
+    emit(" >= 0\nstatic int ")
     emit(values["module_dll_entry_point"])
     emit("_slot(PyObject *module) {\nPyObject *result = ")
     emit(values["module_dll_entry_point"])
@@ -1818,13 +1818,13 @@ def _emit_038_template_module_external_entry_point(emit, values):
     emit(values["module_identifier"])
     emit(".m_name = module_full_name;\n\n#if ")
     emit(values["module_def_size"])
-    emit("== -1\nPyObject *module = PyModule_Create(&mdef_")
+    emit(" == -1\nPyObject *module = PyModule_Create(&mdef_")
     emit(values["module_identifier"])
     emit(
         ");\nCHECK_OBJECT(module);\n\n{\nNUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(module_full_name, module);\nassert(res != false);\n}\n\n#endif\n#endif\n\n#if "
     )
     emit(values["module_def_size"])
-    emit(">= 0\nstatic PyModuleDef_Slot _module_slots[] = {\n{Py_mod_exec, (void *)")
+    emit(" >= 0\nstatic PyModuleDef_Slot _module_slots[] = {\n{Py_mod_exec, (void *)")
     emit(values["module_dll_entry_point"])
     emit("_slot},\n{0, NULL}\n};\n\nmdef_")
     emit(values["module_identifier"])
@@ -1986,7 +1986,7 @@ def _emit_043_template_write_local_unclear_ref0(emit, values):
     emit(values["identifier"])
     emit(";\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";\nPy_XDECREF(old);\n}\n")
 
@@ -2006,7 +2006,7 @@ def _emit_044_template_write_local_unclear_ref1(emit, values):
     emit(values["identifier"])
     emit(";\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";\nPy_INCREF(")
     emit(values["identifier"])
@@ -2028,9 +2028,9 @@ def _emit_044_template_write_local_unclear_ref1_readable(emit, values):
 def _emit_045_template_write_local_empty_ref0(emit, values):
     emit("assert(")
     emit(values["identifier"])
-    emit("== NULL);\n")
+    emit(" == NULL);\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";")
 
@@ -2048,11 +2048,11 @@ def _emit_045_template_write_local_empty_ref0_readable(emit, values):
 def _emit_046_template_write_local_empty_ref1(emit, values):
     emit("assert(")
     emit(values["identifier"])
-    emit("== NULL);\nPy_INCREF(")
+    emit(" == NULL);\nPy_INCREF(")
     emit(values["tmp_name"])
     emit(");\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";")
 
@@ -2074,7 +2074,7 @@ def _emit_047_template_write_local_clear_ref0(emit, values):
     emit(values["identifier"])
     emit(";\nassert(old != NULL);\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";\nPy_DECREF(old);\n}\n")
 
@@ -2091,7 +2091,7 @@ def _emit_047_template_write_local_clear_ref0_readable(emit, values):
 
 def _emit_048_template_write_local_inplace(emit, values):
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";\n")
 
@@ -2124,7 +2124,7 @@ def _emit_050_template_write_local_clear_ref1(emit, values):
     emit(values["identifier"])
     emit(";\nassert(old != NULL);\n")
     emit(values["identifier"])
-    emit("= ")
+    emit(" = ")
     emit(values["tmp_name"])
     emit(";\nPy_INCREF(")
     emit(values["identifier"])
@@ -2236,7 +2236,7 @@ def _emit_055_template_del_local_tolerant(emit, values):
     emit(values["identifier"])
     emit(");\n")
     emit(values["identifier"])
-    emit("= NULL;\n")
+    emit(" = NULL;\n")
 
 
 def _emit_055_template_del_local_tolerant_readable(emit, values):
@@ -2265,15 +2265,15 @@ def _emit_056_template_del_shared_tolerant_readable(emit, values):
 
 def _emit_057_template_del_local_intolerant(emit, values):
     emit(values["result"])
-    emit("= ")
+    emit(" = ")
     emit(values["identifier"])
-    emit("!= NULL;\nif (likely(")
+    emit(" != NULL;\nif (likely(")
     emit(values["result"])
     emit(")) {\nPy_DECREF(")
     emit(values["identifier"])
     emit(");\n")
     emit(values["identifier"])
-    emit("= NULL;\n}\n")
+    emit(" = NULL;\n}\n")
 
 
 def _emit_057_template_del_local_intolerant_readable(emit, values):
@@ -2296,7 +2296,7 @@ def _emit_058_template_del_shared_intolerant(emit, values):
     emit(values["identifier"])
     emit(", NULL);\nPy_XDECREF(old);\n\n")
     emit(values["result"])
-    emit("= old != NULL;\n}\n")
+    emit(" = old != NULL;\n}\n")
 
 
 def _emit_058_template_del_shared_intolerant_readable(emit, values):
@@ -2316,7 +2316,7 @@ def _emit_059_template_del_local_known(emit, values):
     emit(values["identifier"])
     emit(");\n")
     emit(values["identifier"])
-    emit("= NULL;\n")
+    emit(" = NULL;\n")
 
 
 def _emit_059_template_del_local_known_readable(emit, values):
@@ -2375,7 +2375,7 @@ def _emit_062_template_release_object_clear_readable(emit, values):
 
 def _emit_063_template_read_shared_known(emit, values):
     emit(values["tmp_name"])
-    emit("= Nuitka_Cell_GET(")
+    emit(" = Nuitka_Cell_GET(")
     emit(values["identifier"])
     emit(");\n")
 
@@ -2389,7 +2389,7 @@ def _emit_063_template_read_shared_known_readable(emit, values):
 
 def _emit_064_template_read_mvar_unclear(emit, values):
     emit(values["tmp_name"])
-    emit("= LOOKUP_MODULE_VALUE(moduledict_")
+    emit(" = LOOKUP_MODULE_VALUE(moduledict_")
     emit(values["module_identifier"])
     emit(", ")
     emit(values["var_name"])
@@ -2407,7 +2407,7 @@ def _emit_064_template_read_mvar_unclear_readable(emit, values):
 
 def _emit_065_template_read_locals_dict_with_fallback(emit, values):
     emit(values["to_name"])
-    emit("= ")
+    emit(" = ")
     emit(values["dict_get_item"])
     emit("(tstate, ")
     emit(values["locals_dict"])
@@ -2415,7 +2415,7 @@ def _emit_065_template_read_locals_dict_with_fallback(emit, values):
     emit(values["var_name"])
     emit(");\n\nif (")
     emit(values["to_name"])
-    emit("== NULL) {\n")
+    emit(" == NULL) {\n")
     emit(values["fallback"])
     emit("\n}\n")
 
@@ -2437,7 +2437,7 @@ def _emit_065_template_read_locals_dict_with_fallback_readable(emit, values):
 
 def _emit_066_template_read_locals_dict_without_fallback(emit, values):
     emit(values["to_name"])
-    emit("= DICT_GET_ITEM0(tstate, ")
+    emit(" = DICT_GET_ITEM0(tstate, ")
     emit(values["locals_dict"])
     emit(", ")
     emit(values["var_name"])
@@ -2455,13 +2455,13 @@ def _emit_066_template_read_locals_dict_without_fallback_readable(emit, values):
 
 def _emit_067_template_read_locals_mapping_with_fallback_no_ref(emit, values):
     emit(values["to_name"])
-    emit("= PyObject_GetItem(")
+    emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
     emit(", ")
     emit(values["var_name"])
     emit(");\n\nif (")
     emit(values["to_name"])
-    emit("== NULL) {\nif (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {\n")
+    emit(" == NULL) {\nif (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {\n")
     emit(values["fallback"])
     emit("\nPy_INCREF(")
     emit(values["to_name"])
@@ -2493,13 +2493,13 @@ def _emit_067_template_read_locals_mapping_with_fallback_no_ref_readable(emit, v
 
 def _emit_068_template_read_locals_mapping_with_fallback_ref(emit, values):
     emit(values["to_name"])
-    emit("= PyObject_GetItem(")
+    emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
     emit(", ")
     emit(values["var_name"])
     emit(");\n\nif (")
     emit(values["to_name"])
-    emit("== NULL) {\nif (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {\n")
+    emit(" == NULL) {\nif (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {\n")
     emit(values["fallback"])
     emit("\n} else {\nFETCH_ERROR_OCCURRED_STATE(tstate, &")
     emit(values["exception_state_name"])
@@ -2527,7 +2527,7 @@ def _emit_068_template_read_locals_mapping_with_fallback_ref_readable(emit, valu
 
 def _emit_069_template_read_locals_mapping_without_fallback(emit, values):
     emit(values["to_name"])
-    emit("= PyObject_GetItem(")
+    emit(" = PyObject_GetItem(")
     emit(values["locals_dict"])
     emit(", ")
     emit(values["var_name"])
@@ -2545,13 +2545,13 @@ def _emit_069_template_read_locals_mapping_without_fallback_readable(emit, value
 
 def _emit_070_template_del_global_unclear(emit, values):
     emit(values["result"])
-    emit("= DICT_REMOVE_ITEM((PyObject *)moduledict_")
+    emit(" = DICT_REMOVE_ITEM((PyObject *)moduledict_")
     emit(values["module_identifier"])
     emit(", ")
     emit(values["var_name"])
     emit(");\nif (")
     emit(values["result"])
-    emit("== false) CLEAR_ERROR_OCCURRED(tstate);\n")
+    emit(" == false) CLEAR_ERROR_OCCURRED(tstate);\n")
 
 
 def _emit_070_template_del_global_unclear_readable(emit, values):
@@ -2648,7 +2648,7 @@ def _emit_074_template_update_locals_mapping_value(emit, values):
     emit(values["var_name"])
     emit(",\nvalue\n);\n\n")
     emit(values["tmp_name"])
-    emit("= res == 0;\n} else {\nPyObject *test_value = PyObject_GetItem(\n")
+    emit(" = res == 0;\n} else {\nPyObject *test_value = PyObject_GetItem(\n")
     emit(values["mapping_name"])
     emit(",\n")
     emit(values["var_name"])
@@ -2660,9 +2660,9 @@ def _emit_074_template_update_locals_mapping_value(emit, values):
     emit(values["var_name"])
     emit("\n);\n\n")
     emit(values["tmp_name"])
-    emit("= res == 0;\n} else {\nCLEAR_ERROR_OCCURRED(tstate);\n")
+    emit(" = res == 0;\n} else {\nCLEAR_ERROR_OCCURRED(tstate);\n")
     emit(values["tmp_name"])
-    emit("= true;\n}\n}\n")
+    emit(" = true;\n}\n}\n")
 
 
 def _emit_074_template_update_locals_mapping_value_readable(emit, values):
@@ -2702,13 +2702,13 @@ def _emit_075_template_set_locals_mapping_value(emit, values):
     emit(values["access_code"])
     emit("\n\n")
     emit(values["tmp_name"])
-    emit("= SET_SUBSCRIPT(\ntstate,\n")
+    emit(" = SET_SUBSCRIPT(\ntstate,\n")
     emit(values["mapping_name"])
     emit(",\n")
     emit(values["var_name"])
     emit(",\nvalue\n);\n} else {\n")
     emit(values["tmp_name"])
-    emit("= true;\n}\n")
+    emit(" = true;\n}\n")
 
 
 def _emit_075_template_set_locals_mapping_value_readable(emit, values):
@@ -2920,7 +2920,7 @@ def _emit_081_template_del_py_cell_intolerant(emit, values):
     emit(values["identifier"])
     emit(", NULL);\nPy_XDECREF(old);\n\n")
     emit(values["result"])
-    emit("= old != NULL;\n}\n")
+    emit(" = old != NULL;\n}\n")
 
 
 def _emit_081_template_del_py_cell_intolerant_readable(emit, values):

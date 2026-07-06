@@ -304,9 +304,8 @@ def _stripCommentsFromTemplateLiteral(value):
     return "".join(result)
 
 
-def _stripLeadingWhitespaceFromTemplateLiteral(value):
+def _stripLeadingWhitespaceFromTemplateLiteral(value, at_line_start):
     result = []
-    at_line_start = True
 
     for char in value:
         if at_line_start and char in (" ", "\t"):
@@ -315,27 +314,39 @@ def _stripLeadingWhitespaceFromTemplateLiteral(value):
         result.append(char)
         at_line_start = char in "\r\n"
 
-    return "".join(result)
+    return "".join(result), at_line_start
 
 
-def _compactTemplateLiteral(value):
+def _compactTemplateLiteral(value, at_line_start):
     value = _stripCommentsFromTemplateLiteral(value)
-    value = _stripLeadingWhitespaceFromTemplateLiteral(value)
+    value, at_line_start = _stripLeadingWhitespaceFromTemplateLiteral(
+        value, at_line_start
+    )
 
-    return value
+    return value, at_line_start
 
 
 def _compactTemplateParts(parts):
     result = []
 
+    # Leading whitespace may only be stripped at the start of a line. Track this
+    # across parts, because a literal fragment can begin in the middle of a line,
+    # right after a substituted value. Stripping its leading whitespace there
+    # would join tokens, e.g. "%(file_scope)s PyObject" -> "<value>PyObject".
+    at_line_start = True
+
     for kind, value in parts:
         if kind == "literal":
-            value = _compactTemplateLiteral(value)
+            value, at_line_start = _compactTemplateLiteral(value, at_line_start)
 
             if value:
                 result.append((kind, value))
         else:
+            # A substituted value emits inline content of unknown shape, so the
+            # following literal is not at a line start and its leading
+            # whitespace must be preserved.
             result.append((kind, value))
+            at_line_start = False
 
     return tuple(result)
 
