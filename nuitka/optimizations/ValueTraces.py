@@ -1146,6 +1146,17 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def compareValueTrace(self, other):
         return other.isLoopTrace() and self.loop_node is other.loop_node
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # For our own loop, we can contribute the known shape alternatives, but
+        # for a foreign loop we must stay conservative. This has to be identical
+        # for the complete and the incomplete trace, otherwise the shape of a
+        # variable would toggle when a foreign loop transitions between the
+        # incomplete and the complete state, which would prevent convergence.
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
+
     def getTypeShape(self):
         if self.type_shape is None:
             if len(self.type_shapes) > 1:
@@ -1271,12 +1282,6 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
-
-    def emitShapeAlternativesForLoop(self, emit, loop_node):
-        if self.loop_node is loop_node:
-            self.getTypeShape().emitAlternatives(emit)
-        else:
-            emit(tshape_unknown)
 
 
 _is_debug = None
