@@ -635,7 +635,11 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    if (Nuitka_Frame_IsSuspended(frame)) {
+    // CPython 3.13+ only rejects clearing a generated-owned suspended frame.
+    // Frame-object-owned frames can always be cleared, matching CPython's
+    // frame_clear logic.
+    PyObject *frame_gen = Nuitka_GetFrameGenerator(frame);
+    if ((frame_gen != NULL) && Nuitka_Frame_IsSuspended(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear a suspended frame");
 
         return NULL;
