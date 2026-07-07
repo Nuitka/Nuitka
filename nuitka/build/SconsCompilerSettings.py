@@ -650,7 +650,7 @@ _supported_resource_modes = (
 )
 
 
-def _decideBlobResourceMode(env):
+def _decideBlobResourceMode(env, blob_count):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
     # pylint: disable=too-many-branches
@@ -676,8 +676,12 @@ def _decideBlobResourceMode(env):
             resource_mode = "c23_embed"
             reason = "default for macOS with clang 19 or later"
         else:
-            resource_mode = "mac_section"
-            reason = "default for macOS"
+            if blob_count > 1:
+                resource_mode = "code"
+                reason = "default for macOS with multiple blobs"
+            else:
+                resource_mode = "mac_section"
+                reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -955,7 +959,7 @@ def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
     if env.resource_mode == "absent":
-        env.resource_mode, reason = _decideBlobResourceMode(env)
+        env.resource_mode, reason = _decideBlobResourceMode(env, blob_count=1)
 
         scons_details_logger.info(
             "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
@@ -1003,16 +1007,12 @@ def _addConstantBlobFiles(env, source_dir):
         blob_filenames = sorted(blob_filenames)
 
         if env.resource_mode == "absent" and blob_filenames:
-            env.resource_mode, reason = _decideBlobResourceMode(env)
+            env.resource_mode, reason = _decideBlobResourceMode(
+                env, blob_count=len(blob_filenames)
+            )
 
             scons_details_logger.info(
                 "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
-            )
-
-        if len(blob_filenames) > 1 and env.resource_mode == "mac_section":
-            return scons_logger.sysexit(
-                "Resource mode 'mac_section' is not supported for direct constants blobs.",
-                env=env,
             )
 
         blob_define = None
