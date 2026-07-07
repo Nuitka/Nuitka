@@ -14,13 +14,25 @@
 #include <windows.h>
 #endif
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#define unlikely(x) (x)
 #endif
 
 #include "nuitka/safe_string_ops.h"
 
 #include <ctype.h>
 #include <wctype.h>
+
+#if defined(__APPLE__)
+// For 'newlocale', 'freelocale' and the 'mbstowcs_l' BSD/Darwin extension.
+#include <locale.h>
+#include <xlocale.h>
+#endif
 
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) >= buffer_size) {
@@ -120,12 +132,36 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
         buffer_size -= 1;
     }
 
+#if defined(__APPLE__)
+    // On macOS filesystem paths are always UTF-8, independent of the process
+    // locale.
+    static locale_t utf8_locale = (locale_t)0;
+
+    if (unlikely(utf8_locale == (locale_t)0)) {
+        utf8_locale = newlocale(LC_CTYPE_MASK, "UTF-8", (locale_t)0);
+
+        if (unlikely(utf8_locale == (locale_t)0)) {
+            abort();
+        }
+    }
+
+    size_t converted = mbstowcs_l(target, source, buffer_size, utf8_locale);
+
+    if (unlikely(converted == (size_t)-1 || converted >= buffer_size)) {
+        abort();
+    }
+#else
+    // On other platforms we rely on the locale for the conversion. Note that
+    // non-ASCII paths in a non-UTF-8 or "C" locale are not handled here.
+    // TODO: This is not a good approach, as it does not handle multi-byte
+    // characters correctly.
     while (*source != 0) {
         appendCharSafeW(target, *source, buffer_size);
         target++;
         source++;
         buffer_size -= 1;
     }
+#endif
 }
 
 void checkWStringNumber(wchar_t const *value) {
