@@ -9,12 +9,13 @@ whose implementation lives here. The creation itself also lives here.
 """
 
 from .ChildrenHavingMixins import ChildHavingAsyncgenRefMixin
-from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
+from .ExpressionBases import ExpressionBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
+from .GeneratorNodes import MakeGeneratorLikeMixin
 
 
 class ExpressionMakeAsyncgenObject(
-    ExpressionNoSideEffectsMixin, ChildHavingAsyncgenRefMixin, ExpressionBase
+    MakeGeneratorLikeMixin, ChildHavingAsyncgenRefMixin, ExpressionBase
 ):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
@@ -29,27 +30,13 @@ class ExpressionMakeAsyncgenObject(
 
         ExpressionBase.__init__(self, source_ref)
 
-        self.variable_closure_traces = []
+        MakeGeneratorLikeMixin.__init__(self)
+
+    def _getRefBody(self):
+        return self.subnode_asyncgen_ref.getFunctionBody()
 
     def getDetailsForDisplay(self):
         return {"asyncgen": self.subnode_asyncgen_ref.getFunctionBody().getCodeName()}
-
-    def computeExpression(self, trace_collection):
-        self.variable_closure_traces = []
-
-        for (
-            closure_variable
-        ) in self.subnode_asyncgen_ref.getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addNameUsage()
-
-            self.variable_closure_traces.append((closure_variable, trace))
-
-        # TODO: Asyncgen body may know something too.
-        return self, None, None
-
-    def getClosureVariableVersions(self):
-        return self.variable_closure_traces
 
 
 class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):

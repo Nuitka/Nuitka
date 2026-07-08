@@ -8,6 +8,8 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
+from abc import abstractmethod
+
 from nuitka.PythonVersions import python_version
 
 from .ChildrenHavingMixins import ChildHavingGeneratorRefMixin
@@ -17,8 +19,40 @@ from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
+class MakeGeneratorLikeMixin(ExpressionNoSideEffectsMixin):
+    """Mixin for make-(generator|coroutine|asyncgen)-object expressions."""
+
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def __init__(self):
+        self.variable_closure_traces = None
+
+    @abstractmethod
+    def _getRefBody(self):
+        """Return the function body of the referenced generator/coroutine/asyncgen."""
+
+    def computeExpression(self, trace_collection):
+        self.variable_closure_traces = []
+
+        for closure_variable in self._getRefBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addNameUsage()
+
+            self.variable_closure_traces.append((closure_variable, trace))
+
+        return self, None, None
+
+    def getClosureVariableVersions(self):
+        return self.variable_closure_traces
+
+    def mayRaiseException(self, exception_type):
+        # The generator/coroutine/asyncgen creation itself never raises.
+        return False
+
+
 class ExpressionMakeGeneratorObject(
-    ExpressionNoSideEffectsMixin, ChildHavingGeneratorRefMixin, ExpressionBase
+    MakeGeneratorLikeMixin, ChildHavingGeneratorRefMixin, ExpressionBase
 ):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
@@ -35,27 +69,10 @@ class ExpressionMakeGeneratorObject(
 
         ExpressionBase.__init__(self, source_ref)
 
-        self.variable_closure_traces = None
+        MakeGeneratorLikeMixin.__init__(self)
 
-    def getCodeObject(self):
-        return self.code_object
-
-    def computeExpression(self, trace_collection):
-        self.variable_closure_traces = []
-
-        for (
-            closure_variable
-        ) in self.subnode_generator_ref.getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addNameUsage()
-
-            self.variable_closure_traces.append((closure_variable, trace))
-
-        # TODO: Generator body may know something too.
-        return self, None, None
-
-    def getClosureVariableVersions(self):
-        return self.variable_closure_traces
+    def _getRefBody(self):
+        return self.subnode_generator_ref.getFunctionBody()
 
 
 class ExpressionGeneratorObjectBody(
