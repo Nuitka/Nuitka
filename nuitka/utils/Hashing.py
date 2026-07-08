@@ -29,9 +29,12 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
-            elif type(value) in (dict, OrderedDict):
+            elif type(value) is OrderedDict:
                 self.updateFromBytes(b"dict")
-                self.updateFromValues(*list(value.items()))
+                self.updateFromValues(*value.items())
+            elif type(value) is dict:
+                self.updateFromBytes(b"dict")
+                self.updateFromValues(*sorted(value.items()))
             elif type(value) is tuple:
                 self.updateFromBytes(b"tuple")
                 self.updateFromValues(*value)
