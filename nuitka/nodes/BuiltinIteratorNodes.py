@@ -297,7 +297,7 @@ class ExpressionBuiltinZipMixin(object):
             if value.mayRaiseException(exception_type):
                 return True
 
-            if value.getTypeShape().hasShapeSlotIter() is False:
+            if value.getTypeShape().hasShapeSlotIter() is not True:
                 return True
 
         return False
