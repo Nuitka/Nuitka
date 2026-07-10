@@ -11,11 +11,18 @@ and maintain the Nuitka compiler.
     to avoid complex workarounds for niche Windows 2.7 issues (e.g., symlinks need not be
     supported).
 - **Syntax Restrictions:**
+  - Do NOT use syntax that cannot be parsed by Python 2.6 in Nuitka's own Python implementation
+    files. This includes all modern Python 3-only syntax, even when guarded by version checks.
   - Do NOT use f-strings (use `%` formatting or `.format()`).
   - Do NOT use type hints in the source code (use comments if necessary).
+  - Do NOT use function annotations or variable annotations.
   - Do NOT use `yield from` or `async/await`.
   - DO NOT use `return` in a generator function (Python3-only feature).
   - DO NOT use set literals (use `set()` instead) - *required for Python 2.6 compatibility*.
+  - Do NOT use dict comprehensions or set comprehensions - *required for Python 2.6 compatibility*.
+  - Do NOT use assignment expressions (`:=`).
+  - Do NOT use structural pattern matching (`match`/`case`).
+  - Do NOT use exception chaining syntax (`raise ... from ...`).
   - Do NOT use bare `except:` (use `except Exception:` or `except BaseException:` if intended).
   - Do NOT use `re.VERBOSE` (avoid regular expressions that require runtime overhead or large
     definitions).
@@ -91,18 +98,8 @@ and maintain the Nuitka compiler.
 
 ## 4. Code Quality & Verification
 
-Before marking a task as complete, you must verify the changes using the project's custom tools:
-
-- **Linting:** You must run the project's pylint script on any modified files.
-
-  - Command: `./bin/check-nuitka-with-pylint --un-pushed`
-  - On Windows, use `.\bin\check-nuitka-with-pylint.cmd --un-pushed` instead.
-  - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
-    unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
-    diagnosis.
-  - Can be run on the entire project with `./bin/check-nuitka-with-pylint`
-  - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
-    without a very strong reason.
+Before marking a task as complete, you must verify the changes using the project's custom tools in
+this order:
 
 - **Auto-Formatting:** Apply auto-formatting to any file you touch (Python or C).
 
@@ -118,6 +115,31 @@ Before marking a task as complete, you must verify the changes using the project
     tools.
   - On Windows, if the command fails with "Python not found", run
     `{Python.exe} misc\vscode_config_gen.py` first to generate the config files needed.
+
+- **Linting:** You must run the project's pylint script after auto-formatting.
+
+  - Command: `./bin/check-nuitka-with-pylint --un-pushed`
+  - On Windows, use `.\bin\check-nuitka-with-pylint.cmd --un-pushed` instead.
+  - Prefer this exact repo-root command by default. Do not replace it with file-specific arguments
+    unless the user explicitly asks for that or there is a demonstrated need to narrow the run for
+    diagnosis.
+  - Can be run on the entire project with `./bin/check-nuitka-with-pylint`
+  - *Constraint:* If pylint fails, fix the errors before asking for review. Do not suppress warnings
+    without a very strong reason.
+
+### Change-Type Verification Matrix
+
+Always run the required auto-formatting and pylint commands first. Then add focused verification for
+the changed area:
+
+| Change type           | Additional verification                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| Python change         | Run the affected test, reproducer, or nearest repository test through `bin/nuitka`.                      |
+| C change              | Compile and run a representative program that exercises the changed helper or runtime path.              |
+| Package config change | Build a standalone MRE for the affected package and confirm the compiled binary imports/runs correctly.  |
+| SCons change          | Run `bin/nuitka --version` and exercise `tests/basics/AssertsTest.py` in the relevant compilation modes. |
+| Release/OBS issue     | Fetch the raw OBS/build log, identify the terminal failure, and verify the changed release tooling path. |
+| CPython-suite change  | Use the matching `tests/CPython*` submodule workflow and run the changed CPython comparison test.        |
 
 - **Temporary Verification Files:**
 
