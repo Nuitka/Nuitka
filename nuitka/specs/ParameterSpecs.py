@@ -149,10 +149,14 @@ class ParameterSpec(object):
     def checkParametersValid(self):
         arg_names = self.getParameterNames()
 
-        # Check for duplicate arguments, could happen.
+        # Check for duplicate arguments, could happen. Track seen names in a set
+        # for a single pass, rather than re-scanning the whole list per name,
+        # and report the first repeated name, which matches CPython's own error.
+        seen_arg_names = set()
         for arg_name in arg_names:
-            if arg_names.count(arg_name) != 1:
+            if arg_name in seen_arg_names:
                 return "duplicate argument '%s' in function definition" % arg_name
+            seen_arg_names.add(arg_name)
 
         return None
 
