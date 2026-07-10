@@ -21,6 +21,7 @@ from nuitka.utils.InstanceCounters import (
 )
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
+from .SpecialConstantData import BlobData
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
@@ -543,6 +544,9 @@ class PythonChildContextBase(PythonContextBase):
     def getConstantCode(self, constant, deep_check=False):
         return self.parent.getConstantCode(constant, deep_check=deep_check)
 
+    def getBlobConstantCode(self, data, name):
+        return self.parent.getBlobConstantCode(data, name)
+
     def addModuleInitCode(self, code):
         self.parent.addModuleInitCode(code)
 
@@ -926,6 +930,9 @@ class PythonModuleContext(
             assert not isMutable(constant)
 
         return self.constant_accessor.getConstantCode(constant)
+
+    def getBlobConstantCode(self, data, name):
+        return self.getConstantCode(BlobData(data, name))
 
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()

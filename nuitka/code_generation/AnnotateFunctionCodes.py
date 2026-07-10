@@ -14,7 +14,6 @@ from .PythonSourceCodeGeneration import (
     generateFunctionSourceFromBody,
     getFunctionMakerIdentifier,
 )
-from .SpecialConstantData import BlobData
 
 
 def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
@@ -48,11 +47,9 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
     marshalled = marshal.dumps(compiled.co_consts[0])
     marshalled_size = len(marshalled)
 
-    marshalled_ptr = context.getConstantCode(
-        BlobData(
-            marshalled,
-            "annotate marshalled code for '%s'" % function_identifier,
-        )
+    marshalled_ptr = context.getBlobConstantCode(
+        marshalled,
+        "annotate marshalled code for '%s'" % function_identifier,
     )
 
     module_code_name = context.getModuleCodeName()
