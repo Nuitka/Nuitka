@@ -34,6 +34,11 @@ from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getNormalizedPathJoin, openPickleFile
 
+try:
+    import annotationlib
+except ImportError:
+    annotationlib = None
+
 
 class BuiltinAnonValue(object):
     """Used to pickle anonymous values."""
@@ -63,6 +68,15 @@ class BuiltinUnionTypeValue(object):
 
     def __init__(self, args):
         self.args = args
+
+
+class BuiltinForwardRefValue(object):
+    """For transporting annotationlib.ForwardRef values through pickler."""
+
+    def __init__(self, arg, module, is_class):
+        self.arg = arg
+        self.module = module
+        self.is_class = is_class
 
 
 class BuiltinSpecialValue(object):
@@ -106,6 +120,16 @@ def _pickleUnionType(pickler, value):
     pickler.save(BuiltinUnionTypeValue(args=value.__args__))
 
 
+def _pickleForwardRef(pickler, value):
+    pickler.save(
+        BuiltinForwardRefValue(
+            arg=value.__forward_arg__,
+            module=value.__forward_module__,
+            is_class=value.__forward_is_class__,
+        )
+    )
+
+
 class ConstantStreamWriter(object):
     """Write constants to a stream and return numbers for them."""
 
@@ -132,6 +156,9 @@ class ConstantStreamWriter(object):
 
         if python_version >= 0x3A0:
             self.pickle.dispatch[UnionType] = _pickleUnionType
+
+        if python_version >= 0x3E0 and annotationlib is not None:
+            self.pickle.dispatch[annotationlib.ForwardRef] = _pickleForwardRef
 
     def addConstantValue(self, constant_value):
         self.pickle.dump(constant_value)

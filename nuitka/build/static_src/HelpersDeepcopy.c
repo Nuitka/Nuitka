@@ -125,6 +125,10 @@ typedef struct {
 PyTypeObject *Nuitka_PyUnion_Type;
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+PyTypeObject *Nuitka_PyForwardRef_Type;
+#endif
+
 static PyObject *_makeDeepCopyFunctionCapsule(copy_func func) { return Nuitka_CapsuleNew((void *)func); }
 
 static void _initDeepCopy(PyThreadState *tstate) {
@@ -161,6 +165,19 @@ static void _initDeepCopy(PyThreadState *tstate) {
         Py_DECREF(args_tuple);
     }
 
+#endif
+
+#if PYTHON_VERSION >= 0x3e0
+    {
+        PyObject *annotationlib_module = PyImport_ImportModule("annotationlib");
+        CHECK_OBJECT(annotationlib_module);
+
+        Nuitka_PyForwardRef_Type = (PyTypeObject *)PyObject_GetAttrString(annotationlib_module, "ForwardRef");
+        Py_DECREF(annotationlib_module);
+        CHECK_OBJECT(Nuitka_PyForwardRef_Type);
+
+        PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Nuitka_PyForwardRef_Type, _deep_noop);
+    }
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -459,6 +476,27 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         result ^= DEEP_HASH(tstate, args);
         Py_DECREF(args);
+
+        return result;
+#endif
+#if PYTHON_VERSION >= 0x3e0
+    } else if (Py_TYPE(value) == Nuitka_PyForwardRef_Type) {
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
+
+        PyObject *arg = PyObject_GetAttrString(value, "__forward_arg__");
+        CHECK_OBJECT(arg);
+        result ^= DEEP_HASH(tstate, arg);
+        Py_DECREF(arg);
+
+        PyObject *module = PyObject_GetAttrString(value, "__forward_module__");
+        CHECK_OBJECT(module);
+        result ^= DEEP_HASH(tstate, module);
+        Py_DECREF(module);
+
+        PyObject *is_class = PyObject_GetAttrString(value, "__forward_is_class__");
+        CHECK_OBJECT(is_class);
+        result ^= DEEP_HASH(tstate, is_class);
+        Py_DECREF(is_class);
 
         return result;
 #endif

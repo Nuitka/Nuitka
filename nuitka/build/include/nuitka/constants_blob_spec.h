@@ -42,6 +42,7 @@
 #define NUITKA_CONSTANT_BLOB_TAG_BLOB_DATA 0x58                 /* 'X' */
 #define NUITKA_CONSTANT_BLOB_TAG_GENERIC_ALIAS 0x41             /* 'A' */
 #define NUITKA_CONSTANT_BLOB_TAG_UNION_TYPE 0x48                /* 'H' */
+#define NUITKA_CONSTANT_BLOB_TAG_FORWARD_REF 0x52               /* 'R' */
 #define NUITKA_CONSTANT_BLOB_TAG_BUILTIN_NAMED 0x4f             /* 'O' */
 #define NUITKA_CONSTANT_BLOB_TAG_BUILTIN_EXCEPTION 0x45         /* 'E' */
 #define NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT 0x43               /* 'C' */

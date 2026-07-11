@@ -22,6 +22,7 @@ from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
     BuiltinAnonValue,
+    BuiltinForwardRefValue,
     BuiltinGenericAliasValue,
     BuiltinSpecialValue,
     BuiltinUnionTypeValue,
@@ -334,6 +335,12 @@ def _writeConstantValue(output, constant_value, blob_spec):
         output.write(blob_spec.tag_union_type)
         _last_written = None
         _writeConstantValue(output, constant_value.args, blob_spec)
+    elif constant_type is BuiltinForwardRefValue:
+        output.write(blob_spec.tag_forward_ref)
+        _last_written = None
+        _writeConstantValue(output, constant_value.arg, blob_spec)
+        _writeConstantValue(output, constant_value.module, blob_spec)
+        _writeConstantValue(output, constant_value.is_class, blob_spec)
     elif constant_value in builtin_named_values:
         output.write(blob_spec.tag_builtin_named)
         output.write(builtin_named_values[constant_value].encode("utf8"))

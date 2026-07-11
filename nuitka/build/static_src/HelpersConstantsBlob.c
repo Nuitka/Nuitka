@@ -69,6 +69,23 @@ static PyObject *set_cache = NULL;
 
 static PyObject *frozenset_cache = NULL;
 
+#if PYTHON_VERSION >= 0x3e0
+static PyObject *annotationlib_forward_ref_type = NULL;
+
+static PyObject *getAnnotationlibForwardRefType(void) {
+    if (annotationlib_forward_ref_type == NULL) {
+        PyObject *annotationlib_module = PyImport_ImportModule("annotationlib");
+        CHECK_OBJECT(annotationlib_module);
+
+        annotationlib_forward_ref_type = PyObject_GetAttrString(annotationlib_module, "ForwardRef");
+        Py_DECREF(annotationlib_module);
+        CHECK_OBJECT(annotationlib_forward_ref_type);
+    }
+
+    return annotationlib_forward_ref_type;
+}
+#endif
+
 // Use our own non-random hash for some of the things to be fast. This is inspired
 // from the original Python2 hash func, but we are mostly using it on pointer values
 static Py_hash_t Nuitka_FastHashBytes(const void *value, Py_ssize_t size) {
@@ -1132,6 +1149,27 @@ static unsigned char const *_unpackBlobConstantObjectUnionType(PyThreadState *ts
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+static unsigned char const *_unpackBlobConstantObjectForwardRef(PyThreadState *tstate, void **output,
+                                                                unsigned char const *data) {
+    PyObject *items[3];
+    data = _unpackBlobConstantsAt(tstate, items, data, 3);
+
+    PyObject *args = MAKE_TUPLE1(tstate, items[0]);
+    PyObject *kwargs = MAKE_DICT_EMPTY(tstate);
+
+    PyDict_SetItemString(kwargs, "module", items[1]);
+    PyDict_SetItemString(kwargs, "is_class", items[2]);
+
+    PyObject *forward_ref = PyObject_Call(getAnnotationlibForwardRefType(), args, kwargs);
+    Py_DECREF(args);
+    Py_DECREF(kwargs);
+
+    _finalizeUnpackedConstantObject(output, forward_ref);
+    return data;
+}
+#endif
+
 static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *tstate, void **output,
                                                                 unsigned char const *data) {
     uint64_t flags = _unpackVariableLength(&data);
@@ -1431,6 +1469,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
 #if PYTHON_VERSION >= 0x3a0
     case NUITKA_CONSTANT_BLOB_TAG_UNION_TYPE: {
         data = _unpackBlobConstantObjectUnionType(tstate, output, data);
+        break;
+    }
+#endif
+#if PYTHON_VERSION >= 0x3e0
+    case NUITKA_CONSTANT_BLOB_TAG_FORWARD_REF: {
+        data = _unpackBlobConstantObjectForwardRef(tstate, output, data);
         break;
     }
 #endif

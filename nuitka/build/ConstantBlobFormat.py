@@ -55,6 +55,7 @@ _tag_define_names = (
     ("blob_data", "NUITKA_CONSTANT_BLOB_TAG_BLOB_DATA"),
     ("generic_alias", "NUITKA_CONSTANT_BLOB_TAG_GENERIC_ALIAS"),
     ("union_type", "NUITKA_CONSTANT_BLOB_TAG_UNION_TYPE"),
+    ("forward_ref", "NUITKA_CONSTANT_BLOB_TAG_FORWARD_REF"),
     ("builtin_named", "NUITKA_CONSTANT_BLOB_TAG_BUILTIN_NAMED"),
     ("builtin_exception", "NUITKA_CONSTANT_BLOB_TAG_BUILTIN_EXCEPTION"),
     ("code_object", "NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT"),
