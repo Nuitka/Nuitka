@@ -180,7 +180,11 @@ def namifyConstant(constant):
         )
     elif constant_type is UnionType:
         return "uniontype_%s" % namifyConstant(constant.__args__)
-    elif python_version >= 0x3E0 and annotationlib is not None and constant_type is annotationlib.ForwardRef:
+    elif (
+        python_version >= 0x3E0
+        and annotationlib is not None
+        and constant_type is annotationlib.ForwardRef
+    ):
         return "forwardref_%s_%s_%s" % (
             namifyConstant(constant.__forward_arg__),
             namifyConstant(constant.__forward_module__),
