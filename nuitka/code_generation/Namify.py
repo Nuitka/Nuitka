@@ -17,9 +17,15 @@ from types import BuiltinFunctionType
 from nuitka.__past__ import GenericAlias, UnionType, long, md5, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
 from .SpecialConstantData import BlobData
+
+try:
+    import annotationlib
+except ImportError:
+    annotationlib = None
 
 
 class ExceptionCannotNamify(Exception):
@@ -174,6 +180,12 @@ def namifyConstant(constant):
         )
     elif constant_type is UnionType:
         return "uniontype_%s" % namifyConstant(constant.__args__)
+    elif python_version >= 0x3E0 and annotationlib is not None and constant_type is annotationlib.ForwardRef:
+        return "forwardref_%s_%s_%s" % (
+            namifyConstant(constant.__forward_arg__),
+            namifyConstant(constant.__forward_module__),
+            namifyConstant(constant.__forward_is_class__),
+        )
     elif constant is sys.version_info:
         return "sys_version_info"
     elif constant_type is BlobData:
