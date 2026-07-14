@@ -187,9 +187,11 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python run time warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use doc strings), "-u" (alias "unbuffered"), "isolated" (do not
-load outside code), "-P" (alias "safe_path", do not used current directory
-in module search) and "-m" (package mode, compile as "package.__main__").
+(do not use doc strings), "-u" (alias "unbuffered"), "-v" (alias
+"trace_imports", trace imports, repeat as "-vv" for more verbosity, or give
+the level directly with "trace_imports=2"), "isolated" (do not load outside
+code), "-P" (alias "safe_path", do not used current directory in module
+search) and "-m" (package mode, compile as "package.__main__").
 Default empty.""",
 )
 

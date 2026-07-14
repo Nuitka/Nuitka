@@ -105,7 +105,7 @@ python_sysflag_bytes_warning = getArgumentBool("python_sysflag_bytes_warning", F
 # python_sysflag_no_site
 python_sysflag_no_site = getArgumentBool("python_sysflag_no_site", False)
 # python_sysflag_verbose
-python_sysflag_verbose = getArgumentBool("python_sysflag_verbose", False)
+python_sysflag_verbose = getArgumentInt("python_sysflag_verbose", 0)
 # python_sysflag_unicode
 python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 # python_sysflag_utf8
@@ -446,7 +446,7 @@ def createBuildDefinitionsFile():
 
     env.build_definitions["SYSFLAG_NO_SITE"] = 1 if python_sysflag_no_site else 0
 
-    env.build_definitions["SYSFLAG_VERBOSE"] = 1 if python_sysflag_verbose else 0
+    env.build_definitions["SYSFLAG_VERBOSE"] = python_sysflag_verbose
 
     env.build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
