@@ -68,7 +68,7 @@ struct Nuitka_LoaderObject {
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 };
 
-#if _NUITKA_EXE_MODE
+#if _NUITKA_EXE_MODE && !SYSFLAG_ISOLATED
 static inline bool isVerbose(void) { return Py_VerboseFlag != 0; }
 #elif _NUITKA_SYSFLAG_VERBOSE
 static inline bool isVerbose(void) { return true; }
@@ -991,8 +991,6 @@ error:
     if (entrypoint == NULL) {
         return NULL;
     }
-
-    assert(entrypoint);
 
     char const *old_context = NuitkaImport_SwapPackageContext(package);
 
