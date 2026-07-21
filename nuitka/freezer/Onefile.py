@@ -282,7 +282,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if has_payload:
         expected_files = []
         for data_file in getIncludedDataFiles():
-            if "copy" in data_file.tags:
+            if "copy" in data_file.tags and "external" not in data_file.tags:
                 expected_files.append(data_file.dest_path)
 
         for entry_point in getStandaloneEntryPoints():
