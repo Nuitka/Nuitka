@@ -115,6 +115,10 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
             sum([value.split(",") for value in self.include_qt_plugins], [])
         )
 
+        self.noinclude_qt_plugins = OrderedSet(
+            sum([value.split(",") for value in self.noinclude_qt_plugins], [])
+        )
+
         # Useless, but nice for old option usage, where expanding it meant to repeat it.
         if "sensible" in self.include_qt_plugins:
             self.include_qt_plugins.remove("sensible")
