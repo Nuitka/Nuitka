@@ -2095,13 +2095,45 @@ del macos_group
 linux_group = parser.add_option_group("Linux specific controls")
 
 linux_group.add_option(
+    "--linux-app-icon",
     "--linux-icon",
     "--linux-onefile-icon",
     action="append",
     dest="linux_icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
+    help="""\
+Add executable icon for the Linux desktop file to use. Can be given
+only one time. Defaults to Python icon if available. Note that the
+desktop file references the icon by name only, it will not display
+unless the icon file is also installed into the system icon paths,
+e.g. '/usr/share/icons/hicolor/' or '~/.local/share/icons/'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-console-mode",
+    action="store",
+    dest="linux_app_console_mode",
+    choices=("force", "disable"),
+    metavar="LINUX_APP_CONSOLE_MODE",
+    default=None,
+    help="""\
+Select console mode to use with the Linux desktop file. Default mode
+is 'disable' and the 'Terminal' entry makes it launch without a
+terminal. With 'force' a terminal is opened when launched from the
+desktop environment. Default is 'disable'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-license",
+    action="store",
+    dest="linux_app_license",
+    metavar="LINUX_APP_LICENSE",
+    default=None,
+    help="""\
+SPDX license expression of the application used in the AppStream
+metainfo file created on Linux, e.g. 'Apache-2.0'. Defaults
+to 'Proprietary'.""",
 )
 
 del linux_group

@@ -280,6 +280,23 @@ def _warnMacOSBundleSpecificOption(option_name):
     _warnMacOSSpecificOption(option_name)
 
 
+def _warnLinuxSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Linux")
+
+
+def _warnLinuxAppOnlyOption(option_name):
+    if isLinux() and not isLinuxAppMode():
+        if not options.github_workflow_options:
+            options_logger.warning("""\
+Note: Using Linux app specific option '%s' has no effect unless \
+building with '--mode=app' or '--mode=app-dist' on Linux.""" % option_name)
+
+
+def _warnLinuxAppSpecificOption(option_name):
+    _warnLinuxAppOnlyOption(option_name)
+    _warnLinuxSpecificOption(option_name)
+
+
 def _checkDataDirOptionValue(data_dir, option_name):
     if "=" not in data_dir:
         return options_logger.sysexit(
@@ -684,7 +701,7 @@ it before using it: '%s' (from --output-filename='%s')."""
                 )
             )
 
-    if isLinux():
+    if isLinuxAppMode():
         if len(getLinuxIconPaths()) > 1:
             return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
@@ -1090,15 +1107,17 @@ library. Please upgrade/downgrade to a supported micro version.""")
     if options.macos_app_mode is not None:
         _warnMacOSBundleSpecificOption("--macos-app-mode")
     if options.macos_create_dmg:
-        _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
+        _warnMacOSBundleSpecificOption("--macos-installer")
 
         if isMacOS():
+            # Local import to avoid macOS dependencies on other platforms.
             from nuitka.installer.MacOSDmg import getCreateDmgPath
 
             if getCreateDmgPath() is None:
                 return options_logger.sysexit(
-                    "Error, cannot find 'create-dmg' tool. It is required for '--macos-app-create-dmg'."
+                    "Error, cannot find 'create-dmg' tool. It is required for '--macos-installer'."
                 )
+
     if options.windows_create_installer:
         _warnWindowsSpecificOption("--windows-create-installer")
 
@@ -1148,6 +1167,21 @@ library. Please upgrade/downgrade to a supported micro version.""")
             return options_logger.sysexit(
                 "Error, signing certificate file '%s' does not exist." % cert_filename
             )
+
+    if options.linux_icon_path:
+        _warnLinuxAppSpecificOption("--linux-app-icon")
+    if options.linux_app_console_mode is not None:
+        _warnLinuxAppSpecificOption("--linux-app-console-mode")
+    if options.linux_app_license is not None:
+        _warnLinuxAppSpecificOption("--linux-app-license")
+
+    if isLinuxAppMode() and not shallCreateLinuxApp():
+        options_logger.warning(
+            """\
+Not creating Linux desktop file and AppStream metainfo files, these \
+require '--company-name' and '--product-name' to be given.""",
+            mnemonic="linux-app-metadata",
+        )
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
@@ -2199,6 +2233,41 @@ def getMacOSAppConsoleMode():
     return (isMacOS() and options.macos_app_console_mode) or "disable"
 
 
+def getLinuxAppConsoleMode():
+    """:returns: str from ``--linux-app-console-mode``"""
+    return (isLinux() and options.linux_app_console_mode) or "disable"
+
+
+def getLinuxAppLicense():
+    """*str* SPDX license expression derived from ``--linux-app-license``"""
+    return options.linux_app_license or "Proprietary"
+
+
+def isLinuxAppMode():
+    """:returns: bool derived from ``--mode=app|app-dist`` being used on Linux"""
+    return (
+        isLinux()
+        and options is not None
+        and options.compilation_mode in ("app", "app-dist")
+    )
+
+
+def shallCreateLinuxApp():
+    """*bool* shall create desktop file and metainfo files on Linux
+
+    Notes:
+        This is derived from using '--mode=app' or '--mode=app-dist' on
+        Linux, and checks that company and product names are given, from
+        which the application id is derived, otherwise this is 'False'
+        and a one time warning is given.
+    """
+    return (
+        isLinuxAppMode()
+        and getCompanyName() is not None
+        and getProductName() is not None
+    )
+
+
 def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
@@ -2501,24 +2570,8 @@ def getWindowsIconPaths():
 
 
 def getLinuxIconPaths():
-    """*list of str*, values of ``--linux-icon``"""
-    result = options.linux_icon_path
-
-    # Check if Linux icon requirement is met.
-    if isLinux() and not result and isOnefileMode():
-        # spell-checker: ignore pixmaps
-        default_icons = (
-            "/usr/share/pixmaps/python%s.xpm" % python_version_str,
-            "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
-            "/usr/share/pixmaps/python.xpm",
-        )
-
-        for icon in default_icons:
-            if os.path.exists(icon):
-                result.append(icon)
-                break
-
-    return _checkedIconPaths(result)
+    """*list of str*, values of ``--linux-app-icon``"""
+    return _checkedIconPaths(options.linux_icon_path)
 
 
 def getMacOSIconPaths():
@@ -2734,7 +2787,7 @@ def shallCreateAppBundle():
 
 
 def shallCreateDmgFile():
-    """*bool* shall create a DMG file, derived from ``--macos-app-create-dmg`` value"""
+    """*bool* shall create a DMG file, derived from ``--macos-installer`` value"""
     return options.macos_create_dmg and isMacOS()
 
 

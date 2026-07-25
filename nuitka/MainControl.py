@@ -49,6 +49,7 @@ from nuitka.freezer.IncludedEntryPoints import (
     addMainEntryPoint,
     getStandaloneEntryPoints,
 )
+from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
@@ -108,6 +109,7 @@ from nuitka.options.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
+    shallCreateLinuxApp,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
@@ -1349,6 +1351,9 @@ def _main():
 
         if isOnefileMode():
             packDistFolderToOnefile(dist_dir)
+
+            if shallCreateLinuxApp():
+                createLinuxAppFiles(logger=general, onefile=True)
 
             if isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
