@@ -71,6 +71,17 @@ def getEmbeddedDataFilenames(compilation_report):
     return result
 
 
+def getInstallerOutputFilenameFromReport(compilation_report, prefixes):
+    installer_node = compilation_report.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return _getResolvedCompilationPath(
+        path=installer_node.attrib["filename"], prefixes=prefixes
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

@@ -743,6 +743,13 @@ through implicit import by '%s' plugin encountered."""
             plugin.onFinalResult(filename)
 
     @staticmethod
+    @counted_plugin_method
+    def onInstallerOutput(filename):
+        """Let plugins post-process the created installer"""
+        for plugin in getActivePlugins():
+            plugin.onInstallerOutput(filename)
+
+    @staticmethod
     def considerExtraDlls(module):
         """Ask plugins to provide extra DLLs.
 

@@ -1947,17 +1947,6 @@ macos_group.add_option(
 )
 
 macos_group.add_option(
-    "--macos-app-create-dmg",
-    action="store_true",
-    dest="macos_create_dmg",
-    default=False,
-    help="""\
-When compiling for macOS, create a DMG file for the application bundle.
-Defaults to off.""",
-)
-
-
-macos_group.add_option(
     "--macos-signed-app-name",
     action="store",
     dest="macos_signed_app_name",
@@ -2198,6 +2187,112 @@ Trademark used in version information. Windows/macOS only at this time. Defaults
 
 
 del version_group
+
+installer_group = parser.add_option_group("Installer controls")
+
+installer_group.add_option(
+    "--macos-installer",
+    "--macos-app-create-dmg",
+    action="store_true",
+    dest="macos_create_dmg",
+    default=False,
+    help="""\
+When compiling for macOS, create a DMG file for the application bundle.
+Defaults to off.""",
+)
+
+installer_group.add_option(
+    "--windows-create-installer",
+    action="store_true",
+    dest="windows_create_installer",
+    default=False,
+    help="""\
+Create a Windows installer (NSIS) for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--windows-nsis-path",
+    action="store",
+    dest="windows_installer_nsis_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The installer backend tool to use, or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-output",
+    action="store",
+    dest="windows_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the installer executable to create. Defaults to the program or \
+dist folder name with a "-setup.exe" suffix in the output directory.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-install-dir",
+    action="store",
+    dest="windows_installer_install_dir",
+    default=None,
+    metavar="INSTALLER_INSTALL_DIR",
+    help="""\
+Default installation directory presented to the end user, backend specific \
+values like "$PROGRAMFILES64\\ProductName" are allowed. Defaults to a \
+standard location derived from the product name and install mode.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-shortcuts",
+    action="store",
+    dest="windows_installer_shortcuts",
+    default=None,
+    multi_choices=("desktop", "start-menu"),
+    metavar="INSTALLER_SHORTCUTS",
+    help="""\
+Comma separated list of shortcuts the installer offers, allowed values are \
+"desktop" and "start-menu". Default is no shortcuts.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-license-file",
+    action="store",
+    dest="windows_installer_license_filename",
+    default=None,
+    metavar="INSTALLER_LICENSE_FILENAME",
+    help="""\
+License text file the installer shall present during installation. Default \
+is to have no license page.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-no-user-change-install-dir",
+    action="store_true",
+    dest="windows_installer_no_user_change_install_dir",
+    default=False,
+    help="""\
+Do not allow the end user to override the default installation directory. \
+Default is to allow it.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-mode",
+    action="store",
+    dest="windows_installer_mode",
+    default="multiuser",
+    choices=("multiuser", "user", "machine"),
+    metavar="INSTALLER_MODE",
+    help="""\
+Installation scope. "multiuser" lets the end user choose between per-user \
+and all-users (default), "user" forces a per-user install with no UAC \
+prompt, "machine" forces an all-users install requiring admin elevation.""",
+)
+
+del installer_group
 
 plugin_group = parser.add_option_group("Plugin control")
 

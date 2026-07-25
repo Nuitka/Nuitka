@@ -183,6 +183,9 @@ class IncludedDataFile(object):
         self.tags = tags_set
         self.tracer = tracer
 
+    def isExternal(self):
+        return "external" in self.tags
+
     def __repr__(self):
         return "<%s %s source '%s' dest '%s' reason '%s' tags '%s'>" % (
             self.__class__.__name__,

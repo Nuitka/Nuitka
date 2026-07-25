@@ -1093,12 +1093,46 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
 
         if isMacOS():
-            from nuitka.freezer.MacOSDmg import getCreateDmgPath
+            from nuitka.installer.MacOSDmg import getCreateDmgPath
 
             if getCreateDmgPath() is None:
                 return options_logger.sysexit(
                     "Error, cannot find 'create-dmg' tool. It is required for '--macos-app-create-dmg'."
                 )
+    if options.windows_create_installer:
+        _warnWindowsSpecificOption("--windows-create-installer")
+
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, Windows installer creation requires standalone or onefile mode."
+            )
+
+        if not getProductName():
+            return options_logger.sysexit(
+                "Error, '--product-name' is required for Windows installer creation."
+            )
+        if not getProductVersion():
+            return options_logger.sysexit(
+                "Error, '--product-version' is required for Windows installer creation."
+            )
+        if not getCompanyName():
+            return options_logger.sysexit(
+                "Error, '--company-name' is required for Windows installer creation."
+            )
+    if options.windows_installer_nsis_path is not None:
+        _warnWindowsSpecificOption("--windows-nsis-path")
+    if options.windows_installer_output_filename is not None:
+        _warnWindowsSpecificOption("--windows-installer-output")
+    if options.windows_installer_install_dir is not None:
+        _warnWindowsSpecificOption("--windows-installer-install-dir")
+    if options.windows_installer_shortcuts is not None:
+        _warnWindowsSpecificOption("--windows-installer-shortcuts")
+    if options.windows_installer_license_filename is not None:
+        _warnWindowsSpecificOption("--windows-installer-license-file")
+    if options.windows_installer_no_user_change_install_dir:
+        _warnWindowsSpecificOption("--windows-installer-no-user-change-install-dir")
+    if options.windows_installer_mode != "multiuser":
+        _warnWindowsSpecificOption("--windows-installer-mode")
     if options.macos_prohibit_multiple_instances:
         _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
     if options.macos_app_console_mode is not None:
@@ -1744,6 +1778,21 @@ def getOutputFilename():
     return (
         getUserInputNormalizedPath(options.output_filename)
         if options.output_filename is not None
+        else None
+    )
+
+
+def getInstallerOutputFilename():
+    """*str* or *None*, resolved path for the installer artifact.
+
+    Notes:
+        Derives from '--windows-installer-output' if given, otherwise
+        from the program output filename with a platform specific
+        extension change.
+    """
+    return (
+        getUserInputNormalizedPath(options.windows_installer_output_filename)
+        if options.windows_installer_output_filename is not None
         else None
     )
 
@@ -2495,6 +2544,51 @@ def shallAskForWindowsAdminRights():
 def shallAskForWindowsUIAccessRights():
     """*bool*, value of ``--windows-uac-uiaccess``"""
     return options.windows_uac_uiaccess
+
+
+def shallCreateWindowsInstaller():
+    """*bool*, value of ``--windows-create-installer``"""
+    return options.windows_create_installer and isWin32Windows()
+
+
+def getWindowsInstallerNsisPath():
+    """*str* or *None*, value of ``--windows-nsis-path``"""
+    return options.windows_installer_nsis_path
+
+
+def getWindowsInstallerOutputFilename():
+    """*str* or *None*, value of ``--windows-installer-output``"""
+    return options.windows_installer_output_filename
+
+
+def getWindowsInstallerInstallDir():
+    """*str* or *None*, value of ``--windows-installer-install-dir``"""
+    return options.windows_installer_install_dir
+
+
+def getWindowsInstallerShortcuts():
+    """*str* or *None*, value of ``--windows-installer-shortcuts``"""
+    return options.windows_installer_shortcuts
+
+
+def getWindowsInstallerLicenseFile():
+    """*str* or *None*, value of ``--windows-installer-license-file``"""
+    return options.windows_installer_license_filename
+
+
+def isWindowsInstallerAllowUserChangeInstallDir():
+    """*bool*, inverted value of ``--windows-installer-no-user-change-install-dir``"""
+    return not options.windows_installer_no_user_change_install_dir
+
+
+def getWindowsInstallerMode():
+    """*str*, value of ``--windows-installer-mode``, defaults to ``"multiuser"``"""
+    return options.windows_installer_mode
+
+
+def getFileDescription():
+    """*str* or *None*, value of ``--file-description``"""
+    return options.file_description
 
 
 def getLegalCopyright():

@@ -406,9 +406,6 @@ What architecture is this supposed to run on. Default and limit is what the runn
 \fB\-\-macos\-app\-icon\fR=\fI\,ICON_PATH\/\fR
 Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.
 .TP
-\fB\-\-macos\-app\-create\-dmg\fR
-When compiling for macOS, create a DMG file for the application bundle. Defaults to off.
-.TP
 \fB\-\-macos\-signed\-app\-name\fR=\fI\,MACOS_SIGNED_APP_NAME\/\fR
 Name of the application to use for macOS signing. Follow "com.YourCompany.AppName" naming results for best results, as these have to be globally unique, and will potentially grant protected API accesses.
 .TP
@@ -447,8 +444,14 @@ Password for the certificate file provided via '\-\-macos\-sign\-keyring\-filena
 .IP
 Linux specific controls:
 .TP
-\fB\-\-linux\-icon\fR=\fI\,ICON_PATH\/\fR
-Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.
+\fB\-\-linux\-app\-icon\fR=\fI\,ICON_PATH\/\fR
+Add executable icon for the Linux desktop file to use. Can be given only one time. Defaults to Python icon if available. Note that the desktop file references the icon by name only, it will not display unless the icon file is also installed into the system icon paths, e.g. '/usr/share/icons/hicolor/' or '~/.local/share/icons/'.
+.TP
+\fB\-\-linux\-app\-console\-mode\fR=\fI\,LINUX_APP_CONSOLE_MODE\/\fR
+Select console mode to use with the Linux desktop file. Default mode is 'disable' and the 'Terminal' entry makes it launch without a terminal. With 'force' a terminal is opened when launched from the desktop environment. Default is 'disable'.
+.TP
+\fB\-\-linux\-app\-license\fR=\fI\,LINUX_APP_LICENSE\/\fR
+SPDX license expression of the application used in the AppStream metainfo file created on Linux, e.g. 'Apache\-2.0'. Defaults to 'Proprietary'.
 .IP
 Binary Version Information:
 .TP
@@ -472,6 +475,35 @@ Copyright used in version information. Windows/macOS only at this time. Defaults
 .TP
 \fB\-\-trademarks\fR=\fI\,TRADEMARK_TEXT\/\fR
 Trademark used in version information. Windows/macOS only at this time. Defaults to not present.
+.IP
+Installer controls:
+.TP
+\fB\-\-macos\-installer\fR
+When compiling for macOS, create a DMG file for the application bundle. Defaults to off.
+.TP
+\fB\-\-windows\-create\-installer\fR
+Create a Windows installer (NSIS) for the compiled standalone or onefile result. If not given, no installer is created.
+.TP
+\fB\-\-windows\-nsis\-path\fR=\fI\,INSTALLER_TOOL_PATH\/\fR
+The installer backend tool to use, or the directory it lives in. By default it is searched in 'PATH', and then a cached download of the official upstream release is used.
+.TP
+\fB\-\-windows\-installer\-output\fR=\fI\,INSTALLER_OUTPUT_FILENAME\/\fR
+Filename of the installer executable to create. Defaults to the program or dist folder name with a "\-setup.exe" suffix in the output directory.
+.TP
+\fB\-\-windows\-installer\-install\-dir\fR=\fI\,INSTALLER_INSTALL_DIR\/\fR
+Default installation directory presented to the end user, backend specific values like "$PROGRAMFILES64\eProductName" are allowed. Defaults to a standard location derived from the product name and install mode.
+.TP
+\fB\-\-windows\-installer\-shortcuts\fR=\fI\,INSTALLER_SHORTCUTS\/\fR
+Comma separated list of shortcuts the installer offers, allowed values are "desktop" and "start\-menu". Default is no shortcuts.
+.TP
+\fB\-\-windows\-installer\-license\-file\fR=\fI\,INSTALLER_LICENSE_FILENAME\/\fR
+License text file the installer shall present during installation. Default is to have no license page.
+.TP
+\fB\-\-windows\-installer\-no\-user\-change\-install\-dir\fR
+Do not allow the end user to override the default installation directory. Default is to allow it.
+.TP
+\fB\-\-windows\-installer\-mode\fR=\fI\,INSTALLER_MODE\/\fR
+Installation scope. "multiuser" lets the end user choose between per\-user and all\-users (default), "user" forces a per\-user install with no UAC prompt, "machine" forces an all\-users install requiring admin elevation.
 .IP
 Plugin control:
 .TP

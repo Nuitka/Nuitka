@@ -50,7 +50,6 @@ from nuitka.freezer.IncludedEntryPoints import (
     getStandaloneEntryPoints,
 )
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
-from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
     locateModule,
@@ -62,6 +61,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
     scanPluginSinglePath,
 )
+from nuitka.installer.Installer import createInstallerDispatch
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -108,7 +108,6 @@ from nuitka.options.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
-    shallCreateDmgFile,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
@@ -1424,9 +1423,7 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
 
     general.info("Successfully created '%s'." % getReportPath(final_filename))
 
-    # Archive creations, installer creations go here.
-    if shallCreateDmgFile():
-        createDmgFile(general)
+    createInstallerDispatch()
 
     writeCompilationReports(aborted=False)
     printPluginUsageStats()

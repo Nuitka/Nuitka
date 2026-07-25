@@ -12,6 +12,7 @@ from optparse import (
     Option,
     OptionGroup,
     OptionParser,
+    OptionValueError,
 )
 
 from nuitka.Tracing import formatTerminalLink
@@ -83,6 +84,37 @@ class OurOptionGroup(OptionGroup):
         github_action_default = kwargs.pop("github_action_default", None)
         environment_variable_name = kwargs.pop("environment_variable_name", None)
         link = kwargs.pop("link", None)
+        multi_choices = kwargs.pop("multi_choices", None)
+
+        if multi_choices is not None:
+            assert kwargs["action"] == "store"
+
+            allowed = multi_choices
+
+            def _check_multi_choices(option, opt_str, value, parser):
+                result = []
+
+                for item in value.split(","):
+                    item = item.strip()
+
+                    if item not in allowed:
+                        raise OptionValueError(
+                            "option %s: invalid choice: '%s' (choose from %s)"
+                            % (
+                                opt_str,
+                                item,
+                                ", ".join("'%s'" % c for c in allowed),
+                            )
+                        )
+
+                    result.append(item)
+
+                setattr(parser.values, option.dest, tuple(result))
+
+            kwargs["action"] = "callback"
+            kwargs["type"] = "string"
+            kwargs["nargs"] = 1
+            kwargs["callback"] = _check_multi_choices
 
         result = OptionGroup.add_option(self, *args, **kwargs)
 

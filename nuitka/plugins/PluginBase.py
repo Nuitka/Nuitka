@@ -1232,6 +1232,18 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onInstallerOutput(self, filename):
+        """Called after an installer has been created.
+
+        Args:
+            filename: the created installer, setup executable or DMG file
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         """Suppress import warnings for unknown modules.
 

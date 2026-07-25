@@ -4,20 +4,29 @@
 """For macOS DMG file creation"""
 
 import os
+import shutil
 
+from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
+from nuitka.freezer.MacOSApp import getMacOSIconPaths
 from nuitka.OutputDirectories import (
     getResultBasePath,
     getStandaloneDirectoryPath,
 )
+from nuitka.plugins.Hooks import onInstallerOutput
+from nuitka.Tracing import installer_logger
 from nuitka.utils.Execution import (
     executeToolChecked,
     filterOutputByLine,
     getExecutablePath,
 )
-from nuitka.utils.FileOperations import changeFilenameExtension, deleteFile
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    copyFile,
+    deleteFile,
+    makePath,
+    removeDirectory,
+)
 from nuitka.utils.Signing import addMacOSCodeSignature
-
-from .MacOSApp import getMacOSIconPaths
 
 
 def _filterCreateDmgOutput(stderr):
@@ -48,11 +57,43 @@ def getCreateDmgPath():
     return None
 
 
-def createDmgFile(logger):
-    """Create a DMG file for the application bundle."""
+def createMacOSDmg():
+    """Create a DMG file for the application bundle.
+
+    Returns:
+        Filename of the created DMG artifact, or None if none was created.
+    """
     create_dmg_path = getCreateDmgPath()
 
     app_bundle_path = getStandaloneDirectoryPath(bundle=False, real=True)
+
+    external_files = [
+        included_datafile
+        for included_datafile in getIncludedDataFiles()
+        if included_datafile.isExternal()
+    ]
+
+    if external_files:
+        staging_dir = app_bundle_path + ".dmg-stage"
+        makePath(staging_dir)
+
+        # spell-checker: ignore copytree
+        shutil.copytree(
+            app_bundle_path,
+            os.path.join(staging_dir, os.path.basename(app_bundle_path)),
+        )
+
+        for included_datafile in external_files:
+            dest_path = os.path.join(
+                staging_dir, os.path.basename(included_datafile.dest_path)
+            )
+            copyFile(included_datafile.dest_path, dest_path)
+
+        source_dir = staging_dir
+    else:
+        source_dir = app_bundle_path
+
+    icon_paths = getMacOSIconPaths()
 
     dmg_path = changeFilenameExtension(app_bundle_path, ".dmg")
     deleteFile(dmg_path, must_exist=False)
@@ -80,17 +121,16 @@ def createDmgFile(logger):
         "600",
         "185",
         dmg_path,
-        app_bundle_path,
+        source_dir,
     ]
 
-    icon_paths = getMacOSIconPaths()
     if icon_paths:
         command.extend(["--volicon", icon_paths[0]])
 
-    logger.info("Creating DMG file '%s'..." % dmg_path)
+    installer_logger.info("Creating DMG file '%s'..." % dmg_path)
 
     executeToolChecked(
-        logger=logger,
+        logger=installer_logger,
         command=command,
         absence_message="Cannot find 'create-dmg' tool necessary to create DMG.",
         stderr_filter=_filterCreateDmgOutput,
@@ -98,10 +138,21 @@ def createDmgFile(logger):
 
     addMacOSCodeSignature(filenames=[dmg_path], entitlements_filename=None)
 
-    if os.path.exists(dmg_path):
-        logger.info(
-            "Created DMG file with the application bundle in it: '%s'." % dmg_path
+    if external_files:
+        removeDirectory(
+            path=staging_dir,
+            logger=installer_logger,
+            ignore_errors=True,
+            extra_recommendation=None,
         )
+
+    onInstallerOutput(filename=dmg_path)
+
+    installer_logger.info(
+        "Created DMG file with the application bundle in it: '%s'." % dmg_path
+    )
+
+    return dmg_path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

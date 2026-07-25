@@ -169,6 +169,10 @@ def _formatComments(filename, comments):
         comments = [
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
         ]
+    elif filename.endswith(".nsi"):
+        comments = [
+            (b"; %s" % comment if comment != b"" else b";") for comment in comments
+        ]
     elif filename.endswith(".j2"):
         max_len = max(75, max(len(comment.strip()) for comment in comments))
         template = b"{#-  %%-%ds -#}" % max_len

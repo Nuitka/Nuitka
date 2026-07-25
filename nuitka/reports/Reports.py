@@ -33,6 +33,10 @@ from nuitka.importing.Importing import (
     getRecompileDecisionReason,
 )
 from nuitka.importing.Recursion import getRecursionDecisions
+from nuitka.installer.Installer import (
+    getInstallerOutputFilename,
+    wasInstallerCreated,
+)
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleCodeGenerationTimingInfos,
@@ -330,6 +334,10 @@ def _getReportInputData(aborted):
         onefile_executable = None
         onefile_executable_size = None
         onefile_resource_mode = None
+
+    installer_executable = (
+        getInstallerOutputFilename() if wasInstallerCreated() else None
+    )
 
     source_dir = (
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
@@ -1280,6 +1288,15 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "onefile",
             cache_mode="temporary" if isOnefileTempDirMode() else "cached",
             unpack_dir=getOnefileTempDirSpec(),
+        )
+
+    if report_input_data.get("installer_executable") is not None:
+        appendTreeElement(
+            root,
+            "installer",
+            filename=_getCompilationReportPath(
+                report_input_data["installer_executable"]
+            ),
         )
 
     distributions_xml_node = appendTreeElement(

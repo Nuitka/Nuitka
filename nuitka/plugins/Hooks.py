@@ -79,6 +79,11 @@ def onFinalResult(filename):
     return Plugins.onFinalResult(filename=filename)
 
 
+def onInstallerOutput(filename):
+    """Called after an installer has been created."""
+    return Plugins.onInstallerOutput(filename=filename)
+
+
 def getPluginsCacheContributionValues(module_name):
     """Let plugins provide values that need to be taken into account for caching."""
 
