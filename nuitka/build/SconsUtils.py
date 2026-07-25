@@ -853,20 +853,21 @@ def readSconsResourceUsageReports(source_dir):
     if source_dir not in _scons_resource_usage_reports:
         results = {}
 
-        for filename, _filename_only in listDir(source_dir):
-            if filename.endswith(".resource-usage.json"):
-                data = loadJsonFromFilename(filename)
-                source_filename = data["source_filename"]
-                if source_filename.startswith("module.") and source_filename.endswith(
-                    ".c"
-                ):
-                    # TODO: Could resolve this more reliable by checking mapping to
-                    # actually picked source file names in "pickSourceFilenames"
-                    module_name = source_filename[7:-2]
+        if os.path.isdir(source_dir):
+            for filename, _filename_only in listDir(source_dir):
+                if filename.endswith(".resource-usage.json"):
+                    data = loadJsonFromFilename(filename)
+                    source_filename = data["source_filename"]
+                    if source_filename.startswith(
+                        "module."
+                    ) and source_filename.endswith(".c"):
+                        # TODO: Could resolve this more reliable by checking mapping to
+                        # actually picked source file names in "pickSourceFilenames"
+                        module_name = source_filename[7:-2]
 
-                    results[module_name] = data["rusage"]
-                elif source_filename == "@linker":
-                    results["@linker"] = data["rusage"]
+                        results[module_name] = data["rusage"]
+                    elif source_filename == "@linker":
+                        results["@linker"] = data["rusage"]
 
         _scons_resource_usage_reports[source_dir] = results
 
