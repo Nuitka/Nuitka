@@ -197,9 +197,7 @@ def _getEvaluationContext():
             # Getting data files contents
             "get_data": _getPackageData,
             # Querying package properties
-            "has_builtin_module": lambda module_name: isBuiltinModuleName(
-                ModuleName(module_name)
-            ),
+            "has_builtin_module": isBuiltinModuleName,
             # Architectures
             "arch_x86": getArchitecture() == "x86",
             "arch_amd64": getArchitecture() == "x86_64",

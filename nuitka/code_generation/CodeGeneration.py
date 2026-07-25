@@ -993,6 +993,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL": generateImportlibResourcesFilesCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,

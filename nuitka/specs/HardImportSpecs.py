@@ -118,6 +118,11 @@ importlib_resources_files_spec = BuiltinParameterSpec(
     ("package",),
     default_count=0,
 )
+importlib_resources_files_since_312_spec = BuiltinParameterSpec(
+    "importlib.resources.files",
+    ("package",),
+    default_count=1,
+)
 importlib_resources_backport_files_spec = BuiltinParameterSpec(
     "importlib_resources.files",
     ("package",),
