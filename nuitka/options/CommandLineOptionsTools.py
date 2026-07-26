@@ -9,6 +9,7 @@ from optparse import (
     AmbiguousOptionError,
     BadOptionError,
     IndentedHelpFormatter,
+    Option,
     OptionGroup,
     OptionParser,
 )
@@ -17,6 +18,43 @@ from nuitka.Tracing import formatTerminalLink
 
 # For re-export only:
 from optparse import SUPPRESS_HELP  # isort:skip pylint: disable=unused-import
+
+
+def _splitShellPattern(value):
+    """Split a comma-separated value, keeping shell patterns intact."""
+    return value.split(",") if "{" not in value else [value]
+
+
+class OurOption(Option):
+    TYPES = Option.TYPES + ("append_comma", "append_shell_pattern")
+    TYPE_CHECKER = dict(Option.TYPE_CHECKER)
+    TYPE_CHECKER["append_comma"] = lambda self, opt, value: value
+    TYPE_CHECKER["append_shell_pattern"] = lambda self, opt, value: value
+
+    ACTIONS = Option.ACTIONS + ("append_comma", "append_shell_pattern")
+    STORE_ACTIONS = Option.STORE_ACTIONS + ("append_comma", "append_shell_pattern")
+    TYPED_ACTIONS = Option.TYPED_ACTIONS + ("append_comma", "append_shell_pattern")
+    ALWAYS_TYPED_ACTIONS = Option.ALWAYS_TYPED_ACTIONS + (
+        "append_comma",
+        "append_shell_pattern",
+    )
+
+    def __init__(self, *args, **kwargs):
+        if (
+            kwargs.get("action") in ("append_comma", "append_shell_pattern")
+            and "type" not in kwargs
+        ):
+            kwargs["type"] = kwargs["action"]
+
+        Option.__init__(self, *args, **kwargs)
+
+    def take_action(self, action, dest, opt, value, values, parser):
+        if action == "append_comma":
+            values.ensure_value(dest, []).extend(value.split(","))
+        elif action == "append_shell_pattern":
+            values.ensure_value(dest, []).extend(_splitShellPattern(value))
+        else:
+            Option.take_action(self, action, dest, opt, value, values, parser)
 
 
 class OurOptionGroup(OptionGroup):
@@ -260,7 +298,10 @@ def makeOptionsParser(usage, epilog):
         kwargs["width"] = 10000
 
     return OurOptionParser(
-        usage=usage, epilog=epilog, formatter=OurHelpFormatter(**kwargs)
+        usage=usage,
+        epilog=epilog,
+        option_class=OurOption,
+        formatter=OurHelpFormatter(**kwargs),
     )
 
 
