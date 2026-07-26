@@ -37,26 +37,27 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
         # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
-                # spell-checker: ignore winforms,edgechromium,edgehtml
+                # spell-checker: ignore winforms,edgechromium,edgehtml,win32
                 result = module_name in (
                     "webview.platforms.winforms",
                     "webview.platforms.edgechromium",
                     "webview.platforms.edgehtml",
                     "webview.platforms.mshtml",
                     "webview.platforms.cef",
+                    "webview.platforms.win32",
                 )
                 reason = "Platforms package of webview used on '%s'." % getOS()
             elif isMacOS():
                 result = module_name == "webview.platforms.cocoa"
                 reason = "Platforms package of webview used on '%s'." % getOS()
             elif getActiveQtPlugin() is not None:
-                result = module_name = "webview.platforms.qt"
+                result = module_name == "webview.platforms.qt"
                 reason = (
                     "Platforms package of webview used due to '%s' plugin being active."
                     % getActiveQtPlugin()
                 )
             else:
-                result = module_name = "webview.platforms.gtk"
+                result = module_name == "webview.platforms.gtk"
                 reason = (
                     "Platforms package of webview used on '%s' without Qt plugin enabled."
                     % getOS()
