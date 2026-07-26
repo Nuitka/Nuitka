@@ -72,7 +72,12 @@ def getEmbeddedDataFilenames(compilation_report):
 
 
 def getInstallerOutputFilenameFromReport(compilation_report, prefixes):
-    installer_node = compilation_report.find("installer")
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
 
     if installer_node is None:
         return None
@@ -80,6 +85,34 @@ def getInstallerOutputFilenameFromReport(compilation_report, prefixes):
     return _getResolvedCompilationPath(
         path=installer_node.attrib["filename"], prefixes=prefixes
     )
+
+
+def getInstallerBackendFromReport(compilation_report):
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return installer_node.attrib.get("backend") or None
+
+
+def getInstallerToolVersionFromReport(compilation_report):
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return installer_node.attrib.get("tool_version") or None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

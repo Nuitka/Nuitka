@@ -10,6 +10,7 @@ one call site.
 """
 
 from nuitka.options.Options import (
+    getLinuxInstallerAppImagetoolPath,
     getWindowsInstallerInstallDir,
     getWindowsInstallerLicenseFile,
     getWindowsInstallerMode,
@@ -19,11 +20,18 @@ from nuitka.options.Options import (
     isStandaloneMode,
     isWindowsInstallerAllowUserChangeInstallDir,
     shallCreateDmgFile,
+    shallCreateLinuxInstaller,
     shallCreateWindowsInstaller,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.utils.FileOperations import changeFilenameExtension
 
+from .backends.AppImageBackend import getAppImageToolVersion
+from .backends.NsisBackend import getNsisVersion
+from .LinuxInstaller import (
+    computeLinuxInstallerOutputFilename,
+    createLinuxInstaller,
+)
 from .MacOSDmg import createMacOSDmg, getCreateDmgPath
 from .WindowsInstaller import (
     computeWindowsInstallerOutputFilename,
@@ -41,10 +49,13 @@ def wasInstallerCreated():
 def getInstallerOutputFilename():
     """Return the absolute output filename for the installer, or *None*.
 
-    Covers both Windows installer and macOS DMG creation.
+    Covers Windows installer, macOS DMG, and Linux AppImage creation.
     """
     if shallCreateWindowsInstaller():
         return computeWindowsInstallerOutputFilename()
+
+    if shallCreateLinuxInstaller():
+        return computeLinuxInstallerOutputFilename()
 
     if shallCreateDmgFile():
         if getCreateDmgPath() is not None:
@@ -55,15 +66,35 @@ def getInstallerOutputFilename():
     return None
 
 
+def getInstallerBackendName():
+    """*str* or *None*, the name of the installer backend in use."""
+    if shallCreateWindowsInstaller():
+        return "nsis"
+    if shallCreateLinuxInstaller():
+        return "appimage"
+    if shallCreateDmgFile():
+        return "create-dmg"
+    return None
+
+
+def getInstallerToolVersion():
+    """*str* or *None*, the version of the installer tool in use."""
+    if shallCreateWindowsInstaller():
+        return getNsisVersion()
+    if shallCreateLinuxInstaller():
+        return getAppImageToolVersion()
+    return None
+
+
 def createInstallerDispatch():
     """Create installer artifacts after successful compilation.
 
     Notes:
         Called once from 'MainControl' after compilation succeeded and
         'onFinalResult' has been dispatched. Dispatches to DMG creation on
-        macOS or Windows installer creation through the selected backend.
-        The regular compilation output is kept intact even when installer
-        creation fails, so problems remain diagnosable.
+        macOS, Windows installer creation through NSIS, or Linux AppImage
+        creation. The regular compilation output is kept intact even when
+        installer creation fails, so problems remain diagnosable.
     """
     # Singleton, pylint: disable=global-statement
     global _installer_created
@@ -83,6 +114,15 @@ def createInstallerDispatch():
             license_filename=getWindowsInstallerLicenseFile(),
             allow_user_install_dir_change=isWindowsInstallerAllowUserChangeInstallDir(),
             install_mode=getWindowsInstallerMode(),
+        )
+
+        _installer_created = True
+
+    if shallCreateLinuxInstaller():
+        assert isStandaloneMode()
+
+        createLinuxInstaller(
+            installer_tool_path=getLinuxInstallerAppImagetoolPath(),
         )
 
         _installer_created = True

@@ -478,7 +478,7 @@ Trademark used in version information. Windows/macOS only at this time. Defaults
 .IP
 Installer controls:
 .TP
-\fB\-\-macos\-installer\fR
+\fB\-\-macos\-create\-installer\fR
 When compiling for macOS, create a DMG file for the application bundle. Defaults to off.
 .TP
 \fB\-\-windows\-create\-installer\fR
@@ -504,6 +504,15 @@ Do not allow the end user to override the default installation directory. Defaul
 .TP
 \fB\-\-windows\-installer\-mode\fR=\fI\,INSTALLER_MODE\/\fR
 Installation scope. "multiuser" lets the end user choose between per\-user and all\-users (default), "user" forces a per\-user install with no UAC prompt, "machine" forces an all\-users install requiring admin elevation.
+.TP
+\fB\-\-linux\-create\-installer\fR
+Create a Linux AppImage installer for the compiled standalone or onefile result. If not given, no installer is created.
+.TP
+\fB\-\-linux\-installer\-appimagetool\-path\fR=\fI\,INSTALLER_TOOL_PATH\/\fR
+The appimagetool binary to use or the directory it lives in. By default it is searched in 'PATH', and then a cached download of the official upstream release is used.
+.TP
+\fB\-\-linux\-installer\-output\fR=\fI\,INSTALLER_OUTPUT_FILENAME\/\fR
+Filename of the AppImage to create. Defaults to the dist folder name with an architecture suffix and '.AppImage' extension in the output directory.
 .IP
 Plugin control:
 .TP

@@ -1152,6 +1152,30 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnWindowsSpecificOption("--windows-installer-no-user-change-install-dir")
     if options.windows_installer_mode != "multiuser":
         _warnWindowsSpecificOption("--windows-installer-mode")
+    if options.linux_create_installer:
+        _warnLinuxSpecificOption("--linux-create-installer")
+
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, Linux installer creation requires standalone or onefile mode."
+            )
+
+        if not getProductName():
+            return options_logger.sysexit(
+                "Error, '--product-name' is required for Linux installer creation."
+            )
+        if not getProductVersion():
+            return options_logger.sysexit(
+                "Error, '--product-version' is required for Linux installer creation."
+            )
+        if not getCompanyName():
+            return options_logger.sysexit(
+                "Error, '--company-name' is required for Linux installer creation."
+            )
+    if options.linux_installer_appimagetool_path is not None:
+        _warnLinuxSpecificOption("--linux-installer-appimagetool-path")
+    if options.linux_installer_output_filename is not None:
+        _warnLinuxSpecificOption("--linux-installer-output")
     if options.macos_prohibit_multiple_instances:
         _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
     if options.macos_app_console_mode is not None:
@@ -2637,6 +2661,21 @@ def isWindowsInstallerAllowUserChangeInstallDir():
 def getWindowsInstallerMode():
     """*str*, value of ``--windows-installer-mode``, defaults to ``"multiuser"``"""
     return options.windows_installer_mode
+
+
+def shallCreateLinuxInstaller():
+    """*bool*, value of ``--linux-create-installer``"""
+    return options.linux_create_installer and isLinux()
+
+
+def getLinuxInstallerAppImagetoolPath():
+    """*str* or *None*, value of ``--linux-installer-appimagetool-path``"""
+    return options.linux_installer_appimagetool_path
+
+
+def getLinuxInstallerOutputFilename():
+    """*str* or *None*, value of ``--linux-installer-output``"""
+    return options.linux_installer_output_filename
 
 
 def getFileDescription():

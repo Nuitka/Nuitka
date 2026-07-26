@@ -2223,7 +2223,7 @@ del version_group
 installer_group = parser.add_option_group("Installer controls")
 
 installer_group.add_option(
-    "--macos-installer",
+    "--macos-create-installer",
     "--macos-app-create-dmg",
     action="store_true",
     dest="macos_create_dmg",
@@ -2322,6 +2322,39 @@ installer_group.add_option(
 Installation scope. "multiuser" lets the end user choose between per-user \
 and all-users (default), "user" forces a per-user install with no UAC \
 prompt, "machine" forces an all-users install requiring admin elevation.""",
+)
+
+installer_group.add_option(
+    "--linux-create-installer",
+    action="store_true",
+    dest="linux_create_installer",
+    default=False,
+    help="""\
+Create a Linux AppImage installer for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-appimagetool-path",
+    action="store",
+    dest="linux_installer_appimagetool_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The appimagetool binary to use or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-output",
+    action="store",
+    dest="linux_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the AppImage to create. Defaults to the dist folder name with \
+an architecture suffix and '.AppImage' extension in the output directory.""",
 )
 
 del installer_group

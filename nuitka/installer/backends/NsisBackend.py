@@ -18,7 +18,11 @@ from nuitka.options.Options import (
 )
 from nuitka.Tracing import installer_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import executeToolChecked, getExecutablePath
+from nuitka.utils.Execution import (
+    check_output,
+    executeToolChecked,
+    getExecutablePath,
+)
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getExternalUsePath,
@@ -34,6 +38,7 @@ from nuitka.utils.Utils import getArchitecture
 # licenses, therefore it must only ever be fetched from upstream and cached
 # for the user, and never be redistributed by Nuitka.
 _nsis_version = "3.11"
+_nsis_detected_version = None
 
 _nsis_download_url = (
     "https://downloads.sourceforge.net/project/nsis/NSIS%%203/%(version)s/nsis-%(version)s.zip"
@@ -59,6 +64,14 @@ Section "Start Menu Shortcut" section_start_menu_shortcut
   CreateShortcut "$SMPROGRAMS\\@PRODUCT_NAME@.lnk" "$INSTDIR\\@MAIN_BINARY@"
 SectionEnd
 """
+
+
+def getNsisVersion():
+    """*str*, the detected NSIS version, or the download version."""
+    if _nsis_detected_version is not None:
+        return _nsis_detected_version
+
+    return _nsis_version
 
 
 def getRequiredMetadataFields():
@@ -89,40 +102,49 @@ def getNsisBinaryPath(installer_tool_path):
         cached download of the official upstream NSIS release into the
         standard Nuitka tool cache.
     """
-    if installer_tool_path is not None:
-        if os.path.isdir(installer_tool_path):
-            candidate = getNormalizedPathJoin(installer_tool_path, "makensis.exe")
-        else:
-            candidate = installer_tool_path
+    # Singleton, pylint: disable=global-statement
+    global _nsis_detected_version
 
-        if not os.path.isfile(candidate):
+    if installer_tool_path is not None:
+        tool_path = getExecutablePath("makensis.exe", installer_tool_path)
+
+        if tool_path is None:
             return installer_logger.sysexit(
                 "Error, NSIS binary '%s' as given with '--windows-nsis-path' does not exist."
                 % installer_tool_path
             )
+    else:
+        tool_path = getExecutablePath("makensis")
 
-        return candidate
-
-    makensis_path = getExecutablePath("makensis")
-
-    if makensis_path is not None:
-        return makensis_path
-
-    return getCachedDownload(
-        name="nsis",
-        url=_nsis_download_url,
-        is_arch_specific=None,
-        specificity=_nsis_version,
-        binary=r"nsis-%s\makensis.exe" % _nsis_version,
-        unzip=True,
-        flatten=False,
-        message="""\
+        if tool_path is None:
+            tool_path = getCachedDownload(
+                name="nsis",
+                url=_nsis_download_url,
+                is_arch_specific=None,
+                specificity=_nsis_version,
+                binary=r"nsis-%s\makensis.exe" % _nsis_version,
+                unzip=True,
+                flatten=False,
+                message="""\
 Nuitka will use NSIS from the official upstream download to create the \
 Windows installer, it will be cached for future use.""",
-        reject="Error, NSIS is required to create a Windows installer with the 'nsis' backend.",
-        assume_yes_for_downloads=assumeYesForDownloads(),
-        download_ok=True,
-    )
+                reject="Error, NSIS is required to create a Windows installer with the 'nsis' backend.",
+                assume_yes_for_downloads=assumeYesForDownloads(),
+                download_ok=True,
+            )
+
+        if tool_path is None:
+            return None
+
+    if _nsis_detected_version is None:
+        version_output = check_output([tool_path, "/VERSION"])
+
+        if str is not bytes:
+            version_output = version_output.decode("utf8")
+
+        _nsis_detected_version = version_output.strip()
+
+    return tool_path
 
 
 def _getInstallDirDefaults(product_name):

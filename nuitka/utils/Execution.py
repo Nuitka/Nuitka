@@ -545,12 +545,13 @@ def executeToolChecked(
     optional=False,
     decoding=False,
     context=None,
+    stderr_is_fatal=True,
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
     # We are doing many returns, because for logger.sysexit() we need to
     # return from the function, for proper pylint support.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-locals,too-many-return-statements
 
     command = list(command)
     tool = command[0]
@@ -603,7 +604,7 @@ def executeToolChecked(
         return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
-    elif stderr:
+    elif stderr_is_fatal and stderr:
         return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
