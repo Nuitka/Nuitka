@@ -111,13 +111,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         sensible_qt_plugins = self._getSensiblePlugins()
 
-        self.include_qt_plugins = OrderedSet(
-            sum([value.split(",") for value in self.include_qt_plugins], [])
-        )
-
-        self.noinclude_qt_plugins = OrderedSet(
-            sum([value.split(",") for value in self.noinclude_qt_plugins], [])
-        )
+        self.include_qt_plugins = OrderedSet(self.include_qt_plugins)
+        self.noinclude_qt_plugins = OrderedSet(self.noinclude_qt_plugins)
 
         # Useless, but nice for old option usage, where expanding it meant to repeat it.
         if "sensible" in self.include_qt_plugins:
@@ -167,7 +162,7 @@ newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="include_qt_plugins",
             default=[],
             help="""\
@@ -179,7 +174,7 @@ not exist, a list of all available will be given.""",
 
         group.add_option(
             "--noinclude-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="noinclude_qt_plugins",
             default=[],
             help="""\
