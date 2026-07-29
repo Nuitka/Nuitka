@@ -397,11 +397,12 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
 #if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
 
-#if %(is_dunder_main)s
+#if %(is_dunder_main)s && !%(has_main_package)s
     // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else
-    // Other modules get a "ModuleSpec" from the standard mechanism.
+    // Other modules, and main modules running as a package (-m flag),
+    // get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = getImportLibBootstrapModule();
         CHECK_OBJECT(bootstrap_module);

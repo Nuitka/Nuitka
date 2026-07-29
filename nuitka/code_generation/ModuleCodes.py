@@ -207,6 +207,9 @@ def getModuleCode(
         "is_top": 1 if module.isTopModule() else 0,
         "is_dunder_main": 1 if is_dunder_main else 0,
         "dunder_main_package": dunder_main_package,
+        "has_main_package": (
+            1 if (is_dunder_main and module.getRuntimePackageValue()) else 0
+        ),
         "is_package": 1 if is_package else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
