@@ -6045,6 +6045,11 @@
             WinDLL(filename)
       when: 'win32 and standalone and (1,14) > version("scipy") >= (1,9,2)'
 
+- module-name: 'scipy._external.array_api_compat.numpy' # checksum: e2b696e6
+  implicit-imports:
+    - depends:
+        - 'scipy._external.array_api_compat.numpy.fft'
+
 - module-name: 'scipy._lib' # checksum: 4063ed73
   implicit-imports:
     - depends:
