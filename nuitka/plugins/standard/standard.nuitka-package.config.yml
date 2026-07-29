@@ -7209,7 +7209,7 @@
     - depends:
         - 'sqlalchemy.orm.dependency'
 
-- module-name: 'sqlfluff' # checksum: 3fc9a782
+- module-name: 'sqlfluff' # checksum: 88378c70
   data-files:
     - include-metadata:
         # TODO: Actually we should be able to include by
@@ -7219,8 +7219,8 @@
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
-        'import pytest': ''
-        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': ''
+        'import pytest': 'pytest = None'
+        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': 'pass'
 
 - module-name: 'sqlfluff.api.simple' # checksum: 55a3b9b2
   implicit-imports:
