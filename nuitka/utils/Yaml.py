@@ -85,7 +85,7 @@ def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement)
         return False
 
     try:
-        re.sub(regexp, replacement, "", re.S)
+        _unused = re.sub(regexp, replacement, "", flags=re.S)
     except re.error as e:
         logger.info(
             """\
