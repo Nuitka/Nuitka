@@ -381,9 +381,9 @@ def discoverSourceFiles():
 
 source_files = discoverSourceFiles()
 
-# Remove the target file to avoid cases where it falsely doesn't get rebuild and
-# then lingers from previous builds, and also workaround for MinGW64 not
-# supporting unicode result paths for "-o" basename.
+# Prepare result path. Default mode deletes any previous binary so a false
+# up-to-date decision cannot leave a stale program; keep-backend-objects leaves
+# it in place for durable sconsign reuse. Also handles MinGW unicode "-o" paths.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
 if env.module_mode:
@@ -423,6 +423,20 @@ elif env.dll_mode:
 else:
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.Program(os.path.normpath(result_exe), source_files)
+
+# Keep existing object files when doing object-level incremental builds. Without
+# this, Scons deletes targets before rebuilding and the spawn-time fresh-object
+# check never sees previous .o files.
+if getattr(env, "keep_backend_objects", False):
+    try:
+        from SCons.Script import Precious  # pylint: disable=import-error
+
+        for node in target:
+            Precious(node)
+            for child in node.children():
+                Precious(child)
+    except Exception:  # pylint: disable=broad-except
+        pass
 
 
 def createBuildDefinitionsFile():

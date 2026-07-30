@@ -3,6 +3,7 @@
 
 """Write and read constants data files and provide identifiers."""
 
+import os
 import pickle
 import sys
 
@@ -32,7 +33,12 @@ from nuitka.code_generation.SpecialConstantData import (
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getNormalizedPathJoin, openPickleFile
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getNormalizedPathJoin,
+    openPickleFile,
+    putBinaryFileContents,
+)
 
 
 class BuiltinAnonValue(object):
@@ -111,13 +117,17 @@ class ConstantStreamWriter(object):
 
     def __init__(self, filename):
         self.count = 0
+        self._closed = False
 
-        filename = getNormalizedPathJoin(
+        self.filename = getNormalizedPathJoin(
             getSourceDirectoryPath(onefile=False, create=False),
             filename,
         )
 
-        self.file, self.pickle = openPickleFile(filename, "wb")
+        # Write through a temp path so close() can keep the final file's mtime
+        # when content is identical (keep-backend-objects / durable sconsign).
+        self._tmp_filename = self.filename + ".tmp"
+        self.file, self.pickle = openPickleFile(self._tmp_filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues
         self.pickle.dispatch[type(Ellipsis)] = _pickleAnonValues
@@ -142,7 +152,28 @@ class ConstantStreamWriter(object):
         self.count += 1
 
     def close(self):
+        if self._closed:
+            return
+
+        self._closed = True
         self.file.close()
+
+        try:
+            with open(self._tmp_filename, "rb") as tmp_file:
+                new_data = tmp_file.read()
+
+            if os.path.isfile(self.filename):
+                try:
+                    if os.path.getsize(self.filename) == len(new_data):
+                        with open(self.filename, "rb") as old_file:
+                            if old_file.read() == new_data:
+                                return
+                except (OSError, IOError):
+                    pass
+
+            putBinaryFileContents(self.filename, new_data)
+        finally:
+            deleteFile(self._tmp_filename, must_exist=False)
 
 
 class ConstantStreamReader(object):

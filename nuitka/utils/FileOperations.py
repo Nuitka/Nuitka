@@ -1251,6 +1251,41 @@ def putTextFileContents(filename, contents, encoding=None):
             _writeContents(output_file)
 
 
+def writeTextFileIfChanged(filename, contents, encoding=None):
+    """Write text file only if missing or content differs.
+
+    Notes:
+        Preserves mtime when content is unchanged so build tools (Scons, ccache)
+        can skip recompilation of identical C sources.
+
+    Args:
+        filename: destination path
+        contents: full text contents to write
+        encoding: optional text encoding
+
+    Returns:
+        bool: True if the file was written/updated, False if left unchanged.
+    """
+    if isinstance(contents, basestring):
+        new_text = contents
+    else:
+        new_text = "".join(
+            line if line.endswith("\n") else (line + "\n") for line in contents
+        )
+
+    if os.path.isfile(filename):
+        try:
+            old_text = getFileContents(filename, encoding=encoding)
+        except (OSError, IOError, UnicodeError):
+            old_text = None
+
+        if old_text == new_text:
+            return False
+
+    putTextFileContents(filename=filename, contents=new_text, encoding=encoding)
+    return True
+
+
 def putBinaryFileContents(filename, contents):
     """Write a binary file from given contents.
 
@@ -1265,6 +1300,33 @@ def putBinaryFileContents(filename, contents):
     with withFileLock("writing file %s" % filename):
         with openTextFile(filename, "wb") as output_file:
             output_file.write(contents)
+
+
+def writeBinaryFileIfChanged(filename, contents):
+    """Write binary file only if missing or content differs.
+
+    Notes:
+        Preserves mtime when content is unchanged so Scons/sconsign can treat
+        constant blobs as up-to-date and skip re-link when nothing changed.
+
+    Args:
+        filename: destination path
+        contents: full binary contents to write
+
+    Returns:
+        bool: True if the file was written/updated, False if left unchanged.
+    """
+    if os.path.isfile(filename):
+        try:
+            if os.path.getsize(filename) == len(contents):
+                with open(filename, "rb") as existing_file:
+                    if existing_file.read() == contents:
+                        return False
+        except (OSError, IOError):
+            pass
+
+    putBinaryFileContents(filename=filename, contents=contents)
+    return True
 
 
 def changeTextFileContents(filename, contents, encoding=None, compare_only=False):
@@ -1494,6 +1556,32 @@ def copyFile(source_path, dest_path):
             raise
 
         break
+
+
+def copyFileIfChanged(source_path, dest_path):
+    """Copy file only when destination is missing or content differs.
+
+    Notes:
+        Used for module-frontend cache restore so unchanged C/.const keep their
+        mtime and object files can be reused by Scons.
+
+    Returns:
+        bool: True if destination was written, False if left unchanged.
+    """
+    if os.path.isfile(dest_path):
+        try:
+            if os.path.getsize(source_path) == os.path.getsize(dest_path):
+                with open(source_path, "rb") as source_file:
+                    source_data = source_file.read()
+                with open(dest_path, "rb") as dest_file:
+                    dest_data = dest_file.read()
+                if source_data == dest_data:
+                    return False
+        except (OSError, IOError):
+            pass
+
+    copyFile(source_path, dest_path)
+    return True
 
 
 def getWindowsDrive(path):

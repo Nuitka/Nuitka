@@ -22,8 +22,10 @@ if __name__ == "__main__":
     if sys.version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         scons_version = "scons-2.3.2"
-    elif os.name == "nt" and sys.version_info >= (3, 7):
-        # Windows can use latest, supported MSVC 2026 this way
+    elif sys.version_info >= (3, 7):
+        # Modern CPython needs modern Scons .sconsign support. Older
+        # scons-3.1.2 writes empty signature databases on current Python,
+        # which forces full rebuilds even when object files are kept.
         scons_version = "scons-4.10.1"
     elif os.name == "nt" and sys.version_info >= (3, 5):
         # Windows can use latest, supported MSVC 2022 this way
@@ -31,9 +33,10 @@ if __name__ == "__main__":
 
         # The caching of MSVC is not supported for the older Scons,
         # so remove that.
-        del os.environ["SCONS_CACHE_MSVC_CONFIG"]
+        if "SCONS_CACHE_MSVC_CONFIG" in os.environ:
+            del os.environ["SCONS_CACHE_MSVC_CONFIG"]
     else:
-        # Everything else 2.7 or higher works with this.
+        # Python 2.7 and early 3.x
         scons_version = "scons-3.1.2"
 
     sys.path.insert(

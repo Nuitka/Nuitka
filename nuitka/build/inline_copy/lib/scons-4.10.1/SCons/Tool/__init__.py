@@ -775,8 +775,9 @@ def tool_list(platform, env):
         fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77']
         ars = ['ar', ]
 
-    if not str(platform) == 'win32':
-        other_plat_tools += ['m4', 'rpm']
+    # Nuitka: Avoid unused tools (rpm/m4 are not shipped in the inline copy).
+    # if not str(platform) == 'win32':
+    #     other_plat_tools += ['m4', 'rpm']
 
     c_compiler = FindTool(c_compilers, env) or c_compilers[0]
 

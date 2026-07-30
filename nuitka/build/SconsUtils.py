@@ -50,18 +50,24 @@ def initScons(arguments):
     os.environ["LC_ALL"] = "C"
     os.environ["VSLANG"] = "1033"
 
-    def no_sync(self):
-        # That's a noop, pylint: disable=unused-argument
-        pass
+    # Historically Nuitka suppressed writing the SCons signature database:
+    # default builds wipe objects, so sconsign cannot help and only adds I/O.
+    # With ``--keep-backend-objects`` we deliberately keep C/objects and need a
+    # durable sconsign so the next process can mark targets up-to-date without
+    # re-spawning the compiler (and without relying only on spawn-time mtime
+    # heuristics). spell-checker: ignore dblite sconsign
+    if not getArgumentBool("keep_backend_objects", False):
 
-    # Avoid scons writing the scons database at all, we don't care for it,
-    # spell-checker: ignore dblite
-    import SCons.dblite  # pylint: disable=I0021,import-error
+        def no_sync(self):
+            # That's a noop, pylint: disable=unused-argument
+            pass
 
-    try:
-        SCons.dblite.dblite.sync = no_sync
-    except AttributeError:
-        SCons.dblite._Dblite.sync = no_sync  # pylint: disable=protected-access
+        import SCons.dblite  # pylint: disable=I0021,import-error
+
+        try:
+            SCons.dblite.dblite.sync = no_sync
+        except AttributeError:
+            SCons.dblite._Dblite.sync = no_sync  # pylint: disable=protected-access
 
     # We use threads during build, so keep locks if necessary for progress bar
     # updates.
@@ -95,6 +101,17 @@ def setupScons(env, source_dir):
     )
 
     env.SConsignFile(sconsign_filename)
+
+    # Keep-objects mode: use content-aware decisions backed by a real sconsign
+    # write (see 'initScons'). Prefer MD5-timestamp so unchanged files with
+    # preserved mtimes are cheap, while content changes still rebuild.
+    if getArgumentBool("keep_backend_objects", False):
+        for decider_name in ("MD5-timestamp", "content-timestamp", "MD5"):
+            try:
+                env.Decider(decider_name)
+                break
+            except Exception:  # pylint: disable=broad-except
+                continue
 
 
 def getArgumentRequired(name):
@@ -1187,23 +1204,33 @@ def createDefinitionsFile(source_dir, filename, definitions):
 
     build_definitions_filename = getNormalizedPathJoin(source_dir, filename)
 
-    with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
-        for key, value in sorted(definitions.items()):
-            if key == "_NUITKA_BUILD_DEFINITIONS_CATALOG":
-                continue
+    lines = []
+    for key, value in sorted(definitions.items()):
+        if key == "_NUITKA_BUILD_DEFINITIONS_CATALOG":
+            continue
 
-            if type(value) is int or key.endswith(("_BOOL", "_INT")):
-                if type(value) is bool:
-                    value = int(value)
-                f.write("#define %s %s\n" % (key, value))
-            elif key.endswith("_WIDE_STRING") or (
-                key.endswith("_FILENAME") and isWin32Windows()
-            ):
-                assert type(value) in (str, unicode), value
-                f.write("#define %s L%s\n" % (key, makeCLiteral(value)))
-            else:
-                assert type(value) in (str, unicode), value
-                f.write("#define %s %s\n" % (key, makeCLiteral(value)))
+        if type(value) is int or key.endswith(("_BOOL", "_INT")):
+            if type(value) is bool:
+                value = int(value)
+            lines.append("#define %s %s\n" % (key, value))
+        elif key.endswith("_WIDE_STRING") or (
+            key.endswith("_FILENAME") and isWin32Windows()
+        ):
+            assert type(value) in (str, unicode), value
+            lines.append("#define %s L%s\n" % (key, makeCLiteral(value)))
+        else:
+            assert type(value) in (str, unicode), value
+            lines.append("#define %s %s\n" % (key, makeCLiteral(value)))
+
+    contents = "".join(lines)
+
+    # Preserve mtime when definitions are unchanged so object-level incremental
+    # builds are not forced to recompile every translation unit.
+    from nuitka.utils.FileOperations import writeTextFileIfChanged
+
+    writeTextFileIfChanged(
+        filename=build_definitions_filename, contents=contents, encoding="utf8"
+    )
 
 
 def getMsvcVersionString(env):
@@ -1368,7 +1395,14 @@ c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):
-    deleteFile(result_exe, must_exist=False)
+    # Default builds always remove the previous binary so a stale result cannot
+    # linger when Scons falsely believes the link is up-to-date. With
+    # ``--keep-backend-objects`` the durable sconsign is the source of truth, so
+    # preserving the binary allows a true no-op backend when nothing changed.
+    keep_backend_objects = bool(getattr(env, "keep_backend_objects", False))
+
+    if not keep_backend_objects:
+        deleteFile(result_exe, must_exist=False)
 
     if os.name == "nt" and not isFilesystemEncodable(result_exe):
         result_exe = getNormalizedPathJoin(
@@ -1379,6 +1413,7 @@ def makeResultPathFileSystemEncodable(env, result_exe):
         if not isFilesystemEncodable(result_exe):
             result_exe = getNormalizedPath(os.path.relpath(result_exe))
 
+        if not keep_backend_objects:
             deleteFile(result_exe, must_exist=False)
 
     return result_exe

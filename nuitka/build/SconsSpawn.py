@@ -21,6 +21,7 @@ from nuitka.utils.Timing import TimerReport
 from .SconsCaching import runClCache
 from .SconsProgress import (
     closeSconsProgressBar,
+    recordSconsSpawnTiming,
     reportSlowCompilation,
     updateSconsProgressBar,
 )
@@ -459,13 +460,65 @@ def _runSpawnMonitored(env, args, os_env):
 
         spawn_result = thread.getSpawnResult()
 
+        try:
+            wall_delta = thread.timer_report.getTimer().getDelta()
+        except Exception:  # pylint: disable=broad-except
+            wall_delta = 0.0
+
         if spawn_result.exit_code == 0 and spawn_result.exception is None:
             updateSconsProgressBar()
 
-        return spawn_result
+        return spawn_result, wall_delta
 
     finally:
         _threads.remove(thread)
+
+
+def _findCompileOutputPath(args):
+    """Return the ``-o`` object path from a compile command, if present."""
+    for index, arg in enumerate(args):
+        if arg == "-o" and index + 1 < len(args):
+            return args[index + 1]
+        if arg.startswith("-o") and len(arg) > 2:
+            return arg[2:]
+
+    return None
+
+
+def _canSkipFreshObjectCompile(source_filename, args):
+    """True when object is newer/equal than its C source under keep-objects.
+
+    Notes:
+        Safety net when Scons still schedules a compile despite a durable
+        sconsign (e.g. partial signature miss). Preferred path is Scons itself
+        deciding up-to-date via the signature DB written when
+        ``--keep-backend-objects`` is enabled.
+    """
+    if source_filename is None or not os.path.isfile(source_filename):
+        return False
+
+    output_path = _findCompileOutputPath(args)
+    if output_path is None:
+        return False
+
+    # Resolve relative to current working directory (scons source_dir).
+    if not os.path.isabs(output_path):
+        output_path = os.path.join(os.getcwd(), output_path)
+    if not os.path.isabs(source_filename):
+        source_filename = os.path.join(os.getcwd(), source_filename)
+
+    if not os.path.isfile(output_path):
+        return False
+
+    # Only skip plain object products, never the final binary link step.
+    output_ext = getFilenameExtension(output_path)
+    if output_ext not in (".o", ".obj", ".os"):
+        return False
+
+    try:
+        return os.path.getmtime(output_path) >= os.path.getmtime(source_filename)
+    except (OSError, IOError):
+        return False
 
 
 def _getWrappedSpawnFunction(env):
@@ -487,13 +540,26 @@ def _getWrappedSpawnFunction(env):
                 source_filename = arg
                 break
 
+        # Object-level incremental: skip compile spawn when the object is still
+        # fresh vs its C source. Requires ``--keep-backend-objects`` (objects
+        # survive cleans, sources keep stable mtimes) and Precious targets so
+        # Scons does not delete objects before the spawn.
+        if _canSkipFreshObjectCompile(source_filename, args):
+            recordSconsSpawnTiming(is_link=False, process_delta=0.0)
+            updateSconsProgressBar()
+            return 0
+
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if source_filename is not None and source_name.startswith("__constants_data"):
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
-        spawn_result = _runSpawnMonitored(env, args, os_env)
+        spawn_result, wall_delta = _runSpawnMonitored(env, args, os_env)
+
+        recordSconsSpawnTiming(
+            is_link=source_filename is None, process_delta=wall_delta or 0.0
+        )
 
         if spawn_result.exception:
             closeSconsProgressBar()

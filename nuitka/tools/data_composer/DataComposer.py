@@ -28,7 +28,12 @@ from nuitka.Serialization import (
     ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
-from nuitka.utils.FileOperations import getFileSize, listDir, syncFileOutput
+from nuitka.utils.FileOperations import (
+    getFileSize,
+    listDir,
+    syncFileOutput,
+    writeBinaryFileIfChanged,
+)
 from nuitka.utils.Json import writeJsonToFilename
 
 _max_uint64_t_value = 2**64 - 1
@@ -503,34 +508,43 @@ def _writeConstantStream(constants_reader, blob_spec):
 
 
 def _writeConstantsBlob(output_filename, desc):
-    with open(output_filename, "wb") as output:
-        for name, part in desc:
-            output.write(name + b"\0")
-            output.write(struct.pack("I", len(part)))
-            output.write(part)
+    # Build in memory so unchanged blobs keep their mtime (needed for durable
+    # sconsign / keep-backend-objects link skip).
+    chunks = []
+    for name, part in desc:
+        chunks.append(name + b"\0")
+        chunks.append(struct.pack("I", len(part)))
+        chunks.append(part)
 
-        data_size = output.tell()
+    contents = b"".join(chunks)
+    data_size = len(contents)
 
-        data_composer_logger.info("Total constants blob size %d." % data_size)
+    changed = writeBinaryFileIfChanged(output_filename, contents)
+    if changed:
+        # Ensure durable write when we actually replaced the blob.
+        with open(output_filename, "rb") as output:
+            syncFileOutput(output)
 
-        syncFileOutput(output)
+    data_composer_logger.info(
+        "Total constants blob size %d%s."
+        % (data_size, "" if changed else " (unchanged)")
+    )
 
 
 def _writeConstantBlob(output_filename, part):
-    with open(output_filename, "wb") as output:
-        output.write(part)
+    changed = writeBinaryFileIfChanged(output_filename, part)
+    if changed:
+        with open(output_filename, "rb") as output:
+            syncFileOutput(output)
 
-        data_size = output.tell()
-
-        data_composer_logger.info(
-            "Created constants blob '%s' size %d."
-            % (
-                os.path.basename(output_filename),
-                data_size,
-            )
+    data_composer_logger.info(
+        "Created constants blob '%s' size %d%s."
+        % (
+            os.path.basename(output_filename),
+            len(part),
+            "" if changed else " (unchanged)",
         )
-
-        syncFileOutput(output)
+    )
 
 
 def main():

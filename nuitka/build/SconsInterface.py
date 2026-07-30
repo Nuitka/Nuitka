@@ -50,6 +50,7 @@ from nuitka.options.Options import (
     shallCreateAppBundle,
     shallCreateDiffableCompilationReport,
     shallDisableCCacheUsage,
+    shallKeepBackendObjects,
     shallMakeDll,
     shallMakeExe,
     shallMakeModule,
@@ -202,14 +203,14 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
     if python_version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
-    elif os.name == "nt" and python_version_info >= (3, 7):
-        # Windows can use latest, supported MSVC 2026 this way
+    elif python_version_info >= (3, 7):
+        # Modern CPython needs modern Scons .sconsign support.
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
         # Windows can use latest, supported MSVC 2022 this way
         return "scons-4.3.0"
     else:
-        # Everything else 2.7 or higher works with this.
+        # Python 2.7 and early 3.x
         return "scons-3.1.2"
 
 
@@ -665,31 +666,55 @@ def asBoolStr(value):
 
 
 def cleanSconsDirectory(source_dir):
-    """Clean scons build directory."""
+    """Clean scons build directory.
+
+    Notes:
+        With ``--keep-backend-objects``, previous C sources, headers, constants
+        and object files are preserved so content-stable rewrites can keep
+        mtimes and Scons can skip recompiling unchanged modules. Do not combine
+        with ``--remove-output`` if you want reuse across builds.
+    """
+
+    from nuitka.options.Options import shallKeepBackendObjects
+
+    keep_objects = shallKeepBackendObjects()
 
     # spell-checker: ignore gcda
-    extensions = (
-        ".bin",
-        ".c",
-        ".cpp",
+    extensions = [
         ".exp",
-        ".h",
         ".lib",
         ".manifest",
-        ".o",
-        ".obj",
-        ".os",
         ".rc",
         ".res",
         ".S",
-        ".txt",
         ".pickle",
-        ".const",
         ".gcda",
         ".pgd",
         ".pgc",
         ".json",
-    )
+    ]
+
+    # Full clean: wipe generated sources, objects and constant blobs so builds
+    # cannot pick up stale artifacts from a previous configuration.
+    #
+    # keep-backend-objects must preserve ".bin"/".txt" under blobs/ too: the
+    # data composer rewrites them every run, and content-stable mtimes are
+    # required for durable sconsign to skip re-link.
+    if not keep_objects:
+        extensions.extend(
+            [
+                ".bin",
+                ".txt",
+                ".c",
+                ".cpp",
+                ".h",
+                ".const",
+                ".o",
+                ".obj",
+                ".os",
+            ]
+        )
+    extensions = tuple(extensions)
 
     def check(path):
         if hasFilenameExtension(path, extensions):
@@ -716,6 +741,34 @@ def cleanSconsDirectory(source_dir):
         if os.path.exists(blobs_dir):
             for path, _filename in listDir(blobs_dir):
                 check(path)
+
+
+def removeOrphanBackendSources(source_dir, kept_filenames):
+    """Delete generated module C sources not part of the current compile set.
+
+    Notes:
+        Used with ``--keep-backend-objects`` so ``scanSourceDir`` does not pull
+        stale ``module.*.c`` from a previous inclusion set into the link.
+        Matching ``.const`` sidecars are removed with their orphan ``.c`` files.
+    """
+    if not os.path.isdir(source_dir):
+        return
+
+    kept = set(os.path.basename(path) for path in kept_filenames)
+
+    for path, filename in listDir(source_dir):
+        if not filename.startswith("module."):
+            continue
+
+        # Only consider C/C++ module units for orphan detection. Their .const
+        # sidecars are derived from the same basename.
+        if not hasFilenameExtension(filename, (".c", ".cpp")):
+            continue
+
+        if filename not in kept:
+            deleteFile(path, must_exist=False)
+            const_path = changeFilenameExtension(path, ".const")
+            deleteFile(const_path, must_exist=False)
 
 
 def getCommonSconsOptions():
@@ -792,6 +845,9 @@ def getCommonSconsOptions():
 
     if shallDisableCCacheUsage():
         scons_options["disable_ccache"] = asBoolStr(True)
+
+    if shallKeepBackendObjects():
+        scons_options["keep_backend_objects"] = asBoolStr(True)
 
     if isWin32Windows() and getWindowsConsoleMode() != "attach":
         scons_options["console_mode"] = getWindowsConsoleMode()
