@@ -37,6 +37,7 @@ def cleanCaches():
     _cleanCacheDirectory("clcache", "clcache")
     _cleanCacheDirectory("zig", "zig")
     _cleanCacheDirectory("bytecode", "module-cache")
+    _cleanCacheDirectory("module-frontend", "module-frontend")
     _cleanCacheDirectory("dll-dependencies", "library_dependencies")
 
 

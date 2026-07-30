@@ -73,6 +73,39 @@ def optimizeCompiledPythonModule(module):
         other_logger=progress_logger,
     )
 
+    # Optional: skip local computeModule micro-passes when a validated frontend
+    # cache entry exists (or the module is an L3 no-AST stub). Dependency
+    # discovery still runs via considerUsedModules after replaying cached usage.
+    from nuitka.ModuleFrontendCaching import (
+        isModuleFrontendStub,
+        tryProbeAndPrepareOptimizeSkip,
+        wasModuleOptimizeSkipped,
+    )
+
+    if isExperimental("module-frontend-skip-optimize") or isExperimental(
+        "module-frontend-stub"
+    ):
+        # L1: memoized probe — later optimization passes must not re-hash/
+        # re-validate cache, but must still re-run dependency discovery.
+        # startTraversal() resets done/active modules each pass, so skipping
+        # considerUsedModules on pass 2+ collapses the inclusion set.
+        if wasModuleOptimizeSkipped(module) or isModuleFrontendStub(module):
+            if isModuleFrontendStub(module):
+                # Ensure optimize-skip stats/reconcile see stubs even when the
+                # probe path is not re-entered.
+                from nuitka.ModuleFrontendCaching import tryProbeAndPrepareOptimizeSkip
+
+                tryProbeAndPrepareOptimizeSkip(module)
+
+            module.attemptRecursion()
+            considerUsedModules(module=module, pass_count=pass_count)
+            return False, 0
+
+        if tryProbeAndPrepareOptimizeSkip(module):
+            module.attemptRecursion()
+            considerUsedModules(module=module, pass_count=pass_count)
+            return False, 0
+
     touched = False
 
     # TODO: Make this an option for the user to control instead.
@@ -344,6 +377,25 @@ def _makeOptimizationPass():
 
         if changed:
             unfinished_modules.add(current_module)
+
+    # When some modules skipped local optimize, ExpressionFunctionRef edges were
+    # never walked, so owner modules may not have marked helper functions as
+    # used. Reconcile those edges before pruning unused functions, or cross-module
+    # helpers (often on __main__) disappear and linking fails.
+    from nuitka.ModuleFrontendCaching import (
+        getModuleFrontendCacheStats,
+        getModuleFrontendOptimizeSkipStats,
+        reconcileCrossModuleFunctionUses,
+    )
+
+    skip_stats = getModuleFrontendOptimizeSkipStats()
+    cache_stats = getModuleFrontendCacheStats()
+    if (
+        skip_stats.get("skip", 0)
+        or skip_stats.get("stub", 0)
+        or cache_stats.get("stub", 0)
+    ):
+        reconcileCrossModuleFunctionUses()
 
     # Unregister collection traces from now unused code, dropping the trace
     # collections of functions no longer used. This must be done after global

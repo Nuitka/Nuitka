@@ -31,6 +31,13 @@ from nuitka.code_generation.CodeGeneration import (
     generateHelpersCode,
     generateModuleCode,
 )
+from nuitka.ModuleFrontendCaching import (
+    flushModuleFrontendCacheIndex,
+    getModuleFrontendCacheStats,
+    getModuleFrontendOptimizeSkipStats,
+    storeModuleFrontendCache,
+    tryRestoreModuleFrontendCache,
+)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -104,6 +111,7 @@ from nuitka.options.Options import (
     isPythonPgoErrorExitStrict,
     isRemoveBuildDir,
     isRuntimeProfile,
+    shallKeepBackendObjects,
     isShowInclusion,
     isShowMemory,
     isShowProgress,
@@ -191,7 +199,7 @@ from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Timing import withProfiling
+from nuitka.utils.Timing import TimerReport, withProfiling
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 from nuitka.VersionCheck import checkNuitkaUpdate
@@ -201,6 +209,7 @@ from .build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
+    removeOrphanBackendSources,
     runScons,
 )
 from .code_generation import LoaderCodes, Reports
@@ -246,17 +255,25 @@ def _createMainModule():
 
     onBeforeCodeParsing()
 
-    # First, build the raw node tree from the source code.
-    if isMultidistMode():
-        assert not shallMakeModule()
+    from nuitka.options.Options import shallUseModuleFrontendCache
 
-        main_module = buildMainModuleTree(
-            source_code=createMultidistMainSourceCode(),
-        )
-    else:
-        main_module = buildMainModuleTree(
-            source_code=None,
-        )
+    # First, build the raw node tree from the source code.
+    with TimerReport(
+        "Module frontend phase: tree finished in %.2f seconds.",
+        logger=general,
+        decider=shallUseModuleFrontendCache(),
+        min_report_time=0.01,
+    ):
+        if isMultidistMode():
+            assert not shallMakeModule()
+
+            main_module = buildMainModuleTree(
+                source_code=createMultidistMainSourceCode(),
+            )
+        else:
+            main_module = buildMainModuleTree(
+                source_code=None,
+            )
 
     OutputDirectories.setMainModule(main_module)
 
@@ -295,12 +312,20 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
             OutputDirectories.initStandaloneDirectory(logger=general)
 
     # Delete result file, to avoid confusion with previous build and to
-    # avoid locking issues after the build.
-    _deleteResultFile(OutputDirectories.getResultFullpath(onefile=False, real=True))
+    # avoid locking issues after the build. With ``--keep-backend-objects``
+    # preserve the previous binary so a durable sconsign can skip re-link
+    # when objects and constant blobs are unchanged.
+    if not shallKeepBackendObjects():
+        _deleteResultFile(
+            OutputDirectories.getResultFullpath(onefile=False, real=True)
+        )
+
+        if isOnefileMode():
+            _deleteResultFile(
+                OutputDirectories.getResultFullpath(onefile=True, real=True)
+            )
 
     if isOnefileMode():
-        _deleteResultFile(OutputDirectories.getResultFullpath(onefile=True, real=True))
-
         # Also make sure we inform the user in case the compression is not possible.
         getCompressorPython()
 
@@ -351,7 +376,15 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
     # TODO: The passed filename is really something that should come from
     # a command line option, it's a filename for the graph, which might not
     # need a default at all.
-    optimizeModules(main_module.getOutputFilename())
+    from nuitka.options.Options import shallUseModuleFrontendCache
+
+    with TimerReport(
+        "Module frontend phase: optimize finished in %.2f seconds.",
+        logger=general,
+        decider=shallUseModuleFrontendCache(),
+        min_report_time=0.01,
+    ):
+        optimizeModules(main_module.getOutputFilename())
 
     # Freezer may have concerns for some modules.
     if isStandaloneMode():
@@ -565,20 +598,34 @@ def makeSourceDirectory():
     )
 
     # Generate code for compiled modules, this can be slow, so do it separately
-    # with a progress bar.
+    # with a progress bar. Optionally restore from module-frontend cache first.
     for current_module in compiled_modules:
         module_name = current_module.getFullName()
         c_filename = module_filenames[current_module]
+        data_filename = changeFilenameExtension(
+            os.path.basename(c_filename), ".const"
+        )
+        const_filename = getNormalizedPathJoin(
+            source_dir,
+            data_filename,
+        )
 
         reportProgressBar(
             item=module_name,
         )
 
+        restored = tryRestoreModuleFrontendCache(
+            module=current_module,
+            c_filename=c_filename,
+            const_filename=const_filename,
+        )
+
+        if restored:
+            continue
+
         source_code = generateModuleCode(
             module=current_module,
-            data_filename=changeFilenameExtension(
-                os.path.basename(c_filename), ".const"
-            ),
+            data_filename=data_filename,
         )
 
         writeSourceCode(
@@ -588,7 +635,60 @@ def makeSourceDirectory():
             assume_yes_for_downloads=assumeYesForDownloads(),
         )
 
+        storeModuleFrontendCache(
+            module=current_module,
+            c_filename=c_filename,
+            const_filename=const_filename,
+        )
+
+    # Drop stale module.*.c from previous inclusion sets when reusing the
+    # build directory for object-level incremental compiles.
+    if shallKeepBackendObjects():
+        removeOrphanBackendSources(
+            source_dir=source_dir,
+            kept_filenames=module_filenames.values(),
+        )
+
     closeProgressBar()
+
+    # Persist L1/L2 process index after this compile's stores.
+    flushModuleFrontendCacheIndex()
+
+    module_frontend_stats = getModuleFrontendCacheStats()
+    if (
+        module_frontend_stats.get("hit")
+        or module_frontend_stats.get("store")
+        or module_frontend_stats.get("stub")
+    ):
+        general.info(
+            "Module frontend cache: %d hit(s), %d miss(es), %d store(s), %d bypass(es), %d invalid, %d stub(s)."
+            % (
+                module_frontend_stats.get("hit", 0),
+                module_frontend_stats.get("miss", 0),
+                module_frontend_stats.get("store", 0),
+                module_frontend_stats.get("bypass", 0),
+                module_frontend_stats.get("invalid", 0),
+                module_frontend_stats.get("stub", 0),
+            )
+        )
+
+    optimize_skip_stats = getModuleFrontendOptimizeSkipStats()
+    if (
+        optimize_skip_stats.get("skip")
+        or optimize_skip_stats.get("probe_miss")
+        or optimize_skip_stats.get("stub")
+    ):
+        general.info(
+            "Module frontend optimize-skip: %d skip(s), %d stub(s), %d full, %d probe-miss, %d probe-invalid, %d probe-bypass."
+            % (
+                optimize_skip_stats.get("skip", 0),
+                optimize_skip_stats.get("stub", 0),
+                optimize_skip_stats.get("full", 0),
+                optimize_skip_stats.get("probe_miss", 0),
+                optimize_skip_stats.get("probe_invalid", 0),
+                optimize_skip_stats.get("probe_bypass", 0),
+            )
+        )
 
     (
         helper_decl_code,
@@ -1057,7 +1157,10 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
 
 def compileTree():
+    from nuitka.options.Options import shallUseModuleFrontendCache
+
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
+    report_mcc_phases = shallUseModuleFrontendCache()
 
     general.info("Completed Python level compilation and optimization.")
 
@@ -1074,12 +1177,18 @@ def compileTree():
         )
 
         # Now build the target language code for the whole tree.
-        with withProfiling(
-            name="code-generation",
-            logger=code_generation_logger,
-            enabled=isCompileTimeProfile(),
+        with TimerReport(
+            "Module frontend phase: codegen finished in %.2f seconds.",
+            logger=general,
+            decider=report_mcc_phases,
+            min_report_time=0.01,
         ):
-            module_filenames = makeSourceDirectory()
+            with withProfiling(
+                name="code-generation",
+                logger=code_generation_logger,
+                enabled=isCompileTimeProfile(),
+            ):
+                module_filenames = makeSourceDirectory()
 
         bytecode_accessor = ConstantAccessor(
             data_filename="__bytecode.const", top_level_name="bytecode_data"
@@ -1127,7 +1236,13 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    runDataComposer(source_dir)  # TODO: This should be a hook too
+    with TimerReport(
+        "Module frontend phase: data-composer finished in %.2f seconds.",
+        logger=general,
+        decider=report_mcc_phases,
+        min_report_time=0.01,
+    ):
+        runDataComposer(source_dir)  # TODO: This should be a hook too
 
     writeExtraCodeFiles(onefile=False)
 
@@ -1138,7 +1253,13 @@ def compileTree():
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
-    result, scons_options = runSconsBackend()
+    with TimerReport(
+        "Module frontend phase: scons/backend finished in %.2f seconds.",
+        logger=general,
+        decider=report_mcc_phases,
+        min_report_time=0.01,
+    ):
+        result, scons_options = runSconsBackend()
 
     if result:
         readSconsObjectSizes(

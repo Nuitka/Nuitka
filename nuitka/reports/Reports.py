@@ -15,6 +15,12 @@ import traceback
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsCaching import getCcacheModuleStats
+from nuitka.ModuleFrontendCaching import (
+    getModuleFrontendCacheModuleResults,
+    getModuleFrontendCacheStats,
+    getModuleFrontendOptimizeSkipModuleResults,
+    getModuleFrontendOptimizeSkipStats,
+)
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsObjectSizes,
@@ -326,10 +332,22 @@ def _getReportInputData(aborted):
             source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
         scons_ccache_stats = getCcacheModuleStats()
+        module_frontend_cache_stats = getModuleFrontendCacheStats()
+        module_frontend_cache_module_results = getModuleFrontendCacheModuleResults()
+        module_frontend_optimize_skip_stats = getModuleFrontendOptimizeSkipStats()
+        module_frontend_optimize_skip_module_results = (
+            getModuleFrontendOptimizeSkipModuleResults()
+        )
     else:
         scons_error_report_data = {}
         scons_resource_usage_data = {}
         scons_ccache_stats = {}
+        module_frontend_cache_stats = getModuleFrontendCacheStats()
+        module_frontend_cache_module_results = getModuleFrontendCacheModuleResults()
+        module_frontend_optimize_skip_stats = getModuleFrontendOptimizeSkipStats()
+        module_frontend_optimize_skip_module_results = (
+            getModuleFrontendOptimizeSkipModuleResults()
+        )
         output_run_filename = "failed too early"
         backend_executable = "failed too early"
         backend_executable_size = None
@@ -979,6 +997,54 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             memory_infos=report_input_data["memory_infos"],
             diffable=diffable,
         )
+
+    module_frontend_cache_stats = report_input_data.get("module_frontend_cache_stats")
+    if module_frontend_cache_stats and any(module_frontend_cache_stats.values()):
+        mfc_node = appendTreeElement(
+            root,
+            "module-frontend-cache",
+            hit=str(module_frontend_cache_stats.get("hit", 0)),
+            miss=str(module_frontend_cache_stats.get("miss", 0)),
+            store=str(module_frontend_cache_stats.get("store", 0)),
+            bypass=str(module_frontend_cache_stats.get("bypass", 0)),
+            invalid=str(module_frontend_cache_stats.get("invalid", 0)),
+            stub=str(module_frontend_cache_stats.get("stub", 0)),
+        )
+        for module_name, info in sorted(
+            report_input_data.get("module_frontend_cache_module_results", {}).items()
+        ):
+            appendTreeElement(
+                mfc_node,
+                "module",
+                name=module_name,
+                result=info.get("result", ""),
+                reason=info.get("reason", ""),
+            )
+
+    optimize_skip_stats = report_input_data.get("module_frontend_optimize_skip_stats")
+    if optimize_skip_stats and any(optimize_skip_stats.values()):
+        skip_node = appendTreeElement(
+            root,
+            "module-frontend-optimize-skip",
+            skip=str(optimize_skip_stats.get("skip", 0)),
+            stub=str(optimize_skip_stats.get("stub", 0)),
+            full=str(optimize_skip_stats.get("full", 0)),
+            probe_miss=str(optimize_skip_stats.get("probe_miss", 0)),
+            probe_invalid=str(optimize_skip_stats.get("probe_invalid", 0)),
+            probe_bypass=str(optimize_skip_stats.get("probe_bypass", 0)),
+        )
+        for module_name, info in sorted(
+            report_input_data.get(
+                "module_frontend_optimize_skip_module_results", {}
+            ).items()
+        ):
+            appendTreeElement(
+                skip_node,
+                "module",
+                name=module_name,
+                result=info.get("result", ""),
+                reason=info.get("reason", ""),
+            )
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":

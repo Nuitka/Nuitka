@@ -983,6 +983,17 @@ Defaults to off.""",
 )
 
 output_group.add_option(
+    "--keep-backend-objects",
+    action="store_true",
+    dest="keep_backend_objects",
+    default=False,
+    help="""\
+Keep previous C object files in the build directory and only rewrite C/.const
+sources when their contents change. This allows Scons to skip recompiling
+unchanged modules (object-level incremental backend). Defaults to off.""",
+)
+
+output_group.add_option(
     "--no-pyi-file",
     action="store_false",
     dest="pyi_file",
@@ -1475,10 +1486,23 @@ del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
 
-_cache_names = ("all", "ccache", "bytecode", "compression")
+_cache_names = ("all", "ccache", "bytecode", "compression", "module-frontend")
 
 if isWin32Windows():
     _cache_names += ("dll-dependencies",)
+
+caching_group.add_option(
+    "--enable-module-frontend-cache",
+    action="store_true",
+    dest="enable_module_frontend_cache",
+    default=False,
+    help="""\
+Enable optional caching of generated C sources for compiled non-main modules.
+When enabled, unchanged modules can reuse previously generated module C and
+const payloads across compilations. Disabled by default so existing builds are
+unaffected. Can be combined with "--disable-cache=module-frontend" to turn the
+feature off again even if this flag is given.""",
+)
 
 caching_group.add_option(
     "--disable-cache",

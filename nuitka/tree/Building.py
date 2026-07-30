@@ -1441,6 +1441,31 @@ def buildModule(
                     module_filename=module_filename,
                 )
 
+        # L3 module-frontend stub: when a validated C cache entry exists, skip
+        # parse/AST/tree building entirely and only replay dependency edges.
+        if not is_main and not is_top and source_code is not None:
+            from nuitka.ModuleFrontendCaching import tryBuildCachedFrontendModule
+
+            stub_mode = decideCompilationMode(
+                is_top=is_top,
+                module_name=module_name,
+                module_filename=module_filename,
+                for_pgo=False,
+            )
+            stub_module = tryBuildCachedFrontendModule(
+                module_name=module_name,
+                module_filename=module_filename,
+                reason=reason,
+                source_code=source_code,
+                source_ref=source_ref,
+                is_package=is_package,
+                is_top=is_top,
+                is_main=is_main,
+                mode=stub_mode,
+            )
+            if stub_module is not None:
+                return stub_module
+
         try:
             with withNoSyntaxWarning():
                 ast_tree = parseSourceCodeToAst(

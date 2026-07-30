@@ -2238,6 +2238,19 @@ def shallDisableBytecodeCacheUsage():
     return shallDisableCacheUsage("bytecode")
 
 
+def shallUseModuleFrontendCache():
+    """:returns: bool derived from ``--enable-module-frontend-cache``.
+
+    Notes:
+        The feature is opt-in. Even when enabled, ``--disable-cache=module-frontend``
+        or ``--disable-cache=all`` still turns usage off.
+    """
+    if options is None:
+        return False
+
+    return bool(getattr(options, "enable_module_frontend_cache", False))
+
+
 def shallDisableCompressionCacheUsage():
     """:returns: bool derived from ``--disable-cache=compression``"""
     return shallDisableCacheUsage("compression")
@@ -2325,6 +2338,21 @@ def isShowPluginUsage():
 def isRemoveBuildDir():
     """:returns: bool derived from ``--remove-output``"""
     return options.remove_build and not options.generate_c_only
+
+
+def shallKeepBackendObjects():
+    """:returns: bool derived from ``--keep-backend-objects``.
+
+    Notes:
+        When enabled, Nuitka keeps previous ``.o``/``.obj`` files and only
+        rewrites generated C sources when contents differ, so Scons can reuse
+        objects for unchanged modules. Implies not fully wiping object files in
+        ``cleanSconsDirectory``.
+    """
+    if options is None:
+        return False
+
+    return bool(getattr(options, "keep_backend_objects", False))
 
 
 def isDeploymentMode():
