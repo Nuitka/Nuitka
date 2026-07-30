@@ -81,3 +81,7 @@ doxygen-*
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
 nuitka/build/inline_copy/downloads
+
+# Local experimental MCC benches / format venv (not for PRs)
+tests/scratch/
+.venv-format/
