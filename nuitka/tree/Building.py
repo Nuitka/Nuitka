@@ -69,13 +69,16 @@ from nuitka.nodes.BuiltinTemplateNodes import (
     ExpressionTemplateString,
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStrP3
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
+    StatementConditional,
     makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantEllipsisRef,
     ExpressionConstantNoneRef,
+    ExpressionConstantTypeLazyImportRef,
     makeConstantRefNode,
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
@@ -85,6 +88,7 @@ from nuitka.nodes.GeneratorNodes import (
     StatementGeneratorReturnNone,
 )
 from nuitka.nodes.ImportNodes import (
+    ExpressionResolveLazyImport,
     isHardModuleWithoutSideEffect,
     makeExpressionImportModuleFixed,
 )
@@ -106,14 +110,18 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OperatorNodesUnary import makeExpressionOperationUnary
-from nuitka.nodes.ReturnNodes import makeStatementReturn
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import StatementReturn, makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
+from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
@@ -218,6 +226,7 @@ from .TreeHelpers import (
     makeModuleFrame,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mangleName,
     parseSourceCodeToAst,
     setBuildingDispatchers,
@@ -226,6 +235,54 @@ from .VariableClosure import completeVariableClosures
 
 if str is not bytes:
 
+    def _makePotentiallyLazyNameRef(provider, node, source_ref):
+        outline = ExpressionOutlineBody(provider, "lookup_variable", source_ref)
+        tmp_variable = outline.allocateTempVariable(
+            temp_scope=None, name="variable", temp_type="object"
+        )
+        condition = ExpressionComparisonIs(
+            left=ExpressionBuiltinType1(
+                value=ExpressionTempVariableRef(tmp_variable, source_ref),
+                source_ref=source_ref,
+            ),
+            right=ExpressionConstantTypeLazyImportRef(source_ref),
+            source_ref=source_ref,
+        )
+        statements = [
+            makeStatementAssignmentVariable(
+                variable=tmp_variable,
+                source=ExpressionVariableNameRef(
+                    provider=provider,
+                    variable_name=mangleName(node.id, provider),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            StatementConditional(
+                condition=condition,
+                yes_branch=makeStatementsSequenceFromStatement(
+                    StatementReturn(
+                        expression=ExpressionResolveLazyImport(
+                            lazy_import=ExpressionTempVariableRef(
+                                tmp_variable, source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                ),
+                no_branch=makeStatementsSequenceFromStatement(
+                    StatementReturn(
+                        expression=ExpressionTempVariableRef(tmp_variable, source_ref),
+                        source_ref=source_ref,
+                    ),
+                ),
+                source_ref=source_ref,
+            ),
+        ]
+        outline.setChildBody(makeStatementsSequenceFromStatements(statements))
+        return outline
+
     def buildVariableReferenceNode(provider, node, source_ref):
         # Shortcut for Python3, which gives syntax errors for assigning these.
         if node.id in quick_names:
@@ -233,11 +290,14 @@ if str is not bytes:
                 constant=quick_names[node.id], source_ref=source_ref
             )
 
-        return ExpressionVariableNameRef(
-            provider=provider,
-            variable_name=mangleName(node.id, provider),
-            source_ref=source_ref,
-        )
+        if python_version >= 0x3F0:
+            return _makePotentiallyLazyNameRef(provider, node, source_ref)
+        else:
+            return ExpressionVariableNameRef(
+                provider=provider,
+                variable_name=mangleName(node.id, provider),
+                source_ref=source_ref,
+            )
 
 else:
 

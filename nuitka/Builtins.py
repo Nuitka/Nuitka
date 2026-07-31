@@ -203,6 +203,12 @@ def _getAnonBuiltins():
         anon_names[union_name] = type(int | str)
         anon_codes[union_name] = "Nuitka_PyUnion_Type"
 
+    if python_version >= 0x3F0:
+        from types import LazyImportType
+
+        anon_codes["lazy_import"] = "&PyLazyImport_Type"
+        anon_names["lazy_import"] = LazyImportType
+
     return anon_names, anon_codes
 
 

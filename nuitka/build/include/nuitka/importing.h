@@ -15,16 +15,17 @@
  * calls using default values, the _KW helper is used.
  *
  */
-extern PyObject *IMPORT_MODULE1(PyThreadState *tstate, PyObject *module_name);
-extern PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, PyObject *globals);
-extern PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals);
-extern PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
-                                PyObject *import_items);
-extern PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
-                                PyObject *import_items, PyObject *level);
+extern PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, int is_lazy);
+extern PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals);
+extern PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                                PyObject *locals);
+extern PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                                PyObject *locals, PyObject *import_items);
+extern PyObject *IMPORT_MODULE6(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                                PyObject *locals, PyObject *import_items, PyObject *level);
 
-extern PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
-                                  PyObject *import_items, PyObject *level);
+extern PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                                  PyObject *locals, PyObject *import_items, PyObject *level);
 
 extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module, PyObject *module);
 
