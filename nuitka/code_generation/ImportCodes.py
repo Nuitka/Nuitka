@@ -46,6 +46,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
             import_list_name=import_list_name,
             level_name=level_name,
             needs_check=expression.mayRaiseException(BaseException),
+            is_lazy=expression.is_lazy,
             emit=emit,
             context=context,
         )
@@ -98,6 +99,7 @@ def _getBuiltinImportCode(
     import_list_name,
     level_name,
     needs_check,
+    is_lazy,
     emit,
     context,
 ):
@@ -108,8 +110,15 @@ def _getBuiltinImportCode(
     _getCountedArgumentsHelperCallCode(
         helper_prefix="IMPORT_MODULE",
         to_name=to_name,
-        args=(module_name, globals_name, locals_name, import_list_name, level_name),
-        min_args=1,
+        args=(
+            module_name,
+            is_lazy,
+            globals_name,
+            locals_name,
+            import_list_name,
+            level_name,
+        ),
+        min_args=2,
         needs_check=needs_check,
         emit=emit,
         context=context,
@@ -467,6 +476,32 @@ if (PyModule_Check(%(from_arg_name)s)) {
         )
 
         context.addCleanupTempName(value_name)
+
+
+def generateResolveLazyImportCode(to_name, expression, emit, context):
+    (lazy_import_value,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "resolved", expression, emit, context
+    ) as resolved_name:
+        emit(
+            "%s = _PyImport_LoadLazyImportTstate(tstate, %s);"
+            % (
+                resolved_name,
+                lazy_import_value,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=resolved_name,
+            release_name=lazy_import_value,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(resolved_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -1423,6 +1423,21 @@ class ExpressionConstantTypeTypeRef(
         ExpressionConstantTypeRef.__init__(self, constant=type, source_ref=source_ref)
 
 
+class ExpressionConstantTypeLazyImportRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_LAZY_IMPORT_REF"
+
+    def __init__(self, source_ref):
+        from types import LazyImportType
+
+        ExpressionConstantTypeRef.__init__(
+            self, constant=LazyImportType, source_ref=source_ref
+        )
+
+
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
     # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements

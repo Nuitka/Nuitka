@@ -15,9 +15,10 @@
 #endif
 
 NUITKA_DEFINE_BUILTIN(__import__);
+NUITKA_DEFINE_BUILTIN(__lazy_import__);
 
-PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
-                           PyObject *import_items, PyObject *level) {
+PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                           PyObject *locals, PyObject *import_items, PyObject *level) {
     CHECK_OBJECT_X(module_name);
     CHECK_OBJECT_X(globals);
     CHECK_OBJECT_X(locals);
@@ -29,26 +30,40 @@ PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObjec
                                  const_str_plain_level,  level};
     PyObject *kw_args = MAKE_DICT_X(kw_pairs, 5);
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
-    PyObject *import_result = CALL_FUNCTION_WITH_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(__import__), kw_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_KW_ARGS(tstate, import_function, kw_args);
 
     Py_DECREF(kw_args);
 
     return import_result;
 }
 
-PyObject *IMPORT_MODULE1(PyThreadState *tstate, PyObject *module_name) {
+PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, int is_lazy) {
     CHECK_OBJECT(module_name);
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
-    PyObject *import_result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(__import__), module_name);
+    PyObject *import_result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, import_function, module_name);
 
     return import_result;
 }
 
-PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, PyObject *globals) {
+PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(globals);
 
@@ -61,21 +76,29 @@ PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, PyObject 
     return import_result;
 }
 
-PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals) {
+PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals,
+                         PyObject *locals) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(globals);
     CHECK_OBJECT(locals);
 
     PyObject *pos_args[] = {module_name, globals, locals};
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS3(tstate, NUITKA_ACCESS_BUILTIN(__import__), pos_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS3(tstate, import_function, pos_args);
 
     return import_result;
 }
 
-PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
+PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals, PyObject *locals,
                          PyObject *import_items) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(globals);
@@ -84,14 +107,21 @@ PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, PyObject 
 
     PyObject *pos_args[] = {module_name, globals, locals, import_items};
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS4(tstate, NUITKA_ACCESS_BUILTIN(__import__), pos_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS4(tstate, import_function, pos_args);
 
     return import_result;
 }
 
-PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
+PyObject *IMPORT_MODULE6(PyThreadState *tstate, PyObject *module_name, int is_lazy, PyObject *globals, PyObject *locals,
                          PyObject *import_items, PyObject *level) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(globals);
@@ -101,8 +131,14 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
 
     PyObject *pos_args[] = {module_name, globals, locals, import_items, level};
 
-    NUITKA_ASSIGN_BUILTIN(__import__);
-    PyObject *import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    PyObject *import_function;
+    if (is_lazy) {
+        NUITKA_ASSIGN_BUILTIN(__lazy_import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__lazy_import__);
+    } else {
+        NUITKA_ASSIGN_BUILTIN(__import__);
+        import_function = NUITKA_ACCESS_BUILTIN(__import__);
+    }
 
 // TODO: This should be reserved for the import statements, but not for
 // the import built-in, we have to make a difference there with 3.10 to
@@ -427,12 +463,13 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
             if (level_int > 0) {
                 PyObject *fromlist = MAKE_TUPLE1(tstate, import_name);
 
-                result = IMPORT_MODULE5(tstate, const_str_empty, globals, globals, fromlist, level);
+                result =
+                    IMPORT_MODULE6(tstate, const_str_empty, /* TODO is_lazy=*/0, globals, globals, fromlist, level);
 
                 Py_DECREF(fromlist);
 
                 // Look up in "sys.modules", because we will have returned the
-                // package of it from IMPORT_MODULE5.
+                // package of it from IMPORT_MODULE6.
                 PyObject *name = PyUnicode_FromFormat("%s.%S", PyModule_GetName(result), import_name);
 
                 if (result != NULL) {
@@ -450,7 +487,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                         return NULL;
                     }
                 } else {
-                    result = IMPORT_MODULE5(tstate, name, globals, globals, const_tuple_empty, level);
+                    result = IMPORT_MODULE6(tstate, name, /*is_lazy=*/0, globals, globals, const_tuple_empty, level);
 
                     if (result != NULL) {
                         Py_DECREF(result);
@@ -477,7 +514,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
 #endif
 
 PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name) {
-    PyObject *import_result = IMPORT_MODULE1(tstate, module_name);
+    PyObject *import_result = IMPORT_MODULE2(tstate, module_name, /*is_lazy=*/0);
 
     if (unlikely(import_result == NULL)) {
         return import_result;

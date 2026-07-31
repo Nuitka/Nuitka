@@ -268,6 +268,11 @@ def buildImportModulesNode(provider, node, source_ref):
             else None
         )
 
+        if python_version >= 0x3F0:
+            is_lazy = node.is_lazy
+        else:
+            is_lazy = False
+
         module_name = _resolveImportModuleName(module_name)
 
         # TODO: Go to fixed node directly, avoiding the optimization for the
@@ -279,6 +284,7 @@ def buildImportModulesNode(provider, node, source_ref):
             locals_arg=makeConstantRefNode(None, source_ref, True),
             fromlist=makeConstantRefNode(None, source_ref, True),
             level=level,
+            is_lazy=is_lazy,
             source_ref=source_ref,
         )
 

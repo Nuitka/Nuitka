@@ -186,8 +186,8 @@ void patchInspectModule(PyThreadState *tstate) {
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it (yet)
     if (Py_NoSiteFlag == 0) {
-        PyObject *site_module =
-            IMPORT_MODULE5(tstate, const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
+        PyObject *site_module = IMPORT_MODULE6(tstate, const_str_plain_site, /*is_lazy=*/0, Py_None, Py_None,
+                                               const_tuple_empty, const_int_0);
 
         if (site_module == NULL) {
             // Ignore "ImportError", having a "site" module is not a must.
@@ -197,7 +197,8 @@ void patchInspectModule(PyThreadState *tstate) {
 #endif
 
     // TODO: Change this into an import hook that is executed after it is imported.
-    module_inspect = IMPORT_MODULE5(tstate, const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0);
+    module_inspect = IMPORT_MODULE6(tstate, const_str_plain_inspect, /*is_lazy=*/0, Py_None, Py_None, const_tuple_empty,
+                                    const_int_0);
 
     if (module_inspect == NULL) {
         PyErr_PrintEx(0);
@@ -228,7 +229,8 @@ void patchInspectModule(PyThreadState *tstate) {
         PyObject_SetAttrString(module_inspect, "getcoroutinestate", inspect_getcoroutinestate_replacement);
     }
 
-    module_types = IMPORT_MODULE5(tstate, const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0);
+    module_types =
+        IMPORT_MODULE6(tstate, const_str_plain_types, /*is_lazy=*/0, Py_None, Py_None, const_tuple_empty, const_int_0);
 
     if (module_types == NULL) {
         PyErr_PrintEx(0);

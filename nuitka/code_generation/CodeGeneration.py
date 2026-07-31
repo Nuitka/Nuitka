@@ -202,6 +202,7 @@ from .ImportCodes import (
     generateImportModuleNameHardCode,
     generateImportNameCode,
     generateImportStarCode,
+    generateResolveLazyImportCode,
 )
 from .IntegerCodes import (
     generateBuiltinInt1Code,
@@ -781,6 +782,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_TYPE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_LAZY_IMPORT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
@@ -841,6 +843,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
+        "EXPRESSION_RESOLVE_LAZY_IMPORT": generateResolveLazyImportCode,
         "EXPRESSION_LIST_OPERATION_APPEND": generateListOperationAppendCode2,
         "EXPRESSION_LIST_OPERATION_EXTEND": generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK": generateListOperationExtendCode,
