@@ -156,6 +156,11 @@ print("\\n".join(sorted(
                     if python_version >= 0x300 and module_name == "decimal":
                         module_name = ModuleName("_decimal")
 
+                    # Python3.15's _math_integer C extension also lies
+                    # in "__name__" claiming to be "math.integer".
+                    if python_version >= 0x3F0 and module_name == "math.integer":
+                        module_name = ModuleName("_math_integer")
+
                     detections.append((module_name, 2, "extension", filename))
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
