@@ -132,9 +132,16 @@ class ExpressionImportModuleFixed(ExpressionBase):
 
     These created as result of builtin imports and "importlib.import_module" calls
     that were compile time resolved, and for known module names.
+
+    TODO: Ask the module body if it raises exceptions, so we can return
+    False for modules that are known to never fail importing.
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_FIXED"
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
 
     __slots__ = (
         "module_name",
@@ -219,11 +226,6 @@ class ExpressionImportModuleFixed(ExpressionBase):
 
     @staticmethod
     def mayHaveSideEffects():
-        # TODO: For included modules, we might be able to tell, not not done now.
-        return True
-
-    @staticmethod
-    def mayRaiseException(exception_type):
         # TODO: For included modules, we might be able to tell, not not done now.
         return True
 
