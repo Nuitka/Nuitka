@@ -621,7 +621,10 @@ def buildAnnAssignNode(provider, node, source_ref):
             if (
                 python_version >= 0x3E0
                 and isExperimental("deferred-annotations")
-                and provider.isExpressionClassBodyBase()
+                and (
+                    provider.isExpressionClassBodyBase()
+                    or provider.isCompiledPythonModule()
+                )
             ):
                 provider.deferred_annotations[variable_name] = node.annotation
             else:
