@@ -172,12 +172,28 @@ class ExpressionVariableRefBase(ExpressionBase):
         return None
 
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
-        # TODO: For include modules, something might be possible here.
-        return self.computeExpressionAttribute(
-            lookup_node=import_node,
-            attribute_name=import_name,
-            trace_collection=trace_collection,
-        )
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                trace_collection.markActiveVariableAsEscaped(self.variable)
+
+                return attribute_node.computeExpressionImportName(
+                    import_node=import_node,
+                    import_name=import_name,
+                    trace_collection=trace_collection,
+                )
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # The variable itself is to be considered escaped.
+        trace_collection.markActiveVariableAsEscaped(self.variable)
+
+        if not self.isKnownToHaveAttribute(import_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return import_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
