@@ -649,6 +649,20 @@ Plugin options of 'anti\-debugger' (categories: commercial, protection):
 \fB\-\-anti\-debugger\-debugging\fR
 Enables debug outputs for the debugger plugin, so that it e.g. says why it rejects something.
 .IP
+Plugin options of 'codemeter' (categories: commercial, protection):
+.TP
+\fB\-\-codemeter\-path\fR=\fI\,CODEMETER_PATH\/\fR
+The location of the CodeMeter / AxProtector installation, by default it is searched in common install paths and in PATH.
+.TP
+\fB\-\-codemeter\-command\fR=\fI\,CODEMETER_COMMAND\/\fR
+The CodeMeter protection tool executable name. By default AxProtectorCmd.exe is searched.
+.TP
+\fB\-\-codemeter\-args\fR=\fI\,CODEMETER_ARGS\/\fR
+Extra command\-line arguments passed to the CodeMeter protection tool. These may contain references to project configuration files, input and output filenames, or other protection options.
+.TP
+\fB\-\-codemeter\-keep\-unprotected\fR
+Keep the unprotected version of the Nuitka compiled binary.
+.IP
 Plugin options of 'data\-hiding' (categories: commercial, protection):
 .TP
 \fB\-\-data\-hiding\-salt\-value\fR=\fI\,SALT_VALUE\/\fR
