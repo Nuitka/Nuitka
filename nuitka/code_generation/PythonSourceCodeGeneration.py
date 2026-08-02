@@ -129,8 +129,8 @@ def _generateTupleSource(expression):
 def _generateDictSource(expression):
     items = []
     for pair in expression.subnode_pairs:
-        key_source = repr(pair.key)
-        value_source = generateExpressionSource(pair.subnode_value)
+        key_source = repr(pair.getKeyCompileTimeConstant())
+        value_source = generateExpressionSource(pair.getValueNode())
         items.append("%s: %s" % (key_source, value_source))
 
     return "{%s}" % ", ".join(items)
