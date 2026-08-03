@@ -281,6 +281,9 @@ elif env.exe_mode or env.dll_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
+    if env.onefile_mode and isLinux():
+        env.Append(LIBS=["pthread"])
+
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
     # and AIX don't have it, but some Python flavors like Standalone Python
     # won't find it unless provided like this, so lets try to add this by
