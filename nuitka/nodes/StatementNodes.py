@@ -115,21 +115,14 @@ class StatementsSequenceMixin(object):
     def willRaiseAnyException(self):
         return self.subnode_statements[-1].willRaiseAnyException()
 
+    def _computeStatementsSequenceCore(self, trace_collection):
+        """Optimize the child statements and drop the ones after an aborting one.
 
-class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
-    kind = "STATEMENTS_SEQUENCE"
-
-    named_children = ("statements|tuple+setter",)
-
-    @staticmethod
-    def isStatementsSequenceButNotFrame():
-        return True
-
-    def computeStatementsSequence(self, trace_collection):
+        Returns a mutable list, the caller decides what to make of it.
+        """
         new_statements = []
 
         statements = self.subnode_statements
-        assert statements, self
 
         for count, statement in enumerate(statements):
             # May be frames embedded.
@@ -159,7 +152,24 @@ class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
 
                     break
 
-        new_statements = tuple(new_statements)
+        return new_statements
+
+
+class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
+    kind = "STATEMENTS_SEQUENCE"
+
+    named_children = ("statements|tuple+setter",)
+
+    @staticmethod
+    def isStatementsSequenceButNotFrame():
+        return True
+
+    def computeStatementsSequence(self, trace_collection):
+        statements = self.subnode_statements
+        assert statements, self
+
+        new_statements = tuple(self._computeStatementsSequenceCore(trace_collection))
+
         if statements != new_statements:
             if new_statements:
                 self.setChildStatements(new_statements)
