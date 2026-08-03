@@ -1442,6 +1442,24 @@ value. Refer to gcc documentation for "-fcf-protection" for the
 details.""",
 )
 
+c_compiler_group.add_option(
+    "--target-arch",
+    action="store",
+    dest="c_target_arch",
+    metavar="MARCH",
+    default=None,
+    help="""\
+What minimum CPU instruction set to compile for. This is NOT about
+cross-compilation (which requires Python of that architecture). It
+controls the baseline ISA level for the backend C compiler via
+'-march'. When not given, gcc and clang use their default (already
+portable), and zig defaults to the baseline ISA for the target
+architecture (e.g. "x86_64" on x86_64, "armv8-a" on arm64) to
+produce portable binaries. Set to an explicit value like
+"x86-64-v3" to require a higher ISA level. Check compiler docs
+for allowed values. If you choose wrong, build errors will occur.""",
+)
+
 del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")

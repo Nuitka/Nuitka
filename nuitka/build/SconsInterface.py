@@ -31,6 +31,7 @@ from nuitka.options.Options import (
     getProductVersion,
     getProgressBar,
     getPythonPathForScons,
+    getTargetArch,
     getWindowsConsoleMode,
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
@@ -840,6 +841,9 @@ def getCommonSconsOptions():
         scons_options["macos_target_arch"] = getMacOSTargetArch()
 
     scons_options["target_arch"] = getArchitecture()
+    c_target_arch = getTargetArch()
+    if c_target_arch is not None:
+        scons_options["c_target_arch"] = c_target_arch
 
     if getFcfProtectionMode() != "auto":
         scons_options["cf_protection"] = getFcfProtectionMode()

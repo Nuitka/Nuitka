@@ -297,6 +297,9 @@ Use static link library of Python. Allowed values are "yes", "no", and "auto" (w
 .TP
 \fB\-\-cf\-protection\fR=\fI\,PROTECTION_MODE\/\fR
 This option is gcc specific. For the gcc compiler, select the "cf\-protection" mode. Default "auto" is to use the gcc default value, but you can override it, e.g. to disable it with "none" value. Refer to gcc documentation for "\-fcf\-protection" for the details.
+.TP
+\fB\-\-target\-arch\fR=\fI\,MARCH\/\fR
+What minimum CPU instruction set to compile for. This is NOT about cross\-compilation (which requires Python of that architecture). It controls the baseline ISA level for the backend C compiler via '\-march'. When not given, gcc and clang use their default (already portable), and zig defaults to the baseline ISA for the target architecture (e.g. "x86_64" on x86_64, "armv8\-a" on arm64) to produce portable binaries. Set to an explicit value like "x86\-64\-v3" to require a higher ISA level. Check compiler docs for allowed values. If you choose wrong, build errors will occur.
 .IP
 Cache Control:
 .TP

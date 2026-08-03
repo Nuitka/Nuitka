@@ -1199,6 +1199,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Target arch for macOS.
     macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+    # Target arch for C compiler (ISA baseline, not cross-compilation).
+    c_target_arch = getArgumentDefaulted("c_target_arch", None)
+
     # gcc compiler cf_protection option
     cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
@@ -1264,6 +1267,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.macos_min_version = macos_min_version
     env.macos_target_arch = macos_target_arch
     env.target_arch = target_arch
+    env.c_target_arch = c_target_arch
     env.no_deployment = no_deployment
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
@@ -1334,6 +1338,23 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # define that allows us to test for it.
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
+
+    if env.gcc_mode or env.clang_mode or env.zig_mode:
+        # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
+        # may not be available on older or more generic machines.
+        if env.c_target_arch is None and env.zig_mode and not isMacOS():
+            if env.target_arch == "x86_64":
+                env.c_target_arch = "x86_64"
+            elif env.target_arch == "arm64":
+                env.c_target_arch = "armv8-a"
+            elif env.target_arch == "x86":
+                env.c_target_arch = "i586"
+
+    if env.c_target_arch is not None:
+        if env.msvc_mode or env.clangcl_mode:
+            env.Append(CCFLAGS=["/arch:%s" % env.c_target_arch])
+        else:
+            env.Append(CCFLAGS=["-march=%s" % env.c_target_arch])
 
     if env.reproducible_mode:
         # Make sure we use a fixed date for macros like "__DATE__" to ensure

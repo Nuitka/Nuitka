@@ -2817,6 +2817,11 @@ def getMacOSTargetArch():
     return macos_target_arch
 
 
+def getTargetArch():
+    """:returns: str or None, value of ``--target-arch`` option"""
+    return options.c_target_arch
+
+
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
     if shallCreatePythonPgoInput():
