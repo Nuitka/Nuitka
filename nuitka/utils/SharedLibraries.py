@@ -522,7 +522,7 @@ def _coffDependencyError(
         )
 
 
-def _detectBinaryPathDLLsCoff2(filename, package_name, imported_by):
+def detectBinaryPathDLLsCoff(filename, package_name, imported_by=None):
     """Detect the shared libraries needed by a COFF (AIX) binary.
 
     Uses 'dump -H' to determine which shared libraries are imported, and
@@ -557,47 +557,36 @@ def _detectBinaryPathDLLsCoff2(filename, package_name, imported_by):
 
         found_path = _resolveCoffLibraryPath(base, member, search_paths)
 
-        if not found_path:
+        if (
+            not found_path
+            or not os.path.isabs(found_path)
+            or not os.path.isfile(found_path)
+        ):
             return _coffDependencyError(
                 filename=filename,
                 imported_libraries=imported_libraries,
                 search_paths=search_paths,
                 base=base,
-                found_path=None,
+                # Not resolved at all is reported differently from resolved
+                # to something unusable.
+                found_path=found_path or None,
                 imported_by=imported_by,
             )
-        elif not os.path.isabs(found_path):
-            return _coffDependencyError(
-                filename=filename,
-                imported_libraries=imported_libraries,
-                search_paths=search_paths,
-                base=base,
-                found_path=found_path,
-                imported_by=imported_by,
+
+        if imported_by:
+            postprocessing_logger.info(
+                "Resolved dependency of '%s': '%s' -> '%s'"
+                % (imported_by, filename, found_path)
             )
-        elif not os.path.isfile(found_path):
-            return _coffDependencyError(
-                filename=filename,
-                imported_libraries=imported_libraries,
-                search_paths=search_paths,
-                base=base,
-                found_path=found_path,
-                imported_by=imported_by,
-            )
-        else:
-            if imported_by:
-                postprocessing_logger.info(
-                    "Resolved dependency of '%s': '%s' -> '%s'"
-                    % (imported_by, filename, found_path)
-                )
-            result_set.add(found_path)
+
+        result_set.add(found_path)
 
     _coff_dependency_cache[filename] = result_set
 
     complete_result = OrderedSet(result_set)
     for sub_dll_filename in result_set:
         complete_result.update(
-            _detectBinaryPathDLLsCoff2(
+            detectBinaryPathDLLsCoff(
                 filename=sub_dll_filename,
                 package_name=package_name,
                 imported_by=filename,
@@ -605,32 +594,6 @@ def _detectBinaryPathDLLsCoff2(filename, package_name, imported_by):
         )
 
     return complete_result
-
-
-def detectBinaryPathDLLsCoff(filename, package_name):
-    """Detect the shared libraries needed by a COFF (AIX) binary.
-
-    Uses 'dump -H' to determine which shared libraries are imported, and
-    'dump -Tv' to resolve symbol-level dependencies.
-
-    Args:
-        filename: Path to the COFF binary or shared object.
-        package_name: Name of the package being processed.
-
-    Returns:
-        OrderedSet of absolute paths to required shared libraries.
-
-    Notes:
-        This is the COFF/XCOFF equivalent of 'detectBinaryPathDLLsPosix'
-        which uses 'ldd' on ELF platforms. AIX does not have ldd, so we
-        use the 'dump' command instead to inspect the loader section and
-        symbol table.
-    """
-    return _detectBinaryPathDLLsCoff2(
-        filename=filename,
-        package_name=package_name,
-        imported_by=None,
-    )
 
 
 _otool_output_cache = {}
