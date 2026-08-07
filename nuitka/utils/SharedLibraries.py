@@ -348,7 +348,7 @@ def _getSharedLibraryRPATHsCoff(filename):
 
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "any", filename),
+        command=("dump", "-H", "-X", "32_64", filename),
         absence_message=_dump_usage,
         decoding=True,
     )
@@ -375,7 +375,7 @@ def getCoffImportedLibraries(filename):
     """
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "any", filename),
+        command=("dump", "-H", "-X", "32_64", filename),
         absence_message=_dump_usage,
         decoding=True,
     )
@@ -396,7 +396,7 @@ def getCoffLibrarySearchPaths(filename):
     """
     output = executeToolChecked(
         logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "any", filename),
+        command=("dump", "-H", "-X", "32_64", filename),
         absence_message=_dump_usage,
         decoding=True,
     )
