@@ -1124,6 +1124,13 @@
     - dirs:
         - 'templates'
 
+- module-name: 'datasets' # checksum: 98a37e8f
+  options:
+    checks:
+      - description: 'datasets 2.7.1+ fingerprints dataset state using dill, requires dill-compat plugin to be enabled'
+        support_info: 'plugin-error'
+        when: 'version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
+
 - module-name: 'datasets.packaged_modules' # checksum: 4c45e344
   anti-bloat:
     - description: 'workaround dependency source code usages'
