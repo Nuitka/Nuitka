@@ -2158,6 +2158,12 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'httpx' # checksum: 54920036
+  anti-bloat:
+    - description: 'CLI entry point pulls in click, rich, pygments unnecessarily'
+      no-auto-follow:
+        'httpx._main': 'ignore'
+
 - module-name: 'huggingface_hub._login' # checksum: 3c12cb9a
   anti-bloat:
     - description: 'remove IPython reference'
