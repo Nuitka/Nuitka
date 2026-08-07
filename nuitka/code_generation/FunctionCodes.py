@@ -3,6 +3,7 @@
 
 """Code to generate and interact with compiled function objects."""
 
+from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -228,7 +229,20 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             )
             return
         except PythonSourceGenerationError:
-            pass
+            function_qualname = function_body.getFunctionQualname()
+            source_ref = expression.getSourceReference()
+
+            if shallNotFallbackBytecodeToCompiled(
+                module_name=context.getModuleName(),
+                function_qualname=function_qualname,
+                source_ref=source_ref,
+            ):
+                # TODO: Add user control to selectively allow/deny fallback per function.
+                return general.sysexit(
+                    """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s."""
+                    % (function_qualname, source_ref.getAsString())
+                )
 
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults

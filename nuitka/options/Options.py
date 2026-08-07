@@ -2375,6 +2375,19 @@ def shallUseDirectConstantBlobs():
     return isExperimental("direct-constant-blobs")
 
 
+def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_ref):
+    """Decide if falling back from bytecode-backed functions to compiled C code is forbidden.
+
+    Args:
+        module_name: Name of the module containing the annotate function.
+        function_qualname: Qualified name of the annotate function (Python 3).
+        source_ref: Source reference of the annotate function.
+    """
+    # pylint: disable=unused-argument
+
+    return isExperimental("no-bytecode-to-compiled-fallback")
+
+
 def getDebugModeIndications():
     result = []
 
