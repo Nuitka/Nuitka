@@ -2769,7 +2769,7 @@
         '_test': 'un-callable'
         'main': 'un-callable'
 
-- module-name: 'matplotlib' # checksum: 11ca5d4
+- module-name: 'matplotlib' # checksum: d1f67a9f
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements_plain:
@@ -2804,7 +2804,7 @@
   options:
     checks:
       - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
-        support_info: 'plugin'
+        support_info: 'plugin-warning'
         when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
@@ -9293,7 +9293,7 @@
     - depends:
         - '_twofish'
 
-- module-name: 'tyro' # checksum: b2300544
+- module-name: 'tyro' # checksum: a8dc8b82
   anti-bloat:
     - description: 'remove optional pydantic support'
       no-auto-follow:
@@ -9306,7 +9306,7 @@
   options:
     checks:
       - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
-        support_info: 'plugin'
+        support_info: 'plugin-warning'
         when: 'standalone and not plugin("source-inclusion")'
 
 - module-name: 'tzdata' # checksum: c364567b
