@@ -298,6 +298,15 @@ def _updateCaseLock(
     return lock_filename
 
 
+def _getPipenvHashFromReport(report_root):
+    user_data = report_root.find("user-data")
+    if user_data is not None:
+        pipenv_hash = user_data.find("pipenv_hash")
+        if pipenv_hash is not None:
+            return pipenv_hash.text
+    return None
+
+
 def _updateCase(
     case_dir,
     case_data,
@@ -326,9 +335,7 @@ def _updateCase(
 
         if old_report_root is not None:
             existing_hash = getFileContentsHash(lock_filename)
-            old_report_root_hash = (
-                old_report_root.find("user-data").find("pipenv_hash").text
-            )
+            old_report_root_hash = _getPipenvHashFromReport(old_report_root)
 
             old_nuitka_version = old_report_root.attrib["nuitka_version"]
 
