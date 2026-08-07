@@ -250,7 +250,7 @@ def readSourceCodeFromFilename(module_name, source_filename, pre_load=False):
 
 
 def checkPythonVersionFromCode(source_code):
-    # There is a lot of cases to consider, pylint: disable=too-many-branches
+    # There is a lot of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     shebang = getShebangFromSource(source_code)
 
@@ -303,6 +303,8 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3E0 > python_version >= 0x3D0
         elif basename == "python3.14":
             result = 0x3F0 > python_version >= 0x3E0
+        elif basename == "python3.15":
+            result = 0x400 > python_version >= 0x3F0
         else:
             result = None
 
