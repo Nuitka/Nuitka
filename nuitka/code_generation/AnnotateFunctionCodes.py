@@ -80,6 +80,11 @@ static PyObject *%(maker)s(PyThreadState *tstate) {
 
     context.addHelperCode(function_identifier, maker_code)
 
+    declaration_code = "static PyObject *%(maker)s(PyThreadState *tstate);" % {
+        "maker": maker_identifier,
+    }
+    context.addDeclaration(function_identifier, declaration_code)
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
