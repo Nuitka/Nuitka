@@ -20,7 +20,7 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.States import states
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isWin32Windows, withNoDeprecationWarning
 
 # These module are supported in code generation to be imported the hard way.
 hard_modules = set(
@@ -130,6 +130,8 @@ def isHardModule(module_name):
 hard_modules_trust_with_side_effects = set(
     [
         "site",
+        "pkg_resources",
+        "importlib_resources",
         "tensorflow",
         "importlib_metadata",
         "ctypes.util",
@@ -143,11 +145,45 @@ if not isWin32Windows():
     hard_modules_trust_with_side_effects.add("ctypes.wintypes")
 
 
+# Subset of hard_modules_trust_with_side_effects that we will try to import anyway
+# at compile time during the first module import, to see if they actually work.
+# Values: None = not yet tested, True/False = cached result.
+_hard_modules_side_effects_retryable = {
+    "pkg_resources": None,
+    "importlib_resources": None,
+}
+
+
 def isHardModuleWithoutSideEffect(module_name):
-    return (
-        module_name in hard_modules
-        and module_name not in hard_modules_trust_with_side_effects
-    )
+    """Check if a hard module can be imported without side effects.
+
+    Args:
+        module_name: ModuleName object to check.
+
+    Returns:
+        True if the module is a hard module without side effects, False otherwise.
+    """
+    if module_name not in hard_modules:
+        return False
+
+    if module_name not in hard_modules_trust_with_side_effects:
+        return True
+
+    if module_name not in _hard_modules_side_effects_retryable:
+        return False
+
+    result = _hard_modules_side_effects_retryable[module_name]
+    if result is None:
+        try:
+            with withNoDeprecationWarning():
+                __import__(module_name.asString())
+            result = True
+        except (ImportError, RuntimeError):
+            result = False
+
+        _hard_modules_side_effects_retryable[module_name] = result
+
+    return result
 
 
 trust_undefined = 0
