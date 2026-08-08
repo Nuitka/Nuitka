@@ -35,7 +35,7 @@ from .FileOperations import (
 )
 from .Hashing import HashCRC32
 from .Importing import withTemporarySysPathExtension
-from .Utils import getArchitecture, getOS, isWin32Windows
+from .Utils import getArchitecture, getOS, isMacOS, isWin32Windows
 
 
 def getSystemPrefixExecutable():
@@ -737,7 +737,7 @@ def getZigBinaryPath(logger, assume_yes_for_downloads, reject_message):
         logger=logger,
         package_name="ziglang",
         module_name="ziglang",
-        package_version=None,
+        package_version="0.16.0" if isMacOS() else None,
         force_update=False,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
