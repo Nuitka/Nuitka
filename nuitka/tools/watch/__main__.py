@@ -8,6 +8,7 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
+import subprocess
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -34,6 +35,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     relpath,
+    removeDirectory,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findPythons
@@ -320,14 +322,31 @@ def _updateCase(
     # Many details and cases due to package method being handled here.
     # pylint: disable=too-many-branches
 
-    lock_filename = _updateCaseLock(
-        installed_python=installed_python,
-        case_data=case_data,
-        case_dir=case_dir,
-        reset_pipenv=reset_pipenv,
-        no_pipenv_update=no_pipenv_update,
-        result_path=result_path,
-    )
+    try:
+        lock_filename = _updateCaseLock(
+            installed_python=installed_python,
+            case_data=case_data,
+            case_dir=case_dir,
+            reset_pipenv=reset_pipenv,
+            no_pipenv_update=no_pipenv_update,
+            result_path=result_path,
+        )
+    except subprocess.CalledProcessError:
+        # We trust the case yaml files, pylint: disable=eval-used
+        if eval(
+            case_data.get("wait_for", "False"),
+            None,
+            {"python_version": installed_python.getHexVersion()},
+        ):
+            watch_logger.info("  ... wait_for not yet met, skipping.")
+            removeDirectory(
+                path=result_path,
+                logger=watch_logger,
+                ignore_errors=True,
+                extra_recommendation="",
+            )
+            return
+        raise
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
