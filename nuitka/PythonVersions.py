@@ -191,6 +191,27 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+def getComplexCallMappingErrorTemplate():
+    if not hasattr(getComplexCallMappingErrorTemplate, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=not-a-mapping,not-callable
+            f = None
+            f(**None)
+        except TypeError as e:
+            result = (
+                e.args[0]
+                .replace("NoneType object", "%s")
+                .replace("NoneType", "%s")
+                .replace("None ", "%s ")
+            )
+            getComplexCallMappingErrorTemplate.result = result
+        else:
+            sys.exit("Error, cannot detect expected error message.")
+
+    return getComplexCallMappingErrorTemplate.result
+
+
 def getUnboundLocalErrorErrorTemplate():
     if not hasattr(getUnboundLocalErrorErrorTemplate, "result"):
         try:
