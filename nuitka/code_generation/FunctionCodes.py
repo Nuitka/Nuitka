@@ -28,8 +28,7 @@ from .ErrorCodes import (
     getReleaseCodes,
 )
 from .Indentation import indented
-from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode
+from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .PythonSourceCodeGeneration import (
@@ -848,16 +847,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     # TODO: Put the return value name as that to_name.c_type too.
 
-    if (
-        expression.isExpressionOutlineFunctionBase()
-        and expression.subnode_body.mayRaiseException(BaseException)
-    ):
-        exception_target = context.allocateLabel("outline_exception")
-        old_exception_target = context.setExceptionEscape(exception_target)
-    else:
-        exception_target = None
-        old_exception_target = None
-
     with withObjectCodeTemporaryAssignment(
         to_name, "outline_return_value", expression, emit, context
     ) as return_value_name:
@@ -875,16 +864,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         getMustNotGetHereCode(
             reason="Return statement must have exited already.", emit=emit
         )
-
-        if exception_target is not None:
-            getLabelCode(exception_target, emit)
-
-            context.setCurrentSourceCodeReference(expression.getSourceReference())
-
-            emitErrorLineNumberUpdateCode(emit, context)
-            getGotoCode(old_exception_target, emit)
-
-            context.setExceptionEscape(old_exception_target)
 
         # TODO: An outline that cannot return, could be converted probably into
         # something else, maybe mere side effects.
