@@ -1874,7 +1874,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
             continue
 
         # Allow reading time zone info of local system.
-        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+        if isFilenameSameAsOrBelowPath("/usr/share/zoneinfo", loaded_filename):
             continue
 
         # The access to .pth files has no effect.
