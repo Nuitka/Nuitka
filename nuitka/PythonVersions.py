@@ -148,6 +148,42 @@ def f():
         return e.message.replace("'f'", "'%s'")
 
 
+def getSourceDecodeErrorReason(source_filename, decode_error):
+    """Get the source decode error reason for Python 3 source files.
+
+    Args:
+        source_filename: The source file that failed to decode.
+        decode_error: The UnicodeDecodeError from the failed read attempt.
+
+    Returns:
+        The error reason string matching CPython's output for the version.
+    """
+    if python_version >= 0x3F0:
+        # Python 3.15+ reports the full UnicodeDecodeError message with
+        # the byte position relative to the seek point after encoding
+        # detection, not absolute from file start.
+        import tokenize
+
+        with open(source_filename, "rb") as source_file:
+            readline_func = source_file.readline
+
+            encoding, _lines = tokenize.detect_encoding(readline_func)
+
+            pos = source_file.tell()
+            if pos > 0:
+                pos -= 1
+
+            source_file.seek(pos)
+            remaining = source_file.read()
+
+        try:
+            remaining.decode(encoding)
+        except UnicodeDecodeError as e:
+            return str(e)
+
+    return "encoding problem: %s" % decode_error.encoding
+
+
 def getSourceDecodeErrorReason2(source_filename):
     if not isRunningInInterpreter():
         return "decoding error"

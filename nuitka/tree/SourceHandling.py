@@ -21,6 +21,7 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import (
+    getSourceDecodeErrorReason,
     getSourceDecodeErrorReason2,
     python_version,
     python_version_str,
@@ -88,7 +89,7 @@ def _readSourceCodeFromFilename3(source_filename):
         # Match the parser wording for declared but incompatible source
         # encodings.
         raiseSyntaxError(
-            "encoding problem: %s" % e.encoding,
+            getSourceDecodeErrorReason(source_filename, e),
             makeSourceReferenceFromFilename(source_filename),
             display_line=False,
         )
