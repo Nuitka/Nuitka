@@ -21,14 +21,19 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
 from nuitka.nodes.DictionaryNodes import (
+    ExpressionDictOperationIteritems,
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
+    StatementDictOperationUpdate,
 )
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -51,6 +56,7 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
@@ -348,7 +354,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     return function_body
 
 
-def _buildContractionBodyNode(
+def _buildContractionBodyNode(  # pylint: disable=too-many-statements
     provider,
     node,
     emit_class,
@@ -401,8 +407,83 @@ def _buildContractionBodyNode(
             )
         )
 
+    item_provider = function_body if not assign_provider else provider
     if hasattr(node, "elt"):
-        if start_value is not None:
+        if getKind(node.elt) == "Starred":
+            tmp_subiterator = item_provider.allocateTempVariable(
+                temp_scope=None, name="subiterator", temp_type="object"
+            )
+            tmp_subitem = item_provider.allocateTempVariable(
+                temp_scope=None, name="subitem", temp_type="object"
+            )
+
+            if start_value is not None:
+                emit_item = emit_class(
+                    ExpressionTempVariableRef(
+                        variable=container_tmp, source_ref=source_ref
+                    ),
+                    ExpressionTempVariableRef(
+                        variable=tmp_subitem, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            else:
+                emit_item = StatementExpressionOnly(
+                    expression=emit_class(
+                        ExpressionTempVariableRef(
+                            variable=tmp_subitem, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                )
+
+            loop_body = makeStatementsSequenceFromStatements(
+                makeTryExceptSingleHandlerNode(
+                    tried=makeStatementAssignmentVariable(
+                        variable=tmp_subitem,
+                        source=ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_subiterator, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                emit_item,
+            )
+
+            loop = StatementLoop(
+                loop_body=loop_body,
+                source_ref=source_ref,
+            )
+
+            current_body = makeTryFinallyReleaseStatement(
+                provider=provider,
+                tried=makeStatementsSequenceFromStatements(
+                    [
+                        makeStatementAssignmentVariable(
+                            variable=tmp_subiterator,
+                            source=ExpressionBuiltinIter1(
+                                value=buildNode(
+                                    item_provider, node.elt.value, source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        loop,
+                    ]
+                ),
+                variables=(tmp_subiterator, tmp_subitem),
+                source_ref=source_ref,
+            )
+
+        elif start_value is not None:
             current_body = emit_class(
                 ExpressionTempVariableRef(
                     variable=container_tmp, source_ref=source_ref
@@ -426,22 +507,96 @@ def _buildContractionBodyNode(
                 source_ref=source_ref,
             )
     else:
-        current_body = emit_class(
-            dict_arg=ExpressionTempVariableRef(
-                variable=container_tmp, source_ref=source_ref
-            ),
-            key=buildNode(
-                provider=function_body if not assign_provider else provider,
-                node=node.key,
+        if node.value is None:
+            tmp_dict_iterator = item_provider.allocateTempVariable(
+                temp_scope=None, name="dict_iterator", temp_type="object"
+            )
+            tmp_dict_item = item_provider.allocateTempVariable(
+                temp_scope=None, name="subitem", temp_type="object"
+            )
+
+            emit_item = emit_class(
+                dict_arg=ExpressionTempVariableRef(
+                    variable=container_tmp, source_ref=source_ref
+                ),
+                key=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
+                    subscript=ExpressionConstantIntRef(0, source_ref),
+                    source_ref=source_ref,
+                ),
+                value=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
+                    subscript=ExpressionConstantIntRef(1, source_ref),
+                    source_ref=source_ref,
+                ),
                 source_ref=source_ref,
-            ),
-            value=buildNode(
-                provider=function_body if not assign_provider else provider,
-                node=node.value,
+            )
+
+            loop_body = makeStatementsSequenceFromStatements(
+                makeTryExceptSingleHandlerNode(
+                    tried=makeStatementAssignmentVariable(
+                        variable=tmp_dict_item,
+                        source=ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_dict_iterator,
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                emit_item,
+            )
+
+            loop = StatementLoop(
+                loop_body=loop_body,
                 source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        )
+            )
+
+            current_body = makeTryFinallyReleaseStatement(
+                provider=item_provider,
+                tried=makeStatementsSequenceFromStatements(
+                    [
+                        makeStatementAssignmentVariable(
+                            variable=tmp_dict_iterator,
+                            source=ExpressionBuiltinIter1(
+                                value=ExpressionDictOperationIteritems(
+                                    dict_arg=buildNode(
+                                        item_provider, node.key, source_ref
+                                    ),
+                                    source_ref=source_ref,
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        loop,
+                    ]
+                ),
+                variables=(tmp_dict_iterator, tmp_dict_item),
+                source_ref=source_ref,
+            )
+        else:
+            current_body = emit_class(
+                dict_arg=ExpressionTempVariableRef(
+                    variable=container_tmp, source_ref=source_ref
+                ),
+                key=buildNode(
+                    provider=item_provider,
+                    node=node.key,
+                    source_ref=source_ref,
+                ),
+                value=buildNode(
+                    provider=item_provider,
+                    node=node.value,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
 
     # TODO: For as long as statement/expression merge are not complete.
     if current_body.kind.startswith("EXPRESSION"):
