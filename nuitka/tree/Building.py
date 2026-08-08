@@ -991,7 +991,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                 )
             )
 
-    if python_version >= 0x300:
+    if 0x300 <= python_version < 0x3F0:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
