@@ -942,9 +942,17 @@ typedef struct {
 
 typedef struct {
     PyObject_HEAD PyObject *name;
+#if PYTHON_VERSION >= 0x3f0
+    PyObject *bound;
+#endif
 #if PYTHON_VERSION >= 0x3d0
     PyObject *default_value;
     PyObject *evaluate_default;
+#endif
+#if PYTHON_VERSION >= 0x3f0
+    bool covariant;
+    bool contravariant;
+    bool infer_variance;
 #endif
 } typevartupleobject; // Following CPython, spell-checker: ignore typevartupleobject
 
@@ -996,16 +1004,25 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
 }
 
 static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module,
-                                                      PyObject *default_value) {
+                                                      PyObject *default_value, bool covariant, bool contravariant,
+                                                      bool infer_variance) {
     PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevartuple_type);
     typevartupleobject *tvt = Nuitka_GC_New(tp);
     if (tvt == NULL) {
         return NULL;
     }
     tvt->name = Py_NewRef(name);
+#if PYTHON_VERSION >= 0x3f0
+    tvt->bound = NULL;
+#endif
 #if PYTHON_VERSION >= 0x3d0
     tvt->default_value = Py_XNewRef(default_value);
     tvt->evaluate_default = NULL;
+#endif
+#if PYTHON_VERSION >= 0x3f0
+    tvt->covariant = covariant;
+    tvt->contravariant = contravariant;
+    tvt->infer_variance = infer_variance;
 #endif
     Nuitka_GC_Track(tvt);
     if (module != NULL) {
@@ -1052,7 +1069,7 @@ PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name) {
 }
 
 PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name) {
-    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL);
+    return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL, false, false, true);
 }
 
 PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name) {
