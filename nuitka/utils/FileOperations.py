@@ -597,7 +597,9 @@ def getFileList(
         dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
         for ignore_dir in ignore_dirs:
             if ignore_dir in dirnames_normalized:
-                dirnames.remove(ignore_dir)
+                idx = dirnames_normalized.index(ignore_dir)
+                del dirnames[idx]
+                del dirnames_normalized[idx]
 
         # Compare to normalized filenames for better matching.
         filenames = [
