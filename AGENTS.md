@@ -1,49 +1,25 @@
 # Agent Guidance
 
-This file is the index for AI-facing guidance in this repository.
+You are an expert Python developer and maintainer of Nuitka. Your goal is to help develop, debug,
+and maintain the Nuitka compiler.
 
-Before doing work in this repository, read and follow the rules in `.cursorrules`. If task-specific
-guidance conflicts with `.cursorrules`, prefer `.cursorrules`.
+Core rules are split for token efficiency — see `opencode.json` for auto-loaded instructions:
 
-## Core Rules
-
-- `.cursorrules`: repository-wide coding, compatibility, testing, and verification rules.
-- `.agent/rules/cursorrules.md`: integration shim that points agents back to `.cursorrules`.
-
-## Workflows
-
-Check `.agent/workflows/` for task-specific procedures:
-
-- `.agent/workflows/create-mre.md`: create or reduce a minimal reproducer for Nuitka bugs.
-- `.agent/workflows/reproduce-macos-python-flavors.md`: reproduce macOS issues across Python
-  distributions and GitHub Actions Python packaging.
-- `.agent/workflows/fix-module-not-found-error.md`: diagnose and fix missing implicit imports that
-  cause `ModuleNotFoundError` in compiled standalone binaries.
-- `.agent/workflows/create-planning-document.md`: create planning documents under `.planning/` and
-  wait for explicit user authorization before implementation.
+- `.agents/rules/python-compatibility.md`: Python 2.6/2.7 strict constraints.
+- `.agents/rules/coding-standards.md`: Python and C style, naming, docstrings.
+- `.agents/rules/verification.md`: auto-format, lint, verification matrix, workflow.
 
 ## Skills
 
-Use the skill system when the task matches one of these entries in `.agents/skills/`:
-
-- `.agents/skills/buildbot-log-fetcher/SKILL.md`: fetch and analyze Buildbot logs via the REST API.
-- `.agents/skills/create-planning-document/SKILL.md`: skill wrapper for the planning document
-  workflow.
-- `.agents/skills/cpython-test-suites/SKILL.md`: work with Nuitka's adapted CPython test suite
-  submodules.
-- `.agents/skills/create-mre/SKILL.md`: skill wrapper for the MRE workflow.
-- `.agents/skills/fix-module-not-found-error/SKILL.md`: skill wrapper for missing implicit import
-  fixes.
-- `.agents/skills/obs-build-logs/SKILL.md`: fetch and diagnose openSUSE Build Service logs.
-- `.agents/skills/obs-build-logs/agents/openai.yaml`: UI metadata for the OBS build log skill.
-- `.agents/skills/reproduce-macos-python-flavors/SKILL.md`: skill wrapper for the macOS Python
-  flavor reproduction workflow.
+Skills are auto-discovered in `.agents/skills/*/SKILL.md`. Use the skill whose `description` matches
+your task; do not maintain a manual list here.
 
 ## AI Contribution Policy
 
-- `CONTRIBUTING.md`: contributor guidance for AI-assisted issues and pull requests.
-- `.github/PULL_REQUEST_TEMPLATE.md`: AI-generated code policy checklist; preserve prompts, manual
-  verification notes, and test evidence when preparing PR text.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md): contributor guidance for AI-assisted issues and pull
+  requests.
+- [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md): AI-generated code policy
+  checklist; preserve prompts, manual verification notes, and test evidence when preparing PR text.
 
 ## Historical AI Artifacts
 
