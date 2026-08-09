@@ -552,7 +552,7 @@ import %(binding_name)s.QtCore
 
         # File types that are build artifacts, not DLLs and not data files,
         # spell-checker: ignore prl
-        non_dll_artifact_suffixes = (".a", ".la", ".prl", ".o", ".cpp.o")
+        non_dll_artifact_suffixes = (".a", ".la", ".prl", ".obj", ".o", ".cpp")
 
         if dlls:
             ignore_suffixes = datafile_suffixes + non_dll_artifact_suffixes
@@ -564,7 +564,7 @@ import %(binding_name)s.QtCore
         try:
             return getFileList(
                 qml_plugin_dir,
-                ignore_dirs=("objects-RelWithDebInfo",),
+                ignore_dirs=("objects-RelWithDebInfo", "objects-Debug"),
                 ignore_suffixes=ignore_suffixes,
                 only_suffixes=only_suffixes,
             )
