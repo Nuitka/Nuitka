@@ -6,6 +6,7 @@
 import re
 import subprocess
 
+from nuitka.__past__ import re_sub
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
@@ -48,7 +49,7 @@ def cleanupWindowsNewlines(filename, effective_filename):
             word_list = match.group(2).replace(b", ", b",")
             return prefix + word_list
 
-        updated_code = re.sub(
+        updated_code = re_sub(
             b"(^.*spell-checker:\\s*ignore\\s+)(.*)",
             _fixSpellCheckerIgnoreSpaces,
             updated_code,

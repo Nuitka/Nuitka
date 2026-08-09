@@ -12,6 +12,7 @@ import os
 import re
 import tokenize
 
+from nuitka.__past__ import re_sub
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
@@ -102,7 +103,7 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
             )
         )
 
-    new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
+    new_code = re_sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
         putTextFileContents(filename, new_code, encoding="utf8")
