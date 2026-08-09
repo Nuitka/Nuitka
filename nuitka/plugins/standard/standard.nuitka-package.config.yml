@@ -8510,7 +8510,7 @@
     - include-metadata:
         - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 618ee1e0
+- module-name: 'toga_winforms' # checksum: 23cc700f
   data-files:
     - dirs:
         - 'resources'
@@ -8556,6 +8556,7 @@
   implicit-imports:
     - depends:
         - 'toga_winforms.libs.wrapper'
+        - 'toga_winforms.resources'
         - 'ctypes.wintypes'
 
 - module-name: 'tokenizers.tools.visualizer' # checksum: afab16ac
