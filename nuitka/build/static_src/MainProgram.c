@@ -1593,7 +1593,8 @@ static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucont
                 }
             }
         }
-        _last_sigint_timespec = now;
+        _last_sigint_timespec.tv_sec = now.tv_sec;
+        _last_sigint_timespec.tv_nsec = now.tv_nsec;
         _last_sigint_from_parent = from_parent;
     }
 
