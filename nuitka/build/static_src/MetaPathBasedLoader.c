@@ -744,6 +744,7 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
 extern _Thread_local const char *pkgcontext;
 #endif
 
+#if PYTHON_VERSION < 0x3f0
 static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 // TODO: The locking APIs for 3.13 give errors here that are not explained
 // yet.
@@ -767,6 +768,7 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
     return (char const *)old_context;
 #endif
 }
+#endif
 
 static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
                                                     const filename_char_t *filename) {
