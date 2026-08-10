@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #endif
@@ -1574,27 +1575,27 @@ void setLANGSystemLocaleMacOS(void) {
 // forwarding. This detects and suppresses the duplicate.
 
 static void (*_python_saved_sigint_handler)(int) = NULL;
-static volatile struct timespec _last_sigint_timespec = {0, 0};
+static volatile struct timeval _last_sigint_timeval = {0, 0};
 static volatile sig_atomic_t _last_sigint_from_parent = 0;
 
 static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
     bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
-    struct timespec now;
+    struct timeval now;
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-        if (_last_sigint_timespec.tv_sec != 0) {
-            long elapsed_ms = (now.tv_sec - _last_sigint_timespec.tv_sec) * 1000 +
-                              (now.tv_nsec - _last_sigint_timespec.tv_nsec) / 1000000;
+    if (gettimeofday(&now, NULL) == 0) {
+        if (_last_sigint_timeval.tv_sec != 0) {
+            long elapsed_ms =
+                (now.tv_sec - _last_sigint_timeval.tv_sec) * 1000 + (now.tv_usec - _last_sigint_timeval.tv_usec) / 1000;
 
-            if (elapsed_ms < 100) {
+            if (elapsed_ms >= 0 && elapsed_ms < 100) {
                 if (from_parent || _last_sigint_from_parent) {
                     // Duplicate detected, suppress.s
                     return;
                 }
             }
         }
-        _last_sigint_timespec.tv_sec = now.tv_sec;
-        _last_sigint_timespec.tv_nsec = now.tv_nsec;
+        _last_sigint_timeval.tv_sec = now.tv_sec;
+        _last_sigint_timeval.tv_usec = now.tv_usec;
         _last_sigint_from_parent = from_parent;
     }
 
