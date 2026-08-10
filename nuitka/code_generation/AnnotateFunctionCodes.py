@@ -10,10 +10,27 @@ them with `_StringifierDict` globals for FORWARDREF resolution.
 
 import marshal
 
+from nuitka.options.Options import isExperimental
+
 from .PythonSourceCodeGeneration import (
     generateFunctionSourceFromBody,
     getFunctionMakerIdentifier,
 )
+
+
+def isBytecodeBackedFunction(function_body):
+    """Decide if a function is backed by Python bytecode, not compiled C code.
+
+    Currently this is true for functions marked with flag "annotate". We
+    mean to add more plugin and user control though.
+
+    Args:
+        function_body: Function body node to check.
+
+    Returns:
+        True if bytecode backed
+    """
+    return function_body.hasFlag("annotate") and isExperimental("deferred-annotations")
 
 
 def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):

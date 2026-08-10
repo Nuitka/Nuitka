@@ -26,6 +26,7 @@ from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Timing import TimerReport
 
+from .AnnotateFunctionCodes import isBytecodeBackedFunction
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -389,6 +390,9 @@ _generated_functions = {}
 def generateFunctionBodyCode(function_body, context):
     # TODO: Generate both codes, and base direct/etc. decisions on context.
     # pylint: disable=too-many-branches
+
+    if isBytecodeBackedFunction(function_body):
+        return None, None
 
     function_identifier = function_body.getCodeName()
 

@@ -8,7 +8,10 @@ from nuitka.PythonVersions import python_version
 from nuitka.States import states
 from nuitka.Tracing import general
 
-from .AnnotateFunctionCodes import generateAnnotateFunctionCreationCode
+from .AnnotateFunctionCodes import (
+    generateAnnotateFunctionCreationCode,
+    isBytecodeBackedFunction,
+)
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -220,7 +223,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     function_body = expression.subnode_function_ref.getFunctionBody()
 
-    if function_body.hasFlag("annotate"):
+    if isBytecodeBackedFunction(function_body):
         try:
             generateAnnotateFunctionCreationCode(
                 to_name=to_name,
