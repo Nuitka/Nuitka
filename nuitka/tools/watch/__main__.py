@@ -322,22 +322,23 @@ def _updateCase(
     # Many details and cases due to package method being handled here.
     # pylint: disable=too-many-branches
 
-    try:
-        lock_filename = _updateCaseLock(
-            installed_python=installed_python,
-            case_data=case_data,
-            case_dir=case_dir,
-            reset_pipenv=reset_pipenv,
-            no_pipenv_update=no_pipenv_update,
-            result_path=result_path,
-        )
-    except subprocess.CalledProcessError:
-        # We trust the case yaml files, pylint: disable=eval-used
-        if eval(
-            case_data.get("wait_for", "False"),
-            None,
-            {"python_version": installed_python.getHexVersion()},
-        ):
+    # We trust the case yaml files, pylint: disable=eval-used
+    wait_for_req = case_data.get("wait_for", "False")
+    if eval(
+        wait_for_req,
+        None,
+        {"python_version": installed_python.getHexVersion()},
+    ):
+        try:
+            _updateCaseLock(
+                installed_python=installed_python,
+                case_data=case_data,
+                case_dir=case_dir,
+                reset_pipenv=True,
+                no_pipenv_update=False,
+                result_path=result_path,
+            )
+        except subprocess.CalledProcessError:
             watch_logger.info("  ... wait_for not yet met, skipping.")
             removeDirectory(
                 path=result_path,
@@ -346,7 +347,20 @@ def _updateCase(
                 extra_recommendation="",
             )
             return
-        raise
+        return watch_logger.sysexit(
+            "Error, 'wait_for' condition '%s' is now met for Python %s. "
+            "The wait_for can be dropped."
+            % (wait_for_req, installed_python.getPythonVersion())
+        )
+
+    lock_filename = _updateCaseLock(
+        installed_python=installed_python,
+        case_data=case_data,
+        case_dir=case_dir,
+        reset_pipenv=reset_pipenv,
+        no_pipenv_update=no_pipenv_update,
+        result_path=result_path,
+    )
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
