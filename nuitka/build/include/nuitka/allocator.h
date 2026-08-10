@@ -596,9 +596,16 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
     assert(object != NULL);
 
     // Normally done only with 3.13, but it makes sense to do this.
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     if (_PyObject_IS_GC(object) && _PyObject_GC_IS_TRACKED(object)) {
         Nuitka_GC_UnTrack(object);
     }
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef Py_GIL_DISABLED
     object->ob_tid = _Py_UNOWNED_TID;

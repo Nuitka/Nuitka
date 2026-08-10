@@ -353,7 +353,14 @@ static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
     Py_INCREF(value);
     Py_INCREF(value);
 #else
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     Py_SET_REFCNT_IMMORTAL(value);
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
 #endif
     *output = (void *)((PyObject **)*output + 1);
 }
