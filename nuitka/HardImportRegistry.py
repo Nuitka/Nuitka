@@ -172,6 +172,16 @@ def isHardModuleWithoutSideEffect(module_name):
     if module_name not in _hard_modules_side_effects_retryable:
         return False
 
+    # TODO: For module mode we must not decide at compile time whether a hard
+    # import has side effects based on the build host's dynamic __import__
+    # success. Ideally this would default to having side effects (conservative)
+    # and hard import optimization would tolerate runtime errors without aborting,
+    # but for now hard code to assume it does not raise which for broken installs
+    # breaks standalone, so the below code fixes that, but cannot yet be applied
+    # for module mode, although it will have to.
+    if shallMakeModule():
+        return True
+
     result = _hard_modules_side_effects_retryable[module_name]
     if result is None:
         try:
