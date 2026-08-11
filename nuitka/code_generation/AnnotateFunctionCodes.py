@@ -32,7 +32,7 @@ def isBytecodeBackedFunction(function_body):
     """
     return (
         function_body.hasFlag("annotate")
-        and isExperimental("deferred-annotations")
+        and not isExperimental("no-deferred-annotation")
         and not function_body.hasFlag("force_c")
     )
 

@@ -747,7 +747,9 @@ def buildParameterAnnotations(provider, node, source_ref):
     if not getFutureSpec().use_annotations:
         return None
 
-    use_deferred = python_version >= 0x3E0 and isExperimental("deferred-annotations")
+    use_deferred = python_version >= 0x3E0 and not isExperimental(
+        "no-deferred-annotation"
+    )
 
     if use_deferred:
         annotation_specs = []

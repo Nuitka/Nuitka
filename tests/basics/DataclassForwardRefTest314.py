@@ -3,9 +3,6 @@
 
 """Test dataclass forward references with deferred annotations."""
 
-# TODO: Once 3.14 has this as a default, remove the experimental flag
-# nuitka-project: --experimental=deferred-annotations
-
 import typing
 from dataclasses import dataclass, fields
 
