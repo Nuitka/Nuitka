@@ -82,12 +82,36 @@ except ImportError:
 #     xml_writer = None
 
 
-def convertXmlToBytes(tree, indent=True, encoding=None):
+def convertXmlToBytes(
+    tree, indent=True, encoding=None, use_lxml=False, xml_declaration=True
+):
+    if use_lxml:
+        from lxml import etree  # pylint: disable=I0021,import-error
+
+        result = etree.tostring(
+            tree,
+            encoding="utf8",
+            xml_declaration=xml_declaration,
+        )
+
+        # Make LXML self-closing tags compatible with Elementree manually,
+        # so reports become comparable independent of what's used.
+        result = result.replace(b"/>", b" />")
+
+        result = result.rstrip() + b"\n"
+
+        return result
+
     return xml_tostring(tree, indent=indent, encoding=encoding)
 
 
-def convertXmlToString(tree):
-    result = convertXmlToBytes(tree, encoding="utf8")
+def convertXmlToString(tree, use_lxml=False, xml_declaration=True):
+    result = convertXmlToBytes(
+        tree,
+        encoding="utf8",
+        use_lxml=use_lxml,
+        xml_declaration=xml_declaration,
+    )
 
     if str is not bytes:
         result = result.decode("utf8")

@@ -126,7 +126,8 @@ def onCompilationReportChange(filename, git_stage):
         changed = changed | _acceptOptimizationTimeChanges(old_report, new_report)
 
     if changed:
-        new_git_contents = convertXmlToString(old_report)
+        new_git_contents = convertXmlToString(old_report, use_lxml=True)
+
         with withTemporaryFile(mode="w", delete=False) as output_file:
             tmp_filename = output_file.name
             output_file.write(new_git_contents)

@@ -251,12 +251,14 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     success = process_result.exit_code == 0
 
     if not success:
-        # TODO: In case of failure, do we need to abort, or what do we do.
-
         if process_result.stdout:
             my_print(process_result.stdout, style="yellow")
         if process_result.stderr:
             my_print(process_result.stderr, style="yellow")
+
+        return tools_logger.sysexit(
+            "Patch failed to apply for %r:\n\n%r\n%s" % (path, patch, "-" * 40)
+        )
 
     return success
 
