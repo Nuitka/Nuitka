@@ -563,6 +563,17 @@ def _generateModuleCode(module, data_filename):
             if is_constant_returning:
                 continue
 
+        if isBytecodeBackedFunction(function_body):
+            from .PythonSourceCodeGeneration import (
+                PythonSourceGenerationError,
+                generateFunctionSourceFromBody,
+            )
+
+            try:
+                generateFunctionSourceFromBody(function_body)
+            except PythonSourceGenerationError:
+                function_body.addFlag("force_c")
+
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )

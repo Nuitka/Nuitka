@@ -30,7 +30,11 @@ def isBytecodeBackedFunction(function_body):
     Returns:
         True if bytecode backed
     """
-    return function_body.hasFlag("annotate") and isExperimental("deferred-annotations")
+    return (
+        function_body.hasFlag("annotate")
+        and isExperimental("deferred-annotations")
+        and not function_body.hasFlag("force_c")
+    )
 
 
 def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
@@ -54,11 +58,7 @@ def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
 
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
 
-    source = generateFunctionSourceFromBody(
-        function_name="__annotate__",
-        parameter_names=("format",),
-        function_body=function_body,
-    )
+    source = generateFunctionSourceFromBody(function_body)
 
     compiled = compile(source, function_identifier, "exec")
     marshalled = marshal.dumps(compiled.co_consts[0])

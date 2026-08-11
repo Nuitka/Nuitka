@@ -259,15 +259,15 @@ def _constantToSource(value):
         return repr(value)
 
 
-def generateFunctionSourceFromBody(function_name, parameter_names, function_body):
+def generateFunctionSourceFromBody(function_body):
     """Generate a complete `def ...` Python source from a function body."""
     body_source = generateStatementSequenceSource(
         function_body.subnode_body, indent=" " * 4
     )
 
     return "def %s(%s):\n%s" % (
-        function_name,
-        ", ".join(parameter_names),
+        function_body.getFunctionName(),
+        ", ".join(function_body.getParameters().getParameterNames()),
         body_source,
     )
 
