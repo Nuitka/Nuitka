@@ -232,7 +232,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
                 context=context,
             )
             return
-        except PythonSourceGenerationError:
+        except PythonSourceGenerationError as e:
             function_qualname = function_body.getFunctionQualname()
             source_ref = expression.getSourceReference()
 
@@ -244,8 +244,8 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
                 # TODO: Add user control to selectively allow/deny fallback per function.
                 return general.sysexit(
                     """\
-Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s."""
-                    % (function_qualname, source_ref.getAsString())
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                    % (function_qualname, source_ref.getAsString(), e)
                 )
 
     defaults = expression.subnode_defaults

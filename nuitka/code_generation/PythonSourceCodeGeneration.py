@@ -7,6 +7,7 @@ Used for generating bytecode-backed functions, if so decided. The main
 important use is "__annotate__" functions.
 """
 
+from nuitka.__past__ import GenericAlias
 from nuitka.Errors import NuitkaCodeDeficit
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
@@ -30,6 +31,92 @@ class PythonSourceGenerationError(Exception):
 
 def _generateConstantTypeRefSource(expression):
     return expression.getCompileTimeConstant().__name__
+
+
+def _formatConstantElement(value):
+    # return driven, pylint: disable=too-many-return-statements
+    if isinstance(value, type):
+        return value.__name__
+    elif isinstance(value, str):
+        return repr(value)
+    elif isinstance(value, (int, float, bool)):
+        return repr(value)
+    elif value is None:
+        return "None"
+    elif isinstance(value, tuple):
+        return _formatConstantTuple(value)
+    elif isinstance(value, list):
+        return "[%s]" % ", ".join(_formatConstantElement(e) for e in value)
+    elif isinstance(value, dict):
+        return "{%s}" % ", ".join(
+            "%s: %s" % (_formatConstantElement(k), _formatConstantElement(v))
+            for k, v in value.items()
+        )
+    elif isinstance(value, (set, frozenset)):
+        inner = ", ".join(_formatConstantElement(e) for e in value)
+        if isinstance(value, frozenset):
+            return "frozenset({%s})" % inner
+        return "{%s}" % inner
+    elif isinstance(value, GenericAlias):
+        return str(value)
+    else:
+        raise PythonSourceGenerationError(
+            "Unsupported constant value for source generation: %s (%s)"
+            % (type(value).__name__, repr(value))
+        )
+
+
+def _formatConstantTuple(value):
+    if len(value) == 0:
+        return "()"
+    elif len(value) == 1:
+        return "(%s,)" % _formatConstantElement(value[0])
+    else:
+        return "(%s)" % ", ".join(_formatConstantElement(e) for e in value)
+
+
+def _generateCollectionConstantSource(expression, open_br, close_br):
+    elements = []
+    for element in expression.getCompileTimeConstant():
+        elements.append(_formatConstantElement(element))
+    return "%s%s%s" % (open_br, ", ".join(elements), close_br)
+
+
+def _generateListConstantSource(expression):
+    return _generateCollectionConstantSource(expression, "[", "]")
+
+
+def _generateSetConstantSource(expression):
+    return _generateCollectionConstantSource(expression, "{", "}")
+
+
+def _generateFrozensetConstantSource(expression):
+    return "frozenset(%s)" % _generateCollectionConstantSource(expression, "[", "]")
+
+
+def _generateDictConstantSource(expression):
+    items = []
+    for key, value in expression.getCompileTimeConstant().items():
+        items.append(
+            "%s: %s" % (_formatConstantElement(key), _formatConstantElement(value))
+        )
+    return "{%s}" % ", ".join(items)
+
+
+def _generateGenericAliasSource(expression):
+    return str(expression.getCompileTimeConstant())
+
+
+def _generateTupleConstantSource(expression):
+    elements = []
+    for element in expression.getCompileTimeConstant():
+        elements.append(_formatConstantElement(element))
+    if len(elements) == 0:
+        return "()"
+    elif len(elements) == 1:
+        return "(%s,)" % elements[0]
+    else:
+        return "(%s)" % ", ".join(elements)
 
 
 def _generateConstantStrRefSource(expression):
@@ -92,6 +179,7 @@ _atomic_kinds = frozenset(
         "EXPRESSION_SUBSCRIPT_LOOKUP",
         "EXPRESSION_FUNCTION_CALL",
         "EXPRESSION_MAKE_TUPLE",
+        "EXPRESSION_MAKE_LIST",
     )
 )
 
@@ -111,6 +199,14 @@ def _generateFunctionCallSource(expression):
         arg_sources.append(generateExpressionSource(arg))
 
     return "%s(%s)" % (called_source, ", ".join(arg_sources))
+
+
+def _generateListSource(expression):
+    elements = []
+    for element in expression.subnode_elements:
+        elements.append(generateExpressionSource(element))
+
+    return "[%s]" % ", ".join(elements)
 
 
 def _generateTupleSource(expression):
@@ -294,6 +390,12 @@ def _generateBuiltinExceptionRefSource(expression):
 
 _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_TYPE_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_DICT_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_LIST_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_SET_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_TYPE_REF": _generateConstantTypeRefSource,
     "EXPRESSION_VARIABLE_REF": _generateVariableRefSource,
     "EXPRESSION_CONSTANT_STR_REF": _generateConstantStrRefSource,
     "EXPRESSION_CONSTANT_UNICODE_REF": _generateConstantStrRefSource,
@@ -308,6 +410,20 @@ _expression_source_dispatch = {
     "EXPRESSION_OPERATION_BINARY_BIT_OR": _generateBinaryOpSource,
     "EXPRESSION_FUNCTION_CALL": _generateFunctionCallSource,
     "EXPRESSION_MAKE_TUPLE": _generateTupleSource,
+    "EXPRESSION_MAKE_LIST": _generateListSource,
+    "EXPRESSION_CONSTANT_UNION_TYPE": _generateGenericAliasSource,
+    "EXPRESSION_CONSTANT_GENERIC_ALIAS": _generateGenericAliasSource,
+    "EXPRESSION_CONSTANT_TUPLE_REF": _generateTupleConstantSource,
+    "EXPRESSION_CONSTANT_TUPLE_MUTABLE_REF": _generateTupleConstantSource,
+    "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF": _generateTupleConstantSource,
+    "EXPRESSION_CONSTANT_LIST_REF": _generateListConstantSource,
+    "EXPRESSION_CONSTANT_LIST_EMPTY_REF": _generateListConstantSource,
+    "EXPRESSION_CONSTANT_SET_REF": _generateSetConstantSource,
+    "EXPRESSION_CONSTANT_SET_EMPTY_REF": _generateSetConstantSource,
+    "EXPRESSION_CONSTANT_DICT_REF": _generateDictConstantSource,
+    "EXPRESSION_CONSTANT_DICT_EMPTY_REF": _generateDictConstantSource,
+    "EXPRESSION_CONSTANT_FROZENSET_REF": _generateFrozensetConstantSource,
+    "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": _generateFrozensetConstantSource,
     "EXPRESSION_MAKE_DICT": _generateDictSource,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,
