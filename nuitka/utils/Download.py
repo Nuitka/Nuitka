@@ -23,6 +23,7 @@ from .FileOperations import (
     makePath,
     queryUser,
 )
+from .Zipfiles import getZipFile
 
 
 def getCertifiModule():
@@ -242,20 +243,18 @@ def getCachedDownload(
         if not os.path.isfile(exe_path) and os.path.isfile(download_path):
             general.info("Extracting to '%s'" % exe_path)
 
-            import zipfile
-
             try:
-                # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
-                zip_file = zipfile.ZipFile(download_path)
+                with getZipFile(
+                    zip_path=download_path, error_exit=False, logger=general
+                ) as zip_file:
+                    for zip_info in zip_file.infolist():
+                        if zip_info.filename[-1] == "/":
+                            continue
 
-                for zip_info in zip_file.infolist():
-                    if zip_info.filename[-1] == "/":
-                        continue
+                        if flatten:
+                            zip_info.filename = os.path.basename(zip_info.filename)
 
-                    if flatten:
-                        zip_info.filename = os.path.basename(zip_info.filename)
-
-                    zip_file.extract(zip_info, nuitka_download_dir)
+                        zip_file.extract(zip_info, nuitka_download_dir)
 
             except (
                 # Catching anything zip throws, pylint: disable=broad-except

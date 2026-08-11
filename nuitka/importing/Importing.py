@@ -74,6 +74,7 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32OrPosixWindows,
 )
+from nuitka.utils.Zipfiles import getZipFile
 
 from .FakeModules import locateFakeModule
 from .IgnoreListing import isIgnoreListedNotExistingModule
@@ -886,10 +887,15 @@ def _unpackPathElement(path_entry):
 
                 if not os.path.exists(target_dir):
                     try:
-                        # Not all Python versions allow using with here, pylint: disable=consider-using-with
-                        zip_ref = zipfile.ZipFile(path_entry, "r")
-                        zip_ref.extractall(target_dir)
-                        zip_ref.close()
+                        with getZipFile(
+                            zip_path=path_entry,
+                            error_exit=False,
+                            logger=recursion_logger,
+                        ) as zip_ref:
+                            if zip_ref is None:
+                                raise zipfile.BadZipFile("Bad zip file.")
+
+                            zip_ref.extractall(target_dir)
                     except BaseException:
                         removeDirectory(
                             target_dir,

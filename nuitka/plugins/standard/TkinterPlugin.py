@@ -3,6 +3,7 @@
 
 """Details see below in class definition."""
 
+import io
 import os
 import sys
 
@@ -14,7 +15,9 @@ from nuitka.PythonFlavors import (
     isPyenvHomebrewPython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
+from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Zipfiles import createZipFile, doesZipFileMatch, getZipFile
 
 # spell-checker: ignore tcltk,tcltest
 
@@ -56,6 +59,19 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
     # Only used in control tags
     binding_name = "tkinter"
 
+    _tcl_ignore_filenames = (
+        "tcltest-2.3.6.tm",
+        "tcltest-2.3.8.tm",
+        "tcltest-2.4.0.tm",
+        "tcltest-2.5.0.tm",
+        "tcltest-2.5.3.tm",
+        "tcltest-2.5.8.tm",
+        "tcltest.tcl",
+    )
+    _tcl_ignore_dirs = ("tcltest",)
+    _tcl_ignore_dirs_appbundle = ("opt0.4", "http1.0")
+    _tk_ignore_dirs = ("demos",)
+
     def __init__(self, tcl_library_dir, tk_library_dir):
         self.tcl_library_dir = tcl_library_dir
         self.tk_library_dir = tk_library_dir
@@ -63,6 +79,8 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         # ensure one-time action, we deal with several names for the execution,
         # yet we only want to do it once.
         self.files_copied = False
+        self._tcl_is_zip = False
+        self._tk_is_zip = False
 
         self.tk_inter_version = getTkInterVersion()
 
@@ -100,14 +118,23 @@ Please report as a issue.""" % self.tk_inter_version)
         """
         # only insert code for tkinter related modules
         if _isTkInterModule(module):
+            # If the original library was a zip, we provide a zip file as well.
+            tcl_target = self.getTclTargetPath()
+            tk_target = self.getTkTargetPath()
+
+            if self._tcl_is_zip:
+                tcl_target += ".zip"
+            if self._tk_is_zip:
+                tk_target += ".zip"
+
             # The following code will be executed before importing the module.
             # If required we set the respective environment values.
             code = r"""
 import os
 os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tcl_target_path)s")
 os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tk_target_path)s")""" % {
-                "tcl_target_path": self.getTclTargetPath(),
-                "tk_target_path": self.getTkTargetPath(),
+                "tcl_target_path": tcl_target,
+                "tk_target_path": tk_target,
             }
 
             return code, "Need to make sure we set environment variables for TCL."
@@ -135,7 +162,9 @@ The Tcl library dir. See comments for Tk library dir.""",
 
     def _getTclCandidatePaths(self):
         # Check typical locations of the dirs
-        yield os.getenv("TCL_LIBRARY")
+        tcl_library = os.getenv("TCL_LIBRARY")
+        if tcl_library is not None:
+            yield tcl_library
 
         # Inside the Python install, esp. on Windows.
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
@@ -185,7 +214,9 @@ The Tcl library dir. See comments for Tk library dir.""",
             )
 
     def _getTkCandidatePaths(self):
-        yield os.getenv("TK_LIBRARY")
+        tk_library = os.getenv("TK_LIBRARY")
+        if tk_library is not None:
+            yield tk_library
 
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
             yield os.path.join(sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version)
@@ -234,6 +265,88 @@ The Tcl library dir. See comments for Tk library dir.""",
             )
 
     @staticmethod
+    def _getZipCandidatePaths(candidate_paths, prefixes):
+        seen_bases = set()
+        for candidate_path in candidate_paths:
+            # Env var may already point directly to a zip file.
+            if candidate_path.endswith(".zip"):
+                if os.path.isfile(candidate_path):
+                    yield candidate_path
+                continue
+
+            base = os.path.dirname(candidate_path)
+            if not base or base in seen_bases:
+                continue
+            seen_bases.add(base)
+
+            if os.path.isdir(base):
+                for full_path, filename in reversed(listDir(base)):
+                    if filename.endswith(".zip") and filename.startswith(prefixes):
+                        yield full_path
+
+    def _getTclZipCandidatePaths(self):
+        for candidate in self._getZipCandidatePaths(
+            candidate_paths=self._getTclCandidatePaths(), prefixes=("libtcl", "tcl")
+        ):
+            yield candidate
+
+    def _getTkZipCandidatePaths(self):
+        for candidate in self._getZipCandidatePaths(
+            candidate_paths=self._getTkCandidatePaths(), prefixes=("libtk", "tk")
+        ):
+            yield candidate
+
+    def _makeIncludedFromZip(
+        self, source_path, dest_path, reason, tags, ignore_dirs, ignore_filenames
+    ):
+        # TODO: Currently we cannot ignore anything in zip files, we should make
+        # this a proper included data file type, or apply the options for no-include
+        # manually.
+
+        # Create a filtered zip file ourselves, do not expand to many individual
+        # data files. Follows argument ordering of makeIncludedDataDirectory.
+        out = io.BytesIO()
+
+        with getZipFile(
+            zip_path=source_path, error_exit=True, logger=self
+        ) as source_zip:
+            target_zip = createZipFile(file_obj=out)
+            for zip_info in source_zip.infolist():
+                filename = zip_info.filename
+
+                if filename.endswith("/"):
+                    continue
+
+                parts = filename.split("/")
+                if len(parts) > 1 and parts[0].endswith("_library"):
+                    filename_relative = "/".join(parts[1:])
+                else:
+                    filename_relative = filename
+
+                if not filename_relative:
+                    continue
+
+                rel_parts = filename_relative.split("/")
+                if any(part in ignore_dirs for part in rel_parts[:-1]):
+                    continue
+
+                if os.path.basename(filename_relative) in ignore_filenames:
+                    continue
+
+                target_zip.writestr(
+                    filename_relative, source_zip.read(zip_info.filename)
+                )
+
+            target_zip.close()
+
+        yield self.makeIncludedGeneratedDataFile(
+            data=out.getvalue(),
+            dest_path=dest_path + ".zip",
+            reason=reason,
+            tags=tags,
+        )
+
+    @staticmethod
     def getTclTargetPath():
         if isMacOS():
             return "tcl-files"
@@ -247,7 +360,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         else:
             return "tk"
 
-    def considerDataFiles(self, module):
+    def considerDataFiles(self, module):  # pylint: disable=too-many-branches
         """Provide TCL libraries to the dist folder.
 
         Notes:
@@ -265,12 +378,29 @@ The Tcl library dir. See comments for Tk library dir.""",
             return
 
         tcl_library_dir = self.tcl_library_dir
+        tcl_is_zip = False
         if tcl_library_dir is None:
             for tcl_library_dir in self._getTclCandidatePaths():
-                if tcl_library_dir is not None and os.path.exists(
-                    os.path.join(tcl_library_dir, "init.tcl")
-                ):
+                if os.path.exists(os.path.join(tcl_library_dir, "init.tcl")):
                     break
+            else:
+                tcl_library_dir = None
+
+            if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
+                for candidate in self._getTclZipCandidatePaths():
+                    if doesZipFileMatch(
+                        zip_path=candidate,
+                        decide_filename=lambda filename: filename == "init.tcl"
+                        or filename.endswith("/init.tcl"),
+                        error_exit=False,
+                        logger=self,
+                    ):
+                        tcl_library_dir = candidate
+                        tcl_is_zip = True
+                        break
+        else:
+            if os.path.isfile(tcl_library_dir) and tcl_library_dir.endswith(".zip"):
+                tcl_is_zip = True
 
         if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
             self.sysexit("""\
@@ -278,12 +408,29 @@ Could not find Tcl, you might need to use '--tcl-library-dir' and if \
 that works, report a bug so it can be added to Nuitka.""")
 
         tk_library_dir = self.tk_library_dir
+        tk_is_zip = False
         if tk_library_dir is None:
             for tk_library_dir in self._getTkCandidatePaths():
-                if tk_library_dir is not None and os.path.exists(
-                    os.path.join(tk_library_dir, "dialog.tcl")
-                ):
+                if os.path.exists(os.path.join(tk_library_dir, "dialog.tcl")):
                     break
+            else:
+                tk_library_dir = None
+
+            if tk_library_dir is None or not os.path.exists(tk_library_dir):
+                for candidate in self._getTkZipCandidatePaths():
+                    if doesZipFileMatch(
+                        zip_path=candidate,
+                        decide_filename=lambda filename: filename == "dialog.tcl"
+                        or filename.endswith("/dialog.tcl"),
+                        error_exit=False,
+                        logger=self,
+                    ):
+                        tk_library_dir = candidate
+                        tk_is_zip = True
+                        break
+        else:
+            if os.path.isfile(tk_library_dir) and tk_library_dir.endswith(".zip"):
+                tk_is_zip = True
 
         if tk_library_dir is None or not os.path.exists(tk_library_dir):
             self.sysexit("""\
@@ -291,39 +438,58 @@ Could not find Tk, you might need to use '--tk-library-dir' and if \
 that works, report a bug.""")
 
         # survived the above, now do provide the locations
-        yield self.makeIncludedDataDirectory(
-            source_path=tk_library_dir,
-            dest_path=self.getTkTargetPath(),
-            reason="Tk needed for tkinter usage",
-            ignore_dirs=("demos",),
-            tags="tk",
-        )
-        yield self.makeIncludedDataDirectory(
-            source_path=tcl_library_dir,
-            ignore_dirs=(("opt0.4", "http1.0") if shallCreateAppBundle() else ()),
-            # TODO: Not very version robust, may we ought to
-            # become able to ignore files by pattern.
-            ignore_filenames=(
-                "tcltest-2.3.6.tm",
-                "tcltest-2.3.8.tm",
-                "tcltest-2.4.0.tm",
-                "tcltest-2.5.0.tm",
-                "tcltest-2.5.3.tm",
-                "tcltest-2.5.5.tm",
-                "tcltest-2.5.8.tm",
-            ),
-            dest_path=self.getTclTargetPath(),
-            reason="Tcl needed for tkinter usage",
-            tags="tcl",
-        )
+        self._tcl_is_zip = tcl_is_zip
+        self._tk_is_zip = tk_is_zip
 
-        if isWin32Windows():
+        if tk_is_zip:
+            for included in self._makeIncludedFromZip(
+                source_path=tk_library_dir,
+                dest_path=self.getTkTargetPath(),
+                reason="Tk needed for tkinter usage",
+                tags="tk",
+                ignore_dirs=self._tk_ignore_dirs,
+                ignore_filenames=(),
+            ):
+                yield included
+        else:
             yield self.makeIncludedDataDirectory(
-                source_path=os.path.join(tcl_library_dir, "..", "tcl8"),
-                dest_path="tcl8",
+                source_path=tk_library_dir,
+                dest_path=self.getTkTargetPath(),
+                reason="Tk needed for tkinter usage",
+                ignore_dirs=self._tk_ignore_dirs,
+                tags="tk",
+            )
+
+        if tcl_is_zip:
+            for included in self._makeIncludedFromZip(
+                source_path=tcl_library_dir,
+                dest_path=self.getTclTargetPath(),
+                reason="Tcl needed for tkinter usage",
+                tags="tcl",
+                ignore_dirs=self._tcl_ignore_dirs,
+                ignore_filenames=self._tcl_ignore_filenames,
+            ):
+                yield included
+        else:
+            yield self.makeIncludedDataDirectory(
+                source_path=tcl_library_dir,
+                ignore_dirs=self._tcl_ignore_dirs
+                + (self._tcl_ignore_dirs_appbundle if shallCreateAppBundle() else ()),
+                ignore_filenames=self._tcl_ignore_filenames,
+                dest_path=self.getTclTargetPath(),
                 reason="Tcl needed for tkinter usage",
                 tags="tcl",
             )
+
+        if isWin32Windows() and not tcl_is_zip:
+            tcl8_path = os.path.join(tcl_library_dir, "..", "tcl8")
+            if os.path.isdir(tcl8_path):
+                yield self.makeIncludedDataDirectory(
+                    source_path=tcl8_path,
+                    dest_path="tcl8",
+                    reason="Tcl needed for tkinter usage",
+                    tags="tcl",
+                )
 
         self.files_copied = True
 
