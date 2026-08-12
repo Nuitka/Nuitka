@@ -8559,6 +8559,12 @@
         - 'toga_winforms.resources'
         - 'ctypes.wintypes'
 
+- module-name: 'toga_winforms.libs.win32misc' # checksum: 2d33d008
+  anti-bloat:
+    - description: 'avoid NoneType error in __del__ during shutdown'
+      replacements_plain:
+        'ReleaseActCtx(self._handle_actctx)': 'if ReleaseActCtx is not None: ReleaseActCtx(self._handle_actctx)'
+
 - module-name: 'tokenizers.tools.visualizer' # checksum: afab16ac
   anti-bloat:
     - description: 'remove IPython reference'
