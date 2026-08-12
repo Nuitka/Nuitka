@@ -463,8 +463,7 @@ class TraceCollectionBase(object):
     def mustNotAlias(a, b):
         # TODO: not yet really implemented
         if a.isExpressionConstantRef() and b.isExpressionConstantRef():
-            if a.isMutable() or b.isMutable():
-                return True
+            return a.isMutable() or b.isMutable()
 
         return False
 
