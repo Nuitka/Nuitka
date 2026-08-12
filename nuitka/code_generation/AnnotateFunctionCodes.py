@@ -12,6 +12,7 @@ import marshal
 
 from nuitka.options.Options import isExperimental
 
+from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
     generateFunctionSourceFromBody,
     getFunctionMakerIdentifier,
@@ -51,6 +52,10 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     )
 
     emit("%s = %s(tstate);" % (to_name, function_maker_identifier))
+
+    getAssertionCode(check="%s != NULL" % to_name, emit=emit)
+
+    context.addCleanupTempName(to_name)
 
 
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
