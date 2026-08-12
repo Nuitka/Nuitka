@@ -185,6 +185,15 @@ def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
             ),
         )
 
+    if filename == "pycore_long.h":
+        # _PyLong_FlipSign asserts !_PyLong_IsSmallInt which is stripped as dangerous
+        # (uses _PyRuntime). In debug builds the assert is active and would reference
+        # the poisoned macro, causing an undefined reference at link time.
+        adapted = adapted.replace(
+            "assert(!_PyLong_IsSmallInt(op));",
+            "assert(op != NULL); /* Nuitka: _PyLong_IsSmallInt stripped */",
+        )
+
     return adapted
 
 
@@ -337,7 +346,7 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     header_files = []
 
     hash_obj.updateFromValues(
-        "adapted-python-headers-v1",
+        "adapted-python-headers-v2",
         getNuitkaVersion(),
         "module" if shallMakeModule() else "non-module",
     )
