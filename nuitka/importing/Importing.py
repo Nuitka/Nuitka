@@ -1166,8 +1166,8 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
 
     elif isPackageDir(filename):
         is_package = True
-
-        source_filename = getPackageDirFilename(filename)
+        decision, _reason = decideRecompileExtensionModules(module_name)
+        source_filename = getPackageDirFilename(filename, decision)
 
         if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()

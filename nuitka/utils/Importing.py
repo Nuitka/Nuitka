@@ -303,10 +303,12 @@ def hasPackageDirFilename(path):
     return False
 
 
-def getPackageDirFilename(path):
+def getPackageDirFilename(path, prefer_source=False):
     assert os.path.isdir(path)
 
-    for suffix, _module_type in getModuleFilenameSuffixes():
+    for suffix, module_type in getModuleFilenameSuffixes():
+        if prefer_source and module_type == "C_EXTENSION":
+            continue
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):
