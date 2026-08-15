@@ -462,20 +462,21 @@ def decoratorRetries(
     sleep_time=1,
     exception_type=OSError,
 ):
-    """Make retries for errors on Windows.
+    """Make retries for errors.
 
     This executes a decorated function multiple times, and imposes a delay and
     a virus checker warning.
     """
 
-    recommendation = "Disable Anti-Virus, e.g. Windows Defender for build folders."
+    recommendation = (
+        "Disable Anti-Virus, e.g. Windows Defender for build folders."
+        if os.name == "nt"
+        else "Check for other processes locking the file or directory."
+    )
     if extra_recommendation is not None:
         recommendation = "%s. %s" % (extra_recommendation, recommendation)
 
     def inner(func):
-        if os.name != "nt":
-            return func
-
         @functools.wraps(func)
         def retryingFunction(*args, **kwargs):
             for attempt in range(1, attempts + 1):
