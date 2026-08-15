@@ -7,7 +7,9 @@ Used for generating bytecode-backed functions, if so decided. The main
 important use is "__annotate__" functions.
 """
 
-from nuitka.__past__ import GenericAlias
+import re
+
+from nuitka.__past__ import GenericAlias, re_sub
 from nuitka.Errors import NuitkaCodeDeficit
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
@@ -35,7 +37,9 @@ def _generateConstantTypeRefSource(expression):
 
 def _formatConstantElement(value):
     # return driven, pylint: disable=too-many-return-statements
-    if isinstance(value, type):
+    if value is Ellipsis:
+        return "..."
+    elif isinstance(value, type):
         return value.__name__
     elif isinstance(value, str):
         return repr(value)
@@ -103,8 +107,85 @@ def _generateDictConstantSource(expression):
     return "{%s}" % ", ".join(items)
 
 
+def _findAliasForModule(module, target):
+    """Find `import X as Y` alias for `target` via trace collection.
+
+    Returns alias string if found and differs from target, else None.
+    """
+    trace_collection = module.getTraceCollection()
+
+    for variable, traces in trace_collection.variable_traces.items():
+        if not variable.isModuleVariable():
+            continue
+
+        for trace in traces.values():
+            if trace.getAttributeNode() is None:
+                continue
+
+            node = trace.getAttributeNode()
+
+            if node is None:
+                continue
+
+            if (
+                node.isExpressionImportModuleHard()
+                or node.isExpressionImportModuleFixed()
+                or node.isExpressionImportModuleBuiltin()
+            ):
+                module_name = node.getModuleName()
+
+                if module_name.asString() == target:
+                    alias = variable.getName()
+
+                    if alias != target:
+                        return alias
+
+                    return None
+            elif node.isExpressionBuiltinImport():
+                # General import `import mymod as mm` -> `__import__('mymod')`
+                name_node = node.subnode_name
+
+                if name_node is None or not name_node.isExpressionConstantRef():
+                    continue
+
+                module_name_str = name_node.getCompileTimeConstant()
+
+                if module_name_str != target:
+                    continue
+
+                alias = variable.getName()
+
+                if alias != target:
+                    return alias
+
+                return None
+
+    return None
+
+
 def _generateGenericAliasSource(expression):
-    return str(expression.getCompileTimeConstant())
+    value = expression.getCompileTimeConstant()
+    s = str(value)
+
+    module = expression.getParentModule()
+
+    # Cache alias lookups per module/target.
+    alias_cache = {}
+
+    def _replaceAlias(match):
+        tgt = match.group(1)
+
+        if tgt not in alias_cache:
+            alias_cache[tgt] = _findAliasForModule(module, tgt)
+
+        alias = alias_cache[tgt]
+
+        if alias:
+            return alias + "."
+
+        return match.group(0)
+
+    return re_sub(r"\b([^\W\d]\w*)\.", _replaceAlias, s, flags=re.UNICODE)
 
 
 def _generateTupleConstantSource(expression):
@@ -385,6 +466,20 @@ def _generateBuiltinExceptionRefSource(expression):
     return expression.getBuiltinName()
 
 
+def _generateImportModuleHardSource(expression):
+    # Hard imports (e.g. `typing`) may be optimized away and not kept as a
+    # global variable (e.g. `t` for `import typing as t` can be dead).
+    # Try to find the original alias via trace collection.
+    target = expression.getModuleName().asString()
+    module = expression.getParentModule()
+    alias = _findAliasForModule(module, target)
+
+    if alias:
+        return alias
+
+    return "__import__(%r)" % target
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table
 
@@ -436,6 +531,9 @@ _expression_source_dispatch = {
     "EXPRESSION_COMPARISON_EQ": _generateComparisonSource,
     "EXPRESSION_COMPARISON_NEQ": _generateComparisonSource,
     "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinExceptionRefSource,
+    "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
+    "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
+    "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
 }
 
 _statement_source_dispatch = {
