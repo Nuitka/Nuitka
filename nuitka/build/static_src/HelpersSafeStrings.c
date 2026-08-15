@@ -28,10 +28,13 @@
 #include <ctype.h>
 #include <wctype.h>
 
-#if defined(__APPLE__)
-// For 'newlocale', 'freelocale' and the 'mbstowcs_l' BSD/Darwin extension.
+#if !defined(_WIN32)
+// For 'newlocale', 'uselocale', 'freelocale'.
 #include <locale.h>
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
+// For 'mbstowcs_l' BSD/Darwin extension.
 #include <xlocale.h>
+#endif
 #endif
 
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
@@ -132,9 +135,9 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
         buffer_size -= 1;
     }
 
-#if defined(__APPLE__)
-    // On macOS filesystem paths are always UTF-8, independent of the process
-    // locale.
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
+    // On macOS/FreeBSD/NetBSD filesystem paths are always UTF-8, independent
+    // of the process locale.
     static locale_t utf8_locale = (locale_t)0;
 
     if (unlikely(utf8_locale == (locale_t)0)) {
@@ -150,11 +153,59 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
     if (unlikely(converted == (size_t)-1 || converted >= buffer_size)) {
         abort();
     }
+#elif !defined(_WIN32)
+    // On other platforms (e.g. Linux) filesystem paths are typically UTF-8,
+    // but the process locale may be "C". Respect the environment locale first
+    // (LC_CTYPE/LANG) to handle legacy single-byte encodings, then fall back
+    // to a fixed UTF-8 locale for UTF-8 paths in C locale.
+    bool converted = false;
+
+    locale_t env_locale = newlocale(LC_CTYPE_MASK, "", (locale_t)0);
+    if (env_locale != (locale_t)0) {
+        locale_t old_locale = uselocale(env_locale);
+        size_t res = mbstowcs(target, source, buffer_size);
+        uselocale(old_locale);
+        freelocale(env_locale);
+
+        if (res != (size_t)-1 && res < buffer_size) {
+            converted = true;
+        }
+    }
+
+    if (!converted) {
+        static locale_t utf8_locale = (locale_t)0;
+        static int utf8_locale_failed = 0;
+
+        if (!utf8_locale_failed && utf8_locale == (locale_t)0) {
+            utf8_locale = newlocale(LC_CTYPE_MASK, "C.UTF-8", (locale_t)0);
+            if (utf8_locale == (locale_t)0) {
+                utf8_locale = newlocale(LC_CTYPE_MASK, "C.utf8", (locale_t)0);
+            }
+            if (utf8_locale == (locale_t)0) {
+                utf8_locale = newlocale(LC_CTYPE_MASK, "UTF-8", (locale_t)0);
+            }
+            if (utf8_locale == (locale_t)0) {
+                utf8_locale_failed = 1;
+            }
+        }
+
+        if (!utf8_locale_failed) {
+            locale_t old_locale = uselocale(utf8_locale);
+            size_t res = mbstowcs(target, source, buffer_size);
+            uselocale(old_locale);
+
+            if (res != (size_t)-1 && res < buffer_size) {
+                converted = true;
+            }
+        }
+    }
+
+    if (!converted) {
+        abort();
+    }
 #else
-    // On other platforms we rely on the locale for the conversion. Note that
-    // non-ASCII paths in a non-UTF-8 or "C" locale are not handled here.
-    // TODO: This is not a good approach, as it does not handle multi-byte
-    // characters correctly.
+    // On Windows the binary directory is already wide-char; this fallback
+    // is for other callers (e.g. env vars) which are ASCII-only.
     while (*source != 0) {
         appendCharSafeW(target, *source, buffer_size);
         target++;
