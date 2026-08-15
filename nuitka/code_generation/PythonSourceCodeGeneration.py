@@ -342,6 +342,10 @@ def _generateComparisonSource(expression):
         "GtE": ">=",
         "Eq": "==",
         "NotEq": "!=",
+        "Is": "is",
+        "IsNot": "is not",
+        "In": "in",
+        "NotIn": "not in",
     }
 
     op = operators.get(comparator)
@@ -351,6 +355,75 @@ def _generateComparisonSource(expression):
     left = generateExpressionSource(expression.subnode_left)
     right = generateExpressionSource(expression.subnode_right)
     return "%s %s %s" % (left, op, right)
+
+
+def _generateConditionalAndOrSource(expression):
+    left = generateExpressionSource(expression.subnode_left)
+    right = generateExpressionSource(expression.subnode_right)
+    op = "and" if expression.kind == "EXPRESSION_CONDITIONAL_AND" else "or"
+    return "%s %s %s" % (left, op, right)
+
+
+def _generateConditionalSourceExpression(expression):
+    cond = generateExpressionSource(expression.subnode_condition)
+    yes = generateExpressionSource(expression.subnode_expression_yes)
+    no = generateExpressionSource(expression.subnode_expression_no)
+    return "%s if %s else %s" % (yes, cond, no)
+
+
+def _generateUnaryOperationSource(expression):
+    if expression.isExpressionOperationNot():
+        return "not %s" % _maybeParens(expression.subnode_operand)
+    elif expression.isExpressionOperationUnarySub():
+        return "-%s" % _maybeParens(expression.subnode_operand)
+    elif expression.isExpressionOperationUnaryAdd():
+        return "+%s" % _maybeParens(expression.subnode_operand)
+    elif expression.isExpressionOperationUnaryInvert():
+        return "~%s" % _maybeParens(expression.subnode_operand)
+    else:
+        raise PythonSourceGenerationError(
+            "Unsupported unary operation for source generation: %s" % expression.kind
+        )
+
+
+def _generateYieldSource(expression):
+    value = expression.subnode_value
+
+    if value is None:
+        return "(yield)"
+    return "(yield %s)" % generateExpressionSource(value)
+
+
+def _generateYieldFromSource(expression):
+    value = expression.subnode_value
+    return "(yield from %s)" % generateExpressionSource(value)
+
+
+def _generateLambdaSource(expression):
+    # `lambda x: y` - `EXPRESSION_FUNCTION_CREATION` with `FunctionRef` for `<lambda>`
+    assert expression.isExpressionFunctionCreation()
+    func_body = expression.subnode_function_ref.getFunctionBody()
+
+    param_names = func_body.getParameters().getParameterNames()
+
+    body = func_body.subnode_body
+
+    if len(body.subnode_statements) != 1:
+        raise PythonSourceGenerationError(
+            "Unsupported lambda body for source generation: %s" % body
+        )
+
+    stmt = body.subnode_statements[0]
+
+    if stmt.isStatementReturn() or stmt.isStatementReturnConstant():
+        stmt_src = generateStatementSequenceSource(body, indent="")
+        assert stmt_src.startswith("return "), stmt_src
+        expr_src = stmt_src[len("return ") :]
+        return "lambda %s: %s" % (", ".join(param_names), expr_src)
+
+    raise PythonSourceGenerationError(
+        "Unsupported lambda body statement for source generation: %s" % stmt.kind
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -530,6 +603,20 @@ _expression_source_dispatch = {
     "EXPRESSION_COMPARISON_LTE": _generateComparisonSource,
     "EXPRESSION_COMPARISON_EQ": _generateComparisonSource,
     "EXPRESSION_COMPARISON_NEQ": _generateComparisonSource,
+    "EXPRESSION_COMPARISON_IS": _generateComparisonSource,
+    "EXPRESSION_COMPARISON_IS_NOT": _generateComparisonSource,
+    "EXPRESSION_COMPARISON_IN": _generateComparisonSource,
+    "EXPRESSION_COMPARISON_NOT_IN": _generateComparisonSource,
+    "EXPRESSION_CONDITIONAL_AND": _generateConditionalAndOrSource,
+    "EXPRESSION_CONDITIONAL_OR": _generateConditionalAndOrSource,
+    "EXPRESSION_CONDITIONAL": _generateConditionalSourceExpression,
+    "EXPRESSION_OPERATION_NOT": _generateUnaryOperationSource,
+    "EXPRESSION_OPERATION_UNARY_SUB": _generateUnaryOperationSource,
+    "EXPRESSION_OPERATION_UNARY_ADD": _generateUnaryOperationSource,
+    "EXPRESSION_OPERATION_UNARY_INVERT": _generateUnaryOperationSource,
+    "EXPRESSION_YIELD": _generateYieldSource,
+    "EXPRESSION_YIELD_FROM": _generateYieldFromSource,
+    "EXPRESSION_FUNCTION_CREATION": _generateLambdaSource,
     "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinExceptionRefSource,
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
@@ -555,6 +642,9 @@ def _checkDispatchKinds():
         return
 
     for kind in _expression_source_dispatch:
+        if kind == "EXPRESSION_FUNCTION_CREATION":
+            continue
+
         if kind not in getExpressionDispatchDict():
             raise NuitkaCodeDeficit(
                 "Source generation expression kind %r is not in C dispatch" % kind
