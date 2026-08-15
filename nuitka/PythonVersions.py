@@ -158,10 +158,11 @@ def getSourceDecodeErrorReason(source_filename, decode_error):
     Returns:
         The error reason string matching CPython's output for the version.
     """
-    if python_version >= 0x3F0:
-        # Python 3.15+ reports the full UnicodeDecodeError message with
+    if python_version >= 0x3E7:
+        # Python 3.14.7+ reports the full UnicodeDecodeError message with
         # the byte position relative to the seek point after encoding
-        # detection, not absolute from file start.
+        # detection, not absolute from file start. This was a bugfix
+        # backport to Python 3.14.
         import tokenize
 
         with open(source_filename, "rb") as source_file:
