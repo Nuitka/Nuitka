@@ -10,7 +10,7 @@ important use is "__annotate__" functions.
 import re
 import types
 
-from nuitka.__past__ import GenericAlias, re_sub
+from nuitka.__past__ import GenericAlias, UnionType, re_sub
 from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.Tracing import code_generation_logger
 
@@ -49,7 +49,9 @@ def _formatConstantElement(value):
         return repr(value)
     elif value is None:
         return "None"
-    elif isinstance(value, GenericAlias):
+    elif GenericAlias is not None and isinstance(value, GenericAlias):
+        return str(value)
+    elif UnionType is not None and isinstance(value, UnionType):
         return str(value)
     elif isinstance(value, (types.BuiltinFunctionType, types.FunctionType)):
         return value.__name__
