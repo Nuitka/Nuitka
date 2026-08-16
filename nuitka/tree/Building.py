@@ -1016,6 +1016,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     if (
         python_version >= 0x3E0
         and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
         and provider.deferred_annotations
     ):
         statements.append(

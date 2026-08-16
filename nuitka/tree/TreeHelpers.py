@@ -393,7 +393,7 @@ _host_node = None
 
 def buildAnnotationNode(provider, node, source_ref):
     if (
-        0x370 <= python_version < 0x3E0
+        python_version >= 0x370
         and provider.getParentModule().getFutureSpec().isFutureAnnotations()
     ):
         # Using global value for cache, to avoid creating it over and over,

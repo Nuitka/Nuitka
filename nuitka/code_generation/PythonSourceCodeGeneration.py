@@ -8,9 +8,11 @@ important use is "__annotate__" functions.
 """
 
 import re
+import types
 
 from nuitka.__past__ import GenericAlias, re_sub
 from nuitka.Errors import NuitkaCodeDeficit
+from nuitka.Tracing import code_generation_logger
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
 
@@ -36,7 +38,7 @@ def _generateConstantTypeRefSource(expression):
 
 
 def _formatConstantElement(value):
-    # return driven, pylint: disable=too-many-return-statements
+    # Return driven, pylint: disable=too-many-return-statements
     if value is Ellipsis:
         return "..."
     elif isinstance(value, type):
@@ -47,7 +49,16 @@ def _formatConstantElement(value):
         return repr(value)
     elif value is None:
         return "None"
-    elif isinstance(value, tuple):
+    elif isinstance(value, GenericAlias):
+        return str(value)
+    elif isinstance(value, (types.BuiltinFunctionType, types.FunctionType)):
+        return value.__name__
+    else:
+        return _formatConstantContainer(value)
+
+
+def _formatConstantContainer(value):
+    if isinstance(value, tuple):
         return _formatConstantTuple(value)
     elif isinstance(value, list):
         return "[%s]" % ", ".join(_formatConstantElement(e) for e in value)
@@ -56,13 +67,10 @@ def _formatConstantElement(value):
             "%s: %s" % (_formatConstantElement(k), _formatConstantElement(v))
             for k, v in value.items()
         )
-    elif isinstance(value, (set, frozenset)):
-        inner = ", ".join(_formatConstantElement(e) for e in value)
-        if isinstance(value, frozenset):
-            return "frozenset({%s})" % inner
-        return "{%s}" % inner
-    elif isinstance(value, GenericAlias):
-        return str(value)
+    elif isinstance(value, frozenset):
+        return "frozenset({%s})" % ", ".join(_formatConstantElement(e) for e in value)
+    elif isinstance(value, set):
+        return "{%s}" % ", ".join(_formatConstantElement(e) for e in value)
     else:
         raise PythonSourceGenerationError(
             "Unsupported constant value for source generation: %s (%s)"
@@ -497,16 +505,14 @@ def _constantToSource(value):
     """Convert a compile-time constant to its Python source representation."""
     if isinstance(value, type):
         return value.__name__
+    elif isinstance(value, (str, int, float, complex, bytes, bytearray)):
+        return repr(value)
     elif value is None:
         return "None"
-    elif value is True:
-        return "True"
-    elif value is False:
-        return "False"
     elif value is Ellipsis:
         return "..."
     else:
-        return repr(value)
+        return _formatConstantElement(value)
 
 
 def generateFunctionSourceFromBody(function_body):
@@ -515,11 +521,21 @@ def generateFunctionSourceFromBody(function_body):
         function_body.subnode_body, indent=" " * 4
     )
 
-    return "def %s(%s):\n%s" % (
+    source = "def %s(%s):\n%s" % (
         function_body.getFunctionName(),
         ", ".join(function_body.getParameters().getParameterNames()),
         body_source,
     )
+
+    try:
+        compile(source, function_body.getCodeName(), "exec")
+    except SyntaxError as e:
+        return code_generation_logger.sysexit(
+            "Failed to generate valid Python source for '%s': %s\n\n%s"
+            % (function_body.getCodeName(), e, source)
+        )
+
+    return source
 
 
 def _generateBuiltinNext1Source(expression):
