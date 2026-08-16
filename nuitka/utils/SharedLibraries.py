@@ -269,6 +269,51 @@ def _getSharedLibraryRPATHsElf(filename):
 _dump_usage = "The 'dump' is used to analyse dependencies on COFF using systems and required to be found."
 
 
+_ar_usage = "The 'ar' is used to list archive members on COFF using systems."
+
+
+def _getCoffDumpOutput(filename):
+    """Get 'dump -H' output for a COFF file, avoiding .imp members.
+
+    On AIX an archive like libunwind.a contains both shr.o members and
+    .imp import files. 'dump -H -X 32_64 archive.a' probes every member
+    and fails with 0654-105 for the .imp file, even though stdout for the
+    .o members is valid.  Instead list members with 'ar -X 32_64 t' and
+    dump each object member individually with 'dump -H -X 32_64 -n member'.
+    """
+    if filename.endswith(".a"):
+        ar_output = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("ar", "-X", "32_64", "t", filename),
+            absence_message=_ar_usage,
+            decoding=True,
+        )
+
+        members = [m.strip() for m in ar_output.splitlines() if m.strip()]
+        # Keep only object members, skip import files like *.imp
+        obj_members = [m for m in members if not m.endswith(".imp")]
+
+        if obj_members:
+            parts = []
+            for member in obj_members:
+                out = executeToolChecked(
+                    logger=postprocessing_logger,
+                    command=("dump", "-H", "-X", "32_64", "-n", member, filename),
+                    absence_message=_dump_usage,
+                    decoding=True,
+                )
+                parts.append(out)
+            if parts:
+                return "\n".join(parts)
+
+    return executeToolChecked(
+        logger=postprocessing_logger,
+        command=("dump", "-H", "-X", "32_64", filename),
+        absence_message=_dump_usage,
+        decoding=True,
+    )
+
+
 def _parseCoffDumpImportFileStrings(output):
     """Parse the Import File Strings section of 'dump -H' output.
 
@@ -346,12 +391,7 @@ def _parseCoffDumpImportFileStrings(output):
 def _getSharedLibraryRPATHsCoff(filename):
     rpaths = []
 
-    output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "32_64", filename),
-        absence_message=_dump_usage,
-        decoding=True,
-    )
+    output = _getCoffDumpOutput(filename)
 
     import_paths, _imported_libraries = _parseCoffDumpImportFileStrings(output)
 
@@ -373,12 +413,7 @@ def getCoffImportedLibraries(filename):
     Returns:
         List of (base, member) tuples for imported libraries.
     """
-    output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "32_64", filename),
-        absence_message=_dump_usage,
-        decoding=True,
-    )
+    output = _getCoffDumpOutput(filename)
 
     _import_paths, imported_libraries = _parseCoffDumpImportFileStrings(output)
 
@@ -394,12 +429,7 @@ def getCoffLibrarySearchPaths(filename):
     Returns:
         List of library search path strings from INDEX 0 of dump -H output.
     """
-    output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "32_64", filename),
-        absence_message=_dump_usage,
-        decoding=True,
-    )
+    output = _getCoffDumpOutput(filename)
 
     import_paths, _imported_libraries = _parseCoffDumpImportFileStrings(output)
 
