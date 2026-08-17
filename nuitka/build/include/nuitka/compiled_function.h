@@ -102,7 +102,7 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
                                                          PyCodeObject *code_object, PyObject *defaults,
                                                          PyObject *kw_defaults, PyObject *annotations, PyObject *module,
                                                          PyObject *doc, struct Nuitka_CellObject **closure,
-                                                         Py_ssize_t closure_given);
+                                                         Py_ssize_t closure_given, PyObject *type_params);
 #endif
 
 extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *function);
@@ -165,7 +165,10 @@ extern int count_released_Nuitka_Function_Type;
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

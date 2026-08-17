@@ -505,11 +505,13 @@ def getFilenameRealPath(path):
     return path
 
 
-def listDir(path):
+def listDir(path, ignore_permission_error=False):
     """Give a sorted listing of a path.
 
     Args:
         path: directory to create a listing from
+        ignore_permission_error: When True, permission errors are
+            silently ignored and an empty list is returned.
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -531,6 +533,13 @@ def listDir(path):
     if str is bytes and type(real_path) is str:
         real_path = unicode(real_path)
 
+    try:
+        filenames = os.listdir(real_path)
+    except OSError:
+        if ignore_permission_error:
+            return []
+        raise
+
     def _tryEncodeToFilesystemEncoding(value):
         try:
             return encodeToFilesystemEncoding(value)
@@ -542,7 +551,7 @@ def listDir(path):
             _tryEncodeToFilesystemEncoding(getNormalizedPathJoin(path, filename)),
             _tryEncodeToFilesystemEncoding(filename),
         )
-        for filename in os.listdir(real_path)
+        for filename in filenames
     )
 
 
@@ -588,7 +597,9 @@ def getFileList(
         dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
         for ignore_dir in ignore_dirs:
             if ignore_dir in dirnames_normalized:
-                dirnames.remove(ignore_dir)
+                idx = dirnames_normalized.index(ignore_dir)
+                del dirnames[idx]
+                del dirnames_normalized[idx]
 
         # Compare to normalized filenames for better matching.
         filenames = [
@@ -614,12 +625,14 @@ def getFileList(
     return result
 
 
-def getSubDirectories(path, ignore_dirs=()):
+def getSubDirectories(path, ignore_dirs=(), ignore_permission_error=False):
     """Get all directories below a given path.
 
     Args:
         path: directory to create a recursive listing from
         ignore_dirs: directories named that like will be ignored
+        ignore_permission_error: When True, permission errors from
+            'os.walk' are silently ignored.
 
     Returns:
         Sorted list of all directories below that directory,
@@ -634,17 +647,30 @@ def getSubDirectories(path, ignore_dirs=()):
 
     ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
 
-    for root, dirnames, _filenames in os.walk(path):
-        # Normalize dirnames for better matching.
-        dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-        for ignore_dir in ignore_dirs:
-            if ignore_dir in dirnames_normalized:
-                dirnames.remove(ignore_dir)
+    def _onError(_error):
+        pass
 
-        dirnames.sort()
+    # The 'onerror' parameter is available on Python 3 only.
+    if ignore_permission_error and python_version >= 0x300:
+        walk_kwargs = {"onerror": _onError}
+    else:
+        walk_kwargs = {}
 
-        for dirname in dirnames:
-            result.append(getNormalizedPathJoin(root, dirname))
+    try:
+        for root, dirnames, _filenames in os.walk(path, **walk_kwargs):
+            # Normalize dirnames for better matching.
+            dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
+            for ignore_dir in ignore_dirs:
+                if ignore_dir in dirnames_normalized:
+                    dirnames.remove(ignore_dir)
+
+            dirnames.sort()
+
+            for dirname in dirnames:
+                result.append(getNormalizedPathJoin(root, dirname))
+    except OSError:
+        if not ignore_permission_error:
+            raise
 
     result.sort()
     return result
@@ -674,13 +700,17 @@ def getDllBasename(path):
     return None
 
 
-def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
+def listDllFilesFromDirectory(
+    path, prefix=None, suffixes=None, ignore_permission_error=False
+):
     """Give a sorted listing of DLLs filenames in a path.
 
     Args:
         path: directory to create a DLL listing from
         prefix: shell pattern to match filename start against, can be None
         suffixes: shell patch to match filename end against, defaults to all platform ones
+        ignore_permission_error: When True, permission errors are
+            silently ignored.
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -699,7 +729,9 @@ def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
 
     pattern_list = [prefix + "*." + suffix for suffix in suffixes]
 
-    for fullpath, filename in listDir(path):
+    for fullpath, filename in listDir(
+        path, ignore_permission_error=ignore_permission_error
+    ):
         for pattern in pattern_list:
             if fnmatch.fnmatch(filename, pattern):
                 yield fullpath, filename
@@ -751,11 +783,13 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
                 break
 
 
-def getSubDirectoriesWithDlls(path):
+def getSubDirectoriesWithDlls(path, ignore_permission_error=False):
     """Get all directories below a given path.
 
     Args:
         path: directory to create a recursive listing from
+        ignore_permission_error: When True, permission errors are
+            silently ignored.
 
     Returns:
         Sorted tuple of all directories below that directory,
@@ -768,17 +802,29 @@ def getSubDirectoriesWithDlls(path):
 
     result = set()
 
-    for dll_sub_directory in _getSubDirectoriesWithDlls(path):
+    for dll_sub_directory in _getSubDirectoriesWithDlls(
+        path, ignore_permission_error=ignore_permission_error
+    ):
         result.add(dll_sub_directory)
 
     return tuple(sorted(result))
 
 
-def _getSubDirectoriesWithDlls(path):
-    for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
-        if any(listDllFilesFromDirectory(sub_directory)) or _isMacOSFramework(
-            sub_directory
-        ):
+def _getSubDirectoriesWithDlls(path, ignore_permission_error=False):
+    ignore_dirs = ["__pycache__"]
+
+    # On macOS the "Resources" directories of frameworks contain no DLLs and
+    # can have restrictive permissions, so we exclude them from the scan.
+    if isMacOS():
+        ignore_dirs.append("Resources")
+
+    for sub_directory in getSubDirectories(path=path, ignore_dirs=ignore_dirs):
+        if any(
+            listDllFilesFromDirectory(
+                path=sub_directory,
+                ignore_permission_error=ignore_permission_error,
+            )
+        ) or _isMacOSFramework(sub_directory):
             yield sub_directory
 
             candidate = os.path.dirname(sub_directory)
@@ -1058,7 +1104,7 @@ def withTemporaryFilename(prefix="", suffix="", temp_path=None):
         delete=False,
         dir=temp_path,
     ) as temp_file:
-        filename = temp_file.name
+        filename = getNormalizedPath(temp_file.name)
         temp_file.close()
         deleteFile(filename, must_exist=True)
 
@@ -2044,6 +2090,37 @@ def getNormalizedPathJoin(*paths):
     return getNormalizedPath(os.path.join(*paths))
 
 
+def getNormalizedPathSep():
+    """Return the normalized native path separator.
+
+    Needed, because on MSYS2 'os.path.sep' is '/' rather than the native '\\'.
+    """
+    return getNormalizedPath(os.path.sep)
+
+
+def doesFileContainBytes(filename, search):
+    """Check if a file contains a specific byte sequence.
+
+    Args:
+        filename: Path to the file.
+        search: Bytes to search for.
+
+    Returns:
+        bool: True if the byte sequence was found.
+    """
+    try:
+        with open(filename, "rb") as f:
+            chunk = f.read(65536)
+            while chunk:
+                if search in chunk:
+                    return True
+                chunk = f.read(65536)
+    except OSError:
+        pass
+
+    return False
+
+
 def getFileContentsHash(filename, as_string=True, line_filter=None):
     """Get the hash of a file's content.
 
@@ -2090,7 +2167,10 @@ def encodeToFilesystemEncoding(path):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

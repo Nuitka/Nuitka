@@ -248,6 +248,19 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -456,7 +469,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -680,6 +693,19 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 1);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -908,7 +934,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -1119,6 +1145,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -1332,7 +1371,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -1536,6 +1575,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 2);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -1765,7 +1817,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -1956,6 +2008,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -2168,7 +2233,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -2372,6 +2437,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 3);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -2601,7 +2679,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -2792,6 +2870,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -3004,7 +3095,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -3208,6 +3299,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 4);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -3437,7 +3541,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -3628,6 +3732,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -3840,7 +3957,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -4044,6 +4161,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 5);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -4273,7 +4403,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -4464,6 +4594,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -4676,7 +4819,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -4880,6 +5023,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 6);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -5109,7 +5265,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -5300,6 +5456,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -5512,7 +5681,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -5716,6 +5885,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 7);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -5945,7 +6127,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6136,6 +6318,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -6348,7 +6543,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6552,6 +6747,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 8);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -6781,7 +6989,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -6972,6 +7180,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -7184,7 +7405,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -7388,6 +7609,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 9);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -7617,7 +7851,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -7808,6 +8042,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -8020,7 +8267,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -8224,6 +8471,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 pos_args = MAKE_TUPLE(tstate, args, 10);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
@@ -8453,7 +8713,7 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
         if (method->m_object == NULL) {
             PyObject *self = args[0];
 
-            int res = PyObject_IsInstance(self, method->m_class);
+            int res = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(res < 0)) {
                 return NULL;
@@ -8644,6 +8904,19 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
+
+                // object_new() calls _PyObject_InitializeDict() after tp_alloc.
+                // Since we bypass object_new, initialize managed dict inline values
+                // ourselves, otherwise the first attribute write falls back to a
+                // separately GC-tracked PyDictObject.
+#if PYTHON_VERSION >= 0x3d0
+                Nuitka_PyObject_InitInlineValues(obj, called_type);
+#elif PYTHON_VERSION >= 0x3b0
+                if (Nuitka_PyObject_InitInlineValuesLegacy(obj, called_type) != 0) {
+                    Py_DECREF(obj);
+                    return NULL;
+                }
+#endif
             } else {
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
@@ -14351,7 +14624,10 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

@@ -3,7 +3,7 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "stdint.h"
 #endif
 
 // Comment in to disable outside zlib usage for code size, very slow though,
@@ -41,7 +41,12 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
 
 // Avoid collisions with system libz containing it and being linked against.
 #define ZEXTERN NUITKA_MAY_BE_UNUSED static
+
+// The bundled zlib code does not use this export internally, and linked
+// libpython variants may provide it already.
+#define get_crc_table nuitka_get_crc_table
 #include "crc32.c"
+#undef get_crc_table
 #endif
 
 uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0, message, size) & 0xFFFFFFFF; }
@@ -54,7 +59,10 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

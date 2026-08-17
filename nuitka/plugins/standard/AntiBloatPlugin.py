@@ -11,6 +11,7 @@ that to be done and causing massive degradations.
 import ast
 import re
 
+from nuitka.__past__ import re_sub
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenImportEncounter
@@ -499,7 +500,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             anti_bloat_config.get(config_prefix + "replacements_re") or {}
         ).items():
             old = source_code
-            source_code = re.sub(replace_src, replace_dst, source_code, re.S)
+            source_code = re_sub(replace_src, replace_dst, source_code, flags=re.S)
 
             if old != source_code:
                 change_count += 1
@@ -1103,7 +1104,10 @@ Not including '%s' automatically in order to avoid bloat, but this may cause: %s
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

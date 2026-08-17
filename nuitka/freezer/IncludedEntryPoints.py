@@ -32,6 +32,8 @@ from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
+from .IncludedDataFiles import addIncludedPdbFile
+
 dll_tags = []
 
 
@@ -417,6 +419,9 @@ def addIncludedEntryPoint(entry_point):
         # Allow plugins to tag it
         onDllTags(entry_point)
 
+    if not entry_point.kind.endswith("_ignored"):
+        addIncludedPdbFile(entry_point)
+
     standalone_entry_points.append(entry_point)
 
 
@@ -457,6 +462,8 @@ def addExtensionModuleEntryPoint(module):
     )
 
     onDllTags(entry_point)
+
+    addIncludedPdbFile(entry_point)
 
     standalone_entry_points.append(entry_point)
 
@@ -502,7 +509,10 @@ def getStandaloneEntryPointForSourceFile(source_path, package_name):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

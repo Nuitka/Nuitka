@@ -6,7 +6,10 @@
 import os
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.utils.FileOperations import listDllFilesFromDirectory
+from nuitka.utils.FileOperations import (
+    getNormalizedPath,
+    listDllFilesFromDirectory,
+)
 from nuitka.utils.SharedLibraries import getPEFileUsedDllNames
 
 from .DllDependenciesCommon import (
@@ -31,8 +34,8 @@ def _getScanDirectoryDLLs(scan_dirs):
                 dll_basename = dll_basename.lower()
 
                 if dll_basename not in result:
-                    result[dll_basename] = os.path.normcase(
-                        os.path.abspath(dll_filename)
+                    result[dll_basename] = getNormalizedPath(
+                        os.path.normcase(os.path.abspath(dll_filename))
                     )
 
         _scan_dir_dll_cache[cache_key] = result
@@ -53,7 +56,7 @@ def detectDLLsWithPEFile(binary_filename, scan_dirs):
     result = OrderedSet()
 
     scan_dir_dlls = _getScanDirectoryDLLs(scan_dirs=scan_dirs)
-    pending = [os.path.normcase(os.path.abspath(binary_filename))]
+    pending = [getNormalizedPath(os.path.normcase(os.path.abspath(binary_filename)))]
     scanned = set()
 
     while pending:
@@ -90,7 +93,9 @@ def detectDLLsWithPEFile(binary_filename, scan_dirs):
 
                 continue
 
-            dll_filename = os.path.normcase(os.path.abspath(dll_filename))
+            dll_filename = getNormalizedPath(
+                os.path.normcase(os.path.abspath(dll_filename))
+            )
             dll_basename = os.path.basename(dll_filename).lower()
 
             if shallIgnoreMissingDLL(dll_basename):
@@ -113,7 +118,10 @@ def detectDLLsWithPEFile(binary_filename, scan_dirs):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

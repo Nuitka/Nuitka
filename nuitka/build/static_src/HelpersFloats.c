@@ -37,7 +37,7 @@ PyObject *TO_FLOAT(PyObject *value) {
 
 static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
 #if PYTHON_VERSION >= 0x3e0
-    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->floats);
+    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->floats);
 
     if (result_float == NULL) {
         result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));
@@ -94,7 +94,10 @@ PyObject *MAKE_FLOAT_FROM_DOUBLE(double value) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

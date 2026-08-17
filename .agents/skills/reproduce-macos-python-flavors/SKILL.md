@@ -1,5 +1,6 @@
 ---
-description: Reproduce macOS issues across Python flavors, including local GitHub Actions Python execution
+name: reproduce-macos-python-flavors
+description: Reproduce macOS Nuitka issues across Python distributions and GitHub Actions Python packaging. Use when a macOS issue may depend on CPython Official, Homebrew, Conda, Miniforge, or actions/setup-python runtimes.
 ---
 
 # Reproduce macOS Python Flavor Issues

@@ -97,13 +97,13 @@ if [[ "$(uname)" == "Linux" ]]; then
     # --- Linux Dependencies ---
     if command -v apt-get >/dev/null 2>&1; then
         echo "Installing Linux dependencies via apt-get..."
-        $SUDO apt-get update && $SUDO apt-get install -y curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev gdb ccache
+        $SUDO apt-get update && $SUDO apt-get install -y curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libsqlite3-dev libssl-dev libreadline-dev libffi-dev gdb ccache
     elif command -v yum >/dev/null 2>&1; then
         echo "Installing Linux dependencies via yum..."
-        $SUDO yum -y install curl wget gcc gcc-c++ make zlib-devel ncurses-devel gdbm-devel nss-devel openssl-devel readline-devel libffi-devel gdb ccache
+        $SUDO yum -y install curl wget gcc gcc-c++ make zlib-devel ncurses-devel gdbm-devel nss-devel sqlite-devel openssl-devel readline-devel libffi-devel gdb ccache
     elif command -v dnf >/dev/null 2>&1; then
         echo "Installing Linux dependencies via dnf..."
-        $SUDO dnf -y install curl wget gcc gcc-c++ make zlib-devel ncurses-devel gdbm-devel nss-devel openssl-devel readline-devel libffi-devel gdb ccache
+        $SUDO dnf -y install curl wget gcc gcc-c++ make zlib-devel ncurses-devel gdbm-devel nss-devel sqlite-devel openssl-devel readline-devel libffi-devel gdb ccache
     else
         echo "Warning: Could not detect package manager. Please ensure build dependencies are installed."
     fi
@@ -220,7 +220,10 @@ echo "--- Build Complete ---"
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

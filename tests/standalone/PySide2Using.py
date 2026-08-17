@@ -7,6 +7,7 @@ compiled functions as callables.
 
 # nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyside2
+# nuitka-project: --no-debug-immortal-assumptions
 
 # nuitka-skip-unless-imports: PySide2.QtCore
 

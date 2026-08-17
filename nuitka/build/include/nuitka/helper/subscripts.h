@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_SUBSCRIPTS_H__
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -219,11 +225,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
 
         PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
 
+        // Python3.11+: CPython treats "__class_getitem__" set to a
+        // non-callable the same as not having one - the type is not
+        // subscriptable. (3.9-3.10 only give "'NoneType' not callable")
+#if PYTHON_VERSION >= 0x3b0
+        if (meth != NULL && meth != Py_None && Nuitka_PyCheckCallable(meth)) {
+#else
         if (meth) {
+#endif
             PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
             Py_DECREF(meth);
             return result;
         }
+
+        Py_XDECREF(meth);
 
         // Different error against types for Python3.11+
 #if PYTHON_VERSION >= 0x3b0
@@ -381,7 +396,10 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SUBSCRIPT(PyObject *target, PyObject *subsc
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

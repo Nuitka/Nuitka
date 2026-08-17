@@ -608,6 +608,18 @@ nuitka.__main__.main()
             "--main=%s" % scons_main_path,
         ]
 
+        # Only include "pkg_resources" if importable by the Python under test.
+        try:
+            subprocess.check_call(
+                [os.environ["PYTHON"], "-c", "import pkg_resources"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except (subprocess.CalledProcessError, OSError):
+            pass
+        else:
+            command.append("--include-package=pkg_resources")
+
         my_print("Command: ", " ".join(command))
         result = subprocess.call(command, cwd=base_dir)
 

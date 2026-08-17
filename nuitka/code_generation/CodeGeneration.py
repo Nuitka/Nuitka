@@ -12,6 +12,7 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
+from nuitka.build.DataComposerInterface import getConstantBlobSymbolName
 from nuitka.ModuleRegistry import addModuleCodeGenerationTimeInformation
 from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
@@ -25,6 +26,7 @@ from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Timing import TimerReport
 
+from .AnnotateFunctionCodes import isBytecodeBackedFunction
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -211,12 +213,16 @@ from .IntegerCodes import (
 from .IteratorCodes import (
     generateBuiltinAllCode,
     generateBuiltinAnyCode,
+    generateBuiltinEnumerate1Code,
+    generateBuiltinEnumerate2Code,
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,
     generateBuiltinLenCode,
     generateBuiltinNext1Code,
     generateBuiltinNext2Code,
+    generateBuiltinZip310Code,
+    generateBuiltinZipCode,
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
@@ -260,6 +266,7 @@ from .LoopCodes import (
 from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
+    generateModuleAttributeDunderCompiledCode,
     generateModuleAttributeFileCode,
     getModuleCode,
 )
@@ -383,6 +390,9 @@ _generated_functions = {}
 def generateFunctionBodyCode(function_body, context):
     # TODO: Generate both codes, and base direct/etc. decisions on context.
     # pylint: disable=too-many-branches
+
+    if isBytecodeBackedFunction(function_body):
+        return None, None
 
     function_identifier = function_body.getCodeName()
 
@@ -553,6 +563,17 @@ def _generateModuleCode(module, data_filename):
             if is_constant_returning:
                 continue
 
+        if isBytecodeBackedFunction(function_body):
+            from .PythonSourceCodeGeneration import (
+                PythonSourceGenerationError,
+                generateFunctionSourceFromBody,
+            )
+
+            try:
+                generateFunctionSourceFromBody(function_body)
+            except PythonSourceGenerationError:
+                function_body.addFlag("force_c")
+
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
@@ -589,6 +610,7 @@ def _generateModuleCode(module, data_filename):
         module_const_blob_name=encodePythonStringToC(
             deriveModuleConstantsBlobName(data_filename)
         ),
+        module_const_blob_symbol_name=getConstantBlobSymbolName(data_filename),
         context=context,
     )
 
@@ -653,6 +675,10 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ITER_FOR_UNPACK": generateBuiltinIterForUnpackCode,
         "EXPRESSION_BUILTIN_ITER1": generateBuiltinIter1Code,
         "EXPRESSION_BUILTIN_ITER2": generateBuiltinIter2Code,
+        "EXPRESSION_BUILTIN_ENUMERATE1": generateBuiltinEnumerate1Code,
+        "EXPRESSION_BUILTIN_ENUMERATE2": generateBuiltinEnumerate2Code,
+        "EXPRESSION_BUILTIN_ZIP": generateBuiltinZipCode,
+        "EXPRESSION_BUILTIN_ZIP310": generateBuiltinZip310Code,
         "EXPRESSION_BUILTIN_NEXT1": generateBuiltinNext1Code,
         "EXPRESSION_BUILTIN_NEXT2": generateBuiltinNext2Code,
         "EXPRESSION_BUILTIN_SUM1": generateBuiltinSum1Code,
@@ -847,6 +873,7 @@ addExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_SORT1": generateListOperationSort1Code,
         "EXPRESSION_LIST_OPERATION_SORT2": generateListOperationSort2Code,
         "EXPRESSION_LIST_OPERATION_SORT3": generateListOperationSort3Code,
+        "EXPRESSION_MODULE_ATTRIBUTE_DUNDER_COMPILED_REF": generateModuleAttributeDunderCompiledCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF": generateModuleAttributeFileCode,
         "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF": generateModuleAttributeCode,
         "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF": generateModuleAttributeCode,
@@ -981,6 +1008,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL": generateImportlibResourcesFilesCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
@@ -1112,7 +1140,10 @@ setStatementDispatchDict(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

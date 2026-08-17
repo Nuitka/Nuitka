@@ -148,11 +148,45 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
     assert(nargs >= 0);
     assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (method->m_object == NULL) {
+        if (unlikely(nargs < 1)) {
+            PyErr_Format(
+                PyExc_TypeError,
+                "unbound compiled_method %s%s must be called with %s instance as first argument (got nothing instead)",
+                GET_CALLABLE_NAME((PyObject *)method->m_function), GET_CALLABLE_DESC((PyObject *)method->m_function),
+                GET_CLASS_NAME(method->m_class));
+            return NULL;
+        } else {
+            PyObject *self = stack[0];
+            CHECK_OBJECT(self);
+
+            int result = Nuitka_Object_IsInstance(tstate, self, method->m_class);
+
+            if (unlikely(result < 0)) {
+                return NULL;
+            } else if (unlikely(result == 0)) {
+                PyErr_Format(PyExc_TypeError,
+                             "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
+                             "instance instead)",
+                             GET_CALLABLE_NAME((PyObject *)method->m_function),
+                             GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
+
+                return NULL;
+            }
+        }
+
+        return Nuitka_CallFunctionVectorcall(tstate, method->m_function, stack, nargs,
+                                             kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
+    }
+
     Py_ssize_t totalargs = nargs + kwargs_count;
 
     // Shortcut possible, no args.
     if (totalargs == 0) {
-        return Nuitka_CallMethodFunctionNoArgs(PyThreadState_GET(), method->m_function, method->m_object);
+        return Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
     }
 
     PyObject *result;
@@ -169,7 +203,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
-        result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
+        result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
@@ -185,7 +219,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
-        result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
+        result = Nuitka_CallFunctionVectorcall(tstate, method->m_function, new_args, nargs + 1,
                                                kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
@@ -197,6 +231,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
 static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObject *args, PyObject *kw) {
     Py_ssize_t arg_count = PyTuple_GET_SIZE(args);
+    PyThreadState *tstate = PyThreadState_GET();
 
     if (method->m_object == NULL) {
         if (unlikely(arg_count < 1)) {
@@ -210,13 +245,11 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
             PyObject *self = PyTuple_GET_ITEM(args, 0);
             CHECK_OBJECT(self);
 
-            int result = PyObject_IsInstance(self, method->m_class);
+            int result = Nuitka_Object_IsInstance(tstate, self, method->m_class);
 
             if (unlikely(result < 0)) {
                 return NULL;
             } else if (unlikely(result == 0)) {
-                PyThreadState *tstate = PyThreadState_GET();
-
                 PyErr_Format(PyExc_TypeError,
                              "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
                              "instance instead)",
@@ -230,8 +263,6 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
 
         return Py_TYPE(method->m_function)->tp_call((PyObject *)method->m_function, args, kw);
     } else {
-        PyThreadState *tstate = PyThreadState_GET();
-
         if (kw == NULL) {
             if (arg_count == 0) {
                 return Nuitka_CallMethodFunctionNoArgs(tstate, method->m_function, method->m_object);
@@ -470,7 +501,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
 
     CHECK_OBJECT(func);
 
-    if (!PyCallable_Check(func)) {
+    if (!Nuitka_PyCheckCallable(func)) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "first argument must be callable");
@@ -621,7 +652,10 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

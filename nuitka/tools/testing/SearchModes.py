@@ -115,16 +115,12 @@ class SearchMode(object):
                     self.active = True
 
         if self.active:
-            # If active, we still filter by pattern if one was given.
-            if self.start_at and not self._match(dirname, filename, self.start_at):
-                return False
-
-            # If we are active, we can save the current file as the one to resume
-            # from.
-            self._saveResume(dirname, filename)
-
             if self.only:
                 self.active = False
+            else:
+                # If we are active, we can save the current file as the one to resume
+                # from.
+                self._saveResume(dirname, filename)
 
             self.had_match = True
             self.verifications += 1
@@ -173,7 +169,7 @@ class SearchMode(object):
         if not self.active and not self.had_match:
             return self.exit("Error, became never active.")
 
-        if success and os.path.exists(self.cache_filename):
+        if success and not self.only and os.path.exists(self.cache_filename):
             os.unlink(self.cache_filename)
 
         print(
@@ -241,7 +237,10 @@ class SearchMode(object):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

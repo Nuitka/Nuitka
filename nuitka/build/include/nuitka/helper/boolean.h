@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_BOOLEAN_H__
 #define __NUITKA_HELPER_BOOLEAN_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 // The slot in Python3 got renamed, compensate it like this.
 #if PYTHON_VERSION >= 0x300
 #define nb_nonzero nb_bool
@@ -77,7 +83,10 @@ typedef enum { NUITKA_VOID_OK = 0, NUITKA_VOID_EXCEPTION = 1 } nuitka_void;
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

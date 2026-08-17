@@ -35,10 +35,11 @@ from nuitka.utils.FileOperations import (
     listDir,
     openPickleFile,
     openTextFile,
+    searchPrefixPath,
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
-from nuitka.utils.Utils import isLinux, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
 def initScons(arguments):
@@ -236,6 +237,15 @@ def createEnvironment(
 
     zig_mode = zig_mode_env or bool(zig_exe_path)
 
+    if isMacOS() and "auto-homebrew-clang" in experimental_flags:
+        if target_arch == "arm64":
+            _candidate = "/opt/homebrew/opt/llvm/bin"
+        else:
+            _candidate = "/usr/local/opt/llvm/bin"
+
+        if os.path.isdir(_candidate):
+            addToPATH(None, _candidate, prefix=True)
+
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -380,14 +390,6 @@ def createEnvironment(
     # Non-elf binary, important for linker settings.
     env.noelf_mode = getArgumentBool("noelf_mode", False)
 
-    cpp_defines = getArgumentList("cpp_defines", "")
-    for cpp_define in cpp_defines:
-        if cpp_define.split("=", 1)[0] == "_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS":
-            env.writeable_constants = True
-            break
-    else:
-        env.writeable_constants = False
-
     # Python specific modes have to influence some decisions.
     env.static_libpython = getArgumentDefaulted("static_libpython", "")
     if env.static_libpython:
@@ -465,6 +467,11 @@ def createEnvironment(
     env.dll_mode = getArgumentBool("dll_mode", False)
     if env.dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_DLL_MODE"])
+
+    # Python flag isolated: -I mode
+    env.python_flag_isolated = getArgumentBool("python_sysflag_isolated", False)
+    if env.python_flag_isolated:
+        env.Append(CPPDEFINES=["_NUITKA_FLAG_ISOLATED"])
 
     # EXE mode: Create an EXE (using Python for this config)
     env.exe_mode = getArgumentBool("exe_mode", False)
@@ -756,7 +763,7 @@ def getSconsCompilerUsed(source_dir):
         ("clang_mode", "Clang"),
         ("gcc_mode", "gcc"),
     ):
-        if getSconsReportValueBool(source_dir, key):
+        if getSconsReportValueBool(source_dir, key, default=None):
             return compiler_used
 
     return "Unknown"
@@ -846,20 +853,21 @@ def readSconsResourceUsageReports(source_dir):
     if source_dir not in _scons_resource_usage_reports:
         results = {}
 
-        for filename, _filename_only in listDir(source_dir):
-            if filename.endswith(".resource-usage.json"):
-                data = loadJsonFromFilename(filename)
-                source_filename = data["source_filename"]
-                if source_filename.startswith("module.") and source_filename.endswith(
-                    ".c"
-                ):
-                    # TODO: Could resolve this more reliable by checking mapping to
-                    # actually picked source file names in "pickSourceFilenames"
-                    module_name = source_filename[7:-2]
+        if os.path.isdir(source_dir):
+            for filename, _filename_only in listDir(source_dir):
+                if filename.endswith(".resource-usage.json"):
+                    data = loadJsonFromFilename(filename)
+                    source_filename = data["source_filename"]
+                    if source_filename.startswith(
+                        "module."
+                    ) and source_filename.endswith(".c"):
+                        # TODO: Could resolve this more reliable by checking mapping to
+                        # actually picked source file names in "pickSourceFilenames"
+                        module_name = source_filename[7:-2]
 
-                    results[module_name] = data["rusage"]
-                elif source_filename == "@linker":
-                    results["@linker"] = data["rusage"]
+                        results[module_name] = data["rusage"]
+                    elif source_filename == "@linker":
+                        results["@linker"] = data["rusage"]
 
         _scons_resource_usage_reports[source_dir] = results
 
@@ -901,29 +909,174 @@ def getSconsObjectSizes(source_dir):
     return _scons_object_sizes.get(source_dir, {})
 
 
+def _getVisualStudioClangDirectory(clang_root_dir, compiler_arch):
+    if compiler_arch == "pei-x86-64":
+        return getNormalizedPathJoin(clang_root_dir, "x64", "bin")
+    elif compiler_arch == "pei-arm64":
+        return getNormalizedPathJoin(clang_root_dir, "ARM64", "bin")
+    else:
+        return getNormalizedPathJoin(clang_root_dir, "bin")
+
+
+_visual_studio_installer_data = None
+
+
+def _getVisualStudioInstallerComponentTitles():
+    global _visual_studio_installer_data  # Singleton, pylint: disable=global-statement
+
+    if _visual_studio_installer_data is None:
+        vs_instances_dir = r"C:\ProgramData\Microsoft\VisualStudio\Packages\_Instances"
+        component_titles = {}
+
+        if os.path.isdir(vs_instances_dir):
+            for instance_name in os.listdir(vs_instances_dir):
+                components_filename = getNormalizedPathJoin(
+                    vs_instances_dir, instance_name, "components.json"
+                )
+
+                if not os.path.exists(components_filename):
+                    continue
+
+                try:
+                    components_data = loadJsonFromFilename(components_filename)
+                except OSError:  # Broken installer state is not fatal here.
+                    continue
+
+                if components_data is None:
+                    continue
+
+                for package_data in components_data.get("packages", ()):
+                    package_id = package_data.get("id")
+
+                    if package_id in component_titles:
+                        continue
+
+                    package_title = None
+
+                    for localized_resource in package_data.get(
+                        "localizedResources", ()
+                    ):
+                        if package_title is None:
+                            package_title = localized_resource.get("title")
+
+                        if localized_resource.get("language", "").lower() == "en-us":
+                            package_title = localized_resource.get("title")
+                            break
+
+                    if package_title is not None:
+                        component_titles[package_id] = package_title
+
+        _visual_studio_installer_data = component_titles
+
+    return _visual_studio_installer_data
+
+
+def _getVisualStudioInstallerComponentTitle(package_id):
+    return _getVisualStudioInstallerComponentTitles().get(package_id)
+
+
+def _getVisualStudioClangMissingComponentName(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "C++ Clang-cl for v143 build tools (ARM64)"
+
+    component_name = _getVisualStudioInstallerComponentTitle(
+        "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+    )
+
+    if component_name is None:
+        component_name = _getVisualStudioInstallerComponentTitle(
+            "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang"
+        )
+
+    if component_name is None:
+        component_name = "C++ Clang Compiler for Windows"
+
+    return component_name
+
+
+def _getVisualStudioClangMissingComponentId(compiler_arch):
+    if compiler_arch == "pei-arm64":
+        return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+    return "Microsoft.VisualStudio.Component.VC.Llvm.Clang"
+
+
+def _getVisualStudioInstallationPathFromCLExe(cl_exe):
+    vc_path = searchPrefixPath(cl_exe, "VC")
+
+    if vc_path is None:
+        return None
+
+    return os.path.dirname(vc_path)
+
+
+def _getVisualStudioClangInstallCommand(cl_exe, compiler_arch):
+    installation_path = _getVisualStudioInstallationPathFromCLExe(cl_exe)
+    component_id = _getVisualStudioClangMissingComponentId(compiler_arch)
+    setup_exe = r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe"
+
+    if installation_path is None or not os.path.exists(setup_exe):
+        return None
+
+    # spell-checker: ignore norestart
+    return '"%s" modify --installPath "%s" --add "%s" --passive --norestart' % (
+        setup_exe,
+        installation_path,
+        component_id,
+    )
+
+
+def _getVisualStudioClangMissingError(clang_dir, compiler_arch, cl_exe):
+    component_name = _getVisualStudioClangMissingComponentName(compiler_arch)
+    install_command = _getVisualStudioClangInstallCommand(
+        cl_exe=cl_exe, compiler_arch=compiler_arch
+    )
+
+    if install_command is None:
+        return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.""" % (
+            clang_dir,
+            component_name,
+        )
+
+    return """\
+Visual Studio has no Clang component found at '%s'. \
+Install '%s' in the Visual Studio Installer.
+
+From an elevated shell (administrator), run:
+%s""" % (
+        clang_dir,
+        component_name,
+        install_command,
+    )
+
+
 def addClangClPathFromMSVC(env):
     cl_exe = getExecutablePath("cl", env=env)
 
     if cl_exe is None:
-        scons_logger.sysexit(
-            "Error, Visual Studio required for using ClangCL on Windows."
+        return scons_logger.sysexit(
+            "Error, Visual Studio required for using ClangCL on Windows.", env=env
         )
 
-    clang_dir = getNormalizedPathJoin(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
+    compiler_arch = getCompilerArch(
+        mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
+    )
 
-    if (
-        getCompilerArch(
-            mingw_mode=False, msvc_mode=True, the_cc_name="cl.exe", compiler_path=cl_exe
-        )
-        == "pei-x86-64"
-    ):
-        clang_dir = getNormalizedPathJoin(clang_dir, "x64", "bin")
-    else:
-        clang_dir = getNormalizedPathJoin(clang_dir, "bin")
+    clang_root_dir = getNormalizedPathJoin(
+        cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm"
+    )
+    clang_dir = _getVisualStudioClangDirectory(
+        clang_root_dir=clang_root_dir, compiler_arch=compiler_arch
+    )
 
     if not os.path.exists(clang_dir):
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     scons_details_logger.info(
@@ -935,8 +1088,11 @@ def addClangClPathFromMSVC(env):
     clangcl_path = getExecutablePath("clang-cl", env=env)
 
     if clangcl_path is None:
-        scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+        return scons_logger.sysexit(
+            _getVisualStudioClangMissingError(
+                clang_dir=clang_dir, compiler_arch=compiler_arch, cl_exe=cl_exe
+            ),
+            env=env,
         )
 
     env["CC"] = "clang-cl"
@@ -1235,7 +1391,10 @@ def makeResultPathFileSystemEncodable(env, result_exe):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

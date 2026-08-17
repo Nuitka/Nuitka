@@ -55,6 +55,10 @@ def getCompilationOutputMode(compilation_report):
     return compilation_report.attrib["mode"]
 
 
+def getCompilationPythonFlavor(compilation_report):
+    return compilation_report.find("python").attrib["python_flavor"]
+
+
 def getEmbeddedDataFilenames(compilation_report):
     result = []
 
@@ -67,6 +71,50 @@ def getEmbeddedDataFilenames(compilation_report):
     return result
 
 
+def getInstallerOutputFilenameFromReport(compilation_report, prefixes):
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return _getResolvedCompilationPath(
+        path=installer_node.attrib["filename"], prefixes=prefixes
+    )
+
+
+def getInstallerBackendFromReport(compilation_report):
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return installer_node.attrib.get("backend") or None
+
+
+def getInstallerToolVersionFromReport(compilation_report):
+    output_node = compilation_report.find("output")
+
+    if output_node is None:
+        return None
+
+    installer_node = output_node.find("installer")
+
+    if installer_node is None:
+        return None
+
+    return installer_node.attrib.get("tool_version") or None
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
@@ -74,7 +122,10 @@ def getEmbeddedDataFilenames(compilation_report):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -619,7 +619,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
     else:
 
         class NuitkaDownloadProgressBarTqdm(_tqdm):
-            # spell-checker: ignore bsize, tsize
+            # spell-checker: ignore bsize,tsize
             def onProgress(self, b=1, bsize=1, tsize=None):
                 if tsize is not None:
                     self.total = tsize  # false alarm, pylint: disable=I0021,attribute-defined-outside-init
@@ -644,7 +644,10 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

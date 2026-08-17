@@ -217,11 +217,19 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-        attribute_assignments = (
-            attribute_enter_assignment,
-            attribute_exit_assignment,
-            enter_await_statement,
-        )
+        # It's weird, but 3.14 looks up "__aexit__" before "__aenter__".
+        if python_version >= 0x3E0:
+            attribute_assignments = (
+                attribute_exit_assignment,
+                attribute_enter_assignment,
+                enter_await_statement,
+            )
+        else:
+            attribute_assignments = (
+                attribute_enter_assignment,
+                attribute_exit_assignment,
+                enter_await_statement,
+            )
     # It's weird, but 3.14 looks up __exit__ before __enter__
     elif 0x360 <= python_version < 0x3E0 and sync:
         attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)
@@ -374,7 +382,10 @@ def buildAsyncWithNode(provider, node, source_ref):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

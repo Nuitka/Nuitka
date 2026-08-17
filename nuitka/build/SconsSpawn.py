@@ -15,7 +15,7 @@ import threading
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Execution import Process, executeProcess
-from nuitka.utils.FileOperations import getReportPath
+from nuitka.utils.FileOperations import getFilenameExtension, getReportPath
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -29,6 +29,16 @@ from .SconsUtils import (
     reportSconsUnexpectedOutput,
     writeSconsResourceUsageReport,
 )
+
+# On Python 2, subprocess.Popen(close_fds=True) internally does
+# "import resource" which can race with the import lock held by
+# the main thread when running under a compiled binary.
+if str is bytes:
+    try:
+        import resource  # Ensure in sys.modules before spawning threads, pylint: disable=unused-import
+    except ImportError:
+        pass
+
 
 SubprocessSpawnResult = makeNamedtupleClass(
     "SubprocessSpawnResult",
@@ -464,16 +474,22 @@ def _getWrappedSpawnFunction(env):
         assert type(args) in (list, tuple)
 
         args = [reverseShQuoting(arg) for arg in args]
+
+        source_filename = None
+        source_name = None
+
         for arg in args[1:]:
-            if arg.endswith(".c") and os.path.exists(arg):
+            source_basename = os.path.basename(arg)
+            source_ext = getFilenameExtension(source_basename)
+
+            if source_ext in (".c", ".cpp") and os.path.exists(arg):
+                source_name = source_basename[: -len(source_ext)]
                 source_filename = arg
                 break
-        else:
-            source_filename = None
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if source_filename == "__constants_data.c":
+        if source_filename is not None and source_name.startswith("__constants_data"):
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
@@ -532,7 +548,10 @@ def enableSpawnMonitoring(env, source_files):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

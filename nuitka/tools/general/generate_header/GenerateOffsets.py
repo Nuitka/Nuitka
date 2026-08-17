@@ -61,7 +61,12 @@ def _getPythonOrgMinorVersions(target_version):
     pattern = re.compile(r'<a href="(%s.\d+)/">' % re.escape(target_version))
 
     try:
-        with withUrlOpen("https://www.python.org/ftp/python/") as response:
+        with withUrlOpen(
+            url="https://www.python.org/ftp/python/",
+            request_headers=None,
+            timeout=30.0,
+            allow_http_fallback=True,
+        ) as response:
             content = response.read().decode("utf8")
     except Exception as e:  # pylint: disable=broad-exception-caught
         return tools_logger.sysexit("Failed to fetch versions from python.org: %s" % e)
@@ -378,7 +383,10 @@ def main():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

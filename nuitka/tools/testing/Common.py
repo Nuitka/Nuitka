@@ -412,7 +412,7 @@ def _compareWithCPythonVariations(
     dirname, filename, extra_flags, search_mode, on_error=None
 ):
     if "" not in extra_flags:
-        test_logger.sysexit("Error, default flags not present")
+        return test_logger.sysexit("Error, default flags not present")
 
     # Drop empty values or identical values.
     extra_flags = OrderedDict(
@@ -511,7 +511,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=Non
         search_mode.onErrorDetected("Error exit! %s" % result)
 
     if result == 2:
-        test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
+        return test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
 
 
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
@@ -567,15 +567,14 @@ def getDebugPython():
     ):
         return debug_python
 
-    # On Windows systems, these work. TODO: Python asserts in Nuitka with
-    # these, not sure why, pylint: disable=using-constant-test
-    if False:
-        debug_python = os.environ["PYTHON"]
-        if debug_python.lower().endswith(".exe"):
-            debug_python = debug_python[:-4]
-        debug_python = debug_python + "_d.exe"
-        if os.path.exists(debug_python):
-            return debug_python
+    # On Windows systems, debug binaries conventionally use the "_d.exe"
+    # suffix next to the release executable.
+    debug_python = os.environ["PYTHON"]
+    if debug_python.lower().endswith(".exe"):
+        debug_python = debug_python[:-4]
+    debug_python = debug_python + "_d.exe"
+    if os.path.exists(debug_python):
+        return debug_python
 
     # Otherwise no.
     return None
@@ -696,10 +695,12 @@ _debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
-    # Force clear internal type caches to stabilize the reference count,
-    # and not be polluted by cached types or IO values.
-    # pylint: disable=protected-access
-    sys._clear_type_cache()
+    # Force clear internal caches to stabilize the reference count, and not be
+    # polluted by cached types or IO values. pylint: disable=protected-access
+    if hasattr(sys, "_clear_internal_caches"):
+        sys._clear_internal_caches()
+    elif hasattr(sys, "_clear_type_cache"):
+        sys._clear_type_cache()
 
     if _debug_python:
         gc.collect()
@@ -844,7 +845,8 @@ Examples:
         dest="pattern",
         default="",
         help="""\
-Execute only tests matching the pattern. Defaults to all tests.""",
+Start at the first test matching the pattern. With '--only-one', execute only
+the first matching test. Defaults to all tests.""",
     )
     select_group.add_option(
         "--all",
@@ -955,10 +957,15 @@ Run tests with coverage enabled.""",
     elif mode == "search":
         pass
     else:
-        test_logger.sysexit("Error, using unknown search mode %r" % mode)
+        return test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
     if options.max_failures is not None and not options.all:
-        test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+        return test_logger.sysexit("Error, '--max-failures' requires '--all'.")
+
+    if options.pattern and options.all:
+        return test_logger.sysexit(
+            "Error, '--pattern' cannot be combined with '--all'. Use only '--pattern' to run just the matching tests."
+        )
 
     start_at = options.pattern.replace("/", os.path.sep) if options.pattern else None
 
@@ -993,7 +1000,8 @@ def executeReferenceChecked(
 ):
     gc.disable()
 
-    extract_number = lambda name: int(name.replace(prefix, "") or "0")
+    def extract_number(name):
+        return int(name.replace(prefix, "") or "0")
 
     # Find the function names.
     matching_names = tuple(
@@ -1238,7 +1246,6 @@ def sync_iterate(g):
 
             break
         except Exception as ex:  # pylint: disable=broad-exception-caught
-
             res.append(str(type(ex)))
 
     return res
@@ -1273,7 +1280,7 @@ def scanDirectoryForTestCases(
         ]
 
     for filename in sorted(filenames):
-        if filename.endswith((".build", ".onefile-build", ".dist", ".app")):
+        if filename.endswith((".build", ".onefile-build", ".dist", ".app", ".secrets")):
             continue
 
         filename_full = os.path.join(dirname, filename)
@@ -1324,7 +1331,9 @@ def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith((".build", ".onefile-build", ".dist", ".app"))
+            or filename.endswith(
+                (".build", ".onefile-build", ".dist", ".app", ".secrets")
+            )
             or os.path.basename(filename).startswith("venv_")
         ):
             continue
@@ -1472,13 +1481,13 @@ def killProcessGroup(process_name, pid):
     """
 
     if isWin32Windows():
-        test_logger.sysexit("Error, cannot send kill signal on Windows")
+        return test_logger.sysexit("Error, cannot send kill signal on Windows")
     else:
         test_logger.info("Killing test process group '%s'." % process_name)
         os.killpg(pid, signal.SIGINT)
 
 
-def checkLoadedFileAccesses(loaded_filenames, current_dir):
+def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
     # Many details to consider, pylint: disable=too-many-branches,too-many-statements
 
     current_dir = os.path.normpath(current_dir)
@@ -1865,7 +1874,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Allow reading time zone info of local system.
-        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+        if isFilenameSameAsOrBelowPath("/usr/share/zoneinfo", loaded_filename):
             continue
 
         # The access to .pth files has no effect.
@@ -1887,6 +1896,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
             "libffi.dylib",
+            "libffi-trampolines.dylib",
             "libfribidi.dylib",
         ):
             continue
@@ -1929,6 +1939,16 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             ):
                 continue
 
+        if python_flavor in ("Debian Python",):
+            if isFilenameSameAsOrBelowPath("/usr/lib", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/lib", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/usr/lib64", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/lib64", loaded_filename):
+                continue
+
         illegal_accesses.append(orig_loaded_filename)
 
     return illegal_accesses
@@ -1950,7 +1970,7 @@ def getMainProgramFilename(filename, allow_none=False):
     if allow_none:
         return None
 
-    test_logger.sysexit(
+    return test_logger.sysexit(
         """\
 Error, no file ends with 'Main.py' or 'Main' in '%s', incomplete test case."""
         % (filename)
@@ -1964,7 +1984,7 @@ def getInstalledPythonVersion(python_version, must_exist):
     )
 
     if result is None and must_exist:
-        test_logger.sysexit(
+        return test_logger.sysexit(
             "Error, cannot find required Python version %s installation."
             % python_version
         )
@@ -2094,7 +2114,10 @@ def decryptOutput(project_options, output):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

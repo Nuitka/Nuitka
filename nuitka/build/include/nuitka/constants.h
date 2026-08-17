@@ -3,6 +3,10 @@
 #ifndef __NUITKA_CONSTANTS_H__
 #define __NUITKA_CONSTANTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__
@@ -35,6 +39,8 @@ extern PyObject **global_constants;
 #define const_str_plain___nuitka__ global_constants[11]
 // '__class__'
 #define const_str_plain___class__ global_constants[12]
+// '__bases__'
+#define const_str_plain___bases__ global_constants[12]
 // '__class_getitem__'
 #define const_str_plain___class_getitem__ global_constants[12]
 // '__name__'
@@ -73,6 +79,8 @@ extern PyObject **global_constants;
 #define const_str_plain___init__ global_constants[24]
 // '__iter__'
 #define const_str_plain___iter__ global_constants[25]
+// '__instancecheck__'
+#define const_str_plain___instancecheck__ global_constants[25]
 // '__subclasscheck__'
 #define const_str_plain___subclasscheck__ global_constants[25]
 // '__compiled__'
@@ -163,6 +171,8 @@ extern PyObject **global_constants;
 #define const_str_plain_normpath global_constants[42]
 // 'path'
 #define const_str_plain_path global_constants[42]
+// '__qualname__'
+#define const_str_plain___qualname__ global_constants[43]
 // '__newobj__'
 #define const_str_plain___newobj__ global_constants[44]
 // '.'
@@ -245,7 +255,10 @@ extern PyObject **global_constants;
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

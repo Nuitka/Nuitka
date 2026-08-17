@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
+from nuitka.PythonVersions import getSystemPrefixPath
 
 
 def getOS():
@@ -26,6 +27,11 @@ def getOS():
         # Handle msys2 posix nature still meaning it's Windows.
         if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
             result = "Windows"
+
+        # OS400 (IBM i) is effectively AIX when using the native
+        # QOpenSys Python port running in PASE.
+        if result == "OS400" and getSystemPrefixPath().startswith("/QOpenSys/pkgs"):
+            result = "AIX"
 
         return result
     else:
@@ -58,6 +64,11 @@ def _parseOsReleaseFileContents(filename):
                 base = "Debian"
             elif "fedora" in base:
                 base = "Fedora"
+            elif "suse" in base:
+                base = "SUSE"
+
+                if result is None:
+                    result = base
 
         if line.startswith("VERSION="):
             version = line[8:].strip('"')
@@ -199,6 +210,22 @@ def isFedoraBasedLinux():
     return (base or dist_name) == "Fedora"
 
 
+def isSuseBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    if base == "SUSE":
+        return True
+
+    if dist_name is None:
+        return False
+
+    dist_name = dist_name.lower()
+
+    return dist_name.startswith(
+        ("suse", "opensuse", "sles", "sled", "sle-", "sle_", "sl-", "sl_")
+    )
+
+
 def isArchBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
@@ -262,6 +289,11 @@ def isAIX():
     return getOS() == "AIX"
 
 
+def isOS400():
+    """The OS400 (IBM i) platform."""
+    return os.name == "posix" and os.uname()[0] == "OS400"
+
+
 def hasMacOSIntelSupport():
     """macOS with either Intel hardware or Rosetta being installed."""
     return isMacOS() and (
@@ -316,9 +348,7 @@ def getArchitecture():
         result = os.uname()[4]
 
         if isAIX():
-            # Translate known values to what -X would expect.
-            if result == "00C63E504B00":
-                return "64"
+            return "powerpc"
 
         return result
 
@@ -432,20 +462,21 @@ def decoratorRetries(
     sleep_time=1,
     exception_type=OSError,
 ):
-    """Make retries for errors on Windows.
+    """Make retries for errors.
 
     This executes a decorated function multiple times, and imposes a delay and
     a virus checker warning.
     """
 
-    recommendation = "Disable Anti-Virus, e.g. Windows Defender for build folders."
+    recommendation = (
+        "Disable Anti-Virus, e.g. Windows Defender for build folders."
+        if os.name == "nt"
+        else "Check for other processes locking the file or directory."
+    )
     if extra_recommendation is not None:
         recommendation = "%s. %s" % (extra_recommendation, recommendation)
 
     def inner(func):
-        if os.name != "nt":
-            return func
-
         @functools.wraps(func)
         def retryingFunction(*args, **kwargs):
             for attempt in range(1, attempts + 1):
@@ -519,6 +550,20 @@ def isCoffUsingPlatform():
     return isAIX()
 
 
+_counted = {}
+
+
+@contextmanager
+def counted(key):
+    """Context manager that yields an incrementing count, starting from 1.
+
+    Each time the same key is used, the count increments.
+    """
+    count = _counted.get(key, 0) + 1
+    _counted[key] = count
+    yield count
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
@@ -526,7 +571,10 @@ def isCoffUsingPlatform():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

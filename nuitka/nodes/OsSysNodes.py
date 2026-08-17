@@ -26,21 +26,49 @@ from .HardImportNodesGenerated import (
 
 
 class ExpressionOsUnameCall(
-    # TODO: We don*t have this
-    # ExpressionTupleShapeDerivedMixin,
+    # TODO: Needs a tshape_namedtuple_alike shape, as opposed to
+    # tshape_namedtuple_derived, since posix.uname_result is a C-level tuple
+    # subclass with named fields, not a collections.namedtuple.
     ExpressionNoSideEffectsMixin,
     ExpressionOsUnameCallBase,
 ):
     kind = "EXPRESSION_OS_UNAME_CALL"
 
     @staticmethod
+    def getIterationLength():
+        return 5
+
+    def isKnownToBeIterable(self, count):
+        return count is None or count == 5
+
+    def isKnownToBeIterableAtMin(self, count):
+        return count <= 5
+
+    @staticmethod
+    def canPredictIterationValues():
+        return False
+
+    @staticmethod
+    def isKnownToBeIndexable():
+        return True
+
+    @staticmethod
     def mayRaiseExceptionOperation():
         return False
 
-    def replaceWithCompileTimeValue(self, trace_collection):
-        # TODO: The value should be its own runtime constant value type which
-        # supports indexing.
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+        if subscript.isIndexConstant() and subscript.getIntegerValue() == 0:
+            return (
+                makeConstantRefNode(constant=os.uname()[0], source_ref=self.source_ref),
+                "new_constant",
+                "Subscript of 'os.uname' at index 0 is platform constant.",
+            )
 
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, None, None
+
+    def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -206,7 +234,10 @@ def makeExpressionSysExitCall(exit_code, source_ref):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -11,6 +11,7 @@ template_constants_reading = r"""
 #include <structseq.h>
 
 #include "build_definitions.h"
+#include "nuitka/constants_blob.h"
 
 // Global constants storage
 PyObject *global_constants[%(global_constants_count)d] = {0};
@@ -62,6 +63,12 @@ extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_i
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
+NUITKA_DECLARE_CONSTANT_BLOB(
+    %(global_constants_blob_symbol_name)s,
+    %(global_constants_blob_symbol_name)s,
+    const
+);
+
 #if _NUITKA_MODULE_MODE
 static void _createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name) {
 #else
@@ -71,7 +78,11 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
     // The empty name means global.
+#if %(use_direct_constant_blobs)d
+    LOAD_DIRECT_CONSTANTS_BLOB(tstate, &global_constants[0], %(global_constants_blob_symbol_name)s);
+#else
     loadConstantsBlob(tstate, &global_constants[0], "");
+#endif
 
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the
@@ -135,6 +146,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"module", (char *)"boolean indicating --module usage"},
         {(char *)"main", (char *)"name of main module at runtime"},
         {(char *)"original_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
+        {(char *)"extension_filename", (char *)"loaded extension filename in module/package mode, None otherwise"},
         {0}
     };
 
@@ -233,6 +245,13 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 # endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);
 
+#if _NUITKA_MODULE_MODE
+    PyObject *extension_filename = getDllFilenameObject();
+#else
+    PyObject *extension_filename = Py_None;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);
+
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
@@ -287,7 +306,10 @@ TemplateDebugWrapper.checkDebug(globals())
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

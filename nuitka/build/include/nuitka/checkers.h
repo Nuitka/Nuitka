@@ -3,6 +3,9 @@
 #ifndef __NUITKA_CHECKERS_H__
 #define __NUITKA_CHECKERS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
@@ -20,7 +23,17 @@
 #endif
 
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
+
+// Our replacement for "PyType_IsSubtype"
+extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
+    return Py_TYPE(obj) == type || Nuitka_Type_IsSubtype(Py_TYPE(obj), type);
+}
+
+// Our replacement for "PyObject_IsInstance"
+extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
 
 #endif
 
@@ -31,7 +44,10 @@ extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

@@ -13,10 +13,12 @@ module.
 """
 
 import os
+import types
 
 from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
 from nuitka.utils.FileOperations import (
     getFileContents,
+    getFilenameRealPath,
     getNormalizedPath,
     isFilenameBelowPath,
 )
@@ -39,30 +41,32 @@ def getStandardLibraryPaths():
     # Using the function object to cache its result, avoiding global variable
     # usage.
     if not hasattr(getStandardLibraryPaths, "result"):
-        os_filename = os.__file__
-        if os_filename.endswith(".pyc"):
-            os_filename = os_filename[:-1]
+        _stdlib_filename = types.__file__
+        if _stdlib_filename.endswith((".pyc", ".pyo")):
+            _stdlib_filename = _stdlib_filename[:-1]
 
-        os_path = os.path.normcase(getNormalizedPath(os.path.dirname(os_filename)))
+        _stdlib_path = os.path.normcase(
+            getNormalizedPath(os.path.dirname(_stdlib_filename))
+        )
 
-        stdlib_paths = set([os_path])
+        stdlib_paths = set([_stdlib_path])
 
         # Happens for virtualenv situation, some modules will come from the link
         # this points to.
-        if os.path.islink(os_filename):
-            os_filename = os.readlink(os_filename)
-            stdlib_paths.add(os.path.normcase(os.path.dirname(os_filename)))
+        if os.path.islink(_stdlib_filename):
+            _stdlib_filename = os.readlink(_stdlib_filename)
+            stdlib_paths.add(os.path.normcase(os.path.dirname(_stdlib_filename)))
 
-        # Another possibility is "orig-prefix.txt" file near the os.py, which
-        # points to the original install.
-        orig_prefix_filename = os.path.join(os_path, "orig-prefix.txt")
+        # Another possibility is "orig-prefix.txt" file near the reference
+        # module, which points to the original install.
+        orig_prefix_filename = os.path.join(_stdlib_path, "orig-prefix.txt")
 
         if os.path.isfile(orig_prefix_filename):
             # Scan upwards, until we find a "bin" folder, with "activate" to
             # locate the structural path to be added. We do not know for sure
             # if there is a sub-directory under "lib" to use or not. So we try
             # to detect it.
-            search = os_path
+            search = _stdlib_path
             lib_part = ""
 
             while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
@@ -85,7 +89,7 @@ def getStandardLibraryPaths():
 
         # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
-        python_link_filename = os.path.join(os_path, "..", ".Python")
+        python_link_filename = os.path.join(_stdlib_path, "..", ".Python")
         if os.path.islink(python_link_filename):
             stdlib_paths.add(
                 os.path.normcase(os.path.join(os.readlink(python_link_filename), "lib"))
@@ -120,9 +124,19 @@ def _isStandardLibraryPath(filename):
     if any(candidate in filename for candidate in getSitePackageCandidateNames()):
         return False
 
-    for candidate in getStandardLibraryPaths():
+    stdlib_paths = getStandardLibraryPaths()
+
+    for candidate in stdlib_paths:
         if isFilenameBelowPath(path=candidate, filename=filename):
             return True
+
+    # Also check the realpath, as there can be symlinks in directory
+    # components, e.g. with Python Build Standalone.
+    real_filename = getFilenameRealPath(filename)
+    if real_filename != filename:
+        for candidate in stdlib_paths:
+            if isFilenameBelowPath(path=candidate, filename=real_filename):
+                return True
 
     return False
 
@@ -430,7 +444,10 @@ def isStandardLibraryNoAutoInclusionModule(module_name):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

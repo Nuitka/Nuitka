@@ -13,16 +13,16 @@ from nuitka.options.CommandLineOptionsTools import makeOptionsParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
-from nuitka.utils.Execution import (
-    callProcessChunked,
-    check_output,
-    getExecutablePath,
-)
+from nuitka.utils.Execution import callProcessChunked, check_output
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
     putTextFileContents,
     resolveShellPatternToFilenames,
+)
+from nuitka.utils.PrivatePipSpace import (
+    getCodespellBinaryPath,
+    withPrivatePipSitePackagesPathAdded,
 )
 
 replacements = [
@@ -76,16 +76,9 @@ def _checkIgnoreWords(contents):
     return unused
 
 
-def runCodespell(filenames, verbose, write):
+def runCodespell(codespell_binary, filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
-
-    if os.name == "nt":
-        extra_path = os.path.join(sys.prefix, "Scripts")
-    else:
-        extra_path = None
-
-    codespell_binary = getExecutablePath("codespell", extra_dir=extra_path)
 
     codespell_version = check_output([codespell_binary, "--version"])
 
@@ -100,11 +93,7 @@ def runCodespell(filenames, verbose, write):
         "-I",
         os.path.join(
             os.path.dirname(__file__),
-            "..",
-            "..",
-            "..",
-            "..",
-            "misc/codespell-ignore.txt",
+            "../../../../misc/codespell-ignore.txt",
         ),
     ]
 
@@ -168,7 +157,24 @@ def main():
         help="""Write changes to the files. Default is %default.""",
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
+
+    codespell_binary = getCodespellBinaryPath(
+        logger=tools_logger,
+        assume_yes_for_downloads=options.assume_yes_for_downloads,
+    )
+
+    if codespell_binary is None:
+        return tools_logger.sysexit("Error, cannot find 'codespell' binary.")
 
     if not positional_args:
         positional_args = [
@@ -205,15 +211,19 @@ def main():
     if not filenames:
         sys.exit("No files found.")
 
-    result = runCodespell(
-        filenames=filenames, verbose=options.verbose, write=options.write
-    )
+    with withPrivatePipSitePackagesPathAdded(logger=tools_logger):
+        result = runCodespell(
+            codespell_binary=codespell_binary,
+            filenames=filenames,
+            verbose=options.verbose,
+            write=options.write,
+        )
 
     if result:
         my_print("OK.")
     else:
         my_print("FAILED.")
-        tools_logger.sysexit(
+        return tools_logger.sysexit(
             "\nError, please correct the spelling problems found or extend 'misc/codespell-ignore.txt' if applicable."
         )
 
@@ -228,7 +238,10 @@ if __name__ == "__main__":
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -5,6 +5,12 @@
 
 // Exception helpers for generated code and compiled code helpers.
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "stdbool.h"
+#endif
+
 // Fundamental, because we use it for print style debugging in everything.
 #include "nuitka/checkers.h"
 #include "nuitka/constants.h"
@@ -1451,7 +1457,10 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_Exception_SetCause(PyObject *self
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

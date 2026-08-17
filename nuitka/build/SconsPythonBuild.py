@@ -6,7 +6,7 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
@@ -33,7 +33,13 @@ def _addPythonIncludePaths(env):
         )
 
     if env.self_compiled_python_uninstalled:
-        python_include_paths.append(env.python_prefix_external)
+        if isWin32Windows():
+            python_header_path = os.path.join(env.python_prefix_external, "PC")
+
+            if os.path.exists(python_header_path):
+                python_include_paths.append(python_header_path)
+        else:
+            python_include_paths.append(env.python_prefix_external)
 
     env.Append(CPPPATH=python_include_paths)
 
@@ -226,7 +232,10 @@ def addPythonHaclLib(env, link_module_libs):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

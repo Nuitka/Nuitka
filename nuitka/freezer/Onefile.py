@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
@@ -28,7 +29,11 @@ from nuitka.options.Options import (
     shallOnefileAsArchive,
     shallTraceExecution,
 )
-from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
+from nuitka.OutputDirectories import (
+    getResultFullpath,
+    getSourceDirectoryExternalUsePath,
+    getSourceDirectoryPath,
+)
 from nuitka.plugins.Hooks import (
     getBuildDefinitions,
     onBootstrapBinary,
@@ -42,12 +47,12 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.States import states
-from nuitka.Tracing import onefile_logger, postprocessing_logger
+from nuitka.Tracing import onefile_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
-    getFileContents,
+    getFileSize,
     makeContainingPath,
     removeDirectory,
 )
@@ -61,7 +66,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
 from .IncludedDataFiles import getIncludedDataFiles
@@ -86,7 +90,9 @@ def packDistFolderToOnefile(dist_dir):
     onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode):
+def _runOnefileScons(
+    onefile_compression, onefile_archive, backend_resource_mode, onefile_payload_size
+):
     scons_options, env_values = getCommonSconsOptions()
 
     source_dir = getSourceDirectoryPath(onefile=True, create=False)
@@ -97,7 +103,6 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
     onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
-    scons_options["source_dir"] = source_dir
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["onefile_splash_screen"] = asBoolStr(
@@ -110,6 +115,7 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
     env_values["_NUITKA_ONEFILE_HAS_PAYLOAD_BOOL"] = "1" if hasOnefilePayload() else "0"
+    env_values["_NUITKA_ONEFILE_PAYLOAD_SIZE_INT"] = str(onefile_payload_size)
 
     main_filename_in_payload = hasOnefilePayloadMainEntry()
 
@@ -125,10 +131,17 @@ def _runOnefileScons(onefile_compression, onefile_archive, backend_resource_mode
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
 
+    applyPreprocessorSymbols(scons_options, onefile=True)
+
     result = runScons(
         scons_options=scons_options,
         env_values=env_values,
         scons_filename="Onefile.scons",
+        source_dir=source_dir,
+        source_dir_external=getSourceDirectoryExternalUsePath(
+            onefile=True,
+            create=False,
+        ),
     )
 
     # Exit if compilation failed.
@@ -267,11 +280,12 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
 
     # We might not even have a payload due to commercial file embedding.
     has_payload = hasOnefilePayload()
+    onefile_payload_size = 0
 
     if has_payload:
         expected_files = []
         for data_file in getIncludedDataFiles():
-            if "copy" in data_file.tags:
+            if "copy" in data_file.tags and "external" not in data_file.tags:
                 expected_files.append(data_file.dest_path)
 
         for entry_point in getStandaloneEntryPoints():
@@ -288,11 +302,14 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
             expected_files=expected_files,
         )
 
+        onefile_payload_size = getFileSize(onefile_payload_filename)
+
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
         onefile_archive=shallOnefileAsArchive(),
         backend_resource_mode=backend_resource_mode,
+        onefile_payload_size=onefile_payload_size,
     )
 
     if isWin32Windows():
@@ -308,21 +325,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if isMacOS():
         addMacOSCodeSignature(
             filenames=[onefile_output_filename], entitlements_filename=None
-        )
-
-    if (
-        has_payload
-        and getSconsReportValue(source_dir, "resource_mode") == "win_resource"
-    ):
-        assert isWin32Windows()
-
-        addResourceToFile(
-            target_filename=onefile_output_filename,
-            data=getFileContents(onefile_payload_filename, mode="rb"),
-            resource_kind=RT_RCDATA,
-            lang_id=0,
-            res_name=27,
-            logger=postprocessing_logger,
         )
 
     if isRemoveBuildDir():
@@ -346,7 +348,10 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

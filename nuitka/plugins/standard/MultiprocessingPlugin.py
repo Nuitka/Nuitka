@@ -41,6 +41,9 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     plugin_desc = "Required by 'multiprocessing' package."
     plugin_category = "package-support"
 
+    def __init__(self):
+        self.created_parents_main = False
+
     @classmethod
     def isRelevant(cls):
         return not shallMakeModule()
@@ -138,11 +141,104 @@ if str is not bytes:
 Monkey patching "multiprocessing" for compiled methods.""",
             )
 
-    @staticmethod
-    def createFakeModuleDependency(module):
+        if full_name == "anyio.to_process":
+            yield (
+                """\
+import anyio.to_process as _anyio_to_process
+import os
+import pickle
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
+
+def _process_worker_for_nuitka():
+    stdin = sys.stdin
+    stdout = sys.stdout
+    sys.stdin = open(os.devnull)
+    sys.stdout = open(os.devnull, "w")
+
+    stdout.buffer.write(b"READY\\n")
+    stdout.buffer.flush()
+
+    while True:
+        retval = exception = None
+
+        try:
+            payload = pickle.load(stdin.buffer)
+            command = payload[0]
+            args = payload[1:]
+        except EOFError:
+            return
+        except BaseException as exc:
+            exception = exc
+        else:
+            if command == "run":
+                func = args[0]
+                func_args = args[1]
+
+                try:
+                    retval = func(*func_args)
+                except BaseException as exc:
+                    exception = exc
+            elif command == "init":
+                sys.path, main_module_path = args
+
+                del sys.modules["__main__"]
+
+                if main_module_path and os.path.isfile(main_module_path):
+                    try:
+                        spec = spec_from_file_location("__mp_main__", main_module_path)
+
+                        if spec and spec.loader:
+                            main = module_from_spec(spec)
+                            spec.loader.exec_module(main)
+                            sys.modules["__main__"] = main
+                            sys.modules["__mp_main__"] = main
+                    except BaseException as exc:
+                        exception = exc
+                else:
+                    try:
+                        import __parents_main__ as parents_main
+                    except ImportError:
+                        pass
+                    else:
+                        sys.modules["__main__"] = parents_main
+                        sys.modules["__mp_main__"] = parents_main
+
+        try:
+            if exception is not None:
+                status = b"EXCEPTION"
+                pickled = pickle.dumps(exception, pickle.HIGHEST_PROTOCOL)
+            else:
+                status = b"RETURN"
+                pickled = pickle.dumps(retval, pickle.HIGHEST_PROTOCOL)
+        except BaseException as exc:
+            exception = exc
+            status = b"EXCEPTION"
+            pickled = pickle.dumps(exc, pickle.HIGHEST_PROTOCOL)
+
+        stdout.buffer.write(b"%s %d\\n" % (status, len(pickled)))
+        stdout.buffer.write(pickled)
+        stdout.buffer.flush()
+
+        if isinstance(exception, SystemExit):
+            raise exception
+
+_anyio_to_process.process_worker = _process_worker_for_nuitka
+""",
+                """\
+Monkey patching "anyio.to_process" for worker start.""",
+            )
+
+    def createFakeModuleDependency(self, module):
         full_name = module.getFullName()
 
-        if full_name != "multiprocessing":
+        if full_name not in ("multiprocessing", "anyio"):
+            return
+
+        if (
+            self.created_parents_main
+            or getModuleInclusionInfoByName("__parents_main__") is not None
+        ):
             return
 
         # First, build the module node and then read again from the
@@ -213,8 +309,10 @@ __nuitka_freeze_support()
             module_name=module_name,
             source_code=source_code,
             source_filename=root_module.getCompileTimeFilename(),
-            reason="Auto enable multiprocessing freeze support",
+            reason="Auto enable multiprocessing/anyio freeze support",
         )
+
+        self.created_parents_main = True
 
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
@@ -232,7 +330,7 @@ __nuitka_freeze_support()
         # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
 
     @staticmethod
-    def getPreprocessorSymbols():
+    def getPreprocessorSymbols(onefile):
         if getModuleInclusionInfoByName("__parents_main__"):
             return {"_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED": "1"}
 
@@ -244,7 +342,10 @@ __nuitka_freeze_support()
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

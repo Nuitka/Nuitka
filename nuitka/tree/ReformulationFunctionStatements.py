@@ -34,6 +34,7 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
     makeConstantRefNode,
 )
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
@@ -56,7 +57,6 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
@@ -404,6 +404,14 @@ def buildFunctionNode(provider, node, source_ref):
 
     annotations = buildParameterAnnotations(function_provider, node, source_ref)
 
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_tuple = ExpressionMakeTuple(
+            elements=buildNodeTuple(provider, node.type_params, source_ref),
+            source_ref=source_ref,
+        )
+    else:
+        type_params_tuple = None
+
     function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=function_body, source_ref=source_ref
@@ -411,6 +419,7 @@ def buildFunctionNode(provider, node, source_ref):
         defaults=defaults,
         kw_defaults=kw_defaults,
         annotations=annotations,
+        type_params=type_params_tuple,
         source_ref=source_ref,
     )
 
@@ -582,6 +591,14 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         )
     )
 
+    if python_version >= 0x3C0 and node.type_params:
+        type_params_tuple = ExpressionMakeTuple(
+            elements=buildNodeTuple(provider, node.type_params, source_ref),
+            source_ref=source_ref,
+        )
+    else:
+        type_params_tuple = None
+
     function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=creator_function_body, source_ref=source_ref
@@ -589,6 +606,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         defaults=defaults,
         kw_defaults=kw_defaults,
         annotations=annotations,
+        type_params=type_params_tuple,
         source_ref=source_ref,
     )
 
@@ -645,7 +663,10 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
-def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
+_annotate_flags = frozenset(("annotate",))
+
+
+def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
     parameters = ParameterSpec(
         ps_name=function_name,
@@ -677,7 +698,7 @@ def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
         provider=provider,
         name=function_name,
         code_object=code_object,
-        flags=set(),
+        flags=_annotate_flags,
         doc=None,
         parameters=parameters,
         auto_release=None,
@@ -685,9 +706,16 @@ def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
         source_ref=source_ref,
     )
 
+    return_statement = StatementReturn(
+        expression=makeConstantRefNode(
+            constant=None, source_ref=source_ref, user_provided=False
+        ),
+        source_ref=source_ref,
+    )
+
     body = makeStatementConditional(
         condition=ExpressionComparisonGt(
-            ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionVariableNameRef(outer_body, "format", source_ref=source_ref),
             ExpressionConstantIntRef(2, source_ref=source_ref),
             source_ref,
         ),
@@ -700,39 +728,16 @@ def makeDeferredAnnotateFunctionBody(provider, keys, values, source_ref):
             exception_trace=None,
             source_ref=source_ref,
         ),
-        no_branch=StatementReturn(
-            expression=makeDictCreationOrConstant2(
-                keys=keys, values=values, source_ref=source_ref
-            ),
-            source_ref=source_ref,
-        ),
+        no_branch=return_statement,
         source_ref=source_ref,
     )
 
     outer_body.setChildBody(body)
-    return outer_body
-
-
-def makeDeferredAnnotateFunctionObject(provider, keys, values, source_ref):
-    return makeExpressionFunctionCreation(
-        function_ref=ExpressionFunctionRef(
-            function_body=makeDeferredAnnotateFunctionBody(
-                provider=provider,
-                keys=keys,
-                values=values,
-                source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        ),
-        defaults=(),
-        kw_defaults=None,
-        annotations=None,
-        source_ref=source_ref,
-    )
+    return outer_body, return_statement
 
 
 def buildParameterAnnotations(provider, node, source_ref):
-    # Too many branches, because there is too many cases, pylint: disable=too-many-branches
+    # Too many branches, because there is too many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # The ast uses funny names a bunch.
     # spell-checker: ignore elts,posonlyargs,kwonlyargs,varargannotation,vararg
@@ -742,13 +747,36 @@ def buildParameterAnnotations(provider, node, source_ref):
     if not getFutureSpec().use_annotations:
         return None
 
-    keys = []
-    values = []
+    use_deferred = python_version >= 0x3E0 and not isExperimental(
+        "no-deferred-annotation"
+    )
 
-    # The names of parameters are mangled in annotations as well.
-    def addAnnotation(key, value):
-        keys.append(mangleName(key, provider))
-        values.append(value)
+    if use_deferred:
+        annotation_specs = []
+
+        def addAnnotation(key, ast_node):
+            annotation_specs.append((mangleName(key, provider), ast_node, False))
+
+        def addStarredAnnotation(key, ast_node):
+            annotation_specs.append((mangleName(key, provider), ast_node, True))
+
+    else:
+        keys = []
+        values = []
+
+        def addAnnotation(key, value):
+            keys.append(mangleName(key, provider))
+            values.append(value)
+
+    def _buildAnnotationValue(annot_provider, ast_node, is_starred):
+        if is_starred:
+            value = buildAnnotationNode(annot_provider, ast_node, source_ref)
+            return ExpressionBuiltinNext1(
+                value=ExpressionBuiltinIterForUnpack(value, source_ref),
+                source_ref=source_ref,
+            )
+        else:
+            return buildAnnotationNode(annot_provider, ast_node, source_ref)
 
     def extractArgAnnotation(arg):
         if getKind(arg) == "Name":
@@ -756,22 +784,25 @@ def buildParameterAnnotations(provider, node, source_ref):
         elif getKind(arg) == "arg":
             if arg.annotation is not None:
                 if python_version >= 0x3B0 and getKind(arg.annotation) == "Starred":
-                    value = buildAnnotationNode(
-                        provider, arg.annotation.value, source_ref
-                    )
-
-                    result = ExpressionBuiltinNext1(
-                        value=ExpressionBuiltinIterForUnpack(value, source_ref),
-                        source_ref=source_ref,
-                    )
-
+                    if use_deferred:
+                        addStarredAnnotation(arg.arg, arg.annotation.value)
+                    else:
+                        addAnnotation(
+                            key=arg.arg,
+                            value=_buildAnnotationValue(
+                                provider, arg.annotation.value, True
+                            ),
+                        )
                 else:
-                    result = buildAnnotationNode(provider, arg.annotation, source_ref)
-
-                addAnnotation(
-                    key=arg.arg,
-                    value=result,
-                )
+                    if use_deferred:
+                        addAnnotation(arg.arg, arg.annotation)
+                    else:
+                        addAnnotation(
+                            key=arg.arg,
+                            value=_buildAnnotationValue(
+                                provider, arg.annotation, False
+                            ),
+                        )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
                 extractArgAnnotation(sub_arg)
@@ -790,16 +821,22 @@ def buildParameterAnnotations(provider, node, source_ref):
 
     if python_version < 0x300:
         if node.args.varargannotation is not None:
-            addAnnotation(
-                key=node.args.vararg,
-                value=buildNode(provider, node.args.varargannotation, source_ref),
-            )
+            if use_deferred:
+                addAnnotation(node.args.vararg, node.args.varargannotation)
+            else:
+                addAnnotation(
+                    key=node.args.vararg,
+                    value=buildNode(provider, node.args.varargannotation, source_ref),
+                )
 
         if node.args.kwargannotation is not None:
-            addAnnotation(
-                key=node.args.kwarg,
-                value=buildNode(provider, node.args.kwargannotation, source_ref),
-            )
+            if use_deferred:
+                addAnnotation(node.args.kwarg, node.args.kwargannotation)
+            else:
+                addAnnotation(
+                    key=node.args.kwarg,
+                    value=buildNode(provider, node.args.kwargannotation, source_ref),
+                )
     else:
         if node.args.vararg is not None:
             extractArgAnnotation(node.args.vararg)
@@ -808,29 +845,55 @@ def buildParameterAnnotations(provider, node, source_ref):
 
     # Return value annotation (not there for lambdas)
     if hasattr(node, "returns") and node.returns is not None:
-        addAnnotation(
-            key="return", value=buildAnnotationNode(provider, node.returns, source_ref)
-        )
+        if use_deferred:
+            addAnnotation("return", node.returns)
+        else:
+            addAnnotation(
+                key="return",
+                value=buildAnnotationNode(provider, node.returns, source_ref),
+            )
 
-    if keys:
-        # On 3.14+, annotations are deferred by default. TODO: But we guard it
-        # with an experimental flag due to the large overhead until we can
-        # generate more compact code for them
-        if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
-            return makeDeferredAnnotateFunctionObject(
+    if use_deferred:
+        if annotation_specs:
+            outer_body, return_statement = makeDeferredAnnotateFunctionBody(
                 provider=provider,
-                keys=keys,
-                values=values,
+                source_ref=source_ref,
+            )
+
+            keys = []
+            values = []
+            for key, ast_node, is_starred in annotation_specs:
+                keys.append(key)
+                values.append(_buildAnnotationValue(outer_body, ast_node, is_starred))
+
+            annotations = makeDictCreationOrConstant2(
+                keys=keys, values=values, source_ref=source_ref
+            )
+            return_statement.subnode_expression = annotations
+            annotations.parent = return_statement
+
+            return makeExpressionFunctionCreation(
+                function_ref=ExpressionFunctionRef(
+                    function_body=outer_body,
+                    source_ref=source_ref,
+                ),
+                defaults=(),
+                kw_defaults=None,
+                annotations=None,
+                type_params=None,
                 source_ref=source_ref,
             )
         else:
+            return None
+    else:
+        if keys:
             return makeDictCreationOrConstant2(
                 keys=keys,
                 values=values,
                 source_ref=source_ref,
             )
-    else:
-        return None
+        else:
+            return None
 
 
 def _wrapFunctionWithSpecialNestedArgs(
@@ -1105,7 +1168,10 @@ def addFunctionVariableReleases(function):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

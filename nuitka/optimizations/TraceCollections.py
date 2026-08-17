@@ -326,7 +326,7 @@ class TraceCollectionBase(object):
         # Even though it's empty, we set it, because init of variables won't do it.
         self.has_unescaped_variables = True
 
-        self.variable_escapable = set()
+        self.variable_escapable = OrderedSet()
 
     def __repr__(self):
         return "<%s for %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
@@ -463,8 +463,7 @@ class TraceCollectionBase(object):
     def mustNotAlias(a, b):
         # TODO: not yet really implemented
         if a.isExpressionConstantRef() and b.isExpressionConstantRef():
-            if a.isMutable() or b.isMutable():
-                return True
+            return a.isMutable() or b.isMutable()
 
         return False
 
@@ -1374,7 +1373,10 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

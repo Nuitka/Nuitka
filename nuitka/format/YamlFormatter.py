@@ -3,7 +3,7 @@
 
 """Automatic formatting of Yaml files.
 
-spell-checker: ignore ruamel, scalarstring
+spell-checker: ignore ruamel,scalarstring
 """
 
 import json
@@ -269,7 +269,6 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
         logger=logger, assume_yes_for_downloads=assume_yes_for_downloads
     )
     YAML = ruamel_yaml.YAML
-    _F = ruamel_yaml.compat._F  # pylint: disable=protected-access
     ConstructorError = ruamel_yaml.constructor.ConstructorError
     ScalarNode = ruamel_yaml.nodes.ScalarNode
     DoubleQuotedScalarString = ruamel_yaml.scalarstring.DoubleQuotedScalarString
@@ -285,8 +284,8 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
                 raise ConstructorError(
                     None,
                     None,
-                    _F(
-                        "expected a scalar node, but found {node_id!s}", node_id=node.id
+                    "expected a scalar node, but found {node_id!s}".format(
+                        node_id=node.id
                     ),
                     node.start_mark,
                 )
@@ -361,6 +360,10 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
 
     new_data = []
     for entry in data:
+        # Autoremove empty module configurations.
+        if len(entry) == 1:
+            continue
+
         sorted_entry = _reorderDictionary(entry, MASTER_KEYS)
 
         if "data-files" in sorted_entry:
@@ -463,7 +466,10 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

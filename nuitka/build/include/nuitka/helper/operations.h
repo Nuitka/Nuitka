@@ -3,6 +3,12 @@
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 #if PYTHON_VERSION >= 0x300
 extern PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right);
 extern bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right);
@@ -105,7 +111,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION(unary_api api, PyObject *o
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

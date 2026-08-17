@@ -77,6 +77,7 @@ def isConstantExpression(expression):
         "ImportModuleHard",
         "ImportModuleNameHardExists",
         "ImportModuleNameHardMaybeExists",
+        "ModuleAttributeDunderCompiledRef",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )

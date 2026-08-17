@@ -11,6 +11,7 @@ from nuitka.options.Options import (
     getFileReferenceMode,
     isExperimental,
     shallMakeModule,
+    shallUseDirectConstantBlobs,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -22,6 +23,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
+from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
@@ -44,7 +46,12 @@ def getModuleAccessCode(context):
 
 
 def getModuleCode(
-    module, function_decl_codes, function_body_codes, module_const_blob_name, context
+    module,
+    function_decl_codes,
+    function_body_codes,
+    module_const_blob_name,
+    module_const_blob_symbol_name,
+    context,
 ):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -123,7 +130,7 @@ def getModuleCode(
 
     module_init_codes = context.getModuleInitCodes()
 
-    if isExperimental("new-code-objects"):
+    if not isExperimental("old-code-objects"):
         # Create the always identical, but dynamic filename first thing.
         module_filename = module.getRunTimeFilename()
 
@@ -184,30 +191,12 @@ def getModuleCode(
             }
         )
 
-    constants_count = context.getConstantsCount()
-
-    # If no constants are present.
-    if constants_count > 0:
-        module_constants_decl = "\n".join(
-            "PyObject *%s;" % name for name in context.getConstantNames()
-        )
-
-        module_constants_check_hash = "\n".join(
-            "mod_consts_hash[%(index)d] = DEEP_HASH(tstate, mod_consts.%(name)s);"
-            % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-
-        module_constants_check_object = "\n".join(
-            """\
-assert(mod_consts_hash[%(index)d] == DEEP_HASH(tstate, mod_consts.%(name)s));
-CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
-            for count, name in enumerate(context.getConstantNames())
-        )
-    else:
-        module_constants_decl = "PyObject *empty;"
-        module_constants_check_hash = ""
-        module_constants_check_object = ""
+    (
+        constants_count,
+        module_constants_decl,
+        module_constants_check_hash,
+        module_constants_check_object,
+    ) = getModuleConstantsDeclAndChecks(context)
 
     return template % {
         "module_name_cstr": encodePythonStringToC(
@@ -218,6 +207,9 @@ CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
         "is_top": 1 if module.isTopModule() else 0,
         "is_dunder_main": 1 if is_dunder_main else 0,
         "dunder_main_package": dunder_main_package,
+        "has_main_package": (
+            1 if (is_dunder_main and module.getRuntimePackageValue()) else 0
+        ),
         "is_package": 1 if is_package else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
@@ -236,6 +228,8 @@ CHECK_OBJECT_DEEP(mod_consts.%(name)s);""" % {"index": count, "name": name}
         "module_constants_check_hash": module_constants_check_hash,
         "module_constants_check_object": module_constants_check_object,
         "module_const_blob_name": module_const_blob_name,
+        "module_const_blob_symbol_name": module_const_blob_symbol_name,
+        "use_direct_constant_blobs": 1 if shallUseDirectConstantBlobs() else 0,
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(
@@ -250,6 +244,13 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
         to_name, "module_file_attr_value", expression, emit, context
     ) as result_name:
         emit("%s = module_filename_obj;" % result_name)
+
+
+def generateModuleAttributeDunderCompiledCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "module_compiled_attr_value", expression, emit, context
+    ) as result_name:
+        emit("%s = Nuitka_dunder_compiled_value;" % result_name)
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
@@ -271,7 +272,10 @@ def generateModuleAttributeCode(to_name, expression, emit, context):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

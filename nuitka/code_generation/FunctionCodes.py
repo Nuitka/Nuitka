@@ -3,9 +3,15 @@
 
 """Code to generate and interact with compiled function objects."""
 
+from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import general
 
+from .AnnotateFunctionCodes import (
+    generateAnnotateFunctionCreationCode,
+    isBytecodeBackedFunction,
+)
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -20,12 +26,21 @@ from .CodeHelpers import (
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode, getReleaseCode
+from .ErrorCodes import (
+    getErrorExitCode,
+    getMustNotGetHereCode,
+    getReleaseCodes,
+)
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonSourceCodeGeneration import (
+    PythonSourceGenerationError,
+    getFunctionEntryPointIdentifier,
+    getFunctionMakerIdentifier,
+)
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -43,62 +58,10 @@ from .VariableCodes import (
 )
 
 
-def getFunctionCreationArgs(
-    defaults_name, kw_defaults_name, annotations_name, closure_variables
-):
-    result = ["PyThreadState *tstate"]
-
-    if defaults_name is not None:
-        result.append("PyObject *defaults")
-
-    if kw_defaults_name is not None:
-        result.append("PyObject *kw_defaults")
-
-    if annotations_name is not None:
-        result.append("PyObject *annotations")
-
-    if closure_variables:
-        result.append("struct Nuitka_CellObject **closure")
-
-    return result
-
-
-def getFunctionMakerDecl(
-    function_identifier,
-    closure_variables,
-    defaults_name,
-    kw_defaults_name,
-    annotations_name,
-):
-    function_creation_args = getFunctionCreationArgs(
-        defaults_name=defaults_name,
-        kw_defaults_name=kw_defaults_name,
-        annotations_name=annotations_name,
-        closure_variables=closure_variables,
-    )
-
-    return template_function_make_declaration % {
-        "function_identifier": function_identifier,
-        "function_creation_args": ", ".join(function_creation_args),
-    }
-
-
-def _getFunctionEntryPointIdentifier(function_identifier):
-    return "impl_" + function_identifier
-
-
-def _getFunctionMakerIdentifier(function_identifier):
-    return "MAKE_FUNCTION_" + function_identifier
-
-
 def getFunctionQualnameObj(owner, context):
     """Get code to pass to function alike object creation for qualname.
 
-    Qualname for functions existed for Python3, generators only after
-    3.5 and coroutines and asyncgen for as long as they existed.
-
-    If identical to the name, we do not pass it as a value, but
-    NULL instead.
+    If identical to the name, NULL is returned instead.
     """
 
     if owner.isExpressionFunctionBody():
@@ -117,6 +80,55 @@ def getFunctionQualnameObj(owner, context):
         return context.getConstantCode(constant=function_qualname)
 
 
+def getFunctionCreationArgs(
+    defaults_name,
+    kw_defaults_name,
+    annotations_name,
+    closure_variables,
+    type_params_name,
+):
+    result = ["PyThreadState *tstate"]
+
+    if defaults_name is not None:
+        result.append("PyObject *defaults")
+
+    if kw_defaults_name is not None:
+        result.append("PyObject *kw_defaults")
+
+    if annotations_name is not None:
+        result.append("PyObject *annotations")
+
+    if closure_variables:
+        result.append("struct Nuitka_CellObject **closure")
+
+    if type_params_name is not None:
+        result.append("PyObject *type_params")
+
+    return result
+
+
+def getFunctionMakerDecl(
+    function_identifier,
+    closure_variables,
+    defaults_name,
+    kw_defaults_name,
+    annotations_name,
+    type_params_name,
+):
+    function_creation_args = getFunctionCreationArgs(
+        defaults_name=defaults_name,
+        kw_defaults_name=kw_defaults_name,
+        annotations_name=annotations_name,
+        closure_variables=closure_variables,
+        type_params_name=type_params_name,
+    )
+
+    return template_function_make_declaration % {
+        "function_identifier": function_identifier,
+        "function_creation_args": ", ".join(function_creation_args),
+    }
+
+
 def getFunctionMakerCode(
     function_body,
     function_identifier,
@@ -125,6 +137,7 @@ def getFunctionMakerCode(
     kw_defaults_name,
     annotations_name,
     function_doc,
+    type_params_name,
     context,
 ):
     # We really need this many parameters here and functions have many details,
@@ -134,6 +147,7 @@ def getFunctionMakerCode(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        type_params_name=type_params_name,
     )
 
     if function_doc is None:
@@ -162,12 +176,12 @@ def getFunctionMakerCode(
                 % context.getConstantCode(constant_return_value)
             )
     else:
-        function_impl_identifier = _getFunctionEntryPointIdentifier(
+        function_impl_identifier = getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
         constant_return_code = ""
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -192,6 +206,7 @@ def getFunctionMakerCode(
         "closure_name": "closure" if closure_variables else "NULL",
         "module_identifier": module_identifier,
         "constant_return_code": indented(constant_return_code),
+        "type_params": "type_params" if type_params_name else "NULL",
     }
 
     # TODO: Make it optional, only dill plugin really uses that table to
@@ -207,6 +222,32 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
+
+    if isBytecodeBackedFunction(function_body):
+        try:
+            generateAnnotateFunctionCreationCode(
+                to_name=to_name,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
+            return
+        except PythonSourceGenerationError as e:
+            function_qualname = function_body.getFunctionQualname()
+            source_ref = expression.getSourceReference()
+
+            if shallNotFallbackBytecodeToCompiled(
+                module_name=context.getModuleName(),
+                function_qualname=function_qualname,
+                source_ref=source_ref,
+            ):
+                # TODO: Add user control to selectively allow/deny fallback per function.
+                return general.sysexit(
+                    """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                    % (function_qualname, source_ref.getAsString(), e)
+                )
+
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults
     annotations = expression.subnode_annotations
@@ -259,6 +300,18 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     else:
         annotations_name = None
 
+    if expression.subnode_type_params:
+        type_params_name = context.allocateTempName("type_params")
+
+        generateExpressionCode(
+            to_name=type_params_name,
+            expression=expression.subnode_type_params,
+            emit=emit,
+            context=context,
+        )
+    else:
+        type_params_name = None
+
     function_identifier = function_body.getCodeName()
 
     # Creation code needs to be done only once.
@@ -273,6 +326,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
             function_doc=function_body.getDoc(),
+            type_params_name=type_params_name,
             context=context,
         )
 
@@ -284,6 +338,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             defaults_name=defaults_name,
             kw_defaults_name=kw_defaults_name,
             annotations_name=annotations_name,
+            type_params_name=type_params_name,
         )
 
         context.addDeclaration(function_identifier, function_decl)
@@ -295,11 +350,14 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=expression.getClosureVariableVersions(),
+        type_params_name=type_params_name,
         emit=emit,
         context=context,
     )
 
-    getReleaseCode(release_name=annotations_name, emit=emit, context=context)
+    getReleaseCodes(
+        release_names=(annotations_name, type_params_name), emit=emit, context=context
+    )
 
 
 def getClosureCopyCode(closure_variables, context):
@@ -341,6 +399,7 @@ def getFunctionCreationCode(
     kw_defaults_name,
     annotations_name,
     closure_variables,
+    type_params_name,
     emit,
     context,
 ):
@@ -363,7 +422,10 @@ def getFunctionCreationCode(
     if closure_name:
         args.append(closure_name)
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    if type_params_name:
+        args.append(type_params_name)
+
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -383,6 +445,8 @@ def getFunctionCreationCode(
         context.removeCleanupTempName(kw_defaults_name)
     if context.needsCleanup(annotations_name):
         context.removeCleanupTempName(annotations_name)
+    if context.needsCleanup(type_params_name):
+        context.removeCleanupTempName(type_params_name)
 
     # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)
@@ -397,7 +461,7 @@ def getDirectFunctionCallCode(
     emit,
     context,
 ):
-    function_identifier = _getFunctionEntryPointIdentifier(
+    function_identifier = getFunctionEntryPointIdentifier(
         function_identifier=function_identifier
     )
 
@@ -789,7 +853,8 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     # TODO: Put the return value name as that to_name.c_type too.
 
     if (
-        expression.isExpressionOutlineFunctionBase()
+        states.is_full_compat
+        and expression.isExpressionOutlineBody()
         and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
@@ -859,7 +924,10 @@ def generateFunctionErrorStrCode(to_name, expression, emit, context):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

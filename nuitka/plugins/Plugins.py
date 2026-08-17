@@ -87,6 +87,7 @@ active_plugins_with_decide_doc_strings = []
 active_plugins_with_decide_assertions = []
 active_plugins_with_function_body_parsing = []
 active_plugins_with_class_body_parsing = []
+active_plugins_with_variable_constant_value = []
 plugin_name2plugin_classes = {}
 plugin_options = OrderedDict()
 plugin_values = {}
@@ -161,6 +162,7 @@ def _addActivePlugin(plugin_class, args, force=False):
         ("decideAssertions", active_plugins_with_decide_assertions),
         ("onFunctionBodyParsing", active_plugins_with_function_body_parsing),
         ("onClassBodyParsing", active_plugins_with_class_body_parsing),
+        ("getVariableConstantValue", active_plugins_with_variable_constant_value),
     ):
         if getattr(plugin_type, callback_name) is not getattr(
             NuitkaPluginBase, callback_name
@@ -705,6 +707,15 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def onMetaPathLoaderEntryTemplate(module, template_args):
+        """Let plugins modify meta path loader entry template arguments."""
+        for plugin in getActivePlugins():
+            plugin.onMetaPathLoaderEntryTemplate(
+                module=module, template_args=template_args
+            )
+
+    @staticmethod
+    @counted_plugin_method
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
@@ -730,6 +741,13 @@ through implicit import by '%s' plugin encountered."""
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():
             plugin.onFinalResult(filename)
+
+    @staticmethod
+    @counted_plugin_method
+    def onInstallerOutput(filename):
+        """Let plugins post-process the created installer"""
+        for plugin in getActivePlugins():
+            plugin.onInstallerOutput(filename)
 
     @staticmethod
     def considerExtraDlls(module):
@@ -886,9 +904,16 @@ through implicit import by '%s' plugin encountered."""
                 for included_datafile in _iterateIncludedDataFiles(plugin, value):
                     yield included_datafile
 
-    @staticmethod
+    _data_file_tags_cache = set()
+
+    @classmethod
     @counted_plugin_method
-    def onDataFileTags(included_datafile):
+    def onDataFileTags(cls, included_datafile):
+        if included_datafile.dest_path in cls._data_file_tags_cache:
+            return
+
+        cls._data_file_tags_cache.add(included_datafile.dest_path)
+
         for plugin in getActivePlugins():
             plugin.onDataFileTags(included_datafile)
 
@@ -1490,7 +1515,7 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def getPreprocessorSymbols(cls):
+    def getPreprocessorSymbols(cls, onefile):
         """Let plugins provide C defines to be used in compilation.
 
         Notes:
@@ -1508,7 +1533,7 @@ through incomplete set import by '%s' plugin encountered."""
             cls.preprocessor_symbols = OrderedDict()
 
             for plugin in getActivePlugins():
-                value = plugin.getPreprocessorSymbols()
+                value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
@@ -1566,7 +1591,7 @@ through incomplete set import by '%s' plugin encountered."""
             order will be plugin order.
 
         Returns:
-            OrderedSet() of paths to include as well.
+            tuple of paths to include as well.
         """
         if cls.extra_include_directories is None:
             cls.extra_include_directories = OrderedSet()
@@ -1577,7 +1602,7 @@ through incomplete set import by '%s' plugin encountered."""
                 if value:
                     cls.extra_include_directories.update(value)
 
-        return cls.extra_include_directories
+        return tuple(cls.extra_include_directories)
 
     @staticmethod
     @counted_plugin_method
@@ -1648,7 +1673,7 @@ through incomplete set import by '%s' plugin encountered."""
                         for library_name in value:
                             cls.extra_link_libraries.add(os.path.normcase(library_name))
 
-        return cls.extra_link_libraries
+        return tuple(cls.extra_link_libraries)
 
     extra_link_directories = None
 
@@ -1668,7 +1693,7 @@ through incomplete set import by '%s' plugin encountered."""
                         for dir_name in value:
                             cls.extra_link_directories.add(dir_name)
 
-        return cls.extra_link_directories
+        return tuple(cls.extra_link_directories)
 
     @classmethod
     @counted_plugin_method
@@ -1678,9 +1703,9 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def onDataComposerResult(cls, blob_filename):
+    def onDataComposerResult(cls, blob_filenames):
         for plugin in getActivePlugins():
-            plugin.onDataComposerResult(blob_filename)
+            plugin.onDataComposerResult(blob_filenames)
 
     @classmethod
     def deriveModuleConstantsBlobName(cls, data_filename):
@@ -1730,6 +1755,33 @@ through incomplete set import by '%s' plugin encountered."""
                 class_name=class_name,
                 node=node,
             )
+
+    _variable_constant_cache = {}
+
+    @classmethod
+    def getVariableConstantValue(cls, module_name, variable_name):
+        """Let plugins provide compile-time constant values for module-level variables.
+
+        Returns:
+            The constant value from the first plugin that returns non-None,
+            or None if no plugin provides a value.
+        """
+        cache_key = (module_name, variable_name)
+
+        if cache_key in cls._variable_constant_cache:
+            return cls._variable_constant_cache[cache_key]
+
+        for plugin in active_plugins_with_variable_constant_value:
+            result = plugin.getVariableConstantValue(
+                module_name=module_name, variable_name=variable_name
+            )
+
+            if result is not None:
+                cls._variable_constant_cache[cache_key] = result
+                return result
+
+        cls._variable_constant_cache[cache_key] = None
+        return None
 
     cache_contribution_values_cache = {}
 
@@ -2376,7 +2428,10 @@ def setupHooks():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

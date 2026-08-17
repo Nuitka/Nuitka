@@ -641,11 +641,6 @@
     - patterns:
         - '*.json'
 
-- module-name: 'brotli._brotli' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
-
 - module-name: 'bsdiff4' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -803,10 +798,12 @@
     - depends:
         - 'chainer.distributions.utils'
 
-- module-name: 'charset_normalizer' # checksum: 3a81fa9
+- module-name: 'charset_normalizer' # checksum: 63d29872
   implicit-imports:
     - depends:
         - 'charset_normalizer.md__mypyc'
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'chia.ssl.create_ssl' # checksum: d95c1483
   implicit-imports:
@@ -878,15 +875,11 @@
           - 'cmsis'
           - 'libcmsis'
 
-- module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
+- module-name: 'coincurve._libsecp256k1' # checksum: baebd794
   dlls:
     - from_filenames:
         prefixes:
           - 'libsecp256k1'
-
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'comm' # checksum: 7d07a2d1
   anti-bloat:
@@ -928,11 +921,15 @@
     - empty_dirs:
         - '.'
 
-- module-name: 'ctypes' # checksum: d5efbb6f
+- module-name: 'ctypes' # checksum: a4aa9e10
   anti-bloat:
     - description: 'remove comtypes dependency'
       no-auto-follow:
         'comtypes': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'ctypes._layout'
+      when: 'has_builtin_module("_ctypes")'
 
 - module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
@@ -945,14 +942,10 @@
         'from cupy import testing': 'testing = None'
       when: 'not use_pytest'
 
-- module-name: 'curl_cffi' # checksum: 30c8f50c
+- module-name: 'curl_cffi' # checksum: 8215c061
   data-files:
     - patterns:
         - 'cacert.pem'
-
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'curses' # checksum: 6982eea
   implicit-imports:
@@ -1130,6 +1123,13 @@
   data-files:
     - dirs:
         - 'templates'
+
+- module-name: 'datasets' # checksum: 98a37e8f
+  options:
+    checks:
+      - description: 'datasets 2.7.1+ fingerprints dataset state using dill, requires dill-compat plugin to be enabled'
+        support_info: 'plugin-error'
+        when: 'version("datasets") >= (2, 7, 1) and not plugin("dill-compat")'
 
 - module-name: 'datasets.packaged_modules' # checksum: 4c45e344
   anti-bloat:
@@ -1471,6 +1471,12 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
+- module-name: 'emoji' # checksum: 7ebd7c38
+  data-files:
+    - patterns:
+        - 'unicode_codes/emoji.json'
+        - 'unicode_codes/emoji_*.json'
+
 - module-name: 'enchant' # checksum: 6aaa99cc
   data-files:
     - dirs:
@@ -1774,10 +1780,9 @@
     - patterns:
         - '*.zip'
 
-- module-name: 'gevent' # checksum: ce776b5f
+- module-name: 'gevent' # checksum: e22f6639
   implicit-imports:
     - depends:
-        - '_cffi_backend'
         - 'gevent._config'
         - 'gevent.core'
         - 'gevent.resolver_thread'
@@ -2023,6 +2028,11 @@
     - patterns:
         - '_cython/_credentials/roots.pem'
 
+- module-name: 'grpc_requests' # checksum: c60b4c80
+  data-files:
+    - include-metadata:
+        - 'protobuf'
+
 - module-name: 'gruut' # checksum: fddc60ae
   data-files:
     - patterns:
@@ -2148,6 +2158,12 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'httpx' # checksum: 54920036
+  anti-bloat:
+    - description: 'CLI entry point pulls in click, rich, pygments unnecessarily'
+      no-auto-follow:
+        'httpx._main': 'ignore'
+
 - module-name: 'huggingface_hub._login' # checksum: 3c12cb9a
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2256,11 +2272,6 @@
         '_load_pyproject_toml': 'un-callable'
         '_load_toml': 'un-callable'
       when: 'standalone'
-
-- module-name: 'ipcqueue' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'IPython.core.oinspect' # checksum: e7304002
   implicit-imports:
@@ -2771,7 +2782,7 @@
         '_test': 'un-callable'
         'main': 'un-callable'
 
-- module-name: 'matplotlib' # checksum: 11ca5d4
+- module-name: 'matplotlib' # checksum: d1f67a9f
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements_plain:
@@ -2806,7 +2817,7 @@
   options:
     checks:
       - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
-        support_info: 'plugin'
+        support_info: 'plugin-warning'
         when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
@@ -2924,11 +2935,24 @@
         - 'mercurial.charencode'
         - 'mercurial.cext.parsers'
 
-- module-name: 'mitmproxy' # checksum: 4eec16b2
+- module-name: 'mitmproxy' # checksum: 467c5986
   implicit-imports:
     - depends:
-        - 'mitmproxy_macos'
         - 'passlib.handlers.sha1_crypt'
+
+- module-name: 'mitmproxy.addons.onboardingapp' # checksum: 55a22be6
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+
+- module-name: 'mitmproxy.tools.web' # checksum: 78317e6c
+  data-files:
+    - dirs:
+        - 'static'
+        - 'templates'
+    - patterns:
+        - 'index.html'
 
 - module-name: 'mitmproxy_macos' # checksum: a855017f
   data-files:
@@ -2936,6 +2960,33 @@
         - 'Mitmproxy Redirector.app.tar'
     - dirs:
         - 'macos-certificate-truster.app'
+
+- module-name: 'mitmproxy_rs' # checksum: 9d75b64
+  implicit-imports:
+    - depends:
+        - 'mitmproxy_linux'
+      when: 'linux'
+    - depends:
+        - 'mitmproxy_macos'
+      when: 'macos'
+    - depends:
+        - 'mitmproxy_windows'
+      when: 'win32'
+
+- module-name: 'mitmproxy_windows' # checksum: b79d5c66
+  data-files:
+    - patterns:
+        - 'WinDivert.lib'
+        - 'WinDivert64.sys'
+        - 'WINDIVERT_VERSION'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'WinDivert'
+    - from_filenames:
+        prefixes:
+          - 'windows-redirector'
+        executable: 'yes'
 
 - module-name: 'mkl' # checksum: 9a8684da
   dlls:
@@ -3148,6 +3199,62 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
+- module-name: 'mssql_python' # checksum: 4cd7d5fd
+  variables:
+    setup_code:
+      - 'import platform, os'
+      - 'machine = platform.machine().lower()'
+    declarations:
+      'linux_arch': "'arm64' if machine in ('arm64', 'aarch64') else 'x86_64'"
+      'linux_distro': "'alpine' if os.path.exists('/etc/alpine-release') else 'suse' if os.path.exists('/etc/SuSE-release') or os.path.exists('/etc/SUSE-brand') else 'rhel' if os.path.exists('/etc/redhat-release') else 'debian_ubuntu'"
+    when: 'linux'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'pyd'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'ddbc_bindings'
+        suffixes:
+          - 'so'
+      when: 'linux or macos'
+    - from_filenames:
+        relative_path: 'libs/windows/x64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'libs/windows/arm64'
+        prefixes:
+          - 'mssql-auth'
+          - 'msodbcsql18'
+          - 'msodbcdiag18'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/arm64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/macos/x86_64/lib'
+        prefixes:
+          - 'lib'
+      when: 'macos and arch_amd64'
+    - from_filenames:
+        relative_path: "os.path.join('libs', 'linux', get_variable('linux_distro'), get_variable('linux_arch'), 'lib')"
+        prefixes:
+          - 'lib'
+      when: 'linux'
+
+  implicit-imports:
+    - depends:
+        - 'mssql_python.ddbc_bindings'
+
 - module-name: 'multiprocess.util' # checksum: df30b465
   anti-bloat:
     - description: 'avoid test module usage'
@@ -3159,11 +3266,6 @@
     - description: 'avoid test module usage'
       no-auto-follow:
         'test': 'ignore'
-
-- module-name: 'nacl._sodium' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
 
 - module-name: 'names' # checksum: 4b523fa4
   data-files:
@@ -3302,7 +3404,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: e8a53225
+- module-name: 'numpy' # checksum: 2c28405f
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3315,13 +3417,14 @@
           import os, sys
           library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
           library_path = os.path.join(sys.prefix, library_path)
-          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+          library_filenames = ("libblas.dll", "libcblas.dll", "liblapack.dll") if os.name == "nt" else ()
+          library_prefixes = ("mkl_",) if os.name == "nt" else ("libmkl_",)
         filename_code: |
           [os.path.join(library_path, filename)
            for filename in os.listdir(library_path)
-           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
+           if filename in library_filenames or filename.startswith(library_prefixes)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'is_conda_package("numpy") and version("numpy") < (2,)'
+      when: 'is_conda_package("numpy")'
 
   anti-bloat:
     - description: 'avoid URLs for AV noise'
@@ -3962,7 +4065,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 47010086
+- module-name: 'pandas' # checksum: 1899c1ff
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3975,6 +4078,9 @@
         'pandas.core._numba.extensions': 'no numba acceleration'
         'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
+    - description: 'avoid pulling in matplotlib through pandas plotting'
+      no-auto-follow:
+        'pandas.plotting._matplotlib': 'plotting will not be available'
     - description: 'remove getrefcount usage'
       global_replacements_plain:
         'if sys.getrefcount(': 'if False and sys.getrefcount('
@@ -4352,6 +4458,11 @@
     - depends:
         - '.*.locale'
 
+- module-name: 'perfetto.trace_processor' # checksum: fcccb406
+  data-files:
+    - patterns:
+        - '*.descriptor'
+
 - module-name: 'persistent._compat' # checksum: 79e919b4
   anti-bloat:
     - description: 'use own compilation for compatibility'
@@ -4359,21 +4470,22 @@
         "os.getenv('PURE_PYTHON')": '"1"'
         "os.environ.get('PURE_PYTHON')": '"1"'
 
-- module-name: 'persistent.ring' # checksum: ff2e6560
-  implicit-imports:
-    - depends:
-        - '_cffi_backend'
-
 - module-name: 'phonenumbers.data' # checksum: ed193c22
   implicit-imports:
     - depends:
         - '.region_*'
 
-- module-name: 'PIL' # checksum: 52d41000
+- module-name: 'PIL' # checksum: 5a9f1ed5
   anti-bloat:
     - description: 'avoid numpy dependency'
       no-auto-follow:
         'numpy': 'ignore'
+    - description: 'avoid tkinter dependency'
+      no-auto-follow:
+        'PIL.ImageTk': 'PIL will not be able to create Tk image objects'
+        'PIL._tkinter_finder': 'ignore'
+        'tkinter': 'PIL will not be able to create Tk image objects'
+      when: 'not use_tkinter'
 
 - module-name: 'PIL._imagingtk' # checksum: 52df48a8
   implicit-imports:
@@ -4570,7 +4682,7 @@
     - depends:
         - 'plotly.version'
 
-- module-name: 'plotly.graph_objects' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objects' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4579,8 +4691,12 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Dash imports 'plotly.graph_objects.Figure' at module load time.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.graph_objs' # checksum: bf6dd64b
+- module-name: 'plotly.graph_objs' # checksum: 5e59d5cb
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
@@ -4589,13 +4705,21 @@
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
       when: 'not use_ipython'
+  implicit-imports:
+    - depends:
+        # Plotly resolves 'Figure' lazily via '_plotly_utils.importers'.
+        - 'plotly.graph_objs._figure'
 
-- module-name: 'plotly.io' # checksum: bc9ae932
+- module-name: 'plotly.io' # checksum: 87ddf821
   anti-bloat:
     - description: 'include plotly templates'
       replacements_plain:
         # Disable lazy loading implicit imports.
         'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
+  implicit-imports:
+    - depends:
+        # Plotly imports 'templates' during 'plotly.io' initialization.
+        - 'plotly.io._templates'
 
 - module-name: 'plotly.validator_cache' # checksum: 4e4fa5ab
   implicit-imports:
@@ -4858,6 +4982,11 @@
         'cython': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'pyDOE3.orthogonal_arrays' # checksum: b8704389
+  data-files:
+    - patterns:
+        - '*.oa'
+
 - module-name: 'pyface' # checksum: a2a403b1
   data-files:
     - include-metadata:
@@ -5059,7 +5188,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: b6d023e2
+- module-name: 'pypylon' # checksum: 3494369e
   data-files:
     - patterns:
         - '**/*.sig'
@@ -5080,6 +5209,9 @@
           - 'Pylon'
           - 'gxapi'
           - 'uxapi'
+          - 'libpylon'
+          - 'libgxapi'
+          - 'libuxapi'
       when: 'not macos'
     - from_filenames:
         relative_path: 'pylonDataProcessingPlugins'
@@ -5345,14 +5477,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide2.QtWebEngineCore' # checksum: 66facbd0
-  options:
-    checks:
-      - description: 'PySide2 cannot be signed unless onefile'
-        macos_bundle_as_onefile: 'yes'
-        when: 'macos and use_pyside2'
-
-- module-name: 'PySide6' # checksum: 749c1641
+- module-name: 'PySide6' # checksum: 498a67fc
   implicit-imports:
     - post-import-code:
         - |
@@ -5362,11 +5487,18 @@
             if hasattr(func, "__compiled__") and hasattr(func, "im_func"):
                 _protected.append(func)
 
-                if not func.__name__.startswith("_pyside6_workaround_"):
-                  func.im_func.__name__ = "_pyside6_workaround_" + func.im_func.__name__
+                protected_name = func.im_func.__name__
+
+                if not protected_name.startswith("_pyside6_workaround_"):
+                  protected_name = "_pyside6_workaround_" + getattr(
+                      func.im_func,
+                      "__qualname__",
+                      protected_name
+                  )
+                  func.im_func.__name__ = protected_name
 
                 try:
-                  setattr(func.im_self.__class__, func.im_func.__name__, func.im_func)
+                  setattr(func.im_self.__class__, protected_name, func.im_func)
                 except Exception:
                   pass
 
@@ -5926,6 +6058,11 @@
             WinDLL(filename)
       when: 'win32 and standalone and (1,14) > version("scipy") >= (1,9,2)'
 
+- module-name: 'scipy._external.array_api_compat.numpy' # checksum: e2b696e6
+  implicit-imports:
+    - depends:
+        - 'scipy._external.array_api_compat.numpy.fft'
+
 - module-name: 'scipy._lib' # checksum: 4063ed73
   implicit-imports:
     - depends:
@@ -6413,6 +6550,13 @@
         - 'argparse'
         - 'enum'
         - 'logging'
+
+- module-name: 'shtab' # checksum: 6c4e35a6
+  anti-bloat:
+    - description: 'remove setuptools_scm version detection'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'sip' # checksum: 1cf87ab4
   implicit-imports:
@@ -7078,7 +7222,7 @@
     - depends:
         - 'sqlalchemy.orm.dependency'
 
-- module-name: 'sqlfluff' # checksum: 3fc9a782
+- module-name: 'sqlfluff' # checksum: 88378c70
   data-files:
     - include-metadata:
         # TODO: Actually we should be able to include by
@@ -7088,8 +7232,8 @@
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
-        'import pytest': ''
-        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': ''
+        'import pytest': 'pytest = None'
+        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': 'pass'
 
 - module-name: 'sqlfluff.api.simple' # checksum: 55a3b9b2
   implicit-imports:
@@ -8366,7 +8510,7 @@
     - include-metadata:
         - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 618ee1e0
+- module-name: 'toga_winforms' # checksum: 23cc700f
   data-files:
     - dirs:
         - 'resources'
@@ -8412,7 +8556,14 @@
   implicit-imports:
     - depends:
         - 'toga_winforms.libs.wrapper'
+        - 'toga_winforms.resources'
         - 'ctypes.wintypes'
+
+- module-name: 'toga_winforms.libs.win32misc' # checksum: 2d33d008
+  anti-bloat:
+    - description: 'avoid NoneType error in __del__ during shutdown'
+      replacements_plain:
+        'ReleaseActCtx(self._handle_actctx)': 'if ReleaseActCtx is not None: ReleaseActCtx(self._handle_actctx)'
 
 - module-name: 'tokenizers.tools.visualizer' # checksum: afab16ac
   anti-bloat:
@@ -9162,6 +9313,22 @@
     - depends:
         - '_twofish'
 
+- module-name: 'tyro' # checksum: a8dc8b82
+  anti-bloat:
+    - description: 'remove optional pydantic support'
+      no-auto-follow:
+        'pydantic': 'ignore'
+        'torch': 'ignore'
+        'flax.linen': 'ignore'
+        'ml_collections': 'ignore'
+        'msgspec': 'ignore'
+        'pydantic.v1': 'ignore'
+  options:
+    checks:
+      - description: "Uses 'inspect.getsource()' for help text generation in standalone mode. Consider '--enable-plugin=source-inclusion' together with '--source-inclusion-args=--help' or repeated '--source-inclusion-args=\"<subcommand> --help\"' values."
+        support_info: 'plugin-warning'
+        when: 'standalone and not plugin("source-inclusion")'
+
 - module-name: 'tzdata' # checksum: c364567b
   data-files:
     - dirs:
@@ -9181,10 +9348,85 @@
     - patterns:
         - 'cfg/default.yaml'
 
+- module-name: 'univers.maven' # checksum: 92a7c459
+  anti-bloat:
+    # TODO: Remove once recursion of generator expressions is enhanced.
+    - description: 'avoid recursion for deeply nested values'
+      change_function:
+        'list2tuple': "'''if True:\n    stack = [[l, 0, None]]\n    result = None\n    while stack:\n        frame = stack[-1]\n        src, idx, _ = frame\n        if result is not None:\n            frame[2] = frame[2] or []\n            frame[2].append(result)\n            result = None\n        if idx >= len(src):\n            frame = stack.pop()\n            result = tuple(frame[2]) if frame[2] is not None else ()\n            continue\n        item = src[idx]\n        frame[1] = idx + 1\n        if isinstance(item, list):\n            stack.append([item, 0, None])\n        else:\n            frame[2] = frame[2] or []\n            frame[2].append(item)\n    return result'''"
+
 - module-name: 'unstructured' # checksum: e17b7f4d
   data-files:
     - patterns:
         - 'nlp/english-words.txt'
+
+- module-name: 'urllib.request' # checksum: 13bc467c
+  implicit-imports:
+    - post-import-code:
+        - |
+          import ssl
+          import urllib.error
+          import urllib.request
+
+          _nuitka_original_do_open = urllib.request.AbstractHTTPHandler.do_open
+          _nuitka_ssl_cert_verification_error = getattr(
+              ssl,
+              "SSLCertVerificationError",
+              ssl.SSLError
+          )
+
+          def _nuitka_make_missing_default_ca_runtime_error():
+              verify_paths = ssl.get_default_verify_paths()
+
+              if verify_paths.cafile is not None or verify_paths.capath is not None:
+                  return None
+
+              message = """\
+          Nuitka: HTTPS certificate verification failed because no usable
+          default CA certificate store was found at runtime.
+
+          OpenSSL looked for:
+          - cafile: %(cafile)r
+          - capath: %(capath)r
+
+          This often means the standalone/onefile binary was built on a
+          system with different OpenSSL certificate locations than the
+          machine running it.
+          Set %(cafile_env)s or %(capath_env)s to valid certificate
+          locations, or bundle and use certifi.
+          """ % {
+                  "cafile": verify_paths.openssl_cafile,
+                  "capath": verify_paths.openssl_capath,
+                  "cafile_env": verify_paths.openssl_cafile_env,
+                  "capath_env": verify_paths.openssl_capath_env,
+              }
+
+              return RuntimeError(message.strip())
+
+          def _nuitka_handle_missing_default_ca_store_error(self, http_class, req, **http_conn_args):
+              try:
+                  return _nuitka_original_do_open(self, http_class, req, **http_conn_args)
+              except urllib.error.URLError as error:
+                  if http_conn_args.get("context") is not None:
+                      raise
+
+                  reason = getattr(error, "reason", None)
+
+                  if not isinstance(reason, _nuitka_ssl_cert_verification_error):
+                      raise
+
+                  if "local issuer certificate" not in str(reason):
+                      raise
+
+                  replacement = _nuitka_make_missing_default_ca_runtime_error()
+
+                  if replacement is None:
+                      raise
+
+                  raise replacement from error
+
+          urllib.request.AbstractHTTPHandler.do_open = _nuitka_handle_missing_default_ca_store_error
+      when: 'standalone and macos and python3_or_higher and not deployment'
 
 - module-name: 'urllib3' # checksum: aed85e8e
   implicit-imports:
@@ -9295,6 +9537,13 @@
   implicit-imports:
     - depends:
         - 'uvloop._noop'
+
+- module-name: 'vcs_versioning._version_cls' # checksum: b1522f54
+  anti-bloat:
+    - description: 'avoid setuptools as fallback for packaging'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'vedo' # checksum: 35ad0fe8
   data-files:

@@ -25,6 +25,7 @@ import shutil
 
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
+    getCompilationPythonFlavor,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import (
@@ -151,7 +152,11 @@ def _checkCompilationResults(
             )
 
         outside_accesses = checkLoadedFileAccesses(
-            loaded_filenames=loaded_filenames, current_dir=stage_dir
+            loaded_filenames=loaded_filenames,
+            current_dir=stage_dir,
+            python_flavor=getCompilationPythonFlavor(
+                compilation_report=compilation_report
+            ),
         )
     else:
         test_logger.info("Runtime traces are not possible on this machine.")

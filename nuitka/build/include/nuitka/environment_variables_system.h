@@ -28,6 +28,7 @@ extern environment_char_t const *getEnvironmentVariable(char const *name);
 extern environment_char_t const *getEnvironmentVariableW(wchar_t const *name);
 extern void setEnvironmentVariable(char const *name, environment_char_t const *value);
 extern void setEnvironmentVariableFromLong(char const *name, long value);
+extern bool getEnvironmentVariableValueAsLong(environment_char_t const *value, long *result);
 extern void setEnvironmentVariableFromFilename(char const *name, filename_char_t const *value);
 extern void unsetEnvironmentVariable(char const *name);
 
@@ -43,7 +44,10 @@ extern native_command_line_argument_t const *getOriginalArgv0(void);
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

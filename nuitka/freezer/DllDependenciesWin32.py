@@ -19,7 +19,7 @@ from nuitka.options.Options import (
     isShowProgress,
 )
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
@@ -525,10 +525,18 @@ def _getScanDirectories(package_name, original_dir, use_path):
 
     scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
 
+    if isMSYS2MingwPython():
+        scan_dirs.append(getNormalizedPathJoin(getSystemPrefixPath(), "bin"))
+
     # Add the VCRedist path to the list of directories to search if it exists
     msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
     if msvc_redist_path is not None:
-        scan_dirs.extend(getSubDirectoriesWithDlls(msvc_redist_path))
+        scan_dirs.extend(
+            getSubDirectoriesWithDlls(
+                path=msvc_redist_path,
+                ignore_permission_error=False,
+            )
+        )
 
     if package_name is not None:
         scan_dirs.extend(
@@ -540,7 +548,12 @@ def _getScanDirectories(package_name, original_dir, use_path):
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectoriesWithDlls(original_dir))
+        scan_dirs.extend(
+            getSubDirectoriesWithDlls(
+                path=original_dir,
+                ignore_permission_error=True,
+            )
+        )
 
     if package_name is not None and package_name.isBelowNamespace("win32com"):
         py_win32_dir = getPyWin32Dir()
@@ -630,7 +643,10 @@ def _getCacheFilename(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -12,6 +12,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 """
 
 import pkgutil
+import re
 import sys
 import time
 from hashlib import md5 as _md5
@@ -153,6 +154,36 @@ else:
     iter_modules = pkgutil.iter_modules
 
 
+if sys.version_info >= (2, 7):
+    re_sub = re.sub
+else:
+
+    def re_sub(pattern, repl, string, count=0, flags=0):
+        """re.sub wrapper with flags keyword for Python 2.6.
+
+        Python 2.6 re.sub does not accept a flags argument.
+        This helper compiles when flags are given.
+        """
+
+        if flags:
+            # If pattern is already compiled, use its sub method with updated flags
+            # otherwise compile string pattern with flags.
+            if hasattr(pattern, "sub"):
+                # Compiled pattern: re-compile with combined flags if possible.
+                try:
+                    combined_flags = pattern.flags | flags
+                except AttributeError:
+                    combined_flags = flags
+
+                pattern = re.compile(pattern.pattern, combined_flags)
+
+                return pattern.sub(repl, string, count=count)
+
+            return re.compile(pattern, flags).sub(repl, string, count=count)
+
+        return re.sub(pattern, repl, string, count=count)
+
+
 try:
     ExceptionGroup = ExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
@@ -229,7 +260,10 @@ assert imp
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

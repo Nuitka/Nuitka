@@ -7,6 +7,12 @@
 #include <stdbool.h>
 #endif
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL
 static const bool use_freelists = false;
 #else
@@ -67,6 +73,21 @@ static const bool use_freelists = true;
 
 #if PYTHON_VERSION >= 0x3e0
 
+// CPython 3.14 changed the layout before post-QSBR interpreter fields in
+// 3.14.4 and again in 3.14.5.
+static inline struct _Py_freelists *Nuitka_Py_freelists_GET(PyThreadState *tstate) {
+#ifdef Py_GIL_DISABLED
+    return &((_PyThreadStateImpl *)tstate)->freelists;
+#else
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION < 0x3f0
+    return (struct _Py_freelists *)Nuitka_PyInterpreterState_AdjustPostQsbrPointer(
+        &tstate->interp->object_state.freelists);
+#else
+    return &tstate->interp->object_state.freelists;
+#endif
+#endif
+}
+
 // Like _PyFreeList_Pop but doesn't set the reference, may also be totally
 // unnecessary to have.
 static inline PyObject *Nuitka_PyFreeList_Pop(struct _Py_freelist *freelist) {
@@ -96,7 +117,10 @@ NUITKA_MAY_BE_UNUSED static inline struct _Py_object_freelists *_Nuitka_object_f
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

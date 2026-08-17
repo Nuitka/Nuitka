@@ -5,6 +5,7 @@
 
 import os
 
+from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Hooks import getModuleSpecificDllPaths
@@ -144,13 +145,47 @@ that should not happen. Please report the issue.""" % package_name)
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
-            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
+            try:
+                scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
+            except PermissionError as e:
+                return inclusion_logger.sysexit(
+                    """\
+Error, failed to scan directory '%s' (Permission denied) while \
+looking up DLL dependencies of '%s'. This indicates a corrupt \
+package installation with wrong file permissions. Try reinstalling \
+the package, or fix the permissions on the directory."""
+                    % (
+                        (
+                            e.filename
+                            if hasattr(e, "filename") and e.filename
+                            else package_dir
+                        ),
+                        package_name,
+                    )
+                )
 
         if consider_plugins:
             for plugin_provided_dir in getModuleSpecificDllPaths(package_name):
                 if os.path.isdir(plugin_provided_dir):
                     scan_dirs.add(plugin_provided_dir)
-                    scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))
+                    try:
+                        scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))
+                    except PermissionError as e:
+                        return inclusion_logger.sysexit(
+                            """\
+Error, failed to scan directory '%s' (Permission denied) while \
+looking up DLL dependencies of '%s'. This indicates a corrupt \
+package installation with wrong file permissions. Try reinstalling \
+the package, or fix the permissions on the directory."""
+                            % (
+                                (
+                                    e.filename
+                                    if hasattr(e, "filename") and e.filename
+                                    else plugin_provided_dir
+                                ),
+                                package_name,
+                            )
+                        )
 
     # TODO: Move this to plugins DLLs section.
     if package_name == "torchvision" and consider_plugins:
@@ -172,7 +207,10 @@ that should not happen. Please report the issue.""" % package_name)
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

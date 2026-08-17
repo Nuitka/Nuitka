@@ -237,9 +237,10 @@ static Py_hash_t DEEP_HASH_INIT(PyThreadState *tstate, PyObject *value) {
     return result;
 }
 
-static void DEEP_HASH_BLOB(Py_hash_t *hash, char const *s, Py_ssize_t size) {
+void DEEP_HASH_BLOB(Py_hash_t *hash, void const *s, Py_ssize_t size) {
+    unsigned char const *p = (unsigned char const *)s;
     while (size > 0) {
-        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*s++);
+        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*p++);
         size--;
     }
 }
@@ -263,7 +264,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         PyObject *key, *dict_value;
 
         while (Nuitka_DictNext(value, &pos, &key, &dict_value)) {
-            if (key != NULL && value != NULL) {
+            if (key != NULL && dict_value != NULL) {
                 result ^= DEEP_HASH(tstate, key);
                 result ^= DEEP_HASH(tstate, dict_value);
             }
@@ -293,13 +294,21 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
     } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
+        // Save and clear any pre-existing exception, so we can detect if
+        // iteration raises a new exception rather than reacting to a
+        // pre-existing one like SystemExit.
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
+
         PyObject *iterator = PyObject_GetIter(value);
         CHECK_OBJECT(iterator);
 
         while (true) {
             PyObject *item = PyIter_Next(iterator);
-            if (!item)
+            if (!item) {
+                assert(!HAS_ERROR_OCCURRED(tstate));
                 break;
+            }
 
             CHECK_OBJECT(item);
 
@@ -309,6 +318,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         }
 
         Py_DECREF(iterator);
+
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
         return result;
     } else if (PyLong_Check(value)) {
@@ -321,6 +332,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         // Use string to hash the long value, which relies on that to not
         // use the object address.
         PyObject *str = PyObject_Str(value);
+        CHECK_OBJECT(str);
         result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);
 
@@ -341,10 +353,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         DEEP_HASH_BLOB(&result, s, size);
 #else
         PyObject *str = PyUnicode_AsUTF8String(value);
-
-        if (str) {
-            result ^= DEEP_HASH(tstate, str);
-        }
+        CHECK_OBJECT(str);
+        result ^= DEEP_HASH(tstate, str);
 
         Py_DECREF(str);
 #endif
@@ -359,7 +369,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyString_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyString_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);
@@ -373,7 +383,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyBytes_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyBytes_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);
@@ -433,6 +443,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         GenericAliasObject *generic_alias = (GenericAliasObject *)value;
+        CHECK_OBJECT(generic_alias->args);
+        CHECK_OBJECT(generic_alias->origin);
 
         result ^= DEEP_HASH(tstate, generic_alias->args);
         result ^= DEEP_HASH(tstate, generic_alias->origin);
@@ -442,8 +454,11 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION >= 0x3a0
     } else if (Py_TYPE(value) == Nuitka_PyUnion_Type) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
+        PyObject *args = LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__);
+        CHECK_OBJECT(args);
 
-        result ^= DEEP_HASH(tstate, LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__));
+        result ^= DEEP_HASH(tstate, args);
+        Py_DECREF(args);
 
         return result;
 #endif
@@ -457,32 +472,125 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 }
 #endif
 
-// Note: Not recursion safe, cannot do this everywhere.
-void CHECK_OBJECT_DEEP(PyObject *value) {
-    CHECK_OBJECT(value);
+static void abortCorruptNamedObject(char const *name, char const *reason) {
+    fprintf(stderr, "Corrupt object at %s: %s\n", name, reason);
+    fflush(stderr);
+    abort();
+}
+
+static void abortCorruptNamedRefcount(char const *name, PyObject *value) {
+    fprintf(stderr, "Corrupt object at %s: refcount %ld\n", name, (long)Py_REFCNT(value));
+    fflush(stderr);
+    abort();
+}
+
+static void CHECK_OBJECT_TYPE_NAMED(char const *name, PyObject *value) {
+    char type_name[1024];
+    PyTypeObject *type = Py_TYPE(value);
+
+    PyOS_snprintf(type_name, sizeof(type_name), "%s.__class__", name);
+
+    if (type == NULL) {
+        abortCorruptNamedObject(type_name, "NULL");
+    }
+
+    if (Py_REFCNT((PyObject *)type) <= 0) {
+        abortCorruptNamedRefcount(type_name, (PyObject *)type);
+    }
+}
+
+static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value) {
+    if (value == NULL) {
+        abortCorruptNamedObject(name, "NULL");
+    }
+
+    if (Py_REFCNT(value) <= 0) {
+        abortCorruptNamedRefcount(name, value);
+    }
+
+    CHECK_OBJECT_TYPE_NAMED(name, value);
 
     if (PyTuple_Check(value)) {
         for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(value); i < size; i++) {
+            char element_name[1024];
             PyObject *element = PyTuple_GET_ITEM(value, i);
 
-            CHECK_OBJECT_DEEP(element);
+            PyOS_snprintf(element_name, sizeof(element_name), "%s[%ld]", name, (long)i);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(element_name, element);
         }
     } else if (PyList_CheckExact(value)) {
         for (Py_ssize_t i = 0, size = PyList_GET_SIZE(value); i < size; i++) {
+            char element_name[1024];
             PyObject *element = PyList_GET_ITEM(value, i);
 
-            CHECK_OBJECT_DEEP(element);
+            PyOS_snprintf(element_name, sizeof(element_name), "%s[%ld]", name, (long)i);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(element_name, element);
         }
     } else if (PyDict_Check(value)) {
         Py_ssize_t pos = 0;
         PyObject *dict_key, *dict_value;
+        int item_index = 0;
 
         while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
-            CHECK_OBJECT_DEEP(dict_key);
-            CHECK_OBJECT_DEEP(dict_value);
+            char key_name[1024];
+            char value_name[1024];
+
+            PyOS_snprintf(key_name, sizeof(key_name), "%s{key %d}", name, item_index);
+            PyOS_snprintf(value_name, sizeof(value_name), "%s{value %d}", name, item_index);
+
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(key_name, dict_key);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(value_name, dict_value);
+
+            item_index += 1;
         }
+    } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
+        // Save and clear any pre-existing exception, so we can detect if
+        // iteration raises a new exception rather than reacting to a
+        // pre-existing one like SystemExit.
+        PyThreadState *tstate = PyThreadState_GET();
+
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
+
+        PyObject *iterator = PyObject_GetIter(value);
+
+        if (iterator == NULL) {
+            abortCorruptNamedObject(name, "set iteration failed");
+        }
+
+        Py_ssize_t item_index = 0;
+
+        while (true) {
+            PyObject *item = PyIter_Next(iterator);
+
+            if (item == NULL) {
+                if (HAS_ERROR_OCCURRED(tstate)) {
+                    Py_DECREF(iterator);
+                    abortCorruptNamedObject(name, "set iteration raised");
+                }
+
+                break;
+            }
+
+            char item_name[1024];
+
+            PyOS_snprintf(item_name, sizeof(item_name), "%s{item %ld}", name, (long)item_index);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(item_name, item);
+            Py_DECREF(item);
+
+            item_index += 1;
+        }
+
+        Py_DECREF(iterator);
+
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
     }
 }
+
+// Note: Not recursion safe, cannot do this everywhere.
+void CHECK_OBJECT_DEEP(PyObject *value) { CHECK_OBJECT_DEEP_NAMED_RECURSIVE("<unnamed>", value); }
+
+void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value) { CHECK_OBJECT_DEEP_NAMED_RECURSIVE(name, value); }
 
 void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
     for (Py_ssize_t i = 0; i < size; i++) {
@@ -578,7 +686,10 @@ PyObject *DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char co
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

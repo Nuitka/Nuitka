@@ -152,7 +152,10 @@ class ParameterSpec(object):
         # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
             if arg_names.count(arg_name) != 1:
-                return "duplicate argument '%s' in function definition" % arg_name
+                if python_version >= 0x3F0:
+                    return "duplicate parameter '%s' in function definition" % arg_name
+                else:
+                    return "duplicate argument '%s' in function definition" % arg_name
 
         return None
 
@@ -621,7 +624,10 @@ def matchCall(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

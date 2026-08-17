@@ -17,6 +17,7 @@ from nuitka.options.Options import (
     getOutputFolderName,
     getOutputPath,
     getPgoExecutable,
+    getProjectName,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
@@ -27,6 +28,7 @@ from nuitka.options.Options import (
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
     changeFilenameExtension,
+    getExternalUsePath,
     getNormalizedPath,
     getNormalizedPathJoin,
     hasFilenameExtension,
@@ -49,9 +51,13 @@ def _getResultBaseName(suffix):
     if build_basename:
         return build_basename + suffix
 
-    return os.path.basename(
-        getTreeFilenameWithSuffix(module=_main_module, suffix=suffix)
-    )
+    if _main_module is not None:
+        return os.path.basename(
+            getTreeFilenameWithSuffix(module=_main_module, suffix=suffix)
+        )
+
+    # Using --main-entry-point option is the only way to get here.
+    return getProjectName() + suffix
 
 
 def setMainModule(main_module):
@@ -98,6 +104,12 @@ def getSourceDirectoryPath(onefile, create):
             putTextFileContents(filename=git_ignore_filename, contents="*")
 
     return result
+
+
+def getSourceDirectoryExternalUsePath(onefile, create):
+    """Return externally usable path inside the build directory."""
+
+    return getExternalUsePath(getSourceDirectoryPath(onefile=onefile, create=create))
 
 
 def _getStandaloneDistSuffix(bundle):
@@ -282,7 +294,10 @@ def getPgoRunInputFilename():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

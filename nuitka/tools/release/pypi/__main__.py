@@ -78,7 +78,7 @@ Check if it would build, without uploading.
     options, positional_args = parser.parse_args()
 
     if positional_args:
-        tools_logger.sysexit(
+        return tools_logger.sysexit(
             "This command takes no positional arguments, check help output."
         )
 
@@ -103,16 +103,21 @@ Check if it would build, without uploading.
     )
 
     # Test with these Pythons if the installed package would work.
-    pythons = [
-        findInstalledPython(
-            python_versions=("2.7",),
+    required_python_versions = ("2.7", "3.10")
+
+    pythons = []
+    for python_version in required_python_versions:
+        python = findInstalledPython(
+            python_versions=python_version,
             module_specs=None,
-        ),
-        findInstalledPython(
-            python_versions=("3.10",),
-            module_specs=None,
-        ),
-    ]
+        )
+
+        if python is None:
+            return tools_logger.sysexit(
+                "Error, no installed Python found for version(s) %s." % python_version
+            )
+
+        pythons.append(python)
 
     for python in pythons:
         _checkNuitkaInVirtualenv(python)
@@ -144,7 +149,10 @@ Check if it would build, without uploading.
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

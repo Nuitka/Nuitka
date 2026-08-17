@@ -96,12 +96,14 @@ from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
+from .FutureSpecState import getFutureSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
     once_decorator,
 )
 from .ReformulationDictionaryCreation import buildDictionaryUnpacking
+from .ReformulationFunctionStatements import makeDeferredAnnotateFunctionBody
 from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import (
@@ -109,6 +111,7 @@ from .ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
 )
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildFrameNode,
     buildNode,
     buildNodeTuple,
@@ -316,6 +319,53 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+    ):
+        if class_dict_creation_function.deferred_annotations:
+            outer_body, return_statement = makeDeferredAnnotateFunctionBody(
+                provider=class_dict_creation_function,
+                source_ref=source_ref,
+            )
+
+            keys = []
+            values = []
+            for (
+                var_name,
+                ast_node,
+            ) in class_dict_creation_function.deferred_annotations.items():
+                keys.append(var_name)
+                values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+
+            return_statement.subnode_expression = makeDictCreationOrConstant2(
+                keys=keys,
+                values=values,
+                source_ref=source_ref,
+            )
+            return_statement.subnode_expression.parent = return_statement
+
+            statements.append(
+                StatementLocalsDictOperationSet(
+                    locals_scope=locals_scope,
+                    variable_name="__annotate_func__",
+                    source=makeExpressionFunctionCreation(
+                        function_ref=ExpressionFunctionRef(
+                            function_body=outer_body,
+                            source_ref=source_ref,
+                        ),
+                        defaults=(),
+                        kw_defaults=None,
+                        annotations=None,
+                        type_params=None,
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                )
+            )
+
+            class_dict_creation_function.deferred_annotations = None
+    elif (
         python_version >= 0x360
         and class_dict_creation_function.needsAnnotationsDictionary()
     ):
@@ -570,6 +620,7 @@ def buildClassNode3(provider, node, source_ref):
                     defaults=(),
                     kw_defaults=None,
                     annotations=None,
+                    type_params=None,
                     source_ref=source_ref,
                 ),
                 values=(
@@ -1025,6 +1076,7 @@ def makeExpressionSelectMetaclass(metaclass, bases, source_ref):
                 defaults=(),
                 kw_defaults=None,
                 annotations=None,
+                type_params=None,
                 source_ref=source_ref,
             ),
             values=(metaclass, bases),
@@ -1233,7 +1285,10 @@ def getClassSelectMetaClassHelper():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import getArchitecture, getOS, isLinux, isWin32Windows
+from nuitka.Version import getNuitkaVersion
 
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
@@ -47,6 +48,8 @@ def getOffsetsJsonRequiredKeys(for_python_version_str):
         keys.extend(["imports", "static_objects", "ceval"])
         if for_python_version_tuple >= (3, 13):
             keys.append("stoptheworld")
+        if for_python_version_tuple >= (3, 14):
+            keys.append("ref_tracer")
     else:
         keys.append("gilstate")
 
@@ -72,7 +75,129 @@ def isOffsetsJsonOutdated(json_path, for_python_version_str):
     return False
 
 
-def adaptPythonHeaderFile(content):
+def _replaceExpectedInAdaptedPythonHeaderFile(content, filename, old, new):
+    count = content.count(old)
+
+    assert count == 1, (
+        "Expected exactly one adapted header replacement match in '%s', but got %d for %r."
+        % (filename, count, old)
+    )
+
+    return content.replace(old, new)
+
+
+def _substituteExpectedInAdaptedPythonHeaderFile(
+    content, filename, pattern, replacement
+):
+    result, count = re.subn(pattern, replacement, content)
+
+    assert count == 1, (
+        "Expected exactly one adapted header regex replacement match in '%s', but got %d for %r."
+        % (filename, count, pattern)
+    )
+
+    return result
+
+
+def _applyExpectedAdaptedPythonHeaderReplacements(adapted, filename):
+    if filename == "pycore_global_objects.h":
+        adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+            content=adapted,
+            filename=filename,
+            old="(*((_PyRuntimeState*)Nuitka_Error_DoNotUseFunction())).static_objects.NAME",
+            new="Nuitka_PyRuntime__static_objects->NAME",
+        )
+
+        if 0x3E0 <= python_version < 0x3F0 and shallMakeModule():
+            adapted = _substituteExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                pattern=(
+                    r"#define _Py_INTERP_CACHED_OBJECT\(interp, NAME\) \\\n\s+"
+                    r"\(interp\)->cached_objects\.NAME"
+                ),
+                replacement=(
+                    "#define _Py_INTERP_CACHED_OBJECT(interp, NAME) \\\n"
+                    "    Nuitka_PyInterpreterState_GetCachedObjects(interp)->NAME"
+                ),
+            )
+            adapted = _substituteExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                pattern=(
+                    r"#define _Py_INTERP_STATIC_OBJECT\(interp, NAME\) \\\n\s+"
+                    r"\(interp\)->static_objects\.NAME"
+                ),
+                replacement=(
+                    "#define _Py_INTERP_STATIC_OBJECT(interp, NAME) \\\n"
+                    "    Nuitka_PyInterpreterState_GetStaticObjects(interp)->NAME"
+                ),
+            )
+
+    if filename == "pycore_object.h" and 0x3E0 <= python_version < 0x3F0:
+        adapted = _substituteExpectedInAdaptedPythonHeaderFile(
+            content=adapted,
+            filename=filename,
+            pattern=r"#\s+define _Py_DEC_REFTOTAL\(interp\) \\\n\s+interp->object_state\.reftotal--",
+            replacement="#  define _Py_DEC_REFTOTAL(interp) \\\n    _Py_DecRefTotal(_PyThreadState_GET())",
+        )
+
+        if shallMakeModule() and isPythonWithGil():
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_TRACK(op) \\\n        _PyObject_GC_TRACK(_PyObject_CAST(op))",
+                new="#  define _PyObject_GC_TRACK(op) \\\n        Nuitka_GC_Track(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="#  define _PyObject_GC_UNTRACK(op) \\\n        _PyObject_GC_UNTRACK(_PyObject_CAST(op))",
+                new="#  define _PyObject_GC_UNTRACK(op) \\\n        Nuitka_GC_UnTrack(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="""\
+#  define _PyObject_GC_TRACK(op) \\
+        _PyObject_GC_TRACK(__FILE__, __LINE__, _PyObject_CAST(op))""",
+                new="#  define _PyObject_GC_TRACK(op) \\\n        Nuitka_GC_Track(_PyObject_CAST(op))",
+            )
+            adapted = _replaceExpectedInAdaptedPythonHeaderFile(
+                content=adapted,
+                filename=filename,
+                old="""\
+#  define _PyObject_GC_UNTRACK(op) \\
+        _PyObject_GC_UNTRACK(__FILE__, __LINE__, _PyObject_CAST(op))""",
+                new="#  define _PyObject_GC_UNTRACK(op) \\\n        Nuitka_GC_UnTrack(_PyObject_CAST(op))",
+            )
+
+    if filename == "pycore_stackref.h" and 0x3E0 <= python_version < 0x3F0:
+        adapted = _substituteExpectedInAdaptedPythonHeaderFile(
+            content=adapted,
+            filename=filename,
+            pattern=(
+                r"(int tag = ref\.bits & Py_TAG_BITS;\n\s+)"
+                r"PyObject \*obj = BITS_TO_PTR_MASKED\(ref\);"
+            ),
+            replacement=(
+                r"\1NUITKA_MAY_BE_UNUSED PyObject *obj = BITS_TO_PTR_MASKED(ref);"
+            ),
+        )
+
+    if filename == "pycore_long.h":
+        # _PyLong_FlipSign asserts !_PyLong_IsSmallInt which is stripped as dangerous
+        # (uses _PyRuntime). In debug builds the assert is active and would reference
+        # the poisoned macro, causing an undefined reference at link time.
+        adapted = adapted.replace(
+            "assert(!_PyLong_IsSmallInt(op));",
+            "assert(op != NULL); /* Nuitka: _PyLong_IsSmallInt stripped */",
+        )
+
+    return adapted
+
+
+def adaptPythonHeaderFile(content, filename):
     """Strip dangerous inline functions from a CPython header."""
     # A simple brace-matching state machine to rip out `static inline` blocks
     # that touch `_PyRuntime(State)`.
@@ -123,15 +248,18 @@ def adaptPythonHeaderFile(content):
                 # End of function
                 in_inline_function = False
 
+                full_decl = " ".join(current_block)
+                match = re.search(r"([_a-zA-Z0-9]+)\s*\(", full_decl)
+                func_name = match.group(1) if match else "UNKNOWN_FUNC"
+
+                if func_name == "_Py_freelists_GET":
+                    is_dangerous = True
+
                 if is_dangerous:
                     # Strip it entirely, replace with an error poison string
                     out_lines.append(
                         "/* Nuitka: Stripped dangerous inline function */\n"
                     )
-
-                    full_decl = " ".join(current_block)
-                    match = re.search(r"([_a-zA-Z0-9]+)\s*\(", full_decl)
-                    func_name = match.group(1) if match else "UNKNOWN_FUNC"
 
                     out_lines.append(
                         "#define %s(...) Nuitka_Error_DoNotUseFunction()\n" % func_name
@@ -151,9 +279,8 @@ def adaptPythonHeaderFile(content):
         "(&(*((_PyRuntimeState*)Nuitka_Error_DoNotUseFunction())))",
         adapted,
     )
-    adapted = adapted.replace(
-        "(*((_PyRuntimeState*)Nuitka_Error_DoNotUseFunction())).static_objects.NAME",
-        "Nuitka_PyRuntime__static_objects->NAME",
+    adapted = _applyExpectedAdaptedPythonHeaderReplacements(
+        adapted=adapted, filename=filename
     )
 
     if "Nuitka_Error_DoNotUseFunction" in adapted:
@@ -214,9 +341,15 @@ def ensurePythonInternalsOffsets(cache_dir):
 
 
 def _getPythonInternalHeadersAndHash(internal_include_dir):
-    # Hash the original header contents to ensure cache invalidation on micro-version changes
+    # Hash the original header contents and mode-dependent adaptation settings.
     hash_obj = Hash()
     header_files = []
+
+    hash_obj.updateFromValues(
+        "adapted-python-headers-v2",
+        getNuitkaVersion(),
+        "module" if shallMakeModule() else "non-module",
+    )
 
     for filename in sorted(getFileList(internal_include_dir, only_suffixes=(".h",))):
         header_files.append(filename)
@@ -225,22 +358,42 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
     return header_files, hash_obj.asHexDigest()
 
 
+def _shallCreateAdaptedPythonHeaderFiles():
+    # Python before 3.13 is not affected.
+    if python_version < 0x3D0:
+        return False
+
+    needs_windows_mingw_opt_in = isWin32Windows() and not (
+        isExperimental("force-mingw64") and isMingw64()
+    )
+    is_python314_module_mode = shallMakeModule() and 0x3E0 <= python_version < 0x3F0
+
+    if not shallMakeModule():
+        uses_default_platform_gate = True
+    else:
+        # Python 3.14 module mode needs adapted headers on all OSes due to
+        # cross-patch interpreter layout changes. For MSVC, offsetof is
+        # always correct since the compiler and runtime layouts match.
+        uses_default_platform_gate = (
+            not is_python314_module_mode or needs_windows_mingw_opt_in
+        )
+
+    if uses_default_platform_gate:
+        # TODO: We delay this until we have a better way to detect the compiler
+        # inside of Nuitka and not in Scons.
+        if needs_windows_mingw_opt_in:
+            return False
+
+        if not isLinux() and not isWin32Windows():
+            return False
+
+    return True
+
+
 def createAdaptedPythonHeaderFiles(source_dir):
     """Ensure sanitized internal headers exist in the build cache and JSON offsets are extracted."""
 
-    # Python before 3.13 is not affected.
-    if python_version < 0x3D0:
-        return None
-
-    # TODO: We delay this until we have a better way to detect the compiler
-    # inside of Nuitka and not in Scons.
-    if isWin32Windows() and not (isExperimental("force-mingw64") and isMingw64()):
-        return None
-
-    # Windows is affected due to MinGW64 potentially. If we knew that we use
-    # MSVC or Zig, we could skip this. Right now the compiler detection is not
-    # yet done in Nuitka, so we cannot know it for sure
-    if (not isLinux() and not shallMakeModule()) and not isWin32Windows():
+    if not _shallCreateAdaptedPythonHeaderFiles():
         return None
 
     internal_include_dir = os.path.join(
@@ -281,7 +434,7 @@ def createAdaptedPythonHeaderFiles(source_dir):
         item = os.path.basename(filename)
         if item.startswith("pycore_"):
             content = getFileContents(filename, mode="r", encoding="utf-8")
-            adapted = adaptPythonHeaderFile(content)
+            adapted = adaptPythonHeaderFile(content, rel_path.replace(os.path.sep, "/"))
             putTextFileContents(d, adapted, encoding="utf-8")
 
             if content != adapted:
@@ -313,7 +466,10 @@ def createAdaptedPythonHeaderFiles(source_dir):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

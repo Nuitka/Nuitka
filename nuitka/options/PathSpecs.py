@@ -3,10 +3,12 @@
 
 """Path specifications and templating."""
 
-import os
-
 from nuitka.Tracing import onefile_logger, options_logger
-from nuitka.utils.FileOperations import getUserInputNormalizedPath, isLegalPath
+from nuitka.utils.FileOperations import (
+    getNormalizedPathSep,
+    getUserInputNormalizedPath,
+    isLegalPath,
+)
 
 from .OptionParsing import run_time_variable_names
 
@@ -160,7 +162,7 @@ Absolute run time paths of '%s' can only be at the start of \
 start of '%s=%s', using that alone is not allowed.""" % (candidate, arg_name, value))
 
         if value.startswith(candidate) and candidate != "{PROGRAM_BASE}":
-            if value[len(candidate)] != os.path.sep:
+            if value[len(candidate)] != getNormalizedPathSep():
                 return options_logger.sysexit(
                     """Cannot use general system folder %s, without a path \
 separator '%s=%s', just appending to these is not allowed, needs to be \
@@ -232,7 +234,10 @@ def expandPathSpec(value):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

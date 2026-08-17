@@ -35,7 +35,13 @@ from nuitka.utils.FileOperations import (
     listDir,
 )
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.SharedLibraries import getPatchElfVersion
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isElfUsingPlatform,
+    isMacOS,
+    isWin32Windows,
+)
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -100,11 +106,13 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 "Error, failed to locate the '%s' installation." % self.binding_name
             )
 
+        if isElfUsingPlatform():
+            self._checkPatchElfVersion()
+
         sensible_qt_plugins = self._getSensiblePlugins()
 
-        self.include_qt_plugins = OrderedSet(
-            sum([value.split(",") for value in self.include_qt_plugins], [])
-        )
+        self.include_qt_plugins = OrderedSet(self.include_qt_plugins)
+        self.noinclude_qt_plugins = OrderedSet(self.noinclude_qt_plugins)
 
         # Useless, but nice for old option usage, where expanding it meant to repeat it.
         if "sensible" in self.include_qt_plugins:
@@ -141,11 +149,20 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
             % self.binding_name,
         )
 
+    def _checkPatchElfVersion(self):
+        patchelf_version, patchelf_version_tuple = getPatchElfVersion(self)
+
+        if (0, 10) <= patchelf_version_tuple < (0, 12):
+            return self.sysexit("""\
+Error, patchelf version '%s' is known to corrupt Qt plugin metadata \
+for standalone '%s' binaries on this platform. Use patchelf 0.12 or \
+newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
+
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="include_qt_plugins",
             default=[],
             help="""\
@@ -157,7 +174,7 @@ not exist, a list of all available will be given.""",
 
         group.add_option(
             "--noinclude-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="noinclude_qt_plugins",
             default=[],
             help="""\
@@ -390,7 +407,7 @@ import %(binding_name)s.QtCore
         )
 
         if info is None:
-            self.sysexit(
+            return self.sysexit(
                 "Error, it seems '%s' is not installed or broken." % self.binding_name
             )
 
@@ -530,24 +547,48 @@ import %(binding_name)s.QtCore
             ".frag",
             "qmldir",
             ".webp",
+            ".md",
         )
 
+        # File types that are build artifacts, not DLLs and not data files,
+        # spell-checker: ignore prl
+        non_dll_artifact_suffixes = (".a", ".la", ".prl", ".obj", ".o", ".cpp")
+
         if dlls:
-            ignore_suffixes = datafile_suffixes
+            ignore_suffixes = datafile_suffixes + non_dll_artifact_suffixes
             only_suffixes = ()
         else:
             ignore_suffixes = ()
             only_suffixes = datafile_suffixes
 
-        return getFileList(
-            qml_plugin_dir,
-            ignore_suffixes=ignore_suffixes,
-            only_suffixes=only_suffixes,
-        )
+        try:
+            return getFileList(
+                qml_plugin_dir,
+                ignore_dirs=("objects-RelWithDebInfo", "objects-Debug"),
+                ignore_suffixes=ignore_suffixes,
+                only_suffixes=only_suffixes,
+            )
+        except PermissionError:
+            return self.sysexit(
+                """\
+Error, failed to scan QML directory '%s' (Permission denied). This \
+indicates a corrupt '%s' installation with wrong file permissions. \
+Try reinstalling the package, or fix the permissions on the directory."""
+                % (qml_plugin_dir, self.binding_name)
+            )
 
     def _findQtPluginDLLs(self):
         for qt_plugins_dir in self.getQtPluginDirs():
-            for filename in getFileList(qt_plugins_dir):
+            try:
+                file_list = getFileList(qt_plugins_dir)
+            except PermissionError:
+                self.sysexit("""\
+Error, failed to scan Qt plugin directory '%s' (Permission denied). \
+This indicates a corrupt '%s' installation with wrong file \
+permissions. Try reinstalling the package, or fix the permissions on \
+the directory.""" % (qt_plugins_dir, self.binding_name))
+
+            for filename in file_list:
                 filename_relative = os.path.relpath(filename, start=qt_plugins_dir)
 
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
@@ -579,6 +620,20 @@ import %(binding_name)s.QtCore
         if top_level_package_name != self.binding_name:
             return
 
+        if child_name == "QtWebView":
+            if "webview" not in self.qt_plugins:
+                self.info(
+                    "Including 'webview' Qt plugins due to '%s' usage." % full_name
+                )
+
+            self.qt_plugins.add("webview")
+
+        if child_name in ("QtQml", "QtQuick", "QtQuickWidgets", "QtQuickControls2"):
+            if "qml" not in self.qt_plugins:
+                self.info("Including 'qml' Qt plugins due to '%s' usage." % full_name)
+
+            self.qt_plugins.add("qml")
+
         # These are alternatives depending on PyQt5 version
         if child_name == "QtCore" and "PyQt" in self.binding_name:
             if python_version < 0x300:
@@ -603,6 +658,7 @@ import %(binding_name)s.QtCore
             "QtSvg",
             "QtTest",
             "QtWebKit",
+            "QtWebView",
             "QtOpenGL",
             "QtXml",
             "QtXmlPatterns",
@@ -641,6 +697,12 @@ import %(binding_name)s.QtCore
             yield self._getChildNamed("QtWebEngineCore")
             yield self._getChildNamed("QtWebChannel")
             yield self._getChildNamed("QtPrintSupport")
+        elif (
+            child_name == "QtWebEngineCore"
+            and self.binding_name == "PySide6"
+            and self._getBindingVersion() >= (6, 10, 0)
+        ):
+            yield self._getChildNamed("QtPrintSupport")
         elif child_name == "QtScriptTools":
             yield self._getChildNamed("QtScript")
         elif child_name in (
@@ -652,6 +714,7 @@ import %(binding_name)s.QtCore
             "QtSvg",
             "QtTest",
             "QtWebKit",
+            "QtWebView",
             "QtPrintSupport",
             "QtWebKitWidgets",
             "QtMultimedia",
@@ -670,6 +733,7 @@ import %(binding_name)s.QtCore
             "QtDesigner",
             "QtHelp",
             "QtTest",
+            "QtWebView",
             "QtPrintSupport",
             "QtSvg",
             "QtOpenGL",
@@ -1333,20 +1397,18 @@ behavior with the uncompiled code."""
             module_set=module_set, plugin_binding_name=self.binding_name
         )
 
-    def onModuleSourceCode(self, module_name, source_filename, source_code):
-        """Third party packages that make binding selections."""
-        # spell-checker: ignore pyqtgraph
-        if module_name.hasNamespace("pyqtgraph"):
-            # TODO: Add a mechanism to force all variable references of a name to something
-            # during tree building, that would cover all uses in a nicer way.
-            source_code = source_code.replace(
-                "{QT_LIB.lower()}", self.binding_name.lower()
-            )
-            source_code = source_code.replace(
-                "QT_LIB.lower()", repr(self.binding_name.lower())
-            )
+    def getVariableConstantValue(self, module_name, variable_name):
+        """Resolve QT_LIB to the active binding name in pyqtgraph modules.
 
-        return source_code
+        This allows the tree builder to replace QT_LIB references with
+        compile-time constants, which enables dead code elimination of
+        Qt binding branches and static resolution of importlib.import_module
+        calls that depend on QT_LIB.
+        """
+        if module_name.hasNamespace("pyqtgraph") and variable_name == "QT_LIB":
+            return self.binding_name
+
+        return None
 
     def onDataFileTags(self, included_datafile):
         if included_datafile.dest_path.endswith(
@@ -1745,7 +1807,10 @@ it for full compatible behavior with the uncompiled code to debug it."""
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -5,6 +5,7 @@ from PySide6 import QtGui
 
 # nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyside6
+# nuitka-project: --no-debug-immortal-assumptions
 
 # nuitka-skip-unless-imports: PySide6.QtGui
 

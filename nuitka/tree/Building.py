@@ -79,6 +79,10 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionRef,
+    makeExpressionFunctionCreation,
+)
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import (
     StatementGeneratorReturn,
@@ -90,6 +94,7 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeDunderCompiledRef,
     ExpressionModuleAttributeFileRef,
     ExpressionModuleAttributeSpecRef,
 )
@@ -118,6 +123,7 @@ from nuitka.options.Options import (
     getMainEntryPointFilenames,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
+    isExperimental,
     isShowMemory,
     isStandaloneMode,
     shallDisableBytecodeCacheUsage,
@@ -171,6 +177,7 @@ from .ReformulationForLoopStatements import (
 from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
     buildFunctionNode,
+    makeDeferredAnnotateFunctionBody,
 )
 from .ReformulationImportStatements import (
     buildImportFromNode,
@@ -208,12 +215,14 @@ from .SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
 )
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildNode,
     buildNodeTuple,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
     getKind,
+    makeDictCreationOrConstant2,
     makeModuleFrame,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
@@ -812,9 +821,47 @@ setBuildingDispatchers(
 )
 
 
+def _makeModuleDeferredAnnotateStatement(provider, source_ref):
+    # PEP 649 module-level deferral: build a module "__annotate__" holding the
+    # forward-ref-tolerant lazy annotations, mirroring the class body path. The
+    # annotation values are built inside the annotate function body, so a module-level
+    # forward reference is only resolved when "__annotations__" is accessed, not at import.
+    outer_body, return_statement = makeDeferredAnnotateFunctionBody(
+        provider=provider, source_ref=source_ref
+    )
+
+    keys = []
+    values = []
+    for var_name, ast_node in provider.deferred_annotations.items():
+        keys.append(var_name)
+        values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+
+    return_statement.subnode_expression = makeDictCreationOrConstant2(
+        keys=keys, values=values, source_ref=source_ref
+    )
+    return_statement.subnode_expression.parent = return_statement
+
+    return StatementAssignmentVariableName(
+        provider=provider,
+        variable_name="__annotate__",
+        source=makeExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=outer_body, source_ref=source_ref
+            ),
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            type_params=None,
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
+
+
 def buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables.
+    # pylint: disable=too-many-branches
 
     # Maybe one day, we do exec inlining again, that is what this is for,
     # then is_module won't be True, for now it always is.
@@ -944,7 +991,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                 )
             )
 
-    if python_version >= 0x300:
+    if 0x300 <= python_version < 0x3F0:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -954,7 +1001,29 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
             )
         )
 
-    if provider.needsAnnotationsDictionary():
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__compiled__",
+            source=ExpressionModuleAttributeDunderCompiledRef(
+                variable=provider.getVariableForReference("__compiled__"),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    )
+
+    if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+        and provider.deferred_annotations
+    ):
+        statements.append(
+            _makeModuleDeferredAnnotateStatement(provider, internal_source_ref)
+        )
+        provider.deferred_annotations = None
+    elif provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariableName(
@@ -1485,7 +1554,10 @@ def buildModule(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

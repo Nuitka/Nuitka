@@ -66,6 +66,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
+    is32BitPython,
     python_version,
     python_version_full_str,
     python_version_str,
@@ -164,8 +165,8 @@ def _getEvaluationContext():
             "win32": isWin32Windows(),
             "linux": isLinux(),
             "android": isAndroidBasedLinux(),
-            "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
-            "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
+            "android32": isAndroidBasedLinux() and is32BitPython(),
+            "android64": isAndroidBasedLinux() and not is32BitPython(),
             "anaconda": isAnacondaPython(),
             "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
@@ -274,7 +275,7 @@ def _convertVersionToTuple(distribution_name, version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    # spell-checker: ignore opencv, pyobjc, objc
+    # spell-checker: ignore opencv,pyobjc,objc
 
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
@@ -589,6 +590,27 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def getVariableConstantValue(self, module_name, variable_name):
+        """Return a compile-time constant value for a module-level variable.
+
+        Notes:
+            During tree building, when a variable reference is being resolved,
+            this hook is consulted. If a non-None value is returned, the
+            variable reference is replaced with a compile-time constant of
+            that value, enabling dead code elimination and static resolution
+            of dynamic imports that depend on the variable.
+
+        Args:
+            module_name: full module name object
+            variable_name: name of the variable being referenced
+
+        Returns:
+            A constant Python value (str, int, etc.) to use instead of the
+            variable reference, or None to use the variable normally.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Inspect or modify source code.
@@ -1208,6 +1230,18 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onInstallerOutput(self, filename):
+        """Called after an installer has been created.
+
+        Args:
+            filename: the created installer, setup executable or DMG file
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         """Suppress import warnings for unknown modules.
 
@@ -1268,18 +1302,21 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def getPreprocessorSymbols(self):
+    def getPreprocessorSymbols(self, onefile):
         """Decide which C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
             a namespace for their defines.
 
+        Args:
+            onefile: bool, True if onefile compilation mode
+
         Returns:
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
         """
-        # Virtual method, pylint: disable=no-self-use
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         # spell-checker: ignore -Dkey
         return None
 
@@ -1325,6 +1362,15 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     def getReportSourceReference(source_ref):
         """Format a source reference suitable for user output."""
         return getReportSourceReference(source_ref)
+
+    def onMetaPathLoaderEntryTemplate(self, module, template_args):
+        """Modify template arguments for meta path loader entry generation.
+
+        Args:
+            module: the module node
+            template_args: dict of template arguments (mutated in-place),
+                e.g. 'flags' (list), 'module_name', 'file_path', etc.
+        """
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
@@ -1398,7 +1444,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def onDataComposerResult(self, blob_filename):
+    def onDataComposerResult(self, blob_filenames):
         """Internal use only.
 
         Returns:
@@ -1418,7 +1464,14 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
     _runtime_information_cache = {}
 
-    def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+    def queryRuntimeInformationMultiple(
+        self, info_name, setup_codes, values, warn_import_error=True
+    ):
+        # TODO: Visit all usages of queryRuntimeInformationMultiple to decide if
+        # warn_import_error=True should be passed for callers where the
+        # setup_code importing a module is expected to potentially fail, then
+        # remove the default argument.
+
         # Rather complicated error handling, pylint: disable=too-many-branches
 
         info_name = self.plugin_name + "_" + info_name
@@ -1505,10 +1558,11 @@ except Exception as e:
             feedback = check_output(command, env=env)
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
-                self.warning(
-                    "Import error (not installed?) during compile time command execution: %s"
-                    % e.stderr.splitlines()[-1]
-                )
+                if warn_import_error:
+                    self.warning(
+                        "Import error (not installed or broken?) during compile time command execution: %s"
+                        % e.stderr.splitlines()[-1]
+                    )
 
                 return None
 
@@ -2088,7 +2142,10 @@ def standalone_only(func):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

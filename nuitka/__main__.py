@@ -42,6 +42,14 @@ def _getEnv(environment_variable_name, default=None):
     return os.environ.get(environment_variable_name, default)
 
 
+def _clearSystemEnvironment(environment_variable_name):
+    # On Windows, removing a value from with nt.environ does not clear the
+    # underlying process environment block, but setting to and empty value
+    # does.
+    if sys.platform == "win32":
+        _environment_module.putenv(environment_variable_name, "")
+
+
 def _delEnv(environment_variable_name):
     if environment_variable_name in _delayed_environment_updates:
         del _delayed_environment_updates[environment_variable_name]
@@ -50,11 +58,15 @@ def _delEnv(environment_variable_name):
         if environment_variable_name in _environment_module.environ:
             del _environment_module.environ[environment_variable_name]
 
+        _clearSystemEnvironment(environment_variable_name)
+
         _delayed_environment_updates[environment_variable_name] = None
         return
 
     if environment_variable_name in os.environ:
         del os.environ[environment_variable_name]
+
+    _clearSystemEnvironment(environment_variable_name)
 
 
 def _applyDelayedEnvironmentUpdates():
@@ -65,6 +77,8 @@ def _applyDelayedEnvironmentUpdates():
         if value is None:
             if environment_variable_name in os.environ:
                 del os.environ[environment_variable_name]
+
+            _clearSystemEnvironment(environment_variable_name)
         else:
             os.environ[environment_variable_name] = value
 
@@ -317,7 +331,10 @@ if __name__ == "__main__":
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

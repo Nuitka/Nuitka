@@ -138,7 +138,7 @@ class FutureSpec(object):
         if 0x350 <= python_version < 0x370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
-        if python_version >= 0x370 and self.future_annotations:
+        if 0x370 <= python_version < 0x3E0 and self.future_annotations:
             result.append("CO_FUTURE_ANNOTATIONS")
 
         return tuple(result)
@@ -190,7 +190,7 @@ _future_version_specific_flags = OrderedDict(
         ("CO_FUTURE_PRINT_FUNCTION", python_version < 0x300),
         ("CO_FUTURE_ABSOLUTE_IMPORT", python_version < 0x300),
         ("CO_FUTURE_GENERATOR_STOP", 0x350 <= python_version < 0x370),
-        ("CO_FUTURE_ANNOTATIONS", python_version >= 0x370),
+        ("CO_FUTURE_ANNOTATIONS", 0x370 <= python_version < 0x3E0),
         ("CO_FUTURE_BARRY_AS_BDFL", python_version >= 0x300),
     )
 )
@@ -215,7 +215,10 @@ def _encodeFlags(flags):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

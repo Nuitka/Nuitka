@@ -198,8 +198,14 @@ static PyObject *Nuitka_YieldFromAsyncgenCore(PyThreadState *tstate, struct Nuit
     // Need to make it unaccessible while using it.
     asyncgen->m_yield_from = NULL;
 
+    // Before yielding to an inner coroutine, swap the outer coroutine's
+    // exception onto the thread state so that sys.exc_info() can see it
+    SAVE_ASYNCGEN_EXCEPTION(tstate, asyncgen);
+
     PyObject *returned_value;
     PyObject *yielded = _Nuitka_YieldFromCore(tstate, yield_from, send_value, &returned_value, mode);
+
+    RESTORE_ASYNCGEN_EXCEPTION(tstate, asyncgen);
 
     if (yielded == NULL) {
         assert(asyncgen->m_yield_from == NULL);
@@ -1016,14 +1022,17 @@ static int Nuitka_Asyncgen_tp_traverse(struct Nuitka_AsyncgenObject *asyncgen, v
     CHECK_OBJECT(asyncgen);
 
     Py_VISIT(asyncgen->m_yield_from);
+    Py_VISIT(asyncgen->m_frame);
 
     for (Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++) {
         Py_VISIT(asyncgen->m_closure[i]);
     }
 
-    Py_VISIT(asyncgen->m_frame);
-
     Py_VISIT(asyncgen->m_finalizer);
+
+#if PYTHON_VERSION >= 0x370
+    Py_VISIT(asyncgen->m_exc_state.exception_value);
+#endif
 
     return 0;
 }
@@ -1464,6 +1473,7 @@ static PyObject *_Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *a
     } else if (asyncgen_asend->m_state == AWAITABLE_STATE_INIT) {
 #if PYTHON_VERSION >= 0x380
         if (asyncgen_asend->m_gen->m_running_async) {
+            asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
                                             "anext(): asynchronous generator is already running");
             return NULL;
@@ -1568,6 +1578,20 @@ static PyObject *_Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *
         SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         return NULL;
     }
+
+#if PYTHON_VERSION >= 0x3c4
+    if (asyncgen_asend->m_state == AWAITABLE_STATE_INIT) {
+        if (asyncgen_asend->m_gen->m_running_async) {
+            asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                            "anext(): asynchronous generator is already running");
+            return NULL;
+        }
+
+        asyncgen_asend->m_state = AWAITABLE_STATE_ITER;
+        asyncgen_asend->m_gen->m_running_async = true;
+    }
+#endif
 
     PyObject *result = Nuitka_Asyncgen_throw(tstate, asyncgen_asend->m_gen, args);
 
@@ -1857,6 +1881,7 @@ static PyObject *_Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject 
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_INIT) {
 #if PYTHON_VERSION >= 0x380
         if (asyncgen_athrow->m_gen->m_running_async) {
+            asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
             if (asyncgen_athrow->m_args == NULL) {
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
                                                 "aclose(): asynchronous generator is already running");
@@ -2035,6 +2060,25 @@ static PyObject *_Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject
 
         return NULL;
     }
+
+#if PYTHON_VERSION >= 0x3c4
+    if (asyncgen_athrow->m_state == AWAITABLE_STATE_INIT) {
+        if (asyncgen_athrow->m_gen->m_running_async) {
+            asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
+            if (asyncgen_athrow->m_args == NULL) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                                "aclose(): asynchronous generator is already running");
+            } else {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                                "athrow(): asynchronous generator is already running");
+            }
+            return NULL;
+        }
+
+        asyncgen_athrow->m_state = AWAITABLE_STATE_ITER;
+        asyncgen_athrow->m_gen->m_running_async = true;
+    }
+#endif
 
     retval = Nuitka_Asyncgen_throw(tstate, asyncgen_athrow->m_gen, args);
 
@@ -2226,7 +2270,10 @@ static void _initCompiledAsyncgenTypes(void) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

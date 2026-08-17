@@ -372,8 +372,8 @@ class OurLogger(object):
             extra_prefix = "Complex topic! "
 
         output_function(
-            """    %sMore information can be found at %s%s"""
-            % (extra_prefix, getEnableStyleCode("link"), url),
+            """    %sMore information can be found at %s"""
+            % (extra_prefix, wrapWithStyles(url, styles=["link"])),
             style=style,
         )
 
@@ -624,6 +624,7 @@ inclusion_logger = FileLogger("Nuitka-Inclusion")
 scons_logger = OurSconsLogger("Nuitka-Scons")
 scons_details_logger = OurLogger("Nuitka-Scons")
 postprocessing_logger = OurLogger("Nuitka-Postprocessing")
+installer_logger = OurLogger("Nuitka-Installer")
 options_logger = OurLogger("Nuitka-Options")
 unusual_logger = OurLogger("Nuitka-Unusual")
 data_composer_logger = OurLogger("Nuitka-DataComposer")
@@ -740,7 +741,10 @@ def _removeNotBreakingSpaces(message):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

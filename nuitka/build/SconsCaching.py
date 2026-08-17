@@ -148,8 +148,8 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
     return False
 
 
-def enableCcache(env, source_dir, python_prefix, disable_ccache):
-    inject_ccache = not disable_ccache and not env.zig_mode
+def enableCcache(env, source_dir, python_prefix):
+    inject_ccache = not env.disable_ccache and not env.zig_mode
 
     if inject_ccache:
         # The ccache needs absolute path, otherwise it will not work.
@@ -249,7 +249,7 @@ def enableClcache(env, source_dir):
     # do it now, so it's not a race issue.
     import concurrent.futures.thread  # pylint: disable=I0021,unused-import,unused-variable
 
-    cl_binary = getExecutablePath(env.the_compiler, env)
+    cl_binary = getExecutablePath(env.the_compiler, env=env)
 
     # The compiler is passed via environment.
     setEnvironmentVariable(env, "CLCACHE_CL", cl_binary)
@@ -512,7 +512,10 @@ def runClCache(args, os_env):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

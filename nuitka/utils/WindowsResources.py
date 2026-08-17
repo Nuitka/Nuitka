@@ -63,9 +63,9 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
         ctypes.wintypes.HMODULE,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.wintypes.LPARAM,
     )
 
     EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
@@ -94,15 +94,23 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     EnumResourceLanguagesCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
         ctypes.wintypes.HMODULE,
-        ctypes.wintypes.LONG,
-        ctypes.wintypes.LONG,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
         ctypes.wintypes.WORD,
-        ctypes.wintypes.LONG,
+        ctypes.wintypes.LPARAM,
     )
 
     result = []
 
+    def _normalizeResourceName(lp_name):
+        if lp_name <= 0xFFFF:
+            return lp_name
+
+        return ctypes.string_at(lp_name)
+
     def callback(hModule, lpType, lpName, _lParam):
+        res_name = _normalizeResourceName(lpName)
+
         langs = []
 
         def callback2(hModule2, lpType2, lpName2, wLang, _lParam):
@@ -131,11 +139,11 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
 
             try:
                 ptr = ctypes.windll.kernel32.LockResource(hData)
-                result.append((lpType, lpName, lang_id, ctypes.string_at(ptr, size)))
+                result.append((lpType, res_name, lang_id, ctypes.string_at(ptr, size)))
             finally:
                 ctypes.windll.kernel32.FreeResource(hData)
         else:
-            result.append((lpName, lang_id))
+            result.append((res_name, lang_id))
 
         return True
 
@@ -639,7 +647,10 @@ def addVersionInfoResource(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

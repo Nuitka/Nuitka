@@ -4,6 +4,7 @@
 """Regression test for macOS PySide6 Qt WebEngine framework inclusion."""
 
 # nuitka-project: --enable-plugin=pyside6
+# nuitka-project: --no-debug-immortal-assumptions
 # nuitka-project: --mode=app
 # nuitka-project: --macos-app-icon=none
 

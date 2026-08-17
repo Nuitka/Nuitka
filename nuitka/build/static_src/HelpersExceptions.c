@@ -9,7 +9,8 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
+#include "nuitka/exceptions.h"
 #endif
 
 void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {
@@ -27,7 +28,29 @@ void SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyObject *exception_type, char const *f
 }
 
 void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped) {
+#if PYTHON_VERSION >= 0x3e0
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *type = (PyObject *)Py_TYPE(mistyped);
+    PyObject *qualname = LOOKUP_ATTRIBUTE(tstate, type, const_str_plain___qualname__);
+
+    if (qualname != NULL && PyUnicode_Check(qualname)) {
+        char const *name = PyUnicode_AsUTF8(qualname);
+
+        if (name != NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, name);
+            Py_DECREF(qualname);
+            return;
+        }
+
+        Py_DECREF(qualname);
+    } else {
+        CLEAR_ERROR_OCCURRED(tstate);
+    }
+
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, Py_TYPE(mistyped)->tp_name);
+#endif
 }
 
 static char const *TYPE_NAME_DESC(PyObject *type) {
@@ -289,7 +312,10 @@ error:
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

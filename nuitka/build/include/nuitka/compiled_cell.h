@@ -7,6 +7,12 @@
  * compatible, just in case somebody crazy insists on it.
  */
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 extern PyTypeObject Nuitka_Cell_Type;
 
 static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
@@ -65,7 +71,10 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_Cell_SET(struct Nuitka_CellObject
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

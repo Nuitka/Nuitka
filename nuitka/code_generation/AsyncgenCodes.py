@@ -36,6 +36,7 @@ def getAsyncgenObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_asyncgen_object_maker_template % {
@@ -114,6 +115,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        type_params_name=None,
     )
 
     return template_asyncgen_object_body % {
@@ -175,7 +177,10 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -26,6 +26,7 @@ from nuitka.tools.quality.Git import (
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.Diffs import printUnifiedDiff
 from nuitka.utils.Execution import check_call, getExecutablePath
 from nuitka.utils.FileOperations import (
     addFileContentsBOM,
@@ -48,7 +49,7 @@ from nuitka.utils.PrivatePipSpace import (
 
 def _shouldNotFormatCode(filename, effective_filename):
     """Check if a file should not be formatted."""
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     parts = os.path.normpath(effective_filename).split(os.path.sep)
 
@@ -66,6 +67,8 @@ def _shouldNotFormatCode(filename, effective_filename):
     if "tests" in parts and "syntax" in parts:
         return True
     if "tests" in parts and "scratch" in parts:
+        return True
+    if "tests" in parts and "nuitka_protected_strings" in parts:
         return True
     if ".dist/" in effective_filename:
         return True
@@ -280,6 +283,7 @@ def formatText(
             filename=filename,
             effective_filename=effective_filename,
             update=True,
+            assume_yes_for_downloads=assume_yes_for_downloads,
         )
         formatYaml(
             logger=logger,
@@ -317,12 +321,6 @@ def autoFormatFile(
     check_only=False,
     effective_filename=None,
     trace=True,
-    limit_yaml=False,
-    limit_python=False,
-    limit_c=False,
-    limit_rst=False,
-    limit_md=False,
-    limit_json=False,
     ignore_errors=False,
     ignore_yaml_diff=True,
     assume_yes_for_downloads=False,
@@ -335,12 +333,6 @@ def autoFormatFile(
         check_only: bool - indicate if only checking is to be done
         effective_filename: str - derive type of file from this name
         trace: bool - indicate if progress should be traced
-        limit_yaml: bool - limit to YAML files
-        limit_python: bool - limit to Python files
-        limit_c: bool - limit to C files
-        limit_rst: bool - limit to RST files
-        limit_md: bool - limit to MD files
-        limit_json: bool - limit to JSON files
         ignore_errors: bool - ignore errors during formatting
         ignore_yaml_diff: bool - ignore diffs in YAML files
         assume_yes_for_downloads: bool - assume yes for tool downloads
@@ -349,7 +341,7 @@ def autoFormatFile(
         bool: True if changes were made (or if check failed), False otherwise.
     """
 
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -423,28 +415,6 @@ def autoFormatFile(
         else:
             is_txt = False
 
-        if limit_yaml or limit_python or limit_c or limit_rst or limit_md or limit_json:
-            is_match = False
-
-            if effective_filename.endswith(".nuitka-package.config.yml") and limit_yaml:
-                is_match = True
-            elif (is_c or is_cpp) and limit_c:
-                is_match = True
-            elif is_python and limit_python:
-                is_match = True
-            elif effective_filename.endswith((".rst", ".inc")) and limit_rst:
-                is_match = True
-            elif (
-                effective_filename.endswith(".md")
-                or os.path.basename(effective_filename) == ".cursorrules"
-            ) and limit_md:
-                is_match = True
-            elif is_json and limit_json:
-                is_match = True
-
-            if not is_match:
-                is_python = is_c = is_cpp = is_txt = is_json = is_png = is_jpeg = False
-
         if not (is_python or is_c or is_cpp or is_txt or is_json or is_png or is_jpeg):
             deleteFile(tmp_filename, must_exist=True)
             return False
@@ -468,7 +438,6 @@ def autoFormatFile(
                     logger=tools_logger,
                     filename=tmp_filename,
                     effective_filename=effective_filename,
-                    check_only=check_only,
                     assume_yes_for_downloads=assume_yes_for_downloads,
                     reject_message="Formatting C files needs 'clang-format'.",
                 )
@@ -484,13 +453,19 @@ def autoFormatFile(
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
         elif is_json:
-            formatJson(
-                tmp_filename,
-                effective_filename=effective_filename,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-            )
+            if not _shouldNotFormatCode(
+                filename=tmp_filename, effective_filename=effective_filename
+            ):
+                formatJson(
+                    tmp_filename,
+                    effective_filename=effective_filename,
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                )
         elif is_png or is_jpeg:
-            formatImage(tmp_filename, logger=tools_logger)
+            if not _shouldNotFormatCode(
+                filename=tmp_filename, effective_filename=effective_filename
+            ):
+                formatImage(tmp_filename, logger=tools_logger)
 
         if is_python:
             _transferBOM(filename, tmp_filename)
@@ -580,6 +555,19 @@ def withFileOpenedAndAutoFormatted(
             tmp_filename, mode="rb"
         ) != getFileContents(filename, mode="rb"):
             if check_only:
+                if not os.path.exists(filename):
+                    old_lines = []
+                else:
+                    old_lines = getFileContents(filename).splitlines()
+
+                printUnifiedDiff(
+                    old_lines=old_lines,
+                    new_lines=getFileContents(tmp_filename).splitlines(),
+                    old_filename="a/" + filename,
+                    new_filename="b/" + filename,
+                    my_print=my_print,
+                )
+
                 tools_logger.sysexit(
                     "Error, generated code for %s would change." % effective_filename
                 )
@@ -595,7 +583,10 @@ def withFileOpenedAndAutoFormatted(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

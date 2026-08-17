@@ -23,7 +23,7 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     bool needs_recycle = false;
 
     if (index < PyTuple_MAXSAVESIZE) {
-        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->tuples[index]);
+        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&Nuitka_Py_freelists_GET(tstate)->tuples[index]);
     } else {
         result_tuple = NULL;
     }
@@ -81,12 +81,11 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     }
 
 #if PYTHON_VERSION >= 0x3e0
-    // Python 3.14 tuples carry a cached hash value and have a dedicated
-    // recycler for freelist entries.
-    if (needs_recycle) {
-        _PyTuple_Recycle((PyObject *)result_tuple);
-    } else {
-        _PyTuple_RESET_HASH_CACHE((PyObject *)result_tuple);
+    // Python 3.14 tuples carry a cached hash value. Re-track recycled tuples
+    // through "Nuitka_GC_Track", because CPython changed where GC accounting
+    // happens between 3.14.0 and 3.14.1+.
+    _PyTuple_RESET_HASH_CACHE((PyObject *)result_tuple);
+    if (!needs_recycle || !_PyObject_GC_IS_TRACKED((PyObject *)result_tuple)) {
         Nuitka_GC_Track(result_tuple);
     }
 #else
@@ -168,7 +167,10 @@ PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

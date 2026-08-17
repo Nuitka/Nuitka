@@ -284,8 +284,14 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(PyThreadState *tstate, struct Nu
     // Need to make it unaccessible while using it.
     coroutine->m_yield_from = NULL;
 
+    // Before yielding to an inner coroutine, swap the outer coroutine's
+    // exception onto the thread state so that sys.exc_info() can see it
+    SAVE_COROUTINE_EXCEPTION(tstate, coroutine);
+
     PyObject *returned_value;
     PyObject *yielded = _Nuitka_YieldFromCore(tstate, yield_from, send_value, &returned_value, mode);
+
+    RESTORE_COROUTINE_EXCEPTION(tstate, coroutine);
 
     if (yielded == NULL) {
         assert(coroutine->m_yield_from == NULL);
@@ -1007,12 +1013,16 @@ static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutin
 
     // TODO: Identify the impact of not visiting owned objects like module
     Py_VISIT(coroutine->m_yield_from);
+    Py_VISIT(coroutine->m_frame);
 
     for (Py_ssize_t i = 0; i < coroutine->m_closure_given; i++) {
         Py_VISIT(coroutine->m_closure[i]);
     }
 
-    Py_VISIT(coroutine->m_frame);
+#if PYTHON_VERSION >= 0x370
+    Py_VISIT(coroutine->m_exc_state.exception_value);
+#endif
+    Py_VISIT(coroutine->m_returned);
 
     return 0;
 }
@@ -1056,6 +1066,7 @@ static PySendResult _Nuitka_Coroutine_am_send(struct Nuitka_CoroutineObject *cor
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
 #endif
+    *result = NULL;
     PyThreadState *tstate = PyThreadState_GET();
 
     // We need to transfer ownership of the sent value.
@@ -1588,7 +1599,11 @@ static PyObject *Nuitka_GetAwaitableIter(PyThreadState *tstate, PyObject *value)
         return result;
     }
 
+#if PYTHON_VERSION >= 0x3e0 && defined(_NUITKA_FULL_COMPAT)
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "'%s' object can't be awaited", Py_TYPE(value)->tp_name);
+#else
     SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("object %s can't be used in 'await' expression", value);
+#endif
 
     return NULL;
 }
@@ -1970,7 +1985,10 @@ static void _initCompiledCoroutineTypes(void) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

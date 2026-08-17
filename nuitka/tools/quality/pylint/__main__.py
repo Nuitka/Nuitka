@@ -19,6 +19,10 @@ from nuitka.utils.FileOperations import (
     getFileModificationTime,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.PrivatePipSpace import (
+    getRequiredVersion,
+    tryDownloadPackageName,
+)
 
 
 def _getPathParts(filename):
@@ -147,9 +151,120 @@ Insist on PyLint to be installed. Default is %default.""",
 Watch files for changes. Default is %default.""",
     )
 
+    parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""\
+Allow download and execution of tools if needed. Default is %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     return options, positional_args
+
+
+def _watchPylint(options, positional_args):
+    prev_filenames = set()
+    prev_modification_times = {}
+
+    while True:
+        try:
+            filenames = _resolveFilenames(
+                options=options, positional_args=positional_args
+            )
+
+            # Check for changes
+            new_filenames = set(filenames)
+            new_modification_times = {}
+
+            for filename in filenames:
+                try:
+                    new_modification_times[filename] = getFileModificationTime(filename)
+                except OSError:
+                    new_modification_times[filename] = None
+
+            changed = new_filenames != prev_filenames
+            if not changed:
+                for filename, modification_time in new_modification_times.items():
+                    if (
+                        filename not in prev_modification_times
+                        or prev_modification_times[filename] != modification_time
+                    ):
+                        changed = True
+                        break
+
+            if changed:
+                my_print(">>> Pylint Start")
+                try:
+                    executePyLint(
+                        filenames=filenames,
+                        show_todo=options.todo,
+                        verbose=options.verbose,
+                        one_by_one=options.one_by_one,
+                    )
+                except SystemExit:
+                    pass
+
+                my_print(">>> Pylint End")
+
+                prev_filenames = new_filenames
+                prev_modification_times = new_modification_times
+
+            time.sleep(0.5)
+
+        except KeyboardInterrupt:
+            break
+
+    return tools_logger.sysexit(exit_code=0)
+
+
+def _ensurePylintInstalled(options):
+    site_packages_folder = None
+
+    if options.assume_yes_for_downloads:
+        # Try private pip space first. If the correct version is already
+        # installed there, this returns it without any prompt or download.
+        site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+            logger=tools_logger,
+            package_name="pylint",
+            module_name="pylint",
+            package_version=getRequiredVersion(tools_logger, "pylint"),
+            force_update=False,
+            assume_yes_for_downloads=True,
+            reject_message="PyLint is needed for checking source code.",
+        )
+
+        if site_packages_folder is not None:
+            addPYTHONPATH(site_packages_folder)
+
+            # Also ensure astroid in the private pip space.
+            tryDownloadPackageName(
+                logger=tools_logger,
+                package_name="astroid",
+                module_name="astroid",
+                package_version=getRequiredVersion(
+                    tools_logger,
+                    "astroid",
+                ),
+                force_update=False,
+                assume_yes_for_downloads=True,
+                reject_message=None,
+            )
+
+            return True
+
+    # Private pip space not available, fall back to global.
+    if options.not_installed_is_no_error:
+        tools_logger.warning(
+            "PyLint is not installed for this interpreter version: SKIPPED",
+            style="yellow",
+        )
+
+        return False
+
+    return hasModule("pylint")
 
 
 def main():
@@ -161,71 +276,11 @@ def main():
 
     options, positional_args = _parseArguments()
 
-    if options.not_installed_is_no_error and not hasModule("pylint"):
-        tools_logger.warning(
-            "PyLint is not installed for this interpreter version: SKIPPED",
-            style="yellow",
-        )
-
+    if not _ensurePylintInstalled(options):
         return tools_logger.sysexit(exit_code=0)
 
-    # Scan files for changes periodically, for use in Visual Code task to
-    # present errors.
     if options.watch:
-        prev_filenames = set()
-        prev_modification_times = {}
-
-        while True:
-            try:
-                filenames = _resolveFilenames(
-                    options=options, positional_args=positional_args
-                )
-
-                # Check for changes
-                new_filenames = set(filenames)
-                new_modification_times = {}
-
-                for filename in filenames:
-                    try:
-                        new_modification_times[filename] = getFileModificationTime(
-                            filename
-                        )
-                    except OSError:
-                        new_modification_times[filename] = None
-
-                changed = new_filenames != prev_filenames
-                if not changed:
-                    for filename, modification_time in new_modification_times.items():
-                        if (
-                            filename not in prev_modification_times
-                            or prev_modification_times[filename] != modification_time
-                        ):
-                            changed = True
-                            break
-
-                if changed:
-                    my_print(">>> Pylint Start")
-                    try:
-                        executePyLint(
-                            filenames=filenames,
-                            show_todo=options.todo,
-                            verbose=options.verbose,
-                            one_by_one=options.one_by_one,
-                        )
-                    except SystemExit:
-                        pass
-
-                    my_print(">>> Pylint End")
-
-                    prev_filenames = new_filenames
-                    prev_modification_times = new_modification_times
-
-                time.sleep(0.5)
-
-            except KeyboardInterrupt:
-                break
-
-        return tools_logger.sysexit(exit_code=0)
+        return _watchPylint(options=options, positional_args=positional_args)
 
     filenames = _resolveFilenames(options=options, positional_args=positional_args)
 
@@ -250,7 +305,10 @@ def main():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -28,6 +28,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *calle
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
 extern Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value);
+extern void DEEP_HASH_BLOB(Py_hash_t *hash, void const *s, Py_ssize_t size);
 #endif
 
 // For profiling of Nuitka compiled binaries
@@ -174,6 +175,14 @@ extern PyObject *BUILTIN_CALLABLE(PyObject *value);
 
 // For quicker iter() functionality if 2 arguments arg given.
 extern PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel);
+
+// For quicker enumerate() functionality.
+extern PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence);
+extern PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
+extern PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables);
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *BUILTIN_ZIP310(PyThreadState *tstate, PyObject *iterables, PyObject *strict);
+#endif
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1(PyObject *arg);
@@ -339,6 +348,9 @@ extern PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks);
 // Get the containing directory as an object with symlinks resolved or not.
 extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
+// Get the loaded extension filename for module/package mode.
+extern PyObject *getDllFilenameObject(void);
+
 // Get the original argv[0] as recorded by the bootstrap stage. Returns
 // None, if not available, in module mode.
 #if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
@@ -411,7 +423,10 @@ extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool gen
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

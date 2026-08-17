@@ -7,7 +7,6 @@ from nuitka.__past__ import long
 from nuitka.options.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
-from nuitka.States import states
 from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker: ignore fromlist
@@ -47,9 +46,11 @@ def getConstantDefaultPopulation():
         "__class__",
         "__name__",
         "__package__",
+        "__bases__",
         "__metaclass__",
         "__abstractmethods__",
         "__closure__",
+        "__instancecheck__",
         # TODO: For PyObject_IsSubClass one day
         # "__subclasscheck__",
         "__dict__",
@@ -217,9 +218,7 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x3A0:
         result.append("__match_args__")
-
-        if states.is_debug:
-            result.append("__args__")
+        result.append("__args__")
 
     if python_version >= 0x3B0:
         result.append("__aenter__")
@@ -228,8 +227,12 @@ def getConstantDefaultPopulation():
         # Exception group split method call
         result.append("split")
 
-    if python_version >= 0x3C0:
-        result.append("Unpack")
+        if python_version >= 0x3C0:
+            result.append("Unpack")
+
+    if python_version >= 0x3E0:
+        # For exception complaint using __qualname__.
+        result.append("__qualname__")
 
     if isWin32Windows():
         result.append("fileno")
@@ -251,7 +254,10 @@ def getConstantDefaultPopulation():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -49,6 +49,8 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
+took_ms_re = re.compile(r"took \d+ ms")
+
 did_you_mean_re = re.compile(r"\. Did you mean:? '.*?'\?")
 # spell-checker:enable
 
@@ -71,6 +73,35 @@ def import_re_callback(match):
     )
 
 
+def splitOutputLines(output):
+    lines = output.split(b"\n")
+
+    result = []
+
+    for line in lines:
+        if type(line) is not str:
+            try:
+                line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            except UnicodeDecodeError:
+                line = repr(line)
+
+        if line.endswith("\r"):
+            line = line[:-1]
+
+        result.append(line)
+
+    return result
+
+
+def _normalizeTracebackSourceLine(line):
+    stripped_line = line.lstrip()
+
+    if not stripped_line or syntax_error_caret_re.match(stripped_line):
+        return line
+
+    return "    " + stripped_line
+
+
 def makeDiffable(output, ignore_warnings, syntax_errors):
     # Take any arbitrary test output from CPython and make it work against
     # Nuitka's output. For example, some tracebacks would take a lot of work
@@ -85,25 +116,16 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
     if m:
         output = output[len(m.group()) :]
 
-    lines = output.split(b"\n")
+    lines = splitOutputLines(output)
     if syntax_errors:
         for line in lines:
-            if line.startswith(b"SyntaxError:"):
+            if line.startswith("SyntaxError:"):
                 lines = [line]
                 break
 
     skip_gcc_source_context = False
 
     for index, line in enumerate(lines):
-        if type(line) is not str:
-            try:
-                line = line.decode("utf-8" if os.name != "nt" else "cp850")
-            except UnicodeDecodeError:
-                line = repr(line)
-
-        if line.endswith("\r"):
-            line = line[:-1]
-
         if skip_gcc_source_context:
             skip_gcc_source_context = False
 
@@ -152,13 +174,16 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         # TODO: Maybe we need Nuitka-Prompt as a logger used there?
         if (
-            line.startswith("Nuitka will make use of ccache")
+            line.startswith("Nuitka depends on '")
+            or line.startswith("Nuitka will make use of ccache")
             or line.startswith("Fully automatic, cached.")
             or "Is it OK to download" in line
         ):
             continue
 
         if syntax_error_caret_re.match(line):
+            # Nuitka does not produce PEP 657 caret lines in traceback output.
+            # Drop them from CPython's side to match.
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
@@ -193,6 +218,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
         line = non_ascii_error_rt.sub(r"\1 xxxx", line)
         line = timing_re.sub(r"in x.xx seconds", line)
+        line = took_ms_re.sub(r"took xx ms", line)
 
         # Windows has a different "os.path", update according to it.
         line = line.replace("ntpath", "posixpath")
@@ -288,6 +314,7 @@ exceeded while calling a Python object' in \
         # Ignore macOS system log noise emitted by GUI backends such as
         # matplotlib. This contains timestamp, process name, and ids that are
         # expected to differ between CPython and compiled binaries.
+        # spell-checker: ignore NSXPC
         if (
             "NSXPCSharedListener endpointForReply:withListenerName:replyErrorCode"
             in line
@@ -302,6 +329,21 @@ exceeded while calling a Python object' in \
         # Ensure that there's only a single line for each file in the traceback
         if 'File "' in line:
             end_index = None
+
+            # Nuitka: The C-API traceback_print produces blank lines between
+            # frames that CPython does not. Strip them from both sides.
+            while index + 1 < len(lines) and lines[index + 1] == "":
+                lines.pop(index + 1)
+
+            if index + 1 < len(lines):
+                next_line = lines[index + 1]
+
+                if next_line.startswith("  "):
+                    lines[index + 1] = _normalizeTracebackSourceLine(next_line)
+
+                while index + 2 < len(lines) and lines[index + 2] == "":
+                    lines.pop(index + 2)
+
             for next_index, next_line in enumerate(lines[index + 1 :]):
                 # TODO: Deduplicate this code.
                 if type(next_line) is not str:
@@ -347,10 +389,51 @@ def compareOutput(
     ignore_warnings,
     syntax_errors,
     trace_result=True,
+    no_diffable=False,
+    compiled_only_exclusive_lines=(),
+    uncompiled_only_exclusive_lines=(),
 ):
+    # Many cases to deal with, pylint: disable=too-many-branches,too-many-locals
+    if no_diffable:
+        old_lines = splitOutputLines(out_cpython)
+        new_lines = splitOutputLines(out_nuitka)
+    else:
+        old_lines = makeDiffable(out_cpython, ignore_warnings, syntax_errors)
+        new_lines = makeDiffable(out_nuitka, ignore_warnings, syntax_errors)
+
+    exclusive_line_failures = 0
+
+    if compiled_only_exclusive_lines:
+        for expected in compiled_only_exclusive_lines:
+            if expected not in new_lines:
+                if trace_result:
+                    my_print(
+                        "Error: Expected compiled-only line %r not found in Nuitka output."
+                        % expected,
+                    )
+                exclusive_line_failures += 1
+
+        new_lines = [
+            line for line in new_lines if line not in compiled_only_exclusive_lines
+        ]
+
+    if uncompiled_only_exclusive_lines:
+        for expected in uncompiled_only_exclusive_lines:
+            if expected not in old_lines:
+                if trace_result:
+                    my_print(
+                        "Error: Expected uncompiled-only line %r not found in CPython output."
+                        % expected,
+                    )
+                exclusive_line_failures += 1
+
+        old_lines = [
+            line for line in old_lines if line not in uncompiled_only_exclusive_lines
+        ]
+
     diff = getUnifiedDiff(
-        old_lines=makeDiffable(out_cpython, ignore_warnings, syntax_errors),
-        new_lines=makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
+        old_lines=old_lines,
+        new_lines=new_lines,
         old_filename="%s (%s)" % (os.environ["PYTHON"], kind),
         new_filename="%s (%s)" % ("nuitka", kind),
         num_lines=3,
@@ -368,6 +451,8 @@ def compareOutput(
                 my_print(line)
 
         return 1
+    elif exclusive_line_failures:
+        return 1
     else:
         return 0
 
@@ -379,7 +464,10 @@ def compareOutput(
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

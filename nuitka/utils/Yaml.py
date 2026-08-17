@@ -20,6 +20,7 @@ import pkgutil
 import re
 from posixpath import normpath
 
+from nuitka.__past__ import re_sub
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
@@ -28,7 +29,7 @@ from .FileOperations import getFileContents
 from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
-from .PrivatePipSpace import getPrivatePackage
+from .PrivatePipSpace import getPrivatePackage, getRequiredVersion
 
 
 def _isParsable(value):
@@ -85,7 +86,7 @@ def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement)
         return False
 
     try:
-        re.sub(regexp, replacement, "", re.S)
+        _unused = re_sub(regexp, replacement, "", flags=re.S)
     except re.error as e:
         logger.info(
             """\
@@ -299,7 +300,7 @@ def getJsonschemaPackage(logger, assume_yes_for_downloads, reject_message):
         logger=logger,
         package_name="jsonschema",
         module_name="jsonschema",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "jsonschema"),
         submodule_names=("validators",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
@@ -312,7 +313,7 @@ def getRuamelYamlPackage(logger, assume_yes_for_downloads):
         logger=logger,
         package_name="ruamel.yaml",
         module_name="ruamel.yaml",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "ruamel.yaml"),
         submodule_names=None,
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message="Autoformat YAML needs ruamel.yaml.",
@@ -325,7 +326,7 @@ def getYamllintPackage(logger, assume_yes_for_downloads, reject_message):
         logger=logger,
         package_name="yamllint",
         module_name="yamllint",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "yamllint"),
         submodule_names=("cli",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message=reject_message,
@@ -338,7 +339,7 @@ def getDeepDiffPackage(logger, assume_yes_for_downloads):
         logger=logger,
         package_name="deepdiff",
         module_name="deepdiff",
-        package_version=None,
+        package_version=getRequiredVersion(logger, "deepdiff"),
         submodule_names=("diff",),
         assume_yes_for_downloads=assume_yes_for_downloads,
         reject_message="Autoformat YAML needs deepdiff.",
@@ -724,7 +725,10 @@ def getYamlPackageConfigurationSchemaFilename():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

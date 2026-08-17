@@ -74,6 +74,7 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32OrPosixWindows,
 )
+from nuitka.utils.Zipfiles import getZipFile
 
 from .FakeModules import locateFakeModule
 from .IgnoreListing import isIgnoreListedNotExistingModule
@@ -98,6 +99,9 @@ def setupImportingFromOptions():
 
     global _safe_path
     _safe_path = hasPythonFlagNoCurrentDirectoryInPath()
+
+    global _setup_complete
+    _setup_complete = True
 
     # Lets try and have this complete, please report failures.
     if states.is_debug and not isMonolithPy():
@@ -141,6 +145,9 @@ warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
 _main_paths = OrderedSet()
+
+# Flag indicating that importing layer setup has completed.
+_setup_complete = False
 
 # Additions to sys.paths from plugins.
 _extra_paths = OrderedSet()
@@ -215,6 +222,9 @@ def addMainScriptDirectory(main_dir):
 
     We use this as part of the search path for modules.
     """
+    global _setup_complete  # singleton, pylint: disable=global-statement
+    _setup_complete = True
+
     _main_paths.add(main_dir)
 
 
@@ -714,28 +724,20 @@ def getRecompileDecisionReason(module_name):
     return _recompile_extension_modules.get(module_name, (None, None))
 
 
-def _findModuleInPath2(package_name, module_name, search_path, logger):
-    """This is out own module finding low level implementation.
-
-    Just the full module name and search path are given. This is then
-    tasked to raise "ImportError" or return a path if it finds it, or
-    None, if it is a built-in.
-    """
-    # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches
-
-    # We may have to decide between package and module, therefore build
-    # a list of candidates.
+def _findModuleInPathCandidates(package_name, module_name, search_path):
     candidates = OrderedSet()
 
     considered = set()
 
-    for count, search_path_entry in enumerate(search_path):
+    for search_index, search_path_entry in enumerate(search_path):
+        normalized_search_path_entry = os.path.normcase(search_path_entry)
+
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
-        if os.path.normcase(search_path_entry) in considered:
+        if normalized_search_path_entry in considered:
             continue
-        considered.add(os.path.normcase(search_path_entry))
+
+        considered.add(normalized_search_path_entry)
 
         package_directory = getNormalizedPathJoin(
             search_path_entry, module_name.asPath()
@@ -745,74 +747,107 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
             module_name=module_name,
             package_name=package_name,
             search_path=search_path,
-            search_index=count,
+            search_index=search_index,
             search_path_entry=search_path_entry,
             package_directory=package_directory,
         ):
             candidates.add(candidate)
 
+    return candidates
+
+
+def _addSetuptoolsDistutilsCandidates(candidates, module_name):
+    setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
+
+    if setuptools_package_dir is None:
+        return
+
+    for candidate in _findModuleInPath3(
+        module_name=module_name,
+        package_name=None,
+        search_path=[],
+        search_path_entry=None,
+        package_directory=setuptools_package_dir,
+        search_index=-1,
+    ):
+        candidates.add(candidate)
+
+
+def _sortModuleScanCandidates(candidates):
+    # Sort by priority, with entries from same path element coming first, then
+    # desired type.
+    if any(candidate.module_type == "C_EXTENSION" for candidate in candidates):
+
+        def prioritize(candidate):
+            if candidate.module_type == "PY_SOURCE":
+                decision, reason = decideRecompileExtensionModules(candidate.found_as)
+                _recompile_extension_modules[candidate.found_as] = decision, reason
+            else:
+                decision = False
+
+            return (
+                candidate.search_order,
+                ((candidate.priority - 2) if decision else candidate.priority),
+            )
+
+    else:
+
+        def prioritize(candidate):
+            return (candidate.search_order, candidate.priority)
+
+    return tuple(sorted(candidates, key=prioritize))
+
+
+def _pickBestModuleScanCandidate(candidates):
+    candidates = _sortModuleScanCandidates(candidates)
+
+    # On case sensitive systems, no resolution needed.
+    if case_sensitive:
+        return candidates[0]
+
+    for candidate in candidates:
+        if candidate.found_in is None:
+            return candidate
+
+        for fullname, _filename in listDirCached(candidate.found_in):
+            if fullname == candidate.full_path:
+                return candidate
+
+    return None
+
+
+def _getModuleKind(found_candidate):
+    if found_candidate.module_type == "C_EXTENSION":
+        return "extension"
+    elif found_candidate.module_type == "PY_COMPILED":
+        return "pyc"
+    else:
+        return "py"
+
+
+def _findModuleInPath2(package_name, module_name, search_path, logger):
+    """This is out own module finding low level implementation.
+
+    Just the full module name and search path are given. This is then
+    tasked to raise "ImportError" or return a path if it finds it, or
+    None, if it is a built-in.
+    """
+    # We may have to decide between package and module, therefore build
+    # a list of candidates.
+    candidates = _findModuleInPathCandidates(
+        package_name=package_name, module_name=module_name, search_path=search_path
+    )
+
     # TODO: Make this a plugin decision instead.
     if not candidates and package_name is None and module_name == "distutils":
-        setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
-
-        if setuptools_package_dir is not None:
-            for candidate in _findModuleInPath3(
-                module_name=module_name,
-                package_name=None,
-                search_path=[],
-                search_path_entry=None,
-                package_directory=setuptools_package_dir,
-                search_index=-1,
-            ):
-                candidates.add(candidate)
+        _addSetuptoolsDistutilsCandidates(
+            candidates=candidates, module_name=module_name
+        )
 
     if logger is not None:
         logger.info("Candidates: %r" % candidates)
 
-    found_candidate = None
-
-    if candidates:
-        # Sort by priority, with entries from same path element coming first, then desired type. In case
-        # pf there being an extension module,
-        if any(c.module_type == "C_EXTENSION" for c in candidates):
-
-            def prioritize(c):
-                if c.module_type == "PY_SOURCE":
-                    decision, reason = decideRecompileExtensionModules(c.found_as)
-                    _recompile_extension_modules[c.found_as] = decision, reason
-                else:
-                    decision = False
-
-                return (
-                    c.search_order,
-                    ((c.priority - 2) if decision else c.priority),
-                )
-
-        else:
-
-            def prioritize(c):
-                return (c.search_order, c.priority)
-
-        candidates = tuple(sorted(candidates, key=prioritize))
-
-        # On case sensitive systems, no resolution needed.
-        if case_sensitive:
-            found_candidate = candidates[0]
-        else:
-            for candidate in candidates:
-                if candidate.found_in is None:
-                    found_candidate = candidate
-                else:
-                    for fullname, _filename in listDirCached(candidate.found_in):
-                        if fullname == candidate.full_path:
-                            found_candidate = candidate
-                            break
-
-                if found_candidate:
-                    break
-
-            # Only exact case matches matter, all candidates were ignored,
-            # lets just fall through to raising the import error.
+    found_candidate = _pickBestModuleScanCandidate(candidates) if candidates else None
 
     if found_candidate is None:
         # Nothing found.
@@ -829,17 +864,10 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
         # Not usable for target architecture.
         raise ImportError
 
-    if found_candidate.module_type == "C_EXTENSION":
-        module_kind = "extension"
-    elif found_candidate.module_type == "PY_COMPILED":
-        module_kind = "pyc"
-    else:
-        module_kind = "py"
-
     return (
         found_candidate.found_as,
         found_candidate.full_path,
-        module_kind,
+        _getModuleKind(found_candidate),
     )
 
 
@@ -859,10 +887,15 @@ def _unpackPathElement(path_entry):
 
                 if not os.path.exists(target_dir):
                     try:
-                        # Not all Python versions allow using with here, pylint: disable=consider-using-with
-                        zip_ref = zipfile.ZipFile(path_entry, "r")
-                        zip_ref.extractall(target_dir)
-                        zip_ref.close()
+                        with getZipFile(
+                            zip_path=path_entry,
+                            error_exit=False,
+                            logger=recursion_logger,
+                        ) as zip_ref:
+                            if zip_ref is None:
+                                raise zipfile.BadZipFile("Bad zip file.")
+
+                            zip_ref.extractall(target_dir)
                     except BaseException:
                         removeDirectory(
                             target_dir,
@@ -890,7 +923,7 @@ def getPackageSearchPath(package_name):
     # TODO: Some branches here are hard coded things that ought to be plugin
     # decisions, pylint: disable=too-many-branches
 
-    if not _main_paths:
+    if not _setup_complete:
         return None
 
     if package_name is None:
@@ -1070,7 +1103,7 @@ def locateModule(module_name, parent_package, level, logger=None):
         kind.
     """
 
-    if not _main_paths:
+    if not _setup_complete:
         raise NuitkaCodeDeficit(
             "Error, cannot locate modules before import mechanism is setup."
         )
@@ -1251,6 +1284,7 @@ _stdlib_module_raises = {
     "_posixsubprocess": False,
     "_queue": False,
     "_random": False,
+    "_remote_debugging": False,
     "_scproxy": False,
     "_sha": False,  # TODO: Not entirely clear if that's true
     "_sha1": False,
@@ -1292,6 +1326,7 @@ _stdlib_module_raises = {
     "_xxsubinterpreters": False,
     "_xxinterpchannels": False,
     "_zoneinfo": False,
+    "_zstd": False,
     "array": False,
     "atexit": False,
     "audioop": False,
@@ -1378,7 +1413,10 @@ def getChildPackageNames(module_name):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

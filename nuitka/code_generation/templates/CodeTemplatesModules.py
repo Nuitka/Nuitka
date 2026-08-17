@@ -62,10 +62,20 @@ static PyObject *module_filename_obj = NULL;
 /* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
+NUITKA_DECLARE_CONSTANT_BLOB(
+    %(module_const_blob_symbol_name)s,
+    %(module_const_blob_symbol_name)s,
+    const
+);
+
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, (PyObject **)&mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+#if %(use_direct_constant_blobs)d
+        LOAD_DIRECT_CONSTANTS_BLOB(tstate, (PyObject **)&mod_consts, %(module_const_blob_symbol_name)s);
+#else
+        loadConstantsBlob(tstate, &mod_consts, UN_TRANSLATE(%(module_const_blob_name)s));
+#endif
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -99,7 +109,7 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
     if (dk->dk_version != 0) {
         return dk->dk_version;
     }
-    uint32_t result = interp->dict_state.next_keys_version++;
+    uint32_t result = Nuitka_PyInterpreterState_GetDictState(interp)->next_keys_version++;
     dk->dk_version = result;
     return result;
 }
@@ -300,7 +310,7 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
     }
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad");
+    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad", false);
     if (pre_load == NULL) {
         return NULL;
     }
@@ -322,12 +332,16 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
     }
 #endif
 
-    // Set "__compiled__" to what version information we have.
+    // For Python 3.11 standalone modules, package "__path__" is inserted by the
+    // loader before module code runs. Pre-seed "__compiled__" for non-packages
+    // to keep their dangerous dict slots aligned with packages.
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3c0 && _NUITKA_STANDALONE_MODE && !%(is_package)s
     UPDATE_STRING_DICT0(
         moduledict_%(module_identifier)s,
         (Nuitka_StringObject *)const_str_plain___compiled__,
         Nuitka_dunder_compiled_value
     );
+#endif
 
     // Update "__package__" value to what it ought to be.
     {
@@ -338,40 +352,25 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
             %(dunder_main_package)s
         );
 #elif %(is_package)s
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-
         UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
-            module_name
+            GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__)
         );
 #else
-
-#if PYTHON_VERSION < 0x300
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-        char const *module_name_cstr = PyString_AS_STRING(module_name);
-
-        char const *last_dot = strrchr(module_name_cstr, '.');
-
-        if (last_dot != NULL) {
-            UPDATE_STRING_DICT1(
-                moduledict_%(module_identifier)s,
-                (Nuitka_StringObject *)const_str_plain___package__,
-                PyString_FromStringAndSize(module_name_cstr, last_dot - module_name_cstr)
+        {
+            PyObject *parent_name = makeParentModuleName(
+                GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__)
             );
-        }
-#else
-        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
-        Py_ssize_t dot_index = PyUnicode_Find(module_name, const_str_dot, 0, PyUnicode_GetLength(module_name), -1);
 
-        if (dot_index != -1) {
-            UPDATE_STRING_DICT1(
-                moduledict_%(module_identifier)s,
-                (Nuitka_StringObject *)const_str_plain___package__,
-                PyUnicode_Substring(module_name, 0, dot_index)
-            );
+            if (parent_name != NULL) {
+                UPDATE_STRING_DICT1(
+                    moduledict_%(module_identifier)s,
+                    (Nuitka_StringObject *)const_str_plain___package__,
+                    parent_name
+                );
+            }
         }
-#endif
 #endif
     }
 
@@ -398,11 +397,12 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
 #if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
 
-#if %(is_dunder_main)s
+#if %(is_dunder_main)s && !%(has_main_package)s
     // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else
-    // Other modules get a "ModuleSpec" from the standard mechanism.
+    // Other modules, and main modules running as a package (-m flag),
+    // get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = getImportLibBootstrapModule();
         CHECK_OBJECT(bootstrap_module);
@@ -448,7 +448,7 @@ PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *mod
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
     {
-        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
+        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad", false);
         if (post_load == NULL) {
             return NULL;
         }
@@ -702,7 +702,10 @@ TemplateDebugWrapper.checkDebug(globals())
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

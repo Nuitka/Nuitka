@@ -19,6 +19,8 @@ from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.Tracing import general
 
+from .SpecialConstantData import BlobData
+
 
 class ExceptionCannotNamify(Exception):
     pass
@@ -174,6 +176,8 @@ def namifyConstant(constant):
         return "uniontype_%s" % namifyConstant(constant.__args__)
     elif constant is sys.version_info:
         return "sys_version_info"
+    elif constant_type is BlobData:
+        return "blob_" + _namifyString(constant.getData())
     else:
         raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 
@@ -251,7 +255,10 @@ def _digest(value):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

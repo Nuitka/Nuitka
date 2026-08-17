@@ -94,7 +94,8 @@ class nuitka_distribution(Distribution):\n\
         PyObject *metadata = PyTuple_GET_ITEM(metadata_value_item, 1);
         PyObject *entry_points = PyTuple_GET_ITEM(metadata_value_item, 2);
 
-        struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString_Unchecked(package_name));
+        struct Nuitka_MetaPathBasedLoaderEntry *entry =
+            findEntry(Nuitka_String_AsString_Unchecked(package_name), false);
 
         if (unlikely(entry == NULL)) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_RuntimeError,
@@ -118,7 +119,10 @@ class nuitka_distribution(Distribution):\n\
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

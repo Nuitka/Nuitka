@@ -6,21 +6,24 @@ Source: https://nuitka.net/
 # No spell checking for this file, spell-checker: disable
 
 Files: *
-Copyright: 2026 Kay Hayen
+Copyright: 2008-2026 Kay Hayen
            2020 Batakrishna Sahu
            2020 Jan Teske
            2020 Jorj McKie
            2020 Paweł Kierzkowski
            2020 Tommy Li
 License: AGPL-3.0+Nuitka_comment
- Part of "Nuitka", an optimizing Python compiler that is compatible and
+ Nuitka is an optimizing Python compiler that is compatible and
  integrates with CPython, but also works on its own.
  .
  Licensed under the GNU Affero General Public License, Version 3 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
  .
-    http://www.gnu.org/licenses/agpl.txt
+    https://www.gnu.org/licenses/agpl-3.0.txt
+ .
+ See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+ "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
  .
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,7 +39,7 @@ Files:
    tests/programs
    tests/reflected
    tests/type_inference
-Copyright: 2026 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2008-2026 Kay Hayen <kay.hayen@gmail.com>
 License: Apache+Nuitka_test_origin
  Python tests originally created or extracted from other peoples work. The
  parts were too small to be protected.
@@ -199,7 +202,7 @@ License: PSF2+Percivall
 
 Files:
   debian
-Copyright: 2026 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2008-2026 Kay Hayen <kay.hayen@gmail.com>
 License: Apache
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.

@@ -14,7 +14,12 @@
  *
  */
 
-extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
+
+extern void loadConstantsBlob(PyThreadState *tstate, void *, char const *name);
+extern void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char const *data);
 
 // We define a macro that declares the external symbols and provides accessor functions.
 // For INCBIN/C23, the generating C file already defines these functions, so we just declare them.
@@ -25,6 +30,11 @@ extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *na
 
 #include "nuitka/blobs.h"
 
+#ifndef LOAD_DIRECT_CONSTANTS_BLOB
+#define LOAD_DIRECT_CONSTANTS_BLOB(tstate, output, blob_symbol_name)                                                   \
+    loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -34,7 +44,10 @@ extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *na
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

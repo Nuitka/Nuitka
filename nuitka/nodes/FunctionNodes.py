@@ -40,8 +40,8 @@ from nuitka.Variables import LocalVariable, updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ChildrenHavingDefaultsTupleFunctionRefMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
     ChildrenHavingFunctionValuesTupleMixin,
 )
 from .CodeObjectSpecs import CodeObjectSpec
@@ -164,8 +164,20 @@ class ExpressionFunctionBodyBase(
     def hasFlag(self, flag):
         return self.flags is not None and flag in self.flags
 
+    def addFlag(self, flag):
+        if self.flags is None:
+            self.flags = set()
+
+        if isinstance(self.flags, frozenset):
+            self.flags = set(self.flags)
+
+        self.flags.add(flag)
+
     def discardFlag(self, flag):
         if self.flags is not None:
+            if isinstance(self.flags, frozenset):
+                self.flags = set(self.flags)
+
             self.flags.discard(flag)
 
     @staticmethod
@@ -885,7 +897,7 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
 
 
 def makeExpressionFunctionCreation(
-    function_ref, defaults, kw_defaults, annotations, source_ref
+    function_ref, defaults, kw_defaults, annotations, type_params, source_ref
 ):
     if kw_defaults is not None and kw_defaults.isExpressionConstantDictEmptyRef():
         kw_defaults = None
@@ -904,6 +916,7 @@ def makeExpressionFunctionCreation(
             defaults=defaults,
             kw_defaults=kw_defaults,
             annotations=annotations,
+            type_params=type_params,
             source_ref=source_ref,
         )
 
@@ -1082,6 +1095,7 @@ class ExpressionFunctionCreationOld(
     # So the can share code generation with the new version.
     subnode_annotations = None
     subnode_kw_defaults = None
+    subnode_type_params = None
 
     named_children = (
         "defaults|tuple",
@@ -1104,7 +1118,7 @@ class ExpressionFunctionCreationOld(
 
 class ExpressionFunctionCreation(
     ExpressionFunctionCreationMixin,
-    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
+    ChildrenExpressionFunctionCreationMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_FUNCTION_CREATION"
@@ -1120,17 +1134,21 @@ class ExpressionFunctionCreation(
         "kw_defaults|optional",
         "annotations|optional",
         "function_ref",
+        "type_params|optional",
     )
 
     __slots__ = ("variable_closure_traces",)
 
-    def __init__(self, defaults, kw_defaults, annotations, function_ref, source_ref):
-        ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin.__init__(
+    def __init__(
+        self, defaults, kw_defaults, annotations, function_ref, type_params, source_ref
+    ):
+        ChildrenExpressionFunctionCreationMixin.__init__(
             self,
             kw_defaults=kw_defaults,
             defaults=defaults,
             annotations=annotations,
             function_ref=function_ref,
+            type_params=type_params,
         )
 
         ExpressionBase.__init__(self, source_ref)
@@ -1334,7 +1352,10 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

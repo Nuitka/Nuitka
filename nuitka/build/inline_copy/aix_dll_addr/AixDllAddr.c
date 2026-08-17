@@ -32,7 +32,7 @@ typedef struct dl_info {
   char* dli_fname;
   void* dli_fbase;
   const char* dli_sname;
-  void* dli_sbase;
+  void* dli_saddr;
 } Dl_info;
 
 /**
@@ -115,10 +115,11 @@ int dladdr(void* s, Dl_info* i) {
 	char *buf = malloc(10000);
 	i->dli_fbase = NULL;
 	i->dli_fname = NULL;
-	i->dli_sbase = NULL;
+	i->dli_saddr = NULL;
 	i->dli_sname = NULL;
 	int r = loadquery (L_GETINFO, buf, 10000);
 	if (r == -1) {
+		free(buf);
 		return 0;
 	}
 	/* The loader info structures are also a linked list. */
@@ -156,7 +157,7 @@ int dladdr(void* s, Dl_info* i) {
 			 * (Perhaps we could deref if a descriptor though...)
 			 */
 			if (cs >= tb && cs <= te) {
-				dladdr_get_symbol(&i->dli_sbase, &i->dli_sname, s);
+				dladdr_get_symbol(&i->dli_saddr, &i->dli_sname, s);
 			}
 
 			free(buf);

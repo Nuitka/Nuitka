@@ -6,6 +6,7 @@
 import os
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
+from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginGi(NuitkaPluginBase):
@@ -45,6 +46,7 @@ if not os.getenv("GI_TYPELIB_PATH"):
                         "gi.Repository.get_default().get_typelib_path('GObject')",
                     ),
                 ),
+                warn_import_error=False,
             )
 
             if gi_typelib_info is not None:
@@ -66,6 +68,13 @@ if not os.getenv("GI_TYPELIB_PATH"):
             yield "gi.overrides.Gdk"
             yield "gi.overrides.GLib"
             yield "gi.overrides.GObject"
+
+            if isWin32Windows():
+                yield "gi.overrides.GLibWin32"
+                yield "gi.overrides.GioWin32"
+            else:
+                yield "gi.overrides.GLibUnix"
+                yield "gi.overrides.GioUnix"
         elif full_name == "gi._gi":
             yield "gi._error"
         elif full_name == "gi._gi_cairo":
@@ -108,7 +117,10 @@ if not os.getenv("GI_TYPELIB_PATH"):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

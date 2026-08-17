@@ -20,12 +20,15 @@ try:
 except ImportError:
     pass
 else:
-    data = pkg_resources.resource_string(__package__, "DATA_FILE2.txt")
-    print("pkg_resources.resource_string", data)
+    try:
+        data = pkg_resources.resource_string(__package__, "DATA_FILE2.txt")
+        print("pkg_resources.resource_string", data)
 
-    readable = pkg_resources.resource_stream(__package__, "DATA_FILE3.txt")
-    data = readable.read()
-    print("pkg_resources.resource_readable.read()", data)
+        readable = pkg_resources.resource_stream(__package__, "DATA_FILE3.txt")
+        data = readable.read()
+        print("pkg_resources.resource_readable.read()", data)
+    except AttributeError:
+        pass
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

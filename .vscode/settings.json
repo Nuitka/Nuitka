@@ -250,6 +250,7 @@
     "diffable",
     "distutils",
     "dllexport",
+    "dlopen",
     "dontwritebytecode",
     "Doxygen",
     "dpkg",

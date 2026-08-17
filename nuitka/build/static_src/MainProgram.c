@@ -22,6 +22,15 @@
 
 #include "nuitka/prelude.h"
 
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
+#endif
+
 #ifndef __IDE_ONLY__
 // Generated during build with optional defines.
 #include "build_definitions.h"
@@ -263,7 +272,7 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 
 #if _DEBUG_REFCOUNTS
 static void PRINT_REFCOUNTS(void) {
-    // spell-checker: ignore Asend, Athrow
+    // spell-checker: ignore Asend,Athrow
 
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
@@ -402,7 +411,9 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
                             "<frozen importlib._bootstrap>")) {
                 tstate->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
+                // Process is exiting, not releasing the old head frame
+                // here is acceptable.
+                Py_XINCREF(tb->tb_next);
 
                 continue;
             }
@@ -490,7 +501,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
             memset(buffer, 0, sizeof(buffer));
             memcpy(buffer, module_name, s - module_name);
 
-            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer);
+            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer, false);
 
             if (HAS_ERROR_OCCURRED(tstate)) {
                 return result;
@@ -498,7 +509,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
         }
     }
 
-    return IMPORT_EMBEDDED_MODULE(tstate, module_name);
+    return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -720,10 +731,11 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
 }
 
-#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE
 
 static long onefile_ppid;
 
+#if defined(_WIN32)
 static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
 
@@ -759,6 +771,29 @@ static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
 
     return 0;
 }
+#else
+static void *doOnefileParentMonitoring(void *arg) {
+    NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
+
+    for (;;) {
+        sleep(1);
+
+        if (kill(onefile_ppid, 0) == -1 && errno == ESRCH) {
+            break;
+        }
+    }
+
+    NUITKA_PRINT_TRACE("Onefile parent monitoring causes KeyboardInterrupt.");
+    PyErr_SetInterrupt();
+
+    usleep(_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT * 1000);
+
+    NUITKA_PRINT_TRACE("Onefile parent monitoring hard kills after ignored KeyboardInterrupt.");
+    _exit(1);
+
+    return NULL;
+}
+#endif
 #endif
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
@@ -1263,10 +1298,9 @@ static void Nuitka_Py_Initialize(void) {
 #if _NUITKA_STANDALONE_MODE
     config.use_frozen_modules = 0;
 #else
-// Emulate PYTHON_FROZEN_MODULES for accelerated mode, it is only added in 3.13,
-// but we need to control it for controlling things for accelerated binaries
-// too.
-#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION <= 0x3d0
+// Emulate PYTHON_FROZEN_MODULES for accelerated mode, we need to control
+// it for controlling things for accelerated binaries too.
+#if PYTHON_VERSION >= 0x3b0
     environment_char_t const *frozen_modules_env = getEnvironmentVariable("PYTHON_FROZEN_MODULES");
 
     if (frozen_modules_env == NULL ||
@@ -1445,6 +1479,9 @@ extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #if PYTHON_VERSION >= 0x3d0
 PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
+#if PYTHON_VERSION >= 0x3f0
+PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+#endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
 static native_command_line_argument_t const *original_argv0 = NULL;
@@ -1531,6 +1568,43 @@ void setLANGSystemLocaleMacOS(void) {
 }
 #endif
 
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+// In onefile mode, the onefile bootstrap parent process forwards signals
+// to the child. When SIGINT is delivered to the process group (killpg),
+// the child receives it both from the group delivery and from the parent
+// forwarding. This detects and suppresses the duplicate.
+
+static void (*_python_saved_sigint_handler)(int) = NULL;
+static volatile struct timeval _last_sigint_timeval = {0, 0};
+static volatile sig_atomic_t _last_sigint_from_parent = 0;
+
+static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
+    bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
+    struct timeval now;
+
+    if (gettimeofday(&now, NULL) == 0) {
+        if (_last_sigint_timeval.tv_sec != 0) {
+            long elapsed_ms =
+                (now.tv_sec - _last_sigint_timeval.tv_sec) * 1000 + (now.tv_usec - _last_sigint_timeval.tv_usec) / 1000;
+
+            if (elapsed_ms >= 0 && elapsed_ms < 100) {
+                if (from_parent || _last_sigint_from_parent) {
+                    // Duplicate detected, suppress.s
+                    return;
+                }
+            }
+        }
+        _last_sigint_timeval.tv_sec = now.tv_sec;
+        _last_sigint_timeval.tv_usec = now.tv_usec;
+        _last_sigint_from_parent = from_parent;
+    }
+
+    if (_python_saved_sigint_handler != NULL) {
+        _python_saved_sigint_handler(sig);
+    }
+}
+#endif
+
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
@@ -1558,8 +1632,11 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     // Attach to the parent console respecting redirection only, otherwise we
-    // cannot even output traces.
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) && !_NUITKA_DLL_MODE
+    // cannot even output traces. In onefile DLL mode the bootstrap (static
+    // CRT) already attached, but the DLL (dynamic CRT) has a separate CRT
+    // instance whose stdout is still uninitialized.
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) &&                                                       \
+    (!_NUITKA_DLL_MODE || defined(_NUITKA_ONEFILE_DLL_MODE))
     inheritAttachedConsole();
 #endif
 
@@ -1778,12 +1855,12 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if NO_PYTHON_WARNINGS
     NUITKA_PRINT_TRACE("main(): Disabling Python warnings.");
     {
+
 #if PYTHON_VERSION >= 0x300
         wchar_t ignore[] = L"ignore";
 #else
         char ignore[] = "ignore";
 #endif
-
         PySys_ResetWarnOptions();
         PySys_AddWarnOption(ignore);
     }
@@ -1810,6 +1887,26 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     /* Initialize the embedded CPython interpreter. */
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
+
+#if _NUITKA_ONEFILE_MODE && !defined(_WIN32)
+    // Install a SIGINT wrapper that suppresses duplicate signals from
+    // killpg + parent forwarding in onefile mode.
+    {
+        struct sigaction old_action;
+
+        if (sigaction(SIGINT, NULL, &old_action) == 0) {
+            if (old_action.sa_handler != SIG_DFL && old_action.sa_handler != SIG_IGN) {
+                _python_saved_sigint_handler = old_action.sa_handler;
+
+                struct sigaction new_action;
+                new_action.sa_sigaction = _ourSigintDeduplicationHandler;
+                new_action.sa_flags = SA_SIGINFO;
+                sigemptyset(&new_action.sa_mask);
+                sigaction(SIGINT, &new_action, NULL);
+            }
+        }
+    }
+#endif
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -1990,6 +2087,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
+
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled. Must be initialized
+    // before the meta path loader, otherwise PGO probes triggered during
+    // loader setup will write to an uninitialized 'pgo_output' and crash.
+    PGO_Initialize();
+#endif
+
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
@@ -2011,19 +2116,9 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 #endif
 
-#if _NUITKA_PGO_PYTHON
-    // Profiling with our own Python PGO if enabled.
-    PGO_Initialize();
-#endif
-
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
-
-// TODO: Python3.13 NoGIL: This is causing errors during bytecode import
-// that are unexplained.
-#if !defined(Py_GIL_DISABLED)
     patchInspectModule(tstate);
-#endif
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
@@ -2106,7 +2201,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_ssize_t size = PyList_Size(argv_list);
 
         // Negative indexes are not supported by this function.
-        int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
@@ -2137,7 +2232,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
             EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
-        int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
+        NUITKA_MAY_BE_UNUSED int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
         assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
@@ -2199,15 +2294,20 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else {
 #endif
-#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE
         {
-            char buffer[128] = {0};
-            DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
+            environment_char_t const *parent_pid_str = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
 
-            if (size > 0 && size < 127) {
-                onefile_ppid = atol(buffer);
-
-                CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+            if (parent_pid_str != NULL && parent_pid_str[0] != 0) {
+                if (getEnvironmentVariableValueAsLong(parent_pid_str, &onefile_ppid)) {
+#if defined(_WIN32)
+                    CreateThread(NULL, 0, doOnefileParentMonitoring, NULL, 0, NULL);
+#else
+                    pthread_t thread;
+                    pthread_create(&thread, NULL, doOnefileParentMonitoring, NULL);
+                    pthread_detach(thread);
+#endif
+                }
             }
         }
 #endif
@@ -2362,7 +2462,10 @@ __attribute__((weak)) void __warn_memset_zero_len(void) {}
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

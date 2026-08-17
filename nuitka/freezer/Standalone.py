@@ -35,9 +35,11 @@ from nuitka.Progress import (
 )
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
+    getMacPortsInstallPath,
     isAnacondaPython,
     isCPythonOfficialPackage,
     isHomebrewPython,
+    isMacPortsPython,
     isMonolithPy,
     isMSYS2MingwPython,
     isPyenvHomebrewPython,
@@ -63,6 +65,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.SharedLibraries import (
     copyDllFile,
+    detectBinaryPathDLLsCoff,
     getStandaloneEntryPointRPATHs,
     setSharedLibraryRPATH,
 )
@@ -70,6 +73,7 @@ from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
     getOS,
+    isCoffUsingPlatform,
     isDebianBasedLinux,
     isElfUsingPlatform,
     isMacOS,
@@ -87,7 +91,10 @@ from .DllDependenciesWin32 import (
     detectBinaryPathDLLsWin32,
     shallIncludeVCRedistDLL,
 )
-from .IncludedDataFiles import getIncludedFrameworkDistPathFromSourcePath
+from .IncludedDataFiles import (
+    addIncludedPdbFile,
+    getIncludedFrameworkDistPathFromSourcePath,
+)
 from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
@@ -164,9 +171,12 @@ def _detectBinaryDLLs(
 
     if is_main_executable and isMonolithPy():
         return OrderedSet()
-    elif (
-        getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD", "AIX") or isPosixWindows()
-    ):
+    elif isCoffUsingPlatform():
+        return detectBinaryPathDLLsCoff(
+            filename=original_filename,
+            package_name=package_name,
+        )
+    elif getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
         return detectBinaryPathDLLsPosix(
             dll_filename=original_filename,
             package_name=package_name,
@@ -295,6 +305,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
     )
+
+    addIncludedPdbFile(main_standalone_entry_point)
 
     return main_standalone_entry_point, copy_standalone_entry_points
 
@@ -587,6 +599,9 @@ def _reduceToPythonPath(used_dll_paths):
     if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
         inside_paths.insert(0, getSystemPrefixPath())
 
+    if isMacPortsPython():
+        inside_paths.insert(0, getMacPortsInstallPath())
+
     if isHomebrewPython() or isPyenvHomebrewPython():
         inside_paths.insert(0, getHomebrewInstallPath())
 
@@ -793,7 +808,10 @@ def detectUsedDLLs(standalone_entry_points, source_dir):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -79,6 +79,11 @@ def onFinalResult(filename):
     return Plugins.onFinalResult(filename=filename)
 
 
+def onInstallerOutput(filename):
+    """Called after an installer has been created."""
+    return Plugins.onInstallerOutput(filename=filename)
+
+
 def getPluginsCacheContributionValues(module_name):
     """Let plugins provide values that need to be taken into account for caching."""
 
@@ -93,7 +98,12 @@ def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 
 
-def getPreprocessorSymbols():
+def onMetaPathLoaderEntryTemplate(module, template_args):
+    """Let plugins modify meta path loader entry template arguments."""
+    Plugins.onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
+
+
+def getPreprocessorSymbols(onefile):
     """Let plugins provide C defines to be used in compilation.
 
     Notes:
@@ -104,8 +114,7 @@ def getPreprocessorSymbols():
         OrderedDict(), where None value indicates no define value,
         i.e. "-Dkey=value" vs. "-Dkey"
     """
-    # spell-checker: ignore Dkey
-    return Plugins.getPreprocessorSymbols()
+    return Plugins.getPreprocessorSymbols(onefile=onefile)
 
 
 def getExtraIncludeDirectories():
@@ -116,7 +125,7 @@ def getExtraIncludeDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraIncludeDirectories()
 
@@ -129,7 +138,7 @@ def getExtraLinkDirectories():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of paths to include as well.
+        tuple of paths to include as well.
     """
     return Plugins.getExtraLinkDirectories()
 
@@ -142,7 +151,7 @@ def getExtraLinkLibraries():
         order will be plugin order.
 
     Returns:
-        OrderedSet() of library names to link against.
+        tuple of library names to link against.
     """
     return Plugins.getExtraLinkLibraries()
 
@@ -192,6 +201,18 @@ def decideDocStrings(module_name):
 def onClassBodyParsing(provider, class_name, node):
     return Plugins.onClassBodyParsing(
         provider=provider, class_name=class_name, node=node
+    )
+
+
+def getVariableConstantValue(module_name, variable_name):
+    """Let plugins provide compile-time constant values for module-level variables.
+
+    Returns:
+        The constant value from the first plugin that returns non-None,
+        or None if no plugin provides a value.
+    """
+    return Plugins.getVariableConstantValue(
+        module_name=module_name, variable_name=variable_name
     )
 
 
@@ -303,8 +324,8 @@ def onDataComposerRun():
     return Plugins.onDataComposerRun()
 
 
-def onDataComposerResult(blob_filename):
-    return Plugins.onDataComposerResult(blob_filename=blob_filename)
+def onDataComposerResult(blob_filenames):
+    return Plugins.onDataComposerResult(blob_filenames=blob_filenames)
 
 
 def getModuleSpecificDllPaths(module_name):
@@ -378,7 +399,10 @@ def getUncompiledDecoratorNames():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

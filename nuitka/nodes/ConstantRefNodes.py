@@ -189,7 +189,7 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         # This is expected to be overloaded by child classes that disagree, bool, int, long and float
         return False
 
-    def isIndexable(self):
+    def isKnownToBeValidIndex(self):
         # TODO: Suspiciously this doesn't use isIndexConstant, which includes float, bug?
         return self.constant is None or self.isNumberConstant()
 
@@ -1708,7 +1708,10 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

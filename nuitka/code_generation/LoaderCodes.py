@@ -32,7 +32,7 @@ from nuitka.options.Options import (
     isStandaloneMode,
     shallMakeModule,
 )
-from nuitka.plugins.Hooks import encodeDataComposerName
+from nuitka.plugins.Hooks import onMetaPathLoaderEntryTemplate
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
@@ -48,19 +48,24 @@ from .templates.CodeTemplatesLoader import (
 )
 
 
-def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
+def _getMetaPathLoaderNameCode(module_name, name_index):
+    return "MAKE_NAME(%s, %d)" % (
+        encodePythonStringToC(module_name.encode("utf8")),
+        name_index,
+    )
+
+
+def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, name_index):
     module_name = module.getFullName()
 
-    module_c_name = encodePythonStringToC(
-        encodeDataComposerName(module_name.asString())
-    )
+    module_c_name = _getMetaPathLoaderNameCode(module_name.asString(), name_index)
 
     # Value of compile_time_name defaults to NULL and is only present in module
     # mode.
     if shallMakeModule():
         module_c_name += ", NULL"
 
-    flags = ["NUITKA_TRANSLATED_FLAG"]
+    flags = []
 
     if (
         not isStandaloneMode()
@@ -94,12 +99,13 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
             name="bytecode of module '%s'" % module.getFullName(),
         )
 
-        return template_metapath_loader_bytecode_module_entry % {
+        template_args = {
             "module_name": module_c_name,
             "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
             "size": len(code_data),
-            "flags": " | ".join(flags),
+            "flags": flags,
             "file_path": file_path,
+            "template": template_metapath_loader_bytecode_module_entry,
         }
     elif module.isPythonExtensionModule():
         flags.append("NUITKA_EXTENSION_MODULE_FLAG")
@@ -107,21 +113,30 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
         if module.isExtensionModulePackage():
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        return template_metapath_loader_extension_module_entry % {
+        template_args = {
             "module_name": module_c_name,
-            "flags": " | ".join(flags),
+            "flags": flags,
             "file_path": file_path,
+            "template": template_metapath_loader_extension_module_entry,
         }
     else:
         if module.isCompiledPythonPackage():
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        return template_metapath_loader_compiled_module_entry % {
+        template_args = {
             "module_name": module_c_name,
             "module_identifier": module.getCodeName(),
-            "flags": " | ".join(flags),
+            "flags": flags,
             "file_path": file_path,
+            "template": template_metapath_loader_compiled_module_entry,
         }
+
+    onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
+
+    template_args["flags"] = " | ".join(template_args["flags"]) or "0"
+
+    template = template_args.pop("template")
+    return template % template_args
 
 
 def getMetaPathLoaderBodyCode(bytecode_accessor):
@@ -137,7 +152,9 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
 
         metapath_loader_inittab.append(
             getModuleMetaPathLoaderEntryCode(
-                module=other_module, bytecode_accessor=bytecode_accessor
+                module=other_module,
+                bytecode_accessor=bytecode_accessor,
+                name_index=len(metapath_loader_inittab),
             )
         )
 
@@ -153,7 +170,9 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
     for uncompiled_module in uncompiled_modules:
         metapath_loader_inittab.append(
             getModuleMetaPathLoaderEntryCode(
-                module=uncompiled_module, bytecode_accessor=bytecode_accessor
+                module=uncompiled_module,
+                bytecode_accessor=bytecode_accessor,
+                name_index=len(metapath_loader_inittab),
             )
         )
 
@@ -194,8 +213,8 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
             if module_name.hasNamespace("aspose"):
                 continue
 
-            module_c_name = encodePythonStringToC(
-                encodeDataComposerName(module_name.asString())
+            module_c_name = _getMetaPathLoaderNameCode(
+                module_name.asString(), len(metapath_loader_inittab)
             )
             reason_c_string = encodePythonStringToC(reason.encode("utf8"))
 
@@ -215,6 +234,7 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
     return template_metapath_loader_body % {
         "metapath_module_decls": indented(metapath_module_decls),
         "metapath_loader_inittab": indented(metapath_loader_inittab),
+        "entry_count": len(metapath_loader_inittab),
         "bytecode_count": bytecode_accessor.getConstantsCount(),
         "frozen_modules": indented(frozen_defs),
     }
@@ -238,7 +258,10 @@ def isPerfectSupported(module_name):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

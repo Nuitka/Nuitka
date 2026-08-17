@@ -473,7 +473,8 @@
                     "warning",
                     "info",
                     "parameter",
-                    "plugin",
+                    "plugin-warning",
+                    "plugin-error",
                     "perfect"
                   ]
                 },

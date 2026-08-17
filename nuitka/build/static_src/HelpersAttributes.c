@@ -1213,8 +1213,14 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
             "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
     } else if (attr_name == const_str_plain___aenter__) {
+#if PYTHON_VERSION >= 0x3e0
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the asynchronous context manager protocol (missed __aenter__ method)",
+            source);
+#else
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
                                              source);
+#endif
     } else {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
     }
@@ -1239,7 +1245,10 @@ PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name) {
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.gnu.org/licenses/agpl.txt
+//        https://www.gnu.org/licenses/agpl-3.0.txt
+//
+//     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+//     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

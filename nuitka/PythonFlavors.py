@@ -25,6 +25,7 @@ from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isOS400,
     isPosixWindows,
     isWin32Windows,
     withNoDeprecationWarning,
@@ -166,6 +167,42 @@ def getHomebrewInstallPath():
         return "/usr/local"
 
     sys.exit("Error, failed to locate homebrew installation path.")
+
+
+_is_mac_ports_python = None
+
+
+def isMacPortsPython():
+    """Detect if this is a MacPorts Python."""
+    # Singleton, pylint: disable=global-statement
+    global _is_mac_ports_python
+
+    if _is_mac_ports_python is None:
+        _is_mac_ports_python = False
+
+        if isMacOS():
+            _is_mac_ports_python = isFilenameSameAsOrBelowPath(
+                path="/opt/local", filename=getSystemPrefixPath()
+            ) or isFilenameSameAsOrBelowPath(path="/opt/local", filename=sys.executable)
+
+    return _is_mac_ports_python
+
+
+def getMacPortsInstallPath():
+    assert isMacPortsPython()
+
+    candidate = getSystemPrefixPath()
+
+    while candidate != "/":
+        if candidate == "/opt/local":
+            return candidate
+
+        if os.path.exists(os.path.join(candidate, "bin", "port")):
+            return candidate
+
+        candidate = os.path.dirname(candidate)
+
+    return "/opt/local"
 
 
 def isRyePython():
@@ -437,6 +474,11 @@ def isWindowsStorePython():
     )
 
 
+def isIBMiPython():
+    """The native IBM i (OS400) QOpenSys Python port."""
+    return isOS400() and getSystemPrefixPath().startswith("/QOpenSys/pkgs")
+
+
 def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
@@ -461,6 +503,8 @@ def getPythonFlavorName():
         return "PyEnv on Homebrew Python"
     elif isPyenvPython():
         return "PyEnv Python"
+    elif isMacPortsPython():
+        return "MacPorts Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isRyePython():
@@ -483,6 +527,8 @@ def getPythonFlavorName():
         return "Self Compiled Uninstalled"
     elif isManyLinuxPython():
         return "Manylinux Python"
+    elif isIBMiPython():
+        return "IBMi Python"
     else:
         return "Unknown"
 
@@ -498,7 +544,10 @@ def hasAcceleratedSupportedFlavor():
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

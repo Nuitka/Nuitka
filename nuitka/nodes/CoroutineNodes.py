@@ -12,12 +12,13 @@ from .ChildrenHavingMixins import (
     ChildHavingCoroutineRefMixin,
     ChildHavingExpressionMixin,
 )
-from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
+from .ExpressionBases import ExpressionBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
+from .GeneratorNodes import MakeGeneratorLikeMixin
 
 
 class ExpressionMakeCoroutineObject(
-    ExpressionNoSideEffectsMixin, ChildHavingCoroutineRefMixin, ExpressionBase
+    MakeGeneratorLikeMixin, ChildHavingCoroutineRefMixin, ExpressionBase
 ):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
@@ -32,27 +33,13 @@ class ExpressionMakeCoroutineObject(
 
         ExpressionBase.__init__(self, source_ref)
 
-        self.variable_closure_traces = None
+        MakeGeneratorLikeMixin.__init__(self)
+
+    def _getRefBody(self):
+        return self.subnode_coroutine_ref.getFunctionBody()
 
     def getDetailsForDisplay(self):
         return {"coroutine": self.subnode_coroutine_ref.getFunctionBody().getCodeName()}
-
-    def computeExpression(self, trace_collection):
-        self.variable_closure_traces = []
-
-        for (
-            closure_variable
-        ) in self.subnode_coroutine_ref.getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
-            trace.addNameUsage()
-
-            self.variable_closure_traces.append((closure_variable, trace))
-
-        # TODO: Coroutine body may know something too.
-        return self, None, None
-
-    def getClosureVariableVersions(self):
-        return self.variable_closure_traces
 
 
 class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
@@ -135,7 +122,10 @@ class ExpressionAsyncWaitExit(ExpressionAsyncWait):
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.gnu.org/licenses/agpl.txt
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
