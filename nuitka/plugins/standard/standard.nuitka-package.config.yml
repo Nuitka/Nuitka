@@ -9617,7 +9617,7 @@
         prefixes:
           - 'libvosk'
 
-- module-name: 'vtk' # checksum: 4efecff3
+- module-name: 'vtk' # checksum: ae2c9ea7
   implicit-imports:
     - depends:
         - 'vtkmodules'
@@ -9628,7 +9628,6 @@
     # not find packages in unless added.
     - package-paths:
         - 'vtkmodules'
-      when: 'version("vtk") >= (9,)'
 
 - module-name: 'vtkmodules' # checksum: 3b668f13
   implicit-imports:
