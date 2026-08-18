@@ -1308,6 +1308,17 @@ development_group.add_option(
 Enable verbose mode for the data composer. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-no-bytecode-to-compiled-fallback",
+    action="store_true",
+    dest="devel_no_bytecode_to_compiled_fallback",
+    default=False,
+    github_action=False,
+    help="""\
+Forbid fallback from bytecode backed annotate functions to compiled code when \
+source regeneration fails. Instead abort compilation with an error. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And

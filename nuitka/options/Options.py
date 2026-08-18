@@ -2385,7 +2385,7 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
     """
     # pylint: disable=unused-argument
 
-    return isExperimental("no-bytecode-to-compiled-fallback")
+    return options.devel_no_bytecode_to_compiled_fallback
 
 
 def getDebugModeIndications():
