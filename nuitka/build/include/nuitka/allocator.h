@@ -5,7 +5,10 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
+#define Py_BUILD_CORE
 #include "Python.h"
+#include "internal/pycore_dict.h"
+#include "internal/pycore_object.h"
 #include "nuitka/defines.h"
 #include <stdbool.h>
 #endif
