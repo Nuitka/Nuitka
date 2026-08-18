@@ -1,0 +1,42 @@
+FROM debian:stable-slim AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+# Allow appimagetool (which is itself an AppImage) to run without FUSE.
+ENV APPIMAGE_EXTRACT_AND_RUN=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-dev \
+    python3-venv \
+    python3-pip \
+    gcc \
+    patchelf \
+    ccache \
+    squashfs-tools \
+    curl \
+    file \
+    ca-certificates \
+    gpg \
+    && rm -rf -- /var/lib/apt/lists/*
+
+# Install Nuitka's Python dependencies for the build.
+RUN pip3 install --break-system-packages \
+    appdirs tqdm "zstandard>=0.15" pyyaml "Jinja2>=2.10.2" ordered-set
+
+WORKDIR /src
+COPY . /src/
+
+ARG APPIMAGE_FILENAME=Nuitka-x86_64.AppImage
+
+RUN mkdir -p -- /out && \
+    python3 /src/misc/make-appimage.py --output "/out/${APPIMAGE_FILENAME}"
+
+# Verify it works (extract since no FUSE in container)
+RUN "/out/${APPIMAGE_FILENAME}" --appimage-extract > /dev/null 2>&1 && \
+    squashfs-root/AppRun --version && \
+    rm -rf -- squashfs-root
+
+# Output stage
+FROM scratch
+ARG APPIMAGE_FILENAME=Nuitka-x86_64.AppImage
+COPY --from=builder /out/${APPIMAGE_FILENAME} /${APPIMAGE_FILENAME}
