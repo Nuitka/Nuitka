@@ -3,9 +3,15 @@
 
 """Code to generate and interact with compiled function objects."""
 
+from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 from nuitka.Tracing import general
 
+from .AnnotateFunctionCodes import (
+    generateAnnotateFunctionCreationCode,
+    isBytecodeBackedFunction,
+)
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -30,6 +36,11 @@ from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonSourceCodeGeneration import (
+    PythonSourceGenerationError,
+    getFunctionEntryPointIdentifier,
+    getFunctionMakerIdentifier,
+)
 from .templates.CodeTemplatesFunction import (
     function_direct_body_template,
     template_function_body,
@@ -45,6 +56,28 @@ from .VariableCodes import (
     decideLocalVariableCodeType,
     getLocalVariableDeclaration,
 )
+
+
+def getFunctionQualnameObj(owner, context):
+    """Get code to pass to function alike object creation for qualname.
+
+    If identical to the name, NULL is returned instead.
+    """
+
+    if owner.isExpressionFunctionBody():
+        min_version = 0x300
+    else:
+        min_version = 0x350
+
+    if python_version < min_version:
+        return "NULL"
+
+    function_qualname = owner.getFunctionQualname()
+
+    if function_qualname == owner.getFunctionName():
+        return "NULL"
+    else:
+        return context.getConstantCode(constant=function_qualname)
 
 
 def getFunctionCreationArgs(
@@ -96,40 +129,6 @@ def getFunctionMakerDecl(
     }
 
 
-def _getFunctionEntryPointIdentifier(function_identifier):
-    return "impl_" + function_identifier
-
-
-def _getFunctionMakerIdentifier(function_identifier):
-    return "MAKE_FUNCTION_" + function_identifier
-
-
-def getFunctionQualnameObj(owner, context):
-    """Get code to pass to function alike object creation for qualname.
-
-    Qualname for functions existed for Python3, generators only after
-    3.5 and coroutines and asyncgen for as long as they existed.
-
-    If identical to the name, we do not pass it as a value, but
-    NULL instead.
-    """
-
-    if owner.isExpressionFunctionBody():
-        min_version = 0x300
-    else:
-        min_version = 0x350
-
-    if python_version < min_version:
-        return "NULL"
-
-    function_qualname = owner.getFunctionQualname()
-
-    if function_qualname == owner.getFunctionName():
-        return "NULL"
-    else:
-        return context.getConstantCode(constant=function_qualname)
-
-
 def getFunctionMakerCode(
     function_body,
     function_identifier,
@@ -177,12 +176,12 @@ def getFunctionMakerCode(
                 % context.getConstantCode(constant_return_value)
             )
     else:
-        function_impl_identifier = _getFunctionEntryPointIdentifier(
+        function_impl_identifier = getFunctionEntryPointIdentifier(
             function_identifier=function_identifier
         )
         constant_return_code = ""
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -218,11 +217,55 @@ def getFunctionMakerCode(
     return result
 
 
+def _tryGenerateAnnotateFunctionCreationCode(
+    to_name, expression, emit, context, function_body
+):
+    try:
+        generateAnnotateFunctionCreationCode(
+            to_name=to_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
+    except PythonSourceGenerationError as e:
+        function_body.addFlag("force_c")
+
+        function_qualname = function_body.getFunctionQualname()
+        source_ref = expression.getSourceReference()
+
+        if shallNotFallbackBytecodeToCompiled(
+            module_name=context.getModuleName(),
+            function_qualname=function_qualname,
+            source_ref=source_ref,
+        ):
+            # TODO: Add user control to selectively allow/deny fallback per function.
+            general.sysexit(
+                """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                % (function_qualname, source_ref.getAsString(), e)
+            )
+
+        return False
+
+    return True
+
+
 def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
+
+    if isBytecodeBackedFunction(function_body):
+        if _tryGenerateAnnotateFunctionCreationCode(
+            to_name=to_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+            function_body=function_body,
+        ):
+            return
+
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults
     annotations = expression.subnode_annotations
@@ -400,7 +443,7 @@ def getFunctionCreationCode(
     if type_params_name:
         args.append(type_params_name)
 
-    function_maker_identifier = _getFunctionMakerIdentifier(
+    function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
@@ -436,7 +479,7 @@ def getDirectFunctionCallCode(
     emit,
     context,
 ):
-    function_identifier = _getFunctionEntryPointIdentifier(
+    function_identifier = getFunctionEntryPointIdentifier(
         function_identifier=function_identifier
     )
 
@@ -828,7 +871,8 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     # TODO: Put the return value name as that to_name.c_type too.
 
     if (
-        expression.isExpressionOutlineFunctionBase()
+        states.is_full_compat
+        and expression.isExpressionOutlineBody()
         and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")

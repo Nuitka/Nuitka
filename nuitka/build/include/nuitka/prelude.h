@@ -59,15 +59,7 @@
 #include <pydebug.h>
 #endif
 
-/* A way to not give warnings about things that are declared, but might not
- * be used like in-line helper functions in headers or static per module
- * variables from headers.
- */
-#if defined(__GNUC__) || defined(__clang__)
-#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
-#else
-#define NUITKA_MAY_BE_UNUSED
-#endif
+#include "nuitka/defines.h"
 
 // We are not following the 3.10 change to an inline function. At least
 // not immediately.
@@ -146,6 +138,9 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_GC_UnTrack(void *raw_op);
 #ifdef NUITKA_USE_PYCORE_THREAD_STATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
+#if PYTHON_VERSION >= 0x3f0
+#define Py_BUILD_CORE_MODULE
+#endif
 #undef _PyGC_FINALIZED
 
 #if PYTHON_VERSION < 0x380
@@ -195,7 +190,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #if PYTHON_VERSION >= 0x3a0
 #include <internal/pycore_long.h>
-#include <internal/pycore_unionobject.h>
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
@@ -415,15 +409,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 /* Include the C header files most often used. */
 #include <stdio.h>
 
-#include "hedley.h"
-
-/* Use annotations for branch prediction. They still make sense as the L1
- * cache space is saved.
- */
-
-#define likely(x) HEDLEY_LIKELY(x)
-#define unlikely(x) HEDLEY_UNLIKELY(x)
-
 /* A way to indicate that a specific function won't return, so the C compiler
  * can create better code.
  */
@@ -470,74 +455,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #endif
 
-/* String handling that uses the proper version of strings for Python3 or not,
- * which makes it easier to write portable code.
- */
-#if PYTHON_VERSION < 0x300
-#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
-#define Nuitka_String_AsString PyString_AsString
-#define Nuitka_String_AsString_Unchecked PyString_AS_STRING
-#define Nuitka_String_Check PyString_Check
-#define Nuitka_String_CheckExact PyString_CheckExact
-NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObject *value) {
-    return PyString_CheckExact(value) || PyUnicode_CheckExact(value);
-}
-#define Nuitka_StringObject PyStringObject
-#define Nuitka_String_FromString PyString_FromString
-#define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
-#define Nuitka_String_FromFormat PyString_FromFormat
-#define PyUnicode_CHECK_INTERNED (0)
-NUITKA_MAY_BE_UNUSED static Py_UNICODE *Nuitka_UnicodeAsWideString(PyObject *str, Py_ssize_t *size) {
-    PyObject *unicode;
-
-    if (!PyUnicode_Check(str)) {
-        // Leaking memory, but for usages its acceptable to
-        // achieve that the pointer remains valid.
-        unicode = PyObject_Unicode(str);
-    } else {
-        unicode = str;
-    }
-
-    if (size != NULL) {
-        *size = (Py_ssize_t)PyUnicode_GET_LENGTH(unicode);
-    }
-
-    return PyUnicode_AsUnicode(unicode);
-}
-#else
-#define Nuitka_String_AsString _PyUnicode_AsString
-
-// Note: This private stuff from file "Objects/unicodeobject.c"
-// spell-checker: ignore unicodeobject
-#define _PyUnicode_UTF8(op) (((PyCompactUnicodeObject *)(op))->utf8)
-#define PyUnicode_UTF8(op)                                                                                             \
-    (assert(PyUnicode_IS_READY(op)),                                                                                   \
-     PyUnicode_IS_COMPACT_ASCII(op) ? ((char *)((PyASCIIObject *)(op) + 1)) : _PyUnicode_UTF8(op))
-#ifdef __NUITKA_NO_ASSERT__
-#define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
-#else
-NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObject *object) {
-    char const *result = PyUnicode_UTF8(object);
-    assert(result != NULL);
-    return result;
-}
-#endif
-#define Nuitka_String_Check PyUnicode_Check
-#define Nuitka_String_CheckExact PyUnicode_CheckExact
-#define Nuitka_StringOrUnicode_CheckExact PyUnicode_CheckExact
-#define Nuitka_StringObject PyUnicodeObject
-#define Nuitka_String_FromString PyUnicode_FromString
-#define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
-#define Nuitka_String_FromFormat PyUnicode_FromFormat
-#define Nuitka_UnicodeAsWideString PyUnicode_AsWideCharString
-#endif
-
-// Before 3.7, it's only available in debug Python, so we need to guard this.
-#if PYTHON_VERSION < 0x370
-#define Nuitka_PyUnicode_CheckConsistency(op, check) 1
-#else
-#define Nuitka_PyUnicode_CheckConsistency(op, check) (_PyUnicode_CheckConsistency(op, check))
-#endif
+#include "nuitka/string_functions.h"
 
 // Wrap the type lookup for debug mode, to identify errors, and potentially
 // to make our own enhancement later on. For now only verify it is not being
@@ -957,9 +875,6 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define UNLOCK_KEYS(keys)
 #endif
 
-// Our replacement for "PyType_IsSubtype"
-extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
-
 #include "nuitka/allocator.h"
 #include "nuitka/exceptions.h"
 
@@ -1063,6 +978,10 @@ extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 
 #if _NUITKA_EXPERIMENTAL_EXTRA_INCLUDES
 #include "extra_python_includes.h"
+#endif
+
+#if PYTHON_VERSION >= 0x3f0
+#define FRAME_COMPLETED FRAME_CLEARED
 #endif
 
 #endif

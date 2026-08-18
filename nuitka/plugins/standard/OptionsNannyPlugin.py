@@ -8,11 +8,7 @@ the user wants, or even be required, as e.g. "wx" on macOS will crash unless the
 console is disabled. This reads Yaml configuration.
 """
 
-from nuitka.options.Options import (
-    isOnefileMode,
-    isStandaloneMode,
-    shallCreateAppBundle,
-)
+from nuitka.options.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Utils import isMacOS
 
@@ -50,8 +46,13 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
 
         if support_info == "parameter":
             message = "Module '%s' has parameter: %s" % (full_name, description)
-        elif support_info == "plugin":
+        elif support_info == "plugin-warning":
             message = "Module '%s' has plugin consideration: %s" % (
+                full_name,
+                description,
+            )
+        elif support_info == "plugin-error":
+            message = "Module '%s' has plugin requirement: %s" % (
                 full_name,
                 description,
             )
@@ -70,9 +71,9 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
                 description,
             )
 
-        if support_info == "error":
+        if support_info in ("error", "plugin-error"):
             self.sysexit(message)
-        elif support_info in ("warning", "parameter", "plugin"):
+        elif support_info in ("warning", "parameter", "plugin-warning"):
             self.warning(message)
         elif support_info == "info":
             self.info(message)
@@ -103,21 +104,6 @@ possible.""" % full_name)
         else:
             self.sysexitIllegalOptionValue(full_name, "macos_bundle", macos_bundle)
 
-    def _checkMacOSBundleOnefileMode(self, full_name, macos_bundle_as_onefile):
-        if macos_bundle_as_onefile == "yes":
-            if isStandaloneMode() and shallCreateAppBundle() and not isOnefileMode():
-                self.sysexit(
-                    """\
-Error, package '%s' requires '--onefile' to be used on top of '--macos-create-app-bundle' or else it cannot work."""
-                    % full_name
-                )
-        elif macos_bundle_as_onefile == "no":
-            pass
-        else:
-            self.sysexitIllegalOptionValue(
-                full_name, "macos_bundle_onefile_mode", macos_bundle_as_onefile
-            )
-
     def onModuleDiscovered(self, module):
         full_name = module.getFullName()
 
@@ -137,13 +123,6 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                         self._checkMacOSBundleMode(
                             full_name=full_name,
                             macos_bundle=check.get("macos_bundle", "no"),
-                        )
-
-                        self._checkMacOSBundleOnefileMode(
-                            full_name=full_name,
-                            macos_bundle_as_onefile=check.get(
-                                "macos_bundle_as_onefile", "no"
-                            ),
                         )
 
 

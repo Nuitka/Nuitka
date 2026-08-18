@@ -9,6 +9,9 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #include "nuitka/unfreezing.h"
+
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static char const *entryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 #endif
 
 struct Nuitka_ResourceReaderFilesObject {
@@ -74,8 +77,8 @@ static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFi
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReaderFilesObject *files) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>", files->m_loader_entry->name,
-                                files->m_path);
+    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>",
+                                entryDisplayName(files->m_loader_entry), files->m_path);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
@@ -330,7 +333,7 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(PyObject *files_obj, PyObje
 //        """
 //
 
-static PyObject *Nuitka_ResourceReaderFiles_as_posix(PyObject *files_obj, PyObject *args, PyObject *kwds) {
+static PyObject *Nuitka_ResourceReaderFiles_as_posix(PyObject *files_obj, PyObject *args) {
     struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)files_obj;
     PyThreadState *tstate = PyThreadState_GET();
     PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);

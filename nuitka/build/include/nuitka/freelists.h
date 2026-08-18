@@ -7,6 +7,12 @@
 #include <stdbool.h>
 #endif
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL
 static const bool use_freelists = false;
 #else

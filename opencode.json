@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": true,
+  "instructions": [
+    "AGENTS.md",
+    ".agents/rules/python-compatibility.md",
+    ".agents/rules/coding-standards.md",
+    ".agents/rules/verification.md"
+  ]
+}

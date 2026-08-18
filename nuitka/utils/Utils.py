@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
+from nuitka.PythonVersions import getSystemPrefixPath
 
 
 def getOS():
@@ -26,6 +27,11 @@ def getOS():
         # Handle msys2 posix nature still meaning it's Windows.
         if result.startswith(("MSYS_NT-", "MINGW64_NT-")):
             result = "Windows"
+
+        # OS400 (IBM i) is effectively AIX when using the native
+        # QOpenSys Python port running in PASE.
+        if result == "OS400" and getSystemPrefixPath().startswith("/QOpenSys/pkgs"):
+            result = "AIX"
 
         return result
     else:
@@ -283,6 +289,11 @@ def isAIX():
     return getOS() == "AIX"
 
 
+def isOS400():
+    """The OS400 (IBM i) platform."""
+    return os.name == "posix" and os.uname()[0] == "OS400"
+
+
 def hasMacOSIntelSupport():
     """macOS with either Intel hardware or Rosetta being installed."""
     return isMacOS() and (
@@ -337,9 +348,7 @@ def getArchitecture():
         result = os.uname()[4]
 
         if isAIX():
-            # Translate known values to what -X would expect.
-            if result == "00C63E504B00":
-                return "64"
+            return "powerpc"
 
         return result
 
@@ -453,20 +462,21 @@ def decoratorRetries(
     sleep_time=1,
     exception_type=OSError,
 ):
-    """Make retries for errors on Windows.
+    """Make retries for errors.
 
     This executes a decorated function multiple times, and imposes a delay and
     a virus checker warning.
     """
 
-    recommendation = "Disable Anti-Virus, e.g. Windows Defender for build folders."
+    recommendation = (
+        "Disable Anti-Virus, e.g. Windows Defender for build folders."
+        if os.name == "nt"
+        else "Check for other processes locking the file or directory."
+    )
     if extra_recommendation is not None:
         recommendation = "%s. %s" % (extra_recommendation, recommendation)
 
     def inner(func):
-        if os.name != "nt":
-            return func
-
         @functools.wraps(func)
         def retryingFunction(*args, **kwargs):
             for attempt in range(1, attempts + 1):
@@ -538,6 +548,20 @@ def isElfUsingPlatform():
 def isCoffUsingPlatform():
     """Does the OS use the COFF file format."""
     return isAIX()
+
+
+_counted = {}
+
+
+@contextmanager
+def counted(key):
+    """Context manager that yields an incrementing count, starting from 1.
+
+    Each time the same key is used, the count increments.
+    """
+    count = _counted.get(key, 0) + 1
+    _counted[key] = count
+    yield count
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

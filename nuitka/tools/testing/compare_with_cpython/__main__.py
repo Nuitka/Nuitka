@@ -33,7 +33,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
-from nuitka.utils.FileOperations import deleteFile
+from nuitka.utils.FileOperations import deleteFile, getFileContentByLine
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.Timing import StopWatchWallClock
 from nuitka.utils.Utils import isMacOS
@@ -176,6 +176,48 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
     return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
+def _getExclusiveLines(filename):
+    compiled_stdout_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-compiled-only[ \t]*:[ \t]*stdout[ \t]*:(.*)"
+    )
+    compiled_stderr_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-compiled-only[ \t]*:[ \t]*stderr[ \t]*:(.*)"
+    )
+    uncompiled_stdout_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-uncompiled-only[ \t]*:[ \t]*stdout[ \t]*:(.*)"
+    )
+    uncompiled_stderr_re = re.compile(
+        br"^[ \t]*#[ \t]*nuitka-test-uncompiled-only[ \t]*:[ \t]*stderr[ \t]*:(.*)"
+    )
+
+    result_compiled_stdout = []
+    result_compiled_stderr = []
+    result_uncompiled_stdout = []
+    result_uncompiled_stderr = []
+
+    try:
+        for line in getFileContentByLine(filename, mode="rb"):
+            for regex, target in [
+                (compiled_stdout_re, result_compiled_stdout),
+                (compiled_stderr_re, result_compiled_stderr),
+                (uncompiled_stdout_re, result_uncompiled_stdout),
+                (uncompiled_stderr_re, result_uncompiled_stderr),
+            ]:
+                match = regex.match(line)
+                if match:
+                    target.append(match.group(1).strip().decode("utf8"))
+                    break
+    except (OSError, IOError):
+        pass
+
+    return (
+        result_compiled_stdout,
+        result_compiled_stderr,
+        result_uncompiled_stdout,
+        result_uncompiled_stderr,
+    )
+
+
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
@@ -221,6 +263,7 @@ def main():
     module_entry_point = hasArgValue("--module-entry-point")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
+    verify_signature = hasArg("verify_signature")
     binary_python_path = hasArg("binary_python_path")
     trace_command = (
         hasArg("trace_command") or os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0"
@@ -306,6 +349,14 @@ def main():
     project_options = getNuitkaProjectOptions(
         logger=test_logger, filename_arg=filename, module_mode=module_mode
     )
+
+    (
+        compiled_only_stdout,
+        compiled_only_stderr,
+        uncompiled_only_stdout,
+        uncompiled_only_stderr,
+    ) = _getExclusiveLines(filename)
+
     decryption_project_options = []
 
     for project_option in project_options:
@@ -337,6 +388,11 @@ def main():
             standalone_mode = True
             onefile_mode = True
 
+    # Verify signature must happen before the binary runs and modifies the
+    # framework, so we enable two step execution.
+    if verify_signature and app_bundle_mode:
+        two_step_execution = True
+
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual
     # compilation:
@@ -360,6 +416,7 @@ def main():
         os.environ["PYTHONHASHSEED"] = "0"
 
     os.environ["PYTHONWARNINGS"] = "ignore"
+    os.environ["NUITKA_UPDATE_CHECK"] = "never"
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
@@ -611,6 +668,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             )
         elif onefile_mode:
             nuitka_cmd1 = nuitka_call + extra_options + ["--mode=onefile", filename]
+        elif app_bundle_mode:
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=app", filename]
         elif standalone_mode:
             nuitka_cmd1 = nuitka_call + extra_options + ["--mode=standalone", filename]
         else:
@@ -632,14 +691,25 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if filename.endswith(".py"):
             exe_filename = exe_filename[:-3]
 
-        exe_filename = exe_filename.replace(")", "").replace("(", "")
-
-        if os.name == "nt":
-            exe_filename += ".exe"
+        if app_bundle_mode:
+            nuitka_cmd2 = [
+                os.path.join(
+                    output_dir,
+                    exe_filename + ".app",
+                    "Contents",
+                    "MacOS",
+                    exe_filename,
+                )
+            ]
         else:
-            exe_filename += ".bin"
+            exe_filename = exe_filename.replace(")", "").replace("(", "")
 
-        nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
+            if os.name == "nt":
+                exe_filename += ".exe"
+            else:
+                exe_filename += ".bin"
+
+            nuitka_cmd2 = [os.path.join(output_dir, exe_filename)]
 
         pdb_filename = exe_filename[:-4] + ".pdb"
 
@@ -730,10 +800,35 @@ Stderr was:
                 )
                 stderr_nuitka2 = process_result.stderr
             else:
+                if verify_signature and app_bundle_mode:
+                    app_name = os.path.splitext(os.path.basename(filename))[0]
+
+                    app_bundle_path = os.path.join(
+                        output_dir if output_dir else ".", app_name + ".app"
+                    )
+
+                    my_print(
+                        "Checking macOS code signature for app bundle '%s'."
+                        % app_bundle_path
+                    )
+
+                    verify_cmd = [
+                        "/usr/bin/codesign",
+                        "--verify",
+                        "--deep",
+                        "--strict",
+                        app_bundle_path,
+                    ]
+
+                    verify_result = callProcess(verify_cmd)
+
+                    if verify_result != 0:
+                        sys.exit("Error, app bundle code signing verification failed.")
+
                 # No execution second step for coverage mode.
                 if comparison_mode:
                     if os.path.exists(nuitka_cmd2[0][:-4] + ".cmd"):
-                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"
+                        nuitka_cmd2[0] = nuitka_cmd2[0][:-4] + ".cmd"  # type: ignore
 
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)
@@ -814,6 +909,8 @@ Stderr was:
                     ignore_warnings,
                     syntax_errors,
                     no_diffable=no_diffable,
+                    compiled_only_exclusive_lines=compiled_only_stdout,
+                    uncompiled_only_exclusive_lines=uncompiled_only_stdout,
                 )
 
             if ignore_stderr:
@@ -826,6 +923,8 @@ Stderr was:
                     ignore_warnings,
                     syntax_errors,
                     no_diffable=no_diffable,
+                    compiled_only_exclusive_lines=compiled_only_stderr,
+                    uncompiled_only_exclusive_lines=uncompiled_only_stderr,
                 )
 
             exit_code_return = exit_cpython != exit_nuitka

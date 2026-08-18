@@ -296,6 +296,7 @@ PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
     unsigned long n = getLengthOfRange(tstate, start, stop, step);
 
 #if defined(__clang__)
+// spell-checker: ignore -Wtautological
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
@@ -1291,6 +1292,50 @@ struct Nuitka_QuickIterator {
         } list_data;
     } iterator_data;
 };
+
+// TODO: Accept PyObject ** with a count to avoid the intermediate args array.
+PyObject *BUILTIN_ENUMERATE1(PyThreadState *tstate, PyObject *sequence) {
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)&PyEnum_Type, sequence);
+}
+
+PyObject *BUILTIN_ENUMERATE2(PyThreadState *tstate, PyObject *sequence, PyObject *start) {
+    PyObject *args[2] = {sequence, start};
+
+    return CALL_FUNCTION_WITH_ARGS2(tstate, (PyObject *)&PyEnum_Type, args);
+}
+
+#if PYTHON_VERSION < 0x300
+NUITKA_DEFINE_BUILTIN(zip);
+#endif
+
+// TODO: Accept PyObject ** with a count to avoid the intermediate tuple object.
+PyObject *BUILTIN_ZIP(PyThreadState *tstate, PyObject *iterables) {
+    CHECK_OBJECT(iterables);
+
+#if PYTHON_VERSION >= 0x300
+    return CALL_FUNCTION_WITH_POS_ARGS(tstate, (PyObject *)&PyZip_Type, iterables);
+#else
+    NUITKA_ASSIGN_BUILTIN(zip);
+
+    return CALL_FUNCTION_WITH_POS_ARGS(tstate, NUITKA_ACCESS_BUILTIN(zip), iterables);
+#endif
+}
+
+#if PYTHON_VERSION >= 0x3a0
+PyObject *BUILTIN_ZIP310(PyThreadState *tstate, PyObject *iterables, PyObject *strict) {
+    CHECK_OBJECT(iterables);
+    CHECK_OBJECT(strict);
+
+    PyObject *kw_values[] = {strict};
+    char const *kw_keys[] = {"strict"};
+
+    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, 1);
+
+    PyObject *result = CALL_FUNCTION(tstate, (PyObject *)&PyZip_Type, iterables, kw_args);
+    Py_XDECREF(kw_args);
+    return result;
+}
+#endif
 
 static bool MAKE_QUICK_ITERATOR(PyThreadState *tstate, PyObject *sequence, struct Nuitka_QuickIterator *qiter) {
     if (Nuitka_Generator_Check(sequence)) {

@@ -236,6 +236,7 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
     code = template.render(
+        **standard_template_context,
         operator=operator,
         target=target,
         left=left,
@@ -244,7 +245,6 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         reversed_args_op_code=reversed_args_compare_op_codes[op_code],
         inverse_compare_op_code=inverse_compare_op_code[op_code],
         name=template.name,
-        **standard_template_context
     )
 
     emit(code)
@@ -404,6 +404,7 @@ def makeHelperOperations(
             sq_inplace_slot = None
 
         code = template.render(
+            **standard_template_context,
             target=target,
             left=left,
             right=right,
@@ -415,7 +416,6 @@ def makeHelperOperations(
             ),
             sq_slot=sq_slot,
             sq_inplace_slot=sq_inplace_slot,
-            **standard_template_context
         )
 
         emit_c(code)
@@ -1565,7 +1565,6 @@ def updateCompiledOffsetsHeader():
     for (python_version, gil_str, os_name, arch_name), versions in sorted(
         groups.items()
     ):
-
         versions.sort(key=lambda x: x[0])
 
         template_keys = []
@@ -1616,9 +1615,11 @@ def _writeCompiledOffsetsHeader(template_groups):
 
 
 def main():
+    # Many operations to specialize, pylint: disable=too-many-statements
     parseOptions()
 
     makeHelpersBinaryDualOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("-", "SUB")
 
     makeDictCopyHelperCodes()
 

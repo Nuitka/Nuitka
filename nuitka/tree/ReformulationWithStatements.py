@@ -217,11 +217,19 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-        attribute_assignments = (
-            attribute_enter_assignment,
-            attribute_exit_assignment,
-            enter_await_statement,
-        )
+        # It's weird, but 3.14 looks up "__aexit__" before "__aenter__".
+        if python_version >= 0x3E0:
+            attribute_assignments = (
+                attribute_exit_assignment,
+                attribute_enter_assignment,
+                enter_await_statement,
+            )
+        else:
+            attribute_assignments = (
+                attribute_enter_assignment,
+                attribute_exit_assignment,
+                enter_await_statement,
+            )
     # It's weird, but 3.14 looks up __exit__ before __enter__
     elif 0x360 <= python_version < 0x3E0 and sync:
         attribute_assignments = (attribute_enter_assignment, attribute_exit_assignment)

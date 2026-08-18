@@ -14,7 +14,12 @@
  *
  */
 
-extern int loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
+
+extern void loadConstantsBlob(PyThreadState *tstate, void *, char const *name);
+extern void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned char const *data);
 
 // We define a macro that declares the external symbols and provides accessor functions.
 // For INCBIN/C23, the generating C file already defines these functions, so we just declare them.
@@ -24,6 +29,11 @@ extern int loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *nam
 #endif
 
 #include "nuitka/blobs.h"
+
+#ifndef LOAD_DIRECT_CONSTANTS_BLOB
+#define LOAD_DIRECT_CONSTANTS_BLOB(tstate, output, blob_symbol_name)                                                   \
+    loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
+#endif
 
 #endif
 

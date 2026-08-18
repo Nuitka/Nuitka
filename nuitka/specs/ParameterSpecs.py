@@ -152,7 +152,10 @@ class ParameterSpec(object):
         # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
             if arg_names.count(arg_name) != 1:
-                return "duplicate argument '%s' in function definition" % arg_name
+                if python_version >= 0x3F0:
+                    return "duplicate parameter '%s' in function definition" % arg_name
+                else:
+                    return "duplicate argument '%s' in function definition" % arg_name
 
         return None
 

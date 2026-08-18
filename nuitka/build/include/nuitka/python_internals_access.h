@@ -117,7 +117,7 @@ struct _Nuitka_perf_trampoline_missing_delta {
     void *trampoline_api[5];
     FILE *map_file;
 };
-#elif PYTHON_VERSION >= 0x3d0
+#elif PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3f0
 struct _Nuitka_perf_trampoline_missing_delta_early {
     int status;
     int perf_trampoline_type;
@@ -133,6 +133,19 @@ struct _Nuitka_perf_trampoline_missing_delta_late {
     Py_ssize_t extra_code_index;
     void *code_arena;
     void *trampoline_api[5];
+    FILE *map_file;
+    Py_ssize_t persist_after_fork;
+    void *prev_eval_frame;
+    Py_ssize_t trampoline_refcount;
+    int code_watcher_id;
+};
+#elif PYTHON_VERSION >= 0x3f0
+struct _Nuitka_perf_trampoline_missing_delta {
+    int status;
+    int perf_trampoline_type;
+    Py_ssize_t extra_code_index;
+    void *code_arena;
+    char _trampoline_api_padding[48];
     FILE *map_file;
     Py_ssize_t persist_after_fork;
     void *prev_eval_frame;

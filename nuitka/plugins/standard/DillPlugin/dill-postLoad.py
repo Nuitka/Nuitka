@@ -134,7 +134,7 @@ else:
                         state_dict[fattrname] = fattr
                 if obj.__qualname__ != obj.__name__:
                     state_dict["__qualname__"] = obj.__qualname__
-                if "__name__" not in globs or obj.__module__ != globs["__name__"]:
+                if "__name__" not in globs or obj.__module__ != globs["__name__"]:  # type: ignore
                     state_dict["__module__"] = obj.__module__
 
                 pickler.save_reduce(
@@ -203,7 +203,7 @@ else:
             else:
                 dill._dill.StockPickler.save_global(pickler, obj)
 
-    if __compiled__.standalone:  # pylint: disable=undefined-variable
+    if __compiled__.standalone:  # pylint: disable=undefined-variable  # type: ignore
         builtins.compiled_method = compiled_method
         builtins.compiled_function = compiled_function
 

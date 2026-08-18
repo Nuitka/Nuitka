@@ -39,7 +39,7 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
-from nuitka.utils.Utils import isLinux, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
 def initScons(arguments):
@@ -236,6 +236,15 @@ def createEnvironment(
         zig_mode_env = False
 
     zig_mode = zig_mode_env or bool(zig_exe_path)
+
+    if isMacOS() and "auto-homebrew-clang" in experimental_flags:
+        if target_arch == "arm64":
+            _candidate = "/opt/homebrew/opt/llvm/bin"
+        else:
+            _candidate = "/usr/local/opt/llvm/bin"
+
+        if os.path.isdir(_candidate):
+            addToPATH(None, _candidate, prefix=True)
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
@@ -458,6 +467,11 @@ def createEnvironment(
     env.dll_mode = getArgumentBool("dll_mode", False)
     if env.dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_DLL_MODE"])
+
+    # Python flag isolated: -I mode
+    env.python_flag_isolated = getArgumentBool("python_sysflag_isolated", False)
+    if env.python_flag_isolated:
+        env.Append(CPPDEFINES=["_NUITKA_FLAG_ISOLATED"])
 
     # EXE mode: Create an EXE (using Python for this config)
     env.exe_mode = getArgumentBool("exe_mode", False)
@@ -839,20 +853,21 @@ def readSconsResourceUsageReports(source_dir):
     if source_dir not in _scons_resource_usage_reports:
         results = {}
 
-        for filename, _filename_only in listDir(source_dir):
-            if filename.endswith(".resource-usage.json"):
-                data = loadJsonFromFilename(filename)
-                source_filename = data["source_filename"]
-                if source_filename.startswith("module.") and source_filename.endswith(
-                    ".c"
-                ):
-                    # TODO: Could resolve this more reliable by checking mapping to
-                    # actually picked source file names in "pickSourceFilenames"
-                    module_name = source_filename[7:-2]
+        if os.path.isdir(source_dir):
+            for filename, _filename_only in listDir(source_dir):
+                if filename.endswith(".resource-usage.json"):
+                    data = loadJsonFromFilename(filename)
+                    source_filename = data["source_filename"]
+                    if source_filename.startswith(
+                        "module."
+                    ) and source_filename.endswith(".c"):
+                        # TODO: Could resolve this more reliable by checking mapping to
+                        # actually picked source file names in "pickSourceFilenames"
+                        module_name = source_filename[7:-2]
 
-                    results[module_name] = data["rusage"]
-                elif source_filename == "@linker":
-                    results["@linker"] = data["rusage"]
+                        results[module_name] = data["rusage"]
+                    elif source_filename == "@linker":
+                        results["@linker"] = data["rusage"]
 
         _scons_resource_usage_reports[source_dir] = results
 

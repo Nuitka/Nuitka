@@ -11,15 +11,23 @@ good.
 """
 
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
-from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ChildrenHavingMixins import (
+    ChildHavingSequenceMixin,
+    ChildHavingValuesTupleMixin,
+    ChildrenHavingSequenceStartMixin,
+    ChildrenHavingStrictOptionalValuesTupleMixin,
+)
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
+from .shapes.BuiltinTypeShapes import tshape_list
 from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
@@ -48,7 +56,12 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         return self, "new_builtin", "Eliminated useless iterator creation."
 
     def getTypeShape(self):
-        return self.subnode_value.getTypeShape().getShapeIter()
+        result = self.subnode_value.getTypeShape().getShapeIter()
+
+        if result is None:
+            return tshape_iterator
+
+        return result
 
     def computeExpressionNext1(self, next_node, trace_collection):
         value = self.subnode_value
@@ -140,6 +153,200 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
+
+
+class ExpressionBuiltinEnumerateMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_iterator
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            return self.subnode_sequence.getTypeShape().hasShapeSlotIter()
+
+        return self.subnode_sequence.isKnownToBeIterable(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        return self.subnode_sequence.isKnownToBeIterableAtMin(count)
+
+    def getIterationLength(self):
+        return self.subnode_sequence.getIterationLength()
+
+    def mayRaiseException(self, exception_type):
+        sequence = self.subnode_sequence
+
+        if sequence.mayRaiseException(exception_type):
+            return True
+
+        if not sequence.getTypeShape().hasShapeSlotIter():
+            return True
+
+        return False
+
+
+class ExpressionBuiltinEnumerate1(
+    ExpressionBuiltinEnumerateMixin, ChildHavingSequenceMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE1"
+
+    named_children = ("sequence",)
+
+    def __init__(self, sequence, source_ref):
+        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinEnumerate2(
+    ExpressionBuiltinEnumerateMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ENUMERATE2"
+
+    named_children = ("sequence", "start")
+
+    def __init__(self, sequence, start, source_ref):
+        ChildrenHavingSequenceStartMixin.__init__(
+            self,
+            sequence=sequence,
+            start=start,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def mayRaiseException(self, exception_type):
+        if ExpressionBuiltinEnumerateMixin.mayRaiseException(self, exception_type):
+            return True
+
+        if self.subnode_start.mayRaiseException(exception_type):
+            return True
+
+        return False
+
+
+class ExpressionBuiltinZipMixin(object):
+    __slots__ = ()
+
+    if str is bytes:
+
+        @staticmethod
+        def getTypeShape():
+            return tshape_list
+
+    else:
+
+        @staticmethod
+        def getTypeShape():
+            return tshape_iterator
+
+    def computeExpression(self, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        trace_collection.onControlFlowEscape(self)
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            for value in self.subnode_values:
+                if value.getTypeShape().hasShapeSlotIter() is False:
+                    return False
+
+            return True
+
+        return self.isKnownToBeIterableAtMin(count)
+
+    def isKnownToBeIterableAtMin(self, count):
+        if not self.subnode_values:
+            return count == 0
+
+        for value in self.subnode_values:
+            if not value.isKnownToBeIterableAtMin(count):
+                return False
+
+        return True
+
+    def getIterationLength(self):
+        lengths = []
+
+        for value in self.subnode_values:
+            iteration_length = value.getIterationLength()
+
+            if iteration_length is None:
+                return None
+
+            lengths.append(iteration_length)
+
+        if not lengths:
+            return 0
+
+        return min(lengths)
+
+    def mayRaiseException(self, exception_type):
+        for value in self.subnode_values:
+            if value.mayRaiseException(exception_type):
+                return True
+
+            if value.getTypeShape().hasShapeSlotIter() is not True:
+                return True
+
+        return False
+
+
+class ExpressionBuiltinZip(
+    ExpressionBuiltinZipMixin, ChildHavingValuesTupleMixin, ExpressionBase
+):
+    kind = "EXPRESSION_BUILTIN_ZIP"
+
+    named_children = ("values|tuple",)
+
+    builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
+
+    def __init__(self, values, source_ref):
+        ChildHavingValuesTupleMixin.__init__(self, values=values)
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinZip310(
+    ExpressionBuiltinZipMixin,
+    ChildrenHavingStrictOptionalValuesTupleMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_ZIP310"
+
+    named_children = ("strict|optional", "values|tuple")
+
+    python_version_spec = ">= 0x3A0"
+
+    builtin_spec = BuiltinParameterSpecs.builtin_zip310_spec
+
+    def __init__(self, strict, values, source_ref):
+        ChildrenHavingStrictOptionalValuesTupleMixin.__init__(
+            self,
+            strict=strict,
+            values=values,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def mayRaiseException(self, exception_type):
+        strict = self.subnode_strict
+
+        if strict is not None and strict.mayRaiseException(exception_type):
+            return True
+
+        return ExpressionBuiltinZipMixin.mayRaiseException(self, exception_type)
 
 
 class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):

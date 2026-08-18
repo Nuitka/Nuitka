@@ -106,17 +106,60 @@ def _getMacOSCodeSigningIdentities(signing_keychain_filename):
 
 
 def _unlockMacIdentityKeychain(signing_keychain_filename):
-    command = [
-        "security",
-        "unlock-keychain",
-        "-p",
-        getMacOSSigningCertificatePassword() or "",
-        signing_keychain_filename,
-    ]
+    password = getMacOSSigningCertificatePassword() or ""
 
+    # Unlock the keychain. This alone works interactively, but in non-interactive
+    # contexts (CI, SSH) the keychain will auto-lock again (fixed below) and
+    # codesign will still hit ACL restrictions on the private key (also fixed
+    # below).
     executeToolChecked(
         logger=postprocessing_logger,
-        command=command,
+        command=[
+            "security",
+            "unlock-keychain",
+            "-p",
+            password,
+            signing_keychain_filename,
+        ],
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+    # Prevent the keychain from re-locking during the codesign step. The
+    # "-lut 21600" pattern is the standard macOS CI recipe: lock on sleep
+    # (-l), enable timeout-based locking (-u), with a 6-hour window (-t
+    # 21600). Without this, SSH/CI sessions will see the keychain lock
+    # almost immediately after unlock.
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=[
+            "security",
+            "set-keychain-settings",
+            "-lut",
+            "21600",
+            signing_keychain_filename,
+        ],
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+    # Allow Apple-signed tools (including /usr/bin/codesign) to access private
+    # keys in the keychain without an interactive prompt. Without this, running
+    # codesign in a non-interactive context (CI, SSH) will fail with
+    # errSecInternalComponent because the security framework cannot show the
+    # "codesign wants to sign using key..." dialog.
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=[
+            "security",
+            "set-key-partition-list",
+            "-S",
+            "apple-tool:,apple:",
+            "-s",
+            "-k",
+            password,
+            signing_keychain_filename,
+        ],
         absence_message=_macos_security_usage,
         stderr_filter=_filterSecurityErrorOutput,
     )

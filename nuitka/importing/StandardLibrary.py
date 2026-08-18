@@ -13,6 +13,7 @@ module.
 """
 
 import os
+import types
 
 from nuitka.PythonVersions import getSitePackageCandidateNames, python_version
 from nuitka.utils.FileOperations import (
@@ -40,30 +41,32 @@ def getStandardLibraryPaths():
     # Using the function object to cache its result, avoiding global variable
     # usage.
     if not hasattr(getStandardLibraryPaths, "result"):
-        os_filename = os.__file__
-        if os_filename.endswith(".pyc"):
-            os_filename = os_filename[:-1]
+        _stdlib_filename = types.__file__
+        if _stdlib_filename.endswith((".pyc", ".pyo")):
+            _stdlib_filename = _stdlib_filename[:-1]
 
-        os_path = os.path.normcase(getNormalizedPath(os.path.dirname(os_filename)))
+        _stdlib_path = os.path.normcase(
+            getNormalizedPath(os.path.dirname(_stdlib_filename))
+        )
 
-        stdlib_paths = set([os_path])
+        stdlib_paths = set([_stdlib_path])
 
         # Happens for virtualenv situation, some modules will come from the link
         # this points to.
-        if os.path.islink(os_filename):
-            os_filename = os.readlink(os_filename)
-            stdlib_paths.add(os.path.normcase(os.path.dirname(os_filename)))
+        if os.path.islink(_stdlib_filename):
+            _stdlib_filename = os.readlink(_stdlib_filename)
+            stdlib_paths.add(os.path.normcase(os.path.dirname(_stdlib_filename)))
 
-        # Another possibility is "orig-prefix.txt" file near the os.py, which
-        # points to the original install.
-        orig_prefix_filename = os.path.join(os_path, "orig-prefix.txt")
+        # Another possibility is "orig-prefix.txt" file near the reference
+        # module, which points to the original install.
+        orig_prefix_filename = os.path.join(_stdlib_path, "orig-prefix.txt")
 
         if os.path.isfile(orig_prefix_filename):
             # Scan upwards, until we find a "bin" folder, with "activate" to
             # locate the structural path to be added. We do not know for sure
             # if there is a sub-directory under "lib" to use or not. So we try
             # to detect it.
-            search = os_path
+            search = _stdlib_path
             lib_part = ""
 
             while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
@@ -86,7 +89,7 @@ def getStandardLibraryPaths():
 
         # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
-        python_link_filename = os.path.join(os_path, "..", ".Python")
+        python_link_filename = os.path.join(_stdlib_path, "..", ".Python")
         if os.path.islink(python_link_filename):
             stdlib_paths.add(
                 os.path.normcase(os.path.join(os.readlink(python_link_filename), "lib"))

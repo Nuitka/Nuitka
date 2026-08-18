@@ -19,7 +19,12 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import displayRecommendedVersion, isPythonWithGil
+from nuitka.PythonVersions import (
+    displayRecommendedVersion,
+    isPythonWithGil,
+    python_version_full_str,
+    python_version_str,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -39,7 +44,7 @@ from .CommandLineOptionsTools import SUPPRESS_HELP, makeOptionsParser
 
 def _getSysArgv():
     # During early startup on Python2, "sys.argv" may not exist yet.
-    return getattr(sys, "argv", ("__main__.py",))
+    return getattr(sys, "argv", ["__main__.py"])
 
 
 def _getNuitkaBinaryName():
@@ -255,11 +260,19 @@ from it. Default is not to use it.""",
 )
 
 parser.add_option(
-    "--pyproject-requires",
+    "--project-requires",
     action="append",
-    dest="pyproject_requires",
+    dest="project_requires",
     default=[],
     github_action=False,
+    help=SUPPRESS_HELP,
+)
+
+parser.add_option(
+    "--project-name",
+    action="store",
+    dest="project_name",
+    default=None,
     help=SUPPRESS_HELP,
 )
 
@@ -282,7 +295,9 @@ def getBuildConfigurationOptions(logger):
             if "poetry" in tool_data:
                 from .Poetry import getPoetryBuildConfiguration
 
-                return getPoetryBuildConfiguration(logger)
+                return getPoetryBuildConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             build_system_data = pyproject_data.get("build-system", {})
             build_backend = build_system_data.get("build-backend", "")
@@ -295,12 +310,16 @@ def getBuildConfigurationOptions(logger):
             ):
                 from .BuildPackage import getBuildBackendConfiguration
 
-                return getBuildBackendConfiguration(logger)
+                return getBuildBackendConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             if build_backend == "uv_build":
                 from .UvBuild import getUvBuildConfiguration
 
-                return getUvBuildConfiguration(logger, pyproject_data)
+                return getUvBuildConfiguration(
+                    logger=logger, pyproject_data=pyproject_data
+                )
 
             return logger.sysexit(
                 "Error, unrecognized build-backend '%s' in 'pyproject.toml'."
@@ -311,7 +330,7 @@ def getBuildConfigurationOptions(logger):
     if os.path.exists("setup.py") or os.path.exists("setup.cfg"):
         from .BuildPackage import getBuildBackendConfiguration
 
-        return getBuildBackendConfiguration(logger)
+        return getBuildBackendConfiguration(logger=logger, pyproject_data={})
 
     logger.sysexit(
         "Error, '--project' requires a 'pyproject.toml', 'setup.py', or 'setup.cfg' file."
@@ -776,6 +795,21 @@ warnings_group.add_option(
 Allow Nuitka to download external code if necessary, e.g. dependency
 walker, ccache, and even gcc on Windows. To disable, redirect input
 from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
+)
+
+warnings_group.add_option(
+    "--update-check",
+    action="store",
+    type="choice",
+    choices=("never", "force", "error", "warning", "info"),
+    dest="update_check",
+    default="warning",
+    environment_variable_name="NUITKA_UPDATE_CHECK",
+    help="""\
+Control checking for newer Nuitka releases. Use "never" to disable it,
+"force" to bypass the cache once, "error" to make outdated versions abort,
+"warning" (default) to warn, or "info" to merely inform. This can also be
+controlled with the environment variable 'NUITKA_UPDATE_CHECK'.""",
 )
 
 
@@ -1274,6 +1308,17 @@ development_group.add_option(
 Enable verbose mode for the data composer. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-no-bytecode-to-compiled-fallback",
+    action="store_true",
+    dest="devel_no_bytecode_to_compiled_fallback",
+    default=False,
+    github_action=False,
+    help="""\
+Forbid fallback from bytecode backed annotate functions to compiled code when \
+source regeneration fails. Instead abort compilation with an error. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
@@ -1408,6 +1453,24 @@ value. Refer to gcc documentation for "-fcf-protection" for the
 details.""",
 )
 
+c_compiler_group.add_option(
+    "--target-arch",
+    action="store",
+    dest="c_target_arch",
+    metavar="MARCH",
+    default=None,
+    help="""\
+What minimum CPU instruction set to compile for. This is NOT about
+cross-compilation (which requires Python of that architecture). It
+controls the baseline ISA level for the backend C compiler via
+'-march'. When not given, gcc and clang use their default (already
+portable), and zig defaults to the baseline ISA for the target
+architecture (e.g. "x86_64" on x86_64, "armv8-a" on arm64) to
+produce portable binaries. Set to an explicit value like
+"x86-64-v3" to require a higher ISA level. Check compiler docs
+for allowed values. If you choose wrong, build errors will occur.""",
+)
+
 del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
@@ -1520,6 +1583,18 @@ pgo_group.add_option(
     choices=("include", "exclude", "bytecode"),
     default="include",
     help=SUPPRESS_HELP,  # Not yet ready
+)
+
+pgo_group.add_option(
+    "--pgo-python-error-exit",
+    action="store",
+    dest="python_pgo_error_exit",
+    choices=("yes", "no"),
+    default="no",
+    help="""\
+Control how non-zero exit codes of the PGO profiling run are handled. The default
+'no' tolerates no error exits and aborts compilation on a non-zero exit code, but
+that can be disabled with 'yes'.""",
 )
 
 pgo_group.add_option(
@@ -1901,17 +1976,6 @@ macos_group.add_option(
 )
 
 macos_group.add_option(
-    "--macos-app-create-dmg",
-    action="store_true",
-    dest="macos_create_dmg",
-    default=False,
-    help="""\
-When compiling for macOS, create a DMG file for the application bundle.
-Defaults to off.""",
-)
-
-
-macos_group.add_option(
     "--macos-signed-app-name",
     action="store",
     dest="macos_signed_app_name",
@@ -1995,6 +2059,28 @@ not given.""",
 )
 
 macos_group.add_option(
+    "--macos-app-macos-min-version",
+    action="store",
+    dest="macos_app_macos_min_version",
+    metavar="MACOS_APP_MACOS_MIN_VERSION",
+    default=None,
+    help="""\
+Minimum macOS version required by the application. Defaults to the
+version detected from the Python binary used.""",
+)
+
+macos_group.add_option(
+    "--macos-app-category-type",
+    action="store",
+    dest="macos_app_category_type",
+    metavar="MACOS_APP_CATEGORY_TYPE",
+    default=None,
+    help="""\
+App Store category type for the application, e.g.
+public.app-category.utilities.""",
+)
+
+macos_group.add_option(
     "--macos-app-protected-resource",
     action="append",
     dest="macos_protected_resources",
@@ -2038,13 +2124,45 @@ del macos_group
 linux_group = parser.add_option_group("Linux specific controls")
 
 linux_group.add_option(
+    "--linux-app-icon",
     "--linux-icon",
     "--linux-onefile-icon",
     action="append",
     dest="linux_icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
+    help="""\
+Add executable icon for the Linux desktop file to use. Can be given
+only one time. Defaults to Python icon if available. Note that the
+desktop file references the icon by name only, it will not display
+unless the icon file is also installed into the system icon paths,
+e.g. '/usr/share/icons/hicolor/' or '~/.local/share/icons/'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-console-mode",
+    action="store",
+    dest="linux_app_console_mode",
+    choices=("force", "disable"),
+    metavar="LINUX_APP_CONSOLE_MODE",
+    default=None,
+    help="""\
+Select console mode to use with the Linux desktop file. Default mode
+is 'disable' and the 'Terminal' entry makes it launch without a
+terminal. With 'force' a terminal is opened when launched from the
+desktop environment. Default is 'disable'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-license",
+    action="store",
+    dest="linux_app_license",
+    metavar="LINUX_APP_LICENSE",
+    default=None,
+    help="""\
+SPDX license expression of the application used in the AppStream
+metainfo file created on Linux, e.g. 'Apache-2.0'. Defaults
+to 'Proprietary'.""",
 )
 
 del linux_group
@@ -2130,6 +2248,145 @@ Trademark used in version information. Windows/macOS only at this time. Defaults
 
 
 del version_group
+
+installer_group = parser.add_option_group("Installer controls")
+
+installer_group.add_option(
+    "--macos-create-installer",
+    "--macos-app-create-dmg",
+    action="store_true",
+    dest="macos_create_dmg",
+    default=False,
+    help="""\
+When compiling for macOS, create a DMG file for the application bundle.
+Defaults to off.""",
+)
+
+installer_group.add_option(
+    "--windows-create-installer",
+    action="store_true",
+    dest="windows_create_installer",
+    default=False,
+    help="""\
+Create a Windows installer (NSIS) for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--windows-nsis-path",
+    action="store",
+    dest="windows_installer_nsis_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The installer backend tool to use, or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-output",
+    action="store",
+    dest="windows_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the installer executable to create. Defaults to the program or \
+dist folder name with a "-setup.exe" suffix in the output directory.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-install-dir",
+    action="store",
+    dest="windows_installer_install_dir",
+    default=None,
+    metavar="INSTALLER_INSTALL_DIR",
+    help="""\
+Default installation directory presented to the end user, backend specific \
+values like "$PROGRAMFILES64\\ProductName" are allowed. Defaults to a \
+standard location derived from the product name and install mode.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-shortcuts",
+    action="store",
+    dest="windows_installer_shortcuts",
+    default=None,
+    multi_choices=("desktop", "start-menu"),
+    metavar="INSTALLER_SHORTCUTS",
+    help="""\
+Comma separated list of shortcuts the installer offers, allowed values are \
+"desktop" and "start-menu". Default is no shortcuts.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-license-file",
+    action="store",
+    dest="windows_installer_license_filename",
+    default=None,
+    metavar="INSTALLER_LICENSE_FILENAME",
+    help="""\
+License text file the installer shall present during installation. Default \
+is to have no license page.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-no-user-change-install-dir",
+    action="store_true",
+    dest="windows_installer_no_user_change_install_dir",
+    default=False,
+    help="""\
+Do not allow the end user to override the default installation directory. \
+Default is to allow it.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-mode",
+    action="store",
+    dest="windows_installer_mode",
+    default="multiuser",
+    choices=("multiuser", "user", "machine"),
+    metavar="INSTALLER_MODE",
+    help="""\
+Installation scope. "multiuser" lets the end user choose between per-user \
+and all-users (default), "user" forces a per-user install with no UAC \
+prompt, "machine" forces an all-users install requiring admin elevation.""",
+)
+
+installer_group.add_option(
+    "--linux-create-installer",
+    action="store_true",
+    dest="linux_create_installer",
+    default=False,
+    help="""\
+Create a Linux AppImage installer for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-appimagetool-path",
+    action="store",
+    dest="linux_installer_appimagetool_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The appimagetool binary to use or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-output",
+    action="store",
+    dest="linux_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the AppImage to create. Defaults to the dist folder name with \
+an architecture suffix and '.AppImage' extension in the output directory.""",
+)
+
+del installer_group
 
 plugin_group = parser.add_option_group("Plugin control")
 
@@ -2320,6 +2577,8 @@ def _expandProjectArg(arg, filename_arg, for_eval, custom_values):
         "Arch": wrap(getArchitecture()),
         "Flavor": wrap(getPythonFlavorName()),
         "Version": getNuitkaVersion(),
+        "PYTHON_VERSION": wrap(python_version_str),
+        "PYTHON_VERSION_FULL": wrap(python_version_full_str),
         "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
         "GIL": isPythonWithGil(),
@@ -2727,6 +2986,12 @@ def parseOptions(logger):
         opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
         if opt_complete is not None:
             opt_complete.autocomplete(parser)
+
+    sys.argv = (
+        [sys.argv[0]]
+        + parser.addEnvironmentVariableDefaultOptions(sys.argv[1:])
+        + sys.argv[1:]
+    )
 
     options, positional_args = parser.parse_args()
 

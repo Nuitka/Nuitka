@@ -707,6 +707,15 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def onMetaPathLoaderEntryTemplate(module, template_args):
+        """Let plugins modify meta path loader entry template arguments."""
+        for plugin in getActivePlugins():
+            plugin.onMetaPathLoaderEntryTemplate(
+                module=module, template_args=template_args
+            )
+
+    @staticmethod
+    @counted_plugin_method
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
@@ -732,6 +741,13 @@ through implicit import by '%s' plugin encountered."""
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():
             plugin.onFinalResult(filename)
+
+    @staticmethod
+    @counted_plugin_method
+    def onInstallerOutput(filename):
+        """Let plugins post-process the created installer"""
+        for plugin in getActivePlugins():
+            plugin.onInstallerOutput(filename)
 
     @staticmethod
     def considerExtraDlls(module):
@@ -1499,7 +1515,7 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def getPreprocessorSymbols(cls):
+    def getPreprocessorSymbols(cls, onefile):
         """Let plugins provide C defines to be used in compilation.
 
         Notes:
@@ -1517,7 +1533,7 @@ through incomplete set import by '%s' plugin encountered."""
             cls.preprocessor_symbols = OrderedDict()
 
             for plugin in getActivePlugins():
-                value = plugin.getPreprocessorSymbols()
+                value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
@@ -1687,9 +1703,9 @@ through incomplete set import by '%s' plugin encountered."""
 
     @classmethod
     @counted_plugin_method
-    def onDataComposerResult(cls, blob_filename):
+    def onDataComposerResult(cls, blob_filenames):
         for plugin in getActivePlugins():
-            plugin.onDataComposerResult(blob_filename)
+            plugin.onDataComposerResult(blob_filenames)
 
     @classmethod
     def deriveModuleConstantsBlobName(cls, data_filename):

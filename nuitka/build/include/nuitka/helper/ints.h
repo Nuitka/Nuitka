@@ -3,6 +3,13 @@
 #ifndef __NUITKA_HELPER_INTS_H__
 #define __NUITKA_HELPER_INTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#include "nuitka/printing.h"
+#endif
+
 // Our "PyLong_FromLong" replacement.
 extern PyObject *Nuitka_PyLong_FromLong(long ival);
 extern long Nuitka_PyLong_AsLongAndOverflow(PyObject *value, int *overflow);

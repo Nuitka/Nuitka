@@ -6,6 +6,7 @@
 import re
 import subprocess
 
+from nuitka.__past__ import re_sub
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
@@ -15,6 +16,7 @@ from nuitka.utils.PrivatePipSpace import (
     getClangFormatBinaryPath,
     withPrivatePipSitePackagesPathAdded,
 )
+from nuitka.utils.Utils import counted
 
 
 def cleanupWindowsNewlines(filename, effective_filename):
@@ -34,6 +36,25 @@ def cleanupWindowsNewlines(filename, effective_filename):
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
         updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
+
+        # Normalize 'spell-checker: ignore' lines:
+        # - Prose prefix: restore standard spacing after comma.
+        # - Word list: no spaces after commas (word1,word2).
+        def _fixSpellCheckerIgnoreSpaces(match):
+            prefix = re.sub(
+                b"(,[a-zA-Z])",
+                lambda m: b", " + m.group(0)[1:],
+                match.group(1),
+            )
+            word_list = match.group(2).replace(b", ", b",")
+            return prefix + word_list
+
+        updated_code = re_sub(
+            b"(^.*spell-checker:\\s*ignore\\s+)(.*)",
+            _fixSpellCheckerIgnoreSpaces,
+            updated_code,
+            flags=re.MULTILINE,
+        )
 
         def replacer(match):
             return b"PYTHON_VERSION %s %s" % (match.group(1), match.group(2).lower())
@@ -62,7 +83,6 @@ def cleanupTrailingWhitespace(filename):
         cleanupWindowsNewlines(filename, filename)
 
 
-_warned_clang_format = False
 _clang_format_path = False
 
 
@@ -74,7 +94,7 @@ def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
         assume_yes_for_downloads: bool
     """
     # pylint: disable=global-statement
-    global _warned_clang_format, _clang_format_path
+    global _clang_format_path
 
     if _clang_format_path is False:
         clang_format_path = getClangFormatBinaryPath(
@@ -88,14 +108,12 @@ def _getClangFormatPath(logger, assume_yes_for_downloads, reject_message):
         else:
             return None
 
-    if (
-        _clang_format_path is None
-        and reject_message is not None
-        and not _warned_clang_format
-    ):
-        if logger is not None:
-            logger.warning("Need to accept clang-format download to format C files.")
-        _warned_clang_format = True
+    if _clang_format_path is None and reject_message is not None and logger is not None:
+        with counted("clang_format_warned") as count:
+            if count == 1:
+                logger.warning(
+                    "Need to accept clang-format download to format C files."
+                )
 
     return _clang_format_path
 
@@ -127,11 +145,24 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads, reject_messa
             )
 
 
+def _cleanupEmDashes(filename):
+    """Replace em-dashes and en-dashes with regular dashes in C files."""
+
+    with open(filename, "rb") as f:
+        source_code = f.read()
+
+    updated_code = source_code.replace(b"\xe2\x80\x94", b"-")
+    updated_code = updated_code.replace(b"\xe2\x80\x93", b"-")
+
+    if updated_code != source_code:
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_code)
+
+
 def formatC(
     logger,
     filename,
     effective_filename,
-    check_only,
     assume_yes_for_downloads,
     reject_message,
 ):
@@ -141,18 +172,26 @@ def formatC(
         filename: path to the file
         effective_filename: filename to use for errors
         logger: logger to use
-        check_only: bool - if only checking is to be done
         assume_yes_for_downloads: bool - if downloads are allowed
     """
-    if check_only:
-        try:
-            getFileContents(filename, encoding="ascii")
-        except UnicodeDecodeError:
-            if logger:
-                logger.warning(
-                    "All C files must be pure ASCII, need to convert it manually."
-                )
-            return True
+    _cleanupEmDashes(filename)
+
+    try:
+        getFileContents(filename, encoding="ascii")
+    except UnicodeDecodeError:
+        line_no = 0
+
+        with open(filename, "rb") as f:
+            for line_no, line in enumerate(f, start=1):
+                try:
+                    line.decode("ascii")
+                except UnicodeDecodeError:
+                    break
+
+        return logger.sysexit(
+            "All C files must be pure ASCII, need to convert it manually: %s (line %d)"
+            % (effective_filename, line_no)
+        )
 
     cleanupWindowsNewlines(filename, effective_filename)
     _cleanupClangFormat(
@@ -162,8 +201,6 @@ def formatC(
         reject_message=reject_message,
     )
     cleanupWindowsNewlines(filename, effective_filename)
-
-    return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

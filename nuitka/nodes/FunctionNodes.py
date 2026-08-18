@@ -164,8 +164,20 @@ class ExpressionFunctionBodyBase(
     def hasFlag(self, flag):
         return self.flags is not None and flag in self.flags
 
+    def addFlag(self, flag):
+        if self.flags is None:
+            self.flags = set()
+
+        if isinstance(self.flags, frozenset):
+            self.flags = set(self.flags)
+
+        self.flags.add(flag)
+
     def discardFlag(self, flag):
         if self.flags is not None:
+            if isinstance(self.flags, frozenset):
+                self.flags = set(self.flags)
+
             self.flags.discard(flag)
 
     @staticmethod

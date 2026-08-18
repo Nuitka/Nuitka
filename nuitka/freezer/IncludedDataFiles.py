@@ -26,6 +26,7 @@ from nuitka.options.Options import (
     getShallNotIncludeDataFilePatterns,
     isAcceleratedMode,
     isStandaloneMode,
+    isUnstripped,
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
@@ -39,6 +40,7 @@ from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     areSamePaths,
+    changeFilenameExtension,
     containsPathElements,
     copyFileWithPermissions,
     getFileContents,
@@ -48,14 +50,16 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     isFilenameBelowPath,
     isLegalPath,
+    isLink,
     isRelativePath,
+    listDir,
     makePath,
     openTextFile,
     relpath,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.Utils import getArchitecture, isAIX, isMacOS
+from nuitka.utils.Utils import counted, isAIX, isMacOS, isWin32Windows
 
 data_file_tags = []
 
@@ -134,7 +138,8 @@ class IncludedDataFile(object):
         the standalone distribution.
 
     Args:
-        kind: The kind of data file ("data_file" or "data_blob").
+        kind: The kind of data file ("data_file", "data_blob", or
+            "data_file_generated").
         source_path: The source path of the file (if kind is "data_file").
         dest_path: The destination path in the distribution.
         reason: The reason for inclusion.
@@ -178,6 +183,9 @@ class IncludedDataFile(object):
         self.tags = tags_set
         self.tracer = tracer
 
+    def isExternal(self):
+        return "external" in self.tags
+
     def __repr__(self):
         return "<%s %s source '%s' dest '%s' reason '%s' tags '%s'>" % (
             self.__class__.__name__,
@@ -204,10 +212,18 @@ class IncludedDataFile(object):
         """
         if self.kind == "data_file":
             return getFileContents(filename=self.source_path, mode="rb")
+        elif self.kind == "data_file_generated":
+            return getFileContents(
+                filename=os.path.join(
+                    getStandaloneDirectoryPath(bundle=True, real=True),
+                    self.dest_path,
+                ),
+                mode="rb",
+            )
         elif self.kind == "data_blob":
             return self.data
         else:
-            assert False
+            assert False, self.kind
 
     def getFileSize(self):
         """Get the size of the data file.
@@ -217,10 +233,17 @@ class IncludedDataFile(object):
         """
         if self.kind == "data_file":
             return getFileSize(self.source_path)
+        elif self.kind == "data_file_generated":
+            return getFileSize(
+                os.path.join(
+                    getStandaloneDirectoryPath(bundle=True, real=True),
+                    self.dest_path,
+                )
+            )
         elif self.kind == "data_blob":
             return len(self.data)
         else:
-            assert False
+            assert False, self.kind
 
 
 def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
@@ -404,6 +427,29 @@ def _registerIncludedFrameworkDirectory(logger, source_path, dest_path):
         )
 
 
+def _getFrameworkVersionDir(source_path):
+    versions_dir = os.path.join(source_path, "Versions")
+
+    if not os.path.isdir(versions_dir):
+        return None
+
+    framework_name = os.path.basename(source_path)
+    if framework_name.endswith(".framework"):
+        framework_name = framework_name[: -len(".framework")]
+
+    for _entry_path, entry_name in listDir(versions_dir):
+        if entry_name == "Current":
+            continue
+
+        if not os.path.isdir(_entry_path):
+            continue
+
+        if os.path.exists(os.path.join(_entry_path, framework_name)):
+            return entry_name
+
+    return None
+
+
 def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags):
     assert isMacOS(), source_path
     assert os.path.isdir(source_path), source_path
@@ -419,15 +465,78 @@ def makeIncludedFrameworkDirectory(logger, source_path, dest_path, reason, tags)
         dest_path=dest_path,
     )
 
-    return makeIncludedDataDirectory(
-        source_path=source_path,
-        dest_path=dest_path,
-        reason=reason,
-        tracer=logger,
-        tags=tags,
-        ignore_dirs=("_CodeSignature",),
-        raw=True,
-    )
+    version_dir_name = _getFrameworkVersionDir(source_path)
+
+    if version_dir_name is not None:
+        # Some frameworks (like Qt 5.15 shipped with PySide2) place
+        # 'Resources/' at the framework root rather than under
+        # 'Versions/X/'.  That layout is accepted by codesign as long as
+        # no 'Versions/Current' symlink exists, but the framework
+        # normalizer in 'Standalone.py' also adds one to get standard
+        # '@rpath/Versions/Current/...' load paths working after rpath
+        # rewriting.  Once the symlink is there, codesign expects every
+        # top-level directory to live under 'Versions/Current/' too.
+        #
+        # Redirect those root-level directories into 'Versions/X/' now
+        # so the files arrive in the right place from the start.  The
+        # normalizer will then create the root-level symlink.
+
+        version_dir_path = os.path.join(source_path, "Versions", version_dir_name)
+        ignore_dirs = ["_CodeSignature"]
+
+        for entry_path, entry_name in listDir(source_path):
+            if entry_name in ("Versions", "_CodeSignature"):
+                continue
+
+            if isLink(entry_path):
+                continue
+
+            if not os.path.isdir(entry_path):
+                continue
+
+            versioned_entry_path = os.path.join(version_dir_path, entry_name)
+
+            if not os.path.exists(versioned_entry_path):
+                ignore_dirs.append(entry_name)
+
+                for r in makeIncludedDataDirectory(
+                    source_path=entry_path,
+                    dest_path=os.path.normpath(
+                        os.path.join(
+                            dest_path,
+                            "Versions",
+                            version_dir_name,
+                            entry_name,
+                        )
+                    ),
+                    reason=reason,
+                    tracer=logger,
+                    tags=tags,
+                    raw=True,
+                ):
+                    yield r
+
+        for r in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=logger,
+            tags=tags,
+            ignore_dirs=tuple(ignore_dirs),
+            raw=True,
+        ):
+            yield r
+    else:
+        for r in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=logger,
+            tags=tags,
+            ignore_dirs=("_CodeSignature",),
+            raw=True,
+        ):
+            yield r
 
 
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
@@ -456,6 +565,34 @@ def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
         dest_path=dest_path,
         reason=reason,
         data=data,
+        tracer=tracer,
+        tags=tags,
+    )
+
+
+def makeIncludedDataFileGenerated(dest_path, reason, tracer, tags):
+    """Create an included data file for a build-generated file already in place.
+
+    Notes:
+        Use this for files produced by the build process (e.g. PDB debug
+        symbols) that are already present at their destination and do not
+        need to be copied.
+
+    Args:
+        dest_path: The destination path in the distribution.
+        reason: The reason for inclusion.
+        tracer: The tracer to use for logging.
+        tags: Tags associated with this file.
+
+    Returns:
+        IncludedDataFile: The created data file object.
+    """
+    return IncludedDataFile(
+        kind="data_file_generated",
+        source_path=None,
+        dest_path=dest_path,
+        data=None,
+        reason=reason,
         tracer=tracer,
         tags=tags,
     )
@@ -516,6 +653,54 @@ Error, when asking to copy files external data, you cannot output to\
 same directory and need to use '--output-dir' option.""")
 
     _included_data_files.append(included_datafile)
+
+
+def addIncludedPdbFile(entry_point):
+    """Register a .pdb debug symbol file alongside a binary, if applicable.
+
+    Args:
+        entry_point: The IncludedEntryPoint for the binary.
+    """
+    if isWin32Windows() and isUnstripped():
+        pdb_source_candidate = changeFilenameExtension(
+            path=entry_point.source_path, extension=".pdb"
+        )
+
+        if os.path.exists(pdb_source_candidate):
+            pdb_dest = changeFilenameExtension(
+                path=entry_point.dest_path, extension=".pdb"
+            )
+
+            with counted("pdb_files_added") as count:
+                if count == 1:
+                    entry_point.logger.info(
+                        "Including debug symbol files (.pdb) for the distribution."
+                    )
+
+            pdb_dest_full = os.path.join(
+                getStandaloneDirectoryPath(bundle=True, real=False),
+                pdb_dest,
+            )
+
+            if pdb_source_candidate == pdb_dest_full:
+                addIncludedDataFile(
+                    makeIncludedDataFileGenerated(
+                        dest_path=pdb_dest,
+                        reason="Debug symbols for '%s'" % entry_point.dest_path,
+                        tracer=entry_point.logger,
+                        tags="pdb",
+                    )
+                )
+            else:
+                addIncludedDataFile(
+                    makeIncludedDataFile(
+                        source_path=pdb_source_candidate,
+                        dest_path=pdb_dest,
+                        reason="Debug symbols for '%s'" % entry_point.dest_path,
+                        tracer=entry_point.logger,
+                        tags="copy,pdb",
+                    )
+                )
 
 
 def getIncludedDataFiles():
@@ -693,29 +878,36 @@ def addIncludedDataFilesFromFlavor():
         Example: AIX requires libpython embedded.
     """
     if isAIX():
+        import sysconfig
+
         # On AIX, the Python DLL is hidden in an archive.
-        filename = "libpython%s.a" % python_version_str
-        system_prefix = getSystemPrefixPath()
+        lib_filename = "libpython%s.a" % python_version_str
 
-        if getArchitecture() == "64":
-            lib_part = "lib64"
-        else:
-            return inclusion_logger.sysexit("""\
-Error, change Nuitka code to define the path of the '%s' \
-file in the Python installation '%s'.""" % (filename, system_prefix))
+        lib_filename_full = os.path.join(
+            sysconfig.get_config_var("LIBPL"),
+            lib_filename,
+        )
 
-        filename_full = os.path.join(system_prefix, lib_part, filename)
+        if not os.path.exists(lib_filename_full):
+            system_prefix = getSystemPrefixPath()
 
-        if not os.path.exists(filename_full):
-            return inclusion_logger.sysexit(
-                "Error, the defined path of the '%s' file in the Python installation '%s' is wrong."
-                % (filename_full, system_prefix)
-            )
+            for lib_part in ("lib64", "lib"):
+                candidate = os.path.join(system_prefix, lib_part, lib_filename)
+
+                if os.path.exists(candidate):
+                    lib_filename_full = candidate
+                    break
+            else:
+                return inclusion_logger.sysexit(
+                    """\
+Error, cannot find '%s' in the Python installation '%s' (tried LIBPL, lib64, lib)."""
+                    % (lib_filename, system_prefix)
+                )
 
         addIncludedDataFile(
             makeIncludedDataFile(
-                source_path=filename_full,
-                dest_path=filename,
+                source_path=lib_filename_full,
+                dest_path=lib_filename,
                 reason="Required Python DLL",
                 tracer=inclusion_logger,
                 tags="flavor",
@@ -880,7 +1072,7 @@ def _reportDataFiles():
                             reason,
                         )
                     )
-                elif kind == "data_file":
+                elif kind in ("data_file", "data_file_generated"):
                     tracer.info(
                         "Included data file '%s' due to %s."
                         % (
@@ -972,6 +1164,8 @@ def _handleDataFile(included_datafile, standalone_entry_points):
             dest_path=dest_path,
             target_dir=dist_dir,
         )
+    elif included_datafile.kind == "data_file_generated":
+        pass
     else:
         assert False, included_datafile
 

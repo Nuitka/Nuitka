@@ -26,6 +26,7 @@ from .ErrorCodes import (
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import template_loop_break_next
+from .TupleCodes import getTupleCreationCode
 
 
 def generateBuiltinNext1Code(to_name, expression, emit, context):
@@ -65,6 +66,111 @@ if (%(to_name)s == NULL) {
             check_name=result_name,
             release_name=value_name,
             fetched_exception=True,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinEnumerate1Code(to_name, expression, emit, context):
+    (sequence_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "enumerate_value", expression, emit, context
+    ) as result_name:
+        emit("%s = BUILTIN_ENUMERATE1(tstate, %s);" % (result_name, sequence_name))
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=sequence_name,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinEnumerate2Code(to_name, expression, emit, context):
+    sequence_name, start_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "enumerate_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = BUILTIN_ENUMERATE2(tstate, %s, %s);"
+            % (result_name, sequence_name, start_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(sequence_name, start_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinZipCode(to_name, expression, emit, context):
+    values_name = context.allocateTempName("zip_iterables")
+
+    getTupleCreationCode(
+        to_name=values_name,
+        elements=expression.subnode_values,
+        emit=emit,
+        context=context,
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "zip_value", expression, emit, context
+    ) as result_name:
+        emit("%s = BUILTIN_ZIP(tstate, %s);" % (result_name, values_name))
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_name=values_name,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateBuiltinZip310Code(to_name, expression, emit, context):
+    values_name = context.allocateTempName("zip_iterables")
+
+    getTupleCreationCode(
+        to_name=values_name,
+        elements=expression.subnode_values,
+        emit=emit,
+        context=context,
+    )
+
+    strict_name = context.allocateTempName("zip_strict")
+
+    generateExpressionCode(
+        to_name=strict_name,
+        expression=expression.subnode_strict,
+        emit=emit,
+        context=context,
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "zip_value", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = BUILTIN_ZIP310(tstate, %s, %s);"
+            % (result_name, values_name, strict_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(values_name, strict_name),
             emit=emit,
             context=context,
         )
@@ -206,37 +312,24 @@ def generateUnpackCheckCode(statement, emit, context):
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):
-    iteration_length_name = context.allocateTempName("iteration_length", unique=True)
-
-    generateExpressionCode(
-        to_name=iteration_length_name,
-        expression=statement.subnode_iterated_length,
-        emit=emit,
-        context=context,
-    )
-
     to_name = context.getBoolResName()
 
+    # TODO: Have a way to pass a C integer value to getRichComparisonCode
+    # without creating a temporary constant ref node.
     getRichComparisonCode(
         to_name=to_name,
         comparator="Gt",
         left=statement.subnode_iterated_length,
-        # Creating a temporary node on the fly, knowing it's not used for many
-        # things. TODO: Once we have value shapes, we ought to use those.
         right=makeConstantRefNode(
             constant=statement.count,
             source_ref=statement.source_ref,
             user_provided=True,
         ),
-        # We know that cannot fail.
         needs_check=False,
         source_ref=statement.source_ref,
         emit=emit,
         context=context,
     )
-
-    # TODO: Why is this necessary, to_name doesn't allow storage.
-    context.removeCleanupTempName(to_name)
 
     # TODO: This exception ought to have a creator function.
     emit("""

@@ -1,7 +1,11 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-#ifndef __NUITKA_STRINGS_H__
-#define __NUITKA_STRINGS_H__
+#ifndef __NUITKA_HELPER_STRINGS_H__
+#define __NUITKA_HELPER_STRINGS_H__
+
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 
 #if PYTHON_VERSION < 0x300
 extern PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable);

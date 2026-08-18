@@ -3,6 +3,51 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.12"
+
+reportAttributeAccessIssue = "none"
+reportMissingModuleSource = "none"
+reportMissingImports = "none"
+
+reportOptionalMemberAccess = "none"
+reportOptionalCall = "none"
+reportOptionalSubscript = "none"
+reportOptionalIterable = "none"
+reportOptionalOperand = "none"
+
+reportArgumentType = "none"
+reportAssignmentType = "none"
+reportCallIssue = "none"
+reportOperatorIssue = "none"
+reportGeneralTypeIssues = "none"
+
+reportRedeclaration = "none"
+reportPrivateImportUsage = "none"
+
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/inline_copy/**",
+    "tests/CPython*",
+    "*Mini*",
+]
+
+[tool.ruff]
+builtins = ["__compiled__", "cmp", "intern", "unicode", "long"]
+lint.ignore = ["BLE001", "E402", "E731", "F401", "SIM117", "UP028", "UP031"]
+force-exclude = true
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/inline_copy/**",
+    "tests/CPython*",
+    "*Mini*",
+]
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

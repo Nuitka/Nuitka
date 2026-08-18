@@ -1,0 +1,243 @@
+#!/usr/bin/env python
+#     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+"""Main program for Pyright checker tool."""
+
+import os
+import time
+
+from nuitka.options.CommandLineOptionsTools import makeOptionsParser
+from nuitka.tools.Basics import addPYTHONPATH, getHomePath, setupPATH
+from nuitka.tools.quality.Git import addGitArguments, getGitPaths
+from nuitka.tools.quality.pyright.Pyright import (
+    executePyright,
+    getPyrightVersion,
+)
+from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
+from nuitka.tools.testing.Common import setup
+from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.FileOperations import (
+    getFileModificationTime,
+    resolveShellPatternToFilenames,
+)
+
+
+def _getPathParts(filename):
+    filename = os.path.normpath(filename)
+
+    if not os.path.isabs(filename):
+        filename = os.path.abspath(filename)
+
+    try:
+        filename = os.path.relpath(filename, getHomePath())
+    except ValueError:
+        pass
+
+    return filename.replace("\\", "/").split("/")
+
+
+def isIgnoredFile(filename):
+    path_parts = _getPathParts(filename)
+
+    if path_parts[0].startswith("Mini"):
+        return True
+    if path_parts[0] == "examples":
+        return True
+    if path_parts[0] == "tests" and path_parts[-1] != "run_all.py":
+        return True
+    if "inline_copy" in path_parts:
+        return True
+
+    return False
+
+
+def _resolveFilenames(options, positional_args):
+    positional_args = getGitPaths(
+        options=options,
+        positional_args=positional_args,
+        default_positional_args=(
+            "bin",
+            "nuitka",
+            "setup.py",
+            "tests/*/run_all.py",
+        ),
+    )
+
+    if options.verbose:
+        my_print("Working on: %s" % " ".join(positional_args))
+
+    positional_args = sum(
+        (
+            resolveShellPatternToFilenames(positional_arg)
+            for positional_arg in positional_args
+        ),
+        [],
+    )
+
+    filenames = list(
+        scanTargets(positional_args, suffixes=(".py", ".scons"), ignore_list=[])
+    )
+
+    # Filter to Python files only, and exclude ignored files.
+    filenames = [
+        filename
+        for filename in filenames
+        if isPythonFile(filename)
+        if not isIgnoredFile(filename)
+    ]
+
+    return filenames
+
+
+def _parseArguments():
+    parser = makeOptionsParser(usage=None, epilog=None)
+
+    addGitArguments(parser)
+
+    parser.add_option(
+        "--verbose",
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="""\
+Be verbose in output. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--not-installed-is-no-error",
+        action="store_true",
+        dest="not_installed_is_no_error",
+        default=False,
+        help="""\
+Insist on Pyright to be installed. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--watch",
+        action="store_true",
+        dest="watch",
+        default=False,
+        help="""\
+Watch files for changes. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--basedpyright",
+        action="store_true",
+        dest="basedpyright",
+        default=False,
+        help="""\
+Use basedpyright instead of pyright. Default is %default.""",
+    )
+
+    options, positional_args = parser.parse_args()
+
+    return options, positional_args
+
+
+def main():
+    # pylint: disable=too-many-branches
+
+    setup(go_main=False)
+
+    addPYTHONPATH(getHomePath())
+    setupPATH()
+
+    options, positional_args = _parseArguments()
+
+    if options.not_installed_is_no_error:
+        if getPyrightVersion(basedpyright=options.basedpyright) is None:
+            tool_name = "basedpyright" if options.basedpyright else "pyright"
+            tools_logger.warning(
+                "%s is not installed: SKIPPED" % tool_name,
+                style="yellow",
+            )
+            return tools_logger.sysexit(exit_code=0)
+
+    if options.watch:
+        prev_filenames = set()
+        prev_modification_times = {}
+
+        while True:
+            try:
+                filenames = _resolveFilenames(
+                    options=options, positional_args=positional_args
+                )
+
+                new_filenames = set(filenames)
+                new_modification_times = {}
+
+                for filename in filenames:
+                    try:
+                        new_modification_times[filename] = getFileModificationTime(
+                            filename
+                        )
+                    except OSError:
+                        new_modification_times[filename] = None
+
+                changed = new_filenames != prev_filenames
+                if not changed:
+                    for filename, modification_time in new_modification_times.items():
+                        if (
+                            filename not in prev_modification_times
+                            or prev_modification_times[filename] != modification_time
+                        ):
+                            changed = True
+                            break
+
+                if changed:
+                    my_print(">>> Pyright Start")
+                    try:
+                        executePyright(
+                            filenames=filenames,
+                            verbose=options.verbose,
+                            basedpyright=options.basedpyright,
+                        )
+                    except SystemExit:
+                        pass
+
+                    my_print(">>> Pyright End")
+
+                    prev_filenames = new_filenames
+                    prev_modification_times = new_modification_times
+
+                time.sleep(0.5)
+
+            except KeyboardInterrupt:
+                break
+
+        return tools_logger.sysexit(exit_code=0)
+
+    filenames = _resolveFilenames(options=options, positional_args=positional_args)
+
+    if not filenames:
+        tools_logger.info("No matching files found that require Pyright.")
+        return 0
+
+    exit_code = executePyright(
+        filenames=filenames,
+        verbose=options.verbose,
+        basedpyright=options.basedpyright,
+    )
+
+    return tools_logger.sysexit(exit_code=exit_code)
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        https://www.gnu.org/licenses/agpl-3.0.txt
+#
+#     See also: "Nuitka Runtime Library Exception, Version 1.0" in file
+#     "LICENSE-RUNTIME.txt" for additional permissions granted under Section 7.
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

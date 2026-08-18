@@ -35,17 +35,18 @@ def getSupportedPythonVersions():
         "3.11",
         "3.12",
         "3.13",
+        "3.14",
     )
 
 
 def getNotYetSupportedPythonVersions():
     """Versions known to not work at all (yet)."""
-    return ()
+    return ("3.15",)
 
 
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
-    return ("3.14",)
+    return ()
 
 
 def getZstandardSupportingVersions():
@@ -123,6 +124,10 @@ def isRunningInInterpreter():
     return not hasattr(sys.modules.get("__main__"), "__compiled__")
 
 
+def is32BitPython():
+    return sys.maxsize < 2**32
+
+
 # TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
@@ -141,6 +146,43 @@ def f():
       return closure""")
     except SyntaxError as e:
         return e.message.replace("'f'", "'%s'")
+
+
+def getSourceDecodeErrorReason(source_filename, decode_error):
+    """Get the source decode error reason for Python 3 source files.
+
+    Args:
+        source_filename: The source file that failed to decode.
+        decode_error: The UnicodeDecodeError from the failed read attempt.
+
+    Returns:
+        The error reason string matching CPython's output for the version.
+    """
+    if python_version >= 0x3E7:
+        # Python 3.14.7+ reports the full UnicodeDecodeError message with
+        # the byte position relative to the seek point after encoding
+        # detection, not absolute from file start. This was a bugfix
+        # backport to Python 3.14.
+        import tokenize
+
+        with open(source_filename, "rb") as source_file:
+            readline_func = source_file.readline
+
+            encoding, _lines = tokenize.detect_encoding(readline_func)
+
+            pos = source_file.tell()
+            if pos > 0:
+                pos -= 1
+
+            source_file.seek(pos)
+            remaining = source_file.read()
+
+        try:
+            remaining.decode(encoding)
+        except UnicodeDecodeError as e:
+            return str(e)
+
+    return "encoding problem: %s" % decode_error.encoding
 
 
 def getSourceDecodeErrorReason2(source_filename):
@@ -186,12 +228,36 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+def getComplexCallMappingErrorTemplate():
+    if not hasattr(getComplexCallMappingErrorTemplate, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=not-a-mapping,not-callable
+            f = None
+            f(**None)
+        except TypeError as e:
+            result = (
+                e.args[0]
+                .replace("NoneType object", "%s")
+                .replace("NoneType", "%s")
+                .replace("None ", "%s ")
+            )
+            getComplexCallMappingErrorTemplate.result = result
+        else:
+            sys.exit("Error, cannot detect expected error message.")
+
+    return getComplexCallMappingErrorTemplate.result
+
+
 def getUnboundLocalErrorErrorTemplate():
     if not hasattr(getUnboundLocalErrorErrorTemplate, "result"):
         try:
-            # We are doing this on purpose, to get the exception.
-            # pylint: disable=undefined-variable
-            del _f
+            # pylint: disable=exec-used
+            exec("""
+def f():
+    del _f
+f()
+""")
         except UnboundLocalError as e:
             result = e.args[0].replace("_f", "%s")
             getUnboundLocalErrorErrorTemplate.result = result
@@ -659,11 +725,11 @@ def isPythonIdentifier(name):
 
 
 def getRecommendedSupportedVersion():
-    return "3.13"
+    return "3.14"
 
 
 def getRecommendedWorkingVersion():
-    return "3.14"
+    return "3.13"
 
 
 def getRecommendedCommercialVersion():

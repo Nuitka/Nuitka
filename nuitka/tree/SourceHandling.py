@@ -21,6 +21,7 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.Hooks import onModuleSourceCode
 from nuitka.PythonVersions import (
+    getSourceDecodeErrorReason,
     getSourceDecodeErrorReason2,
     python_version,
     python_version_str,
@@ -88,7 +89,7 @@ def _readSourceCodeFromFilename3(source_filename):
         # Match the parser wording for declared but incompatible source
         # encodings.
         raiseSyntaxError(
-            "encoding problem: %s" % e.encoding,
+            getSourceDecodeErrorReason(source_filename, e),
             makeSourceReferenceFromFilename(source_filename),
             display_line=False,
         )
@@ -250,7 +251,7 @@ def readSourceCodeFromFilename(module_name, source_filename, pre_load=False):
 
 
 def checkPythonVersionFromCode(source_code):
-    # There is a lot of cases to consider, pylint: disable=too-many-branches
+    # There is a lot of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
     shebang = getShebangFromSource(source_code)
 
@@ -303,6 +304,8 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3E0 > python_version >= 0x3D0
         elif basename == "python3.14":
             result = 0x3F0 > python_version >= 0x3E0
+        elif basename == "python3.15":
+            result = 0x400 > python_version >= 0x3F0
         else:
             result = None
 
@@ -346,7 +349,6 @@ def writeSourceCode(filename, source_code, logger, assume_yes_for_downloads):
             logger=logger,
             filename=filename,
             effective_filename=filename,
-            check_only=False,
             assume_yes_for_downloads=assume_yes_for_downloads,
             reject_message=None,
         )

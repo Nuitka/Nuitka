@@ -11,13 +11,16 @@ from math import copysign, isinf, isnan
 
 from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
 from nuitka.build.ConstantBlobFormat import loadConstantBlobSpec
-from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
+from nuitka.build.DataComposerInterface import (
+    deriveModuleConstantsBlobName,
+    getConstantBlobFilenameForDataFilename,
+)
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
+from nuitka.code_generation.SpecialConstantData import BlobData
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
-    BlobData,
     BuiltinAnonValue,
     BuiltinGenericAliasValue,
     BuiltinSpecialValue,
@@ -513,6 +516,23 @@ def _writeConstantsBlob(output_filename, desc):
         syncFileOutput(output)
 
 
+def _writeConstantBlob(output_filename, part):
+    with open(output_filename, "wb") as output:
+        output.write(part)
+
+        data_size = output.tell()
+
+        data_composer_logger.info(
+            "Created constants blob '%s' size %d."
+            % (
+                os.path.basename(output_filename),
+                data_size,
+            )
+        )
+
+        syncFileOutput(output)
+
+
 def main():
     # many details, mostly needed for reporting: pylint: disable=too-many-locals
 
@@ -531,6 +551,9 @@ def main():
 
     # Scan file ".const" files from the build directory.
     const_files = scanConstFiles(build_dir)
+    use_direct_constant_blobs = (
+        os.getenv("NUITKA_USE_DIRECT_CONSTANT_BLOBS", "0") == "1"
+    )
 
     total = 0
 
@@ -564,6 +587,14 @@ def main():
             else:
                 encoded_name = name
 
+            if use_direct_constant_blobs:
+                _writeConstantBlob(
+                    output_filename=getConstantBlobFilenameForDataFilename(
+                        build_dir, filename
+                    ),
+                    part=part,
+                )
+
             desc.append((encoded_name, part))
         except Exception:
             data_composer_logger.warning("Problem with constant file '%s'." % filename)
@@ -574,6 +605,11 @@ def main():
             "blob_name": name,
             "blob_size": len(part),
         }
+
+        if use_direct_constant_blobs:
+            stats[filename]["blob_filename"] = os.path.basename(
+                getConstantBlobFilenameForDataFilename(build_dir, filename)
+            )
 
     stats["total"] = total
 

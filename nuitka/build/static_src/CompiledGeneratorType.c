@@ -135,6 +135,14 @@ static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generato
 
     Py_VISIT(generator->m_frame);
 
+#if PYTHON_VERSION >= 0x370
+    Py_VISIT(generator->m_exc_state.exception_value);
+#endif
+#if PYTHON_VERSION >= 0x300
+    Py_VISIT(generator->m_resume_exception.exception_value);
+    Py_VISIT(generator->m_returned);
+#endif
+
     return 0;
 }
 

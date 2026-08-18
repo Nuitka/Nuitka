@@ -50,6 +50,7 @@ from nuitka.utils.FileOperations import (
 
 def checkMultiprocessingUsingReport(filename, python_version):
     compilation_report = parseCompilationReport("compilation-report-%s.xml" % filename)
+    assert compilation_report is not None, filename
 
     parent_main_module = None
 
@@ -77,6 +78,7 @@ def checkMultiprocessingUsingReport(filename, python_version):
         module_name="multiprocessing-postLoad",
     )
 
+    assert modules_used is not None
     assert modules_used["__parents_main__"]["finding"] == "fake", modules_used
 
 

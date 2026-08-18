@@ -3,7 +3,7 @@
 
 """Automatic formatting of Yaml files.
 
-spell-checker: ignore ruamel, scalarstring
+spell-checker: ignore ruamel,scalarstring
 """
 
 import json
@@ -360,6 +360,10 @@ def formatYaml(logger, path, assume_yes_for_downloads, ignore_diff=False):
 
     new_data = []
     for entry in data:
+        # Autoremove empty module configurations.
+        if len(entry) == 1:
+            continue
+
         sorted_entry = _reorderDictionary(entry, MASTER_KEYS)
 
         if "data-files" in sorted_entry:

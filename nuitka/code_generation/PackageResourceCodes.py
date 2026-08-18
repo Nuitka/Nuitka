@@ -720,12 +720,7 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
 
 
 def generateImportlibResourcesFilesCallCode(to_name, expression, emit, context):
-    package_name = generateChildExpressionCode(
-        expression=expression.getPackageNameUsed(),
-        child_name="package_name",
-        emit=emit,
-        context=context,
-    )
+    package_used = expression.getPackageNameUsed()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "files_value", expression, emit, context
@@ -741,14 +736,30 @@ def generateImportlibResourcesFilesCallCode(to_name, expression, emit, context):
             context=context,
         )
 
-        getCallCodePosArgsQuick(
-            to_name=result_name,
-            called_name=files_function,
-            expression=expression,
-            arg_names=(package_name,),
-            emit=emit,
-            context=context,
-        )
+        if package_used is None:
+            getCallCodeNoArgs(
+                to_name=result_name,
+                called_name=files_function,
+                expression=expression,
+                emit=emit,
+                context=context,
+            )
+        else:
+            package_name = generateChildExpressionCode(
+                expression=package_used,
+                child_name="package_name",
+                emit=emit,
+                context=context,
+            )
+
+            getCallCodePosArgsQuick(
+                to_name=result_name,
+                called_name=files_function,
+                expression=expression,
+                arg_names=(package_name,),
+                emit=emit,
+                context=context,
+            )
 
 
 def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, context):

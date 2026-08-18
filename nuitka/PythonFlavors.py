@@ -25,6 +25,7 @@ from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isOS400,
     isPosixWindows,
     isWin32Windows,
     withNoDeprecationWarning,
@@ -473,6 +474,11 @@ def isWindowsStorePython():
     )
 
 
+def isIBMiPython():
+    """The native IBM i (OS400) QOpenSys Python port."""
+    return isOS400() and getSystemPrefixPath().startswith("/QOpenSys/pkgs")
+
+
 def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
@@ -521,6 +527,8 @@ def getPythonFlavorName():
         return "Self Compiled Uninstalled"
     elif isManyLinuxPython():
         return "Manylinux Python"
+    elif isIBMiPython():
+        return "IBMi Python"
     else:
         return "Unknown"
 

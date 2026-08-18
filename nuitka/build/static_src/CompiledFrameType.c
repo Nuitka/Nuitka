@@ -557,7 +557,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 
     Py_VISIT(locals_owner->f_builtins);
     Py_VISIT(locals_owner->f_globals);
-    // Py_VISIT(locals_owner->f_locals);
+    Py_VISIT(locals_owner->f_locals);
 
 #if PYTHON_VERSION < 0x370
     Py_VISIT(frame->m_frame.f_exc_type);
@@ -635,7 +635,11 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    if (Nuitka_Frame_IsSuspended(frame)) {
+    // CPython 3.13+ only rejects clearing a generated-owned suspended frame.
+    // Frame-object-owned frames can always be cleared, matching CPython's
+    // frame_clear logic.
+    PyObject *frame_gen = Nuitka_GetFrameGenerator(frame);
+    if ((frame_gen != NULL) && Nuitka_Frame_IsSuspended(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear a suspended frame");
 
         return NULL;
@@ -910,7 +914,13 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
+
+#if PYTHON_VERSION >= 0x3c0 && defined(Py_GIL_DISABLED)
+    result->m_interpreter_frame.owner = FRAME_OWNED_BY_FRAME_OBJECT;
+#else
     result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
+#endif
+
 #if PYTHON_VERSION >= 0x3e0
     result->m_interpreter_frame.f_funcobj = PyStackRef_NULL; // spell-checker: ignore funcobj
     locals_owner->stackpointer = &locals_owner->localsplus[0];
@@ -919,10 +929,12 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #else
     result->m_interpreter_frame.f_func = NULL;
 #endif
-#if PYTHON_VERSION < 0x3d0
-    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
+
+#if PYTHON_VERSION >= 0x3d0
+    result->m_interpreter_frame.instr_ptr = _PyCode_CODE(code) + code->_co_firsttraceable + 1;
 #else
-    result->m_interpreter_frame.instr_ptr = _PyCode_CODE(code);
+    result->m_interpreter_frame.prev_instr =
+        _PyCode_CODE(code) + code->_co_firsttraceable; // spell-checker: ignore firsttraceable
 #endif
     result->m_frame.f_frame = &result->m_interpreter_frame;
 

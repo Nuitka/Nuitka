@@ -8,6 +8,7 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
+import subprocess
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.CommandLineOptionsTools import makeOptionsParser
@@ -34,6 +35,7 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     relpath,
+    removeDirectory,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findPythons
@@ -298,6 +300,15 @@ def _updateCaseLock(
     return lock_filename
 
 
+def _getPipenvHashFromReport(report_root):
+    user_data = report_root.find("user-data")
+    if user_data is not None:
+        pipenv_hash = user_data.find("pipenv_hash")
+        if pipenv_hash is not None:
+            return pipenv_hash.text
+    return None
+
+
 def _updateCase(
     case_dir,
     case_data,
@@ -309,16 +320,60 @@ def _updateCase(
     jobs,
 ):
     # Many details and cases due to package method being handled here.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
 
-    lock_filename = _updateCaseLock(
-        installed_python=installed_python,
-        case_data=case_data,
-        case_dir=case_dir,
-        reset_pipenv=reset_pipenv,
-        no_pipenv_update=no_pipenv_update,
-        result_path=result_path,
-    )
+    # We trust the case yaml files, pylint: disable=eval-used
+    wait_for_req = case_data.get("wait_for", "False")
+    if eval(
+        wait_for_req,
+        None,
+        {"python_version": installed_python.getHexVersion()},
+    ):
+        try:
+            _updateCaseLock(
+                installed_python=installed_python,
+                case_data=case_data,
+                case_dir=case_dir,
+                reset_pipenv=True,
+                no_pipenv_update=False,
+                result_path=result_path,
+            )
+        except subprocess.CalledProcessError:
+            watch_logger.info("  ... wait_for not yet met, skipping.")
+            removeDirectory(
+                path=result_path,
+                logger=watch_logger,
+                ignore_errors=True,
+                extra_recommendation="",
+            )
+            return
+        return watch_logger.sysexit(
+            "Error, test case '%s' has 'wait_for' condition '%s' now met for Python %s. "
+            "The wait_for can be dropped."
+            % (case_dir, wait_for_req, installed_python.getPythonVersion())
+        )
+
+    try:
+        lock_filename = _updateCaseLock(
+            installed_python=installed_python,
+            case_data=case_data,
+            case_dir=case_dir,
+            reset_pipenv=reset_pipenv,
+            no_pipenv_update=no_pipenv_update,
+            result_path=result_path,
+        )
+    except subprocess.CalledProcessError as e:
+        # Annotate exception with case context before re-raising, so the
+        # pipenv traceback (which otherwise only shows the pipenv command)
+        # is traceable to the failing watch case.
+        e.nuitka_watch_case = case_data.get("case", case_dir)  # type: ignore[attr-defined]
+        e.nuitka_watch_python = installed_python.getPythonVersion()  # type: ignore[attr-defined]
+        e.nuitka_watch_result_path = result_path  # type: ignore[attr-defined]
+        watch_logger.warning(
+            "Failed to lock/update for case '%s' with Python %s at '%s': %s"
+            % (e.nuitka_watch_case, e.nuitka_watch_python, result_path, e)
+        )
+        raise
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
@@ -326,9 +381,7 @@ def _updateCase(
 
         if old_report_root is not None:
             existing_hash = getFileContentsHash(lock_filename)
-            old_report_root_hash = (
-                old_report_root.find("user-data").find("pipenv_hash").text
-            )
+            old_report_root_hash = _getPipenvHashFromReport(old_report_root)
 
             old_nuitka_version = old_report_root.attrib["nuitka_version"]
 

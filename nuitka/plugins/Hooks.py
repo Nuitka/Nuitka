@@ -79,6 +79,11 @@ def onFinalResult(filename):
     return Plugins.onFinalResult(filename=filename)
 
 
+def onInstallerOutput(filename):
+    """Called after an installer has been created."""
+    return Plugins.onInstallerOutput(filename=filename)
+
+
 def getPluginsCacheContributionValues(module_name):
     """Let plugins provide values that need to be taken into account for caching."""
 
@@ -93,7 +98,12 @@ def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 
 
-def getPreprocessorSymbols():
+def onMetaPathLoaderEntryTemplate(module, template_args):
+    """Let plugins modify meta path loader entry template arguments."""
+    Plugins.onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
+
+
+def getPreprocessorSymbols(onefile):
     """Let plugins provide C defines to be used in compilation.
 
     Notes:
@@ -104,8 +114,7 @@ def getPreprocessorSymbols():
         OrderedDict(), where None value indicates no define value,
         i.e. "-Dkey=value" vs. "-Dkey"
     """
-    # spell-checker: ignore Dkey
-    return Plugins.getPreprocessorSymbols()
+    return Plugins.getPreprocessorSymbols(onefile=onefile)
 
 
 def getExtraIncludeDirectories():
@@ -315,8 +324,8 @@ def onDataComposerRun():
     return Plugins.onDataComposerRun()
 
 
-def onDataComposerResult(blob_filename):
-    return Plugins.onDataComposerResult(blob_filename=blob_filename)
+def onDataComposerResult(blob_filenames):
+    return Plugins.onDataComposerResult(blob_filenames=blob_filenames)
 
 
 def getModuleSpecificDllPaths(module_name):

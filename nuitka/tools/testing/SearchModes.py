@@ -115,12 +115,12 @@ class SearchMode(object):
                     self.active = True
 
         if self.active:
-            # If we are active, we can save the current file as the one to resume
-            # from.
-            self._saveResume(dirname, filename)
-
             if self.only:
                 self.active = False
+            else:
+                # If we are active, we can save the current file as the one to resume
+                # from.
+                self._saveResume(dirname, filename)
 
             self.had_match = True
             self.verifications += 1
@@ -169,7 +169,7 @@ class SearchMode(object):
         if not self.active and not self.had_match:
             return self.exit("Error, became never active.")
 
-        if success and os.path.exists(self.cache_filename):
+        if success and not self.only and os.path.exists(self.cache_filename):
             os.unlink(self.cache_filename)
 
         print(

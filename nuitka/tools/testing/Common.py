@@ -1000,7 +1000,8 @@ def executeReferenceChecked(
 ):
     gc.disable()
 
-    extract_number = lambda name: int(name.replace(prefix, "") or "0")
+    def extract_number(name):
+        return int(name.replace(prefix, "") or "0")
 
     # Find the function names.
     matching_names = tuple(
@@ -1245,7 +1246,6 @@ def sync_iterate(g):
 
             break
         except Exception as ex:  # pylint: disable=broad-exception-caught
-
             res.append(str(type(ex)))
 
     return res
@@ -1280,7 +1280,7 @@ def scanDirectoryForTestCases(
         ]
 
     for filename in sorted(filenames):
-        if filename.endswith((".build", ".onefile-build", ".dist", ".app")):
+        if filename.endswith((".build", ".onefile-build", ".dist", ".app", ".secrets")):
             continue
 
         filename_full = os.path.join(dirname, filename)
@@ -1331,7 +1331,9 @@ def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith((".build", ".onefile-build", ".dist", ".app"))
+            or filename.endswith(
+                (".build", ".onefile-build", ".dist", ".app", ".secrets")
+            )
             or os.path.basename(filename).startswith("venv_")
         ):
             continue
@@ -1485,7 +1487,7 @@ def killProcessGroup(process_name, pid):
         os.killpg(pid, signal.SIGINT)
 
 
-def checkLoadedFileAccesses(loaded_filenames, current_dir):
+def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
     # Many details to consider, pylint: disable=too-many-branches,too-many-statements
 
     current_dir = os.path.normpath(current_dir)
@@ -1872,7 +1874,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Allow reading time zone info of local system.
-        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+        if isFilenameSameAsOrBelowPath("/usr/share/zoneinfo", loaded_filename):
             continue
 
         # The access to .pth files has no effect.
@@ -1935,6 +1937,16 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/usr/lib/liboah.dylib",
                 "/usr/lib/libobjc.A.dylib",
             ):
+                continue
+
+        if python_flavor in ("Debian Python",):
+            if isFilenameSameAsOrBelowPath("/usr/lib", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/lib", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/usr/lib64", loaded_filename):
+                continue
+            if isFilenameSameAsOrBelowPath("/lib64", loaded_filename):
                 continue
 
         illegal_accesses.append(orig_loaded_filename)

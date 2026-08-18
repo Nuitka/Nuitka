@@ -11,6 +11,7 @@ spell-checker: ignore Hallett,unpushed
 
 import os
 import re
+import subprocess
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.format.FileFormatting import cleanupWindowsNewlines
@@ -24,6 +25,7 @@ from nuitka.utils.Execution import (
     executeProcess,
 )
 from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Utils import decoratorRetries
 
 
 # Parse output from `git diff-index`
@@ -185,6 +187,14 @@ def putFileHashContent(filename):
     return new_hash.rstrip()
 
 
+@decoratorRetries(
+    logger=tools_logger,
+    purpose="update git index",
+    consequence="Autostaging of compilation report may not take effect.",
+    attempts=3,
+    exception_type=(OSError, subprocess.CalledProcessError),
+    sleep_time=1,
+)
 def updateFileIndex(diff_entry, new_object_hash):
     """Update the git index with a new hash for a file."""
     # spell-checker: ignore cacheinfo
@@ -251,12 +261,14 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     success = process_result.exit_code == 0
 
     if not success:
-        # TODO: In case of failure, do we need to abort, or what do we do.
-
         if process_result.stdout:
             my_print(process_result.stdout, style="yellow")
         if process_result.stderr:
             my_print(process_result.stderr, style="yellow")
+
+        return tools_logger.sysexit(
+            "Patch failed to apply for %r:\n\n%r\n%s" % (path, patch, "-" * 40)
+        )
 
     return success
 

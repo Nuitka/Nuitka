@@ -67,12 +67,12 @@ _plain_files = (
     "check-nuitka-with-codespell",
     "check-reference-counts",
     "autoformat-nuitka-source",
+    "autoformat-nuitka-source-stdio",
     "nuitka-linux-container",
     "generate-specialized-c-code",
     "generate-specialized-python-code",
     "generate-specialized-offsets-code",
     "sort-nuitka-import-statements",
-    "find_sxs_modules",
     "find-module",
     "nuitka",
     ".sourcery.yaml",
@@ -168,6 +168,10 @@ def _formatComments(filename, comments):
     elif filename.endswith((".cmd", ".bat")):
         comments = [
             (b"rem %s" % comment if comment != b"" else b"rem") for comment in comments
+        ]
+    elif filename.endswith(".nsi"):
+        comments = [
+            (b"; %s" % comment if comment != b"" else b";") for comment in comments
         ]
     elif filename.endswith(".j2"):
         max_len = max(75, max(len(comment.strip()) for comment in comments))

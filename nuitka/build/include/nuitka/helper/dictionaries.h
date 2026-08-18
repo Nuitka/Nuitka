@@ -3,6 +3,13 @@
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/compiled_module.h"
+#include "nuitka/defines.h"
+#endif
+
 static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));

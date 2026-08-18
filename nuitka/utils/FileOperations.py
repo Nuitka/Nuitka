@@ -597,7 +597,9 @@ def getFileList(
         dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
         for ignore_dir in ignore_dirs:
             if ignore_dir in dirnames_normalized:
-                dirnames.remove(ignore_dir)
+                idx = dirnames_normalized.index(ignore_dir)
+                del dirnames[idx]
+                del dirnames_normalized[idx]
 
         # Compare to normalized filenames for better matching.
         filenames = [
@@ -809,7 +811,14 @@ def getSubDirectoriesWithDlls(path, ignore_permission_error=False):
 
 
 def _getSubDirectoriesWithDlls(path, ignore_permission_error=False):
-    for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
+    ignore_dirs = ["__pycache__"]
+
+    # On macOS the "Resources" directories of frameworks contain no DLLs and
+    # can have restrictive permissions, so we exclude them from the scan.
+    if isMacOS():
+        ignore_dirs.append("Resources")
+
+    for sub_directory in getSubDirectories(path=path, ignore_dirs=ignore_dirs):
         if any(
             listDllFilesFromDirectory(
                 path=sub_directory,
@@ -1095,7 +1104,7 @@ def withTemporaryFilename(prefix="", suffix="", temp_path=None):
         delete=False,
         dir=temp_path,
     ) as temp_file:
-        filename = temp_file.name
+        filename = getNormalizedPath(temp_file.name)
         temp_file.close()
         deleteFile(filename, must_exist=True)
 
@@ -2079,6 +2088,37 @@ def getNormalizedPathJoin(*paths):
     Needed, because MSYS2 likes to keep "/" in normalized paths.
     """
     return getNormalizedPath(os.path.join(*paths))
+
+
+def getNormalizedPathSep():
+    """Return the normalized native path separator.
+
+    Needed, because on MSYS2 'os.path.sep' is '/' rather than the native '\\'.
+    """
+    return getNormalizedPath(os.path.sep)
+
+
+def doesFileContainBytes(filename, search):
+    """Check if a file contains a specific byte sequence.
+
+    Args:
+        filename: Path to the file.
+        search: Bytes to search for.
+
+    Returns:
+        bool: True if the byte sequence was found.
+    """
+    try:
+        with open(filename, "rb") as f:
+            chunk = f.read(65536)
+            while chunk:
+                if search in chunk:
+                    return True
+                chunk = f.read(65536)
+    except OSError:
+        pass
+
+    return False
 
 
 def getFileContentsHash(filename, as_string=True, line_filter=None):

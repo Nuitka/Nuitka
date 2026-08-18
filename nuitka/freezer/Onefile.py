@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
@@ -28,7 +29,11 @@ from nuitka.options.Options import (
     shallOnefileAsArchive,
     shallTraceExecution,
 )
-from nuitka.OutputDirectories import getResultFullpath, getSourceDirectoryPath
+from nuitka.OutputDirectories import (
+    getResultFullpath,
+    getSourceDirectoryExternalUsePath,
+    getSourceDirectoryPath,
+)
 from nuitka.plugins.Hooks import (
     getBuildDefinitions,
     onBootstrapBinary,
@@ -42,12 +47,11 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.States import states
-from nuitka.Tracing import onefile_logger, postprocessing_logger
+from nuitka.Tracing import onefile_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
-    getFileContents,
     getFileSize,
     makeContainingPath,
     removeDirectory,
@@ -62,7 +66,6 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 from .DllDependenciesWin32 import shallIncludeWindowsRuntimeDLLs
 from .IncludedDataFiles import getIncludedDataFiles
@@ -100,7 +103,6 @@ def _runOnefileScons(
     onGeneratedSourceCode(source_dir=source_dir, onefile=True)
 
     scons_options["result_exe"] = getResultFullpath(onefile=True, real=False)
-    scons_options["source_dir"] = source_dir
     scons_options["debug_mode"] = asBoolStr(states.is_debug)
     scons_options["trace_mode"] = asBoolStr(shallTraceExecution())
     scons_options["onefile_splash_screen"] = asBoolStr(
@@ -129,10 +131,17 @@ def _runOnefileScons(
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
 
+    applyPreprocessorSymbols(scons_options, onefile=True)
+
     result = runScons(
         scons_options=scons_options,
         env_values=env_values,
         scons_filename="Onefile.scons",
+        source_dir=source_dir,
+        source_dir_external=getSourceDirectoryExternalUsePath(
+            onefile=True,
+            create=False,
+        ),
     )
 
     # Exit if compilation failed.
@@ -276,7 +285,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if has_payload:
         expected_files = []
         for data_file in getIncludedDataFiles():
-            if "copy" in data_file.tags:
+            if "copy" in data_file.tags and "external" not in data_file.tags:
                 expected_files.append(data_file.dest_path)
 
         for entry_point in getStandaloneEntryPoints():
@@ -316,21 +325,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if isMacOS():
         addMacOSCodeSignature(
             filenames=[onefile_output_filename], entitlements_filename=None
-        )
-
-    if (
-        has_payload
-        and getSconsReportValue(source_dir, "resource_mode") == "win_resource"
-    ):
-        assert isWin32Windows()
-
-        addResourceToFile(
-            target_filename=onefile_output_filename,
-            data=getFileContents(onefile_payload_filename, mode="rb"),
-            resource_kind=RT_RCDATA,
-            lang_id=0,
-            res_name=27,
-            logger=postprocessing_logger,
         )
 
     if isRemoveBuildDir():

@@ -10,7 +10,6 @@ import sys
 
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.__past__ import Iterable, unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     addMainScriptDirectory,
@@ -18,6 +17,7 @@ from nuitka.importing.Importing import (
     flushImportCache,
     locateModule,
 )
+from nuitka.options.BuildPackageCommon import convertNuitkaOption
 from nuitka.plugins.Plugins import setupHooks
 from nuitka.reports.CompilationReportReader import (
     getEmbeddedDataFilenames,
@@ -173,7 +173,7 @@ class build(distutils.command.build.build):
 
         if self.distribution.install_requires:
             for req in self.distribution.install_requires:
-                nuitka_command.append("--pyproject-requires=%s" % req)
+                nuitka_command.append("--project-requires=%s" % req)
 
         result = {
             "package_dir": self.distribution.package_dir,
@@ -306,22 +306,11 @@ class build(distutils.command.build.build):
         if option == "build_with_nuitka":
             return
 
-        option = "--" + option.lstrip("-")
-
         if type(value) is tuple and len(value) == 2 and value[0] == "setup.py":
             value = value[1]
 
-        if value is None or value == "":
-            yield option
-        elif isinstance(value, bool):
-            yield "--" + ("no" if not value else "") + option.lstrip("-")
-        elif isinstance(value, Iterable) and not isinstance(
-            value, (unicode, bytes, str)
-        ):
-            for val in value:
-                yield "%s=%s" % (option, val)
-        else:
-            yield "%s=%s" % (option, value)
+        for result in convertNuitkaOption(option, value):
+            yield result
 
     def _build(self, build_lib):
         # High complexity,

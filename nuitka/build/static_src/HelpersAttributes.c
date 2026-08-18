@@ -1213,8 +1213,14 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
             "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
     } else if (attr_name == const_str_plain___aenter__) {
+#if PYTHON_VERSION >= 0x3e0
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the asynchronous context manager protocol (missed __aenter__ method)",
+            source);
+#else
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
                                              source);
+#endif
     } else {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
     }

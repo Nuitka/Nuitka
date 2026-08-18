@@ -194,18 +194,30 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
                     r"""
 {% if import_gives_ref %}
 {
-    PyObject *hard_module = {{module_getter_code1}};
-    Py_DECREF(hard_module);
+    PyObject *fixed_module = {{module_getter_code1}};
+{% if needs_check %}
+    if (unlikely(fixed_module == NULL)) {
+        {{value_name}} = NULL;
+    } else {
+        Py_DECREF(fixed_module);
+        {{value_name}} = {{module_getter_code2}};
+    }
+{% else %}
+    CHECK_OBJECT(fixed_module);
+    Py_DECREF(fixed_module);
+    {{value_name}} = {{module_getter_code2}};
+{% endif %}
 }
 {% else %}
 {{module_getter_code1}};
-{% endif %}
 {{value_name}} = {{module_getter_code2}};
+{% endif %}
 """,
                     value_name=value_name,
                     module_getter_code1=module_getter_code1,
                     module_getter_code2=module_getter_code2,
                     import_gives_ref=import_gives_ref1,
+                    needs_check=needs_check,
                 )
             )
 

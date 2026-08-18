@@ -183,6 +183,11 @@
       change_function:
         'test': "'(lambda: None)'"
 
+- module-name: 'importlib.metadata' # checksum: 8a2592fb
+  implicit-imports:
+    - depends:
+        - 'csv'
+
 - module-name: 'inspect' # checksum: fe3524b2
   anti-bloat:
     - description: 'remove module ability to run as a binary'

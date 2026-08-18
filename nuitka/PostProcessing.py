@@ -7,8 +7,7 @@ import ctypes
 import os
 import sys
 
-from nuitka.build.DataComposerInterface import getConstantBlobFilename
-from nuitka.build.SconsUtils import getSconsReportValue
+from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
@@ -24,8 +23,10 @@ from nuitka.options.Options import (
     shallAskForWindowsAdminRights,
     shallAskForWindowsUIAccessRights,
     shallCreateAppBundle,
+    shallCreateLinuxApp,
     shallCreatePyiFile,
     shallCreatePyiFileContainStubs,
+    shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallMakeModule,
     shallRunInDebugger,
@@ -506,19 +507,6 @@ def executePostProcessing(result_filename):
                 result_filename=result_filename, manifest=manifest, onefile=False
             )
 
-        source_dir = getSourceDirectoryPath(onefile=False, create=True)
-
-        # Attach the binary blob as a Windows resource if we used that mode.
-        if getSconsReportValue(source_dir, "resource_mode") == "win_resource":
-            addResourceToFile(
-                target_filename=result_filename,
-                data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
-                resource_kind=RT_RCDATA,
-                res_name=3,
-                lang_id=0,
-                logger=postprocessing_logger,
-            )
-
     # On macOS, we update the executable path for searching the "libpython"
     # library.
     if isMacOS() and not shallMakeModule() and not shallUseStaticLibPython():
@@ -558,6 +546,13 @@ Error, expected 'libpython dependency not found. Please report the bug.""")
 
     if shallCreateAppBundle():
         createPlistInfoFile(logger=postprocessing_logger)
+
+    if (
+        shallCreateLinuxApp()
+        and not isOnefileMode()
+        and not shallCreatePythonPgoInput()
+    ):
+        createLinuxAppFiles(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.

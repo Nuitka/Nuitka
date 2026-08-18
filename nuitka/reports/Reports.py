@@ -33,6 +33,12 @@ from nuitka.importing.Importing import (
     getRecompileDecisionReason,
 )
 from nuitka.importing.Recursion import getRecursionDecisions
+from nuitka.installer.Installer import (
+    getInstallerBackendName,
+    getInstallerOutputFilename,
+    getInstallerToolVersion,
+    wasInstallerCreated,
+)
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleCodeGenerationTimingInfos,
@@ -331,6 +337,13 @@ def _getReportInputData(aborted):
         onefile_executable_size = None
         onefile_resource_mode = None
 
+    installer_executable = (
+        getInstallerOutputFilename() if wasInstallerCreated() else None
+    )
+
+    installer_backend = getInstallerBackendName()
+    installer_tool_version = getInstallerToolVersion()
+
     source_dir = (
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
     )
@@ -378,6 +391,8 @@ def _getReportInputData(aborted):
             "cpu_cycles": None,
         },
         "all_passes": {"time": 0.0, "count": 0, "cpu_instr": None, "cpu_cycles": None},
+        "c_compilation": None,
+        "c_linking": None,
     }
 
     _total_all_passes_module_set = set()
@@ -445,6 +460,34 @@ def _getReportInputData(aborted):
                 performance_totals["code_generation"][
                     "cpu_cycles"
                 ] += _timing_info.cpu_cycles_count
+
+    if scons_resource_usage_data:
+        _c_compilation_user = 0.0
+        _c_compilation_system = 0.0
+        _c_compilation_count = 0
+
+        for module_name, rusage in scons_resource_usage_data.items():
+            if module_name == "@linker":
+                continue
+
+            _c_compilation_user += rusage["cpu"]["user-cpu-time"]
+            _c_compilation_system += rusage["cpu"]["system-cpu-time"]
+            _c_compilation_count += 1
+
+        linker_cpu = scons_resource_usage_data.get("@linker", {}).get("cpu", {})
+
+        if _c_compilation_count > 0:
+            performance_totals["c_compilation"] = {
+                "user_cpu": _c_compilation_user,
+                "system_cpu": _c_compilation_system,
+                "count": _c_compilation_count,
+            }
+
+        if linker_cpu:
+            performance_totals["c_linking"] = {
+                "user_cpu": linker_cpu["user-cpu-time"],
+                "system_cpu": linker_cpu["system-cpu-time"],
+            }
 
     return dict(
         (var_name, var_value)
@@ -957,6 +1000,15 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
             )
+        elif included_datafile.kind == "data_file_generated":
+            appendTreeElement(
+                root,
+                "data_file_generated",
+                name=included_datafile.dest_path,
+                size=str(included_datafile.getFileSize()),
+                reason=included_datafile.reason,
+                tags=",".join(included_datafile.tags),
+            )
 
     if report_input_data["included_metadata"]:
         metadata_node = appendTreeElement(
@@ -1110,6 +1162,41 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             timing_xml_node.attrib["cpu_cycles"] = str(
                 performance_totals["code_generation"]["cpu_cycles"]
             )
+
+    if performance_totals["c_compilation"] is not None:
+        c_comp_node = appendTreeElement(
+            performance_totals_node,
+            "c-compilation-time",
+        )
+        c_comp_node.attrib["user-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_compilation"]["user_cpu"]
+        )
+        c_comp_node.attrib["system-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_compilation"]["system_cpu"]
+        )
+        c_comp_node.attrib["module_count"] = str(
+            performance_totals["c_compilation"]["count"]
+        )
+
+    if performance_totals["c_linking"] is not None:
+        c_link_node = appendTreeElement(
+            performance_totals_node,
+            "c-linking-time",
+        )
+        c_link_node.attrib["user-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_linking"]["user_cpu"]
+        )
+        c_link_node.attrib["system-cpu-time"] = (
+            "volatile"
+            if diffable
+            else "%.4f" % performance_totals["c_linking"]["system_cpu"]
+        )
 
     if report_input_data["backend_executable"] != "failed too early":
         python_binary_xml_node = appendTreeElement(
@@ -1269,6 +1356,17 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     if report_input_data["output_run_filename"] != "failed too early":
         python_xml_node.attrib["run_filename"] = _getCompilationReportPath(
             report_input_data["output_run_filename"]
+        )
+
+    if report_input_data.get("installer_executable") is not None:
+        appendTreeElement(
+            python_xml_node,
+            "installer",
+            filename=_getCompilationReportPath(
+                report_input_data["installer_executable"]
+            ),
+            backend=report_input_data.get("installer_backend") or "",
+            tool_version=report_input_data.get("installer_tool_version") or "",
         )
 
     contents = convertXmlToString(root)

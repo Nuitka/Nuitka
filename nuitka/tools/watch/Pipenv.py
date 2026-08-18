@@ -25,8 +25,18 @@ def _execPipenvCommand(logger, installed_python, command, retry=False):
             ],
             logger=logger,
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         if command in ("install", "update", "sync") and not retry:
+            # Retry once after removing the old venv; annotate attempt.
+            logger.warning(
+                "pipenv %r failed for Python %s (%s), retrying after --rm: %s"
+                % (
+                    command,
+                    installed_python.getPythonVersion(),
+                    installed_python.getPythonExe(),
+                    e,
+                )
+            )
             _execPipenvCommand(
                 logger=logger, installed_python=installed_python, command="--rm"
             )
@@ -40,6 +50,9 @@ def _execPipenvCommand(logger, installed_python, command, retry=False):
             # Can fail if it doesn't exist.
             pass
         else:
+            # Annotate final failure with interpreter info for caller.
+            e.pipenv_command = command  # type: ignore[attr-defined]
+            e.pipenv_python = installed_python.getPythonExe()  # type: ignore[attr-defined]
             raise
 
 

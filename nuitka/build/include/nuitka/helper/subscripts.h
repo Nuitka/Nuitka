@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_SUBSCRIPTS_H__
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -219,11 +225,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
 
         PyObject *meth = LOOKUP_ATTRIBUTE(tstate, source, const_str_plain___class_getitem__);
 
+        // Python3.11+: CPython treats "__class_getitem__" set to a
+        // non-callable the same as not having one - the type is not
+        // subscriptable. (3.9-3.10 only give "'NoneType' not callable")
+#if PYTHON_VERSION >= 0x3b0
+        if (meth != NULL && meth != Py_None && Nuitka_PyCheckCallable(meth)) {
+#else
         if (meth) {
+#endif
             PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
             Py_DECREF(meth);
             return result;
         }
+
+        Py_XDECREF(meth);
 
         // Different error against types for Python3.11+
 #if PYTHON_VERSION >= 0x3b0

@@ -21,6 +21,7 @@ from nuitka.utils.InstanceCounters import (
 )
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
+from .SpecialConstantData import BlobData
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
@@ -285,12 +286,7 @@ CodeObjectHandle = collections.namedtuple(
 )
 
 
-if isExperimental("new-code-objects"):
-
-    class CodeObjectsMixin(object):
-        __slots__ = ()
-
-else:
+if isExperimental("old-code-objects"):
 
     class CodeObjectsMixin(object):
         # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -329,6 +325,17 @@ else:
 
         def _calcHash(self, key):
             return getStringHash("-".join(str(s) for s in key))
+
+else:
+
+    class CodeObjectsMixin(object):
+        __slots__ = ()
+
+        def getCodeObjectHandle(self, code_object):
+            return (
+                "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
+                % self.getConstantCode(code_object)
+            )
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -536,6 +543,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def getConstantCode(self, constant, deep_check=False):
         return self.parent.getConstantCode(constant, deep_check=deep_check)
+
+    def getBlobConstantCode(self, data, name):
+        return self.parent.getBlobConstantCode(data, name)
 
     def addModuleInitCode(self, code):
         self.parent.addModuleInitCode(code)
@@ -921,11 +931,20 @@ class PythonModuleContext(
 
         return self.constant_accessor.getConstantCode(constant)
 
+    def getBlobConstantCode(self, data, name):
+        return self.getConstantCode(BlobData(data, name))
+
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()
 
     def getConstantNames(self):
         return self.constant_accessor.getConstantNames()
+
+    def getConstantInfos(self):
+        return self.constant_accessor.getConstantInfos()
+
+    def getConstantDetails(self, name):
+        return self.constant_accessor.getConstantDetails(name)
 
     def getModuleInitCodes(self):
         return self.module_init_codes

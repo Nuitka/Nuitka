@@ -20,6 +20,7 @@ import pkgutil
 import re
 from posixpath import normpath
 
+from nuitka.__past__ import re_sub
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
@@ -85,7 +86,7 @@ def _checkRegexp(logger, filename, module_name, section, k, regexp, replacement)
         return False
 
     try:
-        re.sub(regexp, replacement, "", re.S)
+        _unused = re_sub(regexp, replacement, "", flags=re.S)
     except re.error as e:
         logger.info(
             """\

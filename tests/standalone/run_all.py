@@ -29,6 +29,7 @@ from nuitka.__past__ import subprocess
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
     getCompilationOutputMode,
+    getCompilationPythonFlavor,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import (
@@ -240,6 +241,7 @@ def main():
 
         if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
             extra_flags.append("ignore_stderr")
+            extra_flags.append("verify_signature")
 
         if filename.startswith("PyQt6") and isMacOS():
             reportSkip("not currently supported", ".", filename)
@@ -273,18 +275,6 @@ def main():
         )
         output_dist_path = os.path.dirname(binary_filename)
 
-        if filename == "PySide6WebEngineFrameworks.py" and isMacOS():
-            app_bundle_path = os.path.dirname(
-                os.path.dirname(os.path.dirname(binary_filename))
-            )
-
-            if not _checkAppBundleCodeSignature(app_bundle_path):
-                displayError(None, filename)
-                search_mode.onErrorDetected(
-                    "Error, app bundle code signing verification failed."
-                )
-                continue
-
         # Second check if libc libraries haven't been accidentally
         # shipped with the standalone executable
         if isLinux() or isBSD():
@@ -304,7 +294,11 @@ def main():
                 )
 
             illegal_accesses = checkLoadedFileAccesses(
-                loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+                loaded_filenames=loaded_filenames,
+                current_dir=os.getcwd(),
+                python_flavor=getCompilationPythonFlavor(
+                    compilation_report=compilation_report
+                ),
             )
 
             if illegal_accesses:

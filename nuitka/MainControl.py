@@ -15,7 +15,10 @@ import sys
 
 from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
+from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
+    provideStaticSourceFilesBackend,
+)
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsReportValue,
@@ -46,8 +49,8 @@ from nuitka.freezer.IncludedEntryPoints import (
     addMainEntryPoint,
     getStandaloneEntryPoints,
 )
+from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
-from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
     locateModule,
@@ -59,6 +62,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
     scanPluginSinglePath,
 )
+from nuitka.installer.Installer import createInstallerDispatch
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -78,6 +82,7 @@ from nuitka.options.Options import (
     getShallFollowExtraFilePatterns,
     getShallFollowModules,
     getShallIncludeDistributionMetadata,
+    getUpdateCheckMode,
     getXMLDumpOutputFilename,
     hasPythonFlagIsolated,
     hasPythonFlagNoAnnotations,
@@ -96,6 +101,7 @@ from nuitka.options.Options import (
     isLowMemory,
     isMultidistMode,
     isOnefileMode,
+    isPythonPgoErrorExitStrict,
     isRemoveBuildDir,
     isRuntimeProfile,
     isShowInclusion,
@@ -103,7 +109,7 @@ from nuitka.options.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
-    shallCreateDmgFile,
+    shallCreateLinuxApp,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
@@ -165,7 +171,7 @@ from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
-    callProcess,
+    executeCompiledBinary,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -188,6 +194,7 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+from nuitka.VersionCheck import checkNuitkaUpdate
 
 from . import ModuleRegistry, OutputDirectories
 from .build.SconsInterface import (
@@ -402,7 +409,7 @@ def pickSourceFilenames(source_dir, modules):
     """Pick the names for the C files of each module.
 
     Args:
-        source_dir - the directory to put the module sources will be put into
+        source_dir - the externally usable directory to put module sources into
         modules    - all the modules to build.
 
     Returns:
@@ -433,14 +440,19 @@ def pickSourceFilenames(source_dir, modules):
             source_dir, "module." + module.getFullName().asString().lower()
         )
 
-        # When the filename becomes to long to add ".const", we use a hash name
-        # instead.
+        # When the source filename becomes unsafe, use a deterministic hash
+        # based name instead.
         hash_filename = getNormalizedPathJoin(
             source_dir,
             "module.hashed_" + module.getFullName().asLegalFilename(name_limit=1),
         )
 
         return nice_filename, collision_filename, hash_filename
+
+    # Budget against the external path that Scons uses as its working
+    # directory on Windows, because relative compiler filenames resolve from
+    # there. On other platforms, the basename length is the relevant limit.
+    source_filename_length_base = len(source_dir) + 1
 
     colliding_filenames = set()
 
@@ -468,12 +480,13 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename = os.path.basename(nice_filename)
 
-        # Allow for longer suffixes that .c, we use .const and might use others
-        # as well in the C compiler and make sure we use only file system
-        # encodable names.
         if (
             collision_filename in collision_filenames
-            or len(base_filename) > 240
+            or (
+                source_filename_length_base + len(base_filename) > 240
+                if isWin32Windows()
+                else len(base_filename) > 240
+            )
             or not isFilesystemEncodable(base_filename)
         ):
             nice_filename = hash_filename
@@ -537,7 +550,12 @@ def makeSourceDirectory():
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     module_filenames = pickSourceFilenames(
-        source_dir=source_dir, modules=compiled_modules
+        # Pass the external path, so length checks can be correct.
+        source_dir=OutputDirectories.getSourceDirectoryExternalUsePath(
+            onefile=False,
+            create=False,
+        ),
+        modules=compiled_modules,
     )
 
     setupProgressBar(
@@ -610,6 +628,10 @@ def makeSourceDirectory():
     return module_filenames
 
 
+def _getPgoCommand():
+    return [getExternalUsePath(OutputDirectories.getPgoRunExecutable())] + getPgoArgs()
+
+
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
 
@@ -618,9 +640,10 @@ def _runPgoBinary():
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
-    return callProcess(
-        [getExternalUsePath(pgo_executable)] + getPgoArgs(),
+    return executeCompiledBinary(
+        args=_getPgoCommand(),
         shell=False,
+        logger=pgo_logger,
     )
 
 
@@ -696,13 +719,37 @@ def _runPythonPgoBinary():
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
+    pgo_executable = OutputDirectories.getPgoRunExecutable()
+
+    if not os.path.isfile(pgo_executable):
+        return general.sysexit(
+            "Error, failed to produce PGO binary '%s'" % pgo_executable
+        )
+
+    pgo_command = _getPgoCommand()
+
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
-        exit_code = _runPgoBinary()
+        exit_code = executeCompiledBinary(
+            args=pgo_command,
+            shell=False,
+            logger=pgo_logger,
+        )
 
     if not os.path.exists(pgo_filename):
         return general.sysexit("""\
 Error, no Python PGO information produced, did the created binary
 run (exit code %d) as expected?""" % exit_code)
+
+    if isPythonPgoErrorExitStrict() and exit_code != 0:
+        return general.sysexit(
+            """\
+Error, the command '%s' exited with code %d. Use
+'--pgo-python-error-exit=yes' to tolerate error exits."""
+            % (
+                " ".join(pgo_command),
+                exit_code,
+            )
+        )
 
     return pgo_filename
 
@@ -713,12 +760,17 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
-    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
-        onefile=False, create=False
+    source_dir = OutputDirectories.getSourceDirectoryPath(
+        onefile=False,
+        create=False,
+    )
+    source_dir_external = OutputDirectories.getSourceDirectoryExternalUsePath(
+        onefile=False,
+        create=False,
     )
 
     # We might need to adapt the Python header files for some setups to work correctly.
-    adapted_dir = createAdaptedPythonHeaderFiles(scons_options["source_dir"])
+    adapted_dir = createAdaptedPythonHeaderFiles(source_dir)
     if adapted_dir:
         scons_options["adapted_python_header_files_dir"] = adapted_dir
 
@@ -853,10 +905,14 @@ def runSconsBackend():
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
 
+        applyPreprocessorSymbols(scons_options, onefile=False)
+
         result = runScons(
             scons_options=scons_options,
             env_values=env_values,
             scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
         )
 
         if not result:
@@ -876,10 +932,14 @@ def runSconsBackend():
         if isCPgoMode():
             scons_options["pgo_mode"] = "generate"
 
+            applyPreprocessorSymbols(scons_options, onefile=False)
+
             result = runScons(
                 scons_options=scons_options,
                 env_values=env_values,
                 scons_filename="Backend.scons",
+                source_dir=source_dir,
+                source_dir_external=source_dir_external,
             )
 
             if not result:
@@ -890,11 +950,15 @@ def runSconsBackend():
             _runCPgoBinary()
             scons_options["pgo_mode"] = "use"
 
+    applyPreprocessorSymbols(scons_options, onefile=False)
+
     result = (
         runScons(
             scons_options=scons_options,
             env_values=env_values,
             scons_filename="Backend.scons",
+            source_dir=source_dir,
+            source_dir_external=source_dir_external,
         ),
         scons_options,
     )
@@ -921,7 +985,11 @@ def callExecPython(args, add_path, uac):
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
 
-    callExecProcess(args, shell=uac)
+    callExecProcess(
+        args=args,
+        shell=uac,
+        logger=general,
+    )
 
 
 def _executeMain(binary_filename):
@@ -1171,6 +1239,8 @@ def _main():
         ),
     )
 
+    checkNuitkaUpdate(getUpdateCheckMode())
+
     # In case we are in a PGO run, we read its information first, so it becomes
     # available for later parts.
     _considerPgoInput()
@@ -1282,6 +1352,9 @@ def _main():
         if isOnefileMode():
             packDistFolderToOnefile(dist_dir)
 
+            if shallCreateLinuxApp():
+                createLinuxAppFiles(logger=general, onefile=True)
+
             if isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
 
@@ -1355,9 +1428,7 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
 
     general.info("Successfully created '%s'." % getReportPath(final_filename))
 
-    # Archive creations, installer creations go here.
-    if shallCreateDmgFile():
-        createDmgFile(general)
+    createInstallerDispatch()
 
     writeCompilationReports(aborted=False)
     printPluginUsageStats()

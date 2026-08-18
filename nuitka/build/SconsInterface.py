@@ -31,6 +31,7 @@ from nuitka.options.Options import (
     getProductVersion,
     getProgressBar,
     getPythonPathForScons,
+    getTargetArch,
     getWindowsConsoleMode,
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
@@ -158,6 +159,27 @@ def provideStaticSourceFilesOnefile(source_dir):
         filenames.append("OnefileSplashScreen.cpp")
 
     _provideStaticSourceFiles(source_dir, filenames)
+
+
+def _checkWindowsSourceDirPathLength(source_dir_external, scons_filename):
+    # Keep source file paths within 240 characters on Windows, leaving room
+    # for derived suffixes like object names and resource usage reports.
+    max_source_dir_length = 240 - 30
+
+    if len(source_dir_external) > max_source_dir_length:
+        return general.sysexit(
+            """\
+Error, the external source directory path '%s' is too long on Windows \
+(%d characters, maximum %d) for '%s'. This check reserves 30 characters \
+for source filenames within the safe 240 character limit. Use a shorter \
+(as absolute value) output path or build basename."""
+            % (
+                source_dir_external,
+                len(source_dir_external),
+                max_source_dir_length,
+                scons_filename,
+            )
+        )
 
 
 def _getSconsInlinePath():
@@ -498,34 +520,56 @@ def _removeUnwantedArtifacts(scons_created_exe):
                 )
 
 
-def runScons(scons_options, env_values, scons_filename):
+def applyPreprocessorSymbols(scons_options, onefile):
+    cpp_defines = getPreprocessorSymbols(onefile=onefile)
+    if cpp_defines:
+        scons_options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
+
+def runScons(
+    scons_options,
+    env_values,
+    scons_filename,
+    source_dir,
+    source_dir_external,
+):
     # We are handling quite a few error cases, as this contains transfer of
     # exceptions, workarounds for non-encodable filenames, and other error
     # handling. pylint: disable=too-many-branches,too-many-statements
 
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
+        compile_without_build_directory = (
+            source_dir is not None and shallCompileWithoutBuildDirectory()
+        )
 
-        if "source_dir" in scons_options and shallCompileWithoutBuildDirectory():
+        if compile_without_build_directory and isWin32Windows():
+            assert source_dir_external is not None
+            _checkWindowsSourceDirPathLength(source_dir_external, scons_filename)
+
+        if source_dir is not None:
+            scons_options = copy.deepcopy(scons_options)
+            scons_options["source_dir"] = source_dir
+
+        orig_result_exe = scons_options.get("result_exe")
+
+        if compile_without_build_directory:
             # Make sure we become non-local, by changing all paths to be
             # absolute, but ones that can be resolved by any program
             # externally, as the Python of Scons may not be good at unicode.
 
-            scons_options = copy.deepcopy(scons_options)
-            source_dir = scons_options["source_dir"]
             scons_options["source_dir"] = "."
             scons_options["nuitka_src"] = getExternalUsePath(
                 scons_options["nuitka_src"]
             )
 
-            orig_result_exe = scons_options.get("result_exe")
             if orig_result_exe is not None:
                 scons_options["result_exe"] = getExternalUsePath(
                     scons_options["result_exe"], only_dirname=True
                 )
-
-        else:
-            source_dir = None
 
         env_values = OrderedDict(env_values)
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -555,20 +599,29 @@ def runScons(scons_options, env_values, scons_filename):
 
         with withEnvironmentVarsOverridden(env_values):
             # Create debug script to quickly re-run this step only.
-            if source_dir is not None:
+            if compile_without_build_directory:
+                assert source_dir_external is not None
+
                 _createSconsDebugScript(
                     source_dir=source_dir, scons_command=scons_command
                 )
 
-                source_dir = getExternalUsePath(source_dir)
+                source_dir_cwd = source_dir_external
+            else:
+                source_dir_cwd = None
+
             try:
-                result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+                result = subprocess.call(
+                    scons_command,
+                    shell=False,
+                    cwd=source_dir_cwd,
+                )
             except KeyboardInterrupt:
                 scons_logger.sysexit("User interrupted scons build.")
             else:
                 # TODO: We might want to make a difference for where reporting makes sense or not.
                 if result == 27:
-                    error_json_dir = source_dir or scons_options.get("source_dir")
+                    error_json_dir = source_dir
                     if error_json_dir and error_json_dir != os.devnull:
                         scons_error_json = getNormalizedPathJoin(
                             error_json_dir, "scons-error.json"
@@ -583,12 +636,10 @@ def runScons(scons_options, env_values, scons_filename):
         # current source_dir.
         flushSconsReports()
 
-        if "source_dir" in scons_options and result == 0:
+        if source_dir is not None and result == 0:
             if "result_exe" in scons_options:
                 scons_created_exe = getNormalizedPath(
-                    getSconsReportValue(
-                        source_dir or scons_options["source_dir"], "TARGET"
-                    )
+                    getSconsReportValue(source_dir, "TARGET")
                 )
 
                 if not os.path.exists(scons_created_exe):
@@ -602,7 +653,7 @@ def runScons(scons_options, env_values, scons_filename):
                 if not areSamePaths(scons_options["result_exe"], scons_created_exe):
                     renameFile(scons_created_exe, orig_result_exe)
 
-            checkCachingSuccess(source_dir or scons_options["source_dir"])
+            checkCachingSuccess(source_dir)
 
     return result == 0
 
@@ -765,13 +816,6 @@ def getCommonSconsOptions():
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
-    cpp_defines = getPreprocessorSymbols()
-    if cpp_defines:
-        scons_options["cpp_defines"] = ",".join(
-            "%s%s%s" % (key, "=" if value else "", value or "")
-            for key, value in cpp_defines.items()
-        )
-
     cpp_include_dirs = getExtraIncludeDirectories()
     if cpp_include_dirs:
         scons_options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
@@ -797,6 +841,9 @@ def getCommonSconsOptions():
         scons_options["macos_target_arch"] = getMacOSTargetArch()
 
     scons_options["target_arch"] = getArchitecture()
+    c_target_arch = getTargetArch()
+    if c_target_arch is not None:
+        scons_options["c_target_arch"] = c_target_arch
 
     if getFcfProtectionMode() != "auto":
         scons_options["cf_protection"] = getFcfProtectionMode()

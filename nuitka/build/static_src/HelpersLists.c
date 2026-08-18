@@ -527,14 +527,22 @@ void LIST_CLEAR(PyObject *target) {
         // Make the list empty first, so the data we release is not accessible.
         Py_ssize_t i = Py_SIZE(list);
         Py_SET_SIZE(list, 0);
+#ifdef Py_GIL_DISABLED
+        _Py_atomic_store_ptr_release(&list->ob_item, NULL);
+#else
         list->ob_item = NULL;
+#endif
         list->allocated = 0;
 
         while (--i >= 0) {
             Py_XDECREF(items[i]);
         }
 
+#ifdef Py_GIL_DISABLED
+        Nuitka_FreeListArray(items, _PyObject_GC_IS_SHARED(list));
+#else
         PyMem_Free(items);
+#endif
     }
 }
 
@@ -831,6 +839,14 @@ void LIST_REVERSE(PyObject *list) {
 
 #if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT)
 static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
+#ifdef Py_GIL_DISABLED
+    _PyListArray *array = Nuitka_AllocateListArray(size);
+    assert(array != NULL);
+
+    PyObject **items = array->ob_item;
+    memset(items, 0, size * sizeof(PyObject *));
+    FT_ATOMIC_STORE_PTR_RELEASE(list->ob_item, items);
+#else
     PyObject **items = PyMem_New(PyObject *, size);
 
     if (unlikely(items == NULL)) {
@@ -839,6 +855,7 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
     }
 
     list->ob_item = items;
+#endif
     list->allocated = size;
 
     return true;

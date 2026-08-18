@@ -9,13 +9,9 @@ from .StandardShapes import ShapeBase, tshape_unknown
 
 
 class ShapeIterator(ShapeBase, ShapeIteratorMixin):
-    """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+    """Generic iterator, e.g. created by iter() with unknown argument type."""
 
     __slots__ = ()
-
-    @staticmethod
-    def isShapeIterator():
-        return None
 
     @staticmethod
     def hasShapeSlotBool():

@@ -60,6 +60,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.PythonVersions import (
+    getComplexCallMappingErrorTemplate,
     getComplexCallSequenceErrorTemplate,
     python_version,
 )
@@ -306,6 +307,56 @@ def getCallableNameDescBody():
 
 
 def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
+    error_template = getComplexCallSequenceErrorTemplate()
+
+    if python_version >= 0x3F0:
+        assert error_template.count("%s") == 1
+
+        error_arg = _makeNameAttributeLookup(
+            ExpressionBuiltinType1(
+                value=ExpressionVariableRef(
+                    variable=star_list_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            )
+        )
+    else:
+        assert error_template.count("%s") == 2
+
+        error_arg = makeExpressionMakeTuple(
+            elements=(
+                makeExpressionFunctionCall(
+                    function=makeExpressionFunctionCreation(
+                        function_ref=ExpressionFunctionRef(
+                            function_body=getCallableNameDescBody(),
+                            source_ref=internal_source_ref,
+                        ),
+                        defaults=(),
+                        kw_defaults=None,
+                        annotations=None,
+                        type_params=None,
+                        source_ref=internal_source_ref,
+                    ),
+                    values=(
+                        ExpressionVariableRef(
+                            variable=called_variable, source_ref=internal_source_ref
+                        ),
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                _makeNameAttributeLookup(
+                    ExpressionBuiltinType1(
+                        value=ExpressionVariableRef(
+                            variable=star_list_variable,
+                            source_ref=internal_source_ref,
+                        ),
+                        source_ref=internal_source_ref,
+                    )
+                ),
+            ),
+            source_ref=internal_source_ref,
+        )
+
     return StatementRaiseException(
         exception_type=ExpressionBuiltinMakeException(
             exception_name="TypeError",
@@ -313,44 +364,11 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                 makeBinaryOperationNode(
                     operator="Mod",
                     left=makeConstantRefNode(
-                        constant=getComplexCallSequenceErrorTemplate(),
+                        constant=error_template,
                         source_ref=internal_source_ref,
                         user_provided=True,
                     ),
-                    right=makeExpressionMakeTuple(
-                        elements=(
-                            makeExpressionFunctionCall(
-                                function=makeExpressionFunctionCreation(
-                                    function_ref=ExpressionFunctionRef(
-                                        function_body=getCallableNameDescBody(),
-                                        source_ref=internal_source_ref,
-                                    ),
-                                    defaults=(),
-                                    kw_defaults=None,
-                                    annotations=None,
-                                    type_params=None,
-                                    source_ref=internal_source_ref,
-                                ),
-                                values=(
-                                    ExpressionVariableRef(
-                                        variable=called_variable,
-                                        source_ref=internal_source_ref,
-                                    ),
-                                ),
-                                source_ref=internal_source_ref,
-                            ),
-                            _makeNameAttributeLookup(
-                                ExpressionBuiltinType1(
-                                    value=ExpressionVariableRef(
-                                        variable=star_list_variable,
-                                        source_ref=internal_source_ref,
-                                    ),
-                                    source_ref=internal_source_ref,
-                                )
-                            ),
-                        ),
-                        source_ref=internal_source_ref,
-                    ),
+                    right=error_arg,
                     source_ref=internal_source_ref,
                 ),
             ),
@@ -438,6 +456,56 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
 
 
 def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
+    error_template = getComplexCallMappingErrorTemplate()
+
+    if python_version >= 0x3F0:
+        assert error_template.count("%s") == 1
+
+        error_arg = _makeNameAttributeLookup(
+            ExpressionBuiltinType1(
+                value=ExpressionVariableRef(
+                    variable=star_dict_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            )
+        )
+    else:
+        assert error_template.count("%s") == 2
+
+        error_arg = makeExpressionMakeTuple(
+            elements=(
+                makeExpressionFunctionCall(
+                    function=makeExpressionFunctionCreation(
+                        function_ref=ExpressionFunctionRef(
+                            function_body=getCallableNameDescBody(),
+                            source_ref=internal_source_ref,
+                        ),
+                        defaults=(),
+                        kw_defaults=None,
+                        annotations=None,
+                        type_params=None,
+                        source_ref=internal_source_ref,
+                    ),
+                    values=(
+                        ExpressionVariableRef(
+                            variable=called_variable, source_ref=internal_source_ref
+                        ),
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                _makeNameAttributeLookup(
+                    ExpressionBuiltinType1(
+                        value=ExpressionVariableRef(
+                            variable=star_dict_variable,
+                            source_ref=internal_source_ref,
+                        ),
+                        source_ref=internal_source_ref,
+                    )
+                ),
+            ),
+            source_ref=internal_source_ref,
+        )
+
     return StatementRaiseException(
         exception_type=ExpressionBuiltinMakeException(
             exception_name="TypeError",
@@ -445,45 +513,11 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
                 makeBinaryOperationNode(
                     operator="Mod",
                     left=makeConstantRefNode(
-                        constant="""\
-%s argument after ** must be a mapping, not %s""",
+                        constant=error_template,
                         source_ref=internal_source_ref,
                         user_provided=True,
                     ),
-                    right=makeExpressionMakeTuple(
-                        elements=(
-                            makeExpressionFunctionCall(
-                                function=makeExpressionFunctionCreation(
-                                    function_ref=ExpressionFunctionRef(
-                                        function_body=getCallableNameDescBody(),
-                                        source_ref=internal_source_ref,
-                                    ),
-                                    defaults=(),
-                                    kw_defaults=None,
-                                    annotations=None,
-                                    type_params=None,
-                                    source_ref=internal_source_ref,
-                                ),
-                                values=(
-                                    ExpressionVariableRef(
-                                        variable=called_variable,
-                                        source_ref=internal_source_ref,
-                                    ),
-                                ),
-                                source_ref=internal_source_ref,
-                            ),
-                            _makeNameAttributeLookup(
-                                ExpressionBuiltinType1(
-                                    value=ExpressionVariableRef(
-                                        variable=star_dict_variable,
-                                        source_ref=internal_source_ref,
-                                    ),
-                                    source_ref=internal_source_ref,
-                                )
-                            ),
-                        ),
-                        source_ref=internal_source_ref,
-                    ),
+                    right=error_arg,
                     source_ref=internal_source_ref,
                 ),
             ),

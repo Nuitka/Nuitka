@@ -7,6 +7,12 @@
  * compatible, just in case somebody crazy insists on it.
  */
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/defines.h"
+#endif
+
 extern PyTypeObject Nuitka_Cell_Type;
 
 static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }

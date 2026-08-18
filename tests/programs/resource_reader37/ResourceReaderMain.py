@@ -7,6 +7,11 @@
 
 from importlib.resources import contents, is_resource, path
 
+try:
+    from importlib.resources import files
+except ImportError:
+    files = None
+
 # Test contents (returns iterable of resource names)
 print("CONTENTS", sorted(contents("some_package")))
 
@@ -18,6 +23,28 @@ assert is_resource("some_package", "missing.txt") is False
 with path("some_package", "DATA_FILE.txt") as data_path:
     with open(data_path, encoding="utf8") as data_file:
         print("RES", data_file.read())
+
+if files is not None:
+    # Test files with argument
+    print("importlib.resources.files('some_package'):", files("some_package"))
+
+    # Test files() with no argument
+    try:
+        print("importlib.resources.files():", files())
+    except Exception as e:
+        print("importlib.resources.files() with no arguments gave exception", type(e))
+
+    # Test files with non-existent package
+    try:
+        print(
+            "importlib.resources.files('some_package.non_existent'):",
+            files("some_package.non_existent"),
+        )
+    except Exception as e:
+        print(
+            "importlib.resources.files('some_package.non_existent') with non-existent package gave exception",
+            type(e),
+        )
 
 print("OK.")
 

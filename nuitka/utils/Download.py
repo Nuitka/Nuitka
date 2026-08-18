@@ -23,6 +23,7 @@ from .FileOperations import (
     makePath,
     queryUser,
 )
+from .Zipfiles import getZipFile
 
 
 def getCertifiModule():
@@ -72,7 +73,7 @@ Fully automatic, cached. Proceed and download""" % (message,),
 
 
 @contextlib.contextmanager
-def withUrlOpen(url):
+def withUrlOpen(url, request_headers, timeout, allow_http_fallback):
     if python_version < 0x300:
         from urllib2 import (  # pylint: disable=I0021,import-error
             Request,
@@ -94,39 +95,49 @@ def withUrlOpen(url):
             # spell-checker: ignore cafile
             ssl_context = ssl.create_default_context(cafile=certifi_path)
 
+    if request_headers is None:
+        request_headers = {}
+    else:
+        request_headers = dict(request_headers)
+
     # Be fair and provide a user agent
-    request_headers = {"User-Agent": "Nuitka Downloader/%s" % getNuitkaVersion()}
+    request_headers.setdefault(
+        "User-Agent", "Nuitka Downloader/%s" % getNuitkaVersion()
+    )
+
+    def openResponse(request, ssl_context):
+        if python_version < 0x300:
+            return urlopen(request, timeout=timeout)
+        else:
+            return urlopen(request, context=ssl_context, timeout=timeout)
 
     req = Request(url, headers=request_headers)
 
     try:
-        if python_version < 0x300:
-            response = urlopen(req, timeout=30.0)
-            yield response
-            response.close()
-        else:
-            with urlopen(req, context=ssl_context, timeout=30.0) as response:
-                yield response
+        response = openResponse(req, ssl_context)
+        yield response
+        response.close()
     except Exception:  # pylint: disable=broad-except
-        if url.startswith("https://"):
-            http_url = "http://" + url[len("https://") :]
-            req_fallback = Request(http_url, headers=request_headers)
-
-            if python_version < 0x300:
-                response = urlopen(req_fallback, timeout=30.0)
-                yield response
-                response.close()
-            else:
-                with urlopen(req_fallback, context=None, timeout=30.0) as response:
-                    yield response
-        else:
+        if not allow_http_fallback or not url.startswith("https://"):
             raise
+
+        http_url = "http://" + url[len("https://") :]
+        req_fallback = Request(http_url, headers=request_headers)
+
+        response = openResponse(req_fallback, None)
+        yield response
+        response.close()
 
 
 def getDownload(name, url, download_path):
     with withNuitkaDownloadProgressBar(desc="Download %s" % name) as report_hook:
         try:
-            with withUrlOpen(url) as response:
+            with withUrlOpen(
+                url=url,
+                request_headers=None,
+                timeout=30.0,
+                allow_http_fallback=True,
+            ) as response:
                 # Try to get the total size from headers
                 if python_version < 0x300:
                     total_size_header = response.info().getheader("Content-Length")
@@ -232,20 +243,18 @@ def getCachedDownload(
         if not os.path.isfile(exe_path) and os.path.isfile(download_path):
             general.info("Extracting to '%s'" % exe_path)
 
-            import zipfile
-
             try:
-                # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
-                zip_file = zipfile.ZipFile(download_path)
+                with getZipFile(
+                    zip_path=download_path, error_exit=False, logger=general
+                ) as zip_file:
+                    for zip_info in zip_file.infolist():
+                        if zip_info.filename[-1] == "/":
+                            continue
 
-                for zip_info in zip_file.infolist():
-                    if zip_info.filename[-1] == "/":
-                        continue
+                        if flatten:
+                            zip_info.filename = os.path.basename(zip_info.filename)
 
-                    if flatten:
-                        zip_info.filename = os.path.basename(zip_info.filename)
-
-                    zip_file.extract(zip_info, nuitka_download_dir)
+                        zip_file.extract(zip_info, nuitka_download_dir)
 
             except (
                 # Catching anything zip throws, pylint: disable=broad-except

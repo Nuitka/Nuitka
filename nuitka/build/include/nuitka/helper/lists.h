@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_LISTS_H__
 #define __NUITKA_HELPER_LISTS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 // Like PyList_SET_ITEM but takes a reference to the item.
 #define PyList_SET_ITEM0(tuple, index, value)                                                                          \
     {                                                                                                                  \

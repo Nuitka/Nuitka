@@ -7,5 +7,9 @@ connexion
 NotIn
 # We want to keep CODE_OF_CONDUCT verbatim
 socio-economic
+# IBM i PASE environment
+PASE
 # isort needs this as argument name
 thirdparty
+# pylint dependency package name
+astroid

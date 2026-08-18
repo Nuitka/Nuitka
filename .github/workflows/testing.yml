@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - develop
+      - integration
   push:
     branches:
       - main
       - develop
+      - integration
       - factory
       - release/**
       - hotfix/**
@@ -18,6 +20,9 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  NUITKA_UPDATE_CHECK: "never"
 
 jobs:
   checks:
@@ -71,24 +76,23 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: 🔎 PyLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-pylint
+          python ./bin/check-nuitka-with-pylint --assume-yes-for-downloads
 
       - name: 🔎 RestLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-restlint
+          python ./bin/check-nuitka-with-restlint --assume-yes-for-downloads
 
       - name: 🔎 YamlLint on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-yamllint
+          python ./bin/check-nuitka-with-yamllint --assume-yes-for-downloads
 
       - name: 🔎 Codespell on Nuitka source code
         run: |
-          python ./bin/check-nuitka-with-codespell
+          python ./bin/check-nuitka-with-codespell --assume-yes-for-downloads
 
       - name: 🔎 Auto-format check on Nuitka source code
         run: |
@@ -114,6 +118,8 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
+          - "3.15"
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -155,26 +161,40 @@ jobs:
         id: checkout_retry_2
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
+        if: matrix.python_version != '3.15'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: 🧳 Install Nuitka and dependencies
+      - name: 🎒 Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install patchelf gdb ccache libfuse2
-          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          sudo apt-get install -y patchelf gdb ccache libfuse2
+
+      - name: 🐍 Install Python 3.15 (deadsnakes)
+        if: matrix.python_version == '3.15'
+        run: |
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo apt-get install -y python3.15 python3.15-dev python3.15-venv
+          python3.15 -m venv .venv-3.15
+          echo "VIRTUAL_ENV=$PWD/.venv-3.15" >> $GITHUB_ENV
+          echo "$PWD/.venv-3.15/bin" >> $GITHUB_PATH
+
+      - name: 🧳 Install Nuitka
+        run: |
+          python -m pip install --upgrade --no-python-version-warning --disable-pip-version-check pip setuptools wheel
           python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: ⚙️ Verbose scons output in compilation
         run: |
           set -x
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
           ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
-          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          ${PYTHON:-python} -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: 📤 Archive compilation reports for empty modules
@@ -197,9 +217,9 @@ jobs:
 
       - name: 🧪 Run Nuitka test suite
         run: |
-          python -m nuitka --version
+          ${PYTHON:-python} -m nuitka --version
           env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
+          ${PYTHON:-python} ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads
 
   mac-python3:
     needs: linux
@@ -212,6 +232,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -267,7 +288,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -342,6 +362,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -391,7 +412,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
@@ -426,6 +446,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
     name: Windows ARM Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout (Attempt 1)
@@ -477,7 +498,6 @@ jobs:
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
           pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation

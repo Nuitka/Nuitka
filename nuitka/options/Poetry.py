@@ -13,10 +13,10 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import withTemporaryDirectory
 from nuitka.utils.Json import loadJsonFromFilename
 
-from .BuildPackageCommon import reportBuildError, setProjectName
+from .BuildPackageCommon import applyNuitkaProjectOptions, reportBuildError
 
 
-def getPoetryBuildConfiguration(logger):
+def getPoetryBuildConfiguration(logger, pyproject_data):
     """
     Get the build configuration from a Poetry project.
     """
@@ -62,9 +62,19 @@ def getPoetryBuildConfiguration(logger):
         else:
             addMainScriptDirectory(os.getcwd())
 
-    setProjectName(config.get("project_name"))
+    arguments = config.get("arguments", [])
+    project_name = config.get("project_name")
+    if project_name:
+        arguments.insert(0, "--project-name=%s" % project_name)
+    else:
+        return logger.sysexit("""\
+Error, 'poetry' project has no 'name'. Set it in the '[project]' \
+section of 'pyproject.toml'.""")
 
-    return config.get("arguments", [])
+    # Apply options from [tool.nuitka] section of pyproject.toml
+    arguments.extend(applyNuitkaProjectOptions(pyproject_data=pyproject_data))
+
+    return arguments
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

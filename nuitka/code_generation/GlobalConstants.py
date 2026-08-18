@@ -7,7 +7,6 @@ from nuitka.__past__ import long
 from nuitka.options.Options import isDeploymentMode, shallMakeModule
 from nuitka.plugins.Hooks import getExtraConstantDefaultPopulation
 from nuitka.PythonVersions import python_version
-from nuitka.States import states
 from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker: ignore fromlist
@@ -47,9 +46,11 @@ def getConstantDefaultPopulation():
         "__class__",
         "__name__",
         "__package__",
+        "__bases__",
         "__metaclass__",
         "__abstractmethods__",
         "__closure__",
+        "__instancecheck__",
         # TODO: For PyObject_IsSubClass one day
         # "__subclasscheck__",
         "__dict__",
@@ -217,9 +218,7 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x3A0:
         result.append("__match_args__")
-
-        if states.is_debug:
-            result.append("__args__")
+        result.append("__args__")
 
     if python_version >= 0x3B0:
         result.append("__aenter__")

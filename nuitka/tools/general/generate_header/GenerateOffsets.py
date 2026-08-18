@@ -61,7 +61,12 @@ def _getPythonOrgMinorVersions(target_version):
     pattern = re.compile(r'<a href="(%s.\d+)/">' % re.escape(target_version))
 
     try:
-        with withUrlOpen("https://www.python.org/ftp/python/") as response:
+        with withUrlOpen(
+            url="https://www.python.org/ftp/python/",
+            request_headers=None,
+            timeout=30.0,
+            allow_http_fallback=True,
+        ) as response:
             content = response.read().decode("utf8")
     except Exception as e:  # pylint: disable=broad-exception-caught
         return tools_logger.sysexit("Failed to fetch versions from python.org: %s" % e)

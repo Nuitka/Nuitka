@@ -94,7 +94,8 @@ class nuitka_distribution(Distribution):\n\
         PyObject *metadata = PyTuple_GET_ITEM(metadata_value_item, 1);
         PyObject *entry_points = PyTuple_GET_ITEM(metadata_value_item, 2);
 
-        struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString_Unchecked(package_name));
+        struct Nuitka_MetaPathBasedLoaderEntry *entry =
+            findEntry(Nuitka_String_AsString_Unchecked(package_name), false);
 
         if (unlikely(entry == NULL)) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_RuntimeError,

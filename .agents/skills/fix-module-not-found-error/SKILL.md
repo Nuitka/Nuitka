@@ -1,5 +1,6 @@
 ---
-description: fix-module-not-found-error
+name: fix-module-not-found-error
+description: Diagnose and fix `ModuleNotFoundError` in Nuitka standalone binaries caused by missing implicit imports. Use when a compiled program fails at runtime because an imported module was not included.
 ---
 
 # How to fix ModuleNotFoundError in Nuitka

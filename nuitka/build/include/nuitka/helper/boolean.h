@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_BOOLEAN_H__
 #define __NUITKA_HELPER_BOOLEAN_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 // The slot in Python3 got renamed, compensate it like this.
 #if PYTHON_VERSION >= 0x300
 #define nb_nonzero nb_bool

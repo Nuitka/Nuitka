@@ -3,6 +3,12 @@
 #ifndef __NUITKA_HELPER_BYTEARRAYS_H__
 #define __NUITKA_HELPER_BYTEARRAYS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/defines.h"
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *BYTEARRAY_COPY(PyThreadState *tstate, PyObject *bytearray) {
     CHECK_OBJECT(bytearray);
     assert(PyByteArray_CheckExact(bytearray));

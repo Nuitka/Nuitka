@@ -12,8 +12,8 @@ build process for itself, although it can be compiled using the same method.
 
 # Make nuitka package importable from calling installation
 
-import sys
 import os
+import sys
 import types
 
 sys.modules["nuitka"] = types.ModuleType("nuitka")
@@ -224,6 +224,8 @@ elif env.exe_mode or env.dll_mode:
         link_data = loadJsonFromFilename(
             os.path.join(env.python_prefix_external, "link.json")
         )
+        assert link_data is not None
+
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
             if lib.startswith(":") and lib.endswith(".a"):
@@ -278,6 +280,9 @@ elif env.exe_mode or env.dll_mode:
                 env.Append(LINKFLAGS=["-Wl,--export-dynamic"])
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
+
+    if env.onefile_mode and isLinux():
+        env.Append(LIBS=["pthread"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
     # and AIX don't have it, but some Python flavors like Standalone Python

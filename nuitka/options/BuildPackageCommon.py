@@ -5,20 +5,12 @@
 This module provides common functionality for build package backends.
 
 It stores global state about the project that is being built, e.g. the
-project name and the expected data files.
+expected data files.
 """
 
-_project_name = None
+from nuitka.__past__ import Iterable, unicode
+
 _project_expected_data_files = None
-
-
-def getProjectName():
-    return _project_name
-
-
-def setProjectName(project_name):
-    global _project_name  # singleton, pylint: disable=global-statement
-    _project_name = project_name
 
 
 def getProjectExpectedDataFiles():
@@ -52,6 +44,50 @@ stderr: %(stderr)s"""
             "stderr": stderr,
         }
     )
+
+
+def convertNuitkaOption(option, value):
+    """Convert a [tool.nuitka] option to command line arguments."""
+    option = "--" + option.lstrip("-")
+
+    if value is None or value == "":
+        yield option
+    elif isinstance(value, bool):
+        if value:
+            yield option
+        else:
+            yield "--no" + option.lstrip("-")
+    elif isinstance(value, Iterable) and not isinstance(value, (unicode, bytes, str)):
+        for val in value:
+            yield "%s=%s" % (option, val)
+    else:
+        yield "%s=%s" % (option, value)
+
+
+def applyNuitkaProjectOptions(pyproject_data):
+    """Apply options from [tool.nuitka] and [nuitka] sections of pyproject.toml.
+
+    Args:
+        pyproject_data: Parsed pyproject.toml data.
+
+    Returns:
+        List of command line arguments derived from the Nuitka sections.
+    """
+    result = []
+
+    tool_nuitka = pyproject_data.get("tool", {}).get("nuitka", {})
+    if tool_nuitka:
+        for option, value in tool_nuitka.items():
+            for converted in convertNuitkaOption(option, value):
+                result.append(converted)
+
+    nuitka = pyproject_data.get("nuitka", {})
+    if nuitka:
+        for option, value in nuitka.items():
+            for converted in convertNuitkaOption(option, value):
+                result.append(converted)
+
+    return result
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

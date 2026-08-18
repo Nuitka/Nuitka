@@ -14,6 +14,11 @@
  *
  */
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/defines.h"
+#endif
+
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED)
 
 #ifdef __cplusplus
@@ -24,44 +29,9 @@
 #define NUITKA_CONSTANTS_EXTERN_C_END
 #endif
 
-#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                     \
+#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_symbol_name, modifier)                                            \
     NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    extern unsigned modifier char *get##blob_camel_name##Data(void);                                                   \
-    NUITKA_CONSTANTS_EXTERN_C_END
-
-#elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-
-#include <windows.h> // Ensure FindResource and loaded objects are valid
-
-#ifdef __cplusplus
-#define NUITKA_CONSTANTS_EXTERN_C_START extern "C" {
-#define NUITKA_CONSTANTS_EXTERN_C_END }
-#else
-#define NUITKA_CONSTANTS_EXTERN_C_START
-#define NUITKA_CONSTANTS_EXTERN_C_END
-#endif
-
-#if _NUITKA_EXE_MODE
-#define _NUITKA_GET_RESOURCE_HANDLE() NULL
-#else
-extern HMODULE getDllModuleHandle(void);
-#define _NUITKA_GET_RESOURCE_HANDLE() getDllModuleHandle()
-#endif
-
-#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                     \
-    NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    static inline unsigned modifier char *get##blob_camel_name##Data(void) {                                           \
-        HMODULE handle = _NUITKA_GET_RESOURCE_HANDLE();                                                                \
-        HRSRC hRes = FindResource(handle, MAKEINTRESOURCE(res_id), RT_RCDATA);                                         \
-        if (unlikely(hRes == NULL)) {                                                                                  \
-            abort();                                                                                                   \
-        }                                                                                                              \
-        HGLOBAL hData = LoadResource(handle, hRes);                                                                    \
-        if (unlikely(hData == NULL)) {                                                                                 \
-            abort();                                                                                                   \
-        }                                                                                                              \
-        return (unsigned modifier char *)LockResource(hData);                                                          \
-    }                                                                                                                  \
+    extern unsigned modifier char *get##blob_symbol_name##Data(void);                                                  \
     NUITKA_CONSTANTS_EXTERN_C_END
 
 #elif defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
@@ -88,7 +58,7 @@ extern HMODULE getDllModuleHandle(void);
 #endif
 
 // Helper to find the mach header of the current module or executable
-static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
+NUITKA_MAY_BE_UNUSED static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
 #if _NUITKA_EXE_MODE
     return &_mh_execute_header;
 #else
@@ -112,9 +82,9 @@ static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
 #endif
 }
 
-#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                     \
+#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_symbol_name, modifier)                                            \
     NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
-    static inline unsigned modifier char *get##blob_camel_name##Data(void) {                                           \
+    NUITKA_MAY_BE_UNUSED static inline unsigned modifier char *get##blob_symbol_name##Data(void) {                     \
         const struct mach_header_arch *header = _getNuitkaMachHeader();                                                \
         unsigned long size;                                                                                            \
         return (unsigned modifier char *)getsectiondata(header, #blob_name, #blob_name, &size);                        \
@@ -131,11 +101,11 @@ static inline const struct mach_header_arch *_getNuitkaMachHeader(void) {
 #define NUITKA_CONSTANTS_EXTERN_C_END
 #endif
 
-#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_camel_name, modifier, res_id)                                     \
+#define NUITKA_DECLARE_CONSTANT_BLOB(blob_name, blob_symbol_name, modifier)                                            \
     NUITKA_CONSTANTS_EXTERN_C_START                                                                                    \
     extern modifier unsigned char blob_name##_data[];                                                                  \
     NUITKA_CONSTANTS_EXTERN_C_END                                                                                      \
-    static inline unsigned modifier char *get##blob_camel_name##Data(void) {                                           \
+    NUITKA_MAY_BE_UNUSED static inline unsigned modifier char *get##blob_symbol_name##Data(void) {                     \
         return (unsigned modifier char *)(blob_name##_data);                                                           \
     }
 

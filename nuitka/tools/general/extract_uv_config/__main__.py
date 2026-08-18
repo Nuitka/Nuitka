@@ -16,7 +16,18 @@ import sys
 import tempfile
 import zipfile
 
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")),
+)
+
+# isort:start
+
 from nuitka.containers.OrderedDicts import OrderedDict
+
+del sys.path[0]
 
 # We expect `uv_build` to be installed in the environment running this script.
 try:
@@ -106,7 +117,7 @@ def _extractFromUvBuild(temp_dir):
     project_name = pkg_info.get("Name")
     requirements = pkg_info.get("Requires-Dist", [])
     for req in requirements:
-        arguments.append("--pyproject-requires=%s" % req)
+        arguments.append("--project-requires=%s" % req)
 
     # Parse entry points
     entry_points_file = os.path.join(metadata_path, "entry_points.txt")

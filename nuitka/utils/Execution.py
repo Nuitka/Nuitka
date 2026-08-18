@@ -11,6 +11,7 @@ import errno
 import os
 import select
 import shlex
+import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
@@ -178,6 +179,81 @@ def callProcess(*popenargs, **kwargs):
         _checkEnvironment(kwargs["env"])
 
     return subprocess.call(*popenargs, **kwargs)
+
+
+def callExecProcess(args, shell, logger):
+    """Do exec in a portable way preserving exit code.
+
+    On Windows, unfortunately there is no real exec, so we have to spawn
+    a new process instead and return via 'os._exit'.
+    """
+    # We better flush these, "os.execl" won't do it anymore.
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # On Windows "os.execl" does not work properly
+    if os.name == "nt":
+        args = list(args)
+        del args[1]
+
+        args = expandProcessCallForWindows(command=args, shell=shell)
+
+        try:
+            # The context manager for Popen is not available on all Python
+            # versions, so we do it manually.
+            process = subprocess.Popen(args=args, shell=shell)
+            process.communicate()
+            # No point in cleaning up, just exit the hard way.
+            try:
+                os._exit(process.returncode)
+            except OverflowError:
+                # Seems negative values go wrong otherwise,
+                # see https://bugs.python.org/issue28474
+                os._exit(process.returncode - 2**32)
+        except KeyboardInterrupt:
+            # There was a more relevant stack trace already, so abort this
+            # right here.
+            os._exit(2)
+        except OSError as e:
+            logger.error("Error, executing: %s" % e)
+            os._exit(2)
+
+    else:
+        # The star arguments is the API of execl
+        os.execl(*args)
+
+
+def executeCompiledBinary(args, shell, logger):
+    """Run a compiled binary and return its exit code.
+
+    On Windows handles .cmd/.bat wrappers through expandProcessCallForWindows.
+    """
+    args = list(args)
+
+    if os.name == "nt":
+        args = expandProcessCallForWindows(command=args, shell=shell)
+
+    # Build an explicit environment that strips Nuitka variables which may
+    # confuse compiled binaries inheriting the parent environment, except
+    # those explicitly set for the binary's use.
+    env = {}
+    for key, value in os.environ.items():
+        if not key.startswith("NUITKA_") or key == "NUITKA_PGO_OUTPUT":
+            env[key] = value
+
+    try:
+        # The context manager for Popen is not available on all Python
+        # versions, so we do it manually.
+        process = subprocess.Popen(args=args, shell=shell, env=env)
+        process.communicate()
+        return process.returncode
+    except KeyboardInterrupt:
+        # There was a more relevant stack trace already, so abort this
+        # right here.
+        return 2
+    except OSError as e:
+        logger.warning("Error, executing: %s" % e)
+        return 2
 
 
 def callProcessChunked(command, chunks, **kwargs):
@@ -469,12 +545,13 @@ def executeToolChecked(
     optional=False,
     decoding=False,
     context=None,
+    stderr_is_fatal=True,
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
     # We are doing many returns, because for logger.sysexit() we need to
     # return from the function, for proper pylint support.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-locals,too-many-return-statements
 
     command = list(command)
     tool = command[0]
@@ -527,7 +604,7 @@ def executeToolChecked(
         return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
-    elif stderr:
+    elif stderr_is_fatal and stderr:
         return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )

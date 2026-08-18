@@ -1,21 +1,11 @@
-#!/usr/bin/env python
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Launcher for reporting SxS using extension modules."""
+"""Dummy file to make this directory a package.
 
-import os
-import sys
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought to be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
-
-# isort:start
-
-from nuitka.tools.testing.find_sxs_modules.__main__ import main
-
-main()
+Notes:
+    Backends for installer creation live here.
+"""
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

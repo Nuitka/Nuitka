@@ -132,9 +132,16 @@ class ExpressionImportModuleFixed(ExpressionBase):
 
     These created as result of builtin imports and "importlib.import_module" calls
     that were compile time resolved, and for known module names.
+
+    TODO: Ask the module body if it raises exceptions, so we can return
+    False for modules that are known to never fail importing.
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_FIXED"
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
 
     __slots__ = (
         "module_name",
@@ -222,11 +229,6 @@ class ExpressionImportModuleFixed(ExpressionBase):
         # TODO: For included modules, we might be able to tell, not not done now.
         return True
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # TODO: For included modules, we might be able to tell, not not done now.
-        return True
-
     def getTypeShape(self):
         # TODO: This ought to be dead code, built-in modules have their own nodes now
         # and may only be hard imports, but not this.
@@ -251,9 +253,10 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
         # TODO: For include modules, something might be possible here, consider self.allowance
         # when that is implemented.
-        return self.computeExpressionAttribute(
-            lookup_node=import_node,
-            attribute_name=import_name,
+        return ExpressionBase.computeExpressionImportName(
+            self,
+            import_node=import_node,
+            import_name=import_name,
             trace_collection=trace_collection,
         )
 
@@ -348,9 +351,10 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
     def computeExpressionImportName(self, import_node, import_name, trace_collection):
         # TODO: For include modules, something might be possible here, consider self.allowance
         # when that is implemented.
-        return self.computeExpressionAttribute(
-            lookup_node=import_node,
-            attribute_name=import_name,
+        return ExpressionBase.computeExpressionImportName(
+            self,
+            import_node=import_node,
+            import_name=import_name,
             trace_collection=trace_collection,
         )
 
@@ -472,11 +476,11 @@ class ExpressionImportModuleHard(
         elif python_version < 0x370:
             return "cannot import name %r" % name
         elif isStandaloneMode():
-            return "cannot import name %r from %r" % (name, module_name)
+            return "cannot import name %r from %r" % (name, module_name.asString())
         else:
             return "cannot import name %r from %r (%s)" % (
                 name,
-                module_name,
+                module_name.asString(),
                 module.__file__ if hasattr(module, "__file__") else "unknown location",
             )
 

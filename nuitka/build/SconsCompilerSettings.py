@@ -32,6 +32,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 
+from .DataComposerInterface import getConstantBlobSymbolName
 from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
@@ -644,16 +645,15 @@ _supported_resource_modes = (
     "linker",
     "incbin",
     "coff_obj",
-    "win_resource",
     "mac_section",
     "code",
 )
 
 
-def _decideBlobResourceMode(env):
+def _decideBlobResourceMode(env, blob_count):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches
 
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
@@ -665,15 +665,9 @@ def _decideBlobResourceMode(env):
         if env.clangcl_mode and getMsvcVersion(env) >= (14, 3):
             resource_mode = "c23_embed"
             reason = "default for ClangCL"
-        elif env.msvc_mode:
-            resource_mode = "coff_obj"
-            reason = "default for MSVC"
-        elif env.mingw_mode:
-            resource_mode = "coff_obj"
-            reason = "default for MinGW"
         else:
-            resource_mode = "win_resource"
-            reason = "default for Windows on old MSVC or ClangCL"
+            resource_mode = "coff_obj"
+            reason = "default for Windows for non-ClangCL"
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
@@ -682,8 +676,12 @@ def _decideBlobResourceMode(env):
             resource_mode = "c23_embed"
             reason = "default for macOS with clang 19 or later"
         else:
-            resource_mode = "mac_section"
-            reason = "default for macOS"
+            if blob_count > 1:
+                resource_mode = "code"
+                reason = "default for macOS with multiple blobs"
+            else:
+                resource_mode = "mac_section"
+                reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -724,12 +722,6 @@ def _decideBlobResourceMode(env):
             env=env,
         )
 
-    if resource_mode == "win_resource" and not isWin32Windows():
-        return scons_logger.sysexit(
-            "Resource mode 'win_resource' is not supported on non-Windows platforms.",
-            env=env,
-        )
-
     if resource_mode == "coff_obj" and not isWin32Windows():
         return scons_logger.sysexit(
             "Resource mode 'coff_obj' is not supported on non-Windows platforms.",
@@ -741,22 +733,7 @@ def _decideBlobResourceMode(env):
 
 
 def _getSymbolName(blob_filename):
-    blob_filename = os.path.basename(blob_filename)
-    assert blob_filename.endswith(".bin") and blob_filename.startswith(
-        "__"
-    ), blob_filename
-
-    # TODO: Get rid of the strip, it ought not to be needed, but right now there
-    # is a disconnect between symbol names and the filename.
-    return blob_filename[2:-4] + "_bin"
-
-
-def _getBlobNameCamelCase(blob_filename):
-    symbol_name = _getSymbolName(blob_filename)
-    return (
-        "".join(word.title() for word in symbol_name.split("_") if word != "bin")
-        + "Blob"
-    )
+    return getConstantBlobSymbolName(blob_filename)
 
 
 def _isWriteableConstantsBlob(blob_filename):
@@ -771,7 +748,6 @@ def _isWriteableConstantsBlob(blob_filename):
 
 
 def _addConstantBlobFileCoffObj(env, blob_filename):
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_COFF_OBJ"])
 
     obj_filename = blob_filename + ".obj"
 
@@ -786,14 +762,18 @@ def _addConstantBlobFileCoffObj(env, blob_filename):
     # Link the generated object file
     env.Append(LINKFLAGS=[obj_filename])
 
+    return "_NUITKA_CONSTANTS_FROM_COFF_OBJ"
+
 
 def _addConstantBlobFileIncbin(env, blob_filename):
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
-
-    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
 
     symbol_name = _getSymbolName(blob_filename)
-    camel_name = _getBlobNameCamelCase(blob_filename)
+    blob_basename = os.path.basename(blob_filename)
+    assert blob_basename.endswith(".bin"), blob_basename
+    constants_generated_filename = os.path.join(
+        env.source_dir,
+        "__constants_data_%s.c" % blob_basename[:-4],
+    )
 
     putTextFileContents(
         constants_generated_filename,
@@ -815,7 +795,7 @@ INCBIN(%(symbol_name)s, "%(blob_filename)s");
 #ifdef __cplusplus
 extern "C" {
 #endif
-unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
+unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
     return (unsigned CONST_CONSTANT char *)%(symbol_name)s_data;
 }
 #ifdef __cplusplus
@@ -825,14 +805,13 @@ unsigned CONST_CONSTANT char *get%(camel_name)sData(void) {
         % {
             "blob_filename": blob_filename,
             "symbol_name": symbol_name,
-            "camel_name": camel_name,
         },
     )
 
+    return "_NUITKA_CONSTANTS_FROM_INCBIN"
+
 
 def _addConstantBlobFileLinker(env, blob_filename):
-    # Indicate "linker" resource mode.
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
     # For MinGW the symbol name to be used is more low level.
     constant_bin_link_name = _getSymbolName(blob_filename) + "_data"
@@ -858,18 +837,23 @@ def _addConstantBlobFileLinker(env, blob_filename):
             "-Wl,-defsym",
             "-Wl,%s=_binary_%s_start"
             % (
-                constant_bin_link_name,
+                constant_bin_link_name.replace("$", "$$"),
                 "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in blob_filename),
             ),
         ]
     )
 
+    return "_NUITKA_CONSTANTS_FROM_LINKER"
+
 
 def _addConstantBlobFileCode(env, blob_filename):
-    # Indicate "code" resource mode.
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
-    constants_generated_filename = os.path.join(env.source_dir, "__constants_data.c")
+    blob_basename = os.path.basename(blob_filename)
+    assert blob_basename.endswith(".bin"), blob_basename
+    constants_generated_filename = getNormalizedPathJoin(
+        env.source_dir,
+        "__constants_data_%s.c" % blob_basename[:-4],
+    )
 
     def writeConstantsDataSource():
         with openTextFile(constants_generated_filename, "w") as output:
@@ -915,27 +899,49 @@ unsigned char %s_data[] =
             else:
                 output.write('#embed "%s"\n' % blob_filename)
 
-            output.write("\n};\n")
+            output.write("""\
+\n};
+
+""")
+
+            output.write(
+                """\
+#ifdef __cplusplus
+extern "C" {
+#endif
+#if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
+const
+#endif
+unsigned char *get%(symbol_name)sData(void) {
+    return (
+#if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
+        const
+#endif
+        unsigned char *)%(symbol_name)s_data;
+}
+#ifdef __cplusplus
+}
+#endif
+"""
+                % {
+                    "symbol_name": _getSymbolName(blob_filename),
+                }
+            )
 
             if not env.c11_mode:
                 output.write("}")
 
     writeConstantsDataSource()
 
-
-def _addConstantBlobFileWinResource(env):
-    # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+    return "_NUITKA_CONSTANTS_FROM_CODE"
 
 
 def _addConstantBlobFileMacSection(env, blob_filename):
     assert isMacOS()
 
-    env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
-
     section_name = _getSymbolName(blob_filename)
 
-    # spell-checker: ignore linkflags, sectcreate
+    # spell-checker: ignore linkflags,sectcreate
     env.Append(
         LINKFLAGS=[
             "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
@@ -946,29 +952,29 @@ def _addConstantBlobFileMacSection(env, blob_filename):
         ]
     )
 
+    return "_NUITKA_CONSTANTS_FROM_MACOS_SECTION"
 
-def addConstantBlobFile(env, blob_filename):
+
+def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
     if env.resource_mode == "absent":
-        env.resource_mode, reason = _decideBlobResourceMode(env)
+        env.resource_mode, reason = _decideBlobResourceMode(env, blob_count=1)
 
         scons_details_logger.info(
             "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
         )
 
     if env.resource_mode == "coff_obj":
-        _addConstantBlobFileCoffObj(env, blob_filename)
-    elif env.resource_mode == "win_resource":
-        _addConstantBlobFileWinResource(env)
+        return _addConstantBlobFileCoffObj(env, blob_filename)
     elif env.resource_mode == "mac_section":
-        _addConstantBlobFileMacSection(env, blob_filename)
+        return _addConstantBlobFileMacSection(env, blob_filename)
     elif env.resource_mode == "incbin":
-        _addConstantBlobFileIncbin(env, blob_filename)
+        return _addConstantBlobFileIncbin(env, blob_filename)
     elif env.resource_mode == "linker":
-        _addConstantBlobFileLinker(env, blob_filename)
+        return _addConstantBlobFileLinker(env, blob_filename)
     elif env.resource_mode in ("code", "c23_embed"):
-        _addConstantBlobFileCode(env, blob_filename)
+        return _addConstantBlobFileCode(env, blob_filename)
     else:
         return scons_logger.sysexit(
             "Error, illegal resource mode '%s' specified" % env.resource_mode,
@@ -998,11 +1004,33 @@ def _addConstantBlobFiles(env, source_dir):
                 blob_filenames.append(filename_full)
                 total_blob_size += getFileSize(filename_full)
 
+        blob_filenames = sorted(blob_filenames)
+
+        if env.resource_mode == "absent" and blob_filenames:
+            env.resource_mode, reason = _decideBlobResourceMode(
+                env, blob_count=len(blob_filenames)
+            )
+
+            scons_details_logger.info(
+                "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
+            )
+
+        blob_define = None
+
         for blob_filename in blob_filenames:
-            addConstantBlobFile(
+            define = _addConstantBlobFile(
                 env=env,
                 blob_filename=blob_filename,
             )
+
+            if define is not None:
+                if blob_define is None:
+                    blob_define = define
+                else:
+                    assert blob_define == define, (blob_define, define)
+
+        if blob_define is not None:
+            env.Append(CPPDEFINES=[blob_define])
 
     return total_blob_size
 
@@ -1171,6 +1199,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Target arch for macOS.
     macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+    # Target arch for C compiler (ISA baseline, not cross-compilation).
+    c_target_arch = getArgumentDefaulted("c_target_arch", None)
+
     # gcc compiler cf_protection option
     cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
@@ -1236,6 +1267,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.macos_min_version = macos_min_version
     env.macos_target_arch = macos_target_arch
     env.target_arch = target_arch
+    env.c_target_arch = c_target_arch
     env.no_deployment = no_deployment
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
@@ -1306,6 +1338,23 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # define that allows us to test for it.
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
+
+    if env.gcc_mode or env.clang_mode or env.zig_mode:
+        # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
+        # may not be available on older or more generic machines.
+        if env.c_target_arch is None and env.zig_mode and not isMacOS():
+            if env.target_arch == "x86_64":
+                env.c_target_arch = "x86_64"
+            elif env.target_arch == "arm64":
+                env.c_target_arch = "armv8-a"
+            elif env.target_arch == "x86":
+                env.c_target_arch = "i586"
+
+    if env.c_target_arch is not None:
+        if env.msvc_mode or env.clangcl_mode:
+            env.Append(CCFLAGS=["/arch:%s" % env.c_target_arch])
+        else:
+            env.Append(CCFLAGS=["-march=%s" % env.c_target_arch])
 
     if env.reproducible_mode:
         # Make sure we use a fixed date for macros like "__DATE__" to ensure

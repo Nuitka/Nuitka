@@ -718,7 +718,7 @@ def _addFromNode(node_class):
     children_mixing_setters_needed[mixin_name].update(setters_needed)
 
     for base in node_class.__mro__:
-        if base.__name__ == mixin_name:
+        if base.__name__ in (mixin_name, "_" + mixin_name):
             break
     else:
         # if named_children == ("operand",):
@@ -958,6 +958,8 @@ def getSpecVersions(spec_module):
             (0x3B0, "311"),
             (0x3C0, "312"),
             (0x3D0, "313"),
+            (0x3E0, "314"),
+            (0x3F0, "315"),
         ):
             if "since_%s" % str_version in spec_name:
                 python_criterion = ">= 0x%x" % version

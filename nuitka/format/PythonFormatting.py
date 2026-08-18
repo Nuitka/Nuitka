@@ -12,6 +12,7 @@ import os
 import re
 import tokenize
 
+from nuitka.__past__ import re_sub
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_call, check_output
 from nuitka.utils.FileOperations import (
@@ -102,7 +103,7 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
             )
         )
 
-    new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
+    new_code = re_sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
         putTextFileContents(filename, new_code, encoding="utf8")
@@ -139,6 +140,41 @@ def _cleanupDashesInComments(filename):
                     line[:start_col] + new_tok_string + line[end_col:]
                 )
                 changed = True
+
+    if changed:
+        new_code = "\n".join(source_lines)
+        if source_code.endswith("\n") and not new_code.endswith("\n"):
+            new_code += "\n"
+
+        putTextFileContents(filename, new_code, encoding="utf8")
+
+
+def _cleanupRbPrefixes(filename):
+    """Cleanup rb/br prefixes in string literals for Python 2 compatibility.
+
+    Notes:
+        Black normalizes 'br""' to 'rb""', but 'rb""' is not valid
+        Python 2 syntax. This converts 'rb""' back to 'br""' which is
+        valid in both Python 2 and Python 3.
+
+    Args:
+        filename: path to the file
+    """
+    source_code = getFileContents(filename, encoding="utf8")
+    source_lines = source_code.splitlines()
+    changed = False
+
+    for t in reversed(
+        tuple(tokenize.generate_tokens(io.StringIO(source_code).readline))
+    ):
+        if t.type == tokenize.STRING and t.string.startswith(('rb"', "rb'")):
+            source_lines[t.start[0] - 1] = (
+                source_lines[t.start[0] - 1][: t.start[1]]
+                + "br"
+                + t.string[2:]
+                + source_lines[t.start[0] - 1][t.end[1] :]
+            )
+            changed = True
 
     if changed:
         new_code = "\n".join(source_lines)
@@ -411,6 +447,8 @@ def formatPython(
                 return logger.sysexit(
                     "Problem formatting for '%s'." % effective_filename
                 )
+
+    _cleanupRbPrefixes(filename=filename)
 
     cleanupWindowsNewlines(filename, effective_filename)
 

@@ -14,21 +14,21 @@ from nuitka.PythonVersions import python_version
 
 
 def getCodeObjectsDeclCode(context):
-    if isExperimental("new-code-objects"):
-        return ()
+    if isExperimental("old-code-objects"):
+        statements = []
 
-    statements = []
+        for _code_object_key, code_identifier in context.getCodeObjects():
+            declaration = "static PyCodeObject *%s;" % code_identifier
 
-    for _code_object_key, code_identifier in context.getCodeObjects():
-        declaration = "static PyCodeObject *%s;" % code_identifier
+            statements.append(declaration)
 
-        statements.append(declaration)
+        if context.getOwner().getFullName() == "__main__":
+            statements.append('/* For use in "MainProgram.c". */')
+            statements.append("PyCodeObject *code_objects_main = NULL;")
 
-    if context.getOwner().getFullName() == "__main__":
-        statements.append('/* For use in "MainProgram.c". */')
-        statements.append("PyCodeObject *code_objects_main = NULL;")
+        return statements
 
-    return statements
+    return ()
 
 
 def _getMakeCodeObjectArgs(code_object_handle, context):
@@ -37,7 +37,7 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
     This is also version dependent, but we hide this behind macros
     that ignore some arguments.
     """
-    assert not isExperimental("new-code-objects")
+    assert isExperimental("old-code-objects")
 
     co_flags = []
 
@@ -91,62 +91,63 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
 
 
 def getCodeObjectsInitCode(context):
-    # There is a bit of details to this, and we are making some optimizations as
-    # well as customization to what path should be put there.
+    if isExperimental("old-code-objects"):
+        statements = []
 
-    if isExperimental("new-code-objects"):
-        return ()
+        code_objects = context.getCodeObjects()
 
-    statements = []
+        # Create the always identical, but dynamic filename first thing.
+        module_filename = context.getOwner().getRunTimeFilename()
 
-    code_objects = context.getCodeObjects()
+        # We do not care about release of this object, as code object live
+        # forever anyway.
+        if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+            template = "module_filename_obj = %s; CHECK_OBJECT(module_filename_obj);"
+        else:
+            template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
 
-    # Create the always identical, but dynamic filename first thing.
-    module_filename = context.getOwner().getRunTimeFilename()
+        if str is bytes and type(module_filename) is unicode:
+            module_filename = module_filename.encode("utf8")
 
-    # We do not care about release of this object, as code object live
-    # forever anyway.
-    if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
-        template = "module_filename_obj = %s; CHECK_OBJECT(module_filename_obj);"
-    else:
-        template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
+        # The code object will not work from any other type, cannot be e.g. unicode.
+        assert type(module_filename) is str, (type(module_filename), module_filename)
 
-    if str is bytes and type(module_filename) is unicode:
-        module_filename = module_filename.encode("utf8")
-
-    # The code object will not work from any other type, cannot be e.g. unicode.
-    assert type(module_filename) is str, (type(module_filename), module_filename)
-
-    statements.append(template % (context.getConstantCode(constant=module_filename)))
-
-    for code_object_key, code_identifier in code_objects:
-        # Make sure the filename is always identical.
-        assert code_object_key.co_filename == module_filename, code_object_key
-
-        args = (
-            code_identifier,
-            ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
+        statements.append(
+            template % (context.getConstantCode(constant=module_filename))
         )
 
-        code = "%s = MAKE_CODE_OBJECT(module_filename_obj, %s);" % args
+        for code_object_key, code_identifier in code_objects:
+            # Make sure the filename is always identical.
+            assert code_object_key.co_filename == module_filename, code_object_key
 
-        statements.append(code)
+            args = (
+                code_identifier,
+                ", ".join(
+                    str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)
+                ),
+            )
 
-        if context.getOwner().getFullName() == "__main__":
-            if code_object_key[1] == "<module>":
-                statements.append("code_objects_main = %s;" % code_identifier)
+            code = "%s = MAKE_CODE_OBJECT(module_filename_obj, %s);" % args
 
-    return statements
+            statements.append(code)
+
+            if context.getOwner().getFullName() == "__main__":
+                if code_object_key[1] == "<module>":
+                    statements.append("code_objects_main = %s;" % code_identifier)
+
+        return statements
+
+    return ()
 
 
 def getCodeObjectAccessCode(code_object, context):
-    if isExperimental("new-code-objects"):
+    if isExperimental("old-code-objects"):
+        return context.getCodeObjectHandle(code_object)
+    else:
         return (
             "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
             % context.getConstantCode(code_object)
         )
-    else:
-        return context.getCodeObjectHandle(code_object)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

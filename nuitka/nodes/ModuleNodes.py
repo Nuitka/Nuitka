@@ -9,6 +9,7 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import os
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
@@ -243,6 +244,7 @@ class CompiledPythonModule(
         "temp_scopes",
         "preserver_id",
         "needs_annotations_dict",
+        "deferred_annotations",
         "trace_collection",
         "mode",
         "variables",
@@ -279,6 +281,9 @@ class CompiledPythonModule(
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
+
+        # PEP 649 deferred module-level annotations (3.14+), same mechanism as class bodies.
+        self.deferred_annotations = OrderedDict() if python_version >= 0x3E0 else None
 
         EntryPointMixin.__init__(self)
 

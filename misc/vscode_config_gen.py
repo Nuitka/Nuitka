@@ -115,7 +115,7 @@ def getMSVCInfo():
             print("Error: MSVC directory not found.")
             return None, None
 
-    # Determine architecture, spell-checker: ignore Hostx64, Hostx86
+    # Determine architecture, spell-checker: ignore Hostx64,Hostx86
     arch = "x64" if sys.maxsize > 2**32 else "x86"
     host_arch = (
         "Hostx64" if os.getenv("PROCESSOR_ARCHITECTURE") == "AMD64" else "Hostx86"
@@ -232,6 +232,30 @@ def main():
     putTextFileContents(output_path, output)
 
     print(f"Successfully generated {output_path}")
+
+    # Also generate .clangd for clangd-based LSP support
+    clangd_template_path = os.path.join(repo_root, "misc", "clangd.j2")
+    if os.path.exists(clangd_template_path):
+        print("Generating .clangd...")
+
+        clangd_template_str = getFileContents(clangd_template_path)
+
+        clangd_output = getTemplateFromString(clangd_template_str).render(
+            python_include_path=python_include,
+            python_version_hex=python_version,
+            repo_root=repo_root,
+        )
+
+        clangd_output_path = os.path.join(repo_root, ".clangd")
+        putTextFileContents(clangd_output_path, clangd_output)
+
+        print(f"Successfully generated {clangd_output_path}")
+
+    # Also generate .python_alias_path for the bin/*.cmd launchers on Windows.
+    python_alias_path = os.path.join(repo_root, ".vscode", ".python_alias_path")
+    putTextFileContents(python_alias_path, sys.executable + "\n")
+    print("Successfully generated %s" % python_alias_path)
+
     return 0
 
 

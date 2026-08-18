@@ -76,8 +76,8 @@ def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
 
 
 def _decideSlicing(lower, upper):
-    return (lower is None or lower.isIndexable()) and (
-        upper is None or upper.isIndexable()
+    return (lower is None or lower.isKnownToBeValidIndex()) and (
+        upper is None or upper.isKnownToBeValidIndex()
     )
 
 

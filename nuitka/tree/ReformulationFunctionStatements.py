@@ -57,7 +57,6 @@ from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
@@ -664,6 +663,9 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
+_annotate_flags = frozenset(("annotate",))
+
+
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
     parameters = ParameterSpec(
@@ -696,7 +698,7 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         provider=provider,
         name=function_name,
         code_object=code_object,
-        flags=set(),
+        flags=_annotate_flags,
         doc=None,
         parameters=parameters,
         auto_release=None,
@@ -713,7 +715,7 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
 
     body = makeStatementConditional(
         condition=ExpressionComparisonGt(
-            ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionVariableNameRef(outer_body, "format", source_ref=source_ref),
             ExpressionConstantIntRef(2, source_ref=source_ref),
             source_ref,
         ),
@@ -745,7 +747,9 @@ def buildParameterAnnotations(provider, node, source_ref):
     if not getFutureSpec().use_annotations:
         return None
 
-    use_deferred = python_version >= 0x3E0 and isExperimental("deferred-annotations")
+    use_deferred = python_version >= 0x3E0 and not isExperimental(
+        "no-deferred-annotation"
+    )
 
     if use_deferred:
         annotation_specs = []

@@ -101,6 +101,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
+from nuitka.VersionCheck import getNuitkaUpdateStatusValue
 
 from .OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from .PathSpecs import checkPathSpec
@@ -108,6 +109,13 @@ from .PathSpecs import checkPathSpec
 options = None
 positional_args = None
 extra_args = []
+
+
+def getProjectName():
+    """*str* or *None*, value of ``--project-name``, or set by build backend."""
+    return options.project_name if options is not None else None
+
+
 is_nuitka_run = None
 
 
@@ -164,6 +172,8 @@ gave the value '%s'.""" % options.onefile_tempdir_spec)
 
 def _getVersionInformationValues():
     yield getNuitkaVersion()
+    if not os.getenv("NUITKA_MANPAGE_GEN"):
+        yield getNuitkaUpdateStatusValue(getUpdateCheckMode())
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
@@ -193,7 +203,7 @@ def _getVersionInformationValues():
 
 
 def printVersionInformation():
-    print("\n".join(_getVersionInformationValues()))
+    print("\n".join(tuple(_getVersionInformationValues())))
 
     from nuitka.build.SconsInterface import (
         asBoolStr,
@@ -208,6 +218,8 @@ def printVersionInformation():
         scons_options=scons_options,
         env_values=env_values,
         scons_filename="CCompilerVersion.scons",
+        source_dir=None,
+        source_dir_external=None,
     )
 
 
@@ -266,6 +278,23 @@ def _warnWindowsSpecificOption(option_name):
 def _warnMacOSBundleSpecificOption(option_name):
     _warnAppBundleOnlyOption(option_name)
     _warnMacOSSpecificOption(option_name)
+
+
+def _warnLinuxSpecificOption(option_name):
+    _warnOSSpecificOption(option_name, "Linux")
+
+
+def _warnLinuxAppOnlyOption(option_name):
+    if isLinux() and not isLinuxAppMode():
+        if not options.github_workflow_options:
+            options_logger.warning("""\
+Note: Using Linux app specific option '%s' has no effect unless \
+building with '--mode=app' or '--mode=app-dist' on Linux.""" % option_name)
+
+
+def _warnLinuxAppSpecificOption(option_name):
+    _warnLinuxAppOnlyOption(option_name)
+    _warnLinuxSpecificOption(option_name)
 
 
 def _checkDataDirOptionValue(data_dir, option_name):
@@ -672,7 +701,7 @@ it before using it: '%s' (from --output-filename='%s')."""
                 )
             )
 
-    if isLinux():
+    if isLinuxAppMode():
         if len(getLinuxIconPaths()) > 1:
             return options_logger.sysexit("Error, can only use one icon file on Linux.")
 
@@ -926,6 +955,16 @@ def commentArgs():
     # A ton of cases to consider.
     # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
+    # Option '--main-entry-point' is intended for project-based builds. Require
+    # a project name (from pyproject.toml / distutils / '--project') so we can
+    # use it for naming build artifacts.
+    if getMainEntryPointSpecs():
+        if not getProjectName():
+            return options_logger.sysexit("""\
+Error, '--main-entry-point' requires a project name. Use '--project' \
+or run from a project directory with 'pyproject.toml', 'setup.py', or \
+'setup.cfg'.""")
+
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
         if not os.path.exists(filename):
@@ -1059,12 +1098,84 @@ library. Please upgrade/downgrade to a supported micro version.""")
         _warnMacOSBundleSpecificOption("--macos-signed-app-name")
     if getMacOSAppVersion():
         _warnMacOSBundleSpecificOption("--macos-app-version")
+    if options.macos_app_macos_min_version is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-macos-min-version")
+    if options.macos_app_category_type is not None:
+        _warnMacOSBundleSpecificOption("--macos-app-category-type")
     if options.macos_protected_resources:
         _warnMacOSBundleSpecificOption("--macos-app-protected-resource")
     if options.macos_app_mode is not None:
         _warnMacOSBundleSpecificOption("--macos-app-mode")
     if options.macos_create_dmg:
-        _warnMacOSBundleSpecificOption("--macos-app-create-dmg")
+        _warnMacOSBundleSpecificOption("--macos-installer")
+
+        if isMacOS():
+            # Local import to avoid macOS dependencies on other platforms.
+            from nuitka.installer.MacOSDmg import getCreateDmgPath
+
+            if getCreateDmgPath() is None:
+                return options_logger.sysexit(
+                    "Error, cannot find 'create-dmg' tool. It is required for '--macos-installer'."
+                )
+
+    if options.windows_create_installer:
+        _warnWindowsSpecificOption("--windows-create-installer")
+
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, Windows installer creation requires standalone or onefile mode."
+            )
+
+        if not getProductName():
+            return options_logger.sysexit(
+                "Error, '--product-name' is required for Windows installer creation."
+            )
+        if not getProductVersion():
+            return options_logger.sysexit(
+                "Error, '--product-version' is required for Windows installer creation."
+            )
+        if not getCompanyName():
+            return options_logger.sysexit(
+                "Error, '--company-name' is required for Windows installer creation."
+            )
+    if options.windows_installer_nsis_path is not None:
+        _warnWindowsSpecificOption("--windows-nsis-path")
+    if options.windows_installer_output_filename is not None:
+        _warnWindowsSpecificOption("--windows-installer-output")
+    if options.windows_installer_install_dir is not None:
+        _warnWindowsSpecificOption("--windows-installer-install-dir")
+    if options.windows_installer_shortcuts is not None:
+        _warnWindowsSpecificOption("--windows-installer-shortcuts")
+    if options.windows_installer_license_filename is not None:
+        _warnWindowsSpecificOption("--windows-installer-license-file")
+    if options.windows_installer_no_user_change_install_dir:
+        _warnWindowsSpecificOption("--windows-installer-no-user-change-install-dir")
+    if options.windows_installer_mode != "multiuser":
+        _warnWindowsSpecificOption("--windows-installer-mode")
+    if options.linux_create_installer:
+        _warnLinuxSpecificOption("--linux-create-installer")
+
+        if not isStandaloneMode():
+            return options_logger.sysexit(
+                "Error, Linux installer creation requires standalone or onefile mode."
+            )
+
+        if not getProductName():
+            return options_logger.sysexit(
+                "Error, '--product-name' is required for Linux installer creation."
+            )
+        if not getProductVersion():
+            return options_logger.sysexit(
+                "Error, '--product-version' is required for Linux installer creation."
+            )
+        if not getCompanyName():
+            return options_logger.sysexit(
+                "Error, '--company-name' is required for Linux installer creation."
+            )
+    if options.linux_installer_appimagetool_path is not None:
+        _warnLinuxSpecificOption("--linux-installer-appimagetool-path")
+    if options.linux_installer_output_filename is not None:
+        _warnLinuxSpecificOption("--linux-installer-output")
     if options.macos_prohibit_multiple_instances:
         _warnMacOSBundleSpecificOption("--macos-prohibit-multiple-instances")
     if options.macos_app_console_mode is not None:
@@ -1080,6 +1191,21 @@ library. Please upgrade/downgrade to a supported micro version.""")
             return options_logger.sysexit(
                 "Error, signing certificate file '%s' does not exist." % cert_filename
             )
+
+    if options.linux_icon_path:
+        _warnLinuxAppSpecificOption("--linux-app-icon")
+    if options.linux_app_console_mode is not None:
+        _warnLinuxAppSpecificOption("--linux-app-console-mode")
+    if options.linux_app_license is not None:
+        _warnLinuxAppSpecificOption("--linux-app-license")
+
+    if isLinuxAppMode() and not shallCreateLinuxApp():
+        options_logger.warning(
+            """\
+Not creating Linux desktop file and AppStream metainfo files, these \
+require '--company-name' and '--product-name' to be given.""",
+            mnemonic="linux-app-metadata",
+        )
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
@@ -1468,6 +1594,13 @@ def _splitShellPattern(value):
     return value.split(",") if "{" not in value else [value]
 
 
+def splitShellPatterns(values):
+    result = []
+    for value in values:
+        result += _splitShellPattern(value)
+    return tuple(result)
+
+
 def getShallFollowInNoCase():
     """*list*, items of ``--nofollow-import-to=``"""
     return sum([_splitShellPattern(x) for x in options.follow_not_modules], [])
@@ -1638,6 +1771,11 @@ def assumeYesForDownloads():
     return options is not None and options.assume_yes_for_downloads
 
 
+def getUpdateCheckMode():
+    """:returns: str derived from ``--update-check`` or ``NUITKA_UPDATE_CHECK``"""
+    return options.update_check
+
+
 def _isDebug():
     """:returns: bool derived from ``--debug`` or ``--debugger``"""
     return options is not None and (options.debug or options.debugger)
@@ -1702,6 +1840,21 @@ def getOutputFilename():
     )
 
 
+def getInstallerOutputFilename():
+    """*str* or *None*, resolved path for the installer artifact.
+
+    Notes:
+        Derives from '--windows-installer-output' if given, otherwise
+        from the program output filename with a platform specific
+        extension change.
+    """
+    return (
+        getUserInputNormalizedPath(options.windows_installer_output_filename)
+        if options.windows_installer_output_filename is not None
+        else None
+    )
+
+
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
     return getNormalizedPathJoin(getOutputDir(), path)
@@ -1758,8 +1911,10 @@ def getMainEntryPointFilenames():
             assert not positional_args
 
         result = tuple(options.mains)
-    else:
+    elif positional_args:
         result = (positional_args[0],)
+    else:
+        result = ()
 
     return tuple(getUserInputNormalizedPath(r) for r in result)
 
@@ -2102,6 +2257,41 @@ def getMacOSAppConsoleMode():
     return (isMacOS() and options.macos_app_console_mode) or "disable"
 
 
+def getLinuxAppConsoleMode():
+    """:returns: str from ``--linux-app-console-mode``"""
+    return (isLinux() and options.linux_app_console_mode) or "disable"
+
+
+def getLinuxAppLicense():
+    """*str* SPDX license expression derived from ``--linux-app-license``"""
+    return options.linux_app_license or "Proprietary"
+
+
+def isLinuxAppMode():
+    """:returns: bool derived from ``--mode=app|app-dist`` being used on Linux"""
+    return (
+        isLinux()
+        and options is not None
+        and options.compilation_mode in ("app", "app-dist")
+    )
+
+
+def shallCreateLinuxApp():
+    """*bool* shall create desktop file and metainfo files on Linux
+
+    Notes:
+        This is derived from using '--mode=app' or '--mode=app-dist' on
+        Linux, and checks that company and product names are given, from
+        which the application id is derived, otherwise this is 'False'
+        and a one time warning is given.
+    """
+    return (
+        isLinuxAppMode()
+        and getCompanyName() is not None
+        and getProductName() is not None
+    )
+
+
 def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
@@ -2177,6 +2367,25 @@ def enableExperimental(indication):
 def getExperimentalIndications():
     """*tuple*, items of ``--experimental=`` and runtime enabled indications."""
     return tuple(sorted(_experimental))
+
+
+def shallUseDirectConstantBlobs():
+    """Decide if direct per-blob constants access shall be used."""
+
+    return isExperimental("direct-constant-blobs")
+
+
+def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_ref):
+    """Decide if falling back from bytecode-backed functions to compiled C code is forbidden.
+
+    Args:
+        module_name: Name of the module containing the annotate function.
+        function_qualname: Qualified name of the annotate function (Python 3).
+        source_ref: Source reference of the annotate function.
+    """
+    # pylint: disable=unused-argument
+
+    return options.devel_no_bytecode_to_compiled_fallback
 
 
 def getDebugModeIndications():
@@ -2334,6 +2543,11 @@ def getPythonPgoUnseenModulePolicy():
     return options.python_pgo_policy_unused_module
 
 
+def isPythonPgoErrorExitStrict():
+    """*bool* = ``--pgo-python-error-exit``"""
+    return options.python_pgo_error_exit == "no"
+
+
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
     result = options.onefile_tempdir_spec
@@ -2393,24 +2607,8 @@ def getWindowsIconPaths():
 
 
 def getLinuxIconPaths():
-    """*list of str*, values of ``--linux-icon``"""
-    result = options.linux_icon_path
-
-    # Check if Linux icon requirement is met.
-    if isLinux() and not result and isOnefileMode():
-        # spell-checker: ignore pixmaps
-        default_icons = (
-            "/usr/share/pixmaps/python%s.xpm" % python_version_str,
-            "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
-            "/usr/share/pixmaps/python.xpm",
-        )
-
-        for icon in default_icons:
-            if os.path.exists(icon):
-                result.append(icon)
-                break
-
-    return _checkedIconPaths(result)
+    """*list of str*, values of ``--linux-app-icon``"""
+    return _checkedIconPaths(options.linux_icon_path)
 
 
 def getMacOSIconPaths():
@@ -2436,6 +2634,66 @@ def shallAskForWindowsAdminRights():
 def shallAskForWindowsUIAccessRights():
     """*bool*, value of ``--windows-uac-uiaccess``"""
     return options.windows_uac_uiaccess
+
+
+def shallCreateWindowsInstaller():
+    """*bool*, value of ``--windows-create-installer``"""
+    return options.windows_create_installer and isWin32Windows()
+
+
+def getWindowsInstallerNsisPath():
+    """*str* or *None*, value of ``--windows-nsis-path``"""
+    return options.windows_installer_nsis_path
+
+
+def getWindowsInstallerOutputFilename():
+    """*str* or *None*, value of ``--windows-installer-output``"""
+    return options.windows_installer_output_filename
+
+
+def getWindowsInstallerInstallDir():
+    """*str* or *None*, value of ``--windows-installer-install-dir``"""
+    return options.windows_installer_install_dir
+
+
+def getWindowsInstallerShortcuts():
+    """*str* or *None*, value of ``--windows-installer-shortcuts``"""
+    return options.windows_installer_shortcuts
+
+
+def getWindowsInstallerLicenseFile():
+    """*str* or *None*, value of ``--windows-installer-license-file``"""
+    return options.windows_installer_license_filename
+
+
+def isWindowsInstallerAllowUserChangeInstallDir():
+    """*bool*, inverted value of ``--windows-installer-no-user-change-install-dir``"""
+    return not options.windows_installer_no_user_change_install_dir
+
+
+def getWindowsInstallerMode():
+    """*str*, value of ``--windows-installer-mode``, defaults to ``"multiuser"``"""
+    return options.windows_installer_mode
+
+
+def shallCreateLinuxInstaller():
+    """*bool*, value of ``--linux-create-installer``"""
+    return options.linux_create_installer and isLinux()
+
+
+def getLinuxInstallerAppImagetoolPath():
+    """*str* or *None*, value of ``--linux-installer-appimagetool-path``"""
+    return options.linux_installer_appimagetool_path
+
+
+def getLinuxInstallerOutputFilename():
+    """*str* or *None*, value of ``--linux-installer-output``"""
+    return options.linux_installer_output_filename
+
+
+def getFileDescription():
+    """*str* or *None*, value of ``--file-description``"""
+    return options.file_description
 
 
 def getLegalCopyright():
@@ -2572,6 +2830,11 @@ def getMacOSTargetArch():
     return macos_target_arch
 
 
+def getTargetArch():
+    """:returns: str or None, value of ``--target-arch`` option"""
+    return options.c_target_arch
+
+
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
     if shallCreatePythonPgoInput():
@@ -2581,7 +2844,7 @@ def shallCreateAppBundle():
 
 
 def shallCreateDmgFile():
-    """*bool* shall create a DMG file, derived from ``--macos-app-create-dmg`` value"""
+    """*bool* shall create a DMG file, derived from ``--macos-installer`` value"""
     return options.macos_create_dmg and isMacOS()
 
 
@@ -2616,6 +2879,16 @@ def getMacOSSignedAppName():
 def getMacOSAppVersion():
     """*str* version of the app to use for bundle"""
     return options.macos_app_version
+
+
+def getMacOSAppMacOSMinVersion():
+    """*str* minimum macOS version for the app bundle"""
+    return options.macos_app_macos_min_version
+
+
+def getMacOSAppCategoryType():
+    """*str* App Store category type for the application"""
+    return options.macos_app_category_type
 
 
 # Mapping of Info.plist keys to the corresponding entitlement keys for hardened
@@ -3209,7 +3482,7 @@ def getPyProjectRequiredPackages():
     # TODO: Move this to using code to avoid cyclic dependency.
     from nuitka.utils.Distributions import filterInstallRequires
 
-    return filterInstallRequires(options.pyproject_requires)
+    return filterInstallRequires(options.project_requires)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

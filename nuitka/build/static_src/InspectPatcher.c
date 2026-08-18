@@ -18,7 +18,7 @@ static PyObject *module_types;
 
 static char *kw_list_object[] = {(char *)"object", NULL};
 
-// spell-checker: ignore getgeneratorstate, getcoroutinestate
+// spell-checker: ignore getgeneratorstate,getcoroutinestate
 
 static PyObject *old_getgeneratorstate = NULL;
 

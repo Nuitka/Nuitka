@@ -237,9 +237,10 @@ static Py_hash_t DEEP_HASH_INIT(PyThreadState *tstate, PyObject *value) {
     return result;
 }
 
-static void DEEP_HASH_BLOB(Py_hash_t *hash, char const *s, Py_ssize_t size) {
+void DEEP_HASH_BLOB(Py_hash_t *hash, void const *s, Py_ssize_t size) {
+    unsigned char const *p = (unsigned char const *)s;
     while (size > 0) {
-        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*s++);
+        *hash = (1000003 * (*hash)) ^ (Py_hash_t)(*p++);
         size--;
     }
 }
@@ -368,7 +369,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyString_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyString_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);
@@ -382,7 +383,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyBytes_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyBytes_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);

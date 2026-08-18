@@ -3,6 +3,9 @@
 #ifndef __NUITKA_CHECKERS_H__
 #define __NUITKA_CHECKERS_H__
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
@@ -22,6 +25,15 @@
 extern void CHECK_OBJECT_DEEP(PyObject *value);
 extern void CHECK_OBJECT_DEEP_NAMED(char const *name, PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
+
+// Our replacement for "PyType_IsSubtype"
+extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+static inline int Nuitka_PyObject_TypeCheck(PyObject *obj, PyTypeObject *type) {
+    return Py_TYPE(obj) == type || Nuitka_Type_IsSubtype(Py_TYPE(obj), type);
+}
+
+// Our replacement for "PyObject_IsInstance"
+extern int Nuitka_Object_IsInstance(PyThreadState *tstate, PyObject *instance, PyObject *cls);
 
 #endif
 
