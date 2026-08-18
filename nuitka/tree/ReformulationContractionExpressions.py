@@ -33,7 +33,6 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationIteritems,
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
-    StatementDictOperationUpdate,
 )
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -463,7 +462,7 @@ def _buildContractionBodyNode(  # pylint: disable=too-many-statements
             )
 
             current_body = makeTryFinallyReleaseStatement(
-                provider=provider,
+                provider=item_provider,
                 tried=makeStatementsSequenceFromStatements(
                     [
                         makeStatementAssignmentVariable(
