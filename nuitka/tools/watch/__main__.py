@@ -348,9 +348,9 @@ def _updateCase(
             )
             return
         return watch_logger.sysexit(
-            "Error, 'wait_for' condition '%s' is now met for Python %s. "
+            "Error, test case '%s' has 'wait_for' condition '%s' now met for Python %s. "
             "The wait_for can be dropped."
-            % (wait_for_req, installed_python.getPythonVersion())
+            % (case_dir, wait_for_req, installed_python.getPythonVersion())
         )
 
     try:
