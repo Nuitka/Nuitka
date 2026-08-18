@@ -320,7 +320,7 @@ def _updateCase(
     jobs,
 ):
     # Many details and cases due to package method being handled here.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
 
     # We trust the case yaml files, pylint: disable=eval-used
     wait_for_req = case_data.get("wait_for", "False")
@@ -353,14 +353,27 @@ def _updateCase(
             % (wait_for_req, installed_python.getPythonVersion())
         )
 
-    lock_filename = _updateCaseLock(
-        installed_python=installed_python,
-        case_data=case_data,
-        case_dir=case_dir,
-        reset_pipenv=reset_pipenv,
-        no_pipenv_update=no_pipenv_update,
-        result_path=result_path,
-    )
+    try:
+        lock_filename = _updateCaseLock(
+            installed_python=installed_python,
+            case_data=case_data,
+            case_dir=case_dir,
+            reset_pipenv=reset_pipenv,
+            no_pipenv_update=no_pipenv_update,
+            result_path=result_path,
+        )
+    except subprocess.CalledProcessError as e:
+        # Annotate exception with case context before re-raising, so the
+        # pipenv traceback (which otherwise only shows the pipenv command)
+        # is traceable to the failing watch case.
+        e.nuitka_watch_case = case_data.get("case", case_dir)  # type: ignore[attr-defined]
+        e.nuitka_watch_python = installed_python.getPythonVersion()  # type: ignore[attr-defined]
+        e.nuitka_watch_result_path = result_path  # type: ignore[attr-defined]
+        watch_logger.warning(
+            "Failed to lock/update for case '%s' with Python %s at '%s': %s"
+            % (e.nuitka_watch_case, e.nuitka_watch_python, result_path, e)
+        )
+        raise
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
