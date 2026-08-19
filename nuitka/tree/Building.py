@@ -805,6 +805,7 @@ setBuildingDispatchers(
         "TypeAlias": buildTypeAliasNode,
         "TemplateStr": buildTemplateStringNode,
         "Interpolation": buildInterpolationNode,
+        "TypeVar": buildTypeVarNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -813,7 +814,6 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
-        "TypeVar": buildTypeVarNode,
         "TypeVarTuple": buildTypeVarTupleNode,
         "ParamSpec": buildTypeParamSpec,
     },

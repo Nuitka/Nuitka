@@ -5,6 +5,7 @@
 
 from .CodeHelpers import (
     generateChildExpressionCode,
+    generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
@@ -52,13 +53,42 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
 
 def generateTypeVarCode(to_name, expression, emit, context):
+    (compute_bound_name,) = generateChildExpressionsCode(
+        expression=expression,
+        emit=emit,
+        context=context,
+    )
+
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_value", expression, emit, context
     ) as value_name:
-        if expression.isExpressionTypeVariable():
-            # TypeVar
-            helper_function = "MAKE_TYPE_VAR"
-        elif expression.isExpressionTypeVariableTuple():
+        assert expression.isExpressionTypeVariable()
+
+        emit(
+            "%s = MAKE_TYPE_VAR(tstate, %s, %s);"
+            % (
+                value_name,
+                context.getConstantCode(constant=expression.name),
+                compute_bound_name or "NULL",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_name=compute_bound_name,
+            emit=emit,
+            context=context,
+            needs_check=False,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateExoticTypeVarCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "type_var_value", expression, emit, context
+    ) as value_name:
+        if expression.isExpressionTypeVariableTuple():
             # TypeVarTuple
             helper_function = "MAKE_TYPE_VAR_TUPLE"
         else:
