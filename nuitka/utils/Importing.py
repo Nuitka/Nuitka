@@ -306,15 +306,29 @@ def hasPackageDirFilename(path):
 def getPackageDirFilename(path, prefer_source=False):
     assert os.path.isdir(path)
 
+    candidates = []
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 2,
+        "C_EXTENSION": 1,
+    }
+
     for suffix, module_type in getModuleFilenameSuffixes():
-        if prefer_source and module_type == "C_EXTENSION":
-            continue
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):
-            return candidate
+            candidates.append((candidate, module_type))
 
-    return None
+    def prioritize(candidate):
+        if candidate[1] == "PY_SOURCE" and prefer_source:
+            return priority_map[candidate[1]] - 2
+        return priority_map[candidate[1]]
+
+    if len(candidates) == 0:
+        return None
+    else:
+        return sorted(candidates, key=prioritize)[0][0]
 
 
 @contextmanager
