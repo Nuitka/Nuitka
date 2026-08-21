@@ -10,15 +10,29 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 
 def visitTree(tree, visitor):
-    visitor.onEnterNode(tree)
+    # Iterative pre-/post-order traversal using an explicit stack, so that very
+    # deeply nested node trees do not exceed the Python recursion limit, which
+    # the previous per-node recursion did.
+    stack = [(tree, False)]
 
-    for visitable in tree.getVisitableNodes():
-        if visitable is None:
-            raise AssertionError("'None' child encountered", tree, tree.source_ref)
+    while stack:
+        node, children_visited = stack.pop()
 
-        visitTree(visitable, visitor)
+        if children_visited:
+            visitor.onLeaveNode(node)
+            continue
 
-    visitor.onLeaveNode(tree)
+        visitor.onEnterNode(node)
+
+        # Revisit this node for the leave call once its children are done, then
+        # push the children in reverse, so they are visited left to right.
+        stack.append((node, True))
+
+        for visitable in reversed(node.getVisitableNodes()):
+            if visitable is None:
+                raise AssertionError("'None' child encountered", node, node.source_ref)
+
+            stack.append((visitable, False))
 
 
 class VisitorNoopMixin(object):
