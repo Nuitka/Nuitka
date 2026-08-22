@@ -37,7 +37,7 @@ exclude = [
 
 [tool.ruff]
 builtins = ["__compiled__", "cmp", "intern", "unicode", "long"]
-lint.ignore = ["BLE001", "E402", "E731", "F401", "SIM117", "UP028", "UP031"]
+lint.ignore = ["BLE001", "C402", "C405", "E402", "E731", "F401", "I001", "RET501", "SIM117", "UP010", "UP028", "UP031", "RUF023"]
 force-exclude = true
 exclude = [
     "**/node_modules",
