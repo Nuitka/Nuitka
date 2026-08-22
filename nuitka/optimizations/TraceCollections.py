@@ -35,6 +35,7 @@ from nuitka.utils.InstanceCounters import (
 
 from .ValueTraces import (
     ValueTraceAssign,
+    ValueTraceAssignIteratorPropagated,
     ValueTraceAssignUnescapable,
     ValueTraceAssignUnescapablePropagated,
     ValueTraceAssignVeryTrusted,
@@ -561,6 +562,23 @@ class TraceCollectionBase(object):
             assign_node,
             self.getVariableCurrentTrace(variable),
             replacement,
+        )
+
+        self.variable_traces[variable][version] = variable_trace
+
+        # Make references point to it.
+        self.markCurrentVariableTrace(variable, version)
+
+        return variable_trace
+
+    def onVariableSetToIteratorPropagated(
+        self, variable, version, assign_node, tmp_iterated
+    ):
+        variable_trace = ValueTraceAssignIteratorPropagated(
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
+            tmp_iterated,
         )
 
         self.variable_traces[variable][version] = variable_trace

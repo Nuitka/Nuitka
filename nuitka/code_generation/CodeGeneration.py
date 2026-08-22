@@ -229,6 +229,7 @@ from .IteratorCodes import (
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
+    generateUnpackCheckFromIteratedValueCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -1139,6 +1140,7 @@ setStatementDispatchDict(
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
+        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE": generateUnpackCheckFromIteratedValueCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsMappingCode,

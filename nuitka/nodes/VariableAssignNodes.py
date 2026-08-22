@@ -21,7 +21,6 @@ from abc import abstractmethod
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.options.Options import isExperimental
 
-from .ConstantRefNodes import makeConstantRefNode
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
@@ -43,7 +42,6 @@ from .StatementBasesGenerated import (
     StatementAssignmentVariableIteratorBase,
 )
 from .VariableDelNodes import makeStatementDelVariable
-from .VariableRefNodes import ExpressionTempVariableRef
 
 
 class StatementAssignmentVariableMixin(object):
@@ -408,9 +406,6 @@ class StatementAssignmentVariableIterator(
 ):
     # Carries state for propagating iterators potentially.
 
-    # TODO: Maybe have a namedtuple with these intended for index replacement,
-    # they form once set of things pylint: disable=too-many-instance-attributes
-
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR"
 
     named_children = ("source",)
@@ -425,8 +420,6 @@ class StatementAssignmentVariableIterator(
         "type_shape",
         "temp_scope",
         "tmp_iterated_variable",
-        "tmp_iteration_count_variable",
-        "tmp_iteration_next_variable",
         "is_indexable",
     )
 
@@ -443,8 +436,6 @@ class StatementAssignmentVariableIterator(
         # For replacing with indexing potentially.
         self.temp_scope = None
         self.tmp_iterated_variable = None
-        self.tmp_iteration_count_variable = None
-        self.tmp_iteration_next_variable = None
 
         # When found non-indexable, we do not try again.
         self.is_indexable = None
@@ -459,90 +450,87 @@ class StatementAssignmentVariableIterator(
         # converted to something else anyway.
         return ControlFlowDescriptionElementBasedEscape
 
-    def getIterationIndexDesc(self):
-        """For use in optimization outputs only, here and using nodes."""
-        return "'%s[%s]'" % (
-            self.tmp_iterated_variable.getName(),
-            self.tmp_iteration_count_variable.getName(),
-        )
+    def _allocateTemps(self, node):
+        """Allocate temp variable for the iterated value only.
 
-    def _replaceWithDirectAccess(self, trace_collection, provider):
-        self.temp_scope = provider.allocateTempScope("iterator_access")
+        This is delayed work done at the end of a pass, so that no temp
+        variables are introduced during branching merges. The actual
+        replacement is then done on the next pass, when the trace collection
+        has already seen the allocation of the temp variable.
+
+        The temp variable is allocated as late, so that its usage is forced
+        and it is not removed due to being unused before the replacement in
+        the next pass introduces its real usages.
+
+        Args:
+            node: The node the delayed work is done for, which is ``self``.
+        """
+
+        assert node is self
+
+        provider = self.getParentVariableProvider()
+
+        self.temp_scope = provider.allocateTempScope("unpack")
 
         self.tmp_iterated_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iterated_value", temp_type="object"
+            temp_scope=self.temp_scope,
+            name="iterated_value",
+            temp_type="object",
+            late=True,
         )
 
-        # Ensure temp variables are initialized in the active trace collection,
-        # not just the provider's (which can be stale or a different branch).
-        trace_collection.initVariableUninitialized(
-            self.tmp_iterated_variable, None
-        ).addUsage()
+        return self
 
-        reference_iterated = ExpressionTempVariableRef(
-            variable=self.tmp_iterated_variable,
-            source_ref=self.subnode_source.source_ref,
-        )
+    def _replaceWithDirectAccess(self, trace_collection):
+        """Replace iterator assignment with assignment to the iterated value.
+
+        The iterator variable becomes unused and only the temp variable
+        holding the iterated value remains, references to the iterator will
+        replace themselves with subscripts of it in this same pass.
+        """
 
         iterated_value = self.subnode_source.subnode_value
 
         assign_iterated = makeStatementAssignmentVariable(
-            source=iterated_value,
+            source=iterated_value.makeClone(),
             variable=self.tmp_iterated_variable,
             source_ref=iterated_value.source_ref,
         )
 
-        self.tmp_iteration_count_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iteration_count", temp_type="object"
+        result = makeStatementsSequenceReplacementNode(
+            statements=(assign_iterated,),
+            node=self,
         )
 
-        trace_collection.initVariableUninitialized(
-            self.tmp_iteration_count_variable, None
-        ).addUsage()
-
-        assign_iteration_count = makeStatementAssignmentVariable(
-            source=makeConstantRefNode(constant=0, source_ref=self.source_ref),
-            variable=self.tmp_iteration_count_variable,
-            source_ref=iterated_value.source_ref,
-        )
-
-        # TODO: Unclear what node this really is right now, need to try out.
-        self.subnode_source.replaceChild(iterated_value, reference_iterated)
-
-        # Make sure variable trace is computed.
-        assign_iterated.computeStatement(trace_collection)
-        assign_iteration_count.computeStatement(trace_collection)
-        reference_iterated.computeExpressionRaw(trace_collection)
-
-        self.variable_trace = trace_collection.onVariableSet(
+        # Set the trace for the iterator variable before computing the new
+        # statement, so that reference and release statements seen in this
+        # same pass can replace themselves with the iterated value.
+        self.variable_trace = trace_collection.onVariableSetToIteratorPropagated(
             variable=self.variable,
             version=self.variable_version,
             assign_node=self,
+            tmp_iterated=self.tmp_iterated_variable,
         )
 
-        # For use when the "next" is replaced.
-        self.tmp_iteration_next_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="next_value", temp_type="object"
-        )
-
-        trace_collection.initVariableUninitialized(
-            self.tmp_iteration_next_variable, None
-        ).addUsage()
-
-        result = makeStatementsSequenceReplacementNode(
-            (assign_iteration_count, assign_iterated, self), self
-        )
+        new_result = result.computeStatementsSequence(trace_collection)
 
         return (
-            result,
+            new_result,
             "new_statements",
-            lambda: "Enabling indexing of iterated value through %s."
-            % self.getIterationIndexDesc(),
+            lambda: "Assignment to '%s' from iterator replaced with direct access to '%s'."
+            % (self.variable.getName(), self.tmp_iterated_variable.getName()),
         )
 
     def computeStatement(self, trace_collection):
-        # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here.
+        # The delayed work of the previous pass allocated the temp variable,
+        # now do the actual replacement, before the source expression is
+        # computed, so that it becomes the source of the temp variable
+        # assignment instead.
+        if self.tmp_iterated_variable is not None:
+            assert self.is_indexable, self
+
+            return self._replaceWithDirectAccess(trace_collection)
+
         source = self.subnode_source
         variable = self.variable
 
@@ -550,28 +538,6 @@ class StatementAssignmentVariableIterator(
 
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
-
-        if (
-            self.variable_trace is not None
-            and self.tmp_iterated_variable is None
-            and self.is_indexable is None
-            and source.isExpressionBuiltinIterForUnpack()
-            and isExperimental("iterator-optimization")
-        ):
-            if variable.hasAccessesOutsideOf(provider) is False:
-                # TODO: Ought to become able to check if the self.variable_trace
-                # is escaped by annotating that upwards, so a search is not
-                # needed at all.
-                last_trace = variable.getMatchingUnescapedAssignTrace(self)
-
-                if last_trace is not None:
-                    # Might not be allowed, remember if it's not allowed, otherwise retry.
-                    self.is_indexable = source.subnode_value.isKnownToBeIndexable()
-
-                    if self.is_indexable:
-                        return self._replaceWithDirectAccess(
-                            trace_collection=trace_collection, provider=provider
-                        )
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
@@ -588,6 +554,48 @@ class StatementAssignmentVariableIterator(
                 """\
 Assignment raises exception in assigned value, removed assignment.""",
             )
+
+        if (
+            self.variable_trace is not None
+            and self.tmp_iterated_variable is None
+            and self.is_indexable is None
+            and source.isExpressionBuiltinIterForUnpack()
+            and not isExperimental("no-iterator-optimization")
+        ):
+            if variable.hasAccessesOutsideOf(provider) is False:
+                # TODO: Ought to become able to check if the self.variable_trace
+                # is escaped by annotating that upwards, so a search is not
+                # needed at all.
+                last_trace = variable.getMatchingUnescapedAssignTrace(self)
+
+                if last_trace is not None:
+                    # Might not be allowed, remember if it's not allowed, otherwise retry.
+                    self.is_indexable = source.subnode_value.isKnownToBeIndexable()
+
+                    if self.is_indexable:
+                        # Delay the allocation of the temp variable to after
+                        # the trace collection, so that no temps are introduced
+                        # during branching merges, the replacement is then
+                        # done on the next pass without delayed work.
+                        trace_collection.signalChange(
+                            tags="changed_variable_usage",
+                            source_ref=self.source_ref,
+                            message="Preparing to replace iteration with direct access for '%s'."
+                            % variable.getName(),
+                        )
+
+                        trace_collection.onDelayedWork(
+                            node=self,
+                            function=self._allocateTemps,
+                            old_desc="assignment to '%s' from iter()"
+                            % variable.getName(),
+                            # The delayed work only allocates temp variables
+                            # and returns the node unchanged, therefore no
+                            # replacement is ever described.
+                            describe_new_node=lambda new_node: (None, None),
+                        )
+
+                        # Process normally the iterator trace, but for the last time, all usages will cease to exist.
 
         self.type_shape = source.getTypeShape()
 

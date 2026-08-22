@@ -149,6 +149,26 @@ class StatementDelVariableBase(StatementBase):
 
         self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
+        if self.previous_trace.isIteratorPropagationTrace():
+            # The iterator variable was replaced with direct access to the
+            # iterated value, retarget the deletion to the temp variable
+            # holding it.
+            result = makeStatementDelVariable(
+                variable=self.previous_trace.getIteratedTempVariable(),
+                tolerant=self.is_tolerant,
+                source_ref=self.source_ref,
+            )
+
+            return trace_collection.computedStatementResult(
+                result,
+                "new_statements",
+                "Retargeted del of iterator '%s' to iterated value '%s'."
+                % (
+                    variable.getName(),
+                    self.previous_trace.getIteratedTempVariable().getName(),
+                ),
+            )
+
         # First eliminate us entirely if we can.
         if self.previous_trace.mustNotHaveValue():
             return self._computeDelWithoutValue(trace_collection)

@@ -6,6 +6,7 @@
 Next variants and unpacking with related checks.
 """
 
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.PythonVersions import python_version
 
@@ -312,12 +313,12 @@ def generateUnpackCheckCode(statement, emit, context):
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):
-    to_name = context.getBoolResName()
+    res_name = context.getBoolResName()
 
     # TODO: Have a way to pass a C integer value to getRichComparisonCode
     # without creating a temporary constant ref node.
     getRichComparisonCode(
-        to_name=to_name,
+        to_name=res_name,
         comparator="Gt",
         left=statement.subnode_iterated_length,
         right=makeConstantRefNode(
@@ -331,14 +332,104 @@ def generateUnpackCheckFromIteratedCode(statement, emit, context):
         context=context,
     )
 
-    # TODO: This exception ought to have a creator function.
-    emit("""
-if (%(to_name)s) {
-    PyErr_Format(PyExc_ValueError, "too many values to unpack");
-}
-""" % {"to_name": to_name})
+    (
+        exception_state_name,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
 
-    getErrorExitBoolCode(condition=str(to_name), emit=emit, context=context)
+    if python_version < 0x300:
+        emit(
+            """
+if (%(res_name)s) {
+    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s);
+}
+"""
+            % {
+                "res_name": res_name,
+                "exception_state_name": exception_state_name,
+            }
+        )
+    else:
+        emit(
+            """
+if (%(res_name)s) {
+    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s, %(count)d);
+}
+"""
+            % {
+                "res_name": res_name,
+                "exception_state_name": exception_state_name,
+                "count": statement.count,
+            }
+        )
+
+    getErrorExitBoolCode(
+        condition="%s != false" % res_name,
+        fetched_exception=True,
+        emit=emit,
+        context=context,
+    )
+
+
+def generateUnpackCheckFromIteratedValueCode(statement, emit, context):
+    res_name = context.getBoolResName()
+
+    iterated_value = statement.subnode_iterated_value
+
+    iterated_value_name = context.allocateTempName("iterated_value")
+
+    generateExpressionCode(
+        to_name=iterated_value_name,
+        expression=iterated_value,
+        emit=emit,
+        context=context,
+    )
+
+    # TODO: Have a way to pass a C integer value to getRichComparisonCode
+    # without creating a temporary constant ref node.
+    getRichComparisonCode(
+        to_name=res_name,
+        comparator="Gt",
+        left=ExpressionBuiltinLen(
+            iterated_value.makeClone(),
+            source_ref=statement.source_ref,
+        ),
+        right=makeConstantRefNode(
+            constant=statement.count,
+            source_ref=statement.source_ref,
+            user_provided=True,
+        ),
+        needs_check=False,
+        source_ref=statement.source_ref,
+        emit=emit,
+        context=context,
+    )
+
+    (
+        exception_state_name,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
+
+    emit(
+        """
+if (%(res_name)s) {
+    SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, &%(exception_state_name)s, %(count)d, %(iterated_value_name)s);
+}
+"""
+        % {
+            "res_name": res_name,
+            "exception_state_name": exception_state_name,
+            "count": statement.count,
+            "iterated_value_name": iterated_value_name,
+        }
+    )
+
+    getErrorExitBoolCode(
+        condition="%s != false" % res_name,
+        fetched_exception=True,
+        emit=emit,
+        context=context,
+    )
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):

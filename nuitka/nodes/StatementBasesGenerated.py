@@ -1268,6 +1268,97 @@ StatementSpecialUnpackCheckFromIteratedBase = (
 )
 
 
+class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   StatementSpecialUnpackCheckFromIteratedValue
+
+    def __init__(self, iterated_value, count, source_ref):
+        iterated_value.parent = self
+
+        self.subnode_iterated_value = iterated_value
+
+        self.count = count
+
+        StatementBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "count": self.count,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_iterated_value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("iterated_value", self.subnode_iterated_value),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterated_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_iterated_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterated_value": self.subnode_iterated_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_iterated_value.finalize()
+        del self.subnode_iterated_value
+
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_iterated_value.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+StatementSpecialUnpackCheckFromIteratedValueBase = (
+    _StatementChildHavingIteratedValueOperationCountMixin
+)
+
+
 class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

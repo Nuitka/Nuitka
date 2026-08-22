@@ -14,7 +14,6 @@ from nuitka.PythonVersions import (
     getUnboundLocalErrorErrorTemplate,
     python_version,
 )
-from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
 from nuitka.Variables import Variable
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -36,8 +35,6 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
 )
-from .OutlineNodes import ExpressionOutlineBody
-from .ReturnNodes import makeStatementReturn
 from .shapes.StandardShapes import tshape_unknown
 from .SubscriptNodes import ExpressionSubscriptLookupForUnpack
 
@@ -771,98 +768,32 @@ class ExpressionTempVariableRef(
         # Nothing to do here.
         return self, None, None
 
-    def _makeIterationNextReplacementNode(
-        self, trace_collection, next_node, iterator_assign_node
-    ):
-        from .OperatorNodes import makeExpressionOperationBinaryInplace
-        from .VariableAssignNodes import makeStatementAssignmentVariable
+    def computeExpressionNext1(self, next_node, trace_collection):
+        if self.variable_trace.isIteratorPropagationTrace():
+            assert next_node.isExpressionSpecialUnpack(), next_node
 
-        provider = trace_collection.getOwner()
-
-        outline_body = ExpressionOutlineBody(
-            provider=provider,
-            name="next_value_accessor",
-            source_ref=self.source_ref,
-        )
-
-        if next_node.isExpressionSpecialUnpack():
             source = ExpressionSubscriptLookupForUnpack(
                 expression=ExpressionTempVariableRef(
-                    variable=iterator_assign_node.tmp_iterated_variable,
+                    variable=self.variable_trace.getIteratedTempVariable(),
                     source_ref=self.source_ref,
                 ),
-                subscript=ExpressionTempVariableRef(
-                    variable=iterator_assign_node.tmp_iteration_count_variable,
-                    source_ref=self.source_ref,
+                subscript=makeConstantRefNode(
+                    constant=next_node.getCount() - 1, source_ref=self.source_ref
                 ),
                 expected=next_node.getExpected(),
                 source_ref=self.source_ref,
             )
-        else:
-            source = ExpressionSubscriptLookupForUnpack(
-                expression=ExpressionTempVariableRef(
-                    variable=iterator_assign_node.tmp_iterated_variable,
-                    source_ref=self.source_ref,
-                ),
-                subscript=ExpressionTempVariableRef(
-                    variable=iterator_assign_node.tmp_iteration_count_variable,
-                    source_ref=self.source_ref,
-                ),
-                expected=None,
-                source_ref=self.source_ref,
+
+            return False, trace_collection.computedExpressionResultRaw(
+                source,
+                change_tags="new_expression",
+                change_desc=lambda: "Iterator 'next' converted to direct access of iterated value '%s'."
+                % self.variable_trace.getIteratedTempVariable().getName(),
             )
 
-        statements = (
-            makeStatementAssignmentVariable(
-                variable=iterator_assign_node.tmp_iteration_next_variable,
-                source=source,
-                source_ref=self.source_ref,
-            ),
-            makeStatementAssignmentVariable(
-                variable=iterator_assign_node.tmp_iteration_count_variable,
-                source=makeExpressionOperationBinaryInplace(
-                    left=ExpressionTempVariableRef(
-                        variable=iterator_assign_node.tmp_iteration_count_variable,
-                        source_ref=self.source_ref,
-                    ),
-                    right=makeConstantRefNode(constant=1, source_ref=self.source_ref),
-                    operator="IAdd",
-                    source_ref=self.source_ref,
-                ),
-                source_ref=self.source_ref,
-            ),
-            makeStatementReturn(
-                expression=ExpressionTempVariableRef(
-                    variable=iterator_assign_node.tmp_iteration_next_variable,
-                    source_ref=self.source_ref,
-                ),
-                source_ref=self.source_ref,
-            ),
-        )
-
-        outline_body.setChildBody(makeStatementsSequenceFromStatements(*statements))
-
-        return False, trace_collection.computedExpressionResultRaw(
-            outline_body,
-            change_tags="new_expression",
-            change_desc=lambda: "Iterator 'next' converted to %s."
-            % iterator_assign_node.getIterationIndexDesc(),
-        )
-
-    def computeExpressionNext1(self, next_node, trace_collection):
         iteration_source_node = self.variable_trace.getIterationSourceNode()
 
         if iteration_source_node is not None:
-            if iteration_source_node.parent.isStatementAssignmentVariableIterator():
-                iterator_assign_node = iteration_source_node.parent
-
-                if iterator_assign_node.tmp_iterated_variable is not None:
-                    return self._makeIterationNextReplacementNode(
-                        trace_collection=trace_collection,
-                        next_node=next_node,
-                        iterator_assign_node=iterator_assign_node,
-                    )
-
             iteration_source_node.onContentIteratedEscapes(trace_collection)
 
             if iteration_source_node.mayHaveSideEffectsNext():

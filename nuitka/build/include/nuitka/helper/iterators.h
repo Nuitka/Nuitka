@@ -335,6 +335,46 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_STARRED(PyThreadState *tstate,
 }
 #endif
 
+#if PYTHON_VERSION < 0x300
+NUITKA_MAY_BE_UNUSED inline static void
+SET_UNPACK_TOO_MANY_VALUES_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, exception_state, PyExc_ValueError,
+                                                    "too many values to unpack");
+}
+#elif PYTHON_VERSION < 0x3e0
+NUITKA_MAY_BE_UNUSED inline static void
+SET_UNPACK_TOO_MANY_VALUES_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                 int expected) {
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
+                                                        "too many values to unpack (expected %d)", expected);
+}
+#else
+NUITKA_MAY_BE_UNUSED inline static void
+SET_UNPACK_TOO_MANY_VALUES_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                 int expected, PyObject *iterated_value) {
+    Py_ssize_t gotten = -1;
+
+    if (iterated_value != NULL) {
+        if (PyTuple_Check(iterated_value)) {
+            gotten = PyTuple_GET_SIZE(iterated_value);
+        } else if (PyList_Check(iterated_value)) {
+            gotten = PyList_GET_SIZE(iterated_value);
+        } else if (PyDict_Check(iterated_value)) {
+            gotten = DICT_SIZE(iterated_value);
+        }
+    }
+
+    if (gotten != -1) {
+        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT2(tstate, exception_state, PyExc_ValueError,
+                                                            "too many values to unpack (expected %d, got %d)", expected,
+                                                            (int)gotten);
+    } else {
+        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
+                                                            "too many values to unpack (expected %d)", expected);
+    }
+}
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyThreadState *tstate,
                                                        struct Nuitka_ExceptionPreservationItem *exception_state,
                                                        PyObject *iterator, int expected) {
@@ -357,31 +397,21 @@ NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyThreadState *tstate,
         Py_DECREF(attempt);
 
 #if PYTHON_VERSION < 0x300
-        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, exception_state, PyExc_ValueError,
-                                                        "too many values to unpack");
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state);
 #elif PYTHON_VERSION < 0x3e0
-        SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
-                                                            "too many values to unpack (expected %d)", expected);
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state, expected);
 #else
-        Py_ssize_t gotten = -1;
+        PyObject *iterated_value = NULL;
 
         if (Py_TYPE(iterator) == &PyTupleIter_Type) {
-            gotten = PyTuple_GET_SIZE(((_PyTupleIterObject *)iterator)->it_seq);
+            iterated_value = (PyObject *)(((_PyTupleIterObject *)iterator)->it_seq);
         } else if (Py_TYPE(iterator) == &PyListIter_Type) {
-            gotten = PyList_GET_SIZE(((_PyListIterObject *)iterator)->it_seq);
+            iterated_value = (PyObject *)(((_PyListIterObject *)iterator)->it_seq);
         } else if (Py_TYPE(iterator) == &PyDictIterKey_Type) {
-            gotten = DICT_SIZE((PyObject *)(((dictiterobject *)iterator)->di_dict));
+            iterated_value = (PyObject *)(((dictiterobject *)iterator)->di_dict);
         }
 
-        if (gotten != -1) {
-            SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT2(tstate, exception_state, PyExc_ValueError,
-                                                                "too many values to unpack (expected %d, got %d)",
-                                                                expected, gotten);
-
-        } else {
-            SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_FORMAT1(tstate, exception_state, PyExc_ValueError,
-                                                                "too many values to unpack (expected %d)", expected);
-        }
+        SET_UNPACK_TOO_MANY_VALUES_ERROR(tstate, exception_state, expected, iterated_value);
 #endif
         return false;
     }

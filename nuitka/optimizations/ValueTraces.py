@@ -142,6 +142,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isIteratorPropagationTrace():
+        return False
+
+    @staticmethod
     def isUnassignedTrace():
         return False
 
@@ -881,6 +885,39 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 
     def getReplacementNode(self, usage):
         return self.replacement(usage)
+
+
+class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
+    """Assignment of iterator that is replaced by direct access to the iterated value.
+
+    The iterator variable itself becomes unused, only the temp variable
+    holding the iterated value remains, references to the iterator replace
+    themselves with subscripts of it.
+    """
+
+    __slots__ = ("tmp_iterated",)
+
+    @counted_init
+    def __init__(self, owner, assign_node, previous, tmp_iterated):
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+        self.assign_node = assign_node
+
+        self.tmp_iterated = tmp_iterated
+
+    @staticmethod
+    def isIteratorPropagationTrace():
+        return True
+
+    def getIteratedTempVariable(self):
+        return self.tmp_iterated
 
 
 class ValueTraceMergeBase(ValueTraceBase):
