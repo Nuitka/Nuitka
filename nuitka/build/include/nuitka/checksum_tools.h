@@ -7,7 +7,7 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);

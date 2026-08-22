@@ -6,13 +6,9 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
 #include "nuitka/allocator.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
-#include <stdbool.h>
-#ifndef python_init_proc
-#define python_init_proc initproc
-#endif
 #endif
 
 // From CPython, to allow us quick access to the dictionary of an module, the

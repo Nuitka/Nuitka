@@ -1,35 +1,29 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #pragma once
-#ifndef __NUITKA_HELPER_INDEXES_H__
-#define __NUITKA_HELPER_INDEXES_H__
+#ifndef __NUITKA_CPYTHON_API_COMPAT_H__
+#define __NUITKA_CPYTHON_API_COMPAT_H__
 
-/* This file is included from another C file, help IDEs to still parse it on its own. */
-#ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
-#endif
+/* CPython uses "initproc" for the "tp_init" slot type, and Python2 uses
+ * "initfunc" and "initstate" for module init related declarations. Rename
+ * them to our own names while the CPython headers are included, so that we
+ * have stable names for them, and so that Python2 modules named "proc" can
+ * define their "initproc" init function without conflicts.
+   spell-checker: ignore initproc,initfunc
+ */
+#define initproc python_init_proc
+#define initfunc python_init_func
+#define initstate python_initstate
+#include <Python.h>
+#undef initproc
+#undef initfunc
+#undef initstate
 
-// Avoid the API version of "PyIndex_Check" with this.
-#if PYTHON_VERSION >= 0x380
-static inline bool Nuitka_Index_Check(PyObject *obj) {
-    PyNumberMethods *tp_as_number = Py_TYPE(obj)->tp_as_number;
-
-    return (tp_as_number != NULL && tp_as_number->nb_index != NULL);
-}
-#else
-#define Nuitka_Index_Check(obj) PyIndex_Check(obj)
-#endif
-
-// Similar to "PyNumber_Index" but "Nuitka_Number_IndexAsLong" could be more relevant
-extern PyObject *Nuitka_Number_Index(PyObject *item);
-
-// In Python 3.10 or higher, the conversion to long is forced, but sometimes we
-// do not care at all, or it should not be done.
-#if PYTHON_VERSION >= 0x3a0
-extern PyObject *Nuitka_Number_IndexAsLong(PyObject *item);
-#else
-#define Nuitka_Number_IndexAsLong(item) Nuitka_Number_Index(item)
-#endif
+// The pycore headers require these, but "Python.h" does not provide them.
+#include <limits.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #endif
 

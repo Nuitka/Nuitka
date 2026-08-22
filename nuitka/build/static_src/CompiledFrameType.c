@@ -1,8 +1,10 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifdef __IDE_ONLY__
-#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 

@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperImportHard.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_IMPORT_HARD_H__
+#define __NUITKA_IMPORT_HARD_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 /* C helper for hard import of module "__future__" import. */
@@ -127,6 +130,8 @@ extern PyObject *IMPORT_HARD_UNITTEST(void);
 /* C helper for hard import of module "unittest.mock" import. */
 #if PYTHON_VERSION >= 0x300
 extern PyObject *IMPORT_HARD_UNITTEST__MOCK(void);
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

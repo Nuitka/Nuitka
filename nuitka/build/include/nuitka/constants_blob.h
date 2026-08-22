@@ -16,7 +16,7 @@
  */
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 extern void loadConstantsBlob(PyThreadState *tstate, void *, char const *name);

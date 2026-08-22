@@ -5,7 +5,7 @@
 #define __NUITKA_CONSTANTS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 // Generated.
@@ -240,6 +240,30 @@ extern PyObject **global_constants;
 #define const_str_slash global_constants[67]
 // '\\'
 #define const_str_backslash global_constants[67]
+// 'Unpack'
+#define const_str_plain_Unpack global_constants[68]
+// '__closure__'
+#define const_str_plain___closure__ global_constants[69]
+// '__dir__'
+#define const_str_plain___dir__ global_constants[70]
+// 'encoding'
+#define const_str_plain_encoding global_constants[71]
+// 'join'
+#define const_str_plain_join global_constants[72]
+// 'line_buffering'
+#define const_str_plain_line_buffering global_constants[73]
+// 'reconfigure'
+#define const_str_plain_reconfigure global_constants[74]
+// 0
+#define const_long_0 global_constants[75]
+// inf
+#define const_float_plus_inf global_constants[76]
+// -inf
+#define const_float_minus_inf global_constants[77]
+// nan
+#define const_float_plus_nan global_constants[78]
+// -nan
+#define const_float_minus_nan global_constants[79]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727

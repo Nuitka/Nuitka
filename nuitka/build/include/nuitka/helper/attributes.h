@@ -5,7 +5,7 @@
 #define __NUITKA_HELPER_ATTRIBUTES_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 // Attribute lookup except special slots below.

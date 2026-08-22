@@ -5,7 +5,7 @@
 #define __NUITKA_HELPER_RANGEOBJECTS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #endif
 

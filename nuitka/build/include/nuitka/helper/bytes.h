@@ -5,7 +5,7 @@
 #define __NUITKA_HELPER_BYTES_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 #if PYTHON_VERSION >= 0x3a0

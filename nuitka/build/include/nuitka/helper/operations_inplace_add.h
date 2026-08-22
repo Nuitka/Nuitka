@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationInplace.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_OPERATIONS_INPLACE_ADD_H__
+#define __NUITKA_OPERATIONS_INPLACE_ADD_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 /* C helpers for type in-place "+" (ADD) operations */
@@ -156,6 +159,8 @@ extern bool INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyObject *o
 
 /* Code referring to "LIST" corresponds to Python 'list' and "TUPLE" to Python 'tuple'. */
 extern bool INPLACE_OPERATION_ADD_LIST_TUPLE(PyObject **operand1, PyObject *operand2);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

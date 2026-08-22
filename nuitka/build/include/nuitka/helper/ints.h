@@ -5,7 +5,8 @@
 #define __NUITKA_HELPER_INTS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
+
 #include "internal/pycore_long.h"
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"

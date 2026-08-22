@@ -6,12 +6,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "internal/pycore_dict.h"
-#include "internal/pycore_moduleobject.h"
-#include "nuitka/checkers.h"
-#include "nuitka/helper/dictionaries.h"
-#include "nuitka/string_functions.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern PyModuleObject *builtin_module;

@@ -5,7 +5,7 @@
 #define __NUITKA_ENVIRONMENT_VARIABLES_SYSTEM_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 #include "nuitka/filesystem_paths.h"

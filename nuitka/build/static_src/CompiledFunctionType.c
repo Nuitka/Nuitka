@@ -7,6 +7,8 @@
 
 #include "nuitka/prelude.h"
 
+#include "nuitka/compiled_types_common.h"
+
 #include "nuitka/compiled_method.h"
 
 #include "nuitka/freelists.h"

@@ -5,8 +5,8 @@
 #define __NUITKA_HELPER_RAISING_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
 #include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
 #endif

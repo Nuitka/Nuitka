@@ -1,10 +1,11 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateMakeListSmall.c.j2 instead! */
+#pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0) {

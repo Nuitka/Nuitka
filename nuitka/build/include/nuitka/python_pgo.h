@@ -7,12 +7,10 @@
 // In Visual Code, evaluate the code for PGO so we see errors of it sooner.
 #ifdef __IDE_ONLY__
 #define _NUITKA_PGO_PYTHON 1
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 #if _NUITKA_PGO_PYTHON
-
-#include <stdint.h>
 
 // Initialize PGO data collection.
 extern void PGO_Initialize(void);

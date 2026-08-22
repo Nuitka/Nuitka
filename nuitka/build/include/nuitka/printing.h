@@ -5,7 +5,7 @@
 #define __NUITKA_PRINTING_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 
 // Helper functions for print. Need to play nice with Python softspace

@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperBuiltinMethodOperation.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_OPERATIONS_BUILTIN_TYPES_H__
+#define __NUITKA_OPERATIONS_BUILTIN_TYPES_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -229,6 +232,7 @@ extern PyObject *BYTES_TRANSLATE2(PyThreadState *tstate, PyObject *bytes, PyObje
 extern PyObject *BYTES_TRANSLATE3(PyThreadState *tstate, PyObject *bytes, PyObject *table, PyObject *delete_value);
 extern PyObject *BYTES_UPPER(PyThreadState *tstate, PyObject *bytes);
 extern PyObject *BYTES_ZFILL(PyThreadState *tstate, PyObject *bytes, PyObject *width);
+#endif
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

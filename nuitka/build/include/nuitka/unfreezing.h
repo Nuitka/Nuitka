@@ -5,10 +5,8 @@
 #define __NUITKA_UNFREEZING_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
-
-#include <stdbool.h>
 
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */

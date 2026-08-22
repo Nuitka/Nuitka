@@ -10,9 +10,9 @@
 #include "nuitka/prelude.h"
 #endif
 
-// #include "richcomparisons.h"
+#include "nuitka/helper/long_helpers.h"
 
-static PyObject *Nuitka_LongFromCLong(long ival);
+// #include "richcomparisons.h"
 
 #ifdef Py_GIL_DISABLED
 typedef struct {

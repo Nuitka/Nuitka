@@ -13,6 +13,9 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 
@@ -270,13 +273,6 @@ static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
     return result;
 #endif
 }
-
-static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
-                                          struct Nuitka_ExceptionPreservationItem *exception_state);
-#if PYTHON_VERSION >= 0x350
-static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine, bool closing,
-                                          struct Nuitka_ExceptionPreservationItem *exception_state);
-#endif
 
 static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObject *value,
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
@@ -1074,14 +1070,6 @@ failed_throw:
 
 #if PYTHON_VERSION >= 0x300
 
-static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
-#if PYTHON_VERSION >= 0x350
-static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine);
-#if PYTHON_VERSION >= 0x360
-static bool _Nuitka_Asyncgen_close(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen);
-#endif
-#endif
-
 // Note: This is also used for coroutines and asyncgen
 static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
@@ -1155,13 +1143,6 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 
     return true;
 }
-#endif
-
-#if PYTHON_VERSION >= 0x360
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
-struct Nuitka_AsyncgenAsendObject;
-static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
-                                              struct Nuitka_ExceptionPreservationItem *exception_state);
 #endif
 
 static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
@@ -1431,24 +1412,6 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 }
 
 #if PYTHON_VERSION >= 0x300
-
-// Need to integrate with garbage collector to undo finalization.
-#if PYTHON_VERSION >= 0x300
-
-#if PYTHON_VERSION < 0x380
-#define _PyGC_CLEAR_FINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
-#elif PYTHON_VERSION < 0x3d0
-#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
-#define _PyGC_CLEAR_FINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
-#endif
-#endif
-
-#if !defined(_PyGC_FINALIZED) && PYTHON_VERSION < 0x3d0
-#define _PyGC_FINALIZED(o) _PyGCHead_FINALIZED(_Py_AS_GC(o))
-#endif
-#if !defined(_PyType_IS_GC) && PYTHON_VERSION < 0x3d0
-#define _PyType_IS_GC(t) PyType_HasFeature((t), Py_TPFLAGS_HAVE_GC)
-#endif
 
 // Replacement for PyObject_CallFinalizer
 static void Nuitka_CallFinalizer(PyObject *self) {
@@ -1828,13 +1791,6 @@ PyTypeObject Nuitka_Generator_Type = {
     (destructor)Nuitka_Generator_tp_finalizer // tp_finalize
 #endif
 };
-
-#if PYTHON_VERSION >= 0x350
-static void _initCompiledCoroutineTypes();
-#endif
-#if PYTHON_VERSION >= 0x360
-static void _initCompiledAsyncgenTypes();
-#endif
 
 void _initCompiledGeneratorType(void) {
     Nuitka_PyType_Ready(&Nuitka_Generator_Type, &PyGen_Type, true, false, true, false, false);

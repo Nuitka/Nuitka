@@ -10,8 +10,8 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
 #include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #endif
 

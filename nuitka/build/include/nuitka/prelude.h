@@ -33,13 +33,7 @@
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
 #endif
 
-/* This is needed or else we can't create modules name "proc" or "func". For
- * Python3, the name collision can't happen, so we can limit it to Python2.
-   spell-checker: ignore initproc,initfunc
- */
-#define initproc python_init_proc
-#define initfunc python_init_func
-#define initstate python_initstate
+#include "nuitka/cpython_api_compat.h"
 
 // Python 3.11 headers give these warnings
 #if defined(_MSC_VER)
@@ -49,7 +43,6 @@
 #endif
 
 /* Include the relevant Python C-API header files. */
-#include <Python.h>
 #include <frameobject.h>
 #include <marshal.h>
 #include <methodobject.h>
@@ -389,18 +382,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #pragma warning(pop)
 #endif
 
-/* See above. */
-#if PYTHON_VERSION < 0x300
-#undef initproc
-#undef initfunc
-#undef initstate
-#endif
-
-/* Type bool */
-#ifndef __cplusplus
-#include <stdbool.h>
-#endif
-
 /* Include the C header files most often used. */
 #include <stdio.h>
 
@@ -486,7 +467,7 @@ typedef long Py_hash_t;
 #define NUITKA_LOCAL_MODULE static
 
 #if PYTHON_VERSION >= 0x3e0
-// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+// TODO: Does this code have to be in the header really?
 static inline void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
     if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
         _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);

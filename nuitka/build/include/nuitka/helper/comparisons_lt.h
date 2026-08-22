@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationComparison.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_COMPARISONS_LT_H__
+#define __NUITKA_COMPARISONS_LT_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 #ifdef __IDE_ONLY__
@@ -233,6 +236,8 @@ extern PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double 
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern bool RICH_COMPARE_LT_CBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

@@ -6,6 +6,10 @@
  * very inconsistent.
  */
 
+#if defined(__IDE_ONLY__)
+#include "nuitka/prelude.h"
+#endif
+
 #if PYTHON_VERSION < 0x300
 #include <stddef.h>
 

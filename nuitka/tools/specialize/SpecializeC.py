@@ -543,14 +543,25 @@ def emitGenerationWarning(emit, template_name):
         % template_name
     )
 
+    emit("#pragma once")
+
 
 def emitIDE(emit):
     emit("""
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 """)
+
+
+def emitHeaderGuard(emit_h, filename_h):
+    guard_name = "__NUITKA_%s_H__" % os.path.basename(filename_h)[
+        : -len(".h")
+    ].upper().replace("-", "_")
+
+    emit_h("#ifndef %s" % guard_name)
+    emit_h("#define %s" % guard_name)
 
 
 def _getSpecializedComparisonOperations(dual):
@@ -588,6 +599,8 @@ def makeHelpersComparisonOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
@@ -607,6 +620,8 @@ def makeHelpersComparisonOperation(operand, op_code):
                 emit_c,
                 emit,
             )
+
+            emit_h("#endif")
 
 
 def makeHelpersComparisonDualOperation(operand, op_code):
@@ -640,6 +655,8 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
@@ -660,6 +677,8 @@ def makeHelpersComparisonDualOperation(operand, op_code):
                 emit_c,
                 emit,
             )
+
+            emit_h("#endif")
 
 
 def _getSpecializedBinaryOperations(op_code, dual):
@@ -704,6 +723,8 @@ def makeHelpersBinaryOperation(operator, op_code):
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
@@ -724,6 +745,8 @@ def makeHelpersBinaryOperation(operator, op_code):
                 emit_c=emit_c,
                 emit=emit,
             )
+
+            emit_h("#endif")
 
 
 def makeHelpersInplaceOperation(operator, op_code):
@@ -757,12 +780,22 @@ def makeHelpersInplaceOperation(operator, op_code):
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
             if os.path.exists(filename_utils):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            # The in-place add and sub operations use the long digit helpers
+            # declared in this header and implemented by the binary add code.
+            # For the real build, that file is included before these.
+            if op_code in ("ADD", "SUB"):
+                emit_c("#ifdef __IDE_ONLY__")
+                emit_c('#include "nuitka/helper/long_helpers.h"')
+                emit_c("#endif")
 
             makeHelperOperations(
                 template=template,
@@ -774,6 +807,8 @@ def makeHelpersInplaceOperation(operator, op_code):
                 emit_c=emit_c,
                 emit=emit,
             )
+
+            emit_h("#endif")
 
 
 def makeHelpersBinaryDualOperation(operand, op_code):
@@ -811,6 +846,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
@@ -832,6 +869,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
                 emit_c=emit_c,
                 emit=emit,
             )
+
+            emit_h("#endif")
 
 
 def makeHelpersImportHard():
@@ -859,6 +898,8 @@ def makeHelpersImportHard():
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             for module_name in sorted(hard_modules):
@@ -869,6 +910,8 @@ def makeHelpersImportHard():
                     emit_c,
                     emit,
                 )
+
+            emit_h("#endif")
 
 
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
@@ -941,6 +984,8 @@ def makeHelperCalls():
             )
 
             emitGenerationWarning(emit, template.name)
+
+            emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
@@ -1023,6 +1068,8 @@ def makeHelperCalls():
 #endif
 """)
 
+            emit_h("#endif")
+
 
 def makeHelperLists():
     filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
@@ -1052,6 +1099,8 @@ def makeHelperLists():
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             for args_count in range(1, make_list_constant_direct_threshold):
@@ -1071,6 +1120,8 @@ def makeHelperLists():
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
+
+            emit_h("#endif")
 
 
 def _makeHelperBuiltinTypeAttributes(
@@ -1379,6 +1430,8 @@ def makeHelperBuiltinTypeMethods():
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             # TODO: Isn't this creating more than necessary, we don't use all of them, e.g.
@@ -1490,6 +1543,8 @@ def makeHelperBuiltinTypeMethods():
                         emit_h(getTemplateCodeDeclaredFunction(code))
                 if type_desc.python_requirement:
                     emit("#endif")
+
+            emit_h("#endif")
 
 
 def _getOffsetAssertionCode(key):

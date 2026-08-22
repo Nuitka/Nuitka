@@ -5,9 +5,9 @@
 #define __NUITKA_HELPER_ITERATORS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
 #include "nuitka/allocator.h"
 #include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
 #endif

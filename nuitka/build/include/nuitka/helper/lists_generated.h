@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateMakeListSmall.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_LISTS_GENERATED_H__
+#define __NUITKA_LISTS_GENERATED_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0);
@@ -19,6 +22,7 @@ extern PyObject *MAKE_LIST9(PyThreadState *tstate, PyObject *list);
 extern PyObject *MAKE_LIST10(PyThreadState *tstate, PyObject *list);
 extern PyObject *MAKE_LIST11(PyThreadState *tstate, PyObject *list);
 extern PyObject *MAKE_LIST12(PyThreadState *tstate, PyObject *list);
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

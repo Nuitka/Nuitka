@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinaryDual.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_OPERATIONS_BINARY_DUAL_SUB_H__
+#define __NUITKA_OPERATIONS_BINARY_DUAL_SUB_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 #ifdef __IDE_ONLY__
@@ -25,6 +28,8 @@ extern bool BINARY_OPERATION_SUB_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitk
 /* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "NILONG" to Nuitka
  * int/long/C long value. */
 extern bool BINARY_OPERATION_SUB_NILONG_DIGIT_NILONG(nuitka_ilong *result, long operand1, nuitka_ilong *operand2);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

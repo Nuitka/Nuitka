@@ -4,19 +4,19 @@
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
 
-/* This file is included from another C file, help IDEs to still parse it on its own. */
-#ifdef __IDE_ONLY__
-#include "Python.h"
-#include "nuitka/defines.h"
-#include "nuitka/exceptions.h"
-#endif
-
 // Compiled generator function type.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal generator objects do or even better.
 
-// Status of the generator object.
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/cpython_api_compat.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
+// Status of the generator/coroutine/asyncgen object.
 #ifdef __cplusplus
 enum Generator_Status {
     status_Unused,  // Not used so far

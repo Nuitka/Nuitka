@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template CodeTemplateCallsPositional.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_CALLING_GENERATED_H__
+#define __NUITKA_CALLING_GENERATED_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
@@ -115,6 +118,7 @@ extern PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source,
                                         PyObject *const *args);
 extern PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
                                          PyObject *const *args);
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

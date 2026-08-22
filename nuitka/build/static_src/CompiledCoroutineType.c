@@ -12,8 +12,10 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 
@@ -375,8 +377,6 @@ static PyObject *Nuitka_YieldFromCoroutineInitial(PyThreadState *tstate, struct 
     return result;
 }
 
-static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value);
-
 // This function is called when sending a value or exception to be handled in the coroutine
 // Note:
 //   Exception arguments are passed for ownership and must be released before returning. The
@@ -690,13 +690,6 @@ static PyObject *_Nuitka_Coroutine_close_api(struct Nuitka_CoroutineObject *coro
 static PyObject *Nuitka_Coroutine_close(PyObject *coroutine_obj, PyObject *args) {
     return _Nuitka_Coroutine_close_api((struct Nuitka_CoroutineObject *)coroutine_obj, args);
 }
-
-#if PYTHON_VERSION >= 0x360
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
-struct Nuitka_AsyncgenAsendObject;
-static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
-                                              struct Nuitka_ExceptionPreservationItem *exception_state);
-#endif
 
 static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
                                           struct Nuitka_ExceptionPreservationItem *exception_state);

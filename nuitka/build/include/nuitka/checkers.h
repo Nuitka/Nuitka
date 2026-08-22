@@ -5,7 +5,7 @@
 #define __NUITKA_CHECKERS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #endif
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))

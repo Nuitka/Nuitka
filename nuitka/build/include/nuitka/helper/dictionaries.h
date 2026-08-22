@@ -5,10 +5,10 @@
 #define __NUITKA_DICTIONARIES_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
 #include "nuitka/allocator.h"
 #include "nuitka/checkers.h"
 #include "nuitka/compiled_module.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/string_functions.h"
 #endif
