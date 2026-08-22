@@ -20,8 +20,11 @@ from .FileOperations import (
     addFileExecutablePermission,
     copyFile,
     getFileList,
+    getNormalizedPathJoin,
     makeContainingPath,
+    putBinaryFileContents,
     withMadeWritableFileMode,
+    withTemporaryDirectory,
 )
 from .Importing import importFromInlineCopy
 from .Utils import (
@@ -272,6 +275,23 @@ _dump_usage = "The 'dump' is used to analyse dependencies on COFF using systems 
 _ar_usage = "The 'ar' is used to list archive members on COFF using systems."
 
 
+def _getCoffDumpOutput2(dump_filename):
+    """Execute 'dump -H -X 32_64' on a single file.
+
+    Args:
+        dump_filename: Path to file to dump.
+
+    Returns:
+        Decoded stdout of dump command.
+    """
+    return executeToolChecked(
+        logger=postprocessing_logger,
+        command=("dump", "-H", "-X", "32_64", dump_filename),
+        absence_message=_dump_usage,
+        decoding=True,
+    )
+
+
 def _getCoffDumpOutput(filename):
     """Get 'dump -H' output for a COFF file, avoiding .imp members.
 
@@ -279,7 +299,12 @@ def _getCoffDumpOutput(filename):
     .imp import files. 'dump -H -X 32_64 archive.a' probes every member
     and fails with 0654-105 for the .imp file, even though stdout for the
     .o members is valid.  Instead list members with 'ar -X 32_64 t' and
-    dump each object member individually with 'dump -H -X 32_64 -n member'.
+    dump each object member individually.
+
+    Neither 'dump -n member archive.a' nor 'dump archive.a[member]'
+    is portable on AIX 7.3 (both give 0654-106 Cannot open), so we
+    extract each .o member with 'ar -X 32_64 p' to a temp file and
+    dump that file.
     """
     if filename.endswith(".a"):
         ar_output = executeToolChecked(
@@ -294,24 +319,30 @@ def _getCoffDumpOutput(filename):
         obj_members = [m for m in members if not m.endswith(".imp")]
 
         if obj_members:
-            parts = []
-            for member in obj_members:
-                out = executeToolChecked(
-                    logger=postprocessing_logger,
-                    command=("dump", "-H", "-X", "32_64", "-n", member, filename),
-                    absence_message=_dump_usage,
-                    decoding=True,
-                )
-                parts.append(out)
-            if parts:
-                return "\n".join(parts)
+            with withTemporaryDirectory(
+                logger=postprocessing_logger, ignore_errors=True
+            ) as tmpdir:
+                parts = []
+                for member in obj_members:
+                    member_data = executeToolChecked(
+                        logger=postprocessing_logger,
+                        command=("ar", "-X", "32_64", "p", filename, member),
+                        absence_message=_ar_usage,
+                    )
 
-    return executeToolChecked(
-        logger=postprocessing_logger,
-        command=("dump", "-H", "-X", "32_64", filename),
-        absence_message=_dump_usage,
-        decoding=True,
-    )
+                    tmp_path = getNormalizedPathJoin(tmpdir, member)
+                    putBinaryFileContents(tmp_path, member_data)
+
+                    out = _getCoffDumpOutput2(tmp_path)
+
+                    if "Loader section is not available" in out:
+                        continue
+
+                    parts.append(out)
+                if parts:
+                    return "\n".join(parts)
+
+    return _getCoffDumpOutput2(filename)
 
 
 def _parseCoffDumpImportFileStrings(output):
@@ -374,7 +405,9 @@ def _parseCoffDumpImportFileStrings(output):
             base = line[base_start:member_start].strip()
             member = line[member_start:].strip()
 
-            if not base:
+            if base in ("", ".."):
+                # The '..' base is the end-of-list sentinel in
+                # 'dump -H' output, not a real dependency.
                 continue
 
             path_col = line[path_start:base_start].strip()
