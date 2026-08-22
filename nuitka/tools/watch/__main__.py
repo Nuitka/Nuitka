@@ -175,6 +175,9 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     if jobs is not None:
         extra_options.append("--jobs=%s" % jobs)
 
+    if installed_python.getHexVersion() >= 0x3E0:
+        extra_options.append("--devel-no-bytecode-to-compiled-fallback")
+
     nuitka_extra_options = os.getenv("NUITKA_EXTRA_OPTIONS")
 
     if nuitka_extra_options:
