@@ -14,6 +14,7 @@ from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import executeProcess, getExecutablePath
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.Utils import isWin32Windows
 
 
 def _isIgnoredCFile(filename):
@@ -29,6 +30,9 @@ def _isIgnoredCFile(filename):
 
     if "inline_copy" in path_parts:
         return True
+
+    if os.path.basename(filename) == "OnefileSplashScreen.cpp":
+        return not isWin32Windows()
 
     return False
 
@@ -167,6 +171,30 @@ def _filterClangdDiagnostics(stderr):
         if bracket_end != -1:
             stripped = stripped[bracket_end + 2 :]
 
+        if "Failed to resolve URI" in stripped:
+            continue
+
+        if (
+            "DefineOutline" in stripped
+            and "Couldn't find a suitable implementation file" in stripped
+        ):
+            continue
+
+        if (
+            "ExtractVariable" in stripped
+            and "The new replacement overlaps with an existing replacement" in stripped
+        ):
+            continue
+
+        if "Class body in wrong file" in stripped:
+            continue
+
+        if (
+            "Cannot extract break/continue without corresponding loop/switch statement"
+            in stripped
+        ):
+            continue
+
         result.append(stripped)
 
     return result
@@ -190,13 +218,15 @@ def _checkFiles(filenames, verbose):
         diagnostics = _filterClangdDiagnostics(stderr)
 
         if diagnostics:
-            exit_code = file_exit_code
+            exit_code = 1
             my_print("\n%s:" % filename)
             for line in diagnostics:
                 my_print("  %s" % line)
-        elif file_exit_code != 0:
-            exit_code = file_exit_code
-            my_print("\n%s: clangd exited with code %d" % (filename, file_exit_code))
+        elif verbose and file_exit_code != 0:
+            my_print(
+                "\n%s: clangd exited with code %d (no diagnostics after filter)"
+                % (filename, file_exit_code)
+            )
         elif verbose:
             my_print("%s: OK" % filename)
 

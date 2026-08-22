@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_IMPORTING_H__
 #define __NUITKA_IMPORTING_H__
 
@@ -50,6 +51,16 @@ extern PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, 
 
 #if PYTHON_VERSION >= 0x300
 extern PyObject *getImportLibBootstrapModule(void);
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+static inline struct _import_state *Nuitka_PyInterpreterState_GetImportsState(PyInterpreterState *interp) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _import_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(&interp->imports);
+#else
+    return &interp->imports;
+#endif
+}
 #endif
 
 // Replacement for "PyImport_GetModuleDict"

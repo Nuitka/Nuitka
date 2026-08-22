@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_CHECKERS_H__
 #define __NUITKA_CHECKERS_H__
 

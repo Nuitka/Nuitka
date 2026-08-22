@@ -4,9 +4,13 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "nuitka/helper/boolean.h"
+#include "nuitka/helper/ints.h"
+#endif
 /* C helpers for type specialized "<=" (LE) comparisons */
 
 /* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.

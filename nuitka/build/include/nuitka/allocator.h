@@ -1,16 +1,302 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#define Py_BUILD_CORE
 #include "Python.h"
 #include "internal/pycore_dict.h"
 #include "internal/pycore_object.h"
 #include "nuitka/defines.h"
 #include <stdbool.h>
+#endif
+
+// For pre-3.13, lets allow ourselves to use them as well, these do play
+// nice with no-GIL Python.
+#if PYTHON_VERSION < 0x3d0
+#define FT_ATOMIC_LOAD_PTR(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_SSIZE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_PTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_UINTPTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_PTR_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT8(value) value
+#define FT_ATOMIC_STORE_UINT8(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_UINT8_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT16_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT32_RELAXED(value) value
+#define FT_ATOMIC_LOAD_ULONG_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_PTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINTPTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_SSIZE_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT8_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT16_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT32_RELAXED(value, new_value) value = new_value
+
+#define Py_BEGIN_CRITICAL_SECTION(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2(m1, m2) {
+#define Py_BEGIN_CRITICAL_SECTION_MUT(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2_MUT(m1, m2) {
+#define Py_END_CRITICAL_SECTION() }
+
+#define Py_BEGIN_CRITICAL_SECTION_SEQUENCE_FAST(original) {
+#define Py_END_CRITICAL_SECTION_SEQUENCE_FAST() }
+#define _Py_CRITICAL_SECTION_ASSERT_MUTEX_LOCKED(mutex)
+#define _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op)
+
+#endif
+
+/* Due to ABI issues, it seems that on Windows the symbols used by
+ * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
+ * function that does it instead.
+ *
+ * The Python 3.7.0 release on at Linux doesn't work this way either, was
+ * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
+ * become runtime incompatible.
+ *
+ */
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+typedef struct {
+    PyObject *trash_delete_later;
+    int trash_delete_nesting;
+    int enabled;
+    int debug;
+    struct gc_generation young;
+    struct gc_generation old[2];
+    struct gc_generation permanent_generation;
+    struct gc_generation_stats generation_stats[NUM_GENERATIONS];
+    int collecting;
+    PyObject *garbage;
+    PyObject *callbacks;
+    Py_ssize_t heap_size;
+    Py_ssize_t work_to_do;
+    int visited_space;
+    int phase;
+} Nuitka_GCStateIncremental;
+
+typedef struct {
+    PyObject *trash_delete_later;
+    int trash_delete_nesting;
+    int enabled;
+    int debug;
+    struct gc_generation generations[NUM_GENERATIONS];
+    struct gc_generation permanent_generation;
+    struct gc_generation_stats generation_stats[NUM_GENERATIONS];
+    int collecting;
+    PyObject *garbage;
+    PyObject *callbacks;
+    Py_ssize_t heap_size;
+    Py_ssize_t dummy1;
+    int dummy2;
+    int dummy3;
+    Py_ssize_t long_lived_total;
+    Py_ssize_t long_lived_pending;
+    PyGC_Head *generation0;
+} Nuitka_GCStateGenerational;
+
+static inline Nuitka_GCStateIncremental *Nuitka_GC_GetIncrementalState(struct _gc_runtime_state *gcstate) {
+    return (Nuitka_GCStateIncremental *)gcstate;
+}
+
+static inline Nuitka_GCStateGenerational *Nuitka_GC_GetGenerationalState(struct _gc_runtime_state *gcstate) {
+    return (Nuitka_GCStateGenerational *)gcstate;
+}
+
+static inline PyGC_Head *Nuitka_GCHead_NEXT(PyGC_Head *gc) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        return (PyGC_Head *)gc->_gc_next;
+    } else {
+        uintptr_t next = gc->_gc_next & _PyGC_PREV_MASK;
+        return (PyGC_Head *)next;
+    }
+}
+
+static inline void Nuitka_GCHead_SET_NEXT(PyGC_Head *gc, PyGC_Head *next) {
+    if (Nuitka_GC_UsesGeneration0List()) {
+        gc->_gc_next = (uintptr_t)next;
+    } else {
+        uintptr_t unext = (uintptr_t)next;
+        assert((unext & ~_PyGC_PREV_MASK) == 0);
+        gc->_gc_next = (gc->_gc_next & ~_PyGC_PREV_MASK) | unext;
+    }
+}
+
+#define _PyGCHead_NEXT Nuitka_GCHead_NEXT
+#define _PyGCHead_SET_NEXT Nuitka_GCHead_SET_NEXT
+
+static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
+    static int owns_accounting = -1;
+
+    if (owns_accounting == -1) {
+        int runtime_version = Nuitka_GetRuntimeVersion();
+        owns_accounting = runtime_version >= 0x3e1 && runtime_version < 0x3e5;
+    }
+
+    return owns_accounting != 0;
+}
+
+#undef Nuitka_GC_Track
+static inline void Nuitka_GC_Track(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+    struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+
+    if (Nuitka_GC_UsesGeneration0List()) {
+        Nuitka_GCStateGenerational *gcstate_generational = Nuitka_GC_GetGenerationalState(gcstate);
+        PyGC_Head *generation0 = gcstate_generational->generation0;
+        PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+
+        _PyGCHead_SET_NEXT(last, gc);
+        _PyGCHead_SET_PREV(gc, last);
+        _PyGCHead_SET_NEXT(gc, generation0);
+        generation0->_gc_prev = (uintptr_t)gc;
+
+        gcstate_generational->heap_size++;
+    } else {
+        Nuitka_GCStateIncremental *gcstate_incremental = Nuitka_GC_GetIncrementalState(gcstate);
+        PyGC_Head *generation0 = &gcstate_incremental->young.head;
+        PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+
+        _PyGCHead_SET_NEXT(last, gc);
+        _PyGCHead_SET_PREV(gc, last);
+
+        {
+            uintptr_t not_visited = 1 ^ gcstate_incremental->visited_space;
+            gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+        }
+
+        generation0->_gc_prev = (uintptr_t)gc;
+
+        if (Nuitka_GC_TrackOwnsAccounting()) {
+            gcstate_incremental->young.count++;
+            gcstate_incremental->heap_size++;
+
+            if (gcstate_incremental->young.count > gcstate_incremental->young.threshold) {
+                if (gcstate_incremental->enabled && gcstate_incremental->young.threshold &&
+                    !_Py_atomic_load_int_relaxed(&gcstate_incremental->collecting) &&
+                    !_PyErr_Occurred(_PyThreadState_GET())) {
+                    Nuitka_Py_ScheduleGC(_PyThreadState_GET());
+                }
+            }
+        }
+    }
+}
+
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+#undef Nuitka_GC_UnTrack
+static inline void Nuitka_GC_UnTrack(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+    PyGC_Head *prev = _PyGCHead_PREV(gc);
+    PyGC_Head *next = _PyGCHead_NEXT(gc);
+
+    _PyGCHead_SET_NEXT(prev, next);
+    _PyGCHead_SET_PREV(next, prev);
+    gc->_gc_next = 0;
+    gc->_gc_prev &= _PyGC_PREV_MASK_FINALIZED;
+
+    if (Nuitka_GC_UsesGeneration0List()) {
+        struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+        gcstate->heap_size--;
+    } else if (Nuitka_GC_TrackOwnsAccounting()) {
+        Nuitka_GCStateIncremental *gcstate_incremental = Nuitka_GC_GetIncrementalState(&_PyInterpreterState_GET()->gc);
+
+        if (gcstate_incremental->young.count > 0) {
+            gcstate_incremental->young.count--;
+        }
+
+        gcstate_incremental->heap_size--;
+    }
+}
+
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif (PYTHON_VERSION >= 0x3e0 && !defined(Py_GIL_DISABLED)) && (PYTHON_VERSION < 0x3e5)
+
+static inline bool Nuitka_GC_TrackOwnsAccounting(void) {
+#if _NUITKA_MODULE_MODE
+    static int owns_accounting = -1;
+
+    if (owns_accounting == -1) {
+        owns_accounting = Nuitka_GetRuntimeVersion() >= 0x3e1;
+    }
+
+    return owns_accounting != 0;
+#else
+    return PYTHON_VERSION >= 0x3e1;
+#endif
+}
+
+#undef Nuitka_GC_Track
+static inline void Nuitka_GC_Track(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+
+    struct _gc_runtime_state *gcstate = &_PyInterpreterState_GET()->gc;
+    PyGC_Head *generation0 = &gcstate->young.head;
+    PyGC_Head *last = (PyGC_Head *)(generation0->_gc_prev);
+    _PyGCHead_SET_NEXT(last, gc);
+    _PyGCHead_SET_PREV(gc, last);
+    {
+        uintptr_t not_visited = 1 ^ gcstate->visited_space;
+        gc->_gc_next = ((uintptr_t)generation0) | not_visited;
+    }
+    generation0->_gc_prev = (uintptr_t)gc;
+
+    if (Nuitka_GC_TrackOwnsAccounting()) {
+        gcstate->young.count++;
+        gcstate->heap_size++;
+
+        if (gcstate->young.count > gcstate->young.threshold) {
+            if (gcstate->enabled && gcstate->young.threshold && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+                !_PyErr_Occurred(_PyThreadState_GET())) {
+                Nuitka_Py_ScheduleGC(_PyThreadState_GET());
+            }
+        }
+    }
+}
+
+// TODO: Does this code have to be in the header really? spell-checker: ignore gcstate
+#undef Nuitka_GC_UnTrack
+static inline void Nuitka_GC_UnTrack(void *raw_op) {
+    PyObject *op = (PyObject *)raw_op;
+    PyGC_Head *gc = _Py_AS_GC(op);
+    PyGC_Head *prev = _PyGCHead_PREV(gc);
+    PyGC_Head *next = _PyGCHead_NEXT(gc);
+    _PyGCHead_SET_NEXT(prev, next);
+    _PyGCHead_SET_PREV(next, prev);
+    gc->_gc_next = 0;
+    gc->_gc_prev &= _PyGC_PREV_MASK_FINALIZED;
+}
+
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif PYTHON_VERSION == 0x370
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#undef PyThreadState_GET
+#define PyThreadState_GET PyThreadState_Get
+#else
+#define Nuitka_GC_Track _PyObject_GC_TRACK
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
 // For Python2.6, these assertions cannot be done easily, just disable them with dummy code.

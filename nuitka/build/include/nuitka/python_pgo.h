@@ -1,12 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_PYTHON_PGO_H__
 #define __NUITKA_PYTHON_PGO_H__
 
 // In Visual Code, evaluate the code for PGO so we see errors of it sooner.
 #ifdef __IDE_ONLY__
 #define _NUITKA_PGO_PYTHON 1
-#include "nuitka/prelude.h"
+#include "Python.h"
 #endif
 
 #if _NUITKA_PGO_PYTHON

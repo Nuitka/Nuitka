@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_COMPILED_ASYNCGEN_H__
 #define __NUITKA_COMPILED_ASYNCGEN_H__
 
@@ -12,7 +13,11 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
+#include "nuitka/compiled_frame.h"
+#include "nuitka/compiled_generator.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
 #endif
 
 // The Nuitka_AsyncgenObject is the storage associated with a compiled

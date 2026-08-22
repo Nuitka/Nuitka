@@ -4,7 +4,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
 #endif
 
 // We are switching some warnings off for this code, as they are triggered

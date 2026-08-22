@@ -4,6 +4,12 @@
 #ifndef NUITKA_PYTHON_INTERNALS_ACCESS_H
 #define NUITKA_PYTHON_INTERNALS_ACCESS_H
 
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#include "internal/pycore_runtime.h"
+#include "nuitka/defines.h"
+#endif
+
 #undef _PyRuntime
 
 // spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld,Qsbr,Reftracer

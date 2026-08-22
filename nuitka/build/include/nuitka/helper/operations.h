@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
@@ -7,6 +8,8 @@
 #include "Python.h"
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
+#include "nuitka/helper/boolean.h"
+#include "nuitka/helper/ints.h"
 #endif
 
 #if PYTHON_VERSION >= 0x300

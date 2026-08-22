@@ -10,7 +10,12 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "Python.h"
+#include "internal/pycore_pyerrors.h"
+#include "nuitka/allocator.h"
+#include "nuitka/calling.h"
+#include "nuitka/checkers.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/string_functions.h"
 #endif
 
 void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {

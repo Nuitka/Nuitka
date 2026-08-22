@@ -1,13 +1,16 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
 
 #ifdef __IDE_ONLY__
 #include "Python.h"
+#include "nuitka/allocator.h"
 #include "nuitka/checkers.h"
 #include "nuitka/compiled_module.h"
 #include "nuitka/defines.h"
+#include "nuitka/string_functions.h"
 #endif
 
 static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
@@ -477,7 +480,7 @@ extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
 extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
 
-// TODO: It's probably unchanged across all Python versions 2.6-3.14
+// It's probably unchanged across all Python versions 2.6-3.15
 #if PYTHON_VERSION >= 0x3e0
 typedef struct {
     PyObject_HEAD PyDictObject *di_dict;

@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
@@ -8,6 +9,7 @@
 #ifdef __IDE_ONLY__
 #include "Python.h"
 #include "nuitka/defines.h"
+#include "nuitka/string_functions.h"
 #include "stdbool.h"
 #endif
 

@@ -1,12 +1,17 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_HELPER_SUBSCRIPTS_H__
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
 #ifdef __IDE_ONLY__
 #include "Python.h"
+#include "nuitka/calling.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/attributes.h"
+#include "nuitka/helper/indexes.h"
+#include "nuitka/helper/sequences.h"
 #endif
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);

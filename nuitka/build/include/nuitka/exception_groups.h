@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_EXCEPTION_GROUPS_H__
 #define __NUITKA_EXCEPTION_GROUPS_H__
 
@@ -8,8 +9,13 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "Python.h"
+#include "internal/pycore_pyerrors.h"
+#include "nuitka/allocator.h"
+#include "nuitka/calling.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
+#include "nuitka/helper/tuples.h"
+extern PyObject *const_str_plain_split;
 #endif
 
 #if PYTHON_VERSION >= 0x3b0

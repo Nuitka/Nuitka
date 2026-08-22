@@ -1,7 +1,12 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_HELPER_ATTRIBUTES_H__
 #define __NUITKA_HELPER_ATTRIBUTES_H__
+
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 
 // Attribute lookup except special slots below.
 extern PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name);

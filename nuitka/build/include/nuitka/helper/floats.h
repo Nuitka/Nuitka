@@ -1,7 +1,12 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_HELPER_FLOATS_H__
 #define __NUITKA_HELPER_FLOATS_H__
+
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 
 #if PYTHON_VERSION >= 0x3a0
 #define NUITKA_FLOAT_HAS_FREELIST 1

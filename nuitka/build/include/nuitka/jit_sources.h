@@ -1,7 +1,12 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_JIT_SOURCES_H__
 #define __NUITKA_JIT_SOURCES_H__
+
+#ifdef __IDE_ONLY__
+#include "Python.h"
+#endif
 
 // Helpers for making source available at run-time for JIT systems
 // outside of Nuitka that want it.

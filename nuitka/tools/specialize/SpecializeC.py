@@ -548,7 +548,7 @@ def emitIDE(emit):
     emit("""
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "Python.h"
 #endif
 """)
 
@@ -589,6 +589,9 @@ def makeHelpersComparisonOperation(operand, op_code):
             emitGenerationWarning(emit, template.name)
 
             emitIDE(emit)
+            emit_h("#ifdef __IDE_ONLY__")
+            emit_h('#include "nuitka/helper/boolean.h"')
+            emit_h("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -638,6 +641,10 @@ def makeHelpersComparisonDualOperation(operand, op_code):
             emitGenerationWarning(emit, template.name)
 
             emitIDE(emit)
+            emit_h("#ifdef __IDE_ONLY__")
+            emit_h('#include "nuitka/helper/boolean.h"')
+            emit_h('#include "nuitka/helper/ints.h"')
+            emit_h("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -698,6 +705,9 @@ def makeHelpersBinaryOperation(operator, op_code):
             emitGenerationWarning(emit, template.name)
 
             emitIDE(emit)
+            emit_h("#ifdef __IDE_ONLY__")
+            emit_h('#include "nuitka/helper/boolean.h"')
+            emit_h("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -802,6 +812,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
             emitGenerationWarning(emit, template.name)
 
             emitIDE(emit)
+            emit_h("#ifdef __IDE_ONLY__")
+            emit_h('#include "nuitka/helper/boolean.h"')
+            emit_h('#include "nuitka/helper/ints.h"')
+            emit_h("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
