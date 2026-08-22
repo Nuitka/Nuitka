@@ -177,6 +177,70 @@ try:
 except ValueError:
     print("OK.")
 
+
+def conditionalExpressionAppend(score):
+    hits = []
+    misses = []
+    for item in (("kept", 3), ("dropped", 7)):
+        if item[1] <= 3:
+            (hits if score == item[1] else misses).append(item[0])
+
+    if hits:
+        print("Conditional expression append result:", hits)
+    else:
+        print("Conditional expression append result: empty")
+
+
+conditionalExpressionAppend(3)
+
+
+def conditionalExpressionDictSet(score):
+    hits = {}
+    misses = {}
+    for item in (("kept", 3), ("dropped", 7)):
+        if item[1] <= 3:
+            (hits if score == item[1] else misses).setdefault(item[0], item[1])
+
+    if hits:
+        print("Conditional expression dict set result:", sorted(hits.items()))
+    else:
+        print("Conditional expression dict set result: empty")
+
+
+conditionalExpressionDictSet(3)
+
+
+def conditionalExpressionDictSubscript(score):
+    hits = {}
+    misses = {}
+    for item in (("kept", 3), ("dropped", 7)):
+        if item[1] <= 3:
+            (hits if score == item[1] else misses)[item[0]] = item[1]
+
+    if hits:
+        print("Conditional expression dict subscript result:", sorted(hits.items()))
+    else:
+        print("Conditional expression dict subscript result: empty")
+
+
+conditionalExpressionDictSubscript(3)
+
+
+def conditionalExpressionDictDel(score):
+    hits = {"kept": 3}
+    misses = {}
+    for item in (("kept", 3),):
+        if item[1] <= 3 and score == item[1]:
+            del (hits if score == item[1] else misses)[item[0]]
+
+    if "kept" not in hits:
+        print("Conditional expression dict del result: removed")
+    else:
+        print("Conditional expression dict del result: kept")
+
+
+conditionalExpressionDictDel(3)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
