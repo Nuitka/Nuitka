@@ -34,7 +34,7 @@ virtualenv ; python_version >= '3.5'
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'
 
-# Onefile compression
+# Onefile compression - on Python 3.14+ the stdlib 'compression.zstd' is used instead of 'zstandard'
 zstandard >= 0.15; python_version >= '3.5' and python_version < '3.14'
 
 # Plugins need that

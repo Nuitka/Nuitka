@@ -411,6 +411,8 @@ onefile_requires = []
 icon_conversion_requires = ["imageio"]
 package_requires = []
 
+# On Python 3.14+ the stdlib 'compression.zstd' is used instead
+# of 'zstandard'
 if (3, 7) <= sys.version_info < (3, 14):
     onefile_requires.append("zstandard >= 0.15")
 
