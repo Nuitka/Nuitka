@@ -1108,7 +1108,10 @@ def withTemporaryFilename(prefix="", suffix="", temp_path=None):
         temp_file.close()
         deleteFile(filename, must_exist=True)
 
-        yield filename
+        try:
+            yield filename
+        finally:
+            deleteFile(filename, must_exist=False)
 
 
 def getFileContentByLine(filename, mode="r", encoding=None, errors=None):
