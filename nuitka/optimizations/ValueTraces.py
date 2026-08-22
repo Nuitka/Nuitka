@@ -27,6 +27,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_list,
     tshape_str,
     tshape_tuple,
+    tshape_type,
     tshape_unicode,
 )
 from nuitka.nodes.shapes.ControlFlowDescriptions import (
@@ -216,6 +217,18 @@ class ValueTraceBase(object):
 
     @staticmethod
     def hasShapeUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeStrOrUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeBytesExact():
+        return False
+
+    @staticmethod
+    def hasShapeTypeExact():
         return False
 
     @staticmethod
@@ -805,6 +818,15 @@ class ValueTraceAssign(ValueTraceBase):
     def hasShapeUnicodeExact(self):
         return self.assign_node.subnode_source.hasShapeUnicodeExact()
 
+    def hasShapeStrOrUnicodeExact(self):
+        return self.assign_node.subnode_source.hasShapeStrOrUnicodeExact()
+
+    def hasShapeBytesExact(self):
+        return self.assign_node.subnode_source.hasShapeBytesExact()
+
+    def hasShapeTypeExact(self):
+        return self.assign_node.subnode_source.hasShapeTypeExact()
+
     def hasShapeBoolExact(self):
         return self.assign_node.subnode_source.hasShapeBoolExact()
 
@@ -1215,6 +1237,9 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def hasShapeBytesExact(self):
         return self.type_shapes == _only_bytes_shape
 
+    def hasShapeTypeExact(self):
+        return self.type_shapes == _only_type_shape
+
     def hasShapeBoolExact(self):
         return self.type_shapes == _only_bool_shape
 
@@ -1225,6 +1250,7 @@ _only_str_shape = frozenset((tshape_str,))
 _only_unicode_shape = frozenset((tshape_unicode,))
 _str_plus_unicode_shape = frozenset((tshape_unicode, tshape_str))
 _only_bytes_shape = frozenset((tshape_bytes,))
+_only_type_shape = frozenset((tshape_type,))
 _only_bool_shape = frozenset((tshape_bool,))
 
 

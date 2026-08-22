@@ -482,6 +482,9 @@ class TraceCollectionBase(object):
     def removeKnowledge(self, node):
         if node.isExpressionVariableRef():
             node.variable.removeKnowledge(self)
+        elif node.isExpressionConditional():
+            self.removeKnowledge(node.subnode_expression_yes)
+            self.removeKnowledge(node.subnode_expression_no)
 
     def onValueEscapeStr(self, node):
         # TODO: We can ignore these for now.

@@ -86,6 +86,54 @@ class ExpressionConditional(
             else:
                 return tshape_unknown
 
+    def hasShapeTypeExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeTypeExact()
+            and self.subnode_expression_no.hasShapeTypeExact()
+        )
+
+    def hasShapeListExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeListExact()
+            and self.subnode_expression_no.hasShapeListExact()
+        )
+
+    def hasShapeDictionaryExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeDictionaryExact()
+            and self.subnode_expression_no.hasShapeDictionaryExact()
+        )
+
+    def hasShapeStrExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeStrExact()
+            and self.subnode_expression_no.hasShapeStrExact()
+        )
+
+    def hasShapeUnicodeExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeUnicodeExact()
+            and self.subnode_expression_no.hasShapeUnicodeExact()
+        )
+
+    def hasShapeStrOrUnicodeExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeStrOrUnicodeExact()
+            and self.subnode_expression_no.hasShapeStrOrUnicodeExact()
+        )
+
+    def hasShapeBytesExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeBytesExact()
+            and self.subnode_expression_no.hasShapeBytesExact()
+        )
+
+    def hasShapeBoolExact(self):
+        return (
+            self.subnode_expression_yes.hasShapeBoolExact()
+            and self.subnode_expression_no.hasShapeBoolExact()
+        )
+
     def getBranches(self):
         return (self.subnode_expression_yes, self.subnode_expression_no)
 
