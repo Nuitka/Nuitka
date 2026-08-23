@@ -135,6 +135,7 @@ def _parsePythonVersionOutput(python_binary):
             "-c",
             """\
 import sys, os;\
+print(sys.version.split(" ")[0]);\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(\
 ("x86_64" if "AMD64" in sys.version else (\
@@ -153,16 +154,17 @@ print(hasattr(sys, "gettotalrefcount"))\
         version_output = version_output.decode("utf8")
 
     python_version_str = version_output.split("\n")[0].strip()
-    python_arch = version_output.split("\n")[1].strip()
-    python_executable = version_output.split("\n")[2].strip()
-    python_vendor = version_output.split("\n")[3].strip()
-    python_debug = version_output.split("\n")[4].strip()
+    python_version_numeric = version_output.split("\n")[1].strip()
+    python_arch = version_output.split("\n")[2].strip()
+    python_executable = version_output.split("\n")[3].strip()
+    python_vendor = version_output.split("\n")[4].strip()
+    python_debug = version_output.split("\n")[5].strip()
 
     assert type(python_version_str) is str, repr(python_version_str)
     assert type(python_arch) is str, repr(python_arch)
     assert type(python_executable) is str, repr(_python_executable)
 
-    python_version = tuple(int(d) for d in python_version_str.split("."))
+    python_version = tuple(int(d) for d in python_version_numeric.split("."))
     python_debug = python_debug == "True"
 
     return (
