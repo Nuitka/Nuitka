@@ -1281,6 +1281,7 @@ _stdlib_module_raises = {
     "_locale": False,
     "_lsprof": False,
     "_lzma": False,
+    "_math_integer": False,
     "_md5": False,
     "_multiprocessing": False,
     "_multibytecodec": False,
