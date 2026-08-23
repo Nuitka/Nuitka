@@ -1481,6 +1481,7 @@ PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
 #if PYTHON_VERSION >= 0x3f0
 PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 #endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
