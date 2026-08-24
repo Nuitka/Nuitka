@@ -1118,6 +1118,9 @@ library. Please upgrade/downgrade to a supported micro version.""")
                     "Error, cannot find 'create-dmg' tool. It is required for '--macos-installer'."
                 )
 
+    if options.macos_installer_output_filename is not None:
+        _warnMacOSSpecificOption("--macos-installer-output")
+
     if options.windows_create_installer:
         _warnWindowsSpecificOption("--windows-create-installer")
 
@@ -2846,6 +2849,11 @@ def shallCreateAppBundle():
 def shallCreateDmgFile():
     """*bool* shall create a DMG file, derived from ``--macos-installer`` value"""
     return options.macos_create_dmg and isMacOS()
+
+
+def getMacOSInstallerOutputFilename():
+    """*str* or *None*, value of ``--macos-installer-output``"""
+    return options.macos_installer_output_filename
 
 
 def getMacOSSigningIdentity():

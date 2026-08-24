@@ -2265,6 +2265,17 @@ Defaults to off.""",
 )
 
 installer_group.add_option(
+    "--macos-installer-output",
+    action="store",
+    dest="macos_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the DMG file to create. Defaults to the app bundle name with a \
+".dmg" suffix next to the application bundle.""",
+)
+
+installer_group.add_option(
     "--windows-create-installer",
     action="store_true",
     dest="windows_create_installer",
