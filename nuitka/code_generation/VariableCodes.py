@@ -128,7 +128,7 @@ def getModuleVariableReferenceCode(
             (
                 exception_state_name,
                 _exception_lineno,
-            ) = context.variable_storage.getExceptionVariableDescriptions()
+            ) = context.getExceptionVariableDescriptions()
 
             emit(
                 """\

@@ -236,7 +236,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             (
                 exception_state_name,
                 _exception_lineno,
-            ) = context.variable_storage.getExceptionVariableDescriptions()
+            ) = context.getExceptionVariableDescriptions()
 
             emit(
                 template

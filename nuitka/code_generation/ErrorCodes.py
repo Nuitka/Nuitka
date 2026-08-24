@@ -98,7 +98,7 @@ def getErrorExitBoolCode(
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if fetched_exception:
         emit(
@@ -169,7 +169,7 @@ def _getExceptionChainingCode(context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     (
         keeper_exception_state_name,
@@ -219,7 +219,7 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if variable.getOwner() is not context.getOwner():
         helper_code = "FORMAT_UNBOUND_CLOSURE_ERROR"
@@ -267,7 +267,7 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit(
         template_error_format_name_error_exception

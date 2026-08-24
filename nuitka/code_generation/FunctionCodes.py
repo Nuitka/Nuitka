@@ -5,7 +5,6 @@
 
 from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
-from nuitka.States import states
 from nuitka.Tracing import code_generation_logger
 
 from .AnnotateFunctionCodes import (
@@ -33,7 +32,6 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .PythonSourceCodeGeneration import (
@@ -744,7 +742,7 @@ def _getFunctionCode(
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
             "function_cleanup": indented(function_cleanup),
@@ -841,6 +839,8 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
+    # Many details for the outline code, including the exception line number
+    # handover, pylint: disable=too-many-locals
     assert (
         expression.isExpressionOutlineBody()
         or expression.isExpressionOutlineFunctionBase()
@@ -872,8 +872,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     # TODO: Put the return value name as that to_name.c_type too.
 
     if (
-        states.is_full_compat
-        and expression.isExpressionOutlineBody()
+        expression.isExpressionOutlineFunctionBase()
         and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
@@ -903,9 +902,20 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         if exception_target is not None:
             getLabelCode(exception_target, emit)
 
-            context.setCurrentSourceCodeReference(expression.getSourceReference())
+            # The exception line number of the outline is handed over to the
+            # parent, so that tracebacks show the class statement line for
+            # class bodies, and the comprehension line for comprehensions,
+            # rather than the line inside of them.
+            (
+                _outline_exception_state_name,
+                outline_exception_lineno,
+            ) = context.getExceptionVariableDescriptions()
+            (
+                _parent_exception_state_name,
+                parent_exception_lineno,
+            ) = context.parent.getExceptionVariableDescriptions()
 
-            emitErrorLineNumberUpdateCode(emit, context)
+            emit("%s = %s;" % (parent_exception_lineno, outline_exception_lineno))
             getGotoCode(old_exception_target, emit)
 
             context.setExceptionEscape(old_exception_target)

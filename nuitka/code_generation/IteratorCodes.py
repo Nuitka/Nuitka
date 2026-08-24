@@ -38,7 +38,7 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "next_value", expression, emit, context
@@ -197,7 +197,7 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit(
         template_loop_break_next
@@ -237,7 +237,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             (
                 exception_state_name,
                 _exception_lineno,
-            ) = context.variable_storage.getExceptionVariableDescriptions()
+            ) = context.getExceptionVariableDescriptions()
 
             emit(
                 "%s = UNPACK_NEXT(tstate, &%s, %s, %s);"
@@ -255,7 +255,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             (
                 exception_state_name,
                 _exception_lineno,
-            ) = context.variable_storage.getExceptionVariableDescriptions()
+            ) = context.getExceptionVariableDescriptions()
 
             emit(
                 "%s = UNPACK_NEXT%s(tstate, &%s, %s, %s, %s);"
@@ -295,7 +295,7 @@ def generateUnpackCheckCode(statement, emit, context):
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         res_name = context.getBoolResName()
 
@@ -335,7 +335,7 @@ def generateUnpackCheckFromIteratedCode(statement, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if python_version < 0x300:
         emit(
@@ -408,7 +408,7 @@ def generateUnpackCheckFromIteratedValueCode(statement, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit(
         """

@@ -33,7 +33,7 @@ def getErrorLineNumberUpdateCode(context):
     (
         _exception_state,
         exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     lineno_value = getCurrentLineNumberCode(context)
 

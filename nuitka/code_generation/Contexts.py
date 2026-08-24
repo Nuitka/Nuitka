@@ -438,6 +438,9 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def getBoolResName(self):
         pass
 
+    def getExceptionVariableDescriptions(self):
+        return self.variable_storage.getExceptionVariableDescriptions()
+
     @abstractmethod
     def hasTempName(self, base_name):
         pass
@@ -1133,6 +1136,7 @@ class PythonFunctionOutlineContext(
     __slots__ = (
         "outline",
         "variable_storage",
+        "exception_variables",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1149,12 +1153,21 @@ class PythonFunctionOutlineContext(
         self.outline = outline
 
         self.variable_storage = parent.variable_storage
+        self.exception_variables = None
 
     def getOwner(self):
         return self.outline
 
     def getEntryPoint(self):
         return self.outline.getEntryPoint()
+
+    def getExceptionVariableDescriptions(self):
+        if self.exception_variables is None:
+            self.exception_variables = (
+                self.variable_storage.getExceptionVariableDescriptionsWithOwnLineno()
+            )
+
+        return self.exception_variables
 
     def allocateLabel(self, label):
         return self.parent.allocateLabel(label)

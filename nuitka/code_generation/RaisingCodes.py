@@ -281,7 +281,7 @@ def getReRaiseExceptionCode(emit, context):
     (
         exception_state_name,
         exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     (
         keeper_exception_state_name,
@@ -349,7 +349,7 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if python_version < 0x3C0:
         emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
@@ -380,7 +380,7 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if python_version < 0x3C0:
         emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
@@ -409,7 +409,7 @@ def _getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, emit, con
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
@@ -436,7 +436,7 @@ def _getRaiseExceptionWithTracebackCode(
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)

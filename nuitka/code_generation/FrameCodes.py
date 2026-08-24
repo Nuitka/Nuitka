@@ -65,6 +65,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # and generator frame variety ought to be merged once generators are
     # possible to inline.
     # TODO: This will get simpler, pylint: disable=too-many-locals
+    # Many branches and statements for the nested frame handling, which
+    # includes the exception line number handover, pylint: disable=too-many-branches,too-many-statements
     context.pushCleanupScope()
 
     guard_mode = statement_sequence.getGuardMode()
@@ -170,6 +172,24 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         label = context.allocateLabel("skip_nested_handling")
         getGotoCode(label, emit)
         getLabelCode(parent_exception_exit, emit)
+
+        # The nested frame used its own exception line number, give the
+        # caller the line of the frame statement instead, which is what
+        # CPython does for class bodies. This is done with the frame's own
+        # line variable, which is then handed over by the outline escape.
+        frame_source_ref = statement_sequence.getSourceReference()
+
+        if not frame_source_ref.isInternal():
+            (
+                _outline_exception_state_name,
+                outline_exception_lineno,
+            ) = context.getExceptionVariableDescriptions()
+
+            emit(
+                "%s = %d;"
+                % (outline_exception_lineno, frame_source_ref.getLineNumber())
+            )
+
         emit(getFrameVariableTypeDescriptionCode(context))
         getGotoCode(real_parent_exception_exit, emit)
         getLabelCode(label, emit)
@@ -336,7 +356,7 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
         (
             exception_state_name,
             exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         emit(
             renderTemplateFromString(
@@ -375,7 +395,7 @@ def getFrameGuardGeneratorCode(
     (
         exception_state_name,
         exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     context_identifier = frame_node.getStructureMember()
 
