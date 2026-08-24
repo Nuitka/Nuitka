@@ -1417,7 +1417,7 @@ def _main():
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and getPackageDirFilename(base_path):
+        if os.path.isdir(base_path) and getPackageDirFilename(base_path, None):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \

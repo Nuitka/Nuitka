@@ -11,6 +11,7 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import imp
+from nuitka.plugins.Hooks import decideRecompileExtensionModules
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -303,8 +304,13 @@ def hasPackageDirFilename(path):
     return False
 
 
-def getPackageDirFilename(path, prefer_source=False):
+def getPackageDirFilename(path, package_name):
     assert os.path.isdir(path)
+
+    if package_name:
+        decision, _reason = decideRecompileExtensionModules(package_name)
+    else:
+        decision = False
 
     candidates = []
     # Higher values are lower priority.
@@ -321,7 +327,7 @@ def getPackageDirFilename(path, prefer_source=False):
             candidates.append((candidate, module_type))
 
     def prioritize(candidate):
-        if candidate[1] == "PY_SOURCE" and prefer_source:
+        if candidate[1] == "PY_SOURCE" and decision:
             return priority_map[candidate[1]] - 2
         return priority_map[candidate[1]]
 

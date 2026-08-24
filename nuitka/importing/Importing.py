@@ -257,7 +257,7 @@ def isPackageDir(dirname):
         and (
             python_version >= 0x300
             or isPreloadedPackagePath(dirname)
-            or getPackageDirFilename(dirname) is not None
+            or getPackageDirFilename(dirname, None) is not None
         )
     )
 
@@ -327,7 +327,7 @@ def getModuleNameAndKindFromFilename(module_filename):
             )
 
     if os.path.isdir(module_filename):
-        package_filename = getPackageDirFilename(module_filename)
+        package_filename = getPackageDirFilename(module_filename, None)
 
         if package_filename is not None:
             _module_name, module_kind = getModuleNameAndKindFromFilenameSuffix(
@@ -856,7 +856,7 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
         found_candidate.module_type == "C_EXTENSION"
         and isMacOS()
         and not hasUniversalOrMatchingMacOSArchitecture(
-            getPackageDirFilename(found_candidate.full_path)
+            getPackageDirFilename(found_candidate.full_path, module_name)
             if os.path.isdir(found_candidate.full_path)
             else found_candidate.full_path
         )
@@ -1199,8 +1199,8 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
 
     elif isPackageDir(filename):
         is_package = True
-        decision, _reason = decideRecompileExtensionModules(module_name)
-        source_filename = getPackageDirFilename(filename, decision)
+
+        source_filename = getPackageDirFilename(filename, module_name)
 
         if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()

@@ -85,7 +85,7 @@ def editModuleCode(module_search_desc):
         tools_logger.sysexit("Error, did not find '%s' module" % module_name)
     else:
         if os.path.isdir(module_filename):
-            candidate = getPackageDirFilename(module_filename)
+            candidate = getPackageDirFilename(module_filename, module_name)
 
             if candidate is not None:
                 module_filename = candidate
