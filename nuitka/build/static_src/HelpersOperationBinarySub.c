@@ -8,6 +8,9 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "nuitka/helper/long_helpers.h"
+#endif
 /* C helpers for type specialized "-" (SUB) operations */
 
 #if PYTHON_VERSION < 0x300

@@ -6,11 +6,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
-
-#include "internal/pycore_dict.h"
-#include "internal/pycore_object.h"
-#include "nuitka/defines.h"
+#include "nuitka/prelude.h"
 #endif
 
 // For pre-3.13, lets allow ourselves to use them as well, these do play

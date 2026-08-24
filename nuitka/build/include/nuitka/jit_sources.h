@@ -5,7 +5,7 @@
 #define __NUITKA_JIT_SOURCES_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
+#include "nuitka/prelude.h"
 #endif
 
 // Helpers for making source available at run-time for JIT systems

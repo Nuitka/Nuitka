@@ -5,9 +5,7 @@
 #define __NUITKA_THREADING_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
-#include "nuitka/defines.h"
-#include "nuitka/exceptions.h"
+#include "nuitka/prelude.h"
 #endif
 
 #if PYTHON_VERSION < 0x300

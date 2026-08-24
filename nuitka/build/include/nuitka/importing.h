@@ -5,11 +5,7 @@
 #define __NUITKA_IMPORTING_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
-#include "nuitka/defines.h"
-#include "nuitka/exceptions.h"
-#include "nuitka/helper/dictionaries.h"
-#include "nuitka/string_functions.h"
+#include "nuitka/prelude.h"
 #endif
 
 /* These are for the built-in import.

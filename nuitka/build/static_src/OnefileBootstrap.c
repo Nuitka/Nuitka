@@ -67,9 +67,7 @@
 #define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
 #define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME_US}_{RANDOM}"
 
-#define _NUITKA_AUTO_UPDATE_BOOL 1
-#define _NUITKA_AUTO_UPDATE_DEBUG_BOOL 1
-#define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
+#define _NUITKA_ONEFILE_PAYLOAD_SIZE_INT 27272
 
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 
@@ -107,7 +105,7 @@
 // Some handy macro definitions, e.g. unlikely and NUITKA_MAY_BE_UNUSED
 #include "nuitka/defines.h"
 
-#if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES
+#if _NUITKA_EXPERIMENTAL_EXTRA_ONEFILE_INCLUDES_BOOL
 #include "extra_onefile_includes.h"
 #endif
 
@@ -825,14 +823,6 @@ void ourConsoleCtrlHandler(int sig, siginfo_t *info, void *ucontext) {
 }
 #endif
 
-#if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
-#include "nuitka_onefile_auto_updater.h"
-#endif
-
-#if _NUITKA_AUTO_UPDATE_BOOL
-extern bool exe_file_updatable;
-#endif
-
 #ifdef _NUITKA_ONEFILE_SPLASH_SCREEN
 #ifdef __cplusplus
 extern "C" {
@@ -1176,9 +1166,7 @@ int main(int argc, char **argv) {
 #endif
     }
 
-#if _NUITKA_AUTO_UPDATE_BOOL
-    checkAutoUpdates();
-#endif
+    // The onefile bootstrap is setup now.
 
 #if _NUITKA_ONEFILE_HAS_PAYLOAD_BOOL == 1
     NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
@@ -1355,13 +1343,11 @@ int main(int argc, char **argv) {
     closePayloadData();
 #endif
 
-#if _NUITKA_AUTO_UPDATE_BOOL
-    exe_file_updatable = true;
-#endif
-
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     releaseZSTD();
 #endif
+
+    // We are done with the unpacking now.
 
 #if defined(_WIN32)
     filename_char_t const *binary_filename = getBinaryFilenameWideChars(false);
@@ -1502,17 +1488,7 @@ int main(int argc, char **argv) {
 
 #endif
 
-#if _NUITKA_AUTO_UPDATE_BOOL
-    extern volatile bool auto_update_in_progress;
-
-    while (auto_update_in_progress) {
-#if defined(_WIN32)
-        Sleep(100);
-#else
-        usleep(100000);
-#endif
-    }
-#endif
+    // The onefile program is finished now and can exit.
 
     NUITKA_PRINT_TIMING("ONEFILE: Exiting.");
 

@@ -5,7 +5,7 @@
 #define __NUITKA_ENVIRONMENT_VARIABLES_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
+#include "nuitka/prelude.h"
 #endif
 
 #include "nuitka/environment_variables_system.h"

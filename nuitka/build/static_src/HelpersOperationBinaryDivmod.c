@@ -8,6 +8,9 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "nuitka/helper/long_helpers.h"
+#endif
 #include "HelpersOperationBinaryDivmodUtils.c"
 /* C helpers for type specialized "divmod" (DIVMOD) operations */
 

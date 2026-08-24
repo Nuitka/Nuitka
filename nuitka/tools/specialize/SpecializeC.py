@@ -605,6 +605,11 @@ def makeHelpersComparisonOperation(operand, op_code):
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
             emit_h("#endif")
+            emit_c("#ifdef __IDE_ONLY__")
+            emit_c('#include "nuitka/helper/long_helpers.h"')
+            if op_code != "EQ":
+                emit_c('#include "HelpersComparisonEqUtils.c"')
+            emit_c("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 

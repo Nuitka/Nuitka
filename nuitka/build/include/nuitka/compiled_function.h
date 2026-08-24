@@ -10,7 +10,7 @@
 // functions and built-in functions, or even better.
 
 #ifdef __IDE_ONLY__
-#include "nuitka/cpython_api_compat.h"
+#include "nuitka/prelude.h"
 #endif
 
 struct Nuitka_FunctionObject;

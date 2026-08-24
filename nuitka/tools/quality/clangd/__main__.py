@@ -253,12 +253,11 @@ def main():
         return 0
 
     if not os.path.exists(".clangd"):
-        tools_logger.warning(
+        return tools_logger.sysexit(
             """\
 No .clangd configuration found. \
 Run 'python misc/vscode_config_gen.py' to generate one.\
 """,
-            style="yellow",
         )
 
     my_print("Checking %d C source file(s) with clangd..." % len(filenames))

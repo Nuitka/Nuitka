@@ -8,6 +8,9 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "nuitka/helper/long_helpers.h"
+#endif
 /* C helpers for type specialized "^" (BITXOR) operations */
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */

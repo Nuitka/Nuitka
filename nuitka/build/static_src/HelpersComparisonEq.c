@@ -8,6 +8,9 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "nuitka/helper/long_helpers.h"
+#endif
 #include "HelpersComparisonEqUtils.c"
 /* C helpers for type specialized "==" (EQ) comparisons */
 
