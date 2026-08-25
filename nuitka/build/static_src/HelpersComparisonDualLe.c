@@ -8,6 +8,19 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "HelpersComparisonDualEq.c"
+#include "HelpersComparisonDualGe.c"
+#include "HelpersComparisonDualGt.c"
+#include "HelpersComparisonDualLt.c"
+#include "HelpersComparisonDualNe.c"
+#include "HelpersComparisonEq.c"
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
+#include "HelpersComparisonLe.c"
+#include "HelpersComparisonLt.c"
+#include "HelpersComparisonNe.c"
+#endif
 /* C helpers for type specialized "<=" (LE) comparisons */
 
 static PyObject *COMPARE_LE_OBJECT_CLONG_CLONG(long operand1, long operand2) {

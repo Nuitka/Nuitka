@@ -10,6 +10,8 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/helper/long_helpers.h"
 #endif
 
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {

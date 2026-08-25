@@ -673,6 +673,19 @@ def makeHelpersComparisonDualOperation(operand, op_code):
             if os.path.exists(filename_utils):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
+            # The dual operations use helpers from the non-dual comparison
+            # code and from the other dual operations. For the real build,
+            # those are included before these.
+            emit_c("#ifdef __IDE_ONLY__")
+            for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
+                emit_c('#include "HelpersComparison%s.c"' % cmp_op_code.capitalize())
+                if cmp_op_code != op_code:
+                    emit_c(
+                        '#include "HelpersComparisonDual%s.c"'
+                        % cmp_op_code.capitalize()
+                    )
+            emit_c("#endif")
+
             makeHelperComparisons(
                 template,
                 specialized_cmp_helpers_set,
@@ -734,6 +747,9 @@ def makeHelpersBinaryOperation(operator, op_code):
             emit_h("#ifdef __IDE_ONLY__")
             emit_h('#include "nuitka/helper/boolean.h"')
             emit_h("#endif")
+            emit_c("#ifdef __IDE_ONLY__")
+            emit_c('#include "nuitka/helper/long_helpers.h"')
+            emit_c("#endif")
 
             filename_utils = filename_c[:-2] + "Utils.c"
 

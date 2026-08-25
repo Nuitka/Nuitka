@@ -8,6 +8,19 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef __IDE_ONLY__
+#include "HelpersComparisonDualEq.c"
+#include "HelpersComparisonDualGe.c"
+#include "HelpersComparisonDualGt.c"
+#include "HelpersComparisonDualLe.c"
+#include "HelpersComparisonDualLt.c"
+#include "HelpersComparisonEq.c"
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
+#include "HelpersComparisonLe.c"
+#include "HelpersComparisonLt.c"
+#include "HelpersComparisonNe.c"
+#endif
 /* C helpers for type specialized "!=" (NE) comparisons */
 
 /* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
