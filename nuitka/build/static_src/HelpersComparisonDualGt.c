@@ -9,17 +9,17 @@
 #endif
 
 #ifdef __IDE_ONLY__
-#include "HelpersComparisonDualEq.c"
-#include "HelpersComparisonDualGe.c"
-#include "HelpersComparisonDualLe.c"
-#include "HelpersComparisonDualLt.c"
-#include "HelpersComparisonDualNe.c"
 #include "HelpersComparisonEq.c"
 #include "HelpersComparisonGe.c"
 #include "HelpersComparisonGt.c"
 #include "HelpersComparisonLe.c"
 #include "HelpersComparisonLt.c"
 #include "HelpersComparisonNe.c"
+static bool COMPARE_EQ_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_NE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_LE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_GE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_LT_CBOOL_CLONG_CLONG(long operand1, long operand2);
 #endif
 /* C helpers for type specialized ">" (GT) comparisons */
 

@@ -8,6 +8,8 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
 #endif
 
 // spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type

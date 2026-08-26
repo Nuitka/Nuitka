@@ -675,14 +675,16 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
             # The dual operations use helpers from the non-dual comparison
             # code and from the other dual operations. For the real build,
-            # those are included before these.
+            # those are included before these. For the other dual files, we
+            # only need forward declarations of their shared helpers.
             emit_c("#ifdef __IDE_ONLY__")
             for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
                 emit_c('#include "HelpersComparison%s.c"' % cmp_op_code.capitalize())
+            for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
                 if cmp_op_code != op_code:
                     emit_c(
-                        '#include "HelpersComparisonDual%s.c"'
-                        % cmp_op_code.capitalize()
+                        "static bool COMPARE_%s_CBOOL_CLONG_CLONG(long operand1, long operand2);"
+                        % cmp_op_code
                     )
             emit_c("#endif")
 
