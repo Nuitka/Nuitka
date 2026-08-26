@@ -185,7 +185,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     removeDirectory,
 )
-from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
@@ -1417,9 +1417,7 @@ def _main():
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and getPackageDirFilename(
-            path=base_path, package_name=None
-        ):
+        if os.path.isdir(base_path) and hasPackageDirFilename(base_path):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \

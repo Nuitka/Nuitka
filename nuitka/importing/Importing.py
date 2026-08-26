@@ -63,6 +63,7 @@ from nuitka.utils.Importing import (
     getModuleFilenameSuffixes,
     getModuleNameAndKindFromFilenameSuffix,
     getPackageDirFilename,
+    hasPackageDirFilename,
     isBuiltinModuleName,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -257,11 +258,7 @@ def isPackageDir(dirname):
         and (
             python_version >= 0x300
             or isPreloadedPackagePath(dirname)
-            or getPackageDirFilename(
-                path=dirname,
-                package_name=None,
-            )
-            is not None
+            or hasPackageDirFilename(dirname)
         )
     )
 

@@ -304,6 +304,18 @@ def isPackageDirFilenameCandidate(path):
     return False
 
 
+def hasPackageDirFilename(path):
+    """Check if a directory has a package ``__init__`` file of any kind.
+
+    Args:
+        path: The directory to check.
+
+    Returns:
+        bool, True if any ``__init__`` file exists in the directory.
+    """
+    return getPackageDirFilename(path, None) is not None
+
+
 def getPackageDirFilename(path, package_name):
     assert os.path.isdir(path)
 

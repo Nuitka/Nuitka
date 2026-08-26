@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
     getPackageDirFilename,
+    hasPackageDirFilename,
     isPackageDirFilenameCandidate,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -441,10 +442,7 @@ def _addIncludedModule(module, package_only):
                     )
                 elif sub_filename.endswith(".py"):
                     if os.path.isdir(sub_path[:-3]):
-                        if (
-                            getPackageDirFilename(path=sub_path[:-3], package_name=None)
-                            is not None
-                        ):
+                        if hasPackageDirFilename(sub_path[:-3]):
                             continue
 
                     scanPluginSinglePath(
