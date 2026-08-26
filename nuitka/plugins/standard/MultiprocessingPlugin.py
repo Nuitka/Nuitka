@@ -134,6 +134,7 @@ if str is not bytes:
 
             sys.modules["__main__"] = parents_main
             sys.modules["__mp_main__"] = parents_main
+            parents_main.__spec__ = None
 
         multiprocessing.spawn._fixup_main_from_path = _fixup_main_from_path_for_nuitka
 """,
