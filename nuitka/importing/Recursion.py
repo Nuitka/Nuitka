@@ -439,7 +439,10 @@ def _addIncludedModule(module, package_only):
                     )
                 elif sub_filename.endswith(".py"):
                     if os.path.isdir(sub_path[:-3]):
-                        if getPackageDirFilename(sub_path[:-3], None) is not None:
+                        if (
+                            getPackageDirFilename(path=sub_path[:-3], package_name=None)
+                            is not None
+                        ):
                             continue
 
                     scanPluginSinglePath(
