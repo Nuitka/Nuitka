@@ -1588,7 +1588,8 @@ def _getCompiledOffsetsGroups():
 
         match = re.match(
             r"^offsets_(?P<python_version_str>\d+\.\d+)"
-            r"-(?P<os_name>[a-zA-Z]+)-(?P<arch_name>[a-zA-Z0-9_]+)-(?P<gil_str>gil|no-gil)\.json$",
+            r"-(?P<os_name>[a-zA-Z]+)-(?P<arch_name>[a-zA-Z0-9_]+)-(?P<gil_str>gil|no-gil)"
+            r"(?P<debug_str>-debug)?\.json$",
             basename,
         )
         if not match:
@@ -1597,10 +1598,10 @@ def _getCompiledOffsetsGroups():
             )
 
         python_version_str = match.group("python_version_str")
-        micro = 0
         os_name = match.group("os_name")
         arch_name = match.group("arch_name")
         gil_str = match.group("gil_str")
+        is_debug = match.group("debug_str") is not None
 
         expected_keys = {
             "_PyRuntimeState_" + k
@@ -1618,10 +1619,10 @@ regenerate the headers via 'python%s bin/generate-specialized-offsets-code'."""
             )
 
         python_version = tuple(int(x) for x in python_version_str.split("."))
-        group_key = (python_version, gil_str, os_name, arch_name)
+        group_key = (python_version, gil_str, os_name, arch_name, is_debug)
         if group_key not in groups:
             groups[group_key] = []
-        groups[group_key].append((micro, data))
+        groups[group_key].append((0, data))
 
     return groups
 
@@ -1652,7 +1653,7 @@ def updateCompiledOffsetsHeader():
     groups = _getCompiledOffsetsGroups()
 
     template_groups = []
-    for (python_version, gil_str, os_name, arch_name), versions in sorted(
+    for (python_version, gil_str, os_name, arch_name, is_debug), versions in sorted(
         groups.items()
     ):
         versions.sort(key=lambda x: x[0])
@@ -1672,6 +1673,7 @@ def updateCompiledOffsetsHeader():
                 "next_python_version_hex": "%x%x0"
                 % (python_version[0], python_version[1] + 1),
                 "is_gil": gil_str == "gil",
+                "is_debug": is_debug,
                 "os_arch_macro": _mapOsAndArchToMacro(os_name, arch_name),
                 "offset_keys": template_keys,
             }

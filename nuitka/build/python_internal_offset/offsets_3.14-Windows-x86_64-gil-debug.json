@@ -1,0 +1,7 @@
+{
+  "_PyRuntimeState_imports": 10000,
+  "_PyRuntimeState_ceval": 10040,
+  "_PyRuntimeState_ref_tracer": 17680,
+  "_PyRuntimeState_stoptheworld": 17704,
+  "_PyRuntimeState_static_objects": 21240
+}

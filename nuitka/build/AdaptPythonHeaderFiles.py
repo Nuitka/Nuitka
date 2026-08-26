@@ -299,11 +299,12 @@ def ensurePythonInternalsOffsets(cache_dir):
     if not keys:
         return None  # No offsets needed
 
-    python_version_id = "%s-%s-%s-%s" % (
+    python_version_id = "%s-%s-%s-%s%s" % (
         python_version_str,
         getOS(),
         getArchitecture(),
         "gil" if isPythonWithGil() else "no-gil",
+        "-debug" if shallUsePythonDebug() else "",
     )
 
     bundled_json_path = os.path.join(

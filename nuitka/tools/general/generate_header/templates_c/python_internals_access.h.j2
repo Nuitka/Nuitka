@@ -65,7 +65,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 #endif
 
 {% for group in template_groups %}
-#if PYTHON_VERSION >= 0x{{ group.python_version_hex }} && PYTHON_VERSION < 0x{{ group.next_python_version_hex }}{% if group.is_gil %} && !defined(Py_GIL_DISABLED){% else %} && defined(Py_GIL_DISABLED){% endif %}
+#if PYTHON_VERSION >= 0x{{ group.python_version_hex }} && PYTHON_VERSION < 0x{{ group.next_python_version_hex }}{% if group.is_gil %} && !defined(Py_GIL_DISABLED){% else %} && defined(Py_GIL_DISABLED){% endif %}{% if group.is_debug %} && defined(Py_DEBUG){% else %} && !defined(Py_DEBUG){% endif %}
 
 {% if group.os_arch_macro and group.os_arch_macro != "1" %}
 #if {{ group.os_arch_macro }}
@@ -188,7 +188,7 @@ static inline size_t _Nuitka_perf_trampoline_get_deduction_compile_time(void) {
 {% endif %}
 {% endfor %}
 #endif
-#if (!_NUITKA_MODULE_MODE && !defined(__MINGW64__)) || defined(_MSC_VER) || (!defined(__linux__) && !defined(_WIN32))
+#if (!_NUITKA_MODULE_MODE && !defined(__MINGW32__)) || defined(_MSC_VER) || (!defined(__linux__) && !defined(_WIN32))
     #define NUITKA_PYRUNTIME_PTR(struct_start, comp) ((char *)(struct_start) + offsetof(_PyRuntimeState, comp))
 #else
     #define NUITKA_PYRUNTIME_PTR(struct_start, comp) ((char *)(struct_start) + NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ ## comp)

@@ -64,7 +64,7 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 }
 #endif
 
-#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED) && !defined(Py_DEBUG)
 #if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86))
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 1272
@@ -76,7 +76,19 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED) && defined(Py_DEBUG)
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86))
+
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 9268
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 9248
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 16604
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 13132
+
+#endif /* defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) */
+
+#endif
+
+#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED) && !defined(Py_DEBUG)
 #if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 1864
@@ -88,7 +100,19 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION >= 0x3d0 && PYTHON_VERSION < 0x3e0 && !defined(Py_GIL_DISABLED) && defined(Py_DEBUG)
+#if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
+
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 9856
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 9816
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 21032
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 17512
+
+#endif /* defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64)) */
+
+#endif
+
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) && !defined(Py_DEBUG)
 #if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86))
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 1452
@@ -101,7 +125,20 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) && defined(Py_DEBUG)
+#if defined(_WIN32) && (defined(__i386__) || defined(_M_IX86))
+
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 9448
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 9428
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer 13312
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 16812
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 13324
+
+#endif /* defined(_WIN32) && (defined(__i386__) || defined(_M_IX86)) */
+
+#endif
+
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) && !defined(Py_DEBUG)
 #if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
 
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 2048
@@ -109,6 +146,19 @@ static inline bool Nuitka_RuntimeHasPerfTrampoline(void) {
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer 9688
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 13240
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 9712
+
+#endif /* defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64)) */
+
+#endif
+
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED) && defined(Py_DEBUG)
+#if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
+
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ceval 10040
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_imports 10000
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer 17680
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_static_objects 21240
+#define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_stoptheworld 17704
 
 #endif /* defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64)) */
 
@@ -273,7 +323,7 @@ static inline size_t Nuitka_PyRuntime_GetOffset__PyRuntimeState_ref_tracer(void)
 #define NUITKA_PYRUNTIME_OFFSET__PyRuntimeState_ref_tracer Nuitka_PyRuntime_GetOffset__PyRuntimeState_ref_tracer()
 #endif
 #endif
-#if (!_NUITKA_MODULE_MODE && !defined(__MINGW64__)) || defined(_MSC_VER) || (!defined(__linux__) && !defined(_WIN32))
+#if (!_NUITKA_MODULE_MODE && !defined(__MINGW32__)) || defined(_MSC_VER) || (!defined(__linux__) && !defined(_WIN32))
 #define NUITKA_PYRUNTIME_PTR(struct_start, comp) ((char *)(struct_start) + offsetof(_PyRuntimeState, comp))
 #else
 #define NUITKA_PYRUNTIME_PTR(struct_start, comp)                                                                       \
