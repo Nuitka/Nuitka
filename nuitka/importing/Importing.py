@@ -257,7 +257,11 @@ def isPackageDir(dirname):
         and (
             python_version >= 0x300
             or isPreloadedPackagePath(dirname)
-            or getPackageDirFilename(path=dirname, package_name=None) is not None
+            or getPackageDirFilename(
+                path=dirname,
+                package_name=None,
+            )
+            is not None
         )
     )
 
@@ -1204,7 +1208,10 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getPackageDirFilename(path=filename, package_name=module_name)
+        source_filename = getPackageDirFilename(
+            path=filename,
+            package_name=module_name,
+        )
 
         if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()

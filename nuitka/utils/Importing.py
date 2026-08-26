@@ -292,7 +292,7 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
     return None, None
 
 
-def hasPackageDirFilename(path):
+def isPackageDirFilenameCandidate(path):
     path = os.path.basename(path)
 
     for suffix, _module_type in getModuleFilenameSuffixes():
