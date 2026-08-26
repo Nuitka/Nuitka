@@ -5477,7 +5477,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: 498a67fc
+- module-name: 'PySide6' # checksum: 233c47b6
   implicit-imports:
     - post-import-code:
         - |
@@ -5521,7 +5521,7 @@
           def patched_singleShot(self, *args, **kwargs):
             if args:
               args = list(args)
-              args[0] = protect(args[0])
+              args[-1] = protect(args[-1])
 
             return orig_singleShot(self, *args, **kwargs)
 
