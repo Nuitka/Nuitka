@@ -18,6 +18,7 @@ the traces.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.options.Options import isExperimental
 
@@ -395,6 +396,24 @@ Removed assignment of %s from itself which is known to be defined."""
 
         # TODO: Determine from future use of assigned variable, if this is needed at all.
         trace_collection.removeKnowledge(source)
+
+    def undoVariableTracing(self, trace_collection):
+        # The value trace replacement is undone by restoring the previous
+        # active version of the variable, but only if the variable is still
+        # active, which is not the case for variables local to a removed
+        # outline.
+        if self.variable_trace is not None:
+            variable = self.variable
+
+            if variable in trace_collection.variable_actives:
+                previous = self.variable_trace.previous
+
+                for version, trace in iterItems(
+                    trace_collection.variable_traces[variable]
+                ):
+                    if trace is previous:
+                        trace_collection.markCurrentVariableTrace(variable, version)
+                        break
 
     def hasVeryTrustedValue(self):
         """Does this assignment node have a very trusted value."""

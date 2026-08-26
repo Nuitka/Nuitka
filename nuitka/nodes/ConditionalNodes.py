@@ -715,7 +715,7 @@ branches.""",
 Both branches have no effect, reduced to evaluate condition.""",
                 )
             else:
-                condition.undoComputeExpressionRaw(trace_collection)
+                condition.undoVariableTracingRaw(trace_collection)
                 self.finalize()
 
                 return (

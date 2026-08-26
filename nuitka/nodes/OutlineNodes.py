@@ -233,6 +233,13 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
     def isExpressionOutlineFunctionBase():
         return True
 
+    @staticmethod
+    def willRaiseAnyException():
+        # The outline function as an expression only creates the function
+        # object, and it does not execute its body as part of that, so it
+        # cannot raise by itself.
+        return False
+
     def makeClone(self):
         result = ExpressionFunctionBodyBase.makeClone(self)
 

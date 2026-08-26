@@ -9,6 +9,7 @@ These refer to resolved variable objects.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import iterItems
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
@@ -216,6 +217,24 @@ class StatementDelVariableBase(StatementBase):
 
     def collectVariableAccesses(self, emit_variable):
         emit_variable(self.variable)
+
+    def undoVariableTracing(self, trace_collection):
+        # Undo the value trace replacement by restoring the previous active
+        # version of the variable, but only if the variable is still active,
+        # which is not the case for variables local to a removed outline.
+        if self.variable_trace is not None:
+            variable = self.variable
+
+            if variable in trace_collection.variable_actives:
+                previous = self.previous_trace
+
+                if previous is not None:
+                    for version, trace in iterItems(
+                        trace_collection.variable_traces[variable]
+                    ):
+                        if trace is previous:
+                            trace_collection.markCurrentVariableTrace(variable, version)
+                            break
 
 
 class StatementDelVariableTolerant(StatementDelVariableBase):

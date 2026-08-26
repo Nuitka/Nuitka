@@ -182,11 +182,6 @@ class ExpressionBase(NodeBase):
             not overload this unless necessary.
         """
 
-    @staticmethod
-    def undoComputeExpressionRaw(trace_collection):
-        # Virtual method
-        pass
-
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source.
@@ -693,7 +688,7 @@ class ExpressionBase(NodeBase):
 
     def computeExpressionDrop(self, statement, trace_collection):
         if not self.mayHaveSideEffects():
-            self.undoComputeExpressionRaw(trace_collection)
+            self.undoVariableTracingRaw(trace_collection)
 
             return (
                 None,
