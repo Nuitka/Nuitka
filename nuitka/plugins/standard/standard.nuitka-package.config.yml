@@ -423,6 +423,11 @@
         - 'av.sidedata.encparams'
         - 'av.sidedata.motionvectors'
 
+- module-name: 'av.stream' # checksum: 73884502
+  implicit-imports:
+    - depends:
+        - 'av.utils'
+
 - module-name: 'av.utils' # checksum: 8fbe7302
   implicit-imports:
     - depends:
