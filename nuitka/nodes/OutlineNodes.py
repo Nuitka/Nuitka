@@ -251,14 +251,26 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         )
 
         for temp_variable in entry_point.getTempVariables(self):
-            new_temp_variable = entry_point.allocateTempVariable(
-                temp_scope=None,
-                name=temp_variable.getName() + "_clone",
+            new_temp_name = temp_variable.getName() + "_clone"
+
+            assert new_temp_name not in entry_point.temp_variables, new_temp_name
+
+            # Make the clone own separate temporary variables, without
+            # registering them in a trace collection, the clone will
+            # initialize them when it gets computed.
+            new_temp_variable = entry_point.createTempVariable(
+                temp_name=new_temp_name,
                 temp_type=temp_variable.getVariableType(),
                 outline=result,
             )
 
             variable_translations[temp_variable] = new_temp_variable
+
+        # Taken variables are not owned by the outline either, replicate
+        # them for the clone, translating the temporary variables, which
+        # are cloned above, but keeping e.g. module variables as they are.
+        for taken_variable in self.taken:
+            result.taken.add(variable_translations.get(taken_variable, taken_variable))
 
         updateVariableUsage(
             provider=result,

@@ -133,6 +133,11 @@ class LocalsDictHandleBase(object):
         for variable_name, variable in self.providing.items():
             if variable in variable_translation:
                 new_variable = variable_translation[variable]
+            elif variable.getOwner() is not self.owner:
+                # Closure variables are not owned by this scope, both
+                # scopes reference the same variable, which is tracked
+                # and initialized at the provider only.
+                new_variable = variable
             else:
                 new_variable = variable.makeClone(new_owner=new_owner)
                 variable_translation[variable] = new_variable
