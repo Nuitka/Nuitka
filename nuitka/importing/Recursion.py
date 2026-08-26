@@ -42,7 +42,6 @@ from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
-    getPackageDirFilename,
     hasPackageDirFilename,
     isPackageDirFilenameCandidate,
 )

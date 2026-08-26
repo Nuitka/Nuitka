@@ -1502,7 +1502,7 @@ through incomplete set import by '%s' plugin encountered."""
                     if value == "never":
                         result = False, plugin_reason
                         break
-                    elif value == "yes":
+                    if value == "yes":
                         result = True, plugin_reason
                     elif value == "no" and result is None:
                         result = False, plugin_reason
