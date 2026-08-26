@@ -571,6 +571,13 @@ def _generateImportModuleHardSource(expression):
     return "__import__(%r)" % target
 
 
+def _generateImportModuleNameHardSource(expression):
+    return "%s.%s" % (
+        _generateImportModuleHardSource(expression),
+        expression.getImportName(),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table
 
@@ -639,6 +646,8 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
+    "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
+    "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": _generateImportModuleNameHardSource,
 }
 
 _statement_source_dispatch = {
