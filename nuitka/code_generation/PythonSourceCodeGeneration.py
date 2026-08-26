@@ -284,6 +284,34 @@ def _generateFunctionCallSource(expression):
     return "%s(%s)" % (called_source, ", ".join(arg_sources))
 
 
+def _generateCallSource(expression):
+    called_source = generateExpressionSource(expression.subnode_called)
+
+    argument_sources = []
+
+    args = expression.subnode_args
+    if args is not None:
+        if args.isExpressionMakeTuple():
+            for element in args.subnode_elements:
+                argument_sources.append(generateExpressionSource(element))
+        else:
+            for element in args.getCompileTimeConstant():
+                argument_sources.append(_formatConstantElement(element))
+
+    kwargs = expression.subnode_kwargs
+    if kwargs is not None:
+        if kwargs.isExpressionMakeDict():
+            for pair in kwargs.subnode_pairs:
+                key = pair.getKeyCompileTimeConstant()
+                value = generateExpressionSource(pair.getValueNode())
+                argument_sources.append("%s=%s" % (key, value))
+        else:
+            for key, value in kwargs.getCompileTimeConstant().items():
+                argument_sources.append("%s=%s" % (key, _formatConstantElement(value)))
+
+    return "%s(%s)" % (called_source, ", ".join(argument_sources))
+
+
 def _generateListSource(expression):
     elements = []
     for element in expression.subnode_elements:
@@ -564,10 +592,10 @@ def _generateImportModuleHardSource(expression):
 
 
 def _generateImportModuleNameHardSource(expression):
-    return "%s.%s" % (
-        _generateImportModuleHardSource(expression),
-        expression.getImportName(),
-    )
+    # These are `from module import name` names, e.g. `from typing import List`.
+    # The import name is the local name, which is the module global resolved by
+    # annotationlib, unless an `as` alias was used.
+    return expression.getImportName()
 
 
 # ---------------------------------------------------------------------------
@@ -594,6 +622,10 @@ _expression_source_dispatch = {
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
     "EXPRESSION_OPERATION_BINARY_BIT_OR": _generateBinaryOpSource,
     "EXPRESSION_FUNCTION_CALL": _generateFunctionCallSource,
+    "EXPRESSION_CALL": _generateCallSource,
+    "EXPRESSION_CALL_NO_KEYWORDS": _generateCallSource,
+    "EXPRESSION_CALL_KEYWORDS_ONLY": _generateCallSource,
+    "EXPRESSION_CALL_EMPTY": _generateCallSource,
     "EXPRESSION_MAKE_TUPLE": _generateTupleSource,
     "EXPRESSION_MAKE_LIST": _generateListSource,
     "EXPRESSION_CONSTANT_UNION_TYPE": _generateGenericAliasSource,
@@ -638,8 +670,8 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
-    "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": _generateImportModuleNameHardSource,
+    "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
 }
 
 _statement_source_dispatch = {
