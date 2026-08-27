@@ -1,14 +1,26 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-// This file is included from another C file, help IDEs to still parse it on
-// its own.
+#pragma once
+#ifndef __NUITKA_HELPER_POW_HELPERS_H__
+#define __NUITKA_HELPER_POW_HELPERS_H__
+
+/* Shared helpers for the power operations.
+ *
+ * The implementations are in "HelpersOperationBinaryPowUtils.c", which is
+ * chained into the same compilation unit, and therefore the helpers are
+ * "static" to it. The generated in-place power helpers use them too.
+ *
+ * This file is included from another C file, help IDEs to still parse it on its own.
+ */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-
-#include "nuitka/helper/pow_helpers.h"
 #endif
 
-#include "nuitka/helper/pow_helpers.h"
+#include <float.h>
+
+#define DOUBLE_IS_ODD_INTEGER(x) (fmod(fabs(x), 2.0) == 1.0)
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

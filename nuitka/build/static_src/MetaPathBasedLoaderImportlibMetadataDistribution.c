@@ -10,6 +10,9 @@
 #include "nuitka/unfreezing.h"
 #endif
 
+static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name, bool internal);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
 static PyObject *metadata_values_dict = NULL;
 
 // For initialization of the metadata dictionary during startup.

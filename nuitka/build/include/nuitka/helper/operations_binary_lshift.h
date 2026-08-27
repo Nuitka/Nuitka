@@ -8,11 +8,10 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-#endif
 
-#ifdef __IDE_ONLY__
 #include "nuitka/helper/boolean.h"
 #endif
+
 /* C helpers for type specialized "<<" (LSHIFT) operations */
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */

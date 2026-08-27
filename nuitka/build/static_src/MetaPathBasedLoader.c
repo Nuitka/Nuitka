@@ -20,6 +20,8 @@ static PyObject *getPathSeparatorStringObject(void);
 
 #include "nuitka/unfreezing.h"
 
+static PyObject *IMPORT_HARD_OS_PATH(PyThreadState *tstate);
+
 #ifndef NUITKA_LOADER_COMPARE_NAME
 #define NUITKA_LOADER_COMPARE_NAME(name, index, entry) strcmp(name, (entry)->name)
 #endif

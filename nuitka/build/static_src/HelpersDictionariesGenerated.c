@@ -1,12 +1,14 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+/* WARNING, this code is GENERATED. Modify the template HelperDictionaryCopy.c.j2 instead! */
+#pragma once
+
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-#endif
 
-/* WARNING, this code is GENERATED. Modify the template HelperDictionaryCopy.c.j2 instead! */
-#pragma once
+#include "nuitka/helper/dict_internals.h"
+#endif
 
 PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT

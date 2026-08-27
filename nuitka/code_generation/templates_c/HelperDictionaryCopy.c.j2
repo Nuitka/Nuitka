@@ -271,7 +271,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
     PyObject *result;
     Py_BEGIN_CRITICAL_SECTION(dict_value);
 
-    {{ dict_copy_iteration("result", "dict_value", "", "", 0) }}
+    {{ dict_copy_iteration("result", "dict_value", "", "", value_ref=0,) }}
 
     Py_END_CRITICAL_SECTION();
     return result;
@@ -303,7 +303,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #else
     Py_BEGIN_CRITICAL_SECTION(dict_value);
 
-    {{ dict_copy_iteration("result", "dict_value", "", "value = DEEP_COPY(tstate, value);", 1) }}
+    {{ dict_copy_iteration("result", "dict_value", "", "value = DEEP_COPY(tstate, value);", value_ref=1,) }}
 
     Py_END_CRITICAL_SECTION();
 #endif

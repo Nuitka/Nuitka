@@ -1,14 +1,26 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-// This file is included from another C file, help IDEs to still parse it on
-// its own.
+#pragma once
+#ifndef __NUITKA_HELPER_REPEAT_HELPERS_H__
+#define __NUITKA_HELPER_REPEAT_HELPERS_H__
+
+/* Shared helpers for the sequence repetition, i.e. "seq * n".
+ *
+ * The implementations are in "HelpersOperationBinaryMultUtils.c", which is
+ * chained into the same compilation unit, and therefore the declarations are
+ * "static" to it. The generated in-place multiply helpers use them too.
+ *
+ * This file is included from another C file, help IDEs to still parse it on its own.
+ */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-
-#include "nuitka/helper/pow_helpers.h"
 #endif
 
-#include "nuitka/helper/pow_helpers.h"
+static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value);
+static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value);
+static PyObject *SEQUENCE_REPEAT(ssizeargfunc repeatfunc, PyObject *seq, PyObject *n);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

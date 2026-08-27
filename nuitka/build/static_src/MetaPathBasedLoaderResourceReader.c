@@ -11,6 +11,10 @@
 #include "nuitka/unfreezing.h"
 #endif
 
+static char const *entryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static char const *_kw_list_get_data[];
+
 // Just for the IDE to know, this file is not included otherwise.
 #if PYTHON_VERSION >= 0x370
 

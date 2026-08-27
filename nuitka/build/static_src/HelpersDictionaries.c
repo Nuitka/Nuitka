@@ -12,6 +12,8 @@
 #include "nuitka/compiled_types_common.h"
 #endif
 
+#include "nuitka/helper/dict_internals.h"
+
 // spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
 // spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
 // spell-checker: ignore qsbr,decref,dkix,ixsize
@@ -1180,9 +1182,6 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 
 #if PYTHON_VERSION >= 0x360 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 
-// Usable fraction of keys.
-#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
-
 static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
 #if PYTHON_VERSION < 0x360
     return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
@@ -1198,25 +1197,6 @@ static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
             DK_USABLE_FRACTION(DK_SIZE(keys)) * entry_size);
 #endif
 }
-#endif
-
-#if PYTHON_VERSION < 0x3b0
-typedef PyObject *PyDictValues;
-#endif
-
-#if PYTHON_VERSION < 0x360
-#define DK_ENTRIES_SIZE(keys) (keys->dk_size)
-#elif PYTHON_VERSION < 0x3b0
-#define DK_ENTRIES_SIZE(keys) DK_USABLE_FRACTION(DK_SIZE(keys))
-#else
-#define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
-#endif
-
-// More than 2/3 of the keys are used, i.e. no space is wasted.
-#if PYTHON_VERSION < 0x360
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_size * 2) / 3)
-#else
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)
 #endif
 
 static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {

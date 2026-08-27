@@ -546,13 +546,19 @@ def emitGenerationWarning(emit, template_name):
     emit("#pragma once")
 
 
-def emitIDE(emit):
-    emit("""
-/* This file is included from another C file, help IDEs to still parse it on its own. */
-#ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
-#endif
-""")
+def emitIDE(emit, extra_includes=()):
+    emit("")
+    emit(
+        "/* This file is included from another C file, help IDEs to still parse it on its own. */"
+    )
+    emit("#ifdef __IDE_ONLY__")
+    emit('#include "nuitka/prelude.h"')
+    if extra_includes:
+        emit("")
+        for include in extra_includes:
+            emit('#include "%s"' % include)
+    emit("#endif")
+    emit("")
 
 
 def emitHeaderGuard(emit_h, filename_h):
@@ -601,15 +607,12 @@ def makeHelpersComparisonOperation(operand, op_code):
 
             emitHeaderGuard(emit_h, filename_h)
 
-            emitIDE(emit)
-            emit_h("#ifdef __IDE_ONLY__")
-            emit_h('#include "nuitka/helper/boolean.h"')
-            emit_h("#endif")
-            emit_c("#ifdef __IDE_ONLY__")
-            emit_c('#include "nuitka/helper/long_helpers.h"')
+            emitIDE(emit_h, ["nuitka/helper/boolean.h"])
+
+            comparison_c_includes = ["nuitka/helper/long_helpers.h"]
             if op_code != "EQ":
-                emit_c('#include "HelpersComparisonEqUtils.c"')
-            emit_c("#endif")
+                comparison_c_includes.append("HelpersComparisonEqUtils.c")
+            emitIDE(emit_c, comparison_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -662,24 +665,23 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
             emitHeaderGuard(emit_h, filename_h)
 
-            emitIDE(emit)
-            emit_h("#ifdef __IDE_ONLY__")
-            emit_h('#include "nuitka/helper/boolean.h"')
-            emit_h('#include "nuitka/helper/ints.h"')
-            emit_h("#endif")
+            emitIDE(emit_h, ["nuitka/helper/boolean.h", "nuitka/helper/ints.h"])
+
+            comparison_dual_c_includes = [
+                "HelpersComparison%s.c" % cmp_op_code.capitalize()
+                for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT")
+            ]
+            emitIDE(emit_c, comparison_dual_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
             if os.path.exists(filename_utils):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
-            # The dual operations use helpers from the non-dual comparison
-            # code and from the other dual operations. For the real build,
-            # those are included before these. For the other dual files, we
-            # only need forward declarations of their shared helpers.
+            # The dual operations use helpers from the other dual operations.
+            # For the real build, those are included before these, and only
+            # forward declarations of their shared helpers are needed here.
             emit_c("#ifdef __IDE_ONLY__")
-            for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
-                emit_c('#include "HelpersComparison%s.c"' % cmp_op_code.capitalize())
             for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
                 if cmp_op_code != op_code:
                     emit_c(
@@ -745,13 +747,8 @@ def makeHelpersBinaryOperation(operator, op_code):
 
             emitHeaderGuard(emit_h, filename_h)
 
-            emitIDE(emit)
-            emit_h("#ifdef __IDE_ONLY__")
-            emit_h('#include "nuitka/helper/boolean.h"')
-            emit_h("#endif")
-            emit_c("#ifdef __IDE_ONLY__")
-            emit_c('#include "nuitka/helper/long_helpers.h"')
-            emit_c("#endif")
+            emitIDE(emit_h, ["nuitka/helper/boolean.h"])
+            emitIDE(emit_c, ["nuitka/helper/long_helpers.h"])
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -805,20 +802,22 @@ def makeHelpersInplaceOperation(operator, op_code):
 
             emitHeaderGuard(emit_h, filename_h)
 
-            emitIDE(emit)
+            emitIDE(emit_h)
+
+            if op_code in ("ADD", "SUB"):
+                inplace_c_includes = ["nuitka/helper/long_helpers.h"]
+            elif op_code == "MULT":
+                inplace_c_includes = ["nuitka/helper/repeat_helpers.h"]
+            elif op_code == "POW":
+                inplace_c_includes = ["nuitka/helper/pow_helpers.h"]
+            else:
+                inplace_c_includes = []
+            emitIDE(emit_c, inplace_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
             if os.path.exists(filename_utils):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
-
-            # The in-place add and sub operations use the long digit helpers
-            # declared in this header and implemented by the binary add code.
-            # For the real build, that file is included before these.
-            if op_code in ("ADD", "SUB"):
-                emit_c("#ifdef __IDE_ONLY__")
-                emit_c('#include "nuitka/helper/long_helpers.h"')
-                emit_c("#endif")
 
             makeHelperOperations(
                 template=template,
@@ -871,11 +870,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
             emitHeaderGuard(emit_h, filename_h)
 
-            emitIDE(emit)
-            emit_h("#ifdef __IDE_ONLY__")
-            emit_h('#include "nuitka/helper/boolean.h"')
-            emit_h('#include "nuitka/helper/ints.h"')
-            emit_h("#endif")
+            emitIDE(emit_h, ["nuitka/helper/boolean.h", "nuitka/helper/ints.h"])
+            emitIDE(emit_c)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -1392,11 +1388,11 @@ def makeDictCopyHelperCodes():
         def emit(*args):
             writeLine(output_c, *args)
 
-        emitIDE(emit)
-
         template = getDoExtensionUsingTemplateC("HelperDictionaryCopy.c.j2")
 
         emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit, ["nuitka/helper/dict_internals.h"])
 
         code = template.render()
 

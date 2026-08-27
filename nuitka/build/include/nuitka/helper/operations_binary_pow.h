@@ -8,11 +8,10 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-#endif
 
-#ifdef __IDE_ONLY__
 #include "nuitka/helper/boolean.h"
 #endif
+
 /* C helpers for type specialized "**" (POW) operations */
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */

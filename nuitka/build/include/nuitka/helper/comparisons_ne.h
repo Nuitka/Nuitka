@@ -8,11 +8,10 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-#endif
 
-#ifdef __IDE_ONLY__
 #include "nuitka/helper/boolean.h"
 #endif
+
 /* C helpers for type specialized "!=" (NE) comparisons */
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */

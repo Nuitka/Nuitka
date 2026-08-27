@@ -9,13 +9,7 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "internal/pycore_pyerrors.h"
-#include "nuitka/allocator.h"
-#include "nuitka/calling.h"
-#include "nuitka/checkers.h"
-#include "nuitka/cpython_api_compat.h"
-#include "nuitka/exceptions.h"
-#include "nuitka/string_functions.h"
+#include "nuitka/prelude.h"
 #endif
 
 void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {
