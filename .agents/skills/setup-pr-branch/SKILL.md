@@ -9,11 +9,12 @@ The goal is a local branch that (a) tracks the fork's PR branch and (b) can be p
 the PR. Two facts matter:
 
 - GitHub's `refs/pull/N/head` is **read-only**; you cannot push to it.
-- Maintainers push to a fork PR by pushing to the **base repository** using the fork's branch name.
-  GitHub routes that push to the open PR's head when "allow edits from maintainers" is on.
+- Maintainers push to a fork PR by pushing to the **fork** itself. When "allow edits from
+  maintainers" is enabled, GitHub grants the maintainer temporary write access to the fork's PR
+  branch, so the push updates the PR head directly.
 
-So a fork remote must be configured with a **fetch URL pointing at the fork** and a **push URL
-pointing at the base repo** (`git@github.com:Nuitka/Nuitka.git`).
+So a fork remote must have **both its fetch and push URLs pointing at the fork**
+(`git@github.com:<owner>/Nuitka.git`).
 
 ## 1. Discover the PR head
 
@@ -32,11 +33,11 @@ Use the owner's login as the remote name. If it does not exist yet:
 git remote add <owner> git@github.com:<owner>/Nuitka.git
 ```
 
-Then, whether new or existing, force the correct URLs:
+`git remote add` sets both fetch and push URLs to the fork. If a previous wrong setup left a
+`--push` override, restore it to the fork:
 
 ```bash
-git remote set-url     <owner> git@github.com:<owner>/Nuitka.git   # fetch: the fork
-git remote set-url --push <owner> git@github.com:Nuitka/Nuitka.git  # push: the base repo
+git remote set-url --push <owner> git@github.com:<owner>/Nuitka.git
 ```
 
 Do **not** use `git remote update <owner>` or `git fetch <owner>` with no refspec: that fetches
@@ -66,9 +67,6 @@ If the branch already exists, just fix its upstream instead:
 git branch --set-upstream-to=<owner>/<branch> pr-<N>
 ```
 
-Because the local name (`pr-<N>`) now differs from the PR branch name, always push with the explicit
-form in the next step.
-
 ## 5. Push back (updates the PR)
 
 ```bash
@@ -80,11 +78,14 @@ the open PR automatically.
 
 ## Notes / pitfalls
 
-- `gh pr checkout <N>` fetches the **entire** fork and sets the push URL to the fork, so pushing
-  then fails with `permission denied`. Prefer the manual steps above when the goal is to push.
-- A pre-push hook (`autoformat`) can hang or be slow;
-- If `git status` later reports the branch "diverged" from `<owner>/<branch>`, it is usually a stale
+- `gh pr checkout <N>` fetches the **entire** fork; prefer the manual steps above to fetch only the
+  single PR branch.
+- A pre-push hook (`autoformat`) runs `git diff <remote>..<local>` and can list many files when the
+  local and remote branches have diverged; that is only the check, not the push payload. If the hook
+  itself hangs or is slow, `--no-verify` skips it, but run the autoformatter yourself first.
+- If `git status` reports the branch "diverged" from `<owner>/<branch>`, it is usually a stale
   remote-tracking ref: `git fetch <owner> <branch>` refreshes it.
 - Because the local branch is named `pr-<N>` while the remote branch keeps the fork's name, a bare
-  `git push` will not know where to go (with `push.default=simple` it would even refuse). Always use
-  `git push <owner> HEAD:<branch>`.
+  `git push` refuses (`push.default=simple` requires the names to match). Use
+  `git push <owner> HEAD:<branch>`, or `git config push.default upstream` (repo-local) to make bare
+  `git push` follow the upstream.
