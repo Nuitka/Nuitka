@@ -1667,9 +1667,10 @@ def updateCompiledOffsetsHeader():
 
         template_groups.append(
             {
-                "python_version_hex": "%x%x0" % python_version,
-                "next_python_version_hex": "%x%x0"
-                % (python_version[0], python_version[1] + 1),
+                "python_version_hex": "%x"
+                % (python_version[0] * 0x100 + python_version[1] * 0x10),
+                "next_python_version_hex": "%x"
+                % (python_version[0] * 0x100 + (python_version[1] + 1) * 0x10),
                 "is_gil": gil_str == "gil",
                 "is_debug": is_debug,
                 "os_arch_macro": _mapOsAndArchToMacro(os_name, arch_name),
