@@ -112,19 +112,47 @@ then
 fi
 python3=`which python3 2>/dev/null || true`
 
-# Only used on Windows:
-rm -rf nuitka/build/inline_copy/lib/scons-4*
+# Always delete Windows-only scons:
+rm -rf nuitka/build/inline_copy/lib/scons-4.3.0
 
-if [ "$python2_version" != "2.6" ]
+# Remove unused scons versions. The selection logic in scons.py picks:
+#   Python 2.6        -> scons-2.3.2
+#   Python 2.7, 3.4-3.6 -> scons-3.1.2
+#   Python 3.7+       -> scons-4.10.1
+
+# scons-2.3.2: keep only for Python 2.6
+if [ "$python2_version" = "2.6" ]
 then
-    # Remove files needed only for Python 2.6, they only cause errors during
-    # compilation with Python3.
-    rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
-else
-    # Remove files mot needed for Python 2.6, they only cause errors during
-    # compilation with Python 2.6.
-    rm -rf nuitka/build/inline_copy/lib/scons-3.1.2
+    # tqdm does not work with Python 2.6:
     rm -rf nuitka/build/inline_copy/tqdm
+else
+    rm -rf nuitka/build/inline_copy/lib/scons-2.3.2
+fi
+
+# scons-3.1.2: keep for Python 2.7 or Python 3 < 3.7
+keep_scons_3_1_2=
+if [ "$python2_version" = "2.7" ]
+then
+    keep_scons_3_1_2=yes
+fi
+if [ "$python3" != "" ]
+then
+    python3_major=`$python3 -c "import sys; print(sys.version_info[0])"`
+    python3_minor=`$python3 -c "import sys; print(sys.version_info[1])"`
+    if [ "$python3_major" -lt 3 ] || { [ "$python3_major" -eq 3 ] && [ "$python3_minor" -lt 7 ]; }
+    then
+        keep_scons_3_1_2=yes
+    fi
+fi
+if [ "$keep_scons_3_1_2" != "yes" ]
+then
+    rm -rf nuitka/build/inline_copy/lib/scons-3.1.2
+fi
+
+# scons-4.10.1: keep only for Python 3.7+
+if [ "$python3" = "" ] || [ "$python3_major" -lt 3 ] || { [ "$python3_major" -eq 3 ] && [ "$python3_minor" -lt 7 ]; }
+then
+    rm -rf nuitka/build/inline_copy/lib/scons-4.10.1
 fi
 
 # These are all Windows only or used only there.

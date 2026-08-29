@@ -202,11 +202,11 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
     if python_version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
-    elif os.name == "nt" and python_version_info >= (3, 7):
-        # Windows can use latest, supported MSVC 2026 this way
+    elif python_version_info >= (3, 7):
+        # Python 3.7+ can use latest
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
-        # Windows can use latest, supported MSVC 2022 this way
+        # Windows supports MSVC 2022 this way
         return "scons-4.3.0"
     else:
         # Everything else 2.7 or higher works with this.

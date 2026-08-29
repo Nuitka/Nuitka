@@ -146,20 +146,36 @@ addInlineCopy("bin")
 # Needs to match the version dispatch in "nuitka/build/inline_copy/bin/scons.py".
 # Scons may be executed with a different Python than the one used
 # to install Nuitka, so include the supported inline copies regardless.
-if os.name == "nt" or sdist_mode:
-    addInlineCopy(
-        "lib/scons-4.3.0",
-        do_byte_compile=(3, 5) <= sys.version_info < (3, 7),
-    )
-if os.name == "nt" or sdist_mode:
-    addInlineCopy("lib/scons-4.10.1", do_byte_compile=sys.version_info >= (3, 7))
-if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
-    addInlineCopy("lib/scons-2.3.2", do_byte_compile=sys.version_info < (2, 7))
-if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
-    addInlineCopy(
-        "lib/scons-3.1.2",
-        do_byte_compile=os.name != "nt" and sys.version_info >= (2, 7),
-    )
+
+
+def addSconsInlineCopy(name, condition, do_byte_compile):
+    if condition or sdist_mode:
+        addInlineCopy(name, do_byte_compile=do_byte_compile)
+
+
+# On Windows Scons is always executed with Python 3.5 or higher, regardless of
+# the Python version used to install Nuitka, so include the Scons versions for
+# those Python versions unconditionally there.
+addSconsInlineCopy(
+    "lib/scons-4.3.0",
+    condition=os.name == "nt",
+    do_byte_compile=(3, 5) <= sys.version_info < (3, 7),
+)
+addSconsInlineCopy(
+    "lib/scons-4.10.1",
+    condition=os.name == "nt" or sys.version_info >= (3, 7),
+    do_byte_compile=sys.version_info >= (3, 7),
+)
+addSconsInlineCopy(
+    "lib/scons-2.3.2",
+    condition=os.name != "nt" and sys.version_info < (2, 7),
+    do_byte_compile=sys.version_info < (2, 7),
+)
+addSconsInlineCopy(
+    "lib/scons-3.1.2",
+    condition=os.name != "nt" and (2, 7) <= sys.version_info < (3, 7),
+    do_byte_compile=(2, 7) <= sys.version_info < (3, 7),
+)
 
 nuitka_packages = findNuitkaPackages()
 
