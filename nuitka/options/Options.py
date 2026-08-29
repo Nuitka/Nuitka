@@ -3039,53 +3039,89 @@ def shallMacOSProhibitMultipleInstances():
 _python_flags = None
 
 
+def _splitPythonFlagValue(part):
+    """Split a python flag into its name and its value if any was given.
+
+    Values are given with "=" separator, e.g. "trace_imports=2", and the
+    value is *None* for flags given without one, where the flag specific
+    default is used, normally 1.
+    """
+
+    if "=" not in part:
+        return part, None
+
+    part, value = part.split("=", 1)
+
+    try:
+        value = int(value)
+    except ValueError:
+        return options_logger.sysexit(
+            "Python flag '%s' needs an integer value, not '%s'." % (part, value)
+        )
+
+    return part, value
+
+
 def _getPythonFlags():
-    """*list*, values of ``--python-flag``"""
+    """*dict*, values of ``--python-flag`` mapped to their integer values"""
     # There is many flags, pylint: disable=too-many-branches
 
     # singleton, pylint: disable=global-statement
     global _python_flags
 
     if _python_flags is None:
-        _python_flags = set()
+        _python_flags = {}
 
         for parts in options.python_flags:
             for part in parts.split(","):
+                part, value = _splitPythonFlagValue(part)
+
+                # Python allows repeating "-v" for more verbosity, e.g. "-vv",
+                # in which case the number of them is the value used.
+                if part.startswith("-v") and part.count("v") == len(part) - 1:
+                    if value is None:
+                        value = len(part) - 1
+
+                    part = "trace_imports"
+
+                if value is None:
+                    value = 1
+
                 if part in ("-S", "nosite", "no_site"):
-                    _python_flags.add("no_site")
+                    _python_flags["no_site"] = value
                 elif part in ("site",):
                     if "no_site" in _python_flags:
-                        _python_flags.remove("no_site")
+                        del _python_flags["no_site"]
                 elif part in (
                     "-R",
                     "static_hashes",
                     "norandomization",
                     "no_randomization",
                 ):
-                    _python_flags.add("no_randomization")
-                elif part in ("-v", "trace_imports", "trace_import"):
-                    _python_flags.add("trace_imports")
+                    _python_flags["no_randomization"] = value
+                elif part in ("trace_imports", "trace_import"):
+                    _python_flags["trace_imports"] = value
                 elif part in ("no_warnings", "nowarnings"):
-                    _python_flags.add("no_warnings")
+                    _python_flags["no_warnings"] = value
                 elif part in ("-O", "no_asserts", "noasserts"):
-                    _python_flags.add("no_asserts")
+                    _python_flags["no_asserts"] = value
                 elif part in ("no_docstrings", "nodocstrings"):
-                    _python_flags.add("no_docstrings")
+                    _python_flags["no_docstrings"] = value
                 elif part in ("-OO",):
-                    _python_flags.add("no_docstrings")
-                    _python_flags.add("no_asserts")
+                    _python_flags["no_docstrings"] = value
+                    _python_flags["no_asserts"] = value
                 elif part in ("no_annotations", "noannotations"):
-                    _python_flags.add("no_annotations")
+                    _python_flags["no_annotations"] = value
                 elif part in ("unbuffered", "-u"):
-                    _python_flags.add("unbuffered")
+                    _python_flags["unbuffered"] = value
                 elif part in ("-m", "package_mode"):
-                    _python_flags.add("package_mode")
+                    _python_flags["package_mode"] = value
                 elif part in ("-I", "isolated"):
-                    _python_flags.add("isolated")
+                    _python_flags["isolated"] = value
                 elif part in ("-B", "dont_write_bytecode", "dontwritebytecode"):
-                    _python_flags.add("dontwritebytecode")
+                    _python_flags["dontwritebytecode"] = value
                 elif part in ("-P", "safe_path"):
-                    _python_flags.add("safe_path")
+                    _python_flags["safe_path"] = value
                 else:
                     return options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -3094,76 +3130,92 @@ def _getPythonFlags():
     return _python_flags
 
 
+def _getPythonFlagValue(flag_name):
+    """*int*, value of the given python flag, 0 if it was not given"""
+
+    return _getPythonFlags().get(flag_name, 0)
+
+
 def hasPythonFlagNoSite():
     """*bool* = "no_site" in python flags given"""
 
-    return "no_site" in _getPythonFlags()
+    return _getPythonFlagValue("no_site") > 0
 
 
 def hasPythonFlagNoAnnotations():
     """*bool* = "no_annotations" in python flags given"""
 
-    return "no_annotations" in _getPythonFlags()
+    return _getPythonFlagValue("no_annotations") > 0
 
 
 def hasPythonFlagNoAsserts():
     """*bool* = "no_asserts" in python flags given"""
 
-    return "no_asserts" in _getPythonFlags()
+    return _getPythonFlagValue("no_asserts") > 0
 
 
 def hasPythonFlagNoDocStrings():
     """*bool* = "no_docstrings" in python flags given"""
 
-    return "no_docstrings" in _getPythonFlags()
+    return _getPythonFlagValue("no_docstrings") > 0
 
 
 def hasPythonFlagNoWarnings():
     """*bool* = "no_warnings" in python flags given"""
 
-    return "no_warnings" in _getPythonFlags()
+    return _getPythonFlagValue("no_warnings") > 0
 
 
 def hasPythonFlagIsolated():
     """*bool* = "isolated" in python flags given"""
 
-    return "isolated" in _getPythonFlags()
+    return _getPythonFlagValue("isolated") > 0
 
 
 def hasPythonFlagTraceImports():
     """*bool* = "trace_imports", "-v" in python flags given"""
 
-    return "trace_imports" in _getPythonFlags()
+    return _getPythonFlagValue("trace_imports") > 0
+
+
+def getPythonFlagTraceImportsValue():
+    """*int* = value of "trace_imports", "-v" python flag, 0 if not given
+
+    The value is the verbosity level, e.g. 2 for "-vv" like with standard
+    Python, or given directly with "trace_imports=2".
+    """
+
+    return _getPythonFlagValue("trace_imports")
 
 
 def hasPythonFlagNoRandomization():
     """*bool* = "no_randomization", "-R", "static_hashes" in python flags given"""
 
-    return "no_randomization" in _getPythonFlags()
+    return _getPythonFlagValue("no_randomization") > 0
 
 
 def hasPythonFlagNoBytecodeRuntimeCache():
     """*bool* = "dontwritebytecode", "-B" in python flags given"""
 
-    return "dontwritebytecode" in _getPythonFlags()
+    return _getPythonFlagValue("dontwritebytecode") > 0
 
 
 def hasPythonFlagNoCurrentDirectoryInPath():
     """*bool* = "safe_path", "-P" in python flags given"""
 
-    return "safe_path" in _getPythonFlags()
+    return _getPythonFlagValue("safe_path") > 0
 
 
 def hasPythonFlagUnbuffered():
     """*bool* = "unbuffered", "-u" in python flags given"""
 
-    return "unbuffered" in _getPythonFlags()
+    return _getPythonFlagValue("unbuffered") > 0
 
 
 def hasPythonFlagPackageMode():
     """*bool* = "package_mode", "-m" in python flags given"""
 
-    return "package_mode" in _getPythonFlags()
+    return _getPythonFlagValue("package_mode") > 0
 
 
 def shallNotUseDependsExeCachedResults():
