@@ -409,6 +409,8 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 /* Include the C header files most often used. */
 #include <stdio.h>
 
+#include <stdarg.h>
+
 /* A way to indicate that a specific function won't return, so the C compiler
  * can create better code.
  */
