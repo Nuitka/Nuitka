@@ -1368,7 +1368,7 @@ def buildModule(
     hide_syntax_error,
 ):
     # Many details to deal with,
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
     (
         main_added,
         is_package,

@@ -128,6 +128,7 @@ from nuitka.options.Options import (
     shallRunInDebugger,
     shallTraceExecution,
     shallTreatUninstalledPython,
+    shallUseModuleFrontendCache,
     shallUsePythonDebug,
     shallUseStaticLibPython,
 )
@@ -251,11 +252,9 @@ def _createMainModule():
     directory paths.
 
     """
-    # Many cases and details to deal with, pylint: disable=too-many-branches
+    # Many cases and details to deal with, pylint: disable=too-many-branches,too-many-statements
 
     onBeforeCodeParsing()
-
-    from nuitka.options.Options import shallUseModuleFrontendCache
 
     # First, build the raw node tree from the source code.
     with TimerReport(
@@ -374,7 +373,6 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
     # TODO: The passed filename is really something that should come from
     # a command line option, it's a filename for the graph, which might not
     # need a default at all.
-    from nuitka.options.Options import shallUseModuleFrontendCache
 
     with TimerReport(
         "Module frontend phase: optimize finished in %.2f seconds.",
@@ -530,7 +528,7 @@ def pickSourceFilenames(source_dir, modules):
 def makeSourceDirectory():
     """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=too-many-branches
+    # no sense, pylint: disable=too-many-branches,too-many-locals
 
     # assert main_module in ModuleRegistry.getDoneModules()
 
@@ -675,7 +673,9 @@ def makeSourceDirectory():
         or optimize_skip_stats.get("stub")
     ):
         general.info(
-            "Module frontend optimize-skip: %d skip(s), %d stub(s), %d full, %d probe-miss, %d probe-invalid, %d probe-bypass."
+            """\
+Module frontend optimize-skip: %d skip(s), %d stub(s), %d full, %d probe-miss, %d probe-invalid, %d probe-bypass.\
+"""
             % (
                 optimize_skip_stats.get("skip", 0),
                 optimize_skip_stats.get("stub", 0),
@@ -1153,7 +1153,6 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
 
 def compileTree():
-    from nuitka.options.Options import shallUseModuleFrontendCache
 
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
     report_mcc_phases = shallUseModuleFrontendCache()

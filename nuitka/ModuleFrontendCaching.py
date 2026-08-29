@@ -232,8 +232,8 @@ def resetModuleFrontendCacheStats():
     _module_cache_keys.clear()
     _failed_internal_helpers.clear()
 
-    global _index_by_module, _index_context_hash, _index_dirty
-    global _internal_helper_factories
+    global _index_by_module, _index_context_hash, _index_dirty  # pylint: disable=global-statement
+    global _internal_helper_factories  # pylint: disable=global-statement
     _index_by_module = None
     _index_context_hash = None
     _index_dirty = False
@@ -346,7 +346,7 @@ def _indexPath():
 
 def _ensureIndexLoaded():
     """Load the process index for the current shared context if needed."""
-    global _index_by_module, _index_context_hash
+    global _index_by_module, _index_context_hash  # pylint: disable=global-statement
 
     context_hash = _getSharedContextHash()
     if _index_by_module is not None and _index_context_hash == context_hash:
@@ -381,7 +381,7 @@ def _updateIndexEntry(module_name_str, entry):
         module_name_str: Module full name as string.
         entry: Serializable index entry dict.
     """
-    global _index_dirty
+    global _index_dirty  # pylint: disable=global-statement
 
     _ensureIndexLoaded()
     _index_by_module[module_name_str] = entry
@@ -390,7 +390,7 @@ def _updateIndexEntry(module_name_str, entry):
 
 def flushModuleFrontendCacheIndex():
     """Persist the in-memory module-frontend index if dirty."""
-    global _index_dirty
+    global _index_dirty  # pylint: disable=global-statement
 
     if not _index_dirty or _index_by_module is None:
         return
@@ -612,6 +612,7 @@ def _eligibilityReasonFromParts(module_name, is_top, is_main, source_code, mode)
         source_code: Source text or empty.
         mode: Compilation mode string.
     """
+    # Module name is kept for call site symmetry, pylint: disable=unused-argument
     if is_main or is_top:
         return "main-or-top"
     if mode != "compiled":
@@ -711,6 +712,7 @@ def _loadValidatedMetaForName(module_name, cache_key, expected_module_name):
     Returns:
         tuple: (meta_dict, paths_dict) or (None, reason_str)
     """
+    # Many validation paths, pylint: disable=too-many-return-statements,unused-argument
     paths = _cachePaths(cache_key=cache_key)
 
     if not (
@@ -788,7 +790,6 @@ def _scanModuleCArtifacts(module_c_path):
     for match in _re_call_args.finditer(text):
         # Bare WITH_ARGS{n} only; KW_SPLIT/VECTORCALL suffixes also match
         # the prefix pattern but are owned by mixed-call tracking.
-        start = match.start()
         end = match.end()
         suffix = text[end : end + 16]
         if suffix.startswith("_KW_SPLIT") or suffix.startswith("_VECTORCALL"):
@@ -960,6 +961,7 @@ def _registerHelpersFromMetaOrC(meta, module_c_path, paths):
         paths: Cache path dict for optional meta upgrade, or None to skip
             upgrade writes.
     """
+    # Many helper kinds to register, pylint: disable=too-many-branches,too-many-locals
     if _metaHasCompleteCallHelperInfo(meta=meta):
         _applyCallHelpersToCodegen(
             arities=meta.get("quick_call_arities"),
@@ -1069,7 +1071,8 @@ def _getInternalHelperFactories():
         'helper_function_<short_name>'. Values are the '@once_decorator'
         singleton factories that attach the body to the root module.
     """
-    global _internal_helper_factories
+    # Many helpers, pylint: disable=too-many-locals
+    global _internal_helper_factories  # pylint: disable=global-statement
 
     if _internal_helper_factories is not None:
         return _internal_helper_factories
@@ -1319,6 +1322,7 @@ def reconcileCrossModuleFunctionUses():
         cached meta, and missing root internal helpers are materialized from
         the known factory registry first.
     """
+    # Complex reconciliation, pylint: disable=too-many-branches,too-many-locals,too-many-statements
     from nuitka import ModuleRegistry
     from nuitka.optimizations.TraceCollections import withChangeIndicationsTo
     from nuitka.tree.Operations import visitTree
@@ -1444,6 +1448,7 @@ def reconcileCrossModuleFunctionUses():
 
     def _ignoreSignal(tags, source_ref, message):
         # Reconcile runs after optimize passes; change tracking is not needed.
+        # pylint: disable=unused-argument
         pass
 
     with withChangeIndicationsTo(signal_change=_ignoreSignal):
@@ -1470,6 +1475,7 @@ def tryProbeAndPrepareOptimizeSkip(module):
     Returns:
         bool: True if local 'computeModule' loop may be skipped.
     """
+    # Many exit conditions, pylint: disable=too-many-return-statements
     module_name = module.getFullName()
     module_name_str = module_name.asString()
 
@@ -1568,6 +1574,7 @@ def tryBuildCachedFrontendModule(
     Returns:
         module instance or None
     """
+    # Many build steps, pylint: disable=too-many-locals,unused-argument
     if not _isStubEnabled():
         return None
 
@@ -1681,6 +1688,7 @@ def tryRestoreModuleFrontendCache(module, c_filename, const_filename):
     Returns:
         bool: True if restored successfully.
     """
+    # Many restore paths, pylint: disable=too-many-return-statements
     if not _isFeatureEnabled():
         return False
 
@@ -1780,6 +1788,7 @@ def storeModuleFrontendCache(module, c_filename, const_filename):
         c_filename: Path of the generated module C file.
         const_filename: Path of the generated module const blob.
     """
+    # Many store steps, pylint: disable=too-many-locals,too-many-return-statements,too-many-statements
     if not _isFeatureEnabled():
         return False
 

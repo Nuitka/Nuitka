@@ -64,6 +64,7 @@ def signalChange(tags, source_ref, message):
 
 
 def optimizeCompiledPythonModule(module):
+    # Many details to deal with, pylint: disable=too-many-branches
     module_name = module.getFullName()
 
     optimization_logger.info_if_file(
@@ -85,7 +86,7 @@ def optimizeCompiledPythonModule(module):
     if isExperimental("module-frontend-skip-optimize") or isExperimental(
         "module-frontend-stub"
     ):
-        # L1: memoized probe — later optimization passes must not re-hash/
+        # L1: memoized probe - later optimization passes must not re-hash/
         # re-validate cache, but must still re-run dependency discovery.
         # startTraversal() resets done/active modules each pass, so skipping
         # considerUsedModules on pass 2+ collapses the inclusion set.
@@ -93,8 +94,6 @@ def optimizeCompiledPythonModule(module):
             if isModuleFrontendStub(module):
                 # Ensure optimize-skip stats/reconcile see stubs even when the
                 # probe path is not re-entered.
-                from nuitka.ModuleFrontendCaching import tryProbeAndPrepareOptimizeSkip
-
                 tryProbeAndPrepareOptimizeSkip(module)
 
             module.attemptRecursion()

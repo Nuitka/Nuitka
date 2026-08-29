@@ -675,8 +675,6 @@ def cleanSconsDirectory(source_dir):
         with ``--remove-output`` if you want reuse across builds.
     """
 
-    from nuitka.options.Options import shallKeepBackendObjects
-
     keep_objects = shallKeepBackendObjects()
 
     # spell-checker: ignore gcda
