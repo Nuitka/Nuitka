@@ -63,6 +63,7 @@ from nuitka.utils.Importing import (
     getModuleFilenameSuffixes,
     getModuleNameAndKindFromFilenameSuffix,
     getPackageDirFilename,
+    hasPackageDirFilename,
     isBuiltinModuleName,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -257,7 +258,7 @@ def isPackageDir(dirname):
         and (
             python_version >= 0x300
             or isPreloadedPackagePath(dirname)
-            or getPackageDirFilename(dirname) is not None
+            or hasPackageDirFilename(dirname)
         )
     )
 
@@ -327,7 +328,9 @@ def getModuleNameAndKindFromFilename(module_filename):
             )
 
     if os.path.isdir(module_filename):
-        package_filename = getPackageDirFilename(module_filename)
+        package_filename = getPackageDirFilename(
+            path=module_filename, package_name=None
+        )
 
         if package_filename is not None:
             _module_name, module_kind = getModuleNameAndKindFromFilenameSuffix(
@@ -856,7 +859,9 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
         found_candidate.module_type == "C_EXTENSION"
         and isMacOS()
         and not hasUniversalOrMatchingMacOSArchitecture(
-            getPackageDirFilename(found_candidate.full_path)
+            getPackageDirFilename(
+                path=found_candidate.full_path, package_name=module_name
+            )
             if os.path.isdir(found_candidate.full_path)
             else found_candidate.full_path
         )
@@ -1200,7 +1205,10 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getPackageDirFilename(filename)
+        source_filename = getPackageDirFilename(
+            path=filename,
+            package_name=module_name,
+        )
 
         if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()

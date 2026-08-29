@@ -458,6 +458,7 @@ def loadStandardPluginClasses():
 class Plugins(object):
     implicit_imports_cache = {}
     extra_scan_paths_cache = {}
+    recompile_extension_modules_cache = {}
 
     @staticmethod
     @counted_plugin_method
@@ -1485,6 +1486,9 @@ through incomplete set import by '%s' plugin encountered."""
             The decision is made by the first plugin "never", otherwise a matching
             "yes" config wins, "no" is allowed to be overridden by command line options.
         """
+        if module_name in Plugins.recompile_extension_modules_cache:
+            return Plugins.recompile_extension_modules_cache[module_name]
+
         result = None
 
         for plugin in getActivePlugins():
@@ -1496,20 +1500,23 @@ through incomplete set import by '%s' plugin encountered."""
                     assert value in ("yes", "no", "never"), value
 
                     if value == "never":
-                        return False, plugin_reason
-                    elif value == "yes":
+                        result = False, plugin_reason
+                        break
+                    if value == "yes":
                         result = True, plugin_reason
                     elif value == "no" and result is None:
                         result = False, plugin_reason
 
         options_value = shallRecompileExtensionModules(module_name)
         if options_value[0] in (True, False):
-            return options_value
+            result = options_value
 
         if result is None:
-            return None, "default behavior"
-        else:
-            return result
+            result = None, "default behavior"
+
+        Plugins.recompile_extension_modules_cache[module_name] = result
+
+        return result
 
     preprocessor_symbols = None
 

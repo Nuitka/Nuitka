@@ -1068,7 +1068,9 @@ class PythonExtensionModule(PythonModuleBase):
         self.used_modules = None
 
         if os.path.isdir(module_filename):
-            module_filename = getPackageDirFilename(module_filename)
+            module_filename = getPackageDirFilename(
+                path=module_filename, package_name=module_name
+            )
             self.is_package = True
         else:
             self.is_package = False
