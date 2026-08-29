@@ -351,9 +351,7 @@ def writeSourceCode(filename, source_code, logger, assume_yes_for_downloads):
         # detection or something else has failed.
         assert not os.path.isfile(filename), filename
 
-        putTextFileContents(
-            filename=filename, contents=source_code, encoding="latin1"
-        )
+        putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
 
     if hasFilenameExtension(filename, (".c", ".h")) and shallGenerateReadableCode():
         formatC(

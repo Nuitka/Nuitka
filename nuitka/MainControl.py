@@ -31,13 +31,6 @@ from nuitka.code_generation.CodeGeneration import (
     generateHelpersCode,
     generateModuleCode,
 )
-from nuitka.ModuleFrontendCaching import (
-    flushModuleFrontendCacheIndex,
-    getModuleFrontendCacheStats,
-    getModuleFrontendOptimizeSkipStats,
-    storeModuleFrontendCache,
-    tryRestoreModuleFrontendCache,
-)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -70,6 +63,13 @@ from nuitka.importing.Recursion import (
     scanPluginSinglePath,
 )
 from nuitka.installer.Installer import createInstallerDispatch
+from nuitka.ModuleFrontendCaching import (
+    flushModuleFrontendCacheIndex,
+    getModuleFrontendCacheStats,
+    getModuleFrontendOptimizeSkipStats,
+    storeModuleFrontendCache,
+    tryRestoreModuleFrontendCache,
+)
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -111,7 +111,6 @@ from nuitka.options.Options import (
     isPythonPgoErrorExitStrict,
     isRemoveBuildDir,
     isRuntimeProfile,
-    shallKeepBackendObjects,
     isShowInclusion,
     isShowMemory,
     isShowProgress,
@@ -121,6 +120,7 @@ from nuitka.options.Options import (
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
+    shallKeepBackendObjects,
     shallMakeModule,
     shallMakePackage,
     shallNotDoExecCCompilerCall,
@@ -316,9 +316,7 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
     # preserve the previous binary so a durable sconsign can skip re-link
     # when objects and constant blobs are unchanged.
     if not shallKeepBackendObjects():
-        _deleteResultFile(
-            OutputDirectories.getResultFullpath(onefile=False, real=True)
-        )
+        _deleteResultFile(OutputDirectories.getResultFullpath(onefile=False, real=True))
 
         if isOnefileMode():
             _deleteResultFile(
@@ -602,9 +600,7 @@ def makeSourceDirectory():
     for current_module in compiled_modules:
         module_name = current_module.getFullName()
         c_filename = module_filenames[current_module]
-        data_filename = changeFilenameExtension(
-            os.path.basename(c_filename), ".const"
-        )
+        data_filename = changeFilenameExtension(os.path.basename(c_filename), ".const")
         const_filename = getNormalizedPathJoin(
             source_dir,
             data_filename,

@@ -15,12 +15,6 @@ import traceback
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsCaching import getCcacheModuleStats
-from nuitka.ModuleFrontendCaching import (
-    getModuleFrontendCacheModuleResults,
-    getModuleFrontendCacheStats,
-    getModuleFrontendOptimizeSkipModuleResults,
-    getModuleFrontendOptimizeSkipStats,
-)
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsObjectSizes,
@@ -44,6 +38,12 @@ from nuitka.installer.Installer import (
     getInstallerOutputFilename,
     getInstallerToolVersion,
     wasInstallerCreated,
+)
+from nuitka.ModuleFrontendCaching import (
+    getModuleFrontendCacheModuleResults,
+    getModuleFrontendCacheStats,
+    getModuleFrontendOptimizeSkipModuleResults,
+    getModuleFrontendOptimizeSkipStats,
 )
 from nuitka.ModuleRegistry import (
     getDoneModules,

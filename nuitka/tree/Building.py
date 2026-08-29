@@ -1444,7 +1444,9 @@ def buildModule(
         # L3 module-frontend stub: when a validated C cache entry exists, skip
         # parse/AST/tree building entirely and only replay dependency edges.
         if not is_main and not is_top and source_code is not None:
-            from nuitka.ModuleFrontendCaching import tryBuildCachedFrontendModule
+            from nuitka.ModuleFrontendCaching import (
+                tryBuildCachedFrontendModule,
+            )
 
             stub_mode = decideCompilationMode(
                 is_top=is_top,
