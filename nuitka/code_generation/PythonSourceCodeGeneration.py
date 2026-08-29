@@ -33,19 +33,58 @@ class PythonSourceGenerationError(Exception):
 # Per-kind generators
 
 
+def _formatTypeSource(value, expression):
+    """Return the source representation of a type constant.
+
+    Only built-in types (int, str, list, dict, etc.) are available as bare
+    names in module globals.  Types from imported modules (e.g. io.BytesIO)
+    are emitted as `module_alias.TypeName` when an alias can be found, or
+    via `__import__()` otherwise.
+
+    Args:
+        value: The type to format.
+        expression: Nuitka expression node for alias resolution.
+
+    Returns:
+        The type name as a Python source string.
+    """
+    if value.__module__ in ("builtins", None):
+        return value.__name__
+
+    module = expression.getParentModule()
+    alias = _findAliasForModule(module, value.__module__)
+
+    if alias is not None:
+        return "%s.%s" % (alias, value.__name__)
+
+    return "__import__(%r).%s" % (value.__module__, value.__name__)
+
+
 def _generateConstantTypeRefSource(expression):
-    return expression.getCompileTimeConstant().__name__
+    return _formatTypeSource(expression.getCompileTimeConstant(), expression)
 
 
-def _formatConstantElement(value):
+def _formatConstantFloat(value):
+    # "repr" gives bare "inf", "-inf" and "nan", which are names, not literals.
+    result = repr(value)
+
+    if result in ("inf", "-inf", "nan"):
+        return 'float("%s")' % result
+
+    return result
+
+
+def _formatConstantElement(value, expression):
     # Return driven, pylint: disable=too-many-return-statements
     if value is Ellipsis:
         return "..."
     elif isinstance(value, type):
-        return value.__name__
+        return _formatTypeSource(value, expression)
     elif isinstance(value, str):
         return repr(value)
-    elif isinstance(value, (int, float, bool)):
+    elif isinstance(value, float):
+        return _formatConstantFloat(value)
+    elif isinstance(value, (int, bool, bytes, complex)):
         return repr(value)
     elif value is None:
         return "None"
@@ -56,23 +95,31 @@ def _formatConstantElement(value):
     elif isinstance(value, (types.BuiltinFunctionType, types.FunctionType)):
         return value.__name__
     else:
-        return _formatConstantContainer(value)
+        return _formatConstantContainer(value, expression)
 
 
-def _formatConstantContainer(value):
+def _formatConstantContainer(value, expression):
     if isinstance(value, tuple):
-        return _formatConstantTuple(value)
+        return _formatConstantTuple(value, expression)
     elif isinstance(value, list):
-        return "[%s]" % ", ".join(_formatConstantElement(e) for e in value)
+        return "[%s]" % ", ".join(_formatConstantElement(e, expression) for e in value)
     elif isinstance(value, dict):
         return "{%s}" % ", ".join(
-            "%s: %s" % (_formatConstantElement(k), _formatConstantElement(v))
+            "%s: %s"
+            % (
+                _formatConstantElement(k, expression),
+                _formatConstantElement(v, expression),
+            )
             for k, v in value.items()
         )
-    elif isinstance(value, frozenset):
-        return "frozenset({%s})" % ", ".join(_formatConstantElement(e) for e in value)
-    elif isinstance(value, set):
-        return "{%s}" % ", ".join(_formatConstantElement(e) for e in value)
+    elif isinstance(value, (set, frozenset)):
+        if not value:
+            return "frozenset()" if isinstance(value, frozenset) else "set()"
+
+        inner = ", ".join(_formatConstantElement(e, expression) for e in value)
+        if isinstance(value, frozenset):
+            return "frozenset({%s})" % inner
+        return "{%s}" % inner
     else:
         raise PythonSourceGenerationError(
             "Unsupported constant value for source generation: %s (%s)"
@@ -80,19 +127,19 @@ def _formatConstantContainer(value):
         )
 
 
-def _formatConstantTuple(value):
+def _formatConstantTuple(value, expression):
     if len(value) == 0:
         return "()"
     elif len(value) == 1:
-        return "(%s,)" % _formatConstantElement(value[0])
+        return "(%s,)" % _formatConstantElement(value[0], expression)
     else:
-        return "(%s)" % ", ".join(_formatConstantElement(e) for e in value)
+        return "(%s)" % ", ".join(_formatConstantElement(e, expression) for e in value)
 
 
 def _generateCollectionConstantSource(expression, open_br, close_br):
     elements = []
     for element in expression.getCompileTimeConstant():
-        elements.append(_formatConstantElement(element))
+        elements.append(_formatConstantElement(element, expression))
     return "%s%s%s" % (open_br, ", ".join(elements), close_br)
 
 
@@ -101,6 +148,10 @@ def _generateListConstantSource(expression):
 
 
 def _generateSetConstantSource(expression):
+    # An empty "{}" is a dictionary, not a set.
+    if not expression.getCompileTimeConstant():
+        return "set()"
+
     return _generateCollectionConstantSource(expression, "{", "}")
 
 
@@ -112,7 +163,11 @@ def _generateDictConstantSource(expression):
     items = []
     for key, value in expression.getCompileTimeConstant().items():
         items.append(
-            "%s: %s" % (_formatConstantElement(key), _formatConstantElement(value))
+            "%s: %s"
+            % (
+                _formatConstantElement(key, expression),
+                _formatConstantElement(value, expression),
+            )
         )
     return "{%s}" % ", ".join(items)
 
@@ -193,7 +248,7 @@ def _generateGenericAliasSource(expression):
 def _generateTupleConstantSource(expression):
     elements = []
     for element in expression.getCompileTimeConstant():
-        elements.append(_formatConstantElement(element))
+        elements.append(_formatConstantElement(element, expression))
     if len(elements) == 0:
         return "()"
     elif len(elements) == 1:
@@ -296,7 +351,7 @@ def _generateCallSource(expression):
                 argument_sources.append(generateExpressionSource(element))
         else:
             for element in args.getCompileTimeConstant():
-                argument_sources.append(_formatConstantElement(element))
+                argument_sources.append(_formatConstantElement(element, expression))
 
     kwargs = expression.subnode_kwargs
     if kwargs is not None:
@@ -307,7 +362,9 @@ def _generateCallSource(expression):
                 argument_sources.append("%s=%s" % (key, value))
         else:
             for key, value in kwargs.getCompileTimeConstant().items():
-                argument_sources.append("%s=%s" % (key, _formatConstantElement(value)))
+                argument_sources.append(
+                    "%s=%s" % (key, _formatConstantElement(value, expression))
+                )
 
     return "%s(%s)" % (called_source, ", ".join(argument_sources))
 
@@ -510,11 +567,13 @@ def _generateReturnSource(statement, indent):
         if isinstance(constant, dict):
             items = []
             for key, value in constant.items():
-                items.append("%s: %s" % (repr(key), _constantToSource(value)))
+                items.append(
+                    "%s: %s" % (repr(key), _constantToSource(value, statement))
+                )
 
             value = "{%s}" % ", ".join(items)
         else:
-            value = _constantToSource(constant)
+            value = _constantToSource(constant, statement)
 
         return "%sreturn %s" % (indent, value)
     else:
@@ -523,22 +582,41 @@ def _generateReturnSource(statement, indent):
         return "%sreturn %s" % (indent, value)
 
 
-def _constantToSource(value):
+def _constantToSource(value, expression):
     """Convert a compile-time constant to its Python source representation."""
+    # return driven, pylint: disable=too-many-return-statements
     if isinstance(value, type):
-        return value.__name__
-    elif isinstance(value, (str, int, float, complex, bytes, bytearray)):
+        return _formatTypeSource(value, expression)
+    elif isinstance(value, float):
+        return _formatConstantFloat(value)
+    elif isinstance(value, (str, int, complex, bytes, bytearray)):
         return repr(value)
     elif value is None:
         return "None"
     elif value is Ellipsis:
         return "..."
+    elif isinstance(value, (tuple, list, set, frozenset, dict)):
+        # "repr" of a container renders a contained type as "<class 'int'>",
+        # which is not valid source and escapes as an uncaught SyntaxError.
+        return _formatConstantElement(value, expression)
     else:
-        return _formatConstantElement(value)
+        return _formatConstantElement(value, expression)
 
 
 def generateFunctionSourceFromBody(function_body):
     """Generate a complete `def ...` Python source from a function body."""
+    # TODO: Bytecode backed functions cannot resolve names from enclosing
+    # scopes through the module dictionary, which is their only globals.
+    # Make closure variables resolve instead of raising and falling back
+    # to compiled C code.
+    closure_variables = function_body.getClosureVariables()
+
+    if closure_variables:
+        raise PythonSourceGenerationError(
+            "Closure variables cannot be resolved from module dictionary: %s"
+            % ", ".join(variable.getName() for variable in closure_variables)
+        )
+
     body_source = generateStatementSequenceSource(
         function_body.subnode_body, indent=" " * 4
     )
@@ -595,7 +673,16 @@ def _generateImportModuleNameHardSource(expression):
     # These are `from module import name` names, e.g. `from typing import List`.
     # The import name is the local name, which is the module global resolved by
     # annotationlib, unless an `as` alias was used.
-    return expression.getImportName()
+    import_name = expression.getImportName()
+    module_name = expression.getModuleName()
+    target = module_name.asString() if hasattr(module_name, "asString") else module_name
+    module = expression.getParentModule()
+    alias = _findAliasForModule(module, target)
+
+    if alias:
+        return "%s.%s" % (alias, import_name)
+
+    return "__import__(%r).%s" % (target, import_name)
 
 
 # ---------------------------------------------------------------------------
