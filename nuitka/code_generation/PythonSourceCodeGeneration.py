@@ -118,9 +118,11 @@ def _generateDictConstantSource(expression):
 
 
 def _findAliasForModule(module, target):
-    """Find `import X as Y` alias for `target` via trace collection.
+    """Find the module variable name for `target` via trace collection.
 
-    Returns alias string if found and differs from target, else None.
+    Returns the variable name (the alias, or the module name itself when it
+    was imported without a rename) if a module variable for `target` exists,
+    else None.
     """
     trace_collection = module.getTraceCollection()
 
@@ -145,12 +147,7 @@ def _findAliasForModule(module, target):
                 module_name = node.getModuleName()
 
                 if module_name.asString() == target:
-                    alias = variable.getName()
-
-                    if alias != target:
-                        return alias
-
-                    return None
+                    return variable.getName()
             elif node.isExpressionBuiltinImport():
                 # General import `import mymod as mm` -> `__import__('mymod')`
                 name_node = node.subnode_name
@@ -163,12 +160,7 @@ def _findAliasForModule(module, target):
                 if module_name_str != target:
                     continue
 
-                alias = variable.getName()
-
-                if alias != target:
-                    return alias
-
-                return None
+                return variable.getName()
 
     return None
 
@@ -571,6 +563,13 @@ def _generateImportModuleHardSource(expression):
     return "__import__(%r)" % target
 
 
+def _generateImportModuleNameHardSource(expression):
+    return "%s.%s" % (
+        _generateImportModuleHardSource(expression),
+        expression.getImportName(),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table
 
@@ -639,6 +638,8 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
+    "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
+    "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": _generateImportModuleNameHardSource,
 }
 
 _statement_source_dispatch = {
