@@ -11,9 +11,13 @@ CompileFlags:
     - -D_UNICODE
     - -I{{ repo_root }}/nuitka/build/include
     - -I{{ repo_root }}/nuitka/build/static_src
+    - -I{{ repo_root }}/nuitka/build/inline_copy/zstd
     - -I{{ repo_root }}/nuitka/build/inline_copy/zlib
     - -I{{ repo_root }}/nuitka/build/inline_copy/libbacktrace
     - -I{{ python_include_path }}
+{% for path in plugin_include_paths %}
+    - -I{{ path }}
+{% endfor %}
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}
