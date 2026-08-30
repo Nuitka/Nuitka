@@ -261,8 +261,57 @@ def _generateConstantStrRefSource(expression):
     return repr(expression.getCompileTimeConstant())
 
 
+def _generateConstantBytesRefSource(expression):
+    return repr(expression.getCompileTimeConstant())
+
+
 def _generateConstantIntRefSource(expression):
     return repr(expression.getCompileTimeConstant())
+
+
+def _generateConstantFloatRefSource(expression):
+    return _formatConstantFloat(expression.getCompileTimeConstant())
+
+
+def _generateConstantComplexRefSource(expression):
+    return repr(expression.getCompileTimeConstant())
+
+
+def _generateConstantBytearrayRefSource(expression):
+    return repr(expression.getCompileTimeConstant())
+
+
+def _generateConstantSliceRefSource(expression):
+    value = expression.getCompileTimeConstant()
+
+    parts = [
+        _formatConstantElement(value.start, expression),
+        _formatConstantElement(value.stop, expression),
+        _formatConstantElement(value.step, expression),
+    ]
+
+    # Omit trailing None components to match the canonical slice literal form
+    # (e.g. `slice(None, 5)` rather than `slice(None, 5, None)`), since repr()
+    # itself is not valid as a bare expression.
+    while parts and parts[-1] == "None":
+        parts.pop()
+
+    return "slice(%s)" % ", ".join(parts)
+
+
+def _generateConstantXrangeRefSource(expression):
+    value = expression.getCompileTimeConstant()
+
+    parts = [
+        _formatConstantElement(value.start, expression),
+        _formatConstantElement(value.stop, expression),
+    ]
+
+    step = _formatConstantElement(value.step, expression)
+    if step != "1":
+        parts.append(step)
+
+    return "range(%s)" % ", ".join(parts)
 
 
 def _generateConstantBoolRefSource(expression):
@@ -306,13 +355,22 @@ _atomic_kinds = frozenset(
         "EXPRESSION_CONSTANT_TYPE_REF",
         "EXPRESSION_VARIABLE_REF",
         "EXPRESSION_CONSTANT_STR_REF",
+        "EXPRESSION_CONSTANT_STR_EMPTY_REF",
         "EXPRESSION_CONSTANT_UNICODE_REF",
+        "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF",
+        "EXPRESSION_CONSTANT_BYTES_REF",
+        "EXPRESSION_CONSTANT_BYTES_EMPTY_REF",
+        "EXPRESSION_CONSTANT_BYTEARRAY_REF",
         "EXPRESSION_CONSTANT_INT_REF",
         "EXPRESSION_CONSTANT_LONG_REF",
+        "EXPRESSION_CONSTANT_FLOAT_REF",
+        "EXPRESSION_CONSTANT_COMPLEX_REF",
         "EXPRESSION_CONSTANT_NONE_REF",
         "EXPRESSION_CONSTANT_TRUE_REF",
         "EXPRESSION_CONSTANT_FALSE_REF",
         "EXPRESSION_CONSTANT_ELLIPSIS_REF",
+        "EXPRESSION_CONSTANT_SLICE_REF",
+        "EXPRESSION_CONSTANT_XRANGE_REF",
         "EXPRESSION_ATTRIBUTE_LOOKUP",
         "EXPRESSION_SUBSCRIPT_LOOKUP",
         "EXPRESSION_FUNCTION_CALL",
@@ -698,13 +756,22 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_TYPE_TYPE_REF": _generateConstantTypeRefSource,
     "EXPRESSION_VARIABLE_REF": _generateVariableRefSource,
     "EXPRESSION_CONSTANT_STR_REF": _generateConstantStrRefSource,
+    "EXPRESSION_CONSTANT_STR_EMPTY_REF": _generateConstantStrRefSource,
     "EXPRESSION_CONSTANT_UNICODE_REF": _generateConstantStrRefSource,
+    "EXPRESSION_CONSTANT_UNICODE_EMPTY_REF": _generateConstantStrRefSource,
+    "EXPRESSION_CONSTANT_BYTES_REF": _generateConstantBytesRefSource,
+    "EXPRESSION_CONSTANT_BYTES_EMPTY_REF": _generateConstantBytesRefSource,
+    "EXPRESSION_CONSTANT_BYTEARRAY_REF": _generateConstantBytearrayRefSource,
     "EXPRESSION_CONSTANT_INT_REF": _generateConstantIntRefSource,
     "EXPRESSION_CONSTANT_LONG_REF": _generateConstantIntRefSource,
+    "EXPRESSION_CONSTANT_FLOAT_REF": _generateConstantFloatRefSource,
+    "EXPRESSION_CONSTANT_COMPLEX_REF": _generateConstantComplexRefSource,
     "EXPRESSION_CONSTANT_NONE_REF": _generateConstantNoneRefSource,
     "EXPRESSION_CONSTANT_TRUE_REF": _generateConstantBoolRefSource,
     "EXPRESSION_CONSTANT_FALSE_REF": _generateConstantBoolRefSource,
     "EXPRESSION_CONSTANT_ELLIPSIS_REF": _generateEllipsisSource,
+    "EXPRESSION_CONSTANT_SLICE_REF": _generateConstantSliceRefSource,
+    "EXPRESSION_CONSTANT_XRANGE_REF": _generateConstantXrangeRefSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP": _generateAttributeLookupSource,
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
     "EXPRESSION_OPERATION_BINARY_BIT_OR": _generateBinaryOpSource,
