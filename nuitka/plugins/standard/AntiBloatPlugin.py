@@ -52,6 +52,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         noinclude_dask_mode,
         noinclude_numba_mode,
         noinclude_default_mode,
+        noinclude_pil_image_formats,
         custom_choices,
         show_changes,
     ):
@@ -241,6 +242,27 @@ instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
             if mode == "allow":
                 self.control_tags["use_%s" % module_name] = True
 
+        # Image format plugins of PIL/Pillow to exclude from being followed,
+        # given as their format plugin base names without the "ImagePlugin"
+        # suffix and lower cased, e.g. "avif". Consumed by the "PIL.Image"
+        # variable config in the standard package configuration.
+        if noinclude_pil_image_formats:
+            self.pil_excluded_image_formats = tuple(
+                sorted(
+                    set(
+                        image_format.strip().lstrip(".").lower()
+                        for image_format in noinclude_pil_image_formats.split(",")
+                        if image_format.strip()
+                    )
+                )
+            )
+        else:
+            self.pil_excluded_image_formats = ()
+
+        self.control_tags["pil_excluded_image_formats"] = (
+            self.pil_excluded_image_formats
+        )
+
         self.handled_module_namespaces = {}
 
         for handled_module_name, (
@@ -274,7 +296,9 @@ instead of '--noinclude-custom-mode=%s'""" % (module_name, custom_choice))
         self.context_codes = {}
 
         # Precompute this for getCacheContributionValues to avoid sorting each time
-        self.handled_modules_hash = str(tuple(sorted(self.handled_modules.items())))
+        self.handled_modules_hash = str(
+            tuple(sorted(self.handled_modules.items()))
+        ) + str(self.pil_excluded_image_formats)
 
     def getEvaluationConditionControlTags(self):
         return self.control_tags
@@ -400,6 +424,20 @@ can be used to turn all of these on.""",
 What to do if a specific import is encountered. Format is module name,
 which can and should be a top level package and then one choice, "error",
 "warning", "nofollow", e.g. PyQt5:error.""",
+        )
+
+        group.add_option(
+            "--noinclude-pil-image-formats",
+            action="store",
+            dest="noinclude_pil_image_formats",
+            metavar="FORMATS",
+            default=None,
+            help="""\
+Comma separated list of PIL/Pillow image format plugins to not include. Use
+this to avoid unused image formats, whose support can be several MB in size,
+most notably 'avif'. Names are the format plugin base names, lower cased and
+without the "ImagePlugin" suffix, e.g. 'avif', 'webp', 'jpeg2k'. By default
+nothing is excluded and all available image formats are supported.""",
         )
 
     def _getContextCode(self, module_name, anti_bloat_config):
