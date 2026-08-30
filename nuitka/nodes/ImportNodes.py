@@ -59,6 +59,7 @@ from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import withNoDeprecationWarning, withWarningRemoved
 
+from .BuiltinOpenNodes import makeBuiltinOpenRefNode
 from .ChildrenHavingMixins import (
     ChildHavingModuleMixin,
     ChildrenExpressionBuiltinImportMixin,
@@ -829,6 +830,12 @@ class ExpressionImportlibImportModuleCall(
 addModuleSingleAttributeNodeFactory(
     "importlib", "import_module", ExpressionImportlibImportModuleRef
 )
+
+if python_version >= 0x300:
+    # In Python3 "io.open" is the same function as "open", therefore we handle
+    # it as such, so that file tracing for embedded data files applies to it
+    # as well.
+    addModuleSingleAttributeNodeFactory("io", "open", makeBuiltinOpenRefNode)
 
 
 def _makeParentImportModuleUsages(module_name, source_ref):
