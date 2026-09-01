@@ -57,15 +57,27 @@ static PyLongObject *Nuitka_LongNew(Py_ssize_t size) {
 
     PyLongObject *result =
         (PyLongObject *)NuitkaObject_Malloc(offsetof(PyLongObject, long_value.ob_digit) + ndigits * sizeof(digit));
+
+    _PyObject_Init((PyObject *)result, &PyLong_Type);
+
+#if PYTHON_VERSION >= 0x3f0
+    // Python 3.15 initializes the tag before setting sign and digit count,
+    // since "_PyLong_SetSignAndDigitCount" asserts the value is not a small
+    // int and reads the tag field via "_PyLong_IsSmallInt".
+    _PyLong_InitTag(result);
+#endif
+
     _PyLong_SetSignAndDigitCount(result, size != 0, size);
-    PyObject_INIT(result, &PyLong_Type);
     result->long_value.ob_digit[0] = 0;
     return result;
-#elif PYTHON_VERSION >= 0x300
-    PyLongObject *result = (PyLongObject *)NuitkaObject_Malloc(offsetof(PyLongObject, ob_digit) + size * sizeof(digit));
-    return (PyLongObject *)PyObject_INIT_VAR(result, &PyLong_Type, size);
 #else
-    return (PyLongObject *)PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
+    PyLongObject *result = (PyLongObject *)NuitkaObject_Malloc(offsetof(PyLongObject, ob_digit) + size * sizeof(digit));
+
+    Py_SET_SIZE((PyVarObject *)result, size);
+    Py_SET_TYPE(result, &PyLong_Type);
+    Nuitka_Py_NewReference((PyObject *)result);
+
+    return result;
 #endif
 }
 
