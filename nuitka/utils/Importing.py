@@ -349,6 +349,44 @@ def getPackageDirFilename(path, package_name):
         return sorted(candidates, key=prioritize)[0][0]
 
 
+def listPackageDirFilename(path):
+    assert os.path.isdir(path)
+
+    # Cyclic dependency here
+    from .FileOperations import listDir
+
+    candidates = []
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 2,
+        "C_EXTENSION": 1,
+    }
+
+    for filename_full, filename in listDir(path):
+        for suffix, module_type in getModuleFilenameSuffixes():
+            if filename.endswith(suffix):
+                module_name, _ = getModuleNameAndKindFromFilenameSuffix(filename)
+                candidates.append((module_name, module_type, (filename_full, filename)))
+                break
+
+    def prioritize(candidate):
+        decision, _reason = decideRecompileExtensionModules(candidate[0])
+        if candidate[1] == "PY_SOURCE" and decision:
+            return priority_map[candidate[1]] - 2
+        return priority_map[candidate[1]]
+
+    seen = set()
+    result = []
+
+    for candidate in sorted(candidates, key=prioritize):
+        if candidate[0] in seen:
+            continue
+        seen.add(candidate[0])
+        result.append(candidate[2])
+    return result
+
+
 @contextmanager
 def withTemporarySysPathExtension(extra_paths, prepend=False):
     old_path = sys.path[:]
