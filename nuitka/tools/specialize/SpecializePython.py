@@ -821,6 +821,12 @@ from .Checkers import (
 )
 """)
 
+        emit2("""
+from .Checkers import (
+    convertNoneConstantToNone
+)
+""")
+
         emit3("""
 from .Checkers import (
     checkStatementsSequenceOrNone, \

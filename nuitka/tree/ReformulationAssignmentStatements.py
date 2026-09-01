@@ -1233,8 +1233,25 @@ def buildNamedExprNode(provider, node, source_ref):
     return outline_body
 
 
-def buildTypeVarNode(node, source_ref):
-    return ExpressionTypeVariable(node.name, source_ref=source_ref)
+def buildTypeVarNode(provider, node, source_ref):
+    bound = buildNode(provider, node.bound, source_ref, allow_none=True)
+
+    if python_version >= 0x3D0:
+        default_value = buildNode(
+            provider,
+            node.default_value,
+            source_ref,
+            allow_none=True,
+        )
+    else:
+        default_value = None
+
+    return ExpressionTypeVariable(
+        name=node.name,
+        bound=bound,
+        default_value=default_value,
+        source_ref=source_ref,
+    )
 
 
 def buildTypeVarTupleNode(node, source_ref):

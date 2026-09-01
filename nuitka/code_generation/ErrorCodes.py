@@ -71,7 +71,7 @@ def getErrorExitBoolCode(
         condition: C boolean expression checking for error.
         emit: Function to emit code.
         context: Code generation context.
-        release_names: Tuple/list of variable names to release.
+        release_names: Tuple/list of variable names to release, None entries are allowed.
         release_name: Single variable name to release.
         fetched_exception: Whether exception is already fetched.
         needs_check: Whether validation of condition is needed.
