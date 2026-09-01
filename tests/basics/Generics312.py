@@ -120,6 +120,15 @@ print(functionTypeParams, functionTypeParams.__type_params__)
 print(asyncFunctionTypeParams, asyncFunctionTypeParams.__type_params__)
 print(asyncGenTypeParams, asyncGenTypeParams.__type_params__)
 
+
+class EnclosingScope[T, *Ts, **P]:
+    def method(self):
+        print("Type variables in enclosing scope:", T, Ts, P)
+        return T, Ts, P
+
+
+print("Stole from class:", EnclosingScope().method())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
