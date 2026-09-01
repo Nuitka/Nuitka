@@ -39,11 +39,11 @@ from nuitka.plugins.Hooks import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
     getPackageDirFilename,
     hasPackageDirFilename,
+    listPackageDirFilename,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -427,7 +427,7 @@ def _addIncludedModule(module, package_only):
             recursion_logger.info("Package directory '%s'." % package_dir)
 
         if not package_only:
-            for sub_path, sub_filename in listDir(package_dir):
+            for sub_path, sub_filename in listPackageDirFilename(package_dir):
                 if sub_filename == "__pycache__" or hasPackageDirFilename(sub_filename):
                     continue
 
@@ -546,7 +546,7 @@ def scanPluginPath(plugin_filename, module_package):
     # This effectively only covers files known to not be packages due to name
     # or older Python version.
     elif os.path.isdir(plugin_filename):
-        for sub_path, sub_filename in listDir(plugin_filename):
+        for sub_path, sub_filename in listPackageDirFilename(plugin_filename):
             assert sub_filename != "__init__.py"
 
             if isPackageDir(sub_path) or sub_path.endswith(".py"):
