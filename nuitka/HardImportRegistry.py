@@ -119,9 +119,8 @@ def isHardModule(module_name):
     if max_version is not None and python_version >= max_version:
         return False
 
-    if os_limit is not None:
-        if os_limit == "win32":
-            return isWin32Windows()
+    if os_limit == "win32":
+        return isWin32Windows()
 
     return True
 
