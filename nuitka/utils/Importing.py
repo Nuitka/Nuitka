@@ -11,9 +11,9 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import imp
+from nuitka.plugins.Hooks import decideRecompileExtensionModules
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
-from nuitka.plugins.Hooks import decideRecompileExtensionModules
 
 from .InlineCopies import getInlineCopyFolder
 from .ModuleNames import ModuleName
