@@ -84,7 +84,21 @@ def _formatConstantElement(value, expression):
         return repr(value)
     elif isinstance(value, float):
         return _formatConstantFloat(value)
-    elif isinstance(value, (int, bool, bytes, complex)):
+    elif isinstance(value, (int, bool, bytes)):
+        return repr(value)
+    elif isinstance(value, complex):
+        # "repr" of complex numbers with nan/inf components yields bare
+        # "nan"/"inf" tokens (e.g. "(nan+1j)"), which are names, not
+        # literals. For such values fall back to "complex(real, imag)" so
+        # each component is formatted via '_formatConstantFloat'.
+        real, imag = value.real, value.imag
+
+        if repr(real) in ("inf", "-inf", "nan") or repr(imag) in ("inf", "-inf", "nan"):
+            return "complex(%s, %s)" % (
+                _formatConstantFloat(real),
+                _formatConstantFloat(imag),
+            )
+
         return repr(value)
     elif value is None:
         return "None"
@@ -274,7 +288,7 @@ def _generateConstantFloatRefSource(expression):
 
 
 def _generateConstantComplexRefSource(expression):
-    return repr(expression.getCompileTimeConstant())
+    return _formatConstantElement(expression.getCompileTimeConstant(), expression)
 
 
 def _generateConstantBytearrayRefSource(expression):
