@@ -108,12 +108,13 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
             code = r"""
 import os
-nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
-os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
+if not os.getenv("PYGLFW_LIBRARY"):
+    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+    os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
 """ % os.path.basename(dll_filename)
             return (
                 code,
-                "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",
+                "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL unless already provided.",
             )
 
 
