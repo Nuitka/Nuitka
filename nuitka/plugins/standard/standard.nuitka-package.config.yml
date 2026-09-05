@@ -423,6 +423,11 @@
         - 'av.sidedata.encparams'
         - 'av.sidedata.motionvectors'
 
+- module-name: 'av.stream' # checksum: 73884502
+  implicit-imports:
+    - depends:
+        - 'av.utils'
+
 - module-name: 'av.utils' # checksum: 8fbe7302
   implicit-imports:
     - depends:
@@ -5477,7 +5482,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: 498a67fc
+- module-name: 'PySide6' # checksum: 233c47b6
   implicit-imports:
     - post-import-code:
         - |
@@ -5521,7 +5526,7 @@
           def patched_singleShot(self, *args, **kwargs):
             if args:
               args = list(args)
-              args[0] = protect(args[0])
+              args[-1] = protect(args[-1])
 
             return orig_singleShot(self, *args, **kwargs)
 
@@ -5580,6 +5585,13 @@
         - 'PySide6'
 
 - module-name: 'PySimpleGUI' # checksum: 8c86c1db
+  anti-bloat:
+    - description: 'remove pydoc usage'
+      replacements_plain:
+        'import pydoc': ''
+      when: 'not use_pydoc'
+
+- module-name: 'PySimpleGUI.PySimpleGUI' # checksum: 8c86c1db
   anti-bloat:
     - description: 'remove pydoc usage'
       replacements_plain:
@@ -8496,12 +8508,15 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_cocoa' # checksum: f4de9bcb
+- module-name: 'toga_cocoa' # checksum: 70bf3b7d
   data-files:
     - dirs:
         - 'resources'
     - include-metadata:
         - 'toga-cocoa'
+  implicit-imports:
+    - depends:
+        - 'toga_cocoa.resources'
 
 - module-name: 'toga_gtk' # checksum: eb33d9fa
   data-files:
@@ -9605,7 +9620,7 @@
         prefixes:
           - 'libvosk'
 
-- module-name: 'vtk' # checksum: 4efecff3
+- module-name: 'vtk' # checksum: ae2c9ea7
   implicit-imports:
     - depends:
         - 'vtkmodules'
@@ -9616,7 +9631,6 @@
     # not find packages in unless added.
     - package-paths:
         - 'vtkmodules'
-      when: 'version("vtk") >= (9,)'
 
 - module-name: 'vtkmodules' # checksum: 3b668f13
   implicit-imports:

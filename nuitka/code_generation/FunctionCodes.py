@@ -6,7 +6,7 @@
 from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
-from nuitka.Tracing import general
+from nuitka.Tracing import code_generation_logger
 
 from .AnnotateFunctionCodes import (
     generateAnnotateFunctionCreationCode,
@@ -238,8 +238,7 @@ def _tryGenerateAnnotateFunctionCreationCode(
             function_qualname=function_qualname,
             source_ref=source_ref,
         ):
-            # TODO: Add user control to selectively allow/deny fallback per function.
-            general.sysexit(
+            return code_generation_logger.sysexit(
                 """\
 Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
                 % (function_qualname, source_ref.getAsString(), e)
@@ -687,7 +686,9 @@ def getFunctionCode(
             needs_exception_exit=needs_exception_exit,
         )
     except Exception:
-        general.warning("Problem creating function code %r." % function_identifier)
+        code_generation_logger.warning(
+            "Problem creating function code %r." % function_identifier
+        )
         raise
 
 

@@ -2223,7 +2223,9 @@ version_group.add_option(
     metavar="FILE_DESCRIPTION",
     default=None,
     help="""\
-Description of the file used in version information. Windows only at this time. Defaults to binary filename.""",
+Description of the file used in version information. On Windows, it is mandatory and
+defaults to the binary filename. On Linux app mode, it is used as the summary of the
+AppStream metadata. Defaults to unused.""",
 )
 
 version_group.add_option(

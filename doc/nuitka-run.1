@@ -474,7 +474,7 @@ File version to use in version information. Must be a sequence of up to 4 number
 Product version to use in version information. Same rules as for file version. Defaults to unused.
 .TP
 \fB\-\-file\-description\fR=\fI\,FILE_DESCRIPTION\/\fR
-Description of the file used in version information. Windows only at this time. Defaults to binary filename.
+Description of the file used in version information. On Windows, it is mandatory and defaults to the binary filename. On Linux app mode, it is used as the summary of the AppStream metadata. Defaults to unused.
 .TP
 \fB\-\-copyright\fR=\fI\,COPYRIGHT_TEXT\/\fR
 Copyright used in version information. Windows/macOS only at this time. Defaults to not present.

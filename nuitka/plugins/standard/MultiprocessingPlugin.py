@@ -132,6 +132,7 @@ if str is not bytes:
 
             import __parents_main__ as parents_main
 
+            parents_main.__spec__ = None
             sys.modules["__main__"] = parents_main
             sys.modules["__mp_main__"] = parents_main
 
@@ -201,6 +202,7 @@ def _process_worker_for_nuitka():
                     except ImportError:
                         pass
                     else:
+                        parents_main.__spec__ = None
                         sys.modules["__main__"] = parents_main
                         sys.modules["__mp_main__"] = parents_main
 

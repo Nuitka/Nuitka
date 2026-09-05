@@ -848,8 +848,6 @@ def _checkMdformatUsability(logger, binary_path):
                 False,
                 "failed to format a test file: %s" % (stderr or e),
             )
-        finally:
-            deleteFile(temp_filename, must_exist=False)
 
     _check_mdformat_usability_cache[binary_path] = result
 

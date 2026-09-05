@@ -327,7 +327,12 @@ def _updateCase(
     if eval(
         wait_for_req,
         None,
-        {"python_version": installed_python.getHexVersion()},
+        {
+            "python_version": installed_python.getHexVersion(),
+            "win32": isWin32Windows(),
+            "linux": isLinux(),
+            "macos": isMacOS(),
+        },
     ):
         try:
             _updateCaseLock(

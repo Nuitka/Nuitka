@@ -20,7 +20,10 @@ from nuitka.nodes.AttributeNodesGenerated import (
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.options.Options import isCompileTimeProfile
+from nuitka.options.Options import (
+    isCompileTimeProfile,
+    shallNotFallbackBytecodeToCompiled,
+)
 from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -571,7 +574,21 @@ def _generateModuleCode(module, data_filename):
 
             try:
                 generateFunctionSourceFromBody(function_body)
-            except PythonSourceGenerationError:
+            except PythonSourceGenerationError as e:
+                function_qualname = function_body.getFunctionQualname()
+                source_ref = function_body.getSourceReference()
+
+                if shallNotFallbackBytecodeToCompiled(
+                    module_name=context.getModuleName(),
+                    function_qualname=function_qualname,
+                    source_ref=source_ref,
+                ):
+                    return code_generation_logger.sysexit(
+                        """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                        % (function_qualname, source_ref.getAsString(), e)
+                    )
+
                 function_body.addFlag("force_c")
 
         function_code, function_decl = generateFunctionBodyCode(
