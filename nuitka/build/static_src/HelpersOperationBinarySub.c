@@ -2151,10 +2151,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_CLONG(PyObject *operand1, lon
         unsigned long t = operand2_abs_ival;
 
         while (t != 0) {
-            operand2_digit_count += 1;
-            assert(operand2_digit_count <= (Py_ssize_t)(sizeof(operand2_digit_count) / sizeof(digit)));
+            assert(operand2_digit_count < (Py_ssize_t)(sizeof(operand2_digits) / sizeof(operand2_digits[0])));
 
             operand2_digits[operand2_digit_count] = (digit)(t & PyLong_MASK);
+            operand2_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }
@@ -2257,10 +2257,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_CLONG_LONG(long operand1, PyObject
         unsigned long t = operand1_abs_ival;
 
         while (t != 0) {
-            operand1_digit_count += 1;
-            assert(operand1_digit_count <= (Py_ssize_t)(sizeof(operand1_digit_count) / sizeof(digit)));
+            assert(operand1_digit_count < (Py_ssize_t)(sizeof(operand1_digits) / sizeof(operand1_digits[0])));
 
             operand1_digits[operand1_digit_count] = (digit)(t & PyLong_MASK);
+            operand1_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }
