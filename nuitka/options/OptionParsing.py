@@ -2165,6 +2165,24 @@ metainfo file created on Linux, e.g. 'Apache-2.0'. Defaults
 to 'Proprietary'.""",
 )
 
+
+linux_group.add_option(
+    "--linux-app-console-mode",
+    action="store",
+    dest="linux_app_console_mode",
+    choices=("force", "detect", "disable"),
+    metavar="MODE",
+    default="detect",
+    help="""\
+Select console mode for Linux. 'force' always opens Terminal
+if not already running in one, useful for console/TUI applications launched. 
+'detect' (default) opens Terminal when no terminal is detected
+(currently behaves the same as 'force', with smarter heuristics planned for
+future releases). 'disable' never opens Terminal automatically. This helps
+console applications work correctly when launched from GUI contexts. 
+Default is "detect".""",
+)
+
 del linux_group
 
 version_group = parser.add_option_group("Binary Version Information")
