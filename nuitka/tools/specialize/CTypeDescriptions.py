@@ -1859,6 +1859,10 @@ class CFloatDesc(ConcreteCTypeBase):
     type_decl = "double"
 
     @classmethod
+    def getAssignFromFloatExpressionCode(cls, result, operand):
+        return "%s = %s;" % (result, operand)
+
+    @classmethod
     def getCheckValueCode(cls, operand):
         return ""
 

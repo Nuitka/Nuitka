@@ -11,7 +11,12 @@
     const double a = {{ left.getAsDoubleValueExpression(operand1) }};
     const double b = {{ right.getAsDoubleValueExpression(operand2) }};
 
+{% if target and target.type_name == "cfloat" %}
+    // Round each unboxed result before another operation can contract it.
+    volatile double r = a {{operator}} b;
+{% else %}
     double r = a {{operator}} b;
+{% endif %}
 
     {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
 {% elif operator == "//" %}

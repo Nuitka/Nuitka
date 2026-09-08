@@ -136,6 +136,24 @@ extern PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, do
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2);
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2);
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2);

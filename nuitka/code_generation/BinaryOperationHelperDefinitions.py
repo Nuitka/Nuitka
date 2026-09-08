@@ -181,6 +181,18 @@ def _makeNonContainerMathOps(op_code):
             yield value
 
 
+def _makeFloatIntermediateOps(op_code):
+    for result_type in ("OBJECT", "CFLOAT"):
+        for left_type in ("FLOAT", "CFLOAT"):
+            for right_type in ("FLOAT", "CFLOAT"):
+                yield "BINARY_OPERATION_%s_%s_%s_%s" % (
+                    op_code,
+                    result_type,
+                    left_type,
+                    right_type,
+                )
+
+
 def _makeNumberOps(op_code, result_types):
     return buildOrderedSet(
         _makeTypeOps(op_code=op_code, type_name="INT", result_types=result_types),
@@ -212,6 +224,11 @@ def _makeNumberOps(op_code, result_types):
         ),
         _makeFriendOps(
             op_code, friend_type_names=("FLOAT", "CFLOAT"), result_types=result_types
+        ),
+        (
+            _makeFloatIntermediateOps(op_code)
+            if op_code in ("ADD", "SUB", "MULT") and result_types is not None
+            else ()
         ),
         (
             _makeFriendOps(
