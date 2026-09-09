@@ -23,6 +23,8 @@
 #define likely(x) HEDLEY_LIKELY(x)
 #define unlikely(x) HEDLEY_UNLIKELY(x)
 
+#define STATIC_ASSERT(expr, msg) HEDLEY_STATIC_ASSERT(expr, msg)
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
