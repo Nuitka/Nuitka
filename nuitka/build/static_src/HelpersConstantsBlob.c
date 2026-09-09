@@ -388,7 +388,7 @@ static uint16_t unpackValueUint16(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 2);
+    STATIC_ASSERT(sizeof(value) == 2, "uint16_t must be 2 bytes");
 
     *data += sizeof(value);
 
@@ -400,7 +400,7 @@ static uint32_t unpackValueUint32(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 4);
+    STATIC_ASSERT(sizeof(value) == 4, "uint32_t must be 4 bytes");
 
     *data += sizeof(value);
 

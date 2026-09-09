@@ -813,7 +813,7 @@ void _initCompiledFrameType(void) {
     Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
 
     // These are to be used interchangeably. Make sure that's true.
-    assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
+    STATIC_ASSERT(offsetof(struct Nuitka_FrameObject, m_frame) == 0, "m_frame must be at offset 0");
 }
 
 static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,
