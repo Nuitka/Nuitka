@@ -36,6 +36,11 @@ extern void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned 
     loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
 #endif
 
+#ifndef LOAD_MODULE_CONSTANTS_BLOB
+#define LOAD_MODULE_CONSTANTS_BLOB(tstate, output, blob_symbol_name)                                                   \
+    loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

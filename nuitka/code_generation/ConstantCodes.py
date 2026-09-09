@@ -27,7 +27,6 @@ from nuitka.options.Options import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
-from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Distributions import (
     getDistribution,
     getDistributionTopLevelPackageNames,
@@ -171,9 +170,7 @@ def getConstantsDefinitionCode():
     major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
     body = template_constants_reading % {
-        "module_name_cstr": encodePythonStringToC(
-            getRootTopModule().getFullName().asString().encode("utf8")
-        ),
+        "module_name_cstr": getRootTopModule().getFullName().asCString(),
         "global_constants_count": constant_accessor.getConstantsCount(),
         "global_constants_blob_symbol_name": getConstantBlobSymbolName(
             "__constants.const"

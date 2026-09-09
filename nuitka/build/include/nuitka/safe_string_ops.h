@@ -8,11 +8,21 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 /* Safe to use function to copy a string, will abort program for overflow. */
 extern void copyStringSafe(char *buffer, char const *source, size_t buffer_size);
 extern void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size);
 extern void copyStringSafeW(wchar_t *buffer, wchar_t const *source, size_t buffer_size);
+
+/* Duplicate a string, abstracting "strdup" and "_strdup". */
+static inline char *duplicateStringPointer(char const *source) {
+#ifdef _WIN32
+    return _strdup(source);
+#else
+    return strdup(source);
+#endif
+}
 
 /* Safe to use function to append a string, will abort program for overflow. */
 extern void appendCharSafe(char *target, char c, size_t buffer_size);

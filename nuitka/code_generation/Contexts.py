@@ -529,10 +529,6 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def popCleanupScope(self):
         pass
 
-    @abstractmethod
-    def addInclude(self, header_name):
-        pass
-
 
 class PythonChildContextBase(PythonContextBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
@@ -594,9 +590,6 @@ class PythonChildContextBase(PythonContextBase):
 
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
-
-    def addInclude(self, header_name):
-        self.parent.addInclude(header_name)
 
 
 class FrameDeclarationsMixin(object):
@@ -793,6 +786,7 @@ class PythonModuleContext(
         "module",
         "name",
         "code_name",
+        "data_filename",
         "declaration_codes",
         "helper_codes",
         "frame_handle",
@@ -800,7 +794,6 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
-        "module_includes",
         "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
@@ -846,6 +839,7 @@ class PythonModuleContext(
         self.module = module
         self.name = module.getFullName()
         self.code_name = module.getCodeName()
+        self.data_filename = data_filename
 
         self.declaration_codes = {}
         self.helper_codes = {}
@@ -861,8 +855,6 @@ class PythonModuleContext(
         )
 
         self.module_init_codes = []
-
-        self.module_includes = set()
 
         self.module_variable_caching = {}
 
@@ -902,6 +894,9 @@ class PythonModuleContext(
 
     def getModuleCodeName(self):
         return self.code_name
+
+    def getDataFilename(self):
+        return self.data_filename
 
     def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
@@ -954,12 +949,6 @@ class PythonModuleContext(
 
     def addModuleInitCode(self, code):
         self.module_init_codes.append(code)
-
-    def addInclude(self, header_name):
-        self.module_includes.add(header_name)
-
-    def getModuleIncludes(self):
-        return sorted(self.module_includes)
 
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)
