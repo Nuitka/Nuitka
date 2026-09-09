@@ -1372,6 +1372,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
                 e.g. 'flags' (list), 'module_name', 'file_path', etc.
         """
 
+    def getModuleIncludes(self, context):
+        """Return extra include header names for a module's C file.
+
+        Args:
+            context: the module code generation context being compiled
+
+        Returns:
+            Iterable of header filenames.
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
 

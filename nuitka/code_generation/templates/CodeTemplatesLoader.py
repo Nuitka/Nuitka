@@ -3,33 +3,31 @@
 
 """Templates for the loading of embedded modules."""
 
-template_metapath_loader_compiled_module_entry = """\
-{%(module_name)s, module_code_%(module_identifier)s, 0, 0, %(flags)s
-#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
-, %(file_path)s
-#endif
-},"""
-
 template_metapath_loader_extension_module_entry = """\
-{%(module_name)s, NULL, 0, 0, %(flags)s
+struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
-, %(file_path)s
+    , %(file_path)s
 #endif
-},"""
+};"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
+struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, %(bytecode)s, %(size)d, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
-, %(file_path)s
+    , %(file_path)s
 #endif
-},"""
+};"""
 
+# Excluded module entries are never referenced by other entries, so unlike the
+# bytecode and extension module entries, they remain private to the loader.
 template_metapath_loader_excluded_module_entry = """\
-{%(module_name)s, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), 0, 0, %(flags)s
+static struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, NULL, NULL, NULL, NULL, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
-, NULL
+    , NULL
 #endif
-},"""
+};"""
 
 
 template_metapath_loader_body = r"""
@@ -71,10 +69,12 @@ static unsigned char **bytecode_data = NULL;
  * binary or module, or put along this binary as extension modules. We do
  * our own loading for each of these.
  */
-%(metapath_module_decls)s
+%(metapath_loader_decls)s
 
-static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[%(entry_count)d] = {
 %(metapath_loader_inittab)s
+
+static struct Nuitka_MetaPathBasedLoaderEntry *meta_path_loader_entries[%(entry_count)d] = {
+%(metapath_loader_refs)s
 };
 
 static void _loadBytesCodesBlob(PyThreadState *tstate) {
@@ -144,24 +144,6 @@ void copyFrozenModulesTo(struct _frozen *destination) {
         destination += 1;
     };
 }
-
-#if _NUITKA_MODULE_MODE
-
-#ifndef NUITKA_LOADER_COMPARE_NAME
-#define NUITKA_LOADER_COMPARE_NAME(name, index, entry) strcmp(name, (entry)->name)
-#endif
-
-struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
-    for (int i = 0; i < %(entry_count)d; i++) {
-        if (NUITKA_LOADER_COMPARE_NAME(name, i, &meta_path_loader_entries[i]) == 0) {
-            return &meta_path_loader_entries[i];
-        }
-    }
-
-    assert(false);
-    return NULL;
-}
-#endif
 
 """
 

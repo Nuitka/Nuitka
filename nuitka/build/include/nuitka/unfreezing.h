@@ -8,6 +8,10 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifndef NUITKA_LOADER_NAME_MAX_LEN
+#define NUITKA_LOADER_NAME_MAX_LEN 2048
+#endif
+
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
 #define NUITKA_COMPILED_MODULE 0
@@ -21,6 +25,8 @@
 
 #define NUITKA_PERFECT_SUPPORTED_FLAG 32
 
+#define NUITKA_MAIN_MODULE_FLAG 128
+
 #if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
     !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
 #define NUITKA_EXCLUDED_MODULE_FLAG 64
@@ -28,8 +34,7 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
-                                      struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
+typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module);
 
 #if PYTHON_VERSION >= 0x370 && _NUITKA_EXE_MODE && !_NUITKA_STANDALONE_MODE &&                                         \
     defined(_NUITKA_FILE_REFERENCE_ORIGINAL_MODE)
@@ -37,13 +42,31 @@ typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
 #endif
 
 struct Nuitka_MetaPathBasedLoaderEntry {
-    // Full module name, including package name.
-    char const *name;
+    // The module name data, either the plain name, or for commercial code the
+    // encoded values, turned into the runtime name by "m_get_name" when it is
+    // non-NULL, and used directly otherwise.
+    char const *m_name;
+    void (*m_get_name)(char *buffer, size_t buffer_size, char const *name);
 
-#if _NUITKA_MODULE_MODE
-    // Runtime module name, updated to match what package we are loaded into.
-    char const *compilation_name;
-#endif
+    // Optional function to check if a given module name matches this entry.
+    // When NULL, the name is compared against the runtime name.
+    bool (*m_compare_name)(char const *name, char const *m_name);
+
+    // Optional function returning a display name for this entry, used for
+    // error messages and debug output. When NULL, the runtime name is used.
+    char const *(*m_get_display_name)(void);
+
+    // Optional entry of the "preLoad" code to be executed before this module,
+    // or NULL. This avoids a name based connection to that trigger module.
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_pre_load;
+
+    // Optional entry of the "postLoad" code to be executed after this module,
+    // or NULL. This avoids a name based connection to that trigger module.
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_post_load;
+
+    // Optional entry of the parent package, or NULL for top level modules.
+    // This avoids a name based connection for "iter_modules".
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_parent;
 
     // Entry function if compiled module, otherwise NULL.
     module_init_func python_init_func;
@@ -70,13 +93,27 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.
  */
-extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
+extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **loader_entries,
                                         unsigned char **bytecode_data, int entry_count);
+
+/* Produce the runtime name of a loader entry into a buffer. When "m_get_name"
+ * is non-NULL it is invoked with "m_name"; otherwise "m_name" is copied directly.
+ */
+extern void Nuitka_LoaderEntryName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
+                                   size_t buffer_size);
+
+/* Check if a module name matches a loader entry. When "m_compare_name" is
+ * non-NULL it is invoked with "m_name"; otherwise the runtime name is produced
+ * via "Nuitka_LoaderEntryName" and compared with "strcmp".
+ */
+extern bool Nuitka_LoaderEntryCompareName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char const *name);
 
 // For module mode, embedded modules may have to be shifted to below the
 // namespace they are loaded into.
 #if _NUITKA_MODULE_MODE
+extern char const *getMetaPathBasedLoaderModuleRoot(void);
 extern void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name);
+extern void getModuleNameWithPackageLoadedPrefix(char *buffer, size_t buffer_size, char const *name);
 #endif
 
 /* Create a loader object responsible for a package. */

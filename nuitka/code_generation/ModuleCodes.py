@@ -14,7 +14,6 @@ from nuitka.options.Options import (
     shallUseDirectConstantBlobs,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (
@@ -25,6 +24,7 @@ from .CodeHelpers import (
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
+from .LoaderCodes import getModuleLoaderEntryCode
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
@@ -51,6 +51,7 @@ def getModuleCode(
     function_body_codes,
     module_const_blob_name,
     module_const_blob_symbol_name,
+    module_includes,
     context,
 ):
     # For the module code, lots of arguments and attributes come together.
@@ -199,9 +200,7 @@ def getModuleCode(
     ) = getModuleConstantsDeclAndChecks(context)
 
     return template % {
-        "module_name_cstr": encodePythonStringToC(
-            module_name.asString().encode("utf8")
-        ),
+        "module_name_cstr": module_name.asCString(),
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_top": 1 if module.isTopModule() else 0,
@@ -233,8 +232,9 @@ def getModuleCode(
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(
-            '#include "%s"' % include for include in context.getModuleIncludes()
+            '#include "%s"' % include for include in module_includes
         ),
+        "module_loader_entry": getModuleLoaderEntryCode(module=module),
     }
 
 

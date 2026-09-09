@@ -94,6 +94,10 @@ def writeExtraCodeFiles(onefile):
     return Plugins.writeExtraCodeFiles(onefile=onefile)
 
 
+def getModuleIncludes(context):
+    return Plugins.getModuleIncludes(context=context)
+
+
 def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 

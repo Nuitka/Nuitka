@@ -1613,6 +1613,17 @@ through incomplete set import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def getModuleIncludes(context):
+        result = OrderedSet()
+
+        for plugin in getActivePlugins():
+            for value in plugin.getModuleIncludes(context):
+                result.add(value)
+
+        return tuple(result)
+
+    @staticmethod
+    @counted_plugin_method
     def _getExtraCodeFiles(for_onefile):
         result = OrderedDict()
 
