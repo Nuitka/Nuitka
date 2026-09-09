@@ -204,10 +204,10 @@ def createAppImage(  # pylint: disable=unused-argument
             "'--linux-installer-appimagetool-path' to specify its location."
         )
 
-    if not os.path.isdir(payload_dir):
+    if payload_dir is None:
         return installer_logger.sysexit(
-            "Error, AppImage creation currently requires standalone mode "
-            "(not onefile)."
+            """Error, AppImage installer creation currently requires 'app-dist' (or 'standalone') mode \
+(not 'onefile' or 'app' mode)."""
         )
 
     appdir = changeFilenameExtension(payload_dir, ".installer-build")
