@@ -20,6 +20,7 @@ from .FileOperations import (
     addFileExecutablePermission,
     copyFile,
     getFileList,
+    getNormalizedPath,
     getNormalizedPathJoin,
     makeContainingPath,
     putBinaryFileContents,
@@ -74,7 +75,7 @@ def locateDLL(dll_name):
         return None
 
     if isWin32Windows() or isMacOS():
-        return os.path.abspath(dll_name)
+        return getNormalizedPath(os.path.abspath(dll_name))
 
     if os.path.sep in dll_name:
         # Use this from ctypes instead of rolling our own.
@@ -1060,7 +1061,7 @@ def getPyWin32Dir():
         if not path_element:
             continue
 
-        candidate = os.path.join(path_element, "pywin32_system32")
+        candidate = getNormalizedPathJoin(path_element, "pywin32_system32")
 
         if os.path.isdir(candidate):
             return candidate
