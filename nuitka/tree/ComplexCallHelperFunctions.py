@@ -2040,20 +2040,17 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         makeStatementConditional(
-            condition=ExpressionComparisonIsNot(
-                left=ExpressionBuiltinType1(
-                    value=ExpressionTempVariableRef(
-                        variable=tmp_key_variable, source_ref=internal_source_ref
-                    ),
-                    source_ref=internal_source_ref,
+            condition=ExpressionBuiltinIsinstance(
+                instance=ExpressionTempVariableRef(
+                    variable=tmp_key_variable, source_ref=internal_source_ref
                 ),
-                right=makeExpressionBuiltinTypeRef(
+                classes=makeExpressionBuiltinTypeRef(
                     builtin_name="str", source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
             ),
-            yes_branch=_makeRaiseNoStringItem(called_variable=called_variable),
-            no_branch=None,
+            yes_branch=None,
+            no_branch=_makeRaiseNoStringItem(called_variable=called_variable),
             source_ref=internal_source_ref,
         ),
         makeStatementConditional(

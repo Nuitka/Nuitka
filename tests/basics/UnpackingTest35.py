@@ -17,6 +17,17 @@ def dictUnpacking():
     return {"a": 1, **d}
 
 
+def keywordTarget(**kwargs):
+    return kwargs
+
+
+def keywordUnpacking():
+    class _Str(str):
+        pass
+
+    return keywordTarget(**d, **{_Str("b"): 2})
+
+
 a = range(3)
 b = 5
 c = range(8, 10)
@@ -26,6 +37,7 @@ print("Tuple unpacked", tupleUnpacking())
 print("List unpacked", listUnpacking())
 print("Set unpacked", setUnpacking())
 print("Dict unpacked", dictUnpacking())
+print("Keyword unpacked", keywordUnpacking())
 
 
 non_iterable = 2.0
@@ -59,10 +71,18 @@ def dictUnpackingError():
         return e
 
 
+def keywordUnpackingError():
+    try:
+        return keywordTarget(**d, **{2: 2})
+    except Exception as e:
+        return e
+
+
 print("Tuple unpacked error:", tupleUnpackingError())
 print("List unpacked error:", listUnpackingError())
 print("Set unpacked error:", setUnpackingError())
 print("Dict unpacked error:", dictUnpackingError())
+print("Keyword unpacked error:", keywordUnpackingError())
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
