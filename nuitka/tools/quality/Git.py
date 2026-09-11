@@ -28,6 +28,24 @@ from nuitka.utils.FileOperations import openTextFile
 from nuitka.utils.Utils import decoratorRetries
 
 
+def _getGitCommandOutput(command, stdin=None):
+    """Get the output of a git command as text.
+
+    Args:
+        command: list of command arguments, including the 'git' executable.
+        stdin: optional file object to connect to the standard input.
+
+    Returns:
+        Output of the command decoded to text.
+    """
+    output = check_output(command, stdin=stdin)
+
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    return output
+
+
 # Parse output from `git diff-index`
 def _parseIndexDiffLine(line):
     """Parse output from `git diff-index` into a dictionary."""
@@ -82,12 +100,7 @@ def getCheckoutFileChangeDesc(staged):
 
     command.append("HEAD")
 
-    output = check_output(command)
-
-    for line in output.splitlines():
-        if str is not bytes:
-            line = line.decode("utf8")
-
+    for line in _getGitCommandOutput(command).splitlines():
         yield _parseIndexDiffLine(line)
 
 
@@ -95,70 +108,70 @@ def getModifiedPaths():
     """Get a list of all modified paths in the repository."""
     result = set()
 
-    output = check_output(["git", "diff", "--name-only"])
-
-    for line in output.splitlines():
-        if str is not bytes:
-            line = line.decode("utf8")
-
-        result.add(line)
-
-    output = check_output(["git", "diff", "--cached", "--name-only"])
-
-    for line in output.splitlines():
-        if str is not bytes:
-            line = line.decode("utf8")
-
-        result.add(line)
+    for command in (
+        ["git", "diff", "--name-only"],
+        ["git", "diff", "--cached", "--name-only"],
+    ):
+        result.update(_getGitCommandOutput(command).splitlines())
 
     return tuple(sorted(filename for filename in result if os.path.exists(filename)))
 
 
 def getRemoteURL(remote_name):
     """Get the URL of a git remote."""
-    output = check_output(["git", "remote", "get-url", remote_name])
-
-    if str is not bytes:
-        output = output.decode("utf8")
-
-    return output.strip()
+    return _getGitCommandOutput(["git", "remote", "get-url", remote_name]).strip()
 
 
 def getCurrentBranchName():
     """Get the name of the current git branch."""
     try:
-        output = check_output(["git", "branch", "--show-current"])
+        return _getGitCommandOutput(["git", "branch", "--show-current"]).strip()
     except NuitkaCalledProcessError:
-        output = check_output(["git", "symbolic-ref", "--short", "HEAD"])
-
-    if str is not bytes:
-        output = output.decode("utf8")
-
-    return output.strip()
+        return _getGitCommandOutput(["git", "symbolic-ref", "--short", "HEAD"]).strip()
 
 
-def getNotPushedPaths():
-    """Get a list of modified paths that have not been pushed to upstream."""
+def getDefaultBranchName():
+    """Get the name of the default branch of the repository.
+
+    Notes:
+        The remote default branch is preferred over local branch names, as it
+        is the reference that pushes are made against.
+
+    Returns:
+        Name of the default branch, or 'None' if none was found.
+    """
+    try:
+        return _getGitCommandOutput(
+            ["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"]
+        ).strip()
+    except NuitkaCalledProcessError:
+        pass
+
+    for branch_name in ("origin/develop", "origin/main", "develop", "main"):
+        try:
+            _getGitCommandOutput(["git", "rev-parse", "--verify", branch_name])
+        except NuitkaCalledProcessError:
+            continue
+        else:
+            return branch_name
+
+    return None
+
+
+def _getChangedPathsForRef(git_ref):
+    """Get the changed paths of `git diff` against a git reference."""
     result = set()
 
-    try:
-        output = check_output(
-            [
-                "git",
-                "diff",
-                "--stat",
-                "--name-only",
-                "--ignore-submodules=all",
-                "@{upstream}",
-            ]
-        )
-    except NuitkaCalledProcessError:
-        return result
-
-    for line in output.splitlines():
-        if str is not bytes:
-            line = line.decode("utf8")
-
+    for line in _getGitCommandOutput(
+        [
+            "git",
+            "diff",
+            "--stat",
+            "--name-only",
+            "--ignore-submodules=all",
+            git_ref,
+        ]
+    ).splitlines():
         # Removed files appear too, but are useless to talk about.
         if not os.path.exists(line):
             continue
@@ -166,6 +179,42 @@ def getNotPushedPaths():
         result.add(line)
 
     return tuple(sorted(result))
+
+
+def getNotPushedPaths():
+    """Get a list of modified paths that have not been pushed to upstream."""
+    try:
+        return _getChangedPathsForRef("@{upstream}")
+    except NuitkaCalledProcessError:
+        # Local branches without an upstream, e.g. branches that were never
+        # pushed, are compared against the default branch instead, starting
+        # at the merge base, so that changes only made there are not included.
+        default_branch_name = getDefaultBranchName()
+
+        if default_branch_name is None:
+            return ()
+
+        try:
+            merge_base = _getGitCommandOutput(
+                ["git", "merge-base", "HEAD", default_branch_name]
+            )
+        except NuitkaCalledProcessError:
+            return ()
+
+        branch_name = getCurrentBranchName()
+
+        if branch_name:
+            tools_logger.info(
+                "No upstream branch configured for '%s', comparing against '%s'."
+                % (branch_name, default_branch_name)
+            )
+        else:
+            tools_logger.info(
+                "No upstream branch configured, comparing against '%s'."
+                % default_branch_name
+            )
+
+        return _getChangedPathsForRef(merge_base.strip())
 
 
 def getFileHashContent(object_hash):
@@ -176,12 +225,9 @@ def getFileHashContent(object_hash):
 def putFileHashContent(filename):
     """Add a file's content to the git object database and return its hash."""
     with openTextFile(filename, "r") as input_file:
-        new_hash = check_output(
+        new_hash = _getGitCommandOutput(
             ["git", "hash-object", "-w", "--stdin"], stdin=input_file
         )
-
-    if str is not bytes:
-        new_hash = new_hash.decode("utf8")
 
     assert new_hash
     return new_hash.rstrip()
@@ -290,7 +336,9 @@ def addGitArguments(parser, verb="Analyze"):
         dest="un_pushed",
         default=False,
         help="""\
-%s the changed files in git not yet pushed. Default is %%default.""" % verb,
+%s the changed files in git not yet pushed, or for branches without an
+upstream, the changed files compared to the default branch.
+Default is %%default.""" % verb,
     )
 
 
