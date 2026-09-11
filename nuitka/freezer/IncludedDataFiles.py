@@ -682,7 +682,7 @@ def addIncludedPdbFile(entry_point):
                 pdb_dest,
             )
 
-            if pdb_source_candidate == pdb_dest_full:
+            if areSamePaths(pdb_source_candidate, pdb_dest_full):
                 addIncludedDataFile(
                     makeIncludedDataFileGenerated(
                         dest_path=pdb_dest,

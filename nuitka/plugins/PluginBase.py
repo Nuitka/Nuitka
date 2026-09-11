@@ -88,6 +88,8 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
+    getNormalizedPath,
+    getNormalizedPathJoin,
     getReportSourceReference,
 )
 from nuitka.utils.Importing import (
@@ -1346,13 +1348,13 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     @classmethod
     def getPluginDataFilesDir(cls):
         """Helper function that returns path, where data files for the plugin are stored."""
-        plugin_filename = sys.modules[cls.__module__].__file__
+        plugin_filename = getNormalizedPath(sys.modules[cls.__module__].__file__)
         return changeFilenameExtension(plugin_filename, "")
 
     def getPluginDataFileContents(self, filename):
         """Helper function that returns contents of a plugin data file."""
         return getFileContents(
-            os.path.join(
+            getNormalizedPathJoin(
                 self.getPluginDataFilesDir(),
                 filename,
             )

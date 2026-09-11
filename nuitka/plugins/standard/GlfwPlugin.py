@@ -8,7 +8,7 @@ import re
 
 from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileContents
+from nuitka.utils.FileOperations import getFileContents, getNormalizedPath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
@@ -88,7 +88,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
             values=(("dll_filename", "glfw.library.glfw._name"),),
         )
 
-        return glfw_info.dll_filename
+        return getNormalizedPath(glfw_info.dll_filename)
 
     def getExtraDlls(self, module):
         if module.getFullName() == "glfw":
