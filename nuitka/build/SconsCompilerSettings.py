@@ -1095,6 +1095,12 @@ def _enableOutputSettings(env):
         else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
 
+    if env.mingw_mode:
+        # Use static compiler runtime libraries, so that e.g. the
+        # 'libwinpthread-1.dll' of the compiler is not needed at runtime.
+        env.Append(LINKFLAGS=["-static"])
+        env.Append(SHLINKFLAGS=["-static"])
+
 
 def createNuitkaSconsEnvironment(needs_source_dir=True):
     # This is handling the common setup of the Scons environment for Nuitka
