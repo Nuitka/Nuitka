@@ -379,6 +379,7 @@ def createEnvironment(
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
     env.apple_python = getArgumentBool("apple_python", False)
+    env.python_build_standalone = getArgumentBool("python_build_standalone", False)
     env.self_compiled_python_uninstalled = getArgumentBool(
         "self_compiled_python_uninstalled", False
     )

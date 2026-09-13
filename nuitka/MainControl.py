@@ -150,6 +150,7 @@ from nuitka.PythonFlavors import (
     isFedoraPackagePython,
     isMonolithPy,
     isPyenvPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import (
     getModuleLinkerLibs,
@@ -815,6 +816,8 @@ def runSconsBackend():
         scons_options["apple_python"] = asBoolStr(True)
     if isPyenvPython():
         scons_options["pyenv_python"] = asBoolStr(True)
+    if isPythonBuildStandalonePython():
+        scons_options["python_build_standalone"] = asBoolStr(True)
 
     if getForcedStdoutPath():
         scons_options["forced_stdout_path"] = getForcedStdoutPath()
