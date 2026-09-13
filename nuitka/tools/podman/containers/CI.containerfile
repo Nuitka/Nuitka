@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y debconf-utils \
     apt-utils \
     ccache \
     chrpath \
+    clangd \
     devscripts \
     dh-python \
     dput \
