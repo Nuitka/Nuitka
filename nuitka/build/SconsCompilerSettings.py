@@ -172,6 +172,9 @@ def _enableLtoSettings(
     elif env.monolithpy:
         lto_mode = True
         reason = "known to be supported (MonolithPy)"
+    elif env.python_build_standalone:
+        lto_mode = True
+        reason = "known to be supported (Python Build Standalone)"
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
