@@ -10,7 +10,12 @@ import contextlib
 import os
 
 from nuitka.Progress import withNuitkaDownloadProgressBar
-from nuitka.PythonVersions import python_version
+from nuitka.PythonFlavors import isPythonBuildStandalonePython
+from nuitka.PythonVersions import (
+    getSystemPrefixPath,
+    python_version,
+    python_version_full_str,
+)
 from nuitka.Tracing import general
 from nuitka.Version import getNuitkaVersion
 
@@ -21,6 +26,7 @@ from .FileOperations import (
     getNormalizedPath,
     getNormalizedPathJoin,
     makePath,
+    openTextFile,
     queryUser,
 )
 from .Zipfiles import getZipFile
@@ -321,6 +327,93 @@ def getCachedDownloadedMinGW64(
     )
 
     return gcc_binary
+
+
+def _getPythonBuildStandaloneTargetTriple():
+    import sysconfig
+
+    target_triple = sysconfig.get_config_var("HOST_GNU_TYPE")
+
+    if target_triple and "linux" in target_triple:
+        return target_triple
+
+    platform_tag = sysconfig.get_platform()
+
+    if platform_tag.startswith("macosx-"):
+        machine = platform_tag.rsplit("-", 1)[-1]
+
+        if machine == "arm64":
+            machine = "aarch64"
+
+        return "%s-apple-darwin" % machine
+
+    if platform_tag.startswith("win-"):
+        machine = platform_tag.rsplit("-", 1)[-1]
+
+        if machine in ("amd64", "x86_64"):
+            return "x86_64-pc-windows-msvc"
+        elif machine == "arm64":
+            return "aarch64-pc-windows-msvc"
+
+    return None
+
+
+def _getPythonBuildStandaloneFullBuildURL():
+    """Get the URL of the full build of this Python Build Standalone Python.
+
+    TODO: Use this for automatic download of the full build in the future.
+
+    Returns:
+        str or None: URL of the matching full build.
+    """
+
+    if not isPythonBuildStandalonePython():
+        return None
+
+    build_tag_filename = os.path.join(getSystemPrefixPath(), "BUILD")
+
+    if not os.path.isfile(build_tag_filename):
+        return None
+
+    with openTextFile(build_tag_filename, "r") as build_tag_file:
+        build_tag = build_tag_file.read().strip()
+
+    target_triple = _getPythonBuildStandaloneTargetTriple()
+
+    if target_triple is None:
+        return None
+
+    return """\
+https://github.com/astral-sh/python-build-standalone/releases/download/%s/\
+cpython-%s+%s-%s-pgo+lto-full.tar.zst""" % (
+        build_tag,
+        python_version_full_str,
+        build_tag,
+        target_triple,
+    )
+
+
+def getPythonBuildStandaloneFullBuildHint():
+    """Get hint for installing the full build of this Python Build Standalone.
+
+    Returns:
+        str or None: Command to download and extract a matching full build.
+    """
+
+    full_build_url = _getPythonBuildStandaloneFullBuildURL()
+
+    if full_build_url is None:
+        return None
+
+    return (
+        """\
+To install the full build matching this Python, use:
+
+  mkdir -p ~/.local/share/python-build-standalone && curl -L '%s' | tar -x --zstd -C ~/.local/share/python-build-standalone
+
+Then use '~/.local/share/python-build-standalone/python/install/bin/python3' to run Nuitka."""
+        % full_build_url
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

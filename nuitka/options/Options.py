@@ -61,6 +61,7 @@ from nuitka.Tracing import (
     progress_logger,
     setQuiet,
 )
+from nuitka.utils.Download import getPythonBuildStandaloneFullBuildHint
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
@@ -883,15 +884,19 @@ options instead.""" % pattern)
         usable, reason = _couldUseStaticLibPython()
 
         if static_libpython_path is None or usable is False:
-            return options_logger.sysexit(
-                """\
+            message = """\
 Error, a static libpython is either not found or not supported for \
-this Python (%s) installation: %s"""
-                % (
-                    getPythonFlavorName(),
-                    (reason or "unknown reason"),
-                )
+this Python (%s) installation: %s""" % (
+                getPythonFlavorName(),
+                (reason or "unknown reason"),
             )
+
+            full_build_hint = getPythonBuildStandaloneFullBuildHint()
+
+            if full_build_hint is not None:
+                message += "\n\n" + full_build_hint
+
+            return options_logger.sysexit(message)
 
     if shallUseStaticLibPython() and static_libpython_path is None:
         return options_logger.sysexit(
