@@ -142,9 +142,6 @@ def applyPythonBuildSettings(env):
     if env.deployment_mode:
         env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
 
-    if env.frozen_modules:
-        env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % env.frozen_modules])
-
 
 def addWin32PythonLib(env):
     # Make sure to locate the Python link library from multiple potential

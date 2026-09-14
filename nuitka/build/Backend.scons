@@ -488,6 +488,10 @@ def createBuildDefinitionsFile():
         main_module_name != "__main__"
     )
 
+    env.build_definitions["NUITKA_HAS_FROZEN_MODULES_BOOL"] = (
+        1 if env.frozen_modules else 0
+    )
+
     if env.forced_stdout_path is not None:
         if env.forced_stdout_path == "{NONE}":
             env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1

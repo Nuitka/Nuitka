@@ -48,6 +48,7 @@
 #define SYSFLAG_DONTWRITEBYTECODE 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
+#define NUITKA_HAS_FROZEN_MODULES_BOOL 1
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #if defined(__APPLE__)
 #define _NUITKA_MACOS_BUNDLE_MODE 1
@@ -105,8 +106,9 @@ static char **orig_argv;
 #endif
 static int orig_argc;
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
 extern void copyFrozenModulesTo(struct _frozen *destination);
+extern Py_ssize_t getFrozenModuleCount(void);
 
 // The original frozen modules list.
 #if PYTHON_VERSION < 0x300
@@ -139,7 +141,7 @@ static void prepareFrozenModules(void) {
     // advantage that e.g. "import this" is going to be compatible, and there
     // might be Python flavors that add more.
     struct _frozen *merged =
-        (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
+        (struct _frozen *)malloc(sizeof(struct _frozen) * (getFrozenModuleCount() + pre_existing_count + 1));
 
     memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
@@ -1729,7 +1731,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     prepareStandaloneEnvironment();
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TIMING("main(): Preparing frozen modules.");
     prepareFrozenModules();
 #endif
@@ -2082,7 +2084,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     setEarlyFrozenModulesFileAttribute(tstate);
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
     PyImport_FrozenModules = old_frozen;
 #endif

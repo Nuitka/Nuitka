@@ -119,6 +119,11 @@ static struct frozen_desc _frozen_modules[] = {
 };
 
 
+Py_ssize_t getFrozenModuleCount(void) {
+    return (Py_ssize_t)(sizeof(_frozen_modules) / sizeof(_frozen_modules[0])) - 1;
+}
+
+
 void copyFrozenModulesTo(struct _frozen *destination) {
     NUITKA_PRINT_TIMING("copyFrozenModulesTo(): Calling _loadBytesCodesBlob.");
     _loadBytesCodesBlob(NULL);
