@@ -21,7 +21,7 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getNormalizedPathJoin, openTextFile
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import getArchCommandPrefix, isLinux, isMacOS
 
 from .SconsUtils import (
     decodeData,
@@ -99,6 +99,11 @@ def _myDetectVersion(cc):
             cc,
             "--version",
         )
+
+    # Zig is a self-contained toolchain and does not need to run natively,
+    # and it may only exist as an x86_64 binary.
+    if not isZigName(cc):
+        command = getArchCommandPrefix() + command
 
     process_result = executeProcess(command)
 

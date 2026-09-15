@@ -24,6 +24,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.Utils import (
+    getArchCommandPrefix,
     isAIX,
     isFedoraBasedLinux,
     isLinux,
@@ -1105,6 +1106,31 @@ def _enableOutputSettings(env):
         env.Append(SHLINKFLAGS=["-static"])
 
 
+def _addArchCompilerPrefixes(env):
+    """Add architecture prefix to compiler commands.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process may not be able to run the C
+        compiler of newer Xcode "CommandLineTools", which only exists as
+        ARM64 binary, so the 'arch -arm64' prefix is added to 'CC' and
+        'CXX'.
+    """
+    if env.zig_mode:
+        return
+
+    arch_prefix = getArchCommandPrefix()
+
+    if not arch_prefix:
+        return
+
+    prefix = " ".join('"%s"' % part for part in arch_prefix)
+
+    scons_details_logger.info("Adding architecture prefix '%s' to compiler." % prefix)
+
+    for variable_name in ("CC", "CXX"):
+        env[variable_name] = prefix + " " + env[variable_name]
+
+
 def createNuitkaSconsEnvironment(needs_source_dir=True):
     # This is handling the common setup of the Scons environment for Nuitka
     # and has many steps, pylint: disable=too-many-locals,too-many-statements
@@ -1255,6 +1281,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     switchFromGccToGpp(
         env=env,
     )
+
+    _addArchCompilerPrefixes(env=env)
 
     enableFlagSettings(env, "no_deployment", no_deployment)
     env.no_deployment_flags = no_deployment
