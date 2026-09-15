@@ -302,6 +302,68 @@ def hasMacOSIntelSupport():
     )
 
 
+_is_macos_rosetta = None
+
+
+def isMacOSRosetta():
+    """Is this a macOS x86_64 process running translated by Rosetta.
+
+    Notes:
+        This is detected from the 'sysctl.proc_translated' kernel value,
+        which only exists on ARM64 hardware.
+    """
+    # Singleton, pylint: disable=global-statement
+    global _is_macos_rosetta
+
+    if _is_macos_rosetta is None:
+        if isMacOS() and getArchitecture() == "x86_64":
+            sysctlbyname = ctypes.CDLL(None).sysctlbyname
+            sysctlbyname.argtypes = (
+                ctypes.c_char_p,
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_size_t),
+                ctypes.c_void_p,
+                ctypes.c_size_t,
+            )
+            sysctlbyname.restype = ctypes.c_int
+
+            value = ctypes.c_int32(0)
+            size = ctypes.c_size_t(ctypes.sizeof(value))
+
+            res = sysctlbyname(
+                b"sysctl.proc_translated",
+                ctypes.byref(value),
+                ctypes.byref(size),
+                None,
+                0,
+            )
+
+            _is_macos_rosetta = res == 0 and value.value == 1
+        else:
+            _is_macos_rosetta = False
+
+    return _is_macos_rosetta
+
+
+def getArchCommandPrefix():
+    """Get command prefix to run a tool in the required architecture.
+
+    Returns:
+        Tuple of values to prepend to a tool invocation, empty tuple in
+        case no prefix is needed.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process may not be able to run the
+        tools of newer Xcode "CommandLineTools", which only exist as
+        ARM64 binaries, so they need to be started with 'arch -arm64'.
+        More cases can be added here, e.g. for Linux cross compilation.
+    """
+    if isMacOSRosetta():
+        return "/usr/bin/arch", "-arm64"
+    else:
+        return ()
+
+
 def isNetBSD():
     """The NetBSD OS."""
     return getOS() == "NetBSD"

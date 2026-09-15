@@ -32,6 +32,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     getNullInput,
     getNullOutput,
+    getToolArchPrefix,
     withEnvironmentVarOverridden,
 )
 from nuitka.utils.FileOperations import (
@@ -1349,7 +1350,13 @@ def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
     if os.path.exists(os.path.join(test_code_path, ".git")):
-        git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+        git_cmd = list(getToolArchPrefix("git")) + [
+            "git",
+            "ls-tree",
+            "-r",
+            "HEAD",
+            test_code_path,
+        ]
 
         with getNullInput() as null_input:
             process = subprocess.Popen(
