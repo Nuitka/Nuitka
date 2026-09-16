@@ -1537,6 +1537,14 @@ def isFilenameBelowPath(path, filename, consider_short=True):
     filename = os.path.abspath(filename)
 
     if isWin32Windows():
+        # Resolve junctions before comparing drive letters. A junction from
+        # C:\Users\... to D:\... would otherwise look like two drives and
+        # skip the consider_short fallback. Use getFilenameRealPath on both
+        # sides so mapped-drive paths stay mapped; getDirectoryRealPath
+        # would turn them into UNC and fail the same drive check.
+        path = getFilenameRealPath(path)
+        filename = getFilenameRealPath(filename)
+
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
