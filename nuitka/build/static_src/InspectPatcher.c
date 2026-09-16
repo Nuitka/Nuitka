@@ -76,6 +76,7 @@ static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject
 }
 
 static PyObject *old_types_coroutine = NULL;
+static PyObject *types_coroutine_wrapped = NULL;
 
 static char *kw_list_coroutine[] = {(char *)"func", NULL};
 
@@ -89,9 +90,24 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
     if (Nuitka_Function_Check(func)) {
         struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
+        // Check if "func" is a coroutine function, then return it unchanged.
+        if (function->m_code_object->co_flags & 0x180) {
+            return Py_NewRef(func);
+        }
+
+        // Check if "func" is a generator function, then make it an iterable
+        // coroutine and return it unchanged.
         if (function->m_code_object->co_flags & CO_GENERATOR) {
             function->m_code_object->co_flags |= 0x100;
+
+            return Py_NewRef(func);
         }
+    }
+
+    // Use a replacement that also handles compiled coroutine and generator
+    // objects, which the original "types.coroutine" will not recognize.
+    if (types_coroutine_wrapped != NULL) {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState_GET(), types_coroutine_wrapped, func);
     }
 
     return old_types_coroutine->ob_type->tp_call(old_types_coroutine, args, kwds);
@@ -258,7 +274,40 @@ class GeneratorWrapperEnhanced(_old_GeneratorWrapper):\n\
             if gen.gi_code.co_flags & 0x0020:\n\
                 self._GeneratorWrapper__isgen = True\n\
 \n\
-types._GeneratorWrapper = GeneratorWrapperEnhanced\n"
+types._GeneratorWrapper = GeneratorWrapperEnhanced\n\
+\n\
+def _coroutine_wrapped(func):\n\
+    import functools\n\
+    import _collections_abc\n\
+\n\
+    @functools.wraps(func)\n\
+    def wrapped(*args, **kwargs):\n\
+        coro = func(*args, **kwargs)\n\
+        if isinstance(coro, types.CoroutineType):\n\
+            return coro\n\
+        if isinstance(coro, types.GeneratorType):\n\
+            if coro.gi_code.co_flags & 0x100:\n\
+                return coro\n\
+            return types._GeneratorWrapper(coro)\n\
+        if (isinstance(coro, _collections_abc.Generator) and\n\
+            not isinstance(coro, _collections_abc.Coroutine)):\n\
+            return types._GeneratorWrapper(coro)\n\
+        return coro\n\
+\n\
+    return wrapped\n\
+\n\
+def _types_coroutine(func):\n\
+    if not callable(func):\n\
+        raise TypeError('types.coroutine() expects a callable')\n\
+\n\
+    if type(func) is types.FunctionType:\n\
+        co_flags = func.__code__.co_flags\n\
+        if co_flags & 0x180:\n\
+            return func\n\
+        if co_flags & 0x20:\n\
+            return _old_types_coroutine(func)\n\
+\n\
+    return _coroutine_wrapped(func)\n"
 #if PYTHON_VERSION >= 0x3b0
                                                   "\
 import inspect\n\
@@ -280,6 +329,14 @@ inspect._get_code_position=_get_code_position\n\
         NUITKA_MAY_BE_UNUSED PyObject *module =
             PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
         CHECK_OBJECT(module);
+
+#if PYTHON_VERSION >= 0x350
+        types_coroutine_wrapped = PyObject_GetAttrString(module, "_types_coroutine");
+        CHECK_OBJECT(types_coroutine_wrapped);
+
+        NUITKA_MAY_BE_UNUSED int res = PyObject_SetAttrString(module, "_old_types_coroutine", old_types_coroutine);
+        assert(res == 0);
+#endif
 
         NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_types_patch");
         assert(bool_res != false);
