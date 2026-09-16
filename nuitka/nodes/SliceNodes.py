@@ -9,6 +9,7 @@ achieve more compact code, or predict results at compile time.
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
+from nuitka.Constants import isMutable
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ChildrenHavingMixins import (
@@ -213,9 +214,16 @@ def makeExpressionBuiltinSlice(start, stop, step, source_ref):
         stop_value = None if stop is None else stop.getCompileTimeConstant()
         step_value = None if step is None else step.getCompileTimeConstant()
 
-        return makeConstantRefNode(
-            constant=slice(start_value, stop_value, step_value), source_ref=source_ref
-        )
+        # Slices with mutable values must be created at runtime, as the values
+        # are shared with the created slice, and CPython makes a new slice
+        # object each time, so a constant would change behaviour.
+        if not (
+            isMutable(start_value) or isMutable(stop_value) or isMutable(step_value)
+        ):
+            return makeConstantRefNode(
+                constant=slice(start_value, stop_value, step_value),
+                source_ref=source_ref,
+            )
 
     if start is None and step is None:
         return ExpressionBuiltinSlice1(stop=stop, source_ref=source_ref)

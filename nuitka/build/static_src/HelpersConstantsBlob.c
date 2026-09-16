@@ -63,6 +63,8 @@ static PyObject *tuple_cache = NULL;
 
 static PyObject *list_cache = NULL;
 
+static PyObject *slice_cache = NULL;
+
 static PyObject *dict_cache = NULL;
 
 static PyObject *set_cache = NULL;
@@ -130,6 +132,29 @@ static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *
     } else if (Py_SIZE(tuple1) != Py_SIZE(tuple2)) {
         result = Py_False;
     } else if (memcmp(&tuple1->ob_item[0], &tuple2->ob_item[0], Py_SIZE(tuple1) * sizeof(PyObject *)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
+    }
+
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+
+static Py_hash_t our_slice_hash(PySliceObject *slice) {
+    PyObject *values[3] = {slice->start, slice->stop, slice->step};
+
+    return Nuitka_FastHashBytes(values, sizeof(values));
+}
+
+static PyObject *our_slice_tp_richcompare(PySliceObject *slice1, PySliceObject *slice2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    if (slice1 == slice2) {
+        result = Py_True;
+    } else if (slice1->start == slice2->start && slice1->stop == slice2->stop && slice1->step == slice2->step) {
         result = Py_True;
     } else {
         result = Py_False;
@@ -311,6 +336,8 @@ static void initCaches(void) {
     tuple_cache = PyDict_New();
 
     list_cache = PyDict_New();
+
+    slice_cache = PyDict_New();
 
     dict_cache = PyDict_New();
 
@@ -954,6 +981,8 @@ static unsigned char const *_unpackBlobConstantObjectSlice(PyThreadState *tstate
     data = _unpackBlobConstantsAt(tstate, items, data, 3);
 
     PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
+
+    insertToDictCacheForcedHash(slice_cache, &s, (hashfunc)our_slice_hash, (richcmpfunc)our_slice_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, s);
 
