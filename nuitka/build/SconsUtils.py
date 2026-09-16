@@ -595,6 +595,24 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
+def linkSystemLibrary(env, library_name):
+    """Link a system library, preferring the static variant if supported.
+
+    Notes:
+        The static variant is selected with the literal syntax of GNU linkers,
+        which keeps bootstrap binaries free from a runtime dependency on the
+        library.
+
+    Args:
+        env: SCons environment to modify.
+        library_name: Name of the library to link, e.g. 'zstd'.
+    """
+    if env.get("LIBLITERALPREFIX") == ":":
+        env.Append(LIBS=[":lib%s.a" % library_name])
+    else:
+        env.Append(LIBS=[library_name])
+
+
 def writeSconsReport(env, target):
     with openTextFile(
         _getSconsReportFilename(env.source_dir), "w", encoding="utf8"

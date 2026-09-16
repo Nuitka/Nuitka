@@ -31,6 +31,16 @@ def getInlineCopyFolder(module_name):
     return folder_name
 
 
+def getInlineCopyFolderIfExists(module_name):
+    """Get the inline copy folder for a given name, or None if it does not exist."""
+    folder_name = getInlineCopyFolder(module_name)
+
+    if os.path.isdir(folder_name):
+        return folder_name
+    else:
+        return None
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
