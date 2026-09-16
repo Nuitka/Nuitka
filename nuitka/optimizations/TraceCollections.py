@@ -41,8 +41,7 @@ from .ValueTraces import (
     ValueTraceAssignVeryTrusted,
     ValueTraceDeleted,
     ValueTraceEscaped,
-    ValueTraceLoopComplete,
-    ValueTraceLoopIncomplete,
+    ValueTraceLoop,
     ValueTraceMerge,
     ValueTraceStartInit,
     ValueTraceStartInitStarArgs,
@@ -425,10 +424,16 @@ class TraceCollectionBase(object):
                 self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsLoopMerge(
-        self, loop_node, current, variable, shapes, incomplete
+        self, loop_node, current, variable, shapes, incomplete, value_identity_stable
     ):
         if incomplete:
-            result = ValueTraceLoopIncomplete(loop_node, current, shapes)
+            result = ValueTraceLoop(
+                loop_node,
+                current,
+                shapes,
+                shapes_incomplete=True,
+                value_identity_stable=value_identity_stable,
+            )
         else:
             # TODO: Empty is a missing optimization somewhere, but it also happens that
             # a variable is getting released in a loop.
@@ -437,7 +442,13 @@ class TraceCollectionBase(object):
             if not shapes:
                 shapes.add(tshape_uninitialized)
 
-            result = ValueTraceLoopComplete(loop_node, current, shapes)
+            result = ValueTraceLoop(
+                loop_node,
+                current,
+                shapes,
+                shapes_incomplete=False,
+                value_identity_stable=value_identity_stable,
+            )
 
         version = variable.allocateTargetNumber()
         self.variable_traces[variable][version] = result
