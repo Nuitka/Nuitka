@@ -1720,13 +1720,32 @@ static PyMethodDef Nuitka_Generator_methods[] = {{"send", (PyCFunction)Nuitka_Ge
                                                  {NULL}};
 
 // This is only used.
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x350
+static PyObject *Nuitka_Generator_am_await(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+    CHECK_OBJECT(generator);
+
+    if (likely(generator->m_code_object->co_flags & 0x100)) {
+        Py_INCREF(self);
+        return self;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                    "object compiled_generator can't be used in 'await' expression");
+
+    return NULL;
+}
+
 static PyAsyncMethods Nuitka_Generator_as_async = {
-    NULL, /* am_await */
-    NULL, /* am_aiter */
-    NULL, /* am_anext */
+    (unaryfunc)Nuitka_Generator_am_await, /* am_await */
+    NULL,                                 /* am_aiter */
+    NULL,                                 /* am_anext */
+#if PYTHON_VERSION >= 0x3a0
     // TODO: have this too, (sendfunc)_Nuitka_Generator_am_send
     NULL /* am_send */
+#endif
 };
 #endif
 
@@ -1738,7 +1757,7 @@ PyTypeObject Nuitka_Generator_Type = {
     0,                                                   // tp_print
     0,                                                   // tp_getattr
     0,                                                   // tp_setattr
-#if PYTHON_VERSION < 0x3a0
+#if PYTHON_VERSION < 0x350
     0, // tp_as_async
 #else
     &Nuitka_Generator_as_async, // tp_as_async
@@ -1830,6 +1849,15 @@ void _initCompiledGeneratorType(void) {
 #endif
 
 #if PYTHON_VERSION >= 0x350
+    // The "am_await" slot created a "__await__" attribute in the type dict,
+    // which native generators do not have, and which is visible through
+    // "dir" and "hasattr", so remove it again, the slot itself is what the
+    // "await" statement uses.
+    if (Nuitka_Generator_Type.tp_as_async->am_await != NULL) {
+        NUITKA_MAY_BE_UNUSED bool res = DICT_REMOVE_ITEM(Nuitka_Generator_Type.tp_dict, const_str_plain___await__);
+        assert(res);
+    }
+
     // Also initialize coroutines if necessary
     _initCompiledCoroutineTypes();
 #endif

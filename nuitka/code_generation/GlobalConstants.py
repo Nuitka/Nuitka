@@ -192,6 +192,10 @@ def getConstantDefaultPopulation():
         result.append("ascii")
         result.append("punycode")
 
+        # Removing the "__await__" attribute added to the compiled generator
+        # type by its "am_await" slot.
+        result.append("__await__")
+
     if not shallMakeModule():
         result.append("__main__")
 

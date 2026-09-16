@@ -264,6 +264,8 @@ extern PyObject **global_constants;
 #define const_float_plus_nan global_constants[78]
 // -nan
 #define const_float_minus_nan global_constants[79]
+// '__await__'
+#define const_str_plain___await__ global_constants[80]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727
