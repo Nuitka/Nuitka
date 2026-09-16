@@ -22,6 +22,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
+from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.Utils import (
     isAIX,
@@ -54,6 +55,7 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
+    linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
     setupScons,
@@ -1642,22 +1644,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         env.Append(CCFLAGS=["-fPIC"])
 
     # We use zlib for crc32 functionality
-    zlib_inline_copy_dir = os.path.join(env.nuitka_src, "inline_copy", "zlib")
-    if os.path.exists(os.path.join(zlib_inline_copy_dir, "crc32.c")):
+    zlib_inline_copy_dir = getInlineCopyFolderIfExists("zlib")
+    if zlib_inline_copy_dir is not None:
         env.Append(
             CPPPATH=[
                 zlib_inline_copy_dir,
             ],
         )
     else:
-        # TODO: Should only happen for official Debian packages, and there we
-        # can use the zlib static linking maybe, but for onefile it's not easy
-        # to get it, so just use slow checksum for now.
-        if onefile_compile:
-            env.Append(CPPDEFINES=["_NUITKA_USE_OWN_CRC32"])
-        else:
-            env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
-            env.Append(LIBS="z")
+        # Should only happen for official Debian packages, where the system
+        # zlib is linked statically instead.
+        env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
+
+        linkSystemLibrary(env=env, library_name="z")
 
     if isAIX():
         aix_dll_addr_inline_copy_dir = os.path.join(

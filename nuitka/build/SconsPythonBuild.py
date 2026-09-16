@@ -63,10 +63,13 @@ def _addPythonWarningSettings(env):
             if isGccName(env.the_cc_name):
                 # Some Linux distro hardening injects "-Werror=format-security",
                 # which would otherwise conflict with disabling format warnings.
+                # Disabling the warning itself avoids the cc1 diagnostics about
+                # it being ignored without "-Wformat" too.
                 # spell-checker: ignore Werror
                 env.Append(
                     CCFLAGS=[
                         "-Wno-error=format-security",
+                        "-Wno-format-security",
                     ]
                 )
 
