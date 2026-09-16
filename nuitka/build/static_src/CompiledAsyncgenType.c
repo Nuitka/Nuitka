@@ -1068,8 +1068,9 @@ static PyGetSetDef Nuitka_Asyncgen_tp_getset[] = {
     {NULL}};
 
 static PyMemberDef Nuitka_Asyncgen_members[] = {
+#if PYTHON_VERSION < 0x380
     {(char *)"ag_running", T_BOOL, offsetof(struct Nuitka_AsyncgenObject, m_running), READONLY},
-#if PYTHON_VERSION >= 0x380
+#else
     {(char *)"ag_running", T_BOOL, offsetof(struct Nuitka_AsyncgenObject, m_running_async), READONLY},
 #endif
     {NULL}};
@@ -1680,7 +1681,27 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
 }
 
 static PyObject *_Nuitka_AsyncgenAsend_close(struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args) {
+#if PYTHON_VERSION >= 0x3d0
+    if (asyncgen_asend->m_state != AWAITABLE_STATE_CLOSED) {
+        PyThreadState *tstate = PyThreadState_GET();
+        PyObject *throw_args = MAKE_TUPLE1(tstate, PyExc_GeneratorExit);
+        PyObject *result = _Nuitka_AsyncgenAsend_throw(asyncgen_asend, throw_args);
+        Py_DECREF(throw_args);
+
+        if (result != NULL) {
+            Py_DECREF(result);
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "coroutine ignored GeneratorExit");
+            return NULL;
+        }
+
+        if (DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate) == false &&
+            CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(tstate) == false) {
+            return NULL;
+        }
+    }
+#else
     asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
+#endif
 
     Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
@@ -2085,13 +2106,20 @@ static PyObject *_Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject
     retval = Nuitka_Asyncgen_throw(tstate, asyncgen_athrow->m_gen, args);
 
     if (asyncgen_athrow->m_args) {
-        return _Nuitka_Asyncgen_unwrap_value(tstate, asyncgen_athrow->m_gen, retval);
+        retval = _Nuitka_Asyncgen_unwrap_value(tstate, asyncgen_athrow->m_gen, retval);
+#if PYTHON_VERSION >= 0x3c4
+        if (retval == NULL) {
+            asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
+        }
+#endif
+        return retval;
     } else {
         if (retval != NULL) {
             if (_PyAsyncGenWrappedValue_CheckExact(retval) || Nuitka_AsyncgenWrappedValue_CheckExact(retval)) {
 #if PYTHON_VERSION >= 0x380
                 asyncgen_athrow->m_gen->m_running_async = false;
 #endif
+                asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
                 Py_DECREF(retval);
 
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "async generator ignored GeneratorExit");
@@ -2099,6 +2127,13 @@ static PyObject *_Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject
                 return NULL;
             }
         }
+
+#if PYTHON_VERSION >= 0x3c4
+        if (retval == NULL) {
+            asyncgen_athrow->m_gen->m_running_async = false;
+            asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
+        }
+#endif
 
 #if PYTHON_VERSION >= 0x390
         if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
@@ -2119,7 +2154,27 @@ static PyObject *Nuitka_AsyncgenAthrow_tp_iternext(struct Nuitka_AsyncgenAthrowO
 }
 
 static PyObject *_Nuitka_AsyncgenAthrow_close(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
+#if PYTHON_VERSION >= 0x3d0
+    if (asyncgen_athrow->m_state != AWAITABLE_STATE_CLOSED) {
+        PyThreadState *tstate = PyThreadState_GET();
+        PyObject *throw_args = MAKE_TUPLE1(tstate, PyExc_GeneratorExit);
+        PyObject *result = _Nuitka_AsyncgenAthrow_throw(asyncgen_athrow, throw_args);
+        Py_DECREF(throw_args);
+
+        if (result != NULL) {
+            Py_DECREF(result);
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "coroutine ignored GeneratorExit");
+            return NULL;
+        }
+
+        if (DROP_ERROR_OCCURRED_GENERATOR_EXIT_OR_STOP_ITERATION(tstate) == false &&
+            CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(tstate) == false) {
+            return NULL;
+        }
+    }
+#else
     asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
+#endif
 
     Py_INCREF_IMMORTAL(Py_None);
     return Py_None;

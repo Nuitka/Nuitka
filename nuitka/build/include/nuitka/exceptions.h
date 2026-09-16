@@ -664,6 +664,18 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(PyThrea
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopIteration);
 }
 
+#if PYTHON_VERSION >= 0x350
+/* Special helper that checks for StopAsyncIteration and if so clears it, only
+   indicating if it was set in the return value.
+
+   Equivalent to if(PyErr_ExceptionMatches(PyExc_StopAsyncIteration) PyErr_Clear();
+
+*/
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(PyThreadState *tstate) {
+    return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopAsyncIteration);
+}
+#endif
+
 /* Special helper that checks for KeyError and if so clears it, only
    indicating if it was set in the return value.
 
