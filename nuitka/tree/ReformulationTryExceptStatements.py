@@ -401,7 +401,12 @@ def buildTryExceptionNode(provider, node, source_ref):
 
 
 def buildTryStarExceptionNode(provider, node, source_ref):
-    to_try = buildStatementsNode(provider, node.body, source_ref)
+    tried = buildStatementsNode(provider, node.body, source_ref)
+
+    # The clauses are built into a chain, where each clause catches the
+    # exception that the previous clause may have re-raised, and processes
+    # the remaining exception group.
+    handler_chain = None
 
     for handler in node.handlers:
         scope = provider.allocateTempScope("try_star_handler")
@@ -511,18 +516,51 @@ def buildTryStarExceptionNode(provider, node, source_ref):
             )
         )
 
-        to_try = makeStatementsSequenceFromStatement(
-            StatementTry(
-                tried=to_try,
-                except_handler=makeStatementsSequenceFromStatements(statements),
-                break_handler=None,
-                continue_handler=None,
-                return_handler=None,
-                source_ref=source_ref,
-            )
-        )
+        handler_clause = makeStatementsSequenceFromStatements(statements)
 
-    return to_try
+        if handler_chain is None:
+            handler_chain = handler_clause
+        else:
+            handler_chain = makeStatementsSequenceFromStatement(
+                StatementTry(
+                    tried=handler_chain,
+                    except_handler=handler_clause,
+                    break_handler=None,
+                    continue_handler=None,
+                    return_handler=None,
+                    source_ref=source_ref,
+                )
+            )
+
+    # spell-checker: ignore orelse
+    no_raise = buildStatementsNode(
+        provider=provider, nodes=node.orelse, source_ref=source_ref
+    )
+
+    if no_raise is None:
+        if tried is None:
+            return None
+
+        return StatementTry(
+            tried=tried,
+            except_handler=handler_chain,
+            break_handler=None,
+            continue_handler=None,
+            return_handler=None,
+            source_ref=source_ref,
+        )
+    else:
+        if tried is None:
+            return no_raise
+
+        return makeTryExceptNoRaise(
+            provider=provider,
+            temp_scope=provider.allocateTempScope("try_star_except"),
+            tried=tried,
+            handling=handler_chain,
+            no_raise=no_raise,
+            source_ref=source_ref,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
