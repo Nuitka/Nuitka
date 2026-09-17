@@ -475,8 +475,15 @@ def _restoreWindowsPath(orig_path, path):
                     dirname = dirname + os.path.sep
 
                 path = getNormalizedPathJoin(dirname, filename)
+        elif path.endswith(":"):
+            # Drive roots need their separator to remain absolute paths.
+            path = path + os.path.sep
 
     return path
+
+
+# Make sure we don't repeat this too much.
+_filename_real_path_cache = {}
 
 
 def getFilenameRealPath(path):
@@ -490,19 +497,22 @@ def getFilenameRealPath(path):
 
     Notes:
         Workaround for Windows symlinks are applied, this works recursive and
-        assumes that the path given itself is a file and not a directory, and
-        doesn't handle file symlinks at the end on older Python currently, but
-        we shouldn't deal with those.
+        handles both files and directories, but it does not resolve a symlink
+        at the end on older Python, and we shouldn't deal with those anyway.
     """
     orig_path = path
-    path = os.path.realpath(path)
 
-    # Avoid network mounts being converted to UNC shared paths by newer
-    # Python versions, many tools won't work with those.
-    if os.name == "nt":
-        path = _restoreWindowsPath(orig_path=orig_path, path=path)
+    if orig_path not in _filename_real_path_cache:
+        path = os.path.realpath(path)
 
-    return path
+        # Avoid network mounts being converted to UNC shared paths by newer
+        # Python versions, many tools won't work with those.
+        if os.name == "nt":
+            path = _restoreWindowsPath(orig_path=orig_path, path=path)
+
+        _filename_real_path_cache[orig_path] = path
+
+    return _filename_real_path_cache[orig_path]
 
 
 def listDir(path, ignore_permission_error=False):
@@ -1537,6 +1547,14 @@ def isFilenameBelowPath(path, filename, consider_short=True):
     filename = os.path.abspath(filename)
 
     if isWin32Windows():
+        # Resolve junctions before comparing drive letters. A junction from
+        # C:\Users\... to D:\... would otherwise look like two drives and
+        # skip the consider_short fallback. Use getFilenameRealPath on both
+        # sides so mapped-drive paths stay mapped; getDirectoryRealPath
+        # would turn them into UNC and fail the same drive check.
+        path = getFilenameRealPath(path)
+        filename = getFilenameRealPath(filename)
+
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
@@ -1741,6 +1759,46 @@ def isNonLocalPath(path):
     return path.startswith("..") or os.path.isabs(path)
 
 
+def _getReportRelativePath(filename, start):
+    """Get relative path of a filename below a start path for reporting.
+
+    Args:
+        filename: File path to be made relative.
+        start: Directory path to make it relative to.
+
+    Returns:
+        str: Relative path, on Windows with junctions resolved.
+    """
+
+    if isWin32Windows():
+        # The check for being below the start path resolves junctions, so
+        # the relative path must be made from the resolved paths too, or else
+        # it would escape the prefix.
+        return relpath(
+            path=getFilenameRealPath(filename),
+            start=getFilenameRealPath(os.path.abspath(start)),
+        )
+
+    return relpath(path=filename, start=start)
+
+
+def _getReportLongPathRelativePath(filename, start):
+    """Get relative path of a filename below a start path for reporting.
+
+    Args:
+        filename: File path to be made relative.
+        start: Directory path to make it relative to.
+
+    Returns:
+        str: Relative path, on Windows with short file names expanded.
+    """
+
+    return relpath(
+        path=getWindowsLongPathName(filename),
+        start=getWindowsLongPathName(os.path.abspath(start)),
+    )
+
+
 def _getReportPath(filename, prefixes):
     if os.path.isabs(os.path.expanduser(filename)):
         prefixes = list(prefixes)
@@ -1755,15 +1813,19 @@ def _getReportPath(filename, prefixes):
                 path=prefix_path, filename=abs_filename, consider_short=False
             ):
                 return getNormalizedPathJoin(
-                    prefix_name, relpath(path=abs_filename, start=prefix_path)
+                    prefix_name,
+                    _getReportRelativePath(abs_filename, prefix_path),
                 )
 
             if isFilenameBelowPath(
                 path=prefix_path, filename=abs_filename, consider_short=True
             ):
+                # The check above needed Windows short file names to match.
+                # This is also needed for Python before 3.8, where short file
+                # names and junctions are not resolved by 'os.path.realpath'.
                 return getNormalizedPathJoin(
                     prefix_name,
-                    relpath(path=abs_filename, start=getExternalUsePath(prefix_path)),
+                    _getReportLongPathRelativePath(abs_filename, prefix_path),
                 )
 
     if isWin32Windows():
