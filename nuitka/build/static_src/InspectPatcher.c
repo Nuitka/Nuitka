@@ -186,6 +186,95 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
     "getcoroutinestate", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
+// The "_typing" types derive the module of their user from the current frame
+// function object, which compiled frames do not have, so we fill it in from
+// the compiled frame ourselves.
+#define MAX_TYPING_TYPES 4
+
+static PyTypeObject *typing_types[MAX_TYPING_TYPES];
+static newfunc typing_types_original_new[MAX_TYPING_TYPES];
+static int typing_types_count = 0;
+
+static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
+
+    while ((frame != NULL) && Nuitka_FrameIsIncomplete(frame)) {
+        frame = frame->previous;
+    }
+
+    if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
+        PyObject *result = PyDict_GetItemWithError(frame->f_globals, const_str_plain___name__);
+
+        Py_XINCREF(result);
+
+        return result;
+    }
+
+    return NULL;
+}
+
+static PyObject *Nuitka_typing_type_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    newfunc original_new = NULL;
+
+    for (int i = 0; i < typing_types_count; i++) {
+        if (typing_types[i] == type) {
+            original_new = typing_types_original_new[i];
+            break;
+        }
+    }
+
+    assert(original_new != NULL);
+
+    PyObject *result = original_new(type, args, kwds);
+
+    if (result != NULL) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *module_name = getCompiledCallerModuleName(tstate);
+
+        if (module_name != NULL) {
+            if (SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name) == false) {
+                CLEAR_ERROR_OCCURRED(tstate);
+            }
+
+            Py_DECREF(module_name);
+        } else {
+            CLEAR_ERROR_OCCURRED(tstate);
+        }
+    }
+
+    return result;
+}
+
+static void patchTypingType(char const *attribute_name) {
+    PyObject *typing_module = IMPORT_HARD_TYPING();
+
+    PyObject *typing_type = PyObject_GetAttrString(typing_module, attribute_name);
+
+    CHECK_OBJECT(typing_type);
+    assert(PyType_Check(typing_type));
+    assert(typing_types_count < MAX_TYPING_TYPES);
+
+    PyTypeObject *type_object = (PyTypeObject *)typing_type;
+
+    assert(type_object->tp_new != NULL);
+    assert(type_object->tp_new != (newfunc)Nuitka_typing_type_new);
+
+    typing_types[typing_types_count] = type_object;
+    typing_types_original_new[typing_types_count] = type_object->tp_new;
+    typing_types_count += 1;
+
+    type_object->tp_new = (newfunc)Nuitka_typing_type_new;
+
+    Py_DECREF(typing_type);
+}
+
+static void patchTypingModule(void) {
+    patchTypingType("TypeVar");
+    patchTypingType("ParamSpec");
+    patchTypingType("TypeVarTuple");
+}
+
 #endif
 
 /* Replace inspect functions with ones that handle compiles types too. */
@@ -354,6 +443,8 @@ inspect._get_code_position=_get_code_position\n\
     CHECK_OBJECT(sys_getframemodulename_replacement);
 
     Nuitka_SysSetObject("_getframemodulename", sys_getframemodulename_replacement);
+
+    patchTypingModule();
 #endif
 
     is_done = true;
