@@ -90,18 +90,11 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
 }
 
 // This is copied directly from CPython
-NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadState *tstate, const char *msg_str,
-                                                                    PyObject *excs) {
+NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadState *tstate, PyObject *excs) {
     CHECK_OBJECT(excs);
-    PyObject *msg = Nuitka_String_FromString(msg_str);
-    if (!msg) {
-        return NULL;
-    }
-    PyObject *args[2] = {msg, excs};
-    PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, PyExc_BaseExceptionGroup, args);
-    Py_DECREF(msg);
-    CHECK_OBJECT(result);
-    return result;
+    PyObject *args[2] = {const_str_empty, excs};
+
+    return CALL_FUNCTION_WITH_ARGS2(tstate, PyExc_BaseExceptionGroup, args);
 }
 
 // This is copied directly from CPython
@@ -111,26 +104,34 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     if (Py_IsNone(exc_value)) {
         Py_INCREF_IMMORTAL(Py_None);
         *match = Py_None;
+
         Py_INCREF_IMMORTAL(Py_None);
         *rest = Py_None;
+
         return 0;
     }
     assert(PyExceptionInstance_Check(exc_value));
 
-    if (PyErr_GivenExceptionMatches(exc_value, match_type)) {
+    int is_match = EXCEPTION_MATCH_BOOL(tstate, exc_value, match_type);
+    if (unlikely(is_match < 0)) {
+        return -1;
+    }
+
+    if (is_match) {
         /* Full match of exc itself */
         bool is_eg = _PyBaseExceptionGroup_Check(exc_value);
+
         if (is_eg) {
             *match = Py_NewRef(exc_value);
         } else {
-            /* naked exception - wrap it */
+            /* naked exception, we need to wrap it */
             PyObject *excs = MAKE_TUPLE1(tstate, exc_value);
-            if (excs == NULL) {
-                return -1;
-            }
-            PyObject *wrapped = CREATE_EXCEPTION_GROUP(tstate, "", excs);
+            CHECK_OBJECT(excs);
+
+            PyObject *wrapped = CREATE_EXCEPTION_GROUP(tstate, excs);
             Py_DECREF(excs);
-            if (wrapped == NULL) {
+
+            if (unlikely(wrapped == NULL)) {
                 return -1;
             }
             // TODO: Starting with CPython 3.12.9 and 3.13.2, the implicit
@@ -164,7 +165,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
      * Check for partial match if it's an exception group.
      */
     if (_PyBaseExceptionGroup_Check(exc_value)) {
-        PyObject *pair = PyObject_CallMethod(exc_value, "split", "(O)", match_type);
+        PyObject *pair = CALL_METHOD_WITH_SINGLE_ARG(tstate, exc_value, const_str_plain_split, match_type);
         if (pair == NULL) {
             return -1;
         }
@@ -178,9 +179,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
 
         // allow tuples of length > 2 for backwards compatibility
         if (PyTuple_GET_SIZE(pair) < 2) {
-            PyErr_Format(PyExc_TypeError,
-                         "%s.split must return a 2-tuple, "
-                         "got tuple of size %zd",
+            PyErr_Format(PyExc_TypeError, "%s.split must return a 2-tuple, got tuple of size %zd",
                          Py_TYPE(exc_value)->tp_name, PyTuple_GET_SIZE(pair));
             Py_DECREF(pair);
             return -1;
@@ -191,10 +190,12 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         Py_DECREF(pair);
         return 0;
     }
+
     /* no match */
     Py_INCREF_IMMORTAL(Py_None);
     *match = Py_None;
     *rest = Py_NewRef(exc_value);
+
     return 0;
 }
 
