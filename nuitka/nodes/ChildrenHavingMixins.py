@@ -6864,15 +6864,15 @@ class ChildrenHavingExceptionMatchTypeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
