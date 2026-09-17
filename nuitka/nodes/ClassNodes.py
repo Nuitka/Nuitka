@@ -16,7 +16,10 @@ from .ChildrenHavingMixins import (
     ChildrenHavingMetaclassBasesMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .ExpressionBasesGenerated import ExpressionCallMetaclassBase
+from .ExpressionBasesGenerated import (
+    ExpressionCallClassPrepareBase,
+    ExpressionCallMetaclassBase,
+)
 from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
@@ -322,6 +325,42 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
 
     def mayRaiseException(self, exception_type):
         return True
+
+
+class ExpressionCallClassPrepare(ExpressionCallClassPrepareBase):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE"
+
+    named_children = ("called",)
+    node_attributes = ("pgo_result", "code_name")
+
+    def __init__(
+        self,
+        called,
+        pgo_result,
+        code_name,
+        source_ref,
+    ):
+        ExpressionCallClassPrepareBase.__init__(
+            self,
+            called=called,
+            pgo_result=pgo_result,
+            code_name=code_name,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        if self.pgo_result is None:
+            # Any exception may be raised by metaclass call.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: self.pgo_result,
+            description="Result of __prepare__() from PGO",
+            user_provided=True,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
