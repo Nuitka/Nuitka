@@ -545,10 +545,15 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if remove_output:
         extra_options.append("--remove-output")
 
-    if original_file:
+    # The default file reference mode is "original", except for module and
+    # standalone modes, where it is "runtime", so only specify the mode that
+    # is not the default one, to avoid useless informational messages.
+    runtime_mode_is_default = module_mode or standalone_mode or onefile_mode
+
+    if original_file and runtime_mode_is_default:
         extra_options.append("--file-reference-choice=original")
 
-    if runtime_file:
+    if runtime_file and not runtime_mode_is_default:
         extra_options.append("--file-reference-choice=runtime")
 
     if full_compat:
