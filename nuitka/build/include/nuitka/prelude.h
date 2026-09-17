@@ -186,6 +186,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #if PYTHON_VERSION >= 0x3a0
 #include <internal/pycore_long.h>
+#include <internal/pycore_moduleobject.h>
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
@@ -251,7 +252,10 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_unicodeobject.h>
 #endif
 
+#ifndef __IDE_ONLY__
+// IDEs keep the define, so they can still parse private headers included later.
 #undef Py_BUILD_CORE
+#endif
 
 #endif
 

@@ -14,7 +14,7 @@
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
-#if PYTHON_VERSION < 0x3c0
+#if PYTHON_VERSION < 0x3a0
 typedef struct {
     /* Python object folklore: */
     PyObject_HEAD
