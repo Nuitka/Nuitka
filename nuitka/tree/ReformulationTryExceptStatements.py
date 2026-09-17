@@ -35,7 +35,6 @@ from nuitka.nodes.StatementNodes import (
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -48,7 +47,6 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
     buildStatementsNode,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
@@ -416,14 +414,36 @@ def buildTryStarExceptionNode(provider, node, source_ref):
         rest = provider.allocateTempVariable(
             name="rest", temp_scope=scope, temp_type="object"
         )
-        user_statements = buildNodeList(provider, handler.body, source_ref)
+        user_statements = buildStatementsNode(
+            provider=provider, nodes=handler.body, source_ref=source_ref
+        )
+
         if handler.name:
-            user_statements.insert(
-                0,
-                StatementAssignmentVariableName(
+            target_info = decodeAssignTarget(
+                provider=provider, node=handler.name, source_ref=source_ref
+            )
+
+            kind, detail = target_info
+
+            assert kind == "Name", kind
+            kind = "Name_Exception"
+
+            user_statements = makeStatementsSequenceFromStatements(
+                buildAssignmentStatements(
                     provider=provider,
-                    variable_name=handler.name,
+                    node=handler.name,
                     source=ExpressionTempVariableRef(matched, source_ref),
+                    source_ref=source_ref,
+                ),
+                makeTryFinallyStatement(
+                    provider=provider,
+                    tried=user_statements,
+                    final=buildDeleteStatementFromDecoded(
+                        provider=provider,
+                        kind=kind,
+                        detail=detail,
+                        source_ref=source_ref,
+                    ),
                     source_ref=source_ref,
                 ),
             )
@@ -456,16 +476,23 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            makeStatementConditional(
-                condition=ExpressionComparisonIsNot(
-                    ExpressionTempVariableRef(matched, source_ref),
-                    ExpressionConstantNoneRef(source_ref),
-                    source_ref,
-                ),
-                yes_branch=makeStatementsSequenceFromStatements(user_statements),
-                no_branch=None,  # reraise?
-                source_ref=source_ref,
-            ),
+        ]
+
+        if user_statements is not None:
+            statements.append(
+                makeStatementConditional(
+                    condition=ExpressionComparisonIsNot(
+                        ExpressionTempVariableRef(matched, source_ref),
+                        ExpressionConstantNoneRef(source_ref),
+                        source_ref,
+                    ),
+                    yes_branch=user_statements,
+                    no_branch=None,
+                    source_ref=source_ref,
+                )
+            )
+
+        statements.append(
             makeStatementConditional(
                 condition=ExpressionComparisonIsNot(
                     ExpressionTempVariableRef(rest, source_ref),
@@ -481,8 +508,9 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
                 no_branch=None,
                 source_ref=source_ref,
-            ),
-        ]
+            )
+        )
+
         to_try = makeStatementsSequenceFromStatement(
             StatementTry(
                 tried=to_try,
