@@ -133,16 +133,26 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
             if (wrapped == NULL) {
                 return -1;
             }
-            /*
-            PyFrameObject *f = _PyFrame_GetFrameObject(frame);
-            if (f != NULL) {
-                PyObject *tb = _PyTraceBack_FromFrame(NULL, f);
-                if (tb == NULL) {
-                    return -1;
-                }
-                PyException_SetTraceback(wrapped, tb);
-                Py_DECREF(tb);
-            }*/
+            // TODO: Starting with CPython 3.12.9 and 3.13.2, the implicit
+            // exception group also gets the traceback of the current frame
+            // attached. We cannot do that here, as the frame is not available
+            // in this helper, so for now this matches the Python 3.11 behavior
+            // of the implicit group having no traceback. Implementing this
+            // requires passing the frame in and doing the equivalent of:
+            //
+            //     PyFrameObject *f = _PyFrame_GetFrameObject(frame);
+            //     if (f == NULL) {
+            //         Py_DECREF(wrapped);
+            //         return -1;
+            //     }
+            //     PyObject *tb = _PyTraceBack_FromFrame(NULL, f);
+            //     if (tb == NULL) {
+            //         Py_DECREF(wrapped);
+            //         return -1;
+            //     }
+            //     PyException_SetTraceback(wrapped, tb);
+            //     Py_DECREF(tb);
+            //
             *match = wrapped;
         }
         Py_INCREF_IMMORTAL(Py_None);
