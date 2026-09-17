@@ -16,6 +16,7 @@ And releasing of values, as this is what the error case commonly does.
 
 from nuitka.PythonVersions import python_version
 
+from .DeferredReleaseCodes import getDeferredReleaseErrorCode
 from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
@@ -27,9 +28,25 @@ from .templates.CodeTemplatesExceptions import (
 
 
 def getErrorExitReleaseCode(context):
-    temp_release = "\n".join(
-        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempNames()
-    )
+    temp_release = []
+
+    for tmp_name in context.getCleanupTempNames():
+        # Drop the owning reference.
+        temp_release.append("Py_DECREF(%s);" % tmp_name)
+
+        if context.isDeferredReleaseName(tmp_name):
+            # Release the deferred reference only when nothing else
+            # references the value.
+            deferred_code = getDeferredReleaseErrorCode(
+                context=context,
+                tmp_name=tmp_name,
+                release_info=context.getDeferredReleaseNames()[tmp_name],
+            )
+
+            if deferred_code is not None:
+                temp_release.append(deferred_code)
+
+    temp_release = "\n".join(temp_release)
 
     (
         keeper_exception_state_name,
@@ -191,6 +208,8 @@ def getTakeReferenceCode(value_name, emit):
 
 def getReleaseCode(release_name, emit, context):
     if context.needsCleanup(release_name):
+        # Note: Deferred release values additionally keep a pinned reference
+        # that is released at the end of the statement.
         release_name.getCType().getReleaseCode(
             value_name=release_name, needs_check=False, emit=emit
         )

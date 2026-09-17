@@ -22,6 +22,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment2,
 )
+from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ErrorCodes import (
     getAssertionCode,
     getErrorExitCode,
@@ -405,6 +406,13 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
 def getVariableAssignmentCode(
     context, emit, variable, variable_trace, tmp_name, needs_release, inplace
 ):
+    checkDeferredReleaseUse(
+        usage="assignment",
+        tmp_name=tmp_name,
+        context=context,
+        detail=variable.getName(),
+    )
+
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
         ref_count = 1

@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
@@ -54,6 +55,10 @@ class TempMixin(object):
         self.preserver_variable_declaration = {}
 
         self.cleanup_names = []
+
+        # Names of values whose release is deferred to the end of the
+        # enclosing code scope, mapped to opaque release details.
+        self.deferred_release_names = []
 
     def _formatTempName(self, base_name, number):
         if number is None:
@@ -120,6 +125,13 @@ class TempMixin(object):
         number = self.tmp_names.get(base_name, 0)
         number += 1
         self.tmp_names[base_name] = number
+
+    def getUniqueCodeName(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
+
+        return "%s_%d" % (base_name, number)
 
     def getIntResName(self):
         return self.allocateTempName("res", "int", unique=True)
@@ -250,16 +262,44 @@ class TempMixin(object):
         if self.needsCleanup(tmp_source):
             self.addCleanupTempName(tmp_dest)
             self.removeCleanupTempName(tmp_source)
+            self.transferDeferredReleaseName(tmp_source, tmp_dest)
 
     def needsCleanup(self, tmp_name):
         return tmp_name in self.cleanup_names[-1]
 
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        assert tmp_name not in self.deferred_release_names[-1], tmp_name
+
+        self.deferred_release_names[-1][tmp_name] = release_info
+
+    def removeDeferredReleaseName(self, tmp_name):
+        assert tmp_name in self.deferred_release_names[-1], tmp_name
+
+        del self.deferred_release_names[-1][tmp_name]
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        if self.isDeferredReleaseName(tmp_source):
+            self.addDeferredReleaseName(
+                tmp_dest, self.deferred_release_names[-1][tmp_source]
+            )
+            self.removeDeferredReleaseName(tmp_source)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return tmp_name in self.deferred_release_names[-1]
+
+    def getDeferredReleaseNames(self):
+        return self.deferred_release_names[-1]
+
     def pushCleanupScope(self):
         self.cleanup_names.append([])
+        self.deferred_release_names.append(OrderedDict())
 
     def popCleanupScope(self):
         assert not self.cleanup_names[-1]
+        assert not self.deferred_release_names[-1]
+
         del self.cleanup_names[-1]
+        del self.deferred_release_names[-1]
 
 
 # TODO: Remove when isExperimental("new-code-objects") is becoming the
@@ -814,6 +854,7 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "deferred_release_names",
         # TODO: Remove when isExperimental("new-code-objects") is becoming the
         # standard.
         # CodeObjectsMixin
@@ -995,6 +1036,7 @@ class PythonFunctionContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1170,6 +1212,9 @@ class PythonFunctionOutlineContext(
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
 
+    def getUniqueCodeName(self, base_name):
+        return self.parent.getUniqueCodeName(base_name)
+
     def getCleanupTempNames(self):
         return self.parent.getCleanupTempNames()
 
@@ -1185,6 +1230,21 @@ class PythonFunctionOutlineContext(
 
     def needsCleanup(self, tmp_name):
         return self.parent.needsCleanup(tmp_name)
+
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        self.parent.addDeferredReleaseName(tmp_name, release_info)
+
+    def removeDeferredReleaseName(self, tmp_name):
+        self.parent.removeDeferredReleaseName(tmp_name)
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        self.parent.transferDeferredReleaseName(tmp_source, tmp_dest)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return self.parent.isDeferredReleaseName(tmp_name)
+
+    def getDeferredReleaseNames(self):
+        return self.parent.getDeferredReleaseNames()
 
     def pushCleanupScope(self):
         return self.parent.pushCleanupScope()
