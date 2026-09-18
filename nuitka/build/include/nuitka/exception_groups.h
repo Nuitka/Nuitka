@@ -54,9 +54,6 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
         return -1;
     }
 
-    // TODO: Wants to reject except *ExceptionGroup, but we would be able to
-    // statically tell that often, and then this wouldn't have to be done,
-    // but it might be code.
     int is_subclass = 0;
 
     if (PyTuple_Check(right)) {
@@ -103,6 +100,14 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *CREATE_EXCEPTION_GROUP(PyThreadStat
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc_value,
                                                                   PyObject *match_type, PyObject **match,
                                                                   PyObject **rest) {
+    CHECK_OBJECT(match_type);
+
+    // The match type is checked for every clause, even if there is nothing
+    // left to match, just like CPython does for each executed clause.
+    if (CHECK_EXCEPTION_STAR_VALID(tstate, match_type) < 0) {
+        return -1;
+    }
+
     if (Py_IsNone(exc_value)) {
         Py_INCREF_IMMORTAL(Py_None);
         *match = Py_None;
