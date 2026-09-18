@@ -264,6 +264,7 @@ class ExpressionBase(NodeBase):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
         # but generally we don't know what to do.
+        trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(value_node)
         trace_collection.removeKnowledge(subscript)
         trace_collection.onControlFlowEscape(self)
@@ -276,7 +277,9 @@ class ExpressionBase(NodeBase):
     def computeExpressionDelSubscript(self, del_node, subscript, trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do. pylint: disable=unused-argument
+        # but generally we don't know what to do.
+        trace_collection.removeKnowledge(self)
+        trace_collection.removeKnowledge(subscript)
         trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.

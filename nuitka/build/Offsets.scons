@@ -16,8 +16,8 @@ enforce layouts of all structures anymore.
 
 # Make nuitka package importable from calling installation
 
-import sys
 import os
+import sys
 import types
 
 sys.modules["nuitka"] = types.ModuleType("nuitka")

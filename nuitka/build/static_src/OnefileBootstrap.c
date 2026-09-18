@@ -82,6 +82,11 @@
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+#ifdef _NUITKA_USE_SYSTEM_ZSTD
+// Use system installed zstd for the public API only, e.g. for Debian packages
+// that do not contain the inline copy, but link against the system library.
+#include <zstd.h>
+#else
 // Header of zstd goes first, spellchecker: ignore ZSTDERRORLIB,ZSTDLIB
 #define ZSTDERRORLIB_VISIBILITY
 #define ZSTDLIB_VISIBILITY
@@ -100,6 +105,7 @@
 #include "decompress/zstd_ddict.c"
 #include "decompress/zstd_decompress.c"
 #include "decompress/zstd_decompress_block.c"
+#endif
 #endif
 
 // Some handy macro definitions, e.g. unlikely and NUITKA_MAY_BE_UNUSED

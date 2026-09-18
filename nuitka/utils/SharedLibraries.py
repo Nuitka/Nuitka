@@ -1174,12 +1174,32 @@ def isStaticallyLinked(filename):
     return None
 
 
-def hasUniversalOrMatchingMacOSArchitecture(filename):
+def hasMacOSArchitecture(filename, architecture):
+    """Does the given file contain the given architecture.
+
+    Args:
+        filename: Filename to inspect.
+        architecture: Architecture to check for, e.g. "arm64".
+
+    Returns:
+        True if the file is universal or contains the architecture.
+
+    Notes:
+        This uses the 'file' tool to detect the architectures, which
+        works for universal binaries and single architecture ones the
+        same way.
+    """
     assert isMacOS() and os.path.isfile(filename), filename
 
     file_output = _getFileCommandOutput(filename)
 
-    return "universal" in file_output or getMacOSTargetArch() in file_output
+    return "universal" in file_output or architecture in file_output
+
+
+def hasUniversalOrMatchingMacOSArchitecture(filename):
+    assert isMacOS() and os.path.isfile(filename), filename
+
+    return hasMacOSArchitecture(filename, getMacOSTargetArch())
 
 
 # spell-checker: ignore lipo

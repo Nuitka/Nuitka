@@ -20,7 +20,13 @@ from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath, hasFilenameExtension
-from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
+from .Utils import (
+    getArchCommandPrefix,
+    getArchitecture,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
@@ -537,6 +543,20 @@ def filterOutputByLine(output, filter_func):
     return (0 if non_errors else None), output
 
 
+# These macOS tools of the Xcode "CommandLineTools" are only available as
+# ARM64 binaries in newer versions and need to be run natively, even when
+# Nuitka is a translated x86_64 process, where they would otherwise fail
+# to load their libraries.
+_macos_native_arch_tools = ("install_name_tool", "lipo", "nm", "otool")
+
+
+def _getToolArchPrefix(tool):
+    if isMacOS() and os.path.basename(tool) in _macos_native_arch_tools:
+        return getArchCommandPrefix()
+    else:
+        return ()
+
+
 def executeToolChecked(
     logger,
     command,
@@ -565,6 +585,10 @@ def executeToolChecked(
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
+
+    # Some tools need to be run in their architecture to be able to work
+    # at all, even if Nuitka is running translated.
+    command = list(_getToolArchPrefix(tool)) + command
 
     if None in command:
         return logger.sysexit(

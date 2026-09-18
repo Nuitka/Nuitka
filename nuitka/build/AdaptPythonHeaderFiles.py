@@ -29,6 +29,8 @@ from nuitka.utils.FileOperations import (
     copyFile,
     getFileContents,
     getFileList,
+    getNormalizedPathJoin,
+    makeContainingPath,
     makePath,
     putTextFileContents,
 )
@@ -36,6 +38,8 @@ from nuitka.utils.Hashing import Hash
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import getArchitecture, getOS, isLinux, isWin32Windows
 from nuitka.Version import getNuitkaVersion
+
+adapted_headers_patch_filename = "adapted_headers.patch"
 
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
@@ -344,7 +348,7 @@ def ensurePythonInternalsOffsets(cache_dir):
 def _getPythonInternalHeadersAndHash(internal_include_dir):
     # Hash the original header contents and mode-dependent adaptation settings.
     hash_obj = Hash()
-    header_files = []
+    header_filenames = []
 
     hash_obj.updateFromValues(
         "adapted-python-headers-v2",
@@ -352,11 +356,13 @@ def _getPythonInternalHeadersAndHash(internal_include_dir):
         "module" if shallMakeModule() else "non-module",
     )
 
-    for filename in sorted(getFileList(internal_include_dir, only_suffixes=(".h",))):
-        header_files.append(filename)
-        hash_obj.updateFromFile(filename)
+    for header_filename in sorted(
+        getFileList(internal_include_dir, only_suffixes=(".h",))
+    ):
+        header_filenames.append(header_filename)
+        hash_obj.updateFromFile(header_filename)
 
-    return header_files, hash_obj.asHexDigest()
+    return header_filenames, hash_obj.asHexDigest()
 
 
 def _shallCreateAdaptedPythonHeaderFiles():
@@ -406,35 +412,46 @@ def createAdaptedPythonHeaderFiles(source_dir):
         "internal",
     )
 
-    header_files, total_hash = _getPythonInternalHeadersAndHash(internal_include_dir)
+    header_filenames, total_hash = _getPythonInternalHeadersAndHash(
+        internal_include_dir
+    )
 
     cache_base_dir = getCacheDir("adapted_headers", create=True)
 
     # 1. Ensure Offsets Extracted
     ensurePythonInternalsOffsets(cache_dir=cache_base_dir)
 
-    target_cache_dir = os.path.join(cache_base_dir, total_hash)
-    adapt_cache_file = os.path.join(target_cache_dir, "adapted_headers.patch")
+    source_patch_filename = getNormalizedPathJoin(
+        source_dir, adapted_headers_patch_filename
+    )
+
+    target_cache_dir = getNormalizedPathJoin(cache_base_dir, total_hash)
+    adapt_cache_file = getNormalizedPathJoin(
+        target_cache_dir, adapted_headers_patch_filename
+    )
 
     # 2. Check if headers already stripped
     if os.path.exists(adapt_cache_file):
-        copyFile(adapt_cache_file, os.path.join(source_dir, "adapted_headers.patch"))
+        copyFile(
+            source_path=adapt_cache_file,
+            dest_path=source_patch_filename,
+        )
 
         return target_cache_dir
 
     # 3. Adapt and Copy Headers
-    makePath(os.path.join(target_cache_dir, "internal"))
+    makePath(getNormalizedPathJoin(target_cache_dir, "internal"))
 
     adapt_lines = []
 
-    for filename in header_files:
-        rel_path = os.path.relpath(filename, internal_include_dir)
-        d = os.path.join(target_cache_dir, "internal", rel_path)
-        makePath(os.path.dirname(d))
+    for header_filename in header_filenames:
+        rel_path = os.path.relpath(header_filename, internal_include_dir)
+        d = getNormalizedPathJoin(target_cache_dir, "internal", rel_path)
+        makeContainingPath(d)
 
-        item = os.path.basename(filename)
+        item = os.path.basename(header_filename)
         if item.startswith("pycore_"):
-            content = getFileContents(filename, mode="r", encoding="utf-8")
+            content = getFileContents(header_filename, mode="r", encoding="utf-8")
             adapted = adaptPythonHeaderFile(content, rel_path.replace(os.path.sep, "/"))
             putTextFileContents(d, adapted, encoding="utf-8")
 
@@ -451,11 +468,14 @@ def createAdaptedPythonHeaderFiles(source_dir):
                 if adapt_lines and not adapt_lines[-1].endswith("\n"):
                     adapt_lines.append("\n")
         else:
-            copyFile(filename, d)
+            copyFile(
+                source_path=header_filename,
+                dest_path=d,
+            )
 
     if adapt_lines:
         putTextFileContents(adapt_cache_file, "".join(adapt_lines), encoding="utf-8")
-        copyFile(adapt_cache_file, os.path.join(source_dir, "adapted_headers.patch"))
+        copyFile(source_path=adapt_cache_file, dest_path=source_patch_filename)
 
     return target_cache_dir
 
