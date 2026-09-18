@@ -948,7 +948,7 @@ through implicit import by '%s' plugin encountered."""
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if states.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                getSourceDirectoryPath(onefile=False, create=False),
+                getSourceDirectoryPath(onefile=False, create=True),
                 module_name + ".py",
             )
 

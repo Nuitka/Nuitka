@@ -4,6 +4,13 @@
 # yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
 ---
+- module-name: '<main>' # checksum: ac52d2b3
+  include-config:
+    - 'from': 'PySide6/implicit-imports'
+      'key-map':
+        post-import-code: pre-import-code
+      when: 'module_mode and plugin("pyside6")'
+
 - module-name: '_dbus_glib_bindings' # checksum: 437428e9
   implicit-imports:
     - depends:

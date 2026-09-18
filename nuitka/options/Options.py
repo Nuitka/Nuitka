@@ -1927,6 +1927,32 @@ def getMainEntryPointFilenames():
     return tuple(getUserInputNormalizedPath(r) for r in result)
 
 
+def getMainModuleName():
+    """*ModuleName* or None, the name of the main module being compiled."""
+    if options is None:
+        return None
+
+    main_filenames = getMainEntryPointFilenames()
+
+    if not main_filenames:
+        return None
+
+    filename = main_filenames[0]
+
+    if shallMakeModule():
+        # Local import, as the importing layer itself uses options.
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
+        module_name = getModuleNameAndKindFromFilename(filename)[0]
+    elif hasPythonFlagPackageMode():
+        # TODO: Doesn't work for deeply nested packages at all.
+        module_name = ModuleName(os.path.basename(filename) + ".__main__")
+    else:
+        module_name = ModuleName("__main__")
+
+    return module_name
+
+
 def addMainEntryPointFilename(filename):
     if options.mains is None:
         options.mains = []

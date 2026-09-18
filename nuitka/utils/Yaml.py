@@ -20,9 +20,9 @@ import pkgutil
 import re
 from posixpath import normpath
 
-from nuitka.__past__ import re_sub
+from nuitka.__past__ import re_sub, unicode
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.options.Options import getUserProvidedYamlFiles
+from nuitka.options.Options import getMainModuleName, getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
@@ -30,6 +30,10 @@ from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
 from .PrivatePipSpace import getPrivatePackage, getRequiredVersion
+
+# Pseudo module name for configuration that applies to the main module being
+# compiled. It is merged into the configuration of the actual main module.
+_main_module_config_name = "<main>"
 
 
 def _isParsable(value):
@@ -395,7 +399,7 @@ def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message)
     schema_filename = getYamlPackageConfigurationSchemaFilename()
 
     if not os.path.exists(schema_filename):
-        logger.sysexit("Cannot validate schema due to missing schema file.")
+        return logger.sysexit("Cannot validate schema due to missing schema file.")
 
     import json
 
@@ -414,10 +418,122 @@ def validateSchema(logger, name, data, assume_yes_for_downloads, reject_message)
         error_messages.append("For %s module: %s" % (module_name, error.message))
 
     if error_messages:
-        logger.sysexit(
+        return logger.sysexit(
             "Error, invalid package configuration in '%s':\n%s"
             % (name, "\n".join(error_messages))
         )
+
+
+def _parseIncludeConfigPath(logger, module_name, config_path):
+    """Parse an 'include-config' path of the form 'module-name/section-name'."""
+    if type(config_path) not in (str, unicode):
+        return logger.sysexit(
+            """\
+Error, 'include-config' path of module '%s' must be a string, not '%s'."""
+            % (module_name, config_path)
+        )
+
+    path_module_name, _sep, path_section_name = config_path.partition("/")
+
+    if not path_module_name or not path_section_name or "/" in path_section_name:
+        return logger.sysexit(
+            """\
+Error, 'include-config' path '%s' of module '%s' must have the form 'module-name/section-name'."""
+            % (config_path, module_name)
+        )
+
+    return path_module_name, path_section_name
+
+
+def _parseIncludeConfigEntry(logger, module_name, include):
+    """Parse an 'include-config' entry, a path string or a description dict."""
+    if type(include) in (str, unicode):
+        return include, None, {}, None
+
+    if type(include) is not dict:
+        return logger.sysexit(
+            """\
+Error, 'include-config' entries of module '%s' must be strings or dicts, not '%s'."""
+            % (module_name, include)
+        )
+
+    return _parseIncludeConfigDictEntry(
+        logger=logger, module_name=module_name, include=include
+    )
+
+
+def _checkIncludeConfigKeys(logger, module_name, include):
+    """Check the keys of an 'include-config' entry description dict."""
+    invalid_keys = sorted(
+        key for key in include if key not in ("from", "to", "key-map", "when")
+    )
+
+    if invalid_keys:
+        return logger.sysexit(
+            """\
+Error, unknown 'include-config' key(s) '%s' of module '%s'."""
+            % (", ".join(invalid_keys), module_name)
+        )
+
+    if "from" not in include:
+        return logger.sysexit(
+            """\
+Error, 'include-config' entry of module '%s' is missing the 'from' key.""" % module_name
+        )
+
+    return True
+
+
+def _parseIncludeConfigDictEntry(logger, module_name, include):
+    """Parse an 'include-config' entry given as a description dict."""
+    if not _checkIncludeConfigKeys(
+        logger=logger, module_name=module_name, include=include
+    ):
+        return None
+
+    result_to = include.get("to")
+
+    if result_to is not None and (
+        type(result_to) not in (str, unicode) or not result_to
+    ):
+        return logger.sysexit(
+            """\
+Error, 'include-config' key 'to' of module '%s' must be a non-empty string, not '%s'."""
+            % (module_name, result_to)
+        )
+
+    result_key_map = include.get("key-map", {})
+
+    if type(result_key_map) is not dict:
+        return logger.sysexit(
+            """\
+Error, 'include-config' key 'key-map' of module '%s' must be a dict, not '%s'."""
+            % (module_name, result_key_map)
+        )
+
+    for key_map_key, key_map_value in result_key_map.items():
+        if (
+            type(key_map_key) not in (str, unicode)
+            or type(key_map_value) not in (str, unicode)
+            or not key_map_key
+            or not key_map_value
+        ):
+            return logger.sysexit(
+                """\
+Error, 'include-config' key 'key-map' of module '%s' must map non-empty strings to non-empty strings, not '%s' to '%s'."""
+                % (module_name, key_map_key, key_map_value)
+            )
+
+    result_when = include.get("when")
+
+    if result_when is not None and type(result_when) not in (str, unicode):
+        return logger.sysexit(
+            """\
+Error, 'include-config' key 'when' of module '%s' must be a string, not '%s'."""
+            % (module_name, result_when)
+        )
+
+    return include["from"], result_to, result_key_map, result_when
 
 
 class PackageConfigYaml(object):
@@ -501,6 +617,213 @@ Error, empty (or malformed?) user package configuration '%s' used.""" % name,
     def __repr__(self):
         return "<PackageConfigYaml %s>" % self.name
 
+    def _applyMainModuleConfig(self):
+        """Merge the '<main>' configuration into the actual main module config."""
+        main_config = self.data.get(_main_module_config_name)
+
+        if main_config is None:
+            return
+
+        main_module_name = getMainModuleName()
+
+        if main_module_name is None or main_module_name == _main_module_config_name:
+            return
+
+        main_module_config = self.data.setdefault(main_module_name, OrderedDict())
+
+        for section, section_config in main_config.items():
+            if type(section_config) is not list:
+                return self.logger.sysexit(
+                    """\
+Error, '<main>' configuration section '%s' must be list shaped to be applied to the main module."""
+                    % section
+                )
+
+            destination_config = main_module_config.setdefault(section, [])
+
+            if type(destination_config) is not list:
+                return self.logger.sysexit(
+                    """\
+Error, '<main>' configuration section '%s' cannot be applied to non-list section of the main module."""
+                    % section
+                )
+
+            for main_entry in section_config:
+                if type(main_entry) is dict:
+                    main_entry = OrderedDict(main_entry)
+
+                destination_config.append(main_entry)
+
+    def _resolveModuleIncludes(self, module_name, resolution_chain):
+        module_config = self.data.get(module_name)
+
+        if module_config is None:
+            return self.logger.sysexit(
+                "Error, 'include-config' references unknown module '%s'." % module_name
+            )
+
+        include_config = module_config.pop("include-config", None)
+
+        if not include_config:
+            return
+
+        if type(include_config) in (str, unicode):
+            include_config = (include_config,)
+
+        for include in include_config:
+            self._resolveModuleInclude(
+                module_name=module_name,
+                module_config=module_config,
+                include=include,
+                resolution_chain=resolution_chain,
+            )
+
+    def _resolveModuleInclude(
+        self, module_name, module_config, include, resolution_chain
+    ):
+        from_path, to_section, key_map, include_when = _parseIncludeConfigEntry(
+            logger=self.logger, module_name=module_name, include=include
+        )
+
+        target_module_name, target_section = _parseIncludeConfigPath(
+            logger=self.logger, module_name=module_name, config_path=from_path
+        )
+
+        target_section_config = self._getIncludedConfig(
+            module_name=module_name,
+            target_module_name=target_module_name,
+            target_section=target_section,
+            resolution_chain=resolution_chain,
+        )
+
+        destination_config = self._getIncludeDestination(
+            module_name=module_name,
+            module_config=module_config,
+            target_section=target_section,
+            to_section=to_section,
+        )
+
+        self._copyIncludedConfig(
+            module_name=module_name,
+            destination_config=destination_config,
+            target_section_config=target_section_config,
+            key_map=key_map,
+            include_when=include_when,
+        )
+
+    def _getIncludedConfig(
+        self, module_name, target_module_name, target_section, resolution_chain
+    ):
+        if target_module_name == module_name or target_module_name in resolution_chain:
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' cycle detected with module '%s' including module '%s'."""
+                % (module_name, target_module_name)
+            )
+
+        if target_section == "include-config":
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' cannot include the 'include-config' of module '%s'."""
+                % (module_name, target_module_name)
+            )
+
+        if target_module_name not in self.data:
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' references unknown module '%s'."""
+                % (module_name, target_module_name)
+            )
+
+        # Resolve what the included module itself includes first.
+        self._resolveModuleIncludes(
+            module_name=target_module_name,
+            resolution_chain=resolution_chain + (module_name,),
+        )
+
+        target_section_config = self.data[target_module_name].get(target_section)
+
+        if target_section_config is None:
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' references missing section '%s' of module '%s'."""
+                % (module_name, target_section, target_module_name)
+            )
+
+        if type(target_section_config) is not list:
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' can only include list shaped sections, but section '%s' of module '%s' is not."""
+                % (module_name, target_section, target_module_name)
+            )
+
+        return target_section_config
+
+    def _getIncludeDestination(
+        self, module_name, module_config, target_section, to_section
+    ):
+        if to_section is None:
+            destination_section = target_section
+        elif to_section == "include-config":
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' cannot include into the 'include-config' section."""
+                % module_name
+            )
+        else:
+            destination_section = to_section
+
+        destination_config = module_config.setdefault(destination_section, [])
+
+        if type(destination_config) is not list:
+            return self.logger.sysexit(
+                """\
+Error, 'include-config' of module '%s' cannot include into non-list section '%s'."""
+                % (module_name, destination_section)
+            )
+
+        return destination_config
+
+    def _copyIncludedConfig(
+        self,
+        module_name,
+        destination_config,
+        target_section_config,
+        key_map,
+        include_when,
+    ):
+        for target_entry in target_section_config:
+            if type(target_entry) is dict:
+                target_entry = OrderedDict(target_entry)
+
+                self._mapIncludedEntry(
+                    target_entry=target_entry,
+                    key_map=key_map,
+                    include_when=include_when,
+                )
+            elif include_when is not None or key_map:
+                return self.logger.sysexit(
+                    """\
+Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-dict entry '%s'."""
+                    % (module_name, target_entry)
+                )
+
+            destination_config.append(target_entry)
+
+    @staticmethod
+    def _mapIncludedEntry(target_entry, key_map, include_when):
+        for key_map_key, key_map_value in key_map.items():
+            if key_map_key in target_entry:
+                target_entry[key_map_value] = target_entry.pop(key_map_key)
+
+        if include_when is not None:
+            entry_when = target_entry.get("when")
+
+            if entry_when is None:
+                target_entry["when"] = include_when
+            else:
+                target_entry["when"] = "(%s) and (%s)" % (include_when, entry_when)
+
     def get(self, name, section):
         """Return a configs for that section."""
         result = self.data.get(name)
@@ -524,7 +847,7 @@ Error, empty (or malformed?) user package configuration '%s' used.""" % name,
 
         # Ensure result is a tuple; otherwise exit with an error
         if not isinstance(result, tuple):
-            self.logger.sysexit(
+            return self.logger.sysexit(
                 "Error, unexpected result type %s for %s module %s section %s."
                 % (type(result), self.name, name, section)
             )
@@ -541,29 +864,120 @@ Error, empty (or malformed?) user package configuration '%s' used.""" % name,
     def items(self):
         return self.data.items()
 
+    @staticmethod
+    def _mergeConfigSection(existing, new_value, section):
+        new_entries = new_value.pop(section, None)
+
+        if new_entries:
+            if existing.get(section, None) is None:
+                existing[section] = new_entries
+            else:
+                existing[section].extend(new_entries)
+
     def update(self, other):
         # TODO: Full blown merging, including respecting an overload flag, where
         # a config replaces another one entirely, for now we expect to not
-        # overlap and offer only merging of implicit-imports.
+        # overlap and offer only merging of implicit-imports and include-config.
         for key, value in other.items():
             # assert key not in self.data, key
             if key in self.data:
-                new_implicit_imports = value.get("implicit-imports", None)
-                if new_implicit_imports:
-                    value.pop("implicit-imports")
-                    if self.data[key].get("implicit-imports", None) is None:
-                        self.data[key]["implicit-imports"] = new_implicit_imports
-                    else:
-                        self.data[key]["implicit-imports"].extend(new_implicit_imports)
+                self._mergeConfigSection(
+                    existing=self.data[key],
+                    new_value=value,
+                    section="implicit-imports",
+                )
+                self._mergeConfigSection(
+                    existing=self.data[key],
+                    new_value=value,
+                    section="include-config",
+                )
                 if len(value) > 0:
-                    general.sysexit(
+                    return general.sysexit(
                         "Error, duplicate config for module name '%s' encountered in '%s'."
                         % (key, self.name)
                     )
                 else:
-                    general.info("Merged implicit-imports for '%s'." % key)
+                    general.info("Merged configuration for '%s'." % key)
             else:
                 self.data[key] = value
+
+    @classmethod
+    def getYamlPackageConfiguration(
+        cls, logger, assume_yes_for_downloads, check_checksums
+    ):
+        """Get Nuitka package configuration. Merged from multiple sources."""
+        # Singleton, pylint: disable=global-statement
+        global _package_config
+
+        if logger is None:
+            logger = general
+
+        if _package_config is None:
+            _package_config = parsePackageYaml(
+                logger=logger,
+                package_name="nuitka.plugins.standard",
+                filename="standard.nuitka-package.config.yml",
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                check_checksums=check_checksums,
+            )
+            _package_config.update(
+                parsePackageYaml(
+                    logger=logger,
+                    package_name="nuitka.plugins.standard",
+                    filename="stdlib2.nuitka-package.config.yml",
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                    check_checksums=check_checksums,
+                )
+            )
+            _package_config.update(
+                parsePackageYaml(
+                    logger=logger,
+                    package_name="nuitka.plugins.standard",
+                    filename="stdlib3.nuitka-package.config.yml",
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                    check_checksums=check_checksums,
+                )
+            )
+
+            try:
+                _package_config.update(
+                    parsePackageYaml(
+                        logger=logger,
+                        package_name="nuitka.plugins.commercial",
+                        filename="commercial.nuitka-package.config.yml",
+                        assume_yes_for_downloads=assume_yes_for_downloads,
+                        check_checksums=check_checksums,
+                    )
+                )
+            except IOError:
+                # No commercial configuration found.
+                pass
+
+            # User or plugin provided filenames, but we want PRs though, and will nag
+            # about it somewhat.
+            for user_yaml_filename in getUserProvidedYamlFiles():
+                _package_config.update(
+                    PackageConfigYaml(
+                        logger=logger,
+                        name=user_yaml_filename,
+                        file_data=getFileContents(user_yaml_filename, mode="rb"),
+                        assume_yes_for_downloads=assume_yes_for_downloads,
+                        check_checksums=check_checksums,
+                    )
+                )
+
+            # Resolve 'include-config' references only now, since they may refer to
+            # modules configured in any of the loaded files.
+            for module_name in list(_package_config.data):
+                cls._resolveModuleIncludes(
+                    _package_config,
+                    module_name=module_name,
+                    resolution_chain=(),
+                )
+
+            cls._applyMainModuleConfig(_package_config)
+
+        return _package_config
 
 
 def getYamlPackage():
@@ -645,67 +1059,11 @@ _package_config = None
 
 def getYamlPackageConfiguration(logger, assume_yes_for_downloads, check_checksums):
     """Get Nuitka package configuration. Merged from multiple sources."""
-    # Singleton, pylint: disable=global-statement
-    global _package_config
-
-    if logger is None:
-        logger = general
-
-    if _package_config is None:
-        _package_config = parsePackageYaml(
-            logger=logger,
-            package_name="nuitka.plugins.standard",
-            filename="standard.nuitka-package.config.yml",
-            assume_yes_for_downloads=assume_yes_for_downloads,
-            check_checksums=check_checksums,
-        )
-        _package_config.update(
-            parsePackageYaml(
-                logger=logger,
-                package_name="nuitka.plugins.standard",
-                filename="stdlib2.nuitka-package.config.yml",
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                check_checksums=check_checksums,
-            )
-        )
-        _package_config.update(
-            parsePackageYaml(
-                logger=logger,
-                package_name="nuitka.plugins.standard",
-                filename="stdlib3.nuitka-package.config.yml",
-                assume_yes_for_downloads=assume_yes_for_downloads,
-                check_checksums=check_checksums,
-            )
-        )
-
-        try:
-            _package_config.update(
-                parsePackageYaml(
-                    logger=logger,
-                    package_name="nuitka.plugins.commercial",
-                    filename="commercial.nuitka-package.config.yml",
-                    assume_yes_for_downloads=assume_yes_for_downloads,
-                    check_checksums=check_checksums,
-                )
-            )
-        except IOError:
-            # No commercial configuration found.
-            pass
-
-        # User or plugin provided filenames, but we want PRs though, and will nag
-        # about it somewhat.
-        for user_yaml_filename in getUserProvidedYamlFiles():
-            _package_config.update(
-                PackageConfigYaml(
-                    logger=logger,
-                    name=user_yaml_filename,
-                    file_data=getFileContents(user_yaml_filename, mode="rb"),
-                    assume_yes_for_downloads=assume_yes_for_downloads,
-                    check_checksums=check_checksums,
-                )
-            )
-
-    return _package_config
+    return PackageConfigYaml.getYamlPackageConfiguration(
+        logger=logger,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        check_checksums=check_checksums,
+    )
 
 
 def getYamlPackageConfigurationSchemaFilename():
