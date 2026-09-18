@@ -6886,6 +6886,141 @@ class ChildrenHavingExceptionMatchTypeMixin(object):
 ChildrenExpressionExceptionGroupMatchMixin = ChildrenHavingExceptionMatchTypeMixin
 
 
+class ChildrenHavingExceptionRaisedMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionExceptionGroupPrepareReraise
+
+    def __init__(
+        self,
+        exception,
+        raised,
+    ):
+        exception.parent = self
+
+        self.subnode_exception = exception
+
+        raised.parent = self
+
+        self.subnode_raised = raised
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_exception,
+            self.subnode_raised,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("exception", self.subnode_exception),
+            ("raised", self.subnode_raised),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_exception
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_exception = new_node
+
+            return
+
+        value = self.subnode_raised
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_raised = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "exception": self.subnode_exception.makeClone(),
+            "raised": self.subnode_raised.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_exception.finalize()
+        del self.subnode_exception
+        self.subnode_raised.finalize()
+        del self.subnode_raised
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_exception.collectVariableAccesses(emit_variable)
+        self.subnode_raised.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionExceptionGroupPrepareReraiseMixin = ChildrenHavingExceptionRaisedMixin
+
+
 class ChildHavingExceptionTypeMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

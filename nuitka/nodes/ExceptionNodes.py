@@ -8,6 +8,7 @@ from nuitka.PythonVersions import python_version
 from .ChildrenHavingMixins import (
     ChildHavingExceptionTypeMixin,
     ChildrenHavingExceptionMatchTypeMixin,
+    ChildrenHavingExceptionRaisedMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
@@ -346,6 +347,23 @@ class ExpressionExceptionGroupMatch(
 
     def __init__(self, exception, match_type, source_ref):
         ChildrenHavingExceptionMatchTypeMixin.__init__(self, exception, match_type)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+
+class ExpressionExceptionGroupPrepareReraise(
+    ChildrenHavingExceptionRaisedMixin, ExpressionBase
+):
+
+    kind = "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE"
+
+    named_children = ("exception", "raised")
+
+    def __init__(self, exception, raised, source_ref):
+        ChildrenHavingExceptionRaisedMixin.__init__(self, exception, raised)
 
         ExpressionBase.__init__(self, source_ref)
 

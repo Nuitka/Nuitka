@@ -185,6 +185,21 @@ def generateExceptionGroupMatchCode(to_name, expression, emit, context):
     )
 
 
+def generateExceptionGroupPrepareReraiseCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_PREPARE_RERAISE",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=True,
+        none_null=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def _attachExceptionAttributeCode(
     to_name,
     attribute_expression,

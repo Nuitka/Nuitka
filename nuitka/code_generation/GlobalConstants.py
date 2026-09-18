@@ -228,8 +228,10 @@ def getConstantDefaultPopulation():
         result.append("__aenter__")
         result.append("__aexit__")
 
-        # Exception group split method call
+        # Exception group "split" and "derive" methods, and metadata of it.
+        result.append("derive")
         result.append("split")
+        result.append("__notes__")
 
         if python_version >= 0x3C0:
             result.append("Unpack")

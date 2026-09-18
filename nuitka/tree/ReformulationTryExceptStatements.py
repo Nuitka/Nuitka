@@ -20,13 +20,17 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode,
 )
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeList
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
     ExpressionExceptionGroupMatch,
+    ExpressionExceptionGroupPrepareReraise,
     StatementRaiseException,
 )
+from nuitka.nodes.ListOperationNodes import ExpressionListOperationAppend
 from nuitka.nodes.StatementNodes import (
+    StatementExpressionOnly,
     StatementPreserveFrameException,
     StatementPublishException,
     StatementRestoreFrameException,
@@ -401,12 +405,51 @@ def buildTryExceptionNode(provider, node, source_ref):
 
 
 def buildTryStarExceptionNode(provider, node, source_ref):
+    # Many variables, due to the re-formulation that is going on here, which
+    # just has the complexity, pylint: disable=too-many-locals
+
     tried = buildStatementsNode(provider, node.body, source_ref)
 
-    # The clauses are built into a chain, where each clause catches the
-    # exception that the previous clause may have re-raised, and processes
-    # the remaining exception group.
-    handler_chain = None
+    # All clauses are executed, each one processing the remaining exception
+    # group of the previous one. Exceptions raised by a clause do not stop
+    # that, but are collected and raised again at the end, combined with the
+    # unhandled part of the exception group, as per PEP 654.
+    temp_scope = provider.allocateTempScope("try_star")
+
+    raised = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="raised", temp_type="object"
+    )
+    rest = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="rest", temp_type="object"
+    )
+    caught = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="caught", temp_type="object"
+    )
+    reraise_exception = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="reraise_exception", temp_type="object"
+    )
+
+    handling = [
+        # The caught exception, kept for the final re-raise handling, since
+        # the exception state is not usable after user code has run.
+        makeStatementAssignmentVariable(
+            variable=caught,
+            source=ExpressionCaughtExceptionValueRef(source_ref),
+            source_ref=source_ref,
+        ),
+        # Remaining exception group, initially the caught exception.
+        makeStatementAssignmentVariable(
+            variable=rest,
+            source=ExpressionTempVariableRef(variable=caught, source_ref=source_ref),
+            source_ref=source_ref,
+        ),
+        # Exceptions that were raised or re-raised by the clauses.
+        makeStatementAssignmentVariable(
+            variable=raised,
+            source=makeExpressionMakeList(elements=(), source_ref=source_ref),
+            source_ref=source_ref,
+        ),
+    ]
 
     for handler in node.handlers:
         scope = provider.allocateTempScope("try_star_handler")
@@ -416,9 +459,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
         matched = provider.allocateTempVariable(
             name="matched", temp_scope=scope, temp_type="object"
         )
-        rest = provider.allocateTempVariable(
-            name="rest", temp_scope=scope, temp_type="object"
-        )
+
         user_statements = buildStatementsNode(
             provider=provider, nodes=handler.body, source_ref=source_ref
         )
@@ -453,59 +494,113 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
             )
 
-        statements = [
-            makeStatementAssignmentVariable(
-                variable=match_result,
-                source=ExpressionExceptionGroupMatch(
-                    ExpressionCaughtExceptionValueRef(source_ref),
-                    buildNode(provider, handler.type, source_ref),
-                    source_ref,
-                ),
-                source_ref=source_ref,
-            ),
-            makeStatementAssignmentVariable(
-                variable=matched,
-                source=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(match_result, source_ref),
-                    subscript=ExpressionConstantIntRef(0, source_ref),
+        handling.extend(
+            (
+                makeStatementAssignmentVariable(
+                    variable=match_result,
+                    source=ExpressionExceptionGroupMatch(
+                        ExpressionTempVariableRef(variable=rest, source_ref=source_ref),
+                        buildNode(provider, handler.type, source_ref),
+                        source_ref,
+                    ),
                     source_ref=source_ref,
                 ),
-                source_ref=source_ref,
-            ),
-            makeStatementAssignmentVariable(
-                variable=rest,
-                source=ExpressionSubscriptLookup(
-                    expression=ExpressionTempVariableRef(match_result, source_ref),
-                    subscript=ExpressionConstantIntRef(1, source_ref),
+                makeStatementAssignmentVariable(
+                    variable=matched,
+                    source=ExpressionSubscriptLookup(
+                        expression=ExpressionTempVariableRef(match_result, source_ref),
+                        subscript=ExpressionConstantIntRef(0, source_ref),
+                        source_ref=source_ref,
+                    ),
                     source_ref=source_ref,
                 ),
-                source_ref=source_ref,
-            ),
-        ]
+                # Update the remaining exception group already here, so that
+                # a handler that raises does not prevent the other clauses
+                # from processing it.
+                makeStatementAssignmentVariable(
+                    variable=rest,
+                    source=ExpressionSubscriptLookup(
+                        expression=ExpressionTempVariableRef(match_result, source_ref),
+                        subscript=ExpressionConstantIntRef(1, source_ref),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                ),
+            )
+        )
 
         if user_statements is not None:
-            statements.append(
+            handling.append(
                 makeStatementConditional(
                     condition=ExpressionComparisonIsNot(
                         ExpressionTempVariableRef(matched, source_ref),
                         ExpressionConstantNoneRef(source_ref),
                         source_ref,
                     ),
-                    yes_branch=user_statements,
+                    yes_branch=makeStatementsSequenceFromStatement(
+                        StatementTry(
+                            tried=user_statements,
+                            # Exceptions raised by the clause are collected,
+                            # and do not propagate to the other clauses.
+                            except_handler=makeStatementsSequenceFromStatement(
+                                StatementExpressionOnly(
+                                    expression=ExpressionListOperationAppend(
+                                        list_arg=ExpressionTempVariableRef(
+                                            variable=raised, source_ref=source_ref
+                                        ),
+                                        item=ExpressionCaughtExceptionValueRef(
+                                            source_ref
+                                        ),
+                                        source_ref=source_ref,
+                                    ),
+                                    source_ref=source_ref,
+                                )
+                            ),
+                            break_handler=None,
+                            continue_handler=None,
+                            return_handler=None,
+                            source_ref=source_ref,
+                        )
+                    ),
                     no_branch=None,
                     source_ref=source_ref,
                 )
             )
 
-        statements.append(
+    handling.extend(
+        (
+            # The unhandled part of the exception group is to be raised again.
+            StatementExpressionOnly(
+                expression=ExpressionListOperationAppend(
+                    list_arg=ExpressionTempVariableRef(
+                        variable=raised, source_ref=source_ref
+                    ),
+                    item=ExpressionTempVariableRef(
+                        variable=rest, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            ),
+            makeStatementAssignmentVariable(
+                variable=reraise_exception,
+                source=ExpressionExceptionGroupPrepareReraise(
+                    ExpressionTempVariableRef(variable=caught, source_ref=source_ref),
+                    ExpressionTempVariableRef(variable=raised, source_ref=source_ref),
+                    source_ref,
+                ),
+                source_ref=source_ref,
+            ),
             makeStatementConditional(
                 condition=ExpressionComparisonIsNot(
-                    ExpressionTempVariableRef(rest, source_ref),
+                    ExpressionTempVariableRef(reraise_exception, source_ref),
                     ExpressionConstantNoneRef(source_ref),
                     source_ref,
                 ),
                 yes_branch=StatementRaiseException(
-                    exception_type=ExpressionTempVariableRef(rest, source_ref),
+                    exception_type=ExpressionTempVariableRef(
+                        reraise_exception, source_ref
+                    ),
                     exception_value=None,
                     exception_trace=None,
                     exception_cause=None,
@@ -513,24 +608,31 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
                 no_branch=None,
                 source_ref=source_ref,
-            )
+            ),
         )
+    )
 
-        handler_clause = makeStatementsSequenceFromStatements(statements)
+    handling = makeStatementsSequenceFromStatements(handling)
 
-        if handler_chain is None:
-            handler_chain = handler_clause
-        else:
-            handler_chain = makeStatementsSequenceFromStatement(
-                StatementTry(
-                    tried=handler_chain,
-                    except_handler=handler_clause,
-                    break_handler=None,
-                    continue_handler=None,
-                    return_handler=None,
-                    source_ref=source_ref,
-                )
-            )
+    # The exception being handled must be published while the clauses are
+    # executed, as otherwise the "break"/"continue" code generation would
+    # release the exception state, which we still need for the clauses.
+    preserver_id = provider.allocatePreserverId()
+
+    handling = makeStatementsSequenceFromStatements(
+        StatementPreserveFrameException(
+            preserver_id=preserver_id, source_ref=source_ref.atInternal()
+        ),
+        StatementPublishException(source_ref=source_ref.atInternal()),
+        makeTryFinallyStatement(
+            provider=provider,
+            tried=handling,
+            final=StatementRestoreFrameException(
+                preserver_id=preserver_id, source_ref=source_ref.atInternal()
+            ),
+            source_ref=source_ref.atInternal(),
+        ),
+    )
 
     # spell-checker: ignore orelse
     no_raise = buildStatementsNode(
@@ -543,7 +645,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
 
         return StatementTry(
             tried=tried,
-            except_handler=handler_chain,
+            except_handler=handling,
             break_handler=None,
             continue_handler=None,
             return_handler=None,
@@ -557,7 +659,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
             provider=provider,
             temp_scope=provider.allocateTempScope("try_star_except"),
             tried=tried,
-            handling=handler_chain,
+            handling=handling,
             no_raise=no_raise,
             source_ref=source_ref,
         )

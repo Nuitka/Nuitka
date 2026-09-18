@@ -168,6 +168,7 @@ from .ExceptionCodes import (
     generateExceptionCaughtTypeCode,
     generateExceptionCaughtValueCode,
     generateExceptionGroupMatchCode,
+    generateExceptionGroupPrepareReraiseCode,
     generateExceptionPublishCode,
     generateExceptionRefCode,
 )
@@ -869,6 +870,7 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
         "EXPRESSION_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatchCode,
+        "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE": generateExceptionGroupPrepareReraiseCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
