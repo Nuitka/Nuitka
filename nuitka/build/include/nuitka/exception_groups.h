@@ -35,13 +35,13 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_TYPE_VALID(PyThreadState *tstate
         for (Py_ssize_t i = 0; i < length; i++) {
             PyObject *exc = PyTuple_GET_ITEM(right, i);
 
-            if (!PyExceptionClass_Check(exc)) {
+            if (unlikely(!PyExceptionClass_Check(exc))) {
                 FORMAT_CLASS_CATCH_ERROR(tstate);
                 return -1;
             }
         }
     } else {
-        if (!PyExceptionClass_Check(right)) {
+        if (unlikely(!PyExceptionClass_Check(right))) {
             FORMAT_CLASS_CATCH_ERROR(tstate);
             return -1;
         }
@@ -50,7 +50,7 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_TYPE_VALID(PyThreadState *tstate
 }
 
 NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate, PyObject *right) {
-    if (CHECK_EXCEPTION_TYPE_VALID(tstate, right) < 0) {
+    if (unlikely(CHECK_EXCEPTION_TYPE_VALID(tstate, right) < 0)) {
         return -1;
     }
 
@@ -63,23 +63,23 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
             PyObject *exc = PyTuple_GET_ITEM(right, i);
             is_subclass = PyObject_IsSubclass(exc, PyExc_BaseExceptionGroup);
 
-            if (is_subclass < 0) {
+            if (unlikely(is_subclass < 0)) {
                 return -1;
             }
 
-            if (is_subclass) {
+            if (unlikely(is_subclass)) {
                 break;
             }
         }
     } else {
         is_subclass = PyObject_IsSubclass(right, PyExc_BaseExceptionGroup);
 
-        if (is_subclass < 0) {
+        if (unlikely(is_subclass < 0)) {
             return -1;
         }
     }
 
-    if (is_subclass) {
+    if (unlikely(is_subclass)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                         "catching ExceptionGroup with except* is not allowed. Use except instead.");
         return -1;
@@ -104,7 +104,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
 
     // The match type is checked for every clause, even if there is nothing
     // left to match, just like CPython does for each executed clause.
-    if (CHECK_EXCEPTION_STAR_VALID(tstate, match_type) < 0) {
+    if (unlikely(CHECK_EXCEPTION_STAR_VALID(tstate, match_type) < 0)) {
         return -1;
     }
 
@@ -173,11 +173,11 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
      */
     if (_PyBaseExceptionGroup_Check(exc_value)) {
         PyObject *pair = CALL_METHOD_WITH_SINGLE_ARG(tstate, exc_value, const_str_plain_split, match_type);
-        if (pair == NULL) {
+        if (unlikely(pair == NULL)) {
             return -1;
         }
 
-        if (!PyTuple_CheckExact(pair)) {
+        if (unlikely(!PyTuple_CheckExact(pair))) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyExc_TypeError, "%s.split must return a tuple, not %s",
                                                 Py_TYPE(exc_value)->tp_name, Py_TYPE(pair)->tp_name);
             Py_DECREF(pair);
@@ -185,7 +185,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         }
 
         // allow tuples of length > 2 for backwards compatibility
-        if (PyTuple_GET_SIZE(pair) < 2) {
+        if (unlikely(PyTuple_GET_SIZE(pair) < 2)) {
             PyErr_Format(PyExc_TypeError, "%s.split must return a 2-tuple, got tuple of size %zd",
                          Py_TYPE(exc_value)->tp_name, PyTuple_GET_SIZE(pair));
             Py_DECREF(pair);
@@ -212,7 +212,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH(PyThreadState
     CHECK_OBJECT(match_type);
     PyObject *match;
     PyObject *rest;
-    if (EXCEPTION_GROUP_MATCH_BOOL(tstate, exc_value, match_type, &match, &rest) < 0) {
+    if (unlikely(EXCEPTION_GROUP_MATCH_BOOL(tstate, exc_value, match_type, &match, &rest) < 0)) {
         return NULL;
     }
 
@@ -233,7 +233,7 @@ static int _collectExceptionGroupLeafIds(PyObject *exc, PyObject *leaf_ids) {
     if (!_PyBaseExceptionGroup_Check(exc)) {
         PyObject *exc_id = PyLong_FromVoidPtr(exc);
 
-        if (exc_id == NULL) {
+        if (unlikely(exc_id == NULL)) {
             return -1;
         }
 
@@ -263,7 +263,7 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
     *result = NULL;
 
     Py_ssize_t num_excs = PySequence_Size(excs);
-    if (num_excs < 0) {
+    if (unlikely(num_excs < 0)) {
         return -1;
     } else if (num_excs == 0) {
         return 0;
@@ -271,7 +271,7 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
 
     PyObject *eg = CALL_METHOD_WITH_SINGLE_ARG(tstate, orig, const_str_plain_derive, excs);
 
-    if (eg == NULL) {
+    if (unlikely(eg == NULL)) {
         return -1;
     }
 
@@ -308,7 +308,7 @@ static int _makeExceptionGroupSubset(PyThreadState *tstate, PyObject *orig, PyOb
         PyObject *notes_copy = PySequence_List(notes);
         Py_DECREF(notes);
 
-        if (notes_copy == NULL) {
+        if (unlikely(notes_copy == NULL)) {
             Py_DECREF(eg);
             return -1;
         }
@@ -336,7 +336,7 @@ static int _projectExceptionGroup(PyThreadState *tstate, PyObject *exc, PyObject
     if (!_PyBaseExceptionGroup_Check(exc)) {
         PyObject *exc_id = PyLong_FromVoidPtr(exc);
 
-        if (exc_id == NULL) {
+        if (unlikely(exc_id == NULL)) {
             return -1;
         }
 
@@ -359,7 +359,7 @@ static int _projectExceptionGroup(PyThreadState *tstate, PyObject *exc, PyObject
 
     PyObject *match_list = PyList_New(0);
 
-    if (match_list == NULL) {
+    if (unlikely(match_list == NULL)) {
         return -1;
     }
 
@@ -398,7 +398,7 @@ static int _projectExceptionGroup(PyThreadState *tstate, PyObject *exc, PyObject
 static PyObject *_makeExceptionGroupProjection(PyThreadState *tstate, PyObject *eg, PyObject *keep) {
     PyObject *leaf_ids = PySet_New(NULL);
 
-    if (leaf_ids == NULL) {
+    if (unlikely(leaf_ids == NULL)) {
         return NULL;
     }
 
@@ -443,7 +443,7 @@ static int _isDerivedException(PyObject *exc, PyObject *leaf_ids) {
     if (!_PyBaseExceptionGroup_Check(exc)) {
         PyObject *exc_id = PyLong_FromVoidPtr(exc);
 
-        if (exc_id == NULL) {
+        if (unlikely(exc_id == NULL)) {
             return -1;
         }
 
@@ -506,20 +506,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
 
     PyObject *raised_list = PyList_New(0);
 
-    if (raised_list == NULL) {
+    if (unlikely(raised_list == NULL)) {
         return NULL;
     }
 
     PyObject *reraised_list = PyList_New(0);
 
-    if (reraised_list == NULL) {
+    if (unlikely(reraised_list == NULL)) {
         Py_DECREF(raised_list);
         return NULL;
     }
 
     PyObject *orig_leaf_ids = PySet_New(NULL);
 
-    if (orig_leaf_ids == NULL) {
+    if (unlikely(orig_leaf_ids == NULL)) {
         Py_DECREF(raised_list);
         Py_DECREF(reraised_list);
         return NULL;
@@ -563,7 +563,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EXCEPTION_GROUP_PREPARE_RERAISE(PyThreadSt
 
     reraised_eg = _makeExceptionGroupProjection(tstate, orig, reraised_list);
 
-    if (reraised_eg == NULL) {
+    if (unlikely(reraised_eg == NULL)) {
         goto done;
     }
 
