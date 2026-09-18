@@ -583,9 +583,16 @@ def getYamlPackage():
 def parseYaml(logger, data, error_message):
     yaml = getYamlPackage()
 
+    # Prefer the libyaml based loader when available (built with
+    # the C extension), it tokenizes in C and is roughly an order
+    # of magnitude faster on the large package configuration, while
+    # using the very same. Our inline copy has no C loader, in which
+    # case we fall back to the pure Python one.
+    safe_loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
     # Make sure dictionaries are ordered even before 3.6 in the result. We use
     # them for hashing in caching keys.
-    class OrderedLoader(yaml.SafeLoader):
+    class OrderedLoader(safe_loader):
         pass
 
     def construct_mapping(loader, node):
