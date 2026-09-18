@@ -122,6 +122,8 @@ def check_output(*popenargs, **kwargs):
     """
     logger = kwargs.pop("logger", None)
 
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
+
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
@@ -160,6 +162,8 @@ def check_call(*popenargs, **kwargs):
     """
     logger = kwargs.pop("logger", None)
 
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
+
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
@@ -177,6 +181,8 @@ def check_call(*popenargs, **kwargs):
 def callProcess(*popenargs, **kwargs):
     """Call a process and return result code."""
     logger = kwargs.pop("logger", None)
+
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
 
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
@@ -545,16 +551,49 @@ def filterOutputByLine(output, filter_func):
 
 # These macOS tools of the Xcode "CommandLineTools" are only available as
 # ARM64 binaries in newer versions and need to be run natively, even when
-# Nuitka is a translated x86_64 process, where they would otherwise fail
-# to load their libraries.
-_macos_native_arch_tools = ("install_name_tool", "lipo", "nm", "otool")
+# Nuitka or the tests are run by a translated x86_64 process, where they
+# would otherwise fail to load their libraries. This includes "git", which
+# is a shim that loads the ARM64 only "libxcrun" library.
+_macos_native_arch_tools = ("git", "install_name_tool", "lipo", "nm", "otool")
 
 
-def _getToolArchPrefix(tool):
+def getToolArchPrefix(tool):
+    """Get command prefix to run a tool in the architecture it needs.
+
+    Args:
+        tool: The tool name or path that is to be run.
+
+    Returns:
+        Tuple of values to prepend to the tool invocation, empty tuple in
+        case no prefix is needed.
+
+    Notes:
+        Some macOS tools only exist as ARM64 binaries in newer Xcode
+        "CommandLineTools" and cannot be loaded by a translated x86_64
+        process at all.
+    """
     if isMacOS() and os.path.basename(tool) in _macos_native_arch_tools:
         return getArchCommandPrefix()
     else:
         return ()
+
+
+def _getToolCommand(command):
+    """Add architecture prefix to a command if necessary.
+
+    Args:
+        command: Command sequence as passed to a process execution.
+
+    Returns:
+        Command sequence, possibly with an architecture prefix added.
+    """
+    if type(command) in (list, tuple):
+        arch_prefix = getToolArchPrefix(command[0])
+
+        if arch_prefix:
+            return type(command)(arch_prefix) + command
+
+    return command
 
 
 def executeToolChecked(
@@ -588,7 +627,7 @@ def executeToolChecked(
 
     # Some tools need to be run in their architecture to be able to work
     # at all, even if Nuitka is running translated.
-    command = list(_getToolArchPrefix(tool)) + command
+    command = list(getToolArchPrefix(tool)) + command
 
     if None in command:
         return logger.sysexit(
@@ -768,6 +807,8 @@ def executeProcess(
     timeout=None,
     logger=None,
 ):
+    command = _getToolCommand(command)
+
     process = Process(
         command=command,
         env=env,
