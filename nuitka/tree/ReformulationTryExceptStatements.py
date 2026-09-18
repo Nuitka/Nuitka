@@ -633,11 +633,13 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 source_ref,
             ),
             yes_branch=StatementRaiseException(
-                exception_type=ExpressionTempVariableRef(reraise_exception, source_ref),
+                exception_type=ExpressionTempVariableRef(
+                    reraise_exception, source_ref.atInternal()
+                ),
                 exception_value=None,
                 exception_trace=None,
                 exception_cause=None,
-                source_ref=source_ref,
+                source_ref=source_ref.atInternal(),
             ),
             no_branch=None,
             source_ref=source_ref,
