@@ -32,7 +32,6 @@ from nuitka.options.Options import (
 )
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Hooks import (
-    considerImplicitImports,
     onModuleEncounter,
     onModuleRecursion,
     onModuleUsageLookAhead,
@@ -674,14 +673,6 @@ def considerUsedModules(module, pass_count):
                     used_module.source_ref.getAsString(),
                 )
             )
-
-    try:
-        considerImplicitImports(module=module)
-    except NuitkaForbiddenImportEncounter as e:
-        recursion_logger.sysexit(
-            "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."
-            % (e.args[0], e.args[1], module.getFullName())
-        )
 
 
 def scanIncludedPackage(package_name):

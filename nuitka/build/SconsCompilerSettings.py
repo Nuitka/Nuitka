@@ -22,8 +22,10 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
+from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.Utils import (
+    getArchCommandPrefix,
     isAIX,
     isFedoraBasedLinux,
     isLinux,
@@ -54,6 +56,7 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
+    linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
     setupScons,
@@ -172,6 +175,9 @@ def _enableLtoSettings(
     elif env.monolithpy:
         lto_mode = True
         reason = "known to be supported (MonolithPy)"
+    elif env.python_build_standalone:
+        lto_mode = True
+        reason = "known to be supported (Python Build Standalone)"
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
@@ -1095,6 +1101,37 @@ def _enableOutputSettings(env):
         else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
 
+    if env.mingw_mode:
+        # Use static compiler runtime libraries, so that e.g. the
+        # 'libwinpthread-1.dll' of the compiler is not needed at runtime.
+        env.Append(LINKFLAGS=["-static"])
+        env.Append(SHLINKFLAGS=["-static"])
+
+
+def _addArchCompilerPrefixes(env):
+    """Add architecture prefix to compiler commands.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process may not be able to run the C
+        compiler of newer Xcode "CommandLineTools", which only exists as
+        ARM64 binary, so the 'arch -arm64' prefix is added to 'CC' and
+        'CXX'.
+    """
+    if env.zig_mode:
+        return
+
+    arch_prefix = getArchCommandPrefix()
+
+    if not arch_prefix:
+        return
+
+    prefix = " ".join('"%s"' % part for part in arch_prefix)
+
+    scons_details_logger.info("Adding architecture prefix '%s' to compiler." % prefix)
+
+    for variable_name in ("CC", "CXX"):
+        env[variable_name] = prefix + " " + env[variable_name]
+
 
 def createNuitkaSconsEnvironment(needs_source_dir=True):
     # This is handling the common setup of the Scons environment for Nuitka
@@ -1246,6 +1283,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     switchFromGccToGpp(
         env=env,
     )
+
+    _addArchCompilerPrefixes(env=env)
 
     enableFlagSettings(env, "no_deployment", no_deployment)
     env.no_deployment_flags = no_deployment
@@ -1642,22 +1681,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         env.Append(CCFLAGS=["-fPIC"])
 
     # We use zlib for crc32 functionality
-    zlib_inline_copy_dir = os.path.join(env.nuitka_src, "inline_copy", "zlib")
-    if os.path.exists(os.path.join(zlib_inline_copy_dir, "crc32.c")):
+    zlib_inline_copy_dir = getInlineCopyFolderIfExists("zlib")
+    if zlib_inline_copy_dir is not None:
         env.Append(
             CPPPATH=[
                 zlib_inline_copy_dir,
             ],
         )
     else:
-        # TODO: Should only happen for official Debian packages, and there we
-        # can use the zlib static linking maybe, but for onefile it's not easy
-        # to get it, so just use slow checksum for now.
-        if onefile_compile:
-            env.Append(CPPDEFINES=["_NUITKA_USE_OWN_CRC32"])
-        else:
-            env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
-            env.Append(LIBS="z")
+        # Should only happen for official Debian packages, where the system
+        # zlib is linked statically instead.
+        env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
+
+        linkSystemLibrary(env=env, library_name="z")
 
     if isAIX():
         aix_dll_addr_inline_copy_dir = os.path.join(
