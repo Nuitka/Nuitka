@@ -17,7 +17,10 @@ from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionImportErrorBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
-from .StatementBasesGenerated import StatementRaiseExceptionBase
+from .StatementBasesGenerated import (
+    StatementPublishExceptionValueBase,
+    StatementRaiseExceptionBase,
+)
 
 
 class StatementRaiseExceptionMixin(object):
@@ -120,6 +123,26 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
     @staticmethod
     def getStatementNiceName():
         return "exception re-raise statement"
+
+
+class StatementPublishExceptionValue(StatementPublishExceptionValueBase):
+    kind = "STATEMENT_PUBLISH_EXCEPTION_VALUE"
+
+    named_children = ("value",)
+    auto_compute_handling = "operation"
+
+    def computeStatementOperation(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
+    def mayHaveSideEffects(self):
+        return self.subnode_value.mayHaveSideEffects()
+
+    @staticmethod
+    def getStatementNiceName():
+        return "publish exception value statement"
 
 
 class ExpressionRaiseException(ChildHavingExceptionTypeMixin, ExpressionBase):

@@ -26,6 +26,7 @@ from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionValueRef,
     ExpressionExceptionGroupMatch,
     ExpressionExceptionGroupPrepareReraise,
+    StatementPublishExceptionValue,
     StatementRaiseException,
 )
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationAppend
@@ -537,7 +538,16 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                         ExpressionConstantNoneRef(source_ref),
                         source_ref,
                     ),
-                    yes_branch=makeStatementsSequenceFromStatement(
+                    yes_branch=makeStatementsSequenceFromStatements(
+                        # The match becomes the current exception while the
+                        # clause is executed, which "sys.exc_info", "raise"
+                        # and the exception context are to use.
+                        StatementPublishExceptionValue(
+                            value=ExpressionTempVariableRef(
+                                variable=matched, source_ref=source_ref
+                            ),
+                            source_ref=source_ref.atInternal(),
+                        ),
                         StatementTry(
                             tried=user_statements,
                             # Exceptions raised by the clause are collected,
@@ -560,7 +570,7 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                             continue_handler=None,
                             return_handler=None,
                             source_ref=source_ref,
-                        )
+                        ),
                     ),
                     no_branch=None,
                     source_ref=source_ref,
@@ -591,24 +601,6 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            makeStatementConditional(
-                condition=ExpressionComparisonIsNot(
-                    ExpressionTempVariableRef(reraise_exception, source_ref),
-                    ExpressionConstantNoneRef(source_ref),
-                    source_ref,
-                ),
-                yes_branch=StatementRaiseException(
-                    exception_type=ExpressionTempVariableRef(
-                        reraise_exception, source_ref
-                    ),
-                    exception_value=None,
-                    exception_trace=None,
-                    exception_cause=None,
-                    source_ref=source_ref,
-                ),
-                no_branch=None,
-                source_ref=source_ref,
-            ),
         )
     )
 
@@ -631,6 +623,24 @@ def buildTryStarExceptionNode(provider, node, source_ref):
                 preserver_id=preserver_id, source_ref=source_ref.atInternal()
             ),
             source_ref=source_ref.atInternal(),
+        ),
+        # The re-raise must only happen after the previous exception state is
+        # restored, as CPython uses it as the context of the raised exception.
+        makeStatementConditional(
+            condition=ExpressionComparisonIsNot(
+                ExpressionTempVariableRef(reraise_exception, source_ref),
+                ExpressionConstantNoneRef(source_ref),
+                source_ref,
+            ),
+            yes_branch=StatementRaiseException(
+                exception_type=ExpressionTempVariableRef(reraise_exception, source_ref),
+                exception_value=None,
+                exception_trace=None,
+                exception_cause=None,
+                source_ref=source_ref,
+            ),
+            no_branch=None,
+            source_ref=source_ref,
         ),
     )
 

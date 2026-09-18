@@ -170,6 +170,7 @@ from .ExceptionCodes import (
     generateExceptionGroupMatchCode,
     generateExceptionGroupPrepareReraiseCode,
     generateExceptionPublishCode,
+    generateExceptionPublishValueCode,
     generateExceptionRefCode,
 )
 from .ExpressionCodes import (
@@ -1159,6 +1160,7 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
+        "STATEMENT_PUBLISH_EXCEPTION_VALUE": generateExceptionPublishValueCode,
     }
 )
 
