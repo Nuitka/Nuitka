@@ -450,7 +450,7 @@ def _parseIncludeConfigEntry(logger, module_name, include):
     if type(include) in (str, unicode):
         return include, None, {}, None
 
-    if type(include) is not dict:
+    if type(include) not in (dict, OrderedDict):
         return logger.sysexit(
             """\
 Error, 'include-config' entries of module '%s' must be strings or dicts, not '%s'."""
@@ -504,7 +504,7 @@ Error, 'include-config' key 'to' of module '%s' must be a non-empty string, not 
 
     result_key_map = include.get("key-map", {})
 
-    if type(result_key_map) is not dict:
+    if type(result_key_map) not in (dict, OrderedDict):
         return logger.sysexit(
             """\
 Error, 'include-config' key 'key-map' of module '%s' must be a dict, not '%s'."""
@@ -649,7 +649,7 @@ Error, '<main>' configuration section '%s' cannot be applied to non-list section
                 )
 
             for main_entry in section_config:
-                if type(main_entry) is dict:
+                if type(main_entry) in (dict, OrderedDict):
                     main_entry = OrderedDict(main_entry)
 
                 destination_config.append(main_entry)
@@ -793,7 +793,7 @@ Error, 'include-config' of module '%s' cannot include into non-list section '%s'
         include_when,
     ):
         for target_entry in target_section_config:
-            if type(target_entry) is dict:
+            if type(target_entry) in (dict, OrderedDict):
                 target_entry = OrderedDict(target_entry)
 
                 self._mapIncludedEntry(
