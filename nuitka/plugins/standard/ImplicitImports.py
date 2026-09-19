@@ -154,7 +154,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 for dependency in self._handleImplicitImportsConfig(
                     config=entry, module=module
                 ):
-                    yield dependency
+                    yield dependency, """\
+According to 'implicit-imports' configuration."""
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex
         # (module name Cryptodome),

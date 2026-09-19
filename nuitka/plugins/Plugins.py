@@ -30,7 +30,10 @@ from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.FakeModules import FakeModuleDescription, addFakeModule
-from nuitka.importing.Importing import locateModule
+from nuitka.importing.Importing import (
+    locateModule,
+    makePluginModuleUsageAttempt,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import (
     addUsedModule,
@@ -455,6 +458,26 @@ def loadStandardPluginClasses():
         _loadPluginClassesFromPackage("nuitka.plugins.commercial")
 
 
+def _addImplicitImportModuleUsage(
+    module, module_name, module_filename, module_kind, finding, reason
+):
+    """Add an implicit import to the module usages of a module.
+
+    Notes:
+        These are added for the benefit of compilation reports, and to have
+        plugin provided module usage attempts visible in the module usages.
+    """
+    module.addUsedModuleAttempt(
+        makePluginModuleUsageAttempt(
+            module_name=module_name,
+            filename=module_filename,
+            module_kind=module_kind,
+            finding=finding,
+            reason=reason,
+        )
+    )
+
+
 class Plugins(object):
     implicit_imports_cache = {}
     extra_scan_paths_cache = {}
@@ -470,11 +493,21 @@ class Plugins(object):
                 return plugin.sysexit(message)
 
             for v in value:
+                reason = None
+
                 if type(v) in (tuple, list):
-                    sysexit(
-                        "Plugin '%s' needs to be change to only return modules names, not %r (for module '%s')"
-                        % (plugin.plugin_name, v, module.getFullName())
-                    )
+                    if len(v) != 2 or not isinstance(v[0], basestring):
+                        sysexit("""\
+Plugin '%s' must return a module name or a module name and reason pair, \
+not %r (for module '%s')""" % (plugin.plugin_name, v, module.getFullName()))
+
+                    v, reason = v
+
+                    if reason is not None and not isinstance(reason, basestring):
+                        sysexit(
+                            "Plugin '%s' must return a reason string for a module name, not %r (for module '%s')"
+                            % (plugin.plugin_name, reason, module.getFullName())
+                        )
 
                 if inspect.isgenerator(v):
                     for w in iterateModuleNames(v):
@@ -496,14 +529,16 @@ class Plugins(object):
                         % (plugin.plugin_name, v, module.getFullName())
                     )
 
-                yield v
+                yield v, reason
 
         seen = set()
 
-        for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
-            if full_name in seen:
+        for full_name, reason in iterateModuleNames(plugin.getImplicitImports(module)):
+            key = full_name, reason
+
+            if key in seen:
                 continue
-            seen.add(full_name)
+            seen.add(key)
 
             # Ignore dependencies on self. TODO: Make this an error for the
             # plugin.
@@ -511,7 +546,7 @@ class Plugins(object):
                 continue
 
             try:
-                _module_name, module_filename, module_kind, _finding = locateModule(
+                _module_name, module_filename, module_kind, finding = locateModule(
                     module_name=full_name, parent_package=None, level=0
                 )
             except Exception:
@@ -530,7 +565,7 @@ class Plugins(object):
 
                 continue
 
-            result.append((full_name, module_filename, module_kind))
+            result.append((full_name, module_filename, module_kind, finding, reason))
 
         if result and isShowInclusion():
             plugin.info(
@@ -543,7 +578,21 @@ class Plugins(object):
     @staticmethod
     @counted_plugin_method
     def _reportImplicitImports(plugin, module, implicit_imports):
-        for full_name, module_filename, module_kind in implicit_imports:
+        for (
+            full_name,
+            module_filename,
+            module_kind,
+            finding,
+            reason,
+        ) in implicit_imports:
+            _addImplicitImportModuleUsage(
+                module=module,
+                module_name=full_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding=finding,
+                reason=reason,
+            )
 
             # This will get back to all other plugins allowing them to inhibit it though.
             decision, decision_reason = decideRecursion(

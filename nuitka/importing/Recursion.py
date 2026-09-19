@@ -15,6 +15,7 @@ from nuitka.importing import ImportCache, StandardLibrary
 from nuitka.ModuleRegistry import (
     addRootModule,
     addUsedModule,
+    getDoneModules,
     getRootTopModule,
 )
 from nuitka.options.Options import (
@@ -141,18 +142,39 @@ def getRecursionDecisions():
 def getExcludedModuleNames():
     """Return the list of excluded module names for code generation.
 
+    Notes:
+        This is derived from the module usages, so it gives the same result for
+        modules restored from the module cache, and does not depend on the
+        order in which recursion decisions were made.
+
     Returns:
         Yields (module_name, reason) tuples.
     """
-    for (
-        _using_module_name,
-        _module_filename,
-        module_name,
-        _module_kind,
-        _extra_recursion,
-    ), (decision, reason) in _recursion_decision_cache.items():
-        if decision is False and reason:
-            yield module_name, reason
+    seen = set()
+
+    for module in getDoneModules():
+        for used_module in module.getUsedModules():
+            # Not found modules are not excluded, they simply do not exist, and
+            # built-in modules are always available and resolved before our
+            # loader is consulted, so they cannot be excluded either.
+            if used_module.finding in ("not-found", "built-in") or (
+                used_module.module_kind == "built-in"
+            ):
+                continue
+
+            decision, reason = decideRecursion(
+                using_module_name=module.getFullName(),
+                module_filename=used_module.filename,
+                module_name=used_module.module_name,
+                module_kind=used_module.module_kind,
+            )
+
+            if decision is False and reason:
+                excluded_key = used_module.module_name, reason
+
+                if excluded_key not in seen:
+                    seen.add(excluded_key)
+                    yield excluded_key
 
 
 def decideRecursion(
@@ -672,7 +694,11 @@ def considerUsedModules(module, pass_count):
                     e.args[0],
                     e.args[1],
                     module.getFullName(),
-                    used_module.source_ref.getAsString(),
+                    (
+                        used_module.source_ref.getAsString()
+                        if used_module.source_ref is not None
+                        else module.getSourceReference().getAsString()
+                    ),
                 )
             )
 

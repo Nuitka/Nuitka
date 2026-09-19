@@ -11,7 +11,11 @@ import os
 import sys
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.importing.Importing import (
+    isSyntheticModuleUsage,
+    locateModule,
+    makeModuleUsageAttempt,
+)
 from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
 from nuitka.plugins.Hooks import getPluginsCacheContributionValues
 from nuitka.utils.AppDirs import getCacheDir
@@ -139,10 +143,18 @@ def writeImportedModulesNamesToCache(
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
 
-    used_modules = [module.asDict() for module in used_modules]
-    for module in used_modules:
-        module["source_ref_line"] = module["source_ref"].getLineNumber()
-        del module["source_ref"]
+    used_modules = [
+        module_usage.asDict()
+        for module_usage in used_modules
+        # Synthetic usages, e.g. plugin provided implicit imports, are not
+        # stored, as they depend on the plugin state, and are added again on
+        # every compilation run.
+        if not isSyntheticModuleUsage(module_usage)
+    ]
+
+    for module_usage in used_modules:
+        module_usage["source_ref_line"] = module_usage["source_ref"].getLineNumber()
+        del module_usage["source_ref"]
 
     data = {
         "file_format_version": _cache_format_version,

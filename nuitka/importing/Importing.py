@@ -153,6 +153,11 @@ _setup_complete = False
 # Additions to sys.paths from plugins.
 _extra_paths = OrderedSet()
 
+# Reason used for usage attempts that plugins decided as implicit imports, so
+# these can be identified for caching and reporting.
+_implicit_import_reason = "implicit import"
+
+
 ModuleUsageAttempt = makeNamedtupleClass(
     "ModuleUsageAttempt",
     (
@@ -167,10 +172,97 @@ ModuleUsageAttempt = makeNamedtupleClass(
 )
 
 
+def isSyntheticModuleUsage(module_usage):
+    """Check if a module usage attempt is synthetic.
+
+    Notes:
+        Synthetic usages, e.g. plugin provided implicit imports and standard
+        library auto-inclusions, have no source code reference, they are not
+        traced from module code.
+
+    Args:
+        module_usage: Module usage attempt to check.
+
+    Returns:
+        bool: True if this usage is synthetic.
+    """
+    return module_usage.source_ref is None
+
+
+def _makeModuleUsageReason(reason):
+    """Create the reason for a plugin provided module usage attempt.
+
+    Args:
+        reason: Reason provided by the plugin or None.
+
+    Returns:
+        str: Reason to use for the usage attempt.
+    """
+    if reason is not None:
+        return "%s: %s" % (_implicit_import_reason, reason)
+
+    return _implicit_import_reason
+
+
+def makeSyntheticModuleUsageAttempt(
+    module_name, filename, module_kind, finding, reason
+):
+    """Create a module usage attempt without a source code reference.
+
+    Notes:
+        These are not stored in the module cache, see
+        'isSyntheticModuleUsage'.
+
+    Args:
+        module_name: Module name of the used module.
+        filename: Filename of the used module.
+        module_kind: Kind of the used module.
+        finding: Finding of the used module.
+        reason: Reason for the usage.
+
+    Returns:
+        ModuleUsageAttempt: The synthetic usage attempt.
+    """
+    assert reason is not None
+
+    return ModuleUsageAttempt(
+        module_name=module_name,
+        filename=filename,
+        module_kind=module_kind,
+        finding=finding,
+        level=0,
+        source_ref=None,
+        reason=reason,
+    )
+
+
+def makePluginModuleUsageAttempt(module_name, filename, module_kind, finding, reason):
+    """Create a module usage attempt for a plugin provided implicit import.
+
+    Args:
+        module_name: Module name of the implicitly imported module.
+        filename: Filename of the implicitly imported module.
+        module_kind: Kind of the implicitly imported module.
+        finding: Finding of the implicitly imported module.
+        reason: Reason provided by the plugin or None.
+
+    Returns:
+        ModuleUsageAttempt: The plugin provided usage attempt.
+    """
+    return makeSyntheticModuleUsageAttempt(
+        module_name=module_name,
+        filename=filename,
+        module_kind=module_kind,
+        finding=finding,
+        reason=_makeModuleUsageReason(reason),
+    )
+
+
 def makeModuleUsageAttempt(
     module_name, filename, module_kind, finding, level, source_ref, reason
 ):
     assert source_ref is not None
+    assert reason is not None
 
     # The looked for module usage attempt, cannot be a relative module name
     assert module_name.getTopLevelPackageName() != "", source_ref

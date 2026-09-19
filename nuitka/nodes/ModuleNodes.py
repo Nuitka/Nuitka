@@ -11,7 +11,10 @@ import os
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.importing.Importing import (
+    locateModule,
+    makeSyntheticModuleUsageAttempt,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
@@ -506,6 +509,15 @@ class CompiledPythonModule(
 
         return self.trace_collection.getModuleUsageAttempts()
 
+    def addUsedModuleAttempt(self, module_usage_attempt):
+        """Add an additional module usage attempt to the module.
+
+        Notes:
+            This is used for plugin provided implicit imports, which are not
+            part of the module code and therefore not traced.
+        """
+        self.trace_collection.onModuleUsageAttempt(module_usage_attempt)
+
     def getUsedDistributions(self):
         if self.trace_collection is None:
             # Optimization is not yet done at all, but report writing for error
@@ -886,6 +898,18 @@ class UncompiledPythonModule(PythonModuleBase):
     def setUsedModules(self, used_modules):
         self.used_modules = used_modules
 
+    def addUsedModuleAttempt(self, module_usage_attempt):
+        """Add an additional module usage attempt to the module.
+
+        Notes:
+            This is used for plugin provided implicit imports, which are not
+            part of the module code and therefore not traced.
+        """
+        if not isinstance(self.used_modules, OrderedSet):
+            self.used_modules = OrderedSet(self.used_modules)
+
+        self.used_modules.add(module_usage_attempt)
+
     def getUsedDistributions(self):
         return self.distribution_names
 
@@ -1017,13 +1041,11 @@ class PythonMainModule(CompiledPythonModule):
             assert finding != "not-found", early_module_name
 
             self.standard_library_modules.add(
-                makeModuleUsageAttempt(
+                makeSyntheticModuleUsageAttempt(
                     module_name=early_module_name,
                     filename=module_filename,
                     module_kind=module_kind,
                     finding=finding,
-                    level=0,
-                    source_ref=self.source_ref,
                     reason="stdlib",
                 )
             )
@@ -1032,7 +1054,13 @@ class PythonMainModule(CompiledPythonModule):
 class PythonExtensionModule(PythonModuleBase):
     kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules", "module_filename", "technical", "is_package")
+    __slots__ = (
+        "used_modules",
+        "implicit_used_modules",
+        "module_filename",
+        "technical",
+        "is_package",
+    )
 
     avoid_duplicates = set()
 
@@ -1067,6 +1095,8 @@ class PythonExtensionModule(PythonModuleBase):
 
         self.used_modules = None
 
+        self.implicit_used_modules = OrderedSet()
+
         if os.path.isdir(module_filename):
             module_filename = getPackageDirFilename(
                 path=module_filename, package_name=module_name
@@ -1082,6 +1112,7 @@ class PythonExtensionModule(PythonModuleBase):
 
     def finalize(self):
         del self.used_modules
+        del self.implicit_used_modules
 
     def getFilename(self):
         return self.module_filename
@@ -1156,11 +1187,18 @@ class PythonExtensionModule(PythonModuleBase):
 
         return self.used_modules
 
-    @staticmethod
-    def getUsedModules():
-        # The PyI contents is currently delivered via implicit imports
-        # plugin.
-        return ()
+    def getUsedModules(self):
+        # The PyI contents is currently delivered via implicit imports plugin.
+        return self.implicit_used_modules
+
+    def addUsedModuleAttempt(self, module_usage_attempt):
+        """Add an additional module usage attempt to the module.
+
+        Notes:
+            This is used for plugin provided implicit imports, which are not
+            part of the module code and therefore not traced.
+        """
+        self.implicit_used_modules.add(module_usage_attempt)
 
     @staticmethod
     def getUsedDistributions():

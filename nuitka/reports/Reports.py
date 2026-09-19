@@ -31,6 +31,7 @@ from nuitka.freezer.Standalone import getRemovedUsedDllsInfo
 from nuitka.importing.Importing import (
     getPackageSearchPath,
     getRecompileDecisionReason,
+    isSyntheticModuleUsage,
 )
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.installer.Installer import (
@@ -783,10 +784,14 @@ def _addModulesToReport(root, report_input_data, diffable):
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
-                line=str(used_module.source_ref.getLineNumber()),
-                # TODO: Add reason in a hotfix.
-                # reason=used_module.reason,
             )
+
+            if not isSyntheticModuleUsage(used_module):
+                module_usage_node.attrib["line"] = str(
+                    used_module.source_ref.getLineNumber()
+                )
+
+            module_usage_node.attrib["reason"] = used_module.reason
 
             exclusion_reason = report_input_data["module_exclusions"][module_name].get(
                 used_module.module_name

@@ -227,10 +227,22 @@ def enableCcache(env, source_dir, python_prefix):
             )
             setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
 
-        # We know the include files we created are safe to use.
-        setEnvironmentVariable(
-            env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
-        )
+        # We know the include files we created are safe to use, but we must
+        # merge our values with a user provided setting, or else we would
+        # silently overwrite it.
+        ccache_sloppiness_value = os.environ.get("CCACHE_SLOPPINESS", "")
+
+        ccache_sloppiness = [
+            value
+            for value in ccache_sloppiness_value.replace(",", " ").split()
+            if value
+        ]
+
+        for value in ("include_file_ctime", "include_file_mtime"):
+            if value not in ccache_sloppiness:
+                ccache_sloppiness.append(value)
+
+        setEnvironmentVariable(env, "CCACHE_SLOPPINESS", ",".join(ccache_sloppiness))
 
         # First check if it's not already supposed to be a ccache, then do nothing.
         cc_path = getExecutablePath(env.the_compiler, env=env)
