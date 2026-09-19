@@ -42,9 +42,8 @@ typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module);
 #endif
 
 struct Nuitka_MetaPathBasedLoaderEntry {
-    // The module name data, either the plain name, or for commercial code the
-    // encoded values, turned into the runtime name by "m_get_name" when it is
-    // non-NULL, and used directly otherwise.
+    // The module name data, optional to be overloaded by m_get_name to
+    // resolve into runtime packages.
     char const *m_name;
     void (*m_get_name)(char *buffer, size_t buffer_size, char const *name);
 

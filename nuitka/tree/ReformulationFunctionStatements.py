@@ -179,10 +179,8 @@ def decideFunctionCompilationMode(decorators):
 def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
     # TODO: We should have a compile() builtin usage here, lookup "co_code" and
     # support that as a constant value. We then would have the "bytecode" only
-    # in the binary, right now "bytecode" and "source" make no difference. For
-    # commercial, we need to protect this constant just like all the others, and
-    # ideally maybe, we add (delayed creation) code objects from blobs for use
-    # by compiled code, while doing this. pylint: disable=unused-argument
+    # in the binary, right now "bytecode" and "source" make no difference.
+    #  pylint: disable=unused-argument
     source_code = ast.unparse(node)
 
     source = makeConstantRefNode(
