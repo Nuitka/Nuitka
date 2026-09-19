@@ -59,8 +59,23 @@ def _pickIntFamilyType(expression, context):
     return c_type
 
 
-def _pickFloatFamilyType(expression):
+def canUseCFloatIntermediate(expression):
+    """Check whether an arithmetic result can be passed as a native float."""
+    return (
+        expression.isExpressionOperationBinary()
+        and expression.getOperator() in ("Add", "Sub", "Mult")
+        and not expression.isInplaceSuspect()
+        and expression.getTypeShape() is tshape_float
+        and expression.subnode_left.getTypeShape() is tshape_float
+        and expression.subnode_right.getTypeShape() is tshape_float
+        and not expression.mayRaiseExceptionOperation()
+    )
+
+
+def _pickFloatFamilyType(expression, allow_float_intermediates):
     if expression.isCompileTimeConstant():
+        c_type = CTypeCFloat
+    elif allow_float_intermediates and canUseCFloatIntermediate(expression):
         c_type = CTypeCFloat
     else:
         c_type = CTypePyObjectPtr
@@ -110,7 +125,9 @@ _bytes_argument_normalization = {
 }
 
 
-def decideExpressionCTypes(left, right, may_swap_arguments, context):
+def decideExpressionCTypes(
+    left, right, may_swap_arguments, allow_float_intermediates, context
+):
     # Complex stuff with many cases, pylint: disable=too-many-branches
 
     left_shape = left.getTypeShape()
@@ -138,8 +155,8 @@ def decideExpressionCTypes(left, right, may_swap_arguments, context):
     elif left_shape in _float_types_family and right_shape in _float_types_family:
         may_swap_arguments = may_swap_arguments in ("number", "always")
 
-        left_c_type = _pickFloatFamilyType(left)
-        right_c_type = _pickFloatFamilyType(right)
+        left_c_type = _pickFloatFamilyType(left, allow_float_intermediates)
+        right_c_type = _pickFloatFamilyType(right, allow_float_intermediates)
 
         # Arguments might be swapped because of normalization.
         needs_argument_swap = (
