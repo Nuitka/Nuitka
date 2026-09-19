@@ -251,9 +251,18 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         )
 
         for temp_variable in entry_point.getTempVariables(self):
-            new_temp_name = temp_variable.getName() + "_clone"
+            clone_number = 1
 
-            assert new_temp_name not in entry_point.temp_variables, new_temp_name
+            while True:
+                clone_suffix = (
+                    "_clone" if clone_number == 1 else "_clone_%d" % clone_number
+                )
+                new_temp_name = temp_variable.getName() + clone_suffix
+
+                if new_temp_name not in entry_point.temp_variables:
+                    break
+
+                clone_number += 1
 
             # Make the clone own separate temporary variables, without
             # registering them in a trace collection, the clone will
