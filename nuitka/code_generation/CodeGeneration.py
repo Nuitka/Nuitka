@@ -167,7 +167,10 @@ from .ExceptionCodes import (
     generateExceptionCaughtTracebackCode,
     generateExceptionCaughtTypeCode,
     generateExceptionCaughtValueCode,
+    generateExceptionGroupMatchCode,
+    generateExceptionGroupPrepareReraiseCode,
     generateExceptionPublishCode,
+    generateExceptionPublishValueCode,
     generateExceptionRefCode,
 )
 from .ExpressionCodes import (
@@ -867,6 +870,8 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
+        "EXPRESSION_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatchCode,
+        "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE": generateExceptionGroupPrepareReraiseCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
@@ -1155,6 +1160,7 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
+        "STATEMENT_PUBLISH_EXCEPTION_VALUE": generateExceptionPublishValueCode,
     }
 )
 
