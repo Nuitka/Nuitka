@@ -569,43 +569,49 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
 
 
 def setupFunctionLocalVariables(
-    context, parameters, closure_variables, user_variables, temp_variables
+    context,
+    parameters,
+    local_variables,
+    closure_variables,
+    user_variables,
+    outline_variables,
+    temp_variables,
 ):
     # Parameter variable initializations
+    # Many cases due to the various local variable kinds, pylint: disable=too-many-branches,too-many-locals
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             variable_code_name, variable_c_type = decideLocalVariableCodeType(
                 context=context, variable=variable
             )
 
-            variable_declaration = context.variable_storage.addVariableDeclarationTop(
-                variable_c_type.c_type,
-                variable_code_name,
-                variable_c_type.getInitValue("python_pars[%d]" % count),
+            variable_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.c_type,
+                    variable_code_name,
+                    variable_c_type.getInitValue("python_pars[%d]" % count),
+                )
             )
 
             context.setVariableType(variable, variable_declaration)
 
-    # User local variable initializations
-    for variable in user_variables:
+    # Outline local variables are not frame variables, they belong to an
+    # inlined nested scope, so they must not become members of the frame
+    # locals struct. In generator contexts the top storage is the heap struct
+    # anyway, so they still survive yields.
+    for variable in outline_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context=context, variable=variable
         )
 
-        # Delay cell variable initialization for outlines to their own code.
-        if (
-            variable_c_type in (CTypeCellObject, CTypePyCellObject)
-            and variable.owner.isExpressionOutlineFunctionBase()
-        ):
+        if variable_c_type in (CTypeCellObject, CTypePyCellObject):
             init_value = "NULL"
         else:
             init_value = variable_c_type.getInitValue(None)
 
-        variable_declaration = context.variable_storage.addVariableDeclarationTop(
+        context.variable_storage.addVariableDeclarationTop(
             variable_c_type.c_type, variable_code_name, init_value
         )
-
-        context.setVariableType(variable, variable_declaration)
 
     for variable in sorted(temp_variables, key=lambda variable: variable.getName()):
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
@@ -618,12 +624,14 @@ def setupFunctionLocalVariables(
             variable_c_type.getInitValue(None),
         )
 
+    # Closure variable declarations must be in closure_variables order, since
+    # they are indexed with "getClosureVariableIndex" (m_closure order).
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context=context, variable=closure_variable
         )
 
-        variable_declaration = context.variable_storage.addVariableDeclarationClosure(
+        context.variable_storage.addVariableDeclarationClosure(
             variable_c_type.c_type, variable_code_name
         )
 
@@ -633,8 +641,80 @@ def setupFunctionLocalVariables(
             CTypePyObjectPtrPtr,
         ), variable_c_type
 
-        if not closure_variable.isTempVariable():
-            context.setVariableType(closure_variable, variable_declaration)
+    # Frame members must be declared in frame variable order (co_varnames),
+    # because the type description walkers derive the member offsets from it.
+    # Closure members are interleaved with locals there, and closures that are
+    # not frame variables, e.g. pass-through closures, get no member at all.
+    function_body = context.getOwner()
+
+    is_creator = False
+
+    if function_body.isExpressionFunctionBody():
+        code_object = function_body.getCodeObject()
+
+        is_creator = code_object is not None and code_object.getCodeObjectKind() in (
+            "Generator",
+            "Coroutine",
+            "Asyncgen",
+        )
+
+    add_closure_members = not is_creator and (
+        function_body.isExpressionGeneratorObjectBody()
+        or function_body.isExpressionCoroutineObjectBody()
+        or function_body.isExpressionAsyncgenObjectBody()
+        or function_body.needsFrame()
+    )
+
+    user_variables = set(user_variables)
+    closure_variables = set(closure_variables)
+
+    declared_variables = set()
+
+    if parameters is not None:
+        declared_variables.update(parameters.getAllVariables())
+
+    for variable in local_variables:
+        if variable in declared_variables:
+            continue
+
+        if variable in user_variables:
+            variable_code_name, variable_c_type = decideLocalVariableCodeType(
+                context=context, variable=variable
+            )
+
+            variable_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.c_type,
+                    variable_code_name,
+                    variable_c_type.getInitValue(None),
+                )
+            )
+
+            context.setVariableType(variable, variable_declaration)
+            declared_variables.add(variable)
+        elif (
+            add_closure_members
+            and variable in closure_variables
+            and not variable.isTempVariable()
+        ):
+            variable_code_name, variable_c_type = decideLocalVariableCodeType(
+                context=context, variable=variable
+            )
+
+            struct_member_name = "closure_" + variable.getVariableCodeName()
+
+            # The struct member holds the cell pointer, or for direct calls the
+            # pointed object, so the walkers can read it like an object.
+            struct_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.getStructStorageCType(),
+                    struct_member_name,
+                    variable_c_type.getStructInitValueCode(variable_code_name),
+                )
+            )
+
+            context.setVariableType(variable, struct_declaration)
+            declared_variables.add(variable)
 
 
 def finalizeFunctionLocalVariables(context):
@@ -666,7 +746,9 @@ def getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
+    outline_variables,
     temp_variables,
+    local_variables,
     function_doc,
     file_scope,
     needs_exception_exit,
@@ -678,7 +760,9 @@ def getFunctionCode(
             parameters=parameters,
             closure_variables=closure_variables,
             user_variables=user_variables,
+            outline_variables=outline_variables,
             temp_variables=temp_variables,
+            local_variables=local_variables,
             function_doc=function_doc,
             file_scope=file_scope,
             needs_exception_exit=needs_exception_exit,
@@ -696,7 +780,9 @@ def _getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
+    outline_variables,
     temp_variables,
+    local_variables,
     function_doc,
     file_scope,
     needs_exception_exit,
@@ -707,8 +793,10 @@ def _getFunctionCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=parameters,
+        local_variables=local_variables,
         closure_variables=closure_variables,
         user_variables=user_variables,
+        outline_variables=outline_variables,
         temp_variables=temp_variables,
     )
 
@@ -725,9 +813,28 @@ def _getFunctionCode(
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
+    struct_decls = context.variable_storage.makeCStructLevelDeclarations()
+    struct_inits = context.variable_storage.makeCStructInits()
+
+    struct_definition = ""
+    if struct_decls or struct_inits:
+        struct_type_name = context.variable_storage.struct_type_name
+        assert struct_type_name is not None
+
+        struct_definition = "%s {\n%s\n} NUITKA_MAY_ALIAS;\n\n" % (
+            struct_type_name,
+            indented(struct_decls),
+        )
+
+        struct_instance = [
+            "%s %s;" % (struct_type_name, context.variable_storage.struct_name)
+        ]
+        struct_instance.extend(struct_inits)
+        function_locals = struct_instance + function_locals
+
     function_doc = context.getConstantCode(constant=function_doc)
 
-    result = ""
+    result = struct_definition
 
     emit = SourceCodeCollector()
 

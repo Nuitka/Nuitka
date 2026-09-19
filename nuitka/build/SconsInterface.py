@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 from nuitka.__past__ import unicode
+from nuitka.code_generation.FrameCodes import hasFrameLocalsProxy
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -752,6 +753,8 @@ def getCommonSconsOptions():
         scons_options["collect_resources"] = asBoolStr(True)
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
+
+    scons_options["frame_locals_proxy"] = asBoolStr(hasFrameLocalsProxy())
 
     if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)

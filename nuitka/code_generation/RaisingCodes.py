@@ -19,7 +19,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode, getFrameVariableTypeDescriptionCode
+from .ErrorCodes import getErrorExitCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import (
     emitErrorLineNumberUpdateCode,
@@ -323,7 +323,6 @@ if (unlikely(%(bool_res_name)s == false)) {
                 }
             )
 
-            emit(getFrameVariableTypeDescriptionCode(context))
     else:
         (
             keeper_exception_state_name,
@@ -382,8 +381,6 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
         % (exception_state_name, raise_cause_name)
     )
 
-    emit(getFrameVariableTypeDescriptionCode(context))
-
     getGotoCode(context.getExceptionEscape(), emit)
 
     if context.needsCleanup(raise_type_name):
@@ -413,8 +410,6 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
         emit("RAISE_EXCEPTION_WITH_VALUE(tstate, &%s);" % exception_state_name)
 
-    emit(getFrameVariableTypeDescriptionCode(context))
-
     getGotoCode(context.getExceptionEscape(), emit)
 
     if context.needsCleanup(raise_type_name):
@@ -435,8 +430,6 @@ def _getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, emit, con
     _emitRaiseExceptionLinenoCode(emit, context)
 
     emit("RAISE_EXCEPTION_WITH_TYPE_AND_VALUE(tstate, &%s);" % (exception_state_name,))
-
-    emit(getFrameVariableTypeDescriptionCode(context))
 
     getGotoCode(context.getExceptionEscape(), emit)
 
@@ -468,8 +461,6 @@ def _getRaiseExceptionWithTracebackCode(
 
     # If anything is wrong, that will be used.
     _emitRaiseExceptionLinenoCode(emit, context)
-
-    emit(getFrameVariableTypeDescriptionCode(context))
 
     getGotoCode(context.getExceptionEscape(), emit)
 

@@ -14,6 +14,15 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
+/* A way to make a struct type alias any other type, disabling strict-aliasing
+ * optimizations for accesses through it.
+ */
+#if defined(__GNUC__) || defined(__clang__)
+#define NUITKA_MAY_ALIAS __attribute__((__may_alias__))
+#else
+#define NUITKA_MAY_ALIAS
+#endif
+
 #include "hedley.h"
 
 /* Use annotations for branch prediction. They still make sense as the L1
@@ -24,6 +33,25 @@
 #define unlikely(x) HEDLEY_UNLIKELY(x)
 
 #define STATIC_ASSERT(expr, msg) HEDLEY_STATIC_ASSERT(expr, msg)
+
+/* A way to indicate that a specific function won't return, so the C compiler
+ * can create better code.
+ */
+
+#define NUITKA_NO_RETURN HEDLEY_NO_RETURN
+
+/* This is used to indicate code control flows we know cannot happen. */
+#ifndef __NUITKA_NO_ASSERT__
+#define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
+#else
+#define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
+
+#define NUITKA_ERROR_EXIT(NAME)                                                                                        \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
 
 #endif
 

@@ -350,7 +350,7 @@ static PyObject *Nuitka_CreateKeyError(PyThreadState *tstate, PyObject *key) {
 }
 #endif
 
-static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
+void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
 #if PYTHON_VERSION < 0x3c0
     /* Wrap all kinds of tuples, because normalization will later unwrap
      * it, but then that changes the key for the KeyError, which is not

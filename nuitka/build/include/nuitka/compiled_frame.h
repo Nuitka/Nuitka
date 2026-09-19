@@ -12,7 +12,11 @@
 #include "internal/pycore_object.h"
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
+#include "nuitka/helper/boolean.h"
+#include "nuitka/helper/ints.h"
 #endif
+
+#include "nuitka/constants_blob_spec.h"
 
 // Removed flag in 3.11, but we keep code compatible for now. We do not use old
 // value, but 0 because it might get reused. TODO: Probably better to #ifdef
@@ -46,11 +50,27 @@ extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameT
 // Create a frame object for the given code object, frame or module.
 extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module);
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
-                                                      Py_ssize_t locals_size);
+                                                      Py_ssize_t locals_size, char const *type_description);
 extern struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
-                                                   PyObject *f_locals, Py_ssize_t locals_size);
+                                                   PyObject *f_locals, Py_ssize_t locals_size,
+                                                   char const *type_description);
 extern void Nuitka_Frame_AssignLocals(struct Nuitka_FrameObject *frame_object, PyObject *locals_value);
 extern void Nuitka_Frame_ClearLocals(struct Nuitka_FrameObject *frame_object);
+extern void Nuitka_Frame_AttachLocalsCopied(struct Nuitka_FrameObject *frame_object, char const *type_description);
+
+// Format an UnboundLocalError for the local variable at the given index of the
+// frame code object's variable names, and chain the exception as needed.
+extern void Nuitka_Frame_FormatUnboundLocalError(PyThreadState *tstate,
+                                                 struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                 struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
+                                                 struct Nuitka_FrameObject *frame_object, int variable_index);
+
+// Format a NameError for the free variable at the given index of the frame code
+// object's free variables, and chain the exception as needed.
+extern void Nuitka_Frame_FormatUnboundClosureError(PyThreadState *tstate,
+                                                   struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                   struct Nuitka_ExceptionPreservationItem *keeper_exception_state,
+                                                   struct Nuitka_FrameObject *frame_object, int variable_index);
 
 // Create a code object for the given filename and function name
 
@@ -138,11 +158,20 @@ struct Nuitka_FrameObject {
 
 #endif
 
+    // Whether the locals storage is writable (the stack struct), or only a
+    // snapshot copy made when an exception was raised. Kept before the
+    // pointers, so that the pre-3.11 "m_locals_storage" below stays aligned.
+    unsigned char m_locals_writable;
+
     // Our own extra stuff, attached variables.
     char const *m_type_description;
+    // Pointer to the current locals storage: stack context struct while alive,
+    // or the frame's heap buffer after copy-with-INCREF detach.
+    void *m_locals_ptr;
 #if PYTHON_VERSION >= 0x3b0
     _PyInterpreterFrame m_interpreter_frame;
 #else
+    // Storage for the locals struct; must be pointer aligned for the walkers.
     char m_locals_storage[1];
 #endif
 };
@@ -471,7 +500,7 @@ NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code
 }
 
 // Attach locals to a frame object. TODO: Upper case, this is for generated code only.
-extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...);
+extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame);
 
 NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *tstate) {
 #if PYTHON_VERSION < 0x3b0
@@ -504,13 +533,66 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGeneratorCompiledFrame(PyT
 #endif
 }
 
-// Codes used for type_description.
-#define NUITKA_TYPE_DESCRIPTION_NULL 'N'
-#define NUITKA_TYPE_DESCRIPTION_CELL 'c'
-#define NUITKA_TYPE_DESCRIPTION_OBJECT 'o'
-#define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR 'O'
-#define NUITKA_TYPE_DESCRIPTION_BOOL 'b'
-#define NUITKA_TYPE_DESCRIPTION_NILONG 'L'
+// The "NUITKA_TYPE_DESCRIPTION_*" indicator byte values alias the
+// "NUITKA_FRAME_LOCALS_TYPE_*" macros of the "constants_blob_spec.h" file,
+// so the actual values are only defined in one place.
+#define NUITKA_TYPE_DESCRIPTION_NULL NUITKA_FRAME_LOCALS_TYPE_NULL
+#define NUITKA_TYPE_DESCRIPTION_CELL NUITKA_FRAME_LOCALS_TYPE_CELL
+#define NUITKA_TYPE_DESCRIPTION_OBJECT NUITKA_FRAME_LOCALS_TYPE_OBJECT
+#define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR NUITKA_FRAME_LOCALS_TYPE_OBJECT_PTR
+#define NUITKA_TYPE_DESCRIPTION_BOOL NUITKA_FRAME_LOCALS_TYPE_BOOL
+#define NUITKA_TYPE_DESCRIPTION_NILONG NUITKA_FRAME_LOCALS_TYPE_NILONG
+
+// The type_description has one indicator byte per frame variable (in
+// co_varnames order). In debug builds it gets a trailing NUL that the
+// assertions rely on. The frame-locals walkers derive each member's size and
+// alignment from these functions, so member offsets (including alignment
+// padding) are computed at C compile time and stay correct independent of the
+// target ABI.
+NUITKA_MAY_BE_UNUSED static inline size_t Nuitka_FrameLocals_Size(int type) {
+    switch (type) {
+    case NUITKA_TYPE_DESCRIPTION_OBJECT:
+    case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR:
+    case NUITKA_TYPE_DESCRIPTION_CELL:
+        return sizeof(PyObject *);
+    case NUITKA_TYPE_DESCRIPTION_NILONG:
+        return sizeof(nuitka_ilong);
+    case NUITKA_TYPE_DESCRIPTION_BOOL:
+        return sizeof(nuitka_bool);
+    case NUITKA_TYPE_DESCRIPTION_NULL:
+        return 0;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid frame locals type indicator");
+        return 0;
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static inline size_t Nuitka_FrameLocals_Align(int type) {
+    switch (type) {
+    case NUITKA_TYPE_DESCRIPTION_OBJECT:
+    case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR:
+    case NUITKA_TYPE_DESCRIPTION_CELL:
+    case NUITKA_TYPE_DESCRIPTION_NILONG:
+        // All of these members contain (or are) a pointer, so their alignment
+        // equals the pointer size on every supported ABI.
+        return sizeof(PyObject *);
+    case NUITKA_TYPE_DESCRIPTION_BOOL:
+        return sizeof(nuitka_bool);
+    case NUITKA_TYPE_DESCRIPTION_NULL:
+        return 1;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid frame locals type indicator");
+        return 1;
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static inline size_t Nuitka_FrameLocals_AlignUp(size_t value, size_t align) {
+    return (value + align - 1) / align * align;
+}
+
+NUITKA_MAY_BE_UNUSED static inline bool Nuitka_FrameLocals_NilongActive(nuitka_ilong const *value) {
+    return IS_NILONG_OBJECT_VALUE_VALID(value) || IS_NILONG_C_VALUE_VALID(value);
+}
 
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Frame_Type;

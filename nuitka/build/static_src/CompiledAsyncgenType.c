@@ -723,7 +723,7 @@ throw_here:
             // stuff in a "shared" part across all instances, and outside of
             // run time, so we could reuse this.
             struct Nuitka_FrameObject *frame =
-                MAKE_FUNCTION_FRAME(tstate, asyncgen->m_code_object, asyncgen->m_module, 0);
+                MAKE_FUNCTION_FRAME(tstate, asyncgen->m_code_object, asyncgen->m_module, 0, NULL);
             SET_EXCEPTION_STATE_TRACEBACK(exception_state,
                                           MAKE_TRACEBACK(frame, asyncgen->m_code_object->co_firstlineno));
             Py_DECREF(frame);

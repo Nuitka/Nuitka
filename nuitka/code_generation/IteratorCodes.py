@@ -21,7 +21,6 @@ from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getErrorExitReleaseCode,
-    getFrameVariableTypeDescriptionCode,
     getReleaseCode,
 )
 from .LineNumberCodes import getErrorLineNumberUpdateCode
@@ -206,7 +205,6 @@ def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
             "break_indicator_code": break_indicator_code,
             "break_target": break_target,
             "release_temps": getErrorExitReleaseCode(context),
-            "var_description_code": getFrameVariableTypeDescriptionCode(context),
             "line_number_code": getErrorLineNumberUpdateCode(context),
             "exception_target": context.getExceptionEscape(),
             "exception_state_name": exception_state_name,

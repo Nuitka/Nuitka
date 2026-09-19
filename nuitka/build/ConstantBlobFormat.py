@@ -10,7 +10,7 @@ from nuitka.__past__ import to_byte
 from nuitka.utils.FileOperations import getFileContents, getNormalizedPathJoin
 
 _define_pattern = re.compile(
-    r"^\s*#define\s+(NUITKA_CONSTANT_BLOB_[A-Z0-9_]+)\s+([0-9A-Fa-fxXuUlL]+)\b"
+    r"^\s*#define\s+(NUITKA_(?:CONSTANT_BLOB|FRAME_LOCALS)_[A-Z0-9_]+)\s+([0-9A-Fa-fxXuUlL]+)\b"
 )
 
 _tag_define_names = (
@@ -117,11 +117,21 @@ _code_kind_define_names = (
     ("code_kind_asyncgen", "NUITKA_CONSTANT_BLOB_CODE_KIND_ASYNCGEN"),
 )
 
+_frame_locals_define_names = (
+    ("frame_locals_type_object", "NUITKA_FRAME_LOCALS_TYPE_OBJECT"),
+    ("frame_locals_type_object_ptr", "NUITKA_FRAME_LOCALS_TYPE_OBJECT_PTR"),
+    ("frame_locals_type_cell", "NUITKA_FRAME_LOCALS_TYPE_CELL"),
+    ("frame_locals_type_bool", "NUITKA_FRAME_LOCALS_TYPE_BOOL"),
+    ("frame_locals_type_nilong", "NUITKA_FRAME_LOCALS_TYPE_NILONG"),
+    ("frame_locals_type_null", "NUITKA_FRAME_LOCALS_TYPE_NULL"),
+)
+
 _required_define_names = (
     ("tags", _tag_define_names),
     ("float_specials", _float_special_define_names),
     ("code_flags", _code_flag_define_names),
     ("code_kinds", _code_kind_define_names),
+    ("frame_locals_types", _frame_locals_define_names),
 )
 
 _constant_blob_spec_cache = {}
@@ -141,6 +151,9 @@ class _ConstantBlobSpec(object):
             setattr(self, field_name, values[define_name])
 
         for field_name, define_name in _code_kind_define_names:
+            setattr(self, field_name, values[define_name])
+
+        for field_name, define_name in _frame_locals_define_names:
             setattr(self, field_name, values[define_name])
 
 
@@ -352,6 +365,27 @@ def _checkConstantBlobCodeFlagValues(filename, values, logger):
     )
 
 
+def _checkFrameLocalsTypeValues(filename, values, logger):
+    used_type_values = set()
+
+    for _field_name, define_name in _frame_locals_define_names:
+        type_value = values[define_name]
+
+        if type_value <= 0 or type_value >= 256:
+            return logger.sysexit(
+                "Invalid frame locals type value in '%s' for %s: %r"
+                % (filename, define_name, type_value)
+            )
+
+        if type_value in used_type_values:
+            return logger.sysexit(
+                "Duplicate frame locals type value in '%s' for %s: %r"
+                % (filename, define_name, type_value)
+            )
+
+        used_type_values.add(type_value)
+
+
 def _checkConstantBlobSpecValues(filename, values, logger):
     _checkRequiredConstantBlobSpecValues(
         filename=filename, values=values, logger=logger
@@ -361,6 +395,7 @@ def _checkConstantBlobSpecValues(filename, values, logger):
         filename=filename, values=values, logger=logger
     )
     _checkConstantBlobCodeFlagValues(filename=filename, values=values, logger=logger)
+    _checkFrameLocalsTypeValues(filename=filename, values=values, logger=logger)
 
 
 def loadConstantBlobSpec(logger):

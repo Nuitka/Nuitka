@@ -454,6 +454,33 @@ inspect._get_code_position=_get_code_position\n\
     patchTypingModule();
 #endif
 
+#if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
+    // Register the FrameLocalsProxy with collections.abc.Mapping, so that
+    // isinstance(frame.f_locals, collections.abc.Mapping) is True, matching
+    // CPython which does Mapping.register(framelocalsproxy).
+    PyObject *module_collections_abc = PyImport_ImportModule("collections.abc");
+    if (unlikely(module_collections_abc == NULL)) {
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    }
+    CHECK_OBJECT(module_collections_abc);
+
+    PyObject *mapping = LOOKUP_ATTRIBUTE(tstate, module_collections_abc, const_str_plain_Mapping);
+    CHECK_OBJECT(mapping);
+
+    PyObject *register_func = LOOKUP_ATTRIBUTE(tstate, mapping, const_str_plain_register);
+    CHECK_OBJECT(register_func);
+
+    PyObject *register_result =
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, register_func, (PyObject *)&Nuitka_FrameLocalsProxy_Type);
+    CHECK_OBJECT(register_result);
+
+    Py_DECREF(register_result);
+    Py_DECREF(register_func);
+    Py_DECREF(mapping);
+    Py_DECREF(module_collections_abc);
+#endif
+
     is_done = true;
 }
 #endif

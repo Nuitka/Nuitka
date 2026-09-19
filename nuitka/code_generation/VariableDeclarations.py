@@ -24,9 +24,16 @@ from .c_types.CTypePyObjectPointers import (
 
 
 class VariableDeclaration(object):
-    __slots__ = ("c_type", "code_name", "init_value", "heap_name", "maybe_unused")
+    __slots__ = (
+        "c_type",
+        "code_name",
+        "init_value",
+        "heap_name",
+        "struct_name",
+        "maybe_unused",
+    )
 
-    def __init__(self, c_type, code_name, init_value, heap_name):
+    def __init__(self, c_type, code_name, init_value, heap_name, struct_name):
         if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
             self.c_type = c_type[21:]
             self.maybe_unused = True
@@ -37,6 +44,7 @@ class VariableDeclaration(object):
         self.code_name = code_name
         self.init_value = init_value
         self.heap_name = heap_name
+        self.struct_name = struct_name
 
     def makeCFunctionLevelDeclaration(self):
         pos = self.c_type.find("[")
@@ -76,13 +84,12 @@ class VariableDeclaration(object):
         if self.init_value is None:
             return None
 
+        if self.struct_name is not None:
+            return "%s.%s = %s;" % (self.struct_name, self.code_name, self.init_value)
+
         assert self.heap_name, repr(self)
 
-        return "%s%s = %s;" % (
-            ((self.heap_name + "->") if self.heap_name is not None else ""),
-            self.code_name,
-            self.init_value,
-        )
+        return "%s->%s = %s;" % (self.heap_name, self.code_name, self.init_value)
 
     def getCType(self):
         # TODO: This ought to become unnecessary function
@@ -118,7 +125,9 @@ class VariableDeclaration(object):
         assert False, c_type
 
     def __str__(self):
-        if self.heap_name:
+        if self.struct_name is not None:
+            return "%s.%s" % (self.struct_name, self.code_name)
+        elif self.heap_name:
             return "%s->%s" % (self.heap_name, self.code_name)
         else:
             return self.code_name
@@ -136,6 +145,8 @@ class VariableStorage(object):
     # exception variables, pylint: disable=too-many-instance-attributes
     __slots__ = (
         "heap_name",
+        "struct_name",
+        "struct_type_name",
         "variable_declarations_heap",
         "variable_declarations_main",
         "variable_declarations_closure",
@@ -145,8 +156,10 @@ class VariableStorage(object):
         "variable_declarations_top",
     )
 
-    def __init__(self, heap_name):
+    def __init__(self, heap_name, struct_name, struct_type_name):
         self.heap_name = heap_name
+        self.struct_name = struct_name
+        self.struct_type_name = struct_type_name
 
         self.variable_declarations_heap = []
         self.variable_declarations_main = []
@@ -232,21 +245,39 @@ class VariableStorage(object):
         return (exception_state_name, result_lineno)
 
     def addVariableDeclarationLocal(self, c_type, code_name):
-        result = VariableDeclaration(c_type, code_name, None, None)
+        result = VariableDeclaration(
+            c_type=c_type,
+            code_name=code_name,
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
+        )
 
         self.variable_declarations_locals[-1].append(result)
 
         return result
 
     def addVariableDeclarationClosure(self, c_type, code_name):
-        result = VariableDeclaration(c_type, code_name, None, None)
+        result = VariableDeclaration(
+            c_type=c_type,
+            code_name=code_name,
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
+        )
 
         self.variable_declarations_closure.append(result)
 
         return result
 
     def addVariableDeclarationFunction(self, c_type, code_name, init_value):
-        result = VariableDeclaration(c_type, code_name, init_value, None)
+        result = VariableDeclaration(
+            c_type=c_type,
+            code_name=code_name,
+            init_value=init_value,
+            heap_name=None,
+            struct_name=None,
+        )
 
         self.variable_declarations_main.append(result)
         assert code_name not in self.variable_declarations_top, (
@@ -259,12 +290,42 @@ class VariableStorage(object):
         return result
 
     def addVariableDeclarationTop(self, c_type, code_name, init_value):
-        result = VariableDeclaration(c_type, code_name, init_value, self.heap_name)
+        result = VariableDeclaration(
+            c_type=c_type,
+            code_name=code_name,
+            init_value=init_value,
+            heap_name=self.heap_name,
+            struct_name=None,
+        )
 
         if self.heap_name is not None:
             self.variable_declarations_heap.append(result)
         else:
             self.variable_declarations_main.append(result)
+
+        assert code_name not in self.variable_declarations_top, (
+            code_name,
+            self.variable_declarations_top[code_name],
+            result,
+        )
+        self.variable_declarations_top[code_name] = result
+
+        return result
+
+    def addVariableDeclarationFrameLocal(self, c_type, code_name, init_value):
+        # Generator/heap contexts have no stack struct; degrade to top/heap.
+        if self.struct_name is None:
+            return self.addVariableDeclarationTop(c_type, code_name, init_value)
+
+        result = VariableDeclaration(
+            c_type=c_type,
+            code_name=code_name,
+            init_value=init_value,
+            heap_name=None,
+            struct_name=self.struct_name,
+        )
+
+        self.variable_declarations_heap.append(result)
 
         assert code_name not in self.variable_declarations_top, (
             code_name,

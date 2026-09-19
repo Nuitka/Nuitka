@@ -112,7 +112,11 @@ def _getYieldPreserveCode(
         emit(resume_code)
 
     yield_return_name = VariableDeclaration(
-        "PyObject *", "yield_return_value", None, None
+        c_type="PyObject *",
+        code_name="yield_return_value",
+        init_value=None,
+        heap_name=None,
+        struct_name=None,
     )
 
     getErrorExitCode(check_name=yield_return_name, emit=emit, context=context)

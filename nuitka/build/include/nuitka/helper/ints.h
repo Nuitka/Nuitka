@@ -42,6 +42,10 @@ typedef struct {
     long c_value;
 } nuitka_ilong;
 
+// An unassigned "nuitka_ilong" value, usable in assignments (unlike the brace
+// initializer form, which is only valid in a declaration).
+NUITKA_MAY_BE_UNUSED static const nuitka_ilong NUITKA_ILONG_UNASSIGNED_VALUE = {NUITKA_ILONG_UNASSIGNED, NULL, 0};
+
 #define IS_NILONG_OBJECT_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_OBJECT_VALID) != 0)
 #define IS_NILONG_C_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_CLONG_VALID) != 0)
 
@@ -93,6 +97,8 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_NILONG_OBJECT_VALUE(nuitka_ilong *dual_
 
     if (!IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
         dual_value->python_value = Nuitka_PyLong_FromLong(dual_value->c_value);
+
+        assert(dual_value->python_value != NULL);
 
         dual_value->validity = NUITKA_ILONG_BOTH_VALID;
     }

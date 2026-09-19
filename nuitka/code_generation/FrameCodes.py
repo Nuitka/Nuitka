@@ -7,13 +7,13 @@ This is about frame stacks and their management. There are different kinds
 of frames for different uses.
 """
 
+from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import _generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
@@ -27,29 +27,26 @@ from .templates.CodeTemplatesFrames import (
     template_frame_guard_normal_return_handler,
 )
 
+_frame_locals_proxy_used = False
 
-def getFrameLocalsStorageSize(type_descriptions):
-    candidates = set()
 
-    for type_description in type_descriptions:
-        candidate = "+".join(
-            getTypeSizeOf(type_indicator) for type_indicator in sorted(type_description)
-        )
+def hasFrameLocalsProxy():
+    """Whether any frame of the program can publish a FrameLocalsProxy.
 
-        candidates.add(candidate)
+    Returns:
+        bool
+    """
+    return _frame_locals_proxy_used
 
-    if not candidates:
-        return "0"
 
-    candidates = list(sorted(candidates))
-    result = candidates.pop()
+def _getFrameVariableIndicators(context):
+    frame_variables = context.frame_variables_stack[-1]
+    frame_var_types = context.frame_variable_types
 
-    while candidates:
-        # assert False, (type_descriptions, context.frame_variables_stack[-1])
-
-        result = "MAX(%s, %s)" % (result, candidates.pop())
-
-    return result
+    return [
+        frame_var_types[variable][1] if variable in frame_var_types else "N"
+        for variable in frame_variables
+    ]
 
 
 def _searchLocalVariableByName(local_variables, variable_name):
@@ -190,7 +187,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
                 % (outline_exception_lineno, frame_source_ref.getLineNumber())
             )
 
-        emit(getFrameVariableTypeDescriptionCode(context))
         getGotoCode(real_parent_exception_exit, emit)
         getLabelCode(label, emit)
 
@@ -204,27 +200,26 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         context.setReturnTarget(parent_return_exit)
 
 
-def getTypeSizeOf(type_indicator):
-    if type_indicator in ("O", "o", "N", "c"):
-        return "sizeof(void *)"
-    elif type_indicator == "b":
-        return "sizeof(nuitka_bool)"
-    elif type_indicator == "L":
-        return "sizeof(nuitka_ilong)"
-    else:
-        assert False, type_indicator
-
-
-def getFrameAttachLocalsCode(context, frame_identifier):
-    frame_variable_codes = context.getFrameVariableCodeNames()
-    frame_variable_codes = ",\n    ".join(frame_variable_codes)
-    if frame_variable_codes:
-        frame_variable_codes = ",\n    " + frame_variable_codes
-
+def getFrameAttachLocalsCode(frame_identifier):
     return template_frame_attach_locals % {
         "frame_identifier": frame_identifier,
-        "type_description": context.getFrameTypeDescriptionDeclaration(),
-        "frame_variable_refs": frame_variable_codes,
+    }
+
+
+def getFrameAttachLocalsCopyCode(context, frame_identifier, type_description):
+    struct_name = context.variable_storage.struct_name
+    struct_type_name = context.variable_storage.struct_type_name
+
+    return """\
+*(%(struct_type_name)s *)NUITKA_FRAME_LOCALS_STORAGE(%(frame_identifier)s) = %(struct_name)s;
+Nuitka_Frame_AttachLocalsCopied(
+    %(frame_identifier)s,
+    %(type_description)s
+);""" % {
+        "struct_type_name": struct_type_name,
+        "frame_identifier": frame_identifier,
+        "struct_name": struct_name,
+        "type_description": type_description,
     }
 
 
@@ -240,8 +235,8 @@ def getFrameGuardHeavyCode(
     emit,
     context,
 ):
-    # We really need this many parameters here and it gets very
-    # detail rich, pylint: disable=too-many-locals
+    # A lot of details go into the frame guard code,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
@@ -258,7 +253,7 @@ def getFrameGuardHeavyCode(
 
     # Expose the locals dictionary with the frame locals if it exists.
     if frame_node.isStatementsFrameClass():
-        attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
+        attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
         module_identifier = getModuleAccessCode(context)
         locals_dict_name = context.variable_storage.getVariableDeclarationTop(
             frame_node.getLocalsScope().getCodeName()
@@ -266,13 +261,10 @@ def getFrameGuardHeavyCode(
         use_locals_dict = locals_dict_name in context.getLocalsDictNames()
 
         make_frame_code = (
-            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, NULL, %(locals_size)s)"""
+            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, NULL, 0, NULL)"""
             % {
                 "code_identifier": code_identifier,
                 "module_identifier": module_identifier,
-                "locals_size": getFrameLocalsStorageSize(
-                    context.getFrameVariableTypeDescriptions()
-                ),
             }
         )
 
@@ -298,18 +290,74 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
                 "frame_identifier": frame_identifier,
             }
     elif frame_node.isStatementsFrameFunction():
-        attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
+        if context.variable_storage.makeCStructLevelDeclarations():
+            indicators = _getFrameVariableIndicators(context)
 
-        make_frame_code = (
-            """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
-            % {
-                "code_identifier": code_identifier,
-                "module_identifier": getModuleAccessCode(context),
-                "locals_size": getFrameLocalsStorageSize(
-                    context.getFrameVariableTypeDescriptions()
-                ),
-            }
-        )
+            # The runtime walkers use the code object's co_nlocals as the
+            # description length, so they must agree at build time already.
+            assert len(indicators) == len(frame_node.getCodeObject().getVarNames())
+
+            # A struct with only outline variables has no frame variables and
+            # would produce an empty type description, which is invalid C.
+            assert indicators, (
+                "empty type description",
+                frame_node,
+                context.getOwner(),
+                context.variable_storage.makeCStructLevelDeclarations(),
+            )
+
+            locals_size = "sizeof(%s)" % context.variable_storage.struct_name
+            type_description_name = context.getTypeDescriptionCode("".join(indicators))
+
+            if isExperimental("force-locals-frame-proxy"):
+                if python_version >= 0x3D0:
+                    # Singleton, pylint: disable=global-statement
+                    global _frame_locals_proxy_used
+                    _frame_locals_proxy_used = True
+
+                attach_locals_code = getFrameAttachLocalsCode(frame_identifier)
+                # A cached frame can have been cleared in the meantime, e.g.
+                # by "frame.clear()", which resets the type description and
+                # writability, so publish them again, not only the pointer
+                # to the stack struct.
+                frame_init_code = """\
+%(frame_identifier)s->m_type_description = %(type_description)s;
+%(frame_identifier)s->m_locals_writable = 1;
+%(frame_identifier)s->m_locals_ptr = &%(struct_name)s;""" % {
+                    "frame_identifier": frame_identifier,
+                    "type_description": type_description_name,
+                    "struct_name": context.variable_storage.struct_name,
+                }
+                # On normal exit the frame is cached and nobody reads the stack
+                # struct anymore; on the exception path the attach above has
+                # already copied the values into the frame heap buffer.
+                frame_exit_code = "%s->m_locals_ptr = NULL;" % frame_identifier
+                frame_type_description = type_description_name
+            else:
+                # Same struct, but its address is not published on the normal
+                # path, so the C compiler can keep the locals in registers. At
+                # the exception exit the struct is copied by value, which is
+                # not an address escape either.
+                attach_locals_code = getFrameAttachLocalsCopyCode(
+                    context, frame_identifier, type_description_name
+                )
+                frame_init_code = ""
+                frame_exit_code = ""
+                frame_type_description = "NULL"
+        else:
+            attach_locals_code = ""
+            frame_init_code = ""
+            frame_exit_code = ""
+            frame_type_description = "NULL"
+            locals_size = "0"
+
+        make_frame_code = """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s, \
+%(type_description)s)""" % {
+            "code_identifier": code_identifier,
+            "module_identifier": getModuleAccessCode(context),
+            "locals_size": locals_size,
+            "type_description": frame_type_description,
+        }
     elif frame_node.isStatementsFrameModule():
         attach_locals_code = ""
         make_frame_code = (
@@ -369,7 +417,6 @@ Nuitka_Frame_ClearLocals(%(frame_identifier)s);
                 attach_locals_code=attach_locals_code,
                 parent_exception_exit=parent_exception_exit,
                 frame_exception_exit=frame_exception_exit,
-                frame_exit_code=frame_exit_code,
                 needs_preserve=needs_preserve,
                 exception_state_name=exception_state_name,
                 exception_lineno=exception_lineno,
@@ -406,14 +453,17 @@ def getFrameGuardGeneratorCode(
         frame_identifier.code_name
     )
 
+    # TODO: Wire the FrameLocalsProxy to generator/coroutine/asyncgen frames by
+    # emitting a type description and pointing m_locals_ptr at the generator
+    # object's m_heap_storage. That storage is owned by the generator object, so
+    # the frame must borrow (not release) those references, unlike the copy
+    # detach of ordinary functions. Until then no type description is passed
+    # (matching the resume-time MAKE_FUNCTION_FRAME in the generator type code).
     make_frame_code = (
-        """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
+        """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, 0, NULL)"""
         % {
             "code_identifier": code_identifier,
             "module_identifier": getModuleAccessCode(context),
-            "locals_size": getFrameLocalsStorageSize(
-                context.getFrameVariableTypeDescriptions()
-            ),
         }
     )
     is_generator = True
@@ -460,9 +510,7 @@ def getFrameGuardGeneratorCode(
                 tb_making=getTracebackMakingIdentifier(
                     context=context, lineno_name=exception_lineno
                 ),
-                attach_locals=indented(
-                    getFrameAttachLocalsCode(context, frame_identifier)
-                ),
+                attach_locals=getFrameAttachLocalsCode(frame_identifier),
                 frame_exception_exit=frame_exception_exit,
                 parent_exception_exit=parent_exception_exit,
                 is_python3=python_version >= 0x300,

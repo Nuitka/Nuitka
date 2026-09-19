@@ -62,6 +62,14 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_Cell_SET(struct Nuitka_CellObject
     cell_object->ob_ref = value;
 }
 
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_CellOrPyCell_SET(PyObject *cell, PyObject *value) {
+    CHECK_OBJECT_X(value);
+    CHECK_OBJECT(cell);
+
+    assert(Nuitka_CellOrPyCell_Check(cell));
+    ((struct Nuitka_CellObject *)cell)->ob_ref = value;
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

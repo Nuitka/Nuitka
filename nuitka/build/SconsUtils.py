@@ -479,6 +479,11 @@ def createEnvironment(
     if env.exe_mode:
         env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
 
+    # Frame locals proxy: Any frame of the program can publish one.
+    env.frame_locals_proxy = getArgumentBool("frame_locals_proxy", False)
+    if env.frame_locals_proxy:
+        env.Append(CPPDEFINES=["_NUITKA_FRAME_LOCALS_PROXY"])
+
     # MacOS bundle: Create an .app on macOS
     env.macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
     if env.macos_bundle_mode:

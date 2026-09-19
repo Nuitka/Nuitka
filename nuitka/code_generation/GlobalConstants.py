@@ -236,6 +236,10 @@ def getConstantDefaultPopulation():
         if python_version >= 0x3C0:
             result.append("Unpack")
 
+    if python_version >= 0x3D0:
+        # Register the frame locals proxy with the "Mapping" abstract base class.
+        result.append("Mapping")
+
     if python_version >= 0x3E0:
         # For exception complaint using __qualname__.
         result.append("__qualname__")

@@ -421,7 +421,11 @@ def getVariableAssignmentCode(
 
     if variable.isModuleVariable():
         variable_declaration = VariableDeclaration(
-            "module_var", variable.getName(), None, None
+            c_type="module_var",
+            code_name=variable.getName(),
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
     else:
         variable_declaration = getLocalVariableDeclaration(
@@ -451,7 +455,11 @@ def _getVariableDelCode(
 ):
     if variable.isModuleVariable():
         variable_declaration_old = VariableDeclaration(
-            "module_var", variable.getName(), None, None
+            c_type="module_var",
+            code_name=variable.getName(),
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
         variable_declaration_new = variable_declaration_old
     else:

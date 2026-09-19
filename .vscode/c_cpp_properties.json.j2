@@ -30,7 +30,8 @@
                 "_UNICODE",
                 "__IDE_ONLY__",
                 "Py_BUILD_CORE",
-                "PYTHON_VERSION={{ python_version_hex }}"
+                "PYTHON_VERSION={{ python_version_hex }}",
+                "_NUITKA_FRAME_LOCALS_PROXY"
             ],
             {% if windows_sdk_version %}
             "windowsSdkVersion": "{{ windows_sdk_version }}",
