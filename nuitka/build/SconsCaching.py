@@ -198,6 +198,42 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
     return False
 
 
+def _getCcacheSloppinessValue(existing_value):
+    """Determine CCACHE_SLOPPINESS, merging user tokens with Nuitka defaults.
+
+    Notes:
+        Nuitka creates include files whose ctime/mtime must not bust the
+        cache, so 'include_file_ctime' and 'include_file_mtime' are always
+        kept. A pre-set value is merged rather than overwritten.
+
+    Args:
+        existing_value: Current 'CCACHE_SLOPPINESS' or None if unset.
+
+    Returns:
+        Combined sloppiness string.
+    """
+    required_value = "include_file_ctime,include_file_mtime"
+
+    if existing_value is None:
+        return required_value
+
+    tokens = []
+    seen = set()
+
+    for part in existing_value.split(","):
+        token = part.strip()
+
+        if token and token not in seen:
+            seen.add(token)
+            tokens.append(token)
+
+    for token in required_value.split(","):
+        if token not in seen:
+            tokens.append(token)
+
+    return ",".join(tokens)
+
+
 def enableCcache(env, source_dir, python_prefix):
     inject_ccache = not env.disable_ccache and not env.zig_mode
 
@@ -227,9 +263,12 @@ def enableCcache(env, source_dir, python_prefix):
             )
             setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
 
-        # We know the include files we created are safe to use.
+        # We know the include files we created are safe to use. A pre-set
+        # CCACHE_SLOPPINESS is merged so user tokens are not overwritten.
         setEnvironmentVariable(
-            env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
+            env,
+            "CCACHE_SLOPPINESS",
+            _getCcacheSloppinessValue(os.environ.get("CCACHE_SLOPPINESS")),
         )
 
         # First check if it's not already supposed to be a ccache, then do nothing.
