@@ -6,10 +6,12 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
@@ -166,6 +168,55 @@ def generateExceptionPublishCode(statement, emit, context):
     # TODO: Make this one thing for performance with thread state shared, also for less code,
     # then we should not make it in header anymore. Might be more scalable too.
     emit("PUBLISH_CURRENT_EXCEPTION(tstate, &%s);" % keeper_exception_state_name)
+
+
+def generateExceptionPublishValueCode(statement, emit, context):
+    # Current variables cannot be used anymore now.
+    context.setExceptionKeeperVariables((None, None))
+
+    value_name = context.allocateTempName("publish_exception_value")
+
+    generateExpressionCode(
+        to_name=value_name,
+        expression=statement.subnode_value,
+        emit=emit,
+        context=context,
+    )
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+    emit("PUBLISH_CURRENT_EXCEPTION_VALUE(tstate, %s);" % value_name)
+
+    getReleaseCode(release_name=value_name, emit=emit, context=context)
+
+
+def generateExceptionGroupMatchCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_MATCH",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=True,
+        none_null=True,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateExceptionGroupPrepareReraiseCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_PREPARE_RERAISE",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=True,
+        none_null=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 def _attachExceptionAttributeCode(

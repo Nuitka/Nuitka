@@ -2396,6 +2396,106 @@ use special references, that access the C++ and don't go via
 This means, that the different handlers and their catching run time
 behavior are all explicit and reduced the branches.
 
+Exception Groups
+----------------
+
+Starting in Python 3.11, exception groups can be caught using
+``except*`` syntax. For example:
+
+.. code:: python
+
+   try:
+      block()
+   except* (A, B) as eg:
+      handlerAorB(eg)
+   except* (B) as eg:
+      handlerB(eg)
+
+To handle this correctly when ``block()`` raises an exception, each
+handler is matched against the remaining exception group in sequence. If
+a match is made, the result will be stored in an ``ExceptionGroup``
+object, which will be passed as ``eg``, and it becomes the exception
+that is currently handled while the handler executes, so that
+``sys.exc_info()`` and a bare ``raise`` refer to it. Exceptions that a
+handler raises do not stop the following handlers from running, they are
+collected instead. The unhandled remainder, together with the collected
+exceptions, is then combined and raised again at the end, if anything
+remains.
+
+Currently, the behavior looks like this:
+
+.. code:: python
+
+   # In reality, this is a C function called EXCEPTION_GROUP_MATCH, but we
+   # could make it pure-Python someday.
+   def exception_group_match(exc_info, match_type):
+      # We assume that the exception is normalized
+      exc_value = exc_info[1]
+      if isinstance(exc_value, match_type):
+         # If the exception is already an exception group, we directly
+         # return it. Otherwise, we create a new exception group that wraps it.
+         if isinstance(exc_value, BaseExceptionGroup):
+            match = exc_value
+         else:
+            match = ExceptionGroup("", [exc_value])
+
+         return match, None
+
+      if isinstance(exc_value, BaseExceptionGroup):
+         # If the raised exception was an exception group object, we call the
+         # split() method to get the match and remaining exceptions.
+         pair = exc_value.split((match_type,))
+         if type(pair) is not tuple:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a tuple, "
+               f" not {type(pair).__name__}"
+            )
+
+         if len(pair) < 2:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a "
+               f" 2-tuple, got tuple of size {len(pair)}"
+            )
+
+         return pair
+
+      # No match
+      return None, exc_value
+
+.. code:: python
+
+   try:
+       block()
+   except:
+      caught = sys.exc_info()[1]
+      rest = caught
+      raised = []
+
+      match, rest = exception_group_match(rest, (A, B))
+      if match is not None:
+         # While the handler runs, "match" is the current exception.
+         try:
+            handlerAorB(match)
+         except:
+            raised.append(sys.exc_info()[1])
+
+      match, rest = exception_group_match(rest, B)
+      if match is not None:
+         try:
+            handlerB(match)
+         except:
+            raised.append(sys.exc_info()[1])
+
+      raised.append(rest)
+
+      # In reality, this is the C function EXCEPTION_GROUP_PREPARE_RERAISE.
+      result = exception_group_prepare_reraise(caught, raised)
+
+      # The previous exception state is restored before the re-raise, so
+      # that it becomes the context of the raised exception.
+      if result is not None:
+         raise result
+
 Statement ``try``/``except`` with ``else``
 ------------------------------------------
 

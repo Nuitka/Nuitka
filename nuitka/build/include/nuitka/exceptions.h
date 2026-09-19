@@ -345,6 +345,19 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyThreadState *tst
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3b0
+// Helper that sets the current thread exception to a value, for use in the
+// "except*" handling, where the match of a clause is published.
+NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION_VALUE(PyThreadState *tstate, PyObject *value) {
+    CHECK_OBJECT(value);
+
+    Py_INCREF(value);
+    struct Nuitka_ExceptionStackItem exc_state = {value};
+
+    SET_CURRENT_EXCEPTION(tstate, &exc_state);
+}
+#endif
+
 // Normalize an exception, may release old values and replace them, expects
 // references passed and returns them.
 NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyThreadState *tstate, PyObject **exception_type,
