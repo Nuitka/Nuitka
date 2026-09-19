@@ -41,6 +41,7 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
+from nuitka.nodes.FrameNodes import StatementsFrameFunction
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
@@ -732,7 +733,17 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         source_ref=source_ref,
     )
 
-    outer_body.setChildBody(body)
+    # The annotate function can reference closure variables in its annotation
+    # values, so it must have a frame for unbound closure and local errors, and
+    # for "f_locals" of the annotate function to be correct.
+    body = StatementsFrameFunction(
+        statements=(body,),
+        code_object=code_object,
+        owner_code_name=outer_body.getCodeName(),
+        source_ref=source_ref,
+    )
+
+    outer_body.setChildBody(makeStatementsSequenceFromStatement(statement=body))
     return outer_body, return_statement
 
 

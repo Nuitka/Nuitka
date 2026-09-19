@@ -633,6 +633,13 @@ def _generateRaiseExceptionSource(statement, indent):
     return "%sraise %s" % (indent, exception_type)
 
 
+def _generateStatementsFrameSource(statement, indent):
+    # Frames are only needed for C code generation of annotate functions that
+    # fall back to it, the bytecode backed function gets the frame's statements
+    # directly.
+    return generateStatementSequenceSource(statement, indent=indent)
+
+
 def _generateReturnSource(statement, indent):
     if statement.isStatementReturnConstant():
         constant = statement.getConstant()
@@ -847,6 +854,7 @@ _statement_source_dispatch = {
     "STATEMENT_RAISE_EXCEPTION": _generateRaiseExceptionSource,
     "STATEMENT_RETURN": _generateReturnSource,
     "STATEMENT_RETURN_CONSTANT": _generateReturnSource,
+    "STATEMENTS_FRAME_FUNCTION": _generateStatementsFrameSource,
 }
 
 _checked_dispatch_kinds = False
@@ -870,6 +878,11 @@ def _checkDispatchKinds():
             )
 
     for kind in _statement_source_dispatch:
+        # Frame statements are not in the dispatch dictionary, the C code
+        # generation handles them manually in "_generateStatementSequenceCode".
+        if kind == "STATEMENTS_FRAME_FUNCTION":
+            continue
+
         if kind not in getStatementDispatchDict():
             raise NuitkaCodeDeficit(
                 "Source generation statement kind %r is not in C dispatch" % kind
