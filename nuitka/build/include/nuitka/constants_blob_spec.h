@@ -48,6 +48,18 @@
 #define NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT 0x43               /* 'C' */
 #define NUITKA_CONSTANT_BLOB_TAG_END 0x2e                       /* '.' */
 
+/* Frame locals type description indicators, one byte per variable type in the
+ * description strings. Keep values distinct and non-zero, and in simple
+ * numeric form, so Python code can parse this file directly without a C
+ * preprocessor.
+ */
+#define NUITKA_FRAME_LOCALS_TYPE_OBJECT 0x6f     /* 'o' */
+#define NUITKA_FRAME_LOCALS_TYPE_OBJECT_PTR 0x4f /* 'O' */
+#define NUITKA_FRAME_LOCALS_TYPE_CELL 0x63       /* 'c' */
+#define NUITKA_FRAME_LOCALS_TYPE_BOOL 0x62       /* 'b' */
+#define NUITKA_FRAME_LOCALS_TYPE_NILONG 0x4c     /* 'L' */
+#define NUITKA_FRAME_LOCALS_TYPE_NULL 0x4e       /* 'N' */
+
 #define NUITKA_CONSTANT_BLOB_FLOAT_SPECIAL_POS_ZERO 0x00
 #define NUITKA_CONSTANT_BLOB_FLOAT_SPECIAL_NEG_ZERO 0x01
 #define NUITKA_CONSTANT_BLOB_FLOAT_SPECIAL_POS_NAN 0x02

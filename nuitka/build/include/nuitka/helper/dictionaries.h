@@ -275,6 +275,9 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
     return true;
 }
 
+// Set a KeyError for the given key, handling tuple keys and normalization.
+extern void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key);
+
 // Get dict lookup for a key, similar to PyDict_GetItemWithError, ref returned
 extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key);
 

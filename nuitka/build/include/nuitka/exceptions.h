@@ -1414,14 +1414,11 @@ CHECK_AND_CLEAR_STOP_ITERATION_STATE(PyThreadState *tstate, struct Nuitka_Except
     return _CHECK_AND_CLEAR_EXCEPTION_STATE(tstate, exception_state, PyExc_StopIteration);
 }
 
-// Format a UnboundLocalError exception for a variable name. TODO: This is more
-// for "raising.h" it seems.
+// Format a UnboundLocalError exception for a variable name, for contexts
+// without a frame to resolve the name from. TODO: This is more for "raising.h"
+// it seems.
 extern void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
                                        PyObject *variable_name);
-
-extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyThreadState *tstate,
-                                         struct Nuitka_ExceptionPreservationItem *exception_state,
-                                         PyObject *variable_name);
 
 #if PYTHON_VERSION >= 0x300
 static inline PyBaseExceptionObject *_Nuitka_PyBaseExceptionObject_cast(PyObject *exc) {

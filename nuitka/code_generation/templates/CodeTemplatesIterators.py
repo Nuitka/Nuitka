@@ -11,7 +11,6 @@ if (%(to_name)s == NULL) {
     } else {
 %(release_temps)s
         FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
-%(var_description_code)s
 %(line_number_code)s
         goto %(exception_target)s;
     }

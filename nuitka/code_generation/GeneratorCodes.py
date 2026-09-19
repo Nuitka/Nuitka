@@ -55,6 +55,7 @@ def getGeneratorObjectCode(
     user_variables,
     outline_variables,
     temp_variables,
+    local_variables,
     needs_exception_exit,
     needs_generator_return,
 ):
@@ -63,8 +64,10 @@ def getGeneratorObjectCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=None,
+        local_variables=local_variables,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
+        outline_variables=outline_variables,
         temp_variables=temp_variables,
     )
 

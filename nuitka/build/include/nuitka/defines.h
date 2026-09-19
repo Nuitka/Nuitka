@@ -25,6 +25,25 @@
 
 #define STATIC_ASSERT(expr, msg) HEDLEY_STATIC_ASSERT(expr, msg)
 
+/* A way to indicate that a specific function won't return, so the C compiler
+ * can create better code.
+ */
+
+#define NUITKA_NO_RETURN HEDLEY_NO_RETURN
+
+/* This is used to indicate code control flows we know cannot happen. */
+#ifndef __NUITKA_NO_ASSERT__
+#define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
+#else
+#define NUITKA_CANNOT_GET_HERE(NAME) abort();
+#endif
+
+#define NUITKA_ERROR_EXIT(NAME)                                                                                        \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -82,20 +82,6 @@ void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPr
                                                        exception_value);
 }
 
-void FORMAT_UNBOUND_CLOSURE_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
-                                  PyObject *variable_name) {
-#if PYTHON_VERSION < 0x3b0
-    char const *message = "free variable '%s' referenced before assignment in enclosing scope";
-#else
-    char const *message = "cannot access free variable '%s' where it is not associated with a value in enclosing scope";
-#endif
-
-    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
-    CHECK_OBJECT(exception_value);
-
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_NameError, exception_value);
-}
-
 static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
     PyObject *exc;
 

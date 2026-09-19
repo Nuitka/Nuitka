@@ -161,6 +161,21 @@ class GlobalConstantAccessor(object):
 
     global_constant_keys = set()
 
+    # Type description values used by any module, these are shared program wide.
+    type_description_values = set()
+
+    @classmethod
+    def getTypeDescriptionCode(cls, type_description_value):
+        type_description_code = "type_description_%s" % type_description_value
+
+        cls.type_description_values.add(type_description_value)
+
+        return type_description_code
+
+    @classmethod
+    def getTypeDescriptionValues(cls):
+        return cls.type_description_values
+
     def __init__(self, data_filename, top_level_name):
         self.constants = OrderedSet()
         self.special_details = {}

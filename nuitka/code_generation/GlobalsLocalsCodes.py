@@ -122,7 +122,13 @@ def _getVariableDictUpdateCode(
     access_code = SourceCodeCollector()
 
     getNonModuleVariableReferenceCode(
-        to_name=VariableDeclaration("PyObject *", "value", None, None),
+        to_name=VariableDeclaration(
+            c_type="PyObject *",
+            code_name="value",
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
+        ),
         variable=variable,
         variable_trace=variable_trace,
         needs_check=False,

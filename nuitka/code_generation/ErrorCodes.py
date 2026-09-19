@@ -61,18 +61,6 @@ def getErrorExitReleaseCode(context):
     return temp_release
 
 
-def getFrameVariableTypeDescriptionCode(context):
-    type_description = context.getFrameVariableTypeDescription()
-
-    if type_description:
-        return '%s = "%s";' % (
-            context.getFrameTypeDescriptionDeclaration(),
-            type_description,
-        )
-    else:
-        return ""
-
-
 def getErrorExitBoolCode(
     condition,
     emit,
@@ -125,9 +113,6 @@ def getErrorExitBoolCode(
                 "exception_state_name": exception_state_name,
                 "exception_exit": context.getExceptionEscape(),
                 "release_temps": indented(getErrorExitReleaseCode(context)),
-                "var_description_code": indented(
-                    getFrameVariableTypeDescriptionCode(context)
-                ),
                 "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
             }
         )
@@ -139,9 +124,6 @@ def getErrorExitBoolCode(
                 "exception_state_name": exception_state_name,
                 "exception_exit": context.getExceptionEscape(),
                 "release_temps": indented(getErrorExitReleaseCode(context)),
-                "var_description_code": indented(
-                    getFrameVariableTypeDescriptionCode(context)
-                ),
                 "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
             }
         )
@@ -232,6 +214,63 @@ def getAssertionCode(check, emit):
     emit("assert(%s);" % check)
 
 
+def _getFrameVariableErrorCode(
+    variable,
+    exception_state_name,
+    keeper_exception_state_code,
+    frame_identifier,
+    context,
+):
+    """Get the exception setting for a variable with a frame, or None.
+
+    The variable name is resolved from the frame's code object, using the
+    local variable index or the closure variable index, depending on where
+    the variable is found, so no string constant is needed.
+
+    Args:
+        variable: Variable that is accessed.
+        exception_state_name: Name of the exception state variable.
+        keeper_exception_state_code: Code for the keeper exception state, or "NULL".
+        frame_identifier: Variable declaration of the frame object, or None.
+        context: Code generation context.
+
+    Returns:
+        Code that sets the exception, or None if unavailable.
+    """
+    owner = variable.getOwner()
+
+    if owner.isExpressionOutlineFunctionBase():
+        owner = owner.getEntryPoint()
+
+    user = context.getOwner().getEntryPoint()
+
+    if owner is not user:
+        closure_variables = user.getClosureVariables()
+
+        assert frame_identifier is not None
+        assert variable in closure_variables, (variable, closure_variables)
+
+        return "Nuitka_Frame_FormatUnboundClosureError(tstate, &%s, %s, %s, %d);" % (
+            exception_state_name,
+            keeper_exception_state_code,
+            frame_identifier,
+            closure_variables.index(variable),
+        )
+
+    if frame_identifier is not None:
+        frame_variables = context.getFrameVariables()
+
+        if variable in frame_variables:
+            return "Nuitka_Frame_FormatUnboundLocalError(tstate, &%s, %s, %s, %d);" % (
+                exception_state_name,
+                keeper_exception_state_code,
+                frame_identifier,
+                frame_variables.index(variable),
+            )
+
+    return None
+
+
 def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
     variable_name = variable.getName()
 
@@ -240,23 +279,41 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
         _exception_lineno,
     ) = context.getExceptionVariableDescriptions()
 
-    if variable.getOwner() is not context.getOwner():
-        helper_code = "FORMAT_UNBOUND_CLOSURE_ERROR"
+    (
+        keeper_exception_state_name,
+        _keeper_lineno,
+    ) = context.getExceptionKeeperVariables()
+
+    if keeper_exception_state_name is not None:
+        keeper_exception_state_code = "&%s" % keeper_exception_state_name
     else:
-        helper_code = "FORMAT_UNBOUND_LOCAL_ERROR"
+        keeper_exception_state_code = "NULL"
 
-    set_exception = [
-        "%s(tstate, &%s, %s);"
-        % (
-            helper_code,
-            exception_state_name,
-            context.getConstantCode(variable_name),
-        ),
-    ]
+    frame_identifier = context.getFrameHandle()
 
-    # TODO: Move this into the helper code.
-    if python_version >= 0x300:
-        set_exception.extend(_getExceptionChainingCode(context))
+    frame_error_code = _getFrameVariableErrorCode(
+        variable=variable,
+        exception_state_name=exception_state_name,
+        keeper_exception_state_code=keeper_exception_state_code,
+        frame_identifier=frame_identifier,
+        context=context,
+    )
+
+    if frame_error_code is not None:
+        set_exception = [frame_error_code]
+    else:
+        # Without a frame or frame variables, only the spurious local variable
+        # checks that should not exist can occur. Closures always have a frame.
+        set_exception = [
+            "FORMAT_UNBOUND_LOCAL_ERROR(tstate, &%s, %s);"
+            % (
+                exception_state_name,
+                context.getConstantCode(variable_name),
+            ),
+        ]
+
+        if python_version >= 0x300:
+            set_exception.extend(_getExceptionChainingCode(context))
 
     emit(
         template_error_format_string_exception
@@ -265,9 +322,6 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
             "exception_exit": context.getExceptionEscape(),
             "set_exception": indented(set_exception),
             "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
             "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
         }
     )
@@ -296,9 +350,6 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
             "raise_name_error_helper": helper_code,
             "variable_name": context.getConstantCode(variable_name),
             "release_temps": indented(getErrorExitReleaseCode(context)),
-            "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context)
-            ),
             "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
             "exception_state_name": exception_state_name,
         }

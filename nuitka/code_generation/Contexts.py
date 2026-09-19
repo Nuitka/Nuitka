@@ -439,6 +439,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
+    def getTypeDescriptionCode(self, type_description_value):
+        pass
+
+    @abstractmethod
     def pushFrameVariables(self, frame_variables):
         pass
 
@@ -447,19 +451,7 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
-    def getFrameVariableTypeDescriptions(self):
-        pass
-
-    @abstractmethod
-    def getFrameVariableTypeDescription(self):
-        pass
-
-    @abstractmethod
-    def getFrameTypeDescriptionDeclaration(self):
-        pass
-
-    @abstractmethod
-    def getFrameVariableCodeNames(self):
+    def getFrameVariables(self):
         pass
 
     @abstractmethod
@@ -604,23 +596,17 @@ class PythonChildContextBase(PythonContextBase):
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
 
+    def getTypeDescriptionCode(self, type_description_value):
+        return self.parent.getTypeDescriptionCode(type_description_value)
+
     def pushFrameVariables(self, frame_variables):
         return self.parent.pushFrameVariables(frame_variables)
 
     def popFrameVariables(self):
         return self.parent.popFrameVariables()
 
-    def getFrameVariableTypeDescriptions(self):
-        return self.parent.getFrameVariableTypeDescriptions()
-
-    def getFrameVariableTypeDescription(self):
-        return self.parent.getFrameVariableTypeDescription()
-
-    def getFrameTypeDescriptionDeclaration(self):
-        return self.parent.getFrameTypeDescriptionDeclaration()
-
-    def getFrameVariableCodeNames(self):
-        return self.parent.getFrameVariableCodeNames()
+    def getFrameVariables(self):
+        return self.parent.getFrameVariables()
 
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
@@ -639,8 +625,6 @@ class FrameDeclarationsMixin(object):
     def __init__(self):
         # Frame is active or not, default not.
         self.frame_variables_stack = [""]
-        # Type descriptions of the current frame.
-        self.frame_type_descriptions = [()]
 
         # Types of variables for current frame.
         self.frame_variable_types = {}
@@ -660,10 +644,11 @@ class FrameDeclarationsMixin(object):
 
         if is_light:
             frame_identifier = VariableDeclaration(
-                "struct Nuitka_FrameObject *",
-                "m_frame",
-                None,
-                self.getContextObjectName(),
+                c_type="struct Nuitka_FrameObject *",
+                code_name="m_frame",
+                init_value=None,
+                heap_name=self.getContextObjectName(),
+                struct_name=None,
             )
 
         else:
@@ -675,12 +660,6 @@ class FrameDeclarationsMixin(object):
             frame_identifier = self.variable_storage.addVariableDeclarationTop(
                 "struct Nuitka_FrameObject *", frame_handle, None
             )
-
-        self.variable_storage.addVariableDeclarationTop(
-            "NUITKA_MAY_BE_UNUSED char const *",
-            "type_description_%d" % self.frames_used,
-            "NULL",
-        )
 
         self.frame_stack.append(frame_identifier)
         return frame_identifier
@@ -697,12 +676,13 @@ class FrameDeclarationsMixin(object):
     def pushFrameVariables(self, frame_variables):
         """Set current the frame variables."""
         self.frame_variables_stack.append(frame_variables)
-        self.frame_type_descriptions.append(set())
 
     def popFrameVariables(self):
         """End of frame, restore previous ones."""
         del self.frame_variables_stack[-1]
-        del self.frame_type_descriptions[-1]
+
+    def getFrameVariables(self):
+        return self.frame_variables_stack[-1]
 
     def setVariableType(self, variable, variable_declaration):
         assert variable.isLocalVariable(), variable
@@ -712,40 +692,6 @@ class FrameDeclarationsMixin(object):
             str(variable_declaration),
             variable_declaration.getCType().getTypeIndicator(),
         )
-
-    def getFrameVariableTypeDescriptions(self):
-        return self.frame_type_descriptions[-1]
-
-    def getFrameTypeDescriptionDeclaration(self):
-        return self.variable_storage.getVariableDeclarationTop(
-            "type_description_%d" % (len(self.frame_stack) - 1)
-        )
-
-    def getFrameVariableTypeDescription(self):
-        result = "".join(
-            self.frame_variable_types.get(variable, ("NULL", "N"))[1]
-            for variable in self.frame_variables_stack[-1]
-        )
-
-        if result:
-            self.frame_type_descriptions[-1].add(result)
-
-        return result
-
-    def getFrameVariableCodeNames(self):
-        result = []
-
-        for variable in self.frame_variables_stack[-1]:
-            variable_code_name, variable_code_type = self.frame_variable_types.get(
-                variable, ("NULL", "N")
-            )
-
-            if variable_code_type in ("b",):
-                result.append("(int)" + variable_code_name)
-            else:
-                result.append(variable_code_name)
-
-        return result
 
     def getLocalsDictNames(self):
         return self.locals_dict_names or ()
@@ -837,7 +783,6 @@ class PythonModuleContext(
         "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
-        "frame_type_descriptions",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
@@ -887,7 +832,9 @@ class PythonModuleContext(
 
         self.frame_handle = None
 
-        self.variable_storage = VariableStorage(heap_name=None)
+        self.variable_storage = VariableStorage(
+            heap_name=None, struct_name=None, struct_type_name=None
+        )
 
         self.function_table_entries = []
 
@@ -958,6 +905,9 @@ class PythonModuleContext(
 
         self.declaration_codes[key] = code
 
+    def getTypeDescriptionCode(self, type_description_value):
+        return self.constant_accessor.getTypeDescriptionCode(type_description_value)
+
     def getDeclarations(self):
         return self.declaration_codes
 
@@ -1019,7 +969,6 @@ class PythonFunctionContext(
         "variable_storage",
         # FrameDeclarationsMixin
         "frame_variables_stack",
-        "frame_type_descriptions",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
@@ -1062,7 +1011,13 @@ class PythonFunctionContext(
         self.variable_storage = self._makeVariableStorage()
 
     def _makeVariableStorage(self):
-        return VariableStorage(heap_name=None)
+        function_code_name = self.function.getCodeName()
+
+        return VariableStorage(
+            heap_name=None,
+            struct_name="local_vars_%s" % function_code_name,
+            struct_type_name="struct %s_locals" % function_code_name,
+        )
 
     def __repr__(self):
         return "<%s for %s '%s'>" % (
@@ -1108,7 +1063,11 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     __slots__ = ()
 
     def _makeVariableStorage(self):
-        return VariableStorage(heap_name="%s_heap" % self.getContextObjectName())
+        return VariableStorage(
+            heap_name="%s_heap" % self.getContextObjectName(),
+            struct_name=None,
+            struct_type_name=None,
+        )
 
     @staticmethod
     def isForDirectCall():

@@ -7,7 +7,7 @@ Defines the interface to use by code generation on C types. Different
 types then have to overload the class methods.
 """
 
-type_indicators = {
+_type_indicators = {
     "PyObject *": "o",
     "PyObject **": "O",
     "struct Nuitka_CellObject *": "c",
@@ -23,7 +23,17 @@ class CTypeBase(object):
 
     @classmethod
     def getTypeIndicator(cls):
-        return type_indicators[cls.c_type]
+        return _type_indicators[cls.c_type]
+
+    @classmethod
+    def getStructStorageCType(cls):
+        """Return the C type to use when storing the value in the frame locals struct."""
+        return cls.c_type
+
+    @classmethod
+    def getStructInitValueCode(cls, variable_code_name):
+        """Return the C expression to initialize the frame locals struct member with."""
+        return variable_code_name
 
     @classmethod
     def getInitValue(cls, init_from):

@@ -67,8 +67,10 @@ def getModuleCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=None,
+        local_variables=module.getLocalVariables(),
         closure_variables=(),
-        user_variables=module.getOutlineLocalVariables(),
+        user_variables=module.getUserLocalVariables(),
+        outline_variables=module.getOutlineLocalVariables(),
         temp_variables=module.getAllTempVariables(),
     )
 
