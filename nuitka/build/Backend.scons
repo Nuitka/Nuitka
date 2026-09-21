@@ -48,7 +48,7 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeGccUseLinkerFile
+from .SconsHacks import makeLinkerUseResponseFile
 from .SconsProgress import setSconsProgressBarTotal
 from .SconsPythonBuild import (
     addPythonHaclLib,
@@ -526,9 +526,9 @@ if env.module_mode and python_sysflag_verbose:
 # limits, which can make linking fail with many modules otherwise. Most needed
 # on Windows, but useful on other platforms too.
 if env.gcc_mode:
-    makeGccUseLinkerFile(
+    makeLinkerUseResponseFile(
         env=env,
-        source_files=source_files,
+        source_filenames=source_files,
     )
 
 # Plugin contributed C defines should be used too.

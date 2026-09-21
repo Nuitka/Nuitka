@@ -198,8 +198,18 @@ def getEnhancedToolDetect():
     return myDetect
 
 
-def makeGccUseLinkerFile(env, source_files):
-    response_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
+def makeLinkerUseResponseFile(env, source_filenames):
+    """Make the linker use a response file instead of direct invocations.
+
+    Notes:
+        This avoids command line length limits for linker invocations, which
+        can make linking fail with many modules otherwise.
+
+    Args:
+        env: The SCons environment of the linker invocation.
+        source_filenames: The source filenames to link.
+    """
+    linker_response_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
 
     if env.exe_mode:
         object_suffix = env.subst("$OBJSUFFIX")
@@ -212,23 +222,23 @@ def makeGccUseLinkerFile(env, source_files):
     # spell-checker: ignore SHLINKCOM,LINKCOM
     if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
-            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(response_filename)
+            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(linker_response_filename)
         )
 
     env["LINKCOM"] = env["LINKCOM"].replace(
-        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(response_filename)
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(linker_response_filename)
     )
 
-    with openTextFile(response_filename, "w") as response_file:
-        for source_filename in source_files:
+    with openTextFile(linker_response_filename, "w") as linker_response_file:
+        for source_filename in source_filenames:
             object_filename = changeFilenameExtension(source_filename, object_suffix)
 
             if os.name == "nt":
                 object_filename = object_filename.replace(os.path.sep, "/")
 
-            response_file.write('"%s"\n' % object_filename)
+            linker_response_file.write('"%s"\n' % object_filename)
 
-        response_file.write(env.subst("$SOURCES"))
+        linker_response_file.write(env.subst("$SOURCES"))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
