@@ -238,8 +238,6 @@ def makeLinkerUseResponseFile(env, source_filenames):
 
             linker_response_file.write('"%s"\n' % object_filename)
 
-        linker_response_file.write(env.subst("$SOURCES"))
-
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
