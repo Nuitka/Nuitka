@@ -23,6 +23,10 @@ def getExceptionIdentifier(exception_type):
     if exception_type == "NotImplemented":
         return "Py_NotImplemented"
 
+    # The builtin name has a leading underscore, but the C name does not.
+    if exception_type == "_IncompleteInputError":
+        return "PyExc_IncompleteInputError"
+
     return "PyExc_%s" % exception_type
 
 
