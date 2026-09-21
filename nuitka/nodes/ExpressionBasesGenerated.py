@@ -1147,20 +1147,20 @@ class _ChildHavingCalledCodeNamePgoResultMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
