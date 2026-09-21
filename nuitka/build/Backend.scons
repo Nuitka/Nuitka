@@ -522,9 +522,9 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
-# which can make linking fail with many modules otherwise. Most needed on Windows,
-# but useful on other platforms too.
+# Hack to make Scons use a response file for gcc linking, to avoid line length
+# limits, which can make linking fail with many modules otherwise. Most needed
+# on Windows, but useful on other platforms too.
 if env.gcc_mode:
     makeGccUseLinkerFile(
         env=env,
