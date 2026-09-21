@@ -10,7 +10,11 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#ifdef __OpenBSD__
+#include <sys/param.h>
+#endif
+
+#ifdef __FreeBSD__
 #include <sys/sysctl.h>
 #endif
 
@@ -183,6 +187,10 @@ filename_char_t *_getBinaryPath2(void) {
     int res = _NSGetExecutablePath(binary_filename, &bufsize);
 
     if (unlikely(res != 0)) {
+        abort();
+    }
+#elif defined(__OpenBSD__) && OpenBSD >= 202610
+    if (unlikely(getexecpath(binary_filename, buffer_size) != 0)) {
         abort();
     }
 #elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
