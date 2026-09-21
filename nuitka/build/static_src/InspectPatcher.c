@@ -171,11 +171,17 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
-        PyObject *frame_globals = PyObject_GetAttrString((PyObject *)frame->frame_obj, "f_globals");
+        PyObject *result = PyDict_GetItemWithError(frame->f_globals, const_str_plain___name__);
 
-        PyObject *result = LOOKUP_ATTRIBUTE(tstate, frame_globals, const_str_plain___name__);
-        Py_DECREF(frame_globals);
+        if (result == NULL) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                return NULL;
+            }
 
+            Py_RETURN_NONE;
+        }
+
+        Py_INCREF(result);
         return result;
     }
 
