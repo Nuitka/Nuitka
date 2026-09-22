@@ -106,6 +106,23 @@ def allowedDelOnIteratorVariable(z):
 
 print(allowedDelOnIteratorVariable(3))
 
+print("Contraction in a 'finally' block that is cloned:")
+
+
+def clonedFinallyContraction(flag):
+    try:
+        if flag:
+            return "returned"
+
+        print("body")
+    finally:
+        values = [x for x in range(3)]
+        print("finally", values)
+
+
+print(clonedFinallyContraction(False))
+print(clonedFinallyContraction(True))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
