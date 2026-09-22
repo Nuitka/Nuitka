@@ -171,14 +171,15 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
-        PyObject *result = PyDict_GetItemWithError(frame->f_globals, const_str_plain___name__);
+        PyObject *result = DICT_GET_ITEM0(tstate, frame->f_globals, const_str_plain___name__);
 
         if (result == NULL) {
             if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 return NULL;
             }
 
-            Py_RETURN_NONE;
+            Py_INCREF_IMMORTAL(Py_None);
+            return Py_None;
         }
 
         Py_INCREF(result);
