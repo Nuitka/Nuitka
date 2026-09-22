@@ -69,6 +69,31 @@ assert "NotImplemented" in builtin_exception_names
 assert "StopAsyncIteration" in builtin_exception_names or python_version < 0x350
 
 
+def getBuiltinExceptionIdentifier(exception_name):
+    """Get the C identifier of a built-in exception name.
+
+    Notes:
+        Usually that is the name prefixed with "PyExc_", but some built-in
+        exceptions have a C name that differs from their name.
+
+    Args:
+        exception_name: Name of the built-in exception.
+
+    Returns:
+        C identifier of the built-in exception.
+    """
+    assert "PyExc" not in exception_name, exception_name
+
+    if exception_name == "NotImplemented":
+        return "Py_NotImplemented"
+
+    # The builtin name has a leading underscore, but the C name does not.
+    if exception_name == "_IncompleteInputError":
+        return "PyExc_IncompleteInputError"
+
+    return "PyExc_%s" % exception_name
+
+
 def _getBuiltinNames():
     names = [str(x) for x in dir(builtins)]
     names.sort()

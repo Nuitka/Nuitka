@@ -3,6 +3,7 @@
 
 """Exception handling."""
 
+from nuitka.Builtins import getBuiltinExceptionIdentifier
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -17,26 +18,13 @@ from .templates.CodeTemplatesExceptions import (
 )
 
 
-def getExceptionIdentifier(exception_type):
-    assert "PyExc" not in exception_type, exception_type
-
-    if exception_type == "NotImplemented":
-        return "Py_NotImplemented"
-
-    # The builtin name has a leading underscore, but the C name does not.
-    if exception_type == "_IncompleteInputError":
-        return "PyExc_IncompleteInputError"
-
-    return "PyExc_%s" % exception_type
-
-
 def generateExceptionRefCode(to_name, expression, emit, context):
     exception_type = expression.getExceptionName()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_name", expression, emit, context
     ) as value_name:
-        emit("%s = %s;" % (value_name, getExceptionIdentifier(exception_type)))
+        emit("%s = %s;" % (value_name, getBuiltinExceptionIdentifier(exception_type)))
 
 
 def getTracebackMakingIdentifier(context, lineno_name):
@@ -279,7 +267,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_made", expression, emit, context
     ) as value_name:
-        exception_name = getExceptionIdentifier(exception_type)
+        exception_name = getBuiltinExceptionIdentifier(exception_type)
 
         if len(exception_arg_names) == 1 and for_raise:
             emit(
