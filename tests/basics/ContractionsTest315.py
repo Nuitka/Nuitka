@@ -46,6 +46,34 @@ run_coro(listComp())
 run_coro(setComp())
 run_coro(genExp())
 
+
+def clonedFinallySetContraction(flag):
+    try:
+        if flag:
+            return "returned"
+
+        print("body")
+    finally:
+        values = {x for x in range(3)}
+        print("finally", sorted(values))
+
+
+def clonedFinallyDictContraction(flag):
+    try:
+        if flag:
+            return "returned"
+
+        print("body")
+    finally:
+        values = {x: x * 2 for x in range(3)}
+        print("finally", sorted(values.items()))
+
+
+print(clonedFinallySetContraction(False))
+print(clonedFinallySetContraction(True))
+print(clonedFinallyDictContraction(False))
+print(clonedFinallyDictContraction(True))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
