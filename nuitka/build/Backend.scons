@@ -48,7 +48,7 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeGccUseLinkerFile
+from .SconsHacks import makeLinkerUseResponseFile
 from .SconsProgress import setSconsProgressBarTotal
 from .SconsPythonBuild import (
     addPythonHaclLib,
@@ -522,13 +522,13 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
-# which can make linking fail with many modules otherwise. Most needed on Windows,
-# but useful on other platforms too.
-if env.gcc_mode and (not env.clang_mode or env.zig_mode):
-    makeGccUseLinkerFile(
+# Hack to make Scons use a response file for gcc linking, to avoid line length
+# limits, which can make linking fail with many modules otherwise. Most needed
+# on Windows, but useful on other platforms too.
+if env.gcc_mode:
+    makeLinkerUseResponseFile(
         env=env,
-        source_files=source_files,
+        source_filenames=source_files,
     )
 
 # Plugin contributed C defines should be used too.
