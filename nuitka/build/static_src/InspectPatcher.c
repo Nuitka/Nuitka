@@ -149,7 +149,7 @@ static PyObject *orig_sys_getframemodulename = NULL;
 static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *depth_arg = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:_getframemodulename", kw_list_depth, &depth_arg)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O:_getframemodulename", kw_list_depth, &depth_arg)) {
         return NULL;
     }
 
@@ -171,20 +171,27 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
-        PyObject *frame_globals = PyObject_GetAttrString((PyObject *)frame->frame_obj, "f_globals");
+        PyObject *result = DICT_GET_ITEM0(tstate, frame->f_globals, const_str_plain___name__);
 
-        PyObject *result = LOOKUP_ATTRIBUTE(tstate, frame_globals, const_str_plain___name__);
-        Py_DECREF(frame_globals);
+        if (result == NULL) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                return NULL;
+            }
 
+            Py_INCREF_IMMORTAL(Py_None);
+            return Py_None;
+        }
+
+        Py_INCREF(result);
         return result;
     }
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, orig_sys_getframemodulename, depth_arg);
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, orig_sys_getframemodulename, depth_arg ? depth_arg : const_int_0);
 }
 
 // spell-checker: ignore getframemodulename
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
-    "getcoroutinestate", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
+    "_getframemodulename", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
 
 // The "_typing" types derive the module of their user from the current frame
 // function object, which compiled frames do not have, so we fill it in from
