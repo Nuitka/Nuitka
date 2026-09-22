@@ -259,7 +259,7 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
                 )
                 new_temp_name = temp_variable.getName() + clone_suffix
 
-                if new_temp_name not in entry_point.temp_variables:
+                if not entry_point.hasTempVariable(new_temp_name):
                     break
 
                 clone_number += 1

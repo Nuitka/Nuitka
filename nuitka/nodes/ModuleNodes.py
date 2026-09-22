@@ -433,7 +433,7 @@ class CompiledPythonModule(
         return None
 
     def hasVariableName(self, variable_name):
-        return variable_name in self.variables or variable_name in self.temp_variables
+        return variable_name in self.variables or self.hasTempVariable(variable_name)
 
     def getProvidedVariables(self):
         return self.variables.values()

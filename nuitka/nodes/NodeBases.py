@@ -687,6 +687,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return self.temp_variables[full_name][0]
 
+    def hasTempVariable(self, temp_name):
+        return temp_name in self.temp_variables
+
     def getAllTempVariables(self):
         assert self.getEntryPoint() is self
         return tuple(x[0] for x in self.temp_variables.values())
