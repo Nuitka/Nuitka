@@ -7,7 +7,10 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 """
 
-from nuitka.Builtins import isBaseExceptionSimpleExtension
+from nuitka.Builtins import (
+    getBuiltinExceptionIdentifier,
+    isBaseExceptionSimpleExtension,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
@@ -17,7 +20,6 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getFrameVariableTypeDescriptionCode
-from .ExceptionCodes import getExceptionIdentifier
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import (
     emitErrorLineNumberUpdateCode,
@@ -49,7 +51,7 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
         if isBaseExceptionSimpleExtension(exception_type.getCompileTimeConstant()):
             emit(
                 "%s = MAKE_BASE_EXCEPTION_DERIVED_EMPTY(%s);"
-                % (to_name, getExceptionIdentifier(exception_name))
+                % (to_name, getBuiltinExceptionIdentifier(exception_name))
             )
             context.addCleanupTempName(to_name)
 

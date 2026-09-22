@@ -19,6 +19,7 @@ from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
     builtin_exception_values_list,
+    getBuiltinExceptionIdentifier,
 )
 
 # TODO: Move to constants
@@ -221,7 +222,7 @@ class GlobalConstantAccessor(object):
                     "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
                 )
             elif constant in builtin_exception_values_list:
-                return "(PyObject *)PyExc_%s" % constant.__name__
+                return "(PyObject *)" + getBuiltinExceptionIdentifier(constant.__name__)
             elif constant is ExceptionGroup:
                 return "(PyObject *)_PyInterpreterState_GET()->exc_state.PyExc_ExceptionGroup"
             elif constant is BaseExceptionGroup:
