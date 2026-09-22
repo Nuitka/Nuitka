@@ -198,10 +198,9 @@ class ExpressionFunctionBodyBase(
 
     # TODO: Dubious function doing to distinct things, should be moved to users.
     def hasVariableName(self, variable_name):
-        return (
-            self.locals_scope.hasProvidedVariable(variable_name)
-            or variable_name in self.temp_variables
-        )
+        return self.locals_scope.hasProvidedVariable(
+            variable_name
+        ) or self.hasTempVariable(variable_name)
 
     def getProvidedVariables(self):
         if self.locals_scope is not None:
