@@ -243,7 +243,7 @@ static char const *module_full_name = %(module_name_cstr)s;
 // Internal entry point for module code.
 static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObject *module) {
     // Report entry to PGO.
-    PGO_onModuleEntered("%(module_identifier)s");
+    %(pgo_probe_module_enter_code)s
 
     // Store the module for future use.
     module_%(module_identifier)s = module;
@@ -443,7 +443,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
 %(module_codes)s
 
     // Report to PGO about leaving the module without error.
-    PGO_onModuleExit("%(module_identifier)s", false);
+    %(pgo_probe_module_exit_code)s
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
     {
@@ -663,7 +663,7 @@ template_module_exception_exit = """\
         }
     }
 #endif
-    PGO_onModuleExit("%(module_identifier)s", false);
+    %(pgo_probe_module_exit_code)s
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
     return NULL;

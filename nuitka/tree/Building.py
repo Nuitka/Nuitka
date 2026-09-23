@@ -130,7 +130,7 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallWarnUnusualCode,
 )
-from nuitka.pgo.PGO import decideCompilationFromPGO
+from nuitka.pgo.Pgo import decideCompilationFromPGO
 from nuitka.plugins.Hooks import decideCompilation, onModuleDiscovered
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (

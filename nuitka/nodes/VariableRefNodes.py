@@ -390,8 +390,22 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
     def getComparisonValue(self):
         return self.variable_trace.getComparisonValue()
 
+    def getExpectedValue(self):
+        if self.variable_trace is not None:
+            return self.variable_trace.getExpectedValue()
 
-_hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
+        return False, None
+
+
+_hard_names = (
+    "dir",
+    "eval",
+    "exec",
+    "execfile",
+    "locals",
+    "vars",
+    "super",
+)
 
 
 class ExpressionVariableRef(ExpressionVariableRefBase):

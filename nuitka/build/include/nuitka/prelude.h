@@ -4,6 +4,10 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
+// This file bundles includes and may itself be unused, so it is kept
+// deliberately.
+// IWYU pragma: always_keep
+
 #ifdef _MONOLITHPY
 // MonolithPy VFS support needs to be included as early as possible.
 #include "mp_embed.h"

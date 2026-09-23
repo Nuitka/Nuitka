@@ -72,6 +72,17 @@ class ExpressionBase(NodeBase):
         return False, None
 
     @staticmethod
+    def getExpectedValue():
+        """Return the exact value known for this expression, if any.
+
+        The first value indicates if there is one, the second is the value
+        itself. This may also be a value asserted at run time, like a PGO
+        result, in which case it is only valid after the node executed.
+        """
+
+        return False, None
+
+    @staticmethod
     def isMappingWithConstantStringKeys():
         """Is this a mapping with constant string keys. Used for call optimization."""
         return False

@@ -16,9 +16,6 @@
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
 #include "nuitka/helper/tuples.h"
-extern PyObject *const_str_plain_derive;
-extern PyObject *const_str_plain_split;
-extern PyObject *const_str_plain___notes__;
 #endif
 
 #if PYTHON_VERSION >= 0x3b0

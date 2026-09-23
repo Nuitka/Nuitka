@@ -1173,6 +1173,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Debug mode indications. Do check things with fine granularity.
     debug_modes = getArgumentList("debug_modes", "")
 
+    # Development mode indications. Things meant for developing Nuitka itself.
+    devel_modes = getArgumentList("devel_modes", "")
+
     # Tracing mode. Output program progress.
     trace_mode = getArgumentBool("trace_mode", False)
 
@@ -1294,6 +1297,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
 
     enableFlagSettings(env, "debug", debug_modes)
     env.debug_modes_flags = debug_modes
+
+    enableFlagSettings(env, "devel", devel_modes)
+    env.devel_modes_flags = devel_modes
 
     env.debug_mode = debug_mode
     env.debugger_mode = debugger_mode

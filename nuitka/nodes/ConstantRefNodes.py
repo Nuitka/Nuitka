@@ -161,6 +161,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     def getComparisonValue(self):
         return True, self.constant
 
+    def getExpectedValue(self):
+        return True, self.constant
+
     @staticmethod
     def getIterationHandle():
         return None

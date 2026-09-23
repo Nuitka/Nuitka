@@ -68,6 +68,7 @@ class LocalsDictHandleBase(object):
         "propagation",
         "owner",
         "complete",
+        "start_value",
     )
 
     @counted_init
@@ -90,8 +91,17 @@ class LocalsDictHandleBase(object):
 
         self.complete = False
 
+        self.start_value = None
+
     if isCountingInstances():
         __del__ = counted_del()
+
+    def setStartValue(self, value):
+        # The value known for the scope from config or PGO.
+        self.start_value = value
+
+    def getStartValue(self):
+        return self.start_value
 
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.locals_name)
@@ -328,6 +338,11 @@ class LocalsDictHandle(LocalsDictHandleBase):
 
     __slots__ = ()
 
+    def setStartValue(self, value):
+        assert type(value) is dict, value
+
+        LocalsDictHandleBase.setStartValue(self, value)
+
     @staticmethod
     def isClassScope():
         return True
@@ -393,6 +408,8 @@ class LocalsMappingHandle(LocalsDictHandle):
 
         self.complete = True
 
+        return self._considerPropagation(trace_collection)
+
     def preventLocalsDictPropagation(self):
         self.prevented_propagation = True
 
@@ -407,9 +424,8 @@ class LocalsMappingHandle(LocalsDictHandle):
             return None
 
         for variable in self.variables.values():
-            for variable_trace in variable.traces:
-                if variable_trace.inhibitsClassScopeForwardPropagation():
-                    return None
+            if variable.inhibitsClassScopeForwardPropagation():
+                return None
 
         trace_collection.signalChange(
             "var_usage",

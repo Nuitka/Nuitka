@@ -1319,6 +1319,17 @@ Forbid fallback from bytecode backed annotate functions to compiled code when \
 source regeneration fails. Instead abort compilation with an error. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-pgo-warn-unknown",
+    action="store_true",
+    dest="devel_pgo_warn_unknown",
+    default=False,
+    github_action=False,
+    help="""\
+Report PGO values that are not usable when reading a PGO file, and values that \
+cannot be captured at runtime. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
@@ -1574,6 +1585,16 @@ pgo_group.add_option(
     dest="python_pgo_input",
     default=None,
     help=SUPPRESS_HELP,  # Not yet ready
+)
+
+pgo_group.add_option(
+    "--pgo-json",
+    action="store",
+    dest="python_pgo_json",
+    default=None,
+    help="""\
+Write the PGO input file contents to the given JSON file while reading it, for \
+debugging and testing of the PGO data. Defaults to off.""",
 )
 
 pgo_group.add_option(

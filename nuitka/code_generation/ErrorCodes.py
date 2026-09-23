@@ -17,7 +17,6 @@ And releasing of values, as this is what the error case commonly does.
 from nuitka.PythonVersions import python_version
 
 from .DeferredReleaseCodes import getDeferredReleaseErrorCode
-from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesExceptions import (
     template_error_catch_exception,
@@ -112,8 +111,8 @@ def getErrorExitBoolCode(
                 "condition": condition,
                 "exception_state_name": exception_state_name,
                 "exception_exit": context.getExceptionEscape(),
-                "release_temps": indented(getErrorExitReleaseCode(context)),
-                "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+                "release_temps": getErrorExitReleaseCode(context),
+                "line_number_code": getErrorLineNumberUpdateCode(context),
             }
         )
     else:
@@ -123,10 +122,56 @@ def getErrorExitBoolCode(
                 "condition": condition,
                 "exception_state_name": exception_state_name,
                 "exception_exit": context.getExceptionEscape(),
-                "release_temps": indented(getErrorExitReleaseCode(context)),
-                "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+                "release_temps": getErrorExitReleaseCode(context),
+                "line_number_code": getErrorLineNumberUpdateCode(context),
             }
         )
+
+
+def getErrorExitRaiseCode(condition, set_exception, emit, context):
+    """Emit error exit code raising an exception when a condition is met.
+
+    Args:
+        condition: C boolean expression that indicates the error case.
+        set_exception: Code that sets the exception, multiple statements may
+            be joined with newlines.
+        emit: Function to emit code.
+        context: Code generation context.
+    """
+
+    emit(
+        template_error_format_string_exception
+        % {
+            "condition": condition,
+            "exception_exit": context.getExceptionEscape(),
+            "set_exception": set_exception,
+            "release_temps": getErrorExitReleaseCode(context),
+            "line_number_code": getErrorLineNumberUpdateCode(context),
+        }
+    )
+
+
+def getRaiseExceptionStateCode(exception_type_name, exception_message, context):
+    """Get C code that sets the exception state to a new exception.
+
+    Args:
+        exception_type_name: Name of the exception type, e.g. "RuntimeError".
+        exception_message: Message to use for the exception.
+        context: Code generation context.
+
+    Returns:
+        Code that sets the exception state.
+    """
+
+    (
+        exception_state_name,
+        _exception_lineno,
+    ) = context.getExceptionVariableDescriptions()
+
+    return (
+        'SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, &%s, PyExc_%s, "%s");'
+        % (exception_state_name, exception_type_name, exception_message)
+    )
 
 
 def getErrorExitCode(
@@ -315,15 +360,11 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
         if python_version >= 0x300:
             set_exception.extend(_getExceptionChainingCode(context))
 
-    emit(
-        template_error_format_string_exception
-        % {
-            "condition": condition,
-            "exception_exit": context.getExceptionEscape(),
-            "set_exception": indented(set_exception),
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
-        }
+    getErrorExitRaiseCode(
+        condition=condition,
+        set_exception="\n".join(set_exception),
+        emit=emit,
+        context=context,
     )
 
 
@@ -349,8 +390,8 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
             "exception_exit": context.getExceptionEscape(),
             "raise_name_error_helper": helper_code,
             "variable_name": context.getConstantCode(variable_name),
-            "release_temps": indented(getErrorExitReleaseCode(context)),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            "release_temps": getErrorExitReleaseCode(context),
+            "line_number_code": getErrorLineNumberUpdateCode(context),
             "exception_state_name": exception_state_name,
         }
     )

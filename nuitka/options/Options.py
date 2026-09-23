@@ -1829,6 +1829,11 @@ def isDevelPerformanceCounts():
     return options.devel_performance_counts
 
 
+def isDevelPgoWarnUnknown():
+    """:returns: bool derived from ``--devel-pgo-warn-unknown``"""
+    return options.devel_pgo_warn_unknown
+
+
 def shallGenerateReadableCode():
     """:returns: bool derived from ``--devel-generate-readable-code``"""
     return options.devel_generate_readable_code or _isDebug()
@@ -2422,6 +2427,15 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
     return options.devel_no_bytecode_to_compiled_fallback
 
 
+def getDevelModeIndications():
+    """*tuple* of active development options that need C level definitions."""
+
+    # No development option needs a C level definition at the moment, they are
+    # handled in Python code. List option value names here when one does, they
+    # become "_NUITKA_DEVEL_<NAME>" defines via "enableFlagSettings".
+    return ()
+
+
 def getDebugModeIndications():
     result = []
 
@@ -2551,6 +2565,15 @@ def isPythonPgoMode():
 def getPythonPgoInput():
     """:returns: str derived from ``--pgo-python-input``"""
     return options.python_pgo_input
+
+
+def getPythonPgoJsonFilename():
+    """:returns: str or None derived from ``--pgo-json``"""
+    return (
+        getUserInputNormalizedPath(options.python_pgo_json)
+        if options.python_pgo_json is not None
+        else None
+    )
 
 
 def shallCreatePythonPgoInput():

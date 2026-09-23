@@ -12,6 +12,9 @@
 
 #if _NUITKA_PGO_PYTHON
 
+// The file format constants, shared with the Python reader.
+#include "nuitka/python_pgo_spec.h"
+
 // Initialize PGO data collection.
 extern void PGO_Initialize(void);
 
@@ -23,9 +26,11 @@ extern void PGO_onModuleEntered(char const *module_name);
 // When a module is exited.
 extern void PGO_onModuleExit(char const *module_name, bool had_error);
 
-extern void PGO_onProbePassed(char const *module_name, char const *probe_id, uint32_t probe_arg);
-
-extern void PGO_onTechnicalModule(char const *module_name);
+// When the result of a class "__prepare__" call is available, and the class
+// can be created multiple times per run.
+extern void PGO_onProbeClassPrepareResult(PyThreadState *tstate, char const *code_name, PyObject *result);
+// Same, for a class that can only be created once per run.
+extern void PGO_onProbeClassPrepareResultOnce(PyThreadState *tstate, char const *code_name, PyObject *result);
 
 #else
 
@@ -35,7 +40,8 @@ extern void PGO_onTechnicalModule(char const *module_name);
 #define PGO_onModuleEntered(module_name) ;
 #define PGO_onModuleExit(module_name, had_error) ;
 
-#define PGO_onProbePassed(module_name, probe_id, probe_arg) ;
+#define PGO_onProbeClassPrepareResult(tstate, code_name, result) ;
+#define PGO_onProbeClassPrepareResultOnce(tstate, code_name, result) ;
 
 #endif
 

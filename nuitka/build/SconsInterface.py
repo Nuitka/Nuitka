@@ -20,6 +20,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
+    getDevelModeIndications,
     getExperimentalIndications,
     getFcfProtectionMode,
     getFileVersion,
@@ -753,6 +754,8 @@ def getCommonSconsOptions():
         scons_options["collect_resources"] = asBoolStr(True)
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
+
+    scons_options["devel_modes"] = ",".join(getDevelModeIndications())
 
     scons_options["frame_locals_proxy"] = asBoolStr(hasFrameLocalsProxy())
 

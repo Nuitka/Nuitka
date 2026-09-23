@@ -113,9 +113,7 @@ someFunction(2)
 class C:
     print(
         "Class locals",
-        displayDict(
-            sys._getframe().f_locals, remove_keys=("__qualname__", "__locals__")
-        ),
+        displayDict(locals(), remove_keys=("__qualname__", "__locals__")),
     )
     print("Class flags", sys._getframe().f_code.co_flags)
 

@@ -32,6 +32,7 @@ from nuitka.tools.testing.Common import (
     scanDirectoryForTestCaseFolders,
     setup,
 )
+from nuitka.utils.Json import loadJsonFromFilename
 
 
 def main():
@@ -45,6 +46,7 @@ def main():
 
         if active:
             report_filename = "compilation-report-%s.xml" % filename
+            json_filename = os.path.abspath("%s.nuitka-pgo.json" % filename)
 
             extra_flags = [
                 # No error exits normally, unless we break tests, and that we would
@@ -60,6 +62,8 @@ def main():
                 # Inclusion report is used by the testing of expected things included
                 # or not.
                 "--report=%s" % report_filename,
+                # Dump the PGO data read to JSON, and test its contents.
+                "env:NUITKA_EXTRA_OPTIONS=--pgo-json=%s" % json_filename,
                 # Cache the CPython results for reuse, they will normally not change.
                 "cpython_cache",
             ]
@@ -73,13 +77,42 @@ def main():
 
             compilation_report = parseCompilationReport(report_filename)
 
-            modules_used = extractModulesUsedByModule(
-                compilation_report=compilation_report, module_name="__main__"
-            )
-            assert (
-                modules_used["ImportedButMaybeNotUsed"]["exclusion_reason"]
-                == "PGO based decision"
-            ), modules_used
+            if filename == "unused_module":
+                modules_used = extractModulesUsedByModule(
+                    compilation_report=compilation_report, module_name="__main__"
+                )
+                assert (
+                    modules_used["ImportedButMaybeNotUsed"]["exclusion_reason"]
+                    == "PGO based decision"
+                ), modules_used
+
+            pgo_json = loadJsonFromFilename(json_filename)
+
+            assert pgo_json is not None, json_filename
+
+            modules_entered = [
+                probe["module"]
+                for probe in pgo_json["probes"]
+                if probe["probe"] == "ModuleEnter"
+            ]
+
+            assert "__main__" in modules_entered, modules_entered
+
+            if filename == "unused_module":
+                assert "ImportedButMaybeNotUsed" not in modules_entered, modules_entered
+            elif filename == "class_prepare_3":
+                class_prepare_probes = [
+                    probe
+                    for probe in pgo_json["probes"]
+                    if probe["probe"]
+                    in ("ClassPrepareResult", "ClassPrepareResultOnce")
+                ]
+
+                assert class_prepare_probes, pgo_json["probes"]
+
+                for probe in class_prepare_probes:
+                    assert probe["value"] == {}, probe
+                    assert probe.get("count", 1) >= 1, probe
 
     search_mode.finish()
 

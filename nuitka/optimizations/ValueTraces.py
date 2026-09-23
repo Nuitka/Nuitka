@@ -20,6 +20,7 @@ Values can be seen as:
 
 from abc import abstractmethod
 
+from nuitka.Constants import compareConstants
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
@@ -258,6 +259,10 @@ class ValueTraceBase(object):
 
     @staticmethod
     def getComparisonValue():
+        return False, None
+
+    @staticmethod
+    def getExpectedValue():
         return False, None
 
     @staticmethod
@@ -863,6 +868,9 @@ class ValueTraceAssign(ValueTraceBase):
     def getComparisonValue(self):
         return self.assign_node.subnode_source.getComparisonValue()
 
+    def getExpectedValue(self):
+        return self.assign_node.subnode_source.getExpectedValue()
+
     def getAttributeNode(self):
         return self.assign_node.subnode_source
 
@@ -1015,6 +1023,26 @@ class ValueTraceMergeBase(ValueTraceBase):
     def isUsingTrace(self):
         # Checking definite is enough, the merges, we shall see them as well.
         return self.usage_count
+
+    def getExpectedValue(self):
+        # All previous traces must agree on a value for it to be known, and
+        # values are compared without running any user code.
+        result = None
+        result_available = False
+
+        for previous in self.previous:
+            expected_available, expected_value = previous.getExpectedValue()
+
+            if not expected_available:
+                return False, None
+
+            if not result_available:
+                result = expected_value
+                result_available = True
+            elif not compareConstants(result, expected_value):
+                return False, None
+
+        return result_available, result
 
     def getAttributeNode(self):
         return _getAttributeNodeVeryTrustedMatching(self, set())

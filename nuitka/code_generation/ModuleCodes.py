@@ -25,6 +25,7 @@ from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
 from .LoaderCodes import getModuleLoaderEntryCode
+from .PgoCodes import getPGOProbeModuleEnterCode, getPGOProbeModuleExitCode
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
@@ -106,6 +107,9 @@ def getModuleCode(
         module_exit = template_module_exception_exit % {
             "module_identifier": module_identifier,
             "is_top": 1 if module.isTopModule() else 0,
+            "pgo_probe_module_exit_code": getPGOProbeModuleExitCode(
+                module.getFullName(), had_error=False
+            ),
         }
     else:
         module_exit = template_module_no_exception_exit
@@ -237,6 +241,10 @@ def getModuleCode(
             '#include "%s"' % include for include in module_includes
         ),
         "module_loader_entry": getModuleLoaderEntryCode(module=module),
+        "pgo_probe_module_enter_code": getPGOProbeModuleEnterCode(module.getFullName()),
+        "pgo_probe_module_exit_code": getPGOProbeModuleExitCode(
+            module.getFullName(), had_error=False
+        ),
     }
 
 
