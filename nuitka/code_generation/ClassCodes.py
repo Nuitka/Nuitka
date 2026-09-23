@@ -196,6 +196,29 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateCallClassPrepareCode(to_name, expression, emit, context):
+    (called_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "prepare_result", expression, emit, context
+    ) as value_name:
+        emit(
+            'PGO_onClassPrepareCalled("%s", %s);' % (expression.code_name, called_name)
+        )
+        emit("Py_INCREF(%s); %s = %s;" % (called_name, value_name, called_name))
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=[called_name],
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

@@ -3,6 +3,7 @@
 
 """Python level PGO handling in Nuitka."""
 
+import marshal
 import os
 import struct
 
@@ -17,6 +18,8 @@ _pgo_strings = None
 _module_entries = {}
 _module_exits = {}
 
+_class_prepare_calls = {}
+
 
 def _readCString(input_file):
     return b"".join(iter(lambda: input_file.read(1), b"\0"))
@@ -30,12 +33,21 @@ def _readStringValue(input_file):
     return _pgo_strings[_readCIntValue(input_file)]
 
 
+def _readObjectValue(input_file):
+    data = _readCString(input_file)
+    return marshal.loads(data)
+
+
 def _readModuleIdentifierValue(input_file):
     module_identifier = _readStringValue(input_file)
     if str is not bytes:
         module_identifier = module_identifier.decode("utf8")
 
     return module_identifier
+
+
+def getClassPrepareResult(code_name):
+    return _class_prepare_calls.get(code_name)
 
 
 def readPGOInputFile(input_filename):
@@ -80,14 +92,17 @@ def readPGOInputFile(input_filename):
 
             if probe_name == b"ModuleEnter":
                 module_name = _readModuleIdentifierValue(input_file)
-                arg = _readCIntValue(input_file)
 
-                _module_entries[module_name] = arg
+                _module_entries[module_name] = 0
             elif probe_name == b"ModuleExit":
                 module_name = _readModuleIdentifierValue(input_file)
                 had_error = _readCIntValue(input_file) != 0
 
                 _module_exits[module_name] = had_error
+            elif probe_name == b"ClassPrepare":
+                code_name = _readStringValue(input_file)
+                result = _readObjectValue(input_file)
+                _class_prepare_calls[code_name.decode("utf8")] = result
             elif probe_name == b"END":
                 break
             else:
