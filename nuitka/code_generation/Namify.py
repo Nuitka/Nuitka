@@ -19,6 +19,7 @@ from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.nodes.CodeObjectSpecs import (
     CodeObjectSpec,
     CodeObjectSpecClass,
+    CodeObjectSpecGeneratorExpression,
     CodeObjectSpecModule,
 )
 from nuitka.Tracing import general
@@ -175,6 +176,8 @@ def namifyConstant(constant):
         return "module_codeobj_" + constant.getHash()
     elif constant_type is CodeObjectSpecClass:
         return "class_codeobj_" + constant.getHash()
+    elif constant_type is CodeObjectSpecGeneratorExpression:
+        return "genexpr_codeobj_" + constant.getHash()
     elif constant_type is GenericAlias:
         return "genalias_%s_%s" % (
             namifyConstant(constant.__origin__),

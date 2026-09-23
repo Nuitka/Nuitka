@@ -21,6 +21,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.nodes.CodeObjectSpecs import (
     CodeObjectSpec,
     CodeObjectSpecClass,
+    CodeObjectSpecGeneratorExpression,
     CodeObjectSpecModule,
 )
 from nuitka.PythonVersions import python_version
@@ -361,6 +362,13 @@ def _writeConstantValue(output, constant_value, blob_spec):
         _last_written = None
 
         _writeConstantValueClassCodeObject(output, constant_value, blob_spec)
+    elif constant_type is CodeObjectSpecGeneratorExpression:
+        output.write(blob_spec.tag_generator_expression_code_object)
+        _last_written = None
+
+        _writeConstantValueGeneratorExpressionCodeObject(
+            output, constant_value, blob_spec
+        )
 
     else:
         assert False, (type(constant_value), constant_value)
@@ -537,6 +545,43 @@ def _writeConstantValueClassCodeObject(output, code_object, blob_spec):
         _writeConstantValue(
             output, code_object.getCodeObjectQualname().rsplit(".", 1)[0], blob_spec
         )
+
+
+def _writeConstantValueGeneratorExpressionCodeObject(output, code_object, blob_spec):
+    # Generator expression code objects have fixed values for their name and
+    # all argument related details, only whether it is async and the qualname,
+    # variable names, free variables and line number vary.
+    assert code_object.getCodeObjectName() == "<genexpr>"
+    assert code_object.getCodeObjectKind() in ("Generator", "Asyncgen")
+    assert code_object.getArgumentCount() == 1
+    assert code_object.getPosOnlyParameterCount() == 0
+    assert code_object.getKwOnlyParameterCount() == 0
+    assert not code_object.hasStarListArg()
+    assert not code_object.hasStarDictArg()
+    assert code_object.getFlagIsOptimizedValue()
+    assert code_object.getFlagNewLocalsValue()
+
+    flags = _getCodeObjectBlobFlags(code_object, blob_spec)
+
+    output.write(_encodeVariableLength(flags))
+
+    # Name is fixed and the argument count is implied, only the line number
+    # and variable names are stored.
+    output.write(_encodeVariableLength(code_object.getLineNumber() - 1))
+
+    _writeConstantValue(output, code_object.getVarNames(), blob_spec)
+
+    # Do not include the name part in the code object, saving
+    # the repetition.
+    if flags & blob_spec.code_flag_qualname:
+        _writeConstantValue(
+            output, code_object.getCodeObjectQualname().rsplit(".", 1)[0], blob_spec
+        )
+
+    # Free vars are optional, generator expressions can inherit them from
+    # their containing function.
+    if flags & blob_spec.code_flag_free_vars:
+        _writeConstantValue(output, code_object.getFreeVarNames(), blob_spec)
 
 
 def _writeConstantStream(constants_reader, blob_spec):

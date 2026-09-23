@@ -43,6 +43,8 @@ def getConstantDefaultPopulation():
         b"",
         # Name of module code objects, shared by all of them.
         "<module>",
+        # Name of generator expression code objects, shared by all of them.
+        "<genexpr>",
         # Python mechanics, used in various helpers.
         "__module__",
         "__class__",

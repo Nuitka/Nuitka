@@ -1172,6 +1172,7 @@ static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *t
                                                                 unsigned char const *data, unsigned char c) {
     bool is_module = c == NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT;
     bool is_class = c == NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT;
+    bool is_genexpr = c == NUITKA_CONSTANT_BLOB_TAG_GENERATOR_EXPRESSION_CODE_OBJECT;
 
     uint64_t flags = _unpackVariableLength(&data);
 
@@ -1192,16 +1193,28 @@ static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *t
         arg_names = const_tuple_empty;
         arg_count = 0;
     } else {
-        _slot = (void *)&function_name;
-        data = _unpackBlobConstant(tstate, &_slot, data);
+        if (is_genexpr) {
+            // Generator expression code objects have a fixed name.
+            function_name = const_str_angle_genexpr;
+        } else {
+            _slot = (void *)&function_name;
+            data = _unpackBlobConstant(tstate, &_slot, data);
+        }
 
         line_number = (int)_unpackVariableLength(&data) + 1;
 
         _slot = (void *)&arg_names;
         data = _unpackBlobConstant(tstate, &_slot, data);
 
-        // Class code objects have variable names, but no arguments.
-        arg_count = is_class ? 0 : (int)_unpackVariableLength(&data);
+        if (is_class) {
+            // Class code objects have variable names, but no arguments.
+            arg_count = 0;
+        } else if (is_genexpr) {
+            // Generator expressions have the iterator as only argument.
+            arg_count = 1;
+        } else {
+            arg_count = (int)_unpackVariableLength(&data);
+        }
     }
 
 #if PYTHON_VERSION >= 0x3b0
@@ -1490,7 +1503,8 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
 #endif
     case NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT:
     case NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT:
-    case NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT: {
+    case NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_GENERATOR_EXPRESSION_CODE_OBJECT: {
         data = _unpackBlobConstantObjectCodeObject(tstate, output, data, c);
         break;
     }
