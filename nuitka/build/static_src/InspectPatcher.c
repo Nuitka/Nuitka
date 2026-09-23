@@ -210,11 +210,7 @@ static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
     }
 
     if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
-        PyObject *result = PyDict_GetItemWithError(frame->f_globals, const_str_plain___name__);
-
-        Py_XINCREF(result);
-
-        return result;
+        return DICT_GET_ITEM1(tstate, frame->f_globals, const_str_plain___name__);
     }
 
     return NULL;
