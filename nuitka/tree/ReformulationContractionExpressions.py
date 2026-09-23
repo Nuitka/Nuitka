@@ -234,10 +234,19 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
+    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+
+    # Some of the newly allowed stuff in 3.7 fails to set the async flag.
+    if not is_async and python_version >= 0x370:
+        is_async = detectFunctionBodyKind(nodes=node.generators + [node.elt])[0] in (
+            "Asyncgen",
+            "Coroutine",
+        )
+
     code_object = CodeObjectSpec(
         co_name="<genexpr>",
         co_qualname=provider.getChildQualname("<genexpr>"),
-        co_kind="Generator",
+        co_kind="Asyncgen" if is_async else "Generator",
         co_varnames=(".0",),
         co_freevars=(),
         co_argcount=1,
@@ -249,15 +258,6 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         co_lineno=source_ref.getLineNumber(),
         future_spec=parent_module.getFutureSpec(),
     )
-
-    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
-
-    # Some of the newly allowed stuff in 3.7 fails to set the async flag.
-    if not is_async and python_version >= 0x370:
-        is_async = detectFunctionBodyKind(nodes=node.generators + [node.elt])[0] in (
-            "Asyncgen",
-            "Coroutine",
-        )
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
