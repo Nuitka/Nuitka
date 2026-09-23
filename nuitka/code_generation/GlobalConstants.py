@@ -41,6 +41,8 @@ def getConstantDefaultPopulation():
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.
         b"",
+        # Name of module code objects, shared by all of them.
+        "<module>",
         # Python mechanics, used in various helpers.
         "__module__",
         "__class__",

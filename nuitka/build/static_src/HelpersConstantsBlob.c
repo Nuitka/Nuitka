@@ -1169,22 +1169,40 @@ static unsigned char const *_unpackBlobConstantObjectUnionType(PyThreadState *ts
 #endif
 
 static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *tstate, void **output,
-                                                                unsigned char const *data) {
+                                                                unsigned char const *data, unsigned char c) {
+    bool is_module = c == NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT;
+    bool is_class = c == NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT;
+
     uint64_t flags = _unpackVariableLength(&data);
 
     int co_flags = 0;
 
+    void *_slot;
+
     PyObject *function_name;
-    void *_slot = (void *)&function_name;
-    data = _unpackBlobConstant(tstate, &_slot, data);
-
-    int line_number = (int)_unpackVariableLength(&data) + 1;
-
+    int line_number;
     PyObject *arg_names;
-    _slot = (void *)&arg_names;
-    data = _unpackBlobConstant(tstate, &_slot, data);
+    int arg_count;
 
-    int arg_count = (int)_unpackVariableLength(&data);
+    if (is_module) {
+        // Module code objects have a fixed name, line number, and no
+        // argument names or counts.
+        function_name = const_str_angle_module;
+        line_number = 1;
+        arg_names = const_tuple_empty;
+        arg_count = 0;
+    } else {
+        _slot = (void *)&function_name;
+        data = _unpackBlobConstant(tstate, &_slot, data);
+
+        line_number = (int)_unpackVariableLength(&data) + 1;
+
+        _slot = (void *)&arg_names;
+        data = _unpackBlobConstant(tstate, &_slot, data);
+
+        // Class code objects have variable names, but no arguments.
+        arg_count = is_class ? 0 : (int)_unpackVariableLength(&data);
+    }
 
 #if PYTHON_VERSION >= 0x3b0
     PyObject *function_qualname;
@@ -1470,8 +1488,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         break;
     }
 #endif
-    case NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT: {
-        data = _unpackBlobConstantObjectCodeObject(tstate, output, data);
+    case NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT: {
+        data = _unpackBlobConstantObjectCodeObject(tstate, output, data, c);
         break;
     }
     case NUITKA_CONSTANT_BLOB_TAG_END: {

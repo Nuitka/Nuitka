@@ -46,6 +46,8 @@
 #define NUITKA_CONSTANT_BLOB_TAG_BUILTIN_NAMED 0x4f             /* 'O' */
 #define NUITKA_CONSTANT_BLOB_TAG_BUILTIN_EXCEPTION 0x45         /* 'E' */
 #define NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT 0x43               /* 'C' */
+#define NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT 0x4b        /* 'K' */
+#define NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT 0x57         /* 'W' */
 #define NUITKA_CONSTANT_BLOB_TAG_END 0x2e                       /* '.' */
 
 /* Frame locals type description indicators, one byte per variable type in the

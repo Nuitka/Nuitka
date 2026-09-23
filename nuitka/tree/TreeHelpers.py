@@ -10,7 +10,7 @@ import ast
 from nuitka.Constants import createConstantDict
 from nuitka.Errors import CodeTooComplexCode
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecModule
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
@@ -397,30 +397,13 @@ def buildAnnotationNode(provider, node, source_ref):
 
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
-
-    if states.is_full_compat:
-        co_name = "<module>"
-    else:
-        if module.isMainModule():
-            co_name = "<module>"
-        else:
-            co_name = "<module %s>" % module.getFullName()
+    assert source_ref.getLineNumber() == 1
 
     return StatementsFrameModule(
         statements=tuple(statements),
-        code_object=CodeObjectSpec(
-            co_name=co_name,
-            co_qualname=co_name,
-            co_kind="Module",
-            co_varnames=(),
-            co_freevars=(),
-            co_argcount=0,
-            co_posonlyargcount=0,
-            co_kwonlyargcount=0,
-            co_has_starlist=False,
-            co_has_stardict=False,
+        code_object=CodeObjectSpecModule(
+            module_name=module.getFullName(),
             co_filename=module.getRunTimeFilename(),
-            co_lineno=source_ref.getLineNumber(),
             future_spec=module.getFutureSpec(),
         ),
         owner_code_name=module.getCodeName(),

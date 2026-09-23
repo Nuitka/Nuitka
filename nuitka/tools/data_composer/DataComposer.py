@@ -18,7 +18,11 @@ from nuitka.build.DataComposerInterface import (
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.code_generation.SpecialConstantData import BlobData
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import (
+    CodeObjectSpec,
+    CodeObjectSpecClass,
+    CodeObjectSpecModule,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
     BuiltinAnonValue,
@@ -347,6 +351,16 @@ def _writeConstantValue(output, constant_value, blob_spec):
         _last_written = None
 
         _writeConstantValueCodeObject(output, constant_value, blob_spec)
+    elif constant_type is CodeObjectSpecModule:
+        output.write(blob_spec.tag_module_code_object)
+        _last_written = None
+
+        _writeConstantValueModuleCodeObject(output, constant_value, blob_spec)
+    elif constant_type is CodeObjectSpecClass:
+        output.write(blob_spec.tag_class_code_object)
+        _last_written = None
+
+        _writeConstantValueClassCodeObject(output, constant_value, blob_spec)
 
     else:
         assert False, (type(constant_value), constant_value)
@@ -354,11 +368,9 @@ def _writeConstantValue(output, constant_value, blob_spec):
     _last_written = constant_value
 
 
-def _writeConstantValueCodeObject(output, code_object, blob_spec):
-    # Lots of details and optimization to deal with
-    # pylint: disable=too-many-branches,too-many-statements
-
-    # Flags for the code object, not all items will be present.
+def _getCodeObjectBlobFlags(code_object, blob_spec):
+    # Flags for the code object, not all items will be present,
+    # many cases to cover, pylint: disable=too-many-branches
     flags = 0
 
     if python_version >= 0x3B0:
@@ -426,6 +438,12 @@ def _writeConstantValueCodeObject(output, code_object, blob_spec):
     if python_version < 0x3B0 and not code_object.getFreeVarNames():
         flags |= blob_spec.code_flag_nofree
 
+    return flags
+
+
+def _writeConstantValueCodeObject(output, code_object, blob_spec):
+    flags = _getCodeObjectBlobFlags(code_object, blob_spec)
+
     output.write(_encodeVariableLength(flags))
 
     # Name is mandatory, no flag needed.
@@ -448,7 +466,7 @@ def _writeConstantValueCodeObject(output, code_object, blob_spec):
     # the repetition.
     if flags & blob_spec.code_flag_qualname:
         _writeConstantValue(
-            output, code_object.getCodeObjectQualname().rsplit(".")[0], blob_spec
+            output, code_object.getCodeObjectQualname().rsplit(".", 1)[0], blob_spec
         )
 
     # Free vars are optional.
@@ -462,6 +480,63 @@ def _writeConstantValueCodeObject(output, code_object, blob_spec):
     # Positional-only args are optional and version dependent.
     if flags & blob_spec.code_flag_pos_only:
         output.write(_encodeVariableLength(code_object.getPosOnlyParameterCount() - 1))
+
+
+def _writeConstantValueModuleCodeObject(output, code_object, blob_spec):
+    # Module code objects have very fixed values for all details except the flags.
+    assert code_object.getCodeObjectName() == "<module>"
+    assert code_object.getCodeObjectQualname() == "<module>"
+    assert code_object.getCodeObjectKind() == "Module"
+    assert code_object.getVarNames() == ()
+    assert code_object.getFreeVarNames() == ()
+    assert code_object.getArgumentCount() == 0
+    assert code_object.getPosOnlyParameterCount() == 0
+    assert code_object.getKwOnlyParameterCount() == 0
+    assert code_object.getLineNumber() == 1
+    assert not code_object.hasStarListArg()
+    assert not code_object.hasStarDictArg()
+    assert not code_object.getFlagIsOptimizedValue()
+    assert not code_object.getFlagNewLocalsValue()
+
+    flags = _getCodeObjectBlobFlags(code_object, blob_spec)
+
+    output.write(_encodeVariableLength(flags))
+
+
+def _writeConstantValueClassCodeObject(output, code_object, blob_spec):
+    # Class code objects have fixed values for all argument related details
+    # and flags, only name, qualname, variable names and line number vary.
+    assert code_object.getCodeObjectKind() == "Class"
+    assert code_object.getFreeVarNames() == ()
+    assert code_object.getArgumentCount() == 0
+    assert code_object.getPosOnlyParameterCount() == 0
+    assert code_object.getKwOnlyParameterCount() == 0
+    assert not code_object.hasStarListArg()
+    assert not code_object.hasStarDictArg()
+    assert not code_object.getFlagIsOptimizedValue()
+    assert code_object.getFlagNewLocalsValue() == (python_version < 0x300)
+
+    flags = _getCodeObjectBlobFlags(code_object, blob_spec)
+
+    output.write(_encodeVariableLength(flags))
+
+    # Name is mandatory, no flag needed.
+    _writeConstantValue(output, code_object.getCodeObjectName(), blob_spec)
+
+    # Line number is mandatory, no flag needed. Encoded values start at 0,
+    # where 1 is what is normally used.
+    output.write(_encodeVariableLength(code_object.getLineNumber() - 1))
+
+    # Class body variable names, these are not arguments, so no argument
+    # count is stored.
+    _writeConstantValue(output, code_object.getVarNames(), blob_spec)
+
+    # Do not include the name part in the code object, saving
+    # the repetition.
+    if flags & blob_spec.code_flag_qualname:
+        _writeConstantValue(
+            output, code_object.getCodeObjectQualname().rsplit(".", 1)[0], blob_spec
+        )
 
 
 def _writeConstantStream(constants_reader, blob_spec):

@@ -16,7 +16,11 @@ from abc import abstractmethod
 
 from nuitka.PythonVersions import python_version
 
-from .CodeObjectSpecs import CodeObjectSpec
+from .CodeObjectSpecs import (
+    CodeObjectSpec,
+    CodeObjectSpecClass,
+    CodeObjectSpecModule,
+)
 from .FutureSpecs import fromFlags
 from .StatementBasesGenerated import StatementsSequenceBase
 from .StatementNodes import StatementsSequenceMixin
@@ -36,6 +40,9 @@ def checkFrameStatements(value):
 
 class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     checkers = {"statements": checkFrameStatements}
+
+    code_object_class = CodeObjectSpec
+    code_object_detail_names = ()
 
     __slots__ = ("code_object", "owner_code_name", "needs_frame_exception_preserve")
 
@@ -81,14 +88,14 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
         other_args = {}
 
         for key, value in args.items():
-            if key.startswith("co_"):
+            if key.startswith("co_") or key in cls.code_object_detail_names:
                 code_object_args[key] = value
             elif key == "code_flags":
                 code_object_args["future_spec"] = fromFlags(args["code_flags"])
             else:
                 other_args[key] = value
 
-        code_object = CodeObjectSpec(**code_object_args)
+        code_object = cls.code_object_class.fromXML(**code_object_args)
 
         return cls(code_object=code_object, source_ref=source_ref, **other_args)
 
@@ -144,7 +151,7 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 
         is_optimized = (
             not entry_point.isCompiledPythonModule()
-            and not entry_point.isExpressionClassBodyBase()
+            and not provider.isExpressionClassBodyBase()
             and not entry_point.isUnoptimized()
         )
 
@@ -289,6 +296,9 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
 
+    code_object_class = CodeObjectSpecModule
+    code_object_detail_names = ("module_name",)
+
     def __init__(self, statements, code_object, owner_code_name, source_ref):
         StatementsFrameBase.__init__(
             self,
@@ -322,6 +332,9 @@ class StatementsFrameFunction(StatementsFrameBase):
 
 class StatementsFrameClass(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_CLASS"
+
+    code_object_class = CodeObjectSpecClass
+    code_object_detail_names = ("class_name",)
 
     __slots__ = ("locals_scope",)
 

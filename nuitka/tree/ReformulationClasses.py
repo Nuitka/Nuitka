@@ -12,7 +12,7 @@ from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionClassDictBody
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecClass
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
@@ -75,17 +75,10 @@ def buildClassNode2(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
-    code_object = CodeObjectSpec(
-        co_name=node.name,
+    code_object = CodeObjectSpecClass(
+        class_name=node.name,
         co_qualname=provider.getChildQualname(node.name),
-        co_kind="Class",
         co_varnames=(),
-        co_freevars=(),
-        co_argcount=0,
-        co_posonlyargcount=0,
-        co_kwonlyargcount=0,
-        co_has_starlist=False,
-        co_has_stardict=False,
         co_filename=parent_module.getRunTimeFilename(),
         co_lineno=source_ref.getLineNumber(),
         future_spec=parent_module.getFutureSpec(),
