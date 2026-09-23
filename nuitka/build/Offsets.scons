@@ -31,7 +31,10 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 # isort:start
 
 from nuitka.Tracing import scons_details_logger, scons_logger
-from nuitka.utils.FileOperations import getExternalUsePath
+from nuitka.utils.FileOperations import (
+    getExternalUsePath,
+    getNormalizedPathJoin,
+)
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
@@ -167,7 +170,7 @@ def discoverSourceFiles():
     result.extend(
         scanSourceDir(
             env=env,
-            dirname=os.path.join(env.source_dir, "static_src"),
+            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
             plugins=False,
         )
     )
@@ -175,14 +178,14 @@ def discoverSourceFiles():
     return result
 
 
-source_files = discoverSourceFiles()
+source_filenames = discoverSourceFiles()
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild and
 # then lingers from previous builds, and also workaround for MinGW64 not
 # supporting unicode result paths for "-o" basename.
 result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
-target = env.Program(result_exe, source_files)
+target = env.Program(result_exe, source_filenames)
 
 
 # Plugin contributed C defines should be used too.
@@ -197,7 +200,7 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    source_files=source_files,
+    source_filenames=source_filenames,
 )
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
@@ -206,7 +209,7 @@ changeKeyboardInterruptToErrorExit()
 
 writeSconsReport(env=env, target=target)
 
-setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_files))
+setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_filenames))
 
 scons_details_logger.info("Launching Scons target: %s" % target)
 env.Default(target)
