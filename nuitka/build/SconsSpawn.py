@@ -155,7 +155,7 @@ def _getNoSuchCommandErrorMessage():
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def _getWindowsSpawnFunction(env, source_files):
+def _getWindowsSpawnFunction(env, source_filenames):
     # Too much error handling error, pylint: disable=too-many-branches
 
     def spawnWindowsCommand(
@@ -217,7 +217,8 @@ def _getWindowsSpawnFunction(env, source_files):
             data = data[data.find(b"\r\n") + 2 :]
 
             source_base_names = [
-                os.path.basename(source_file) for source_file in source_files
+                os.path.basename(source_filename)
+                for source_filename in source_filenames
             ]
 
             def check(line):
@@ -534,9 +535,11 @@ it or using '--clang' option.""" % env.the_compiler)
     return spawnCommand
 
 
-def enableSpawnMonitoring(env, source_files):
+def enableSpawnMonitoring(env, source_filenames):
     if os.name == "nt":
-        env["SPAWN"] = _getWindowsSpawnFunction(env=env, source_files=source_files)
+        env["SPAWN"] = _getWindowsSpawnFunction(
+            env=env, source_filenames=source_filenames
+        )
     else:
         env["SPAWN"] = _getWrappedSpawnFunction(env=env)
 
