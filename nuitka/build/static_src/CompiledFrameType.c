@@ -1058,9 +1058,8 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
         filename = const_str_empty;
     }
 
-    // TODO: We don't do that anymore once new-code-objects
-    // is the default, then we don't need to pass it, since
-    // we create them incomplete anyway.
+    // TODO: A real filename is no longer needed here, code objects are
+    // created incomplete and get theirs from "USE_CODE_OBJECT" on first use.
     CHECK_OBJECT(filename);
     assert(Nuitka_StringOrUnicode_CheckExact(filename));
 

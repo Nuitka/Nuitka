@@ -135,15 +135,6 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
 // Accessors to module variables.
 %(module_variable_accessors)s
 
-#if !defined(_NUITKA_EXPERIMENTAL_NEW_CODE_OBJECTS)
-// The module code objects.
-%(module_code_objects_decl)s
-
-static void createModuleCodeObjects(void) {
-%(module_code_objects_init)s
-}
-#endif
-
 // The module function declarations.
 %(module_functions_decl)s
 
@@ -307,9 +298,6 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
         NUITKA_PRINT_TRACE("%(module_identifier)s: Calling createModuleConstants().\n");
         createModuleConstants(tstate);
 
-#if !defined(_NUITKA_EXPERIMENTAL_NEW_CODE_OBJECTS)
-        createModuleCodeObjects();
-#endif
         init_done = true;
     }
 
