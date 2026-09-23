@@ -19,7 +19,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecGeneratorExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
@@ -243,17 +243,11 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             "Coroutine",
         )
 
-    code_object = CodeObjectSpec(
-        co_name="<genexpr>",
+    code_object = CodeObjectSpecGeneratorExpression(
+        co_is_async=is_async,
         co_qualname=provider.getChildQualname("<genexpr>"),
-        co_kind="Asyncgen" if is_async else "Generator",
         co_varnames=(".0",),
         co_freevars=(),
-        co_argcount=1,
-        co_posonlyargcount=0,
-        co_kwonlyargcount=0,
-        co_has_starlist=False,
-        co_has_stardict=False,
         co_filename=parent_module.getRunTimeFilename(),
         co_lineno=source_ref.getLineNumber(),
         future_spec=parent_module.getFutureSpec(),

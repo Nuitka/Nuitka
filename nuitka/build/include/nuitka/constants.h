@@ -42,6 +42,8 @@ extern PyObject **global_constants;
 #define const_bytes_empty global_constants[0]
 // '<module>'
 #define const_str_angle_module global_constants[0]
+// '<genexpr>'
+#define const_str_angle_genexpr global_constants[0]
 #define const_str_plain___module__ global_constants[0]
 #define const_str_plain___class__ global_constants[0]
 #define const_str_plain___name__ global_constants[0]

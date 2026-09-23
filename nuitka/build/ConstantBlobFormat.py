@@ -60,6 +60,10 @@ _tag_define_names = (
     ("code_object", "NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT"),
     ("module_code_object", "NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT"),
     ("class_code_object", "NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT"),
+    (
+        "generator_expression_code_object",
+        "NUITKA_CONSTANT_BLOB_TAG_GENERATOR_EXPRESSION_CODE_OBJECT",
+    ),
     ("end", "NUITKA_CONSTANT_BLOB_TAG_END"),
 )
 

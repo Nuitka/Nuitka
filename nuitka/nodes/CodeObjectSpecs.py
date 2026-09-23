@@ -390,6 +390,115 @@ class CodeObjectSpecClass(CodeObjectSpec):
         )
 
 
+class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
+    """Code object specification of a generator expression frame.
+
+    Notes:
+        Generator expression code objects have fixed values for their name and
+        all argument related details, only whether it is an async generator
+        expression and the qualname, variable names, free variables, filename,
+        line number and future spec vary. They are optimized and have new
+        locals on all versions.
+    """
+
+    __slots__ = ()
+
+    def __init__(
+        self,
+        co_is_async,
+        co_qualname,
+        co_varnames,
+        co_freevars,
+        co_filename,
+        co_lineno,
+        future_spec,
+    ):
+        CodeObjectSpec.__init__(
+            self,
+            co_name="<genexpr>",
+            co_qualname=co_qualname,
+            co_kind="Asyncgen" if co_is_async else "Generator",
+            co_varnames=co_varnames,
+            co_freevars=co_freevars,
+            co_argcount=1,
+            co_posonlyargcount=0,
+            co_kwonlyargcount=0,
+            co_has_starlist=False,
+            co_has_stardict=False,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+            co_new_locals=True,
+            co_is_optimized=True,
+        )
+
+    def __repr__(self):
+        return "<CodeObjectSpecGeneratorExpression '%s' line %d>" % (
+            self.co_name,
+            self.line_number,
+        )
+
+    def getDetails(self):
+        # Only the values needed for the constructor are persisted, the
+        # fixed values are implied by this class.
+        return {
+            "co_is_async": self.co_kind == "Asyncgen",
+            "co_qualname": self.co_qualname,
+            "co_varnames": ",".join(self.co_varnames),
+            "co_freevars": ",".join(self.co_freevars),
+            "co_filename": self.filename,
+            "co_lineno": self.line_number,
+            "code_flags": ",".join(self.future_spec.asFlags()),
+        }
+
+    def setFlagIsOptimizedValue(self, value):
+        assert value is True, value
+
+    def getFlagIsOptimizedValue(self):
+        return True
+
+    def setFlagNewLocalsValue(self, value):
+        assert value is True, value
+
+    def getFlagNewLocalsValue(self):
+        return True
+
+    @classmethod
+    def fromXML(
+        cls,
+        co_is_async,
+        co_qualname,
+        co_varnames,
+        co_freevars,
+        co_filename,
+        co_lineno,
+        future_spec,
+    ):
+        """Reconstruct from XML details.
+
+        Args:
+            co_is_async: whether this is an async generator expression.
+            co_qualname: the qualified name of the code.
+            co_varnames: the variable names of the code.
+            co_freevars: the free variable names of the code.
+            co_filename: the filename of the code.
+            co_lineno: the line number of the code.
+            future_spec: the future spec of the module.
+
+        Returns:
+            Instance of 'CodeObjectSpecGeneratorExpression'.
+        """
+        return cls(
+            co_is_async=co_is_async,
+            co_qualname=co_qualname,
+            co_varnames=co_varnames,
+            co_freevars=co_freevars,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+        )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
