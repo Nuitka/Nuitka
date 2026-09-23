@@ -116,6 +116,27 @@ def _getBuiltinImportCode(
     )
 
 
+def _emitFromlistModuleImports(expression, module_value_name, emit, context):
+    # Emulate the fromlist handling of "__import__", which imports the real
+    # submodules before the values are looked up on the imported module.
+    for fromlist_module_name in expression.getFromlistModuleNames():
+        res_name = context.getBoolResName()
+
+        emit(
+            """%s = IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(tstate, %s, %s, %s);"""
+            % (
+                res_name,
+                module_value_name,
+                context.getConstantCode(fromlist_module_name.getBasename().asString()),
+                context.getConstantCode(fromlist_module_name.asString()),
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name, emit=emit, context=context
+        )
+
+
 def generateImportModuleFixedCode(to_name, expression, emit, context):
     needs_check = expression.mayRaiseException(BaseException)
 
@@ -139,6 +160,13 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(value_name)
+
+        _emitFromlistModuleImports(
+            expression=expression,
+            module_value_name=value_name,
+            emit=emit,
+            context=context,
+        )
 
 
 def getImportModuleHardCodeName(module_name):
@@ -227,6 +255,13 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
 
         if import_gives_ref:
             context.addCleanupTempName(value_name)
+
+        _emitFromlistModuleImports(
+            expression=expression,
+            module_value_name=value_name,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateConstantSysVersionInfoCode(to_name, expression, emit, context):

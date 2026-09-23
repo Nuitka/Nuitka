@@ -528,6 +528,94 @@ PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyOb
     return result;
 }
 
+// Check if the current exception is a missing sub-module from a fromlist
+// import, which is ignorable.
+static bool isFromlistModuleNotFoundError(PyThreadState *tstate, PyObject *module_name) {
+#if PYTHON_VERSION < 0x300
+    // Python2 does not ignore the fromlist sub-module import errors.
+    return false;
+#else
+    if (HAS_ERROR_OCCURRED(tstate) == false) {
+        return false;
+    }
+
+#if PYTHON_VERSION >= 0x360
+    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_ModuleNotFoundError) == false) {
+        return false;
+    }
+#else
+    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_ImportError) == false) {
+        return false;
+    }
+#endif
+
+    struct Nuitka_ExceptionPreservationItem saved_exception;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, &saved_exception);
+#endif
+
+    bool result = false;
+
+    PyObject *exception_value = saved_exception.exception_value;
+
+    if (exception_value != NULL) {
+        PyObject *failed_import_name = LOOKUP_ATTRIBUTE(tstate, exception_value, const_str_plain_name);
+
+        if (failed_import_name == NULL) {
+            CLEAR_ERROR_OCCURRED(tstate);
+        } else {
+            if (PyUnicode_CheckExact(failed_import_name) &&
+                RICH_COMPARE_EQ_CBOOL_UNICODE_UNICODE(failed_import_name, module_name)) {
+                // Ignore blocked modules, i.e. "sys.modules[module_name] is None".
+                if (Nuitka_GetModule(tstate, module_name) != Py_None) {
+                    result = true;
+                }
+            }
+
+            Py_DECREF(failed_import_name);
+        }
+    }
+
+    if (result) {
+        RELEASE_ERROR_OCCURRED_STATE(&saved_exception);
+    } else {
+        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+    }
+
+    return result;
+#endif
+}
+
+bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *module, PyObject *import_name,
+                                          PyObject *module_name) {
+    CHECK_OBJECT(module);
+    CHECK_OBJECT(import_name);
+    CHECK_OBJECT(module_name);
+
+    // If the attribute already exists, no submodule import is attempted.
+    if (HAS_ATTR_BOOL(tstate, module, import_name)) {
+        return true;
+    }
+
+    PyObject *result = IMPORT_MODULE_FIXED(tstate, module_name, module_name);
+
+    if (result == NULL) {
+        // Missing sub-modules are ignorable, the name lookup will raise the
+        // "ImportError" for the missing attribute instead.
+        if (isFromlistModuleNotFoundError(tstate, module_name)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    Py_DECREF(result);
+
+    return true;
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

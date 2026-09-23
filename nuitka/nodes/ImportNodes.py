@@ -44,12 +44,15 @@ from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.options.Options import (
-    isExperimental,
     isStandaloneMode,
     shallMakeModule,
     shallWarnUnusualCode,
 )
 from nuitka.plugins.Hooks import onModuleUsageLookAhead
+from nuitka.Policies import (
+    decideImportDropNotFound,
+    decideImportLoweringToFixed,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import (
     BuiltinParameterSpec,
@@ -101,6 +104,62 @@ def makeExpressionImportModuleNameHard(
         )
 
 
+def _mergeExtraModuleUsages(module_usages, module_name, extra_module_usages):
+    # Extra usages for the module itself replace the usage that was created from
+    # the module name, as they know how the module was found originally, e.g.
+    # from a relative import.
+    if any(
+        extra_module_usage.module_name == module_name
+        for extra_module_usage in extra_module_usages
+    ):
+        module_usages = tuple(
+            usage for usage in module_usages if usage.module_name != module_name
+        )
+
+    return module_usages + extra_module_usages
+
+
+def _getFromlistModuleNames(extra_module_usages, module_name, module):
+    # These are the fromlist submodules that have to be imported to emulate the
+    # fromlist handling of "__import__", where the decision function tells, if
+    # not found imports can be dropped, and the module allows to check for
+    # attribute values that make the imports unnecessary.
+    fromlist_module_usages = tuple(
+        extra_module_usage
+        for extra_module_usage in extra_module_usages
+        if extra_module_usage.reason == "import fromlist"
+    )
+
+    if not fromlist_module_usages:
+        return ()
+
+    # The decision function can be expensive, and is only needed for the not
+    # found usages, so look it up once, and only if such a one is encountered.
+    found_only = None
+
+    result = []
+
+    for extra_module_usage in fromlist_module_usages:
+        if extra_module_usage.finding == "not-found":
+            # The fromlist handling checks for the attribute first, and does
+            # not import a submodule, if the module has the attribute already,
+            # e.g. a function of that name.
+            if module is not None and hasattr(
+                module, extra_module_usage.module_name.getBasename()
+            ):
+                continue
+
+            if found_only is None:
+                found_only = decideImportDropNotFound(module_name)
+
+            if found_only:
+                continue
+
+        result.append(extra_module_usage.module_name)
+
+    return tuple(result)
+
+
 class ExpressionImportAllowanceMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -138,6 +197,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
     False for modules that are known to never fail importing.
     """
 
+    # Many details to store for import information, pylint: disable=too-many-instance-attributes
     kind = "EXPRESSION_IMPORT_MODULE_FIXED"
 
     @staticmethod
@@ -147,77 +207,71 @@ class ExpressionImportModuleFixed(ExpressionBase):
     __slots__ = (
         "module_name",
         "value_name",
+        "extra_module_usages",
+        "module_usages",
         "found_module_name",
         "found_module_filename",
         "module_kind",
         "finding",
-        "module_usages",
+        "fromlist_module_names",
     )
 
-    def __init__(self, module_name, value_name, source_ref):
+    def __init__(self, module_name, value_name, extra_module_usages, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
         self.module_name = ModuleName(module_name)
         self.value_name = ModuleName(value_name)
 
-        self.finding = None
+        self.extra_module_usages = tuple(extra_module_usages)
 
-        # If not found, we import the package at least
+        self.fromlist_module_names = _getFromlistModuleNames(
+            extra_module_usages=self.extra_module_usages,
+            module_name=self.module_name,
+            module=None,
+        )
+
         (
             self.found_module_name,
             self.found_module_filename,
             self.module_kind,
             self.finding,
-        ) = self._attemptFollow()
-
-        self.module_usages = makeParentModuleUsagesAttempts(
-            makeModuleUsageAttempt(
-                module_name=self.found_module_name,
-                filename=self.found_module_filename,
-                finding=self.finding,
-                module_kind=self.module_kind,
-                level=0,
-                source_ref=self.source_ref,
-                reason="import",
-            )
-        )
-
-    # TODO: This is called in constructor only, is it, then inline it.
-    def _attemptFollow(self):
-        found_module_name, found_module_filename, module_kind, finding = locateModule(
+        ) = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
         )
 
-        if self.finding == "not-found":
-            while True:
-                module_name = found_module_filename.getPackageName()
-
-                if module_name is None:
-                    break
-
-                (
-                    found_module_name,
-                    found_module_filename,
-                    module_kind,
-                    finding,
-                ) = locateModule(
-                    module_name=module_name,
-                    parent_package=None,
+        self.module_usages = _mergeExtraModuleUsages(
+            module_usages=makeParentModuleUsagesAttempts(
+                makeModuleUsageAttempt(
+                    module_name=self.found_module_name,
+                    filename=self.found_module_filename,
+                    finding=self.finding,
+                    module_kind=self.module_kind,
                     level=0,
+                    source_ref=self.source_ref,
+                    reason="import",
                 )
-
-                if self.finding != "not-found":
-                    break
-
-        return found_module_name, found_module_filename, module_kind, finding
+            ),
+            module_name=self.found_module_name,
+            extra_module_usages=self.extra_module_usages,
+        )
 
     def finalize(self):
         del self.parent
 
     def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "value_name": self.value_name,
+            "extra_module_usages": self.extra_module_usages,
+        }
+
+    def getDetailsForDisplay(self):
         return {"module_name": self.module_name, "value_name": self.value_name}
+
+    def getFromlistModuleNames(self):
+        return self.fromlist_module_names
 
     def getModuleName(self):
         return self.module_name
@@ -373,19 +427,36 @@ class ExpressionImportModuleHard(
 
     __slots__ = (
         "using_module_name",
+        "value_name",
+        "extra_module_usages",
         "module",
         "allowed",
         "guaranteed",
-        "value_name",
         "is_package",
+        "fromlist_module_names",
     )
 
-    def __init__(self, using_module_name, module_name, value_name, source_ref):
+    def __init__(
+        self,
+        using_module_name,
+        module_name,
+        value_name,
+        extra_module_usages,
+        source_ref,
+    ):
         ExpressionImportHardBase.__init__(
             self, module_name=module_name, source_ref=source_ref
         )
 
         self.value_name = value_name
+
+        self.extra_module_usages = tuple(extra_module_usages)
+
+        self.module_usages = _mergeExtraModuleUsages(
+            module_usages=self.module_usages,
+            module_name=self.module_name,
+            extra_module_usages=self.extra_module_usages,
+        )
 
         ExpressionImportAllowanceMixin.__init__(
             self, using_module_name=using_module_name
@@ -413,6 +484,12 @@ class ExpressionImportModuleHard(
                 "scipy"
             ) and isPackageModuleName(self.module_name)
 
+        self.fromlist_module_names = _getFromlistModuleNames(
+            extra_module_usages=self.extra_module_usages,
+            module_name=self.module_name,
+            module=self.module,
+        )
+
         self.guaranteed = self.allowed and (
             not shallMakeModule() or self.module_name not in hard_modules_non_stdlib
         )
@@ -433,7 +510,18 @@ class ExpressionImportModuleHard(
             "using_module_name": self.using_module_name,
             "module_name": self.module_name,
             "value_name": self.value_name,
+            "extra_module_usages": self.extra_module_usages,
         }
+
+    def getDetailsForDisplay(self):
+        return {
+            "using_module_name": self.using_module_name,
+            "module_name": self.module_name,
+            "value_name": self.value_name,
+        }
+
+    def getFromlistModuleNames(self):
+        return self.fromlist_module_names
 
     def getModuleName(self):
         return self.module_name
@@ -442,7 +530,14 @@ class ExpressionImportModuleHard(
         return self.value_name
 
     def mayHaveSideEffects(self):
-        return self.module is None or not self.guaranteed
+        if self.module is None or not self.guaranteed:
+            return True
+
+        # The fromlist submodule imports execute module code, even if the
+        # module itself is guaranteed to be importable. They can also fail,
+        # which "mayRaiseException" then picks up from here. The value matches
+        # the pre-imports emitted by code generation.
+        return bool(self.fromlist_module_names)
 
     def mayRaiseException(self, exception_type):
         return not self.allowed or self.mayHaveSideEffects()
@@ -523,6 +618,7 @@ class ExpressionImportModuleHard(
                     using_module_name=self.using_module_name,
                     module_name=full_name,
                     value_name=full_name,
+                    extra_module_usages=(),
                     source_ref=lookup_node.source_ref,
                 )
 
@@ -592,6 +688,7 @@ class ExpressionImportModuleHard(
                                 using_module_name=self.getParentModule().getFullName(),
                                 module_name=full_name,
                                 value_name=full_name,
+                                extra_module_usages=(),
                                 source_ref=lookup_node.getSourceReference(),
                             )
 
@@ -803,6 +900,7 @@ class ExpressionImportlibImportModuleCall(
                         using_module_name=self.getParentModule().getFullName(),
                         module_name=resolved_module_name,
                         value_name=resolved_module_name,
+                        extra_module_usages=(),
                         source_ref=self.source_ref,
                     )
 
@@ -867,6 +965,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         "follow_attempted",
         "finding",
         "used_modules",
+        "found_module_name",
     )
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
@@ -898,6 +997,8 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         self.used_modules = []
 
         self.finding = None
+
+        self.found_module_name = None
 
     def _getLevelValue(self):
         parent_module = self.getParentModule()
@@ -975,6 +1076,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
         if self.finding != "not-found":
             module_name = module_name_found
+            self.found_module_name = module_name_found
 
             import_list = self.subnode_fromlist
 
@@ -1035,6 +1137,37 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         else:
             return imported_module_name.getTopLevelPackageName()
 
+    def _isFromlistConstant(self):
+        return (
+            self.subnode_fromlist is None
+            or self.subnode_fromlist.isCompileTimeConstant()
+        )
+
+    def _getLoweredExtraModuleUsages(self):
+        # Parent package usages are re-created by the replacement node, only the
+        # module itself and its fromlist entries have to be given to it. Found
+        # fromlist submodules are made imported by the replacement node, to
+        # replace the fromlist handling of "__import__".
+        return tuple(
+            usage
+            for usage in self.used_modules
+            if usage.reason in ("import", "import fromlist")
+        )
+
+    def _getLoweredFixedImport(self):
+        # With a runtime fromlist, neither the value name nor the submodule
+        # imports it causes can be determined, so no lowering is attempted.
+        if not self._isFromlistConstant():
+            return None
+
+        return makeExpressionImportModuleFixed(
+            using_module_name=self.getParentModule().getFullName(),
+            module_name=self.found_module_name,
+            value_name=self._getImportedValueName(self.found_module_name),
+            extra_module_usages=self._getLoweredExtraModuleUsages(),
+            source_ref=self.source_ref,
+        )
+
     def computeExpression(self, trace_collection):
         # Attempt to recurse if not already done, many cases to consider and its
         # return driven, pylint: disable=too-many-branches,too-many-return-statements
@@ -1070,7 +1203,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
             if type(imported_module_name) in (str, unicode):
-                if self.finding == "relative":
+                if self.finding == "relative" and self._isFromlistConstant():
                     parent_module = self.getParentModule()
 
                     parent_package = parent_module.getFullName()
@@ -1103,6 +1236,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                                 value_name=self._getImportedValueName(
                                     candidate_module_name
                                 ),
+                                extra_module_usages=self._getLoweredExtraModuleUsages(),
                                 source_ref=self.source_ref,
                             )
 
@@ -1123,7 +1257,11 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
                 imported_module_name = resolveModuleName(imported_module_name)
 
-                if self.finding == "absolute" and isHardModule(imported_module_name):
+                if (
+                    self.finding == "absolute"
+                    and isHardModule(imported_module_name)
+                    and self._isFromlistConstant()
+                ):
                     if (
                         imported_module_name in hard_modules_non_stdlib
                         or module_filename is None
@@ -1133,6 +1271,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             using_module_name=self.getParentModule().getFullName(),
                             module_name=imported_module_name,
                             value_name=self._getImportedValueName(imported_module_name),
+                            extra_module_usages=self._getLoweredExtraModuleUsages(),
                             source_ref=self.source_ref,
                         )
 
@@ -1191,26 +1330,18 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             % imported_module_name.asString(),
                         )
 
-                elif (
-                    isStandaloneMode()
-                    and self.used_modules
-                    and isExperimental("standalone-imports")
+                elif self.used_modules and decideImportLoweringToFixed(
+                    self.found_module_name
                 ):
-                    result = makeExpressionImportModuleFixed(
-                        using_module_name=self.getParentModule().getFullName(),
-                        module_name=self.used_modules[0].module_name,
-                        value_name=self._getImportedValueName(
-                            self.used_modules[0].module_name
-                        ),
-                        source_ref=self.source_ref,
-                    )
+                    result = self._getLoweredFixedImport()
 
-                    return (
-                        result,
-                        "new_expression",
-                        "Lowered import of module '%s' to fixed import."
-                        % imported_module_name.asString(),
-                    )
+                    if result is not None:
+                        return (
+                            result,
+                            "new_expression",
+                            "Lowered import of module '%s' to fixed import."
+                            % self.found_module_name.asString(),
+                        )
             else:
                 # TODO: This doesn't preserve side effects.
 
@@ -1329,7 +1460,7 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
 
 
 def makeExpressionImportModuleFixed(
-    using_module_name, module_name, value_name, source_ref
+    using_module_name, module_name, value_name, extra_module_usages, source_ref
 ):
     module_name = resolveModuleName(module_name)
     value_name = resolveModuleName(value_name)
@@ -1339,12 +1470,14 @@ def makeExpressionImportModuleFixed(
             using_module_name=using_module_name,
             module_name=module_name,
             value_name=value_name,
+            extra_module_usages=extra_module_usages,
             source_ref=source_ref,
         )
     else:
         return ExpressionImportModuleFixed(
             module_name=module_name,
             value_name=value_name,
+            extra_module_usages=extra_module_usages,
             source_ref=source_ref,
         )
 
@@ -1360,6 +1493,7 @@ def makeExpressionImportModuleBuiltin(
             using_module_name=using_module_name,
             module_name=module_name,
             value_name=value_name,
+            extra_module_usages=(),
             source_ref=source_ref,
         )
     else:

@@ -176,6 +176,7 @@ def createPython3NamespacePath(package, source_ref):
                     using_module_name=package.getFullName(),
                     module_name=module_name,
                     value_name=module_name,
+                    extra_module_usages=(),
                     source_ref=source_ref,
                 ),
                 import_name="_NamespacePath",

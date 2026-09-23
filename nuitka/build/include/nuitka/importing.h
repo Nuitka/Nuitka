@@ -30,6 +30,11 @@ extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_
 // Fixed import name to be imported and used by value name.
 extern PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name);
 
+// Import a fromlist element of an already imported module, ignoring submodules
+// that do not exist, and indicating errors as a boolean result.
+extern bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *module, PyObject *import_name,
+                                                 PyObject *module_name);
+
 // Import an embedded module directly.
 extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name, bool internal);
 
