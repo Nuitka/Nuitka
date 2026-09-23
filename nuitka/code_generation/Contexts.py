@@ -3,18 +3,14 @@
 
 """Code generation contexts."""
 
-import collections
 from abc import abstractmethod
 from contextlib import contextmanager
 
-from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
 from nuitka.States import states
-from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -302,80 +298,14 @@ class TempMixin(object):
         del self.deferred_release_names[-1]
 
 
-# TODO: Remove when isExperimental("new-code-objects") is becoming the
-# standard.
-CodeObjectHandle = collections.namedtuple(
-    "CodeObjectHandle",
-    (
-        "co_name",
-        "co_qualname",
-        "co_kind",
-        "co_varnames",
-        "co_argcount",
-        "co_posonlyargcount",
-        "co_kwonlyargcount",
-        "co_has_starlist",
-        "co_has_stardict",
-        "co_filename",
-        "line_number",
-        "future_flags",
-        "co_new_locals",
-        "co_freevars",
-        "is_optimized",
-    ),
-)
+class CodeObjectsMixin(object):
+    __slots__ = ()
 
-
-if isExperimental("old-code-objects"):
-
-    class CodeObjectsMixin(object):
-        # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-        __slots__ = ()
-
-        def __init__(self):
-            # Code objects needed made unique by a key.
-            self.code_objects = {}
-
-        def getCodeObjects(self):
-            return sorted(iterItems(self.code_objects))
-
-        def getCodeObjectHandle(self, code_object):
-            key = CodeObjectHandle(
-                co_filename=code_object.getFilename(),
-                co_name=code_object.getCodeObjectName(),
-                co_qualname=code_object.getCodeObjectQualname(),
-                line_number=code_object.getLineNumber(),
-                co_varnames=code_object.getVarNames(),
-                co_argcount=code_object.getArgumentCount(),
-                co_freevars=code_object.getFreeVarNames(),
-                co_posonlyargcount=code_object.getPosOnlyParameterCount(),
-                co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
-                co_kind=code_object.getCodeObjectKind(),
-                is_optimized=code_object.getFlagIsOptimizedValue(),
-                co_new_locals=code_object.getFlagNewLocalsValue(),
-                co_has_starlist=code_object.hasStarListArg(),
-                co_has_stardict=code_object.hasStarDictArg(),
-                future_flags=code_object.getFutureSpec().asFlags(),
-            )
-
-            if key not in self.code_objects:
-                self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
-
-            return self.code_objects[key]
-
-        def _calcHash(self, key):
-            return getStringHash("-".join(str(s) for s in key))
-
-else:
-
-    class CodeObjectsMixin(object):
-        __slots__ = ()
-
-        def getCodeObjectHandle(self, code_object):
-            return (
-                "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
-                % self.getConstantCode(code_object)
-            )
+    def getCodeObjectHandle(self, code_object):
+        return (
+            "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
+            % self.getConstantCode(code_object)
+        )
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -800,10 +730,6 @@ class PythonModuleContext(
         "preserver_variable_declaration",
         "cleanup_names",
         "deferred_release_names",
-        # TODO: Remove when isExperimental("new-code-objects") is becoming the
-        # standard.
-        # CodeObjectsMixin
-        "code_objects",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -815,7 +741,6 @@ class PythonModuleContext(
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
-        CodeObjectsMixin.__init__(self)
         FrameDeclarationsMixin.__init__(self)
         ReturnReleaseModeMixin.__init__(self)
 
@@ -1210,11 +1135,6 @@ class PythonFunctionOutlineContext(
 
     def popCleanupScope(self):
         self.parent.popCleanupScope()
-
-    # TODO: Remove when isExperimental("new-code-objects") is becoming the
-    # standard.
-    def getCodeObjectHandle(self, code_object):
-        return self.parent.getCodeObjectHandle(code_object)
 
     def getExceptionEscape(self):
         return self.parent.getExceptionEscape()

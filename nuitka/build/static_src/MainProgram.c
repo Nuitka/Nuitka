@@ -96,8 +96,6 @@ static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_mode
 }
 #endif
 
-extern PyCodeObject *code_objects_main;
-
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
 #if PYTHON_VERSION >= 0x300
 static wchar_t **orig_argv;
