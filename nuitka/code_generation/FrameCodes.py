@@ -17,6 +17,7 @@ from .Emission import SourceCodeCollector
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
+from .LineNumberCodes import getSourceCodeReferenceLineNumber
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
     template_frame_attach_locals,
@@ -184,7 +185,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
             emit(
                 "%s = %d;"
-                % (outline_exception_lineno, frame_source_ref.getLineNumber())
+                % (
+                    outline_exception_lineno,
+                    getSourceCodeReferenceLineNumber(frame_source_ref),
+                )
             )
 
         getGotoCode(real_parent_exception_exit, emit)

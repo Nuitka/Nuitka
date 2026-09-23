@@ -1058,6 +1058,122 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
 ExpressionBuiltinIter2Base = _ChildrenHavingCallableArgSentinelFinalMixin
 
 
+class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionCallClassPrepare
+
+    def __init__(self, called, type_shape, code_name, expected_value, source_ref):
+        called.parent = self
+
+        self.subnode_called = called
+
+        self.type_shape = type_shape
+        self.code_name = code_name
+        self.expected_value = expected_value
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "type_shape": self.type_shape,
+            "code_name": self.code_name,
+            "expected_value": self.expected_value,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_called,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("called", self.subnode_called),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_called
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_called = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "called": self.subnode_called.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_called.finalize()
+        del self.subnode_called
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_called)
+
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_called.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionCallClassPrepareBase = _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
+
+
 class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

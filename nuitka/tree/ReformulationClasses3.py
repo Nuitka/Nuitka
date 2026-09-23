@@ -19,8 +19,8 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
+    ExpressionCallClassPrepare,
     ExpressionCallMetaclass,
-    ExpressionClassDictBody,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
 )
@@ -77,6 +77,11 @@ from nuitka.nodes.ReturnNodes import (
     StatementReturn,
     makeStatementReturnConstant,
 )
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    getTypeShapeFromValue,
+    tshape_dict,
+)
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import (
@@ -92,6 +97,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.options.Options import isExperimental
+from nuitka.pgo.Pgo import getPGOClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -140,20 +146,54 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
     )
 
 
-def _selectClassBody(_static_qualname):
-    if isExperimental("force-p2-class"):
-        return ExpressionClassDictBody
-    else:
-        return ExpressionClassMappingBody
-
-
 def _needsOrigBases(_static_qualname):
-    if isExperimental("force-p2-class"):
-        return False
-    elif python_version < 0x370:
-        return False
+    return python_version >= 0x370
+
+
+def makeExpressionClassPrepareCall(
+    code_name, metaclass, name, bases, class_decl_dict, source_ref
+):
+    pgo_result = getPGOClassPrepareResult(code_name)
+
+    if pgo_result is None and isExperimental("force-p2-class"):
+        # Use a synthetic PGO result to exercise the dict shape path.
+        type_shape = tshape_dict
+        expected_value = None
     else:
-        return True
+        # TODO: Rejecting non-empty values from PGO for now, as the value
+        # space does not carry the dict contents yet. Later the prepare result
+        # may be non-empty and still give a dict shape, with the assertion
+        # comparing the captured value instead of only its size being 0.
+        type_shape = getTypeShapeFromValue(pgo_result)
+
+        if pgo_result is None or pgo_result:
+            type_shape = tshape_unknown
+            expected_value = None
+        else:
+            expected_value = pgo_result
+
+    return ExpressionCallClassPrepare(
+        called=makeExpressionCall(
+            called=makeExpressionAttributeLookup(
+                expression=metaclass.makeClone(),
+                attribute_name="__prepare__",
+                source_ref=source_ref,
+            ),
+            args=makeExpressionMakeTuple(
+                elements=(
+                    name,
+                    bases,
+                ),
+                source_ref=source_ref,
+            ),
+            kw=class_decl_dict,
+            source_ref=source_ref,
+        ),
+        type_shape=type_shape,
+        expected_value=expected_value,
+        code_name=code_name,
+        source_ref=source_ref,
+    )
 
 
 def buildClassNode3(provider, node, source_ref):
@@ -204,9 +244,7 @@ def buildClassNode3(provider, node, source_ref):
     # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
-    class_body_class = _selectClassBody(static_qualname)
-
-    class_dict_creation_function = class_body_class(
+    class_dict_creation_function = ExpressionClassMappingBody(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
@@ -694,24 +732,16 @@ def buildClassNode3(provider, node, source_ref):
 
     call_prepare = makeStatementAssignmentVariable(
         variable=tmp_prepared,
-        source=makeExpressionCall(
-            called=makeExpressionAttributeLookup(
-                expression=ExpressionTempVariableRef(
-                    variable=tmp_metaclass, source_ref=source_ref
-                ),
-                attribute_name="__prepare__",
-                source_ref=source_ref,
+        source=makeExpressionClassPrepareCall(
+            code_name=class_dict_creation_function.getCodeName(),
+            metaclass=ExpressionTempVariableRef(
+                variable=tmp_metaclass, source_ref=source_ref
             ),
-            args=makeExpressionMakeTuple(
-                elements=(
-                    makeConstantRefNode(
-                        constant=node.name, source_ref=source_ref, user_provided=True
-                    ),
-                    makeBasesRef(),
-                ),
-                source_ref=source_ref,
+            name=makeConstantRefNode(
+                constant=node.name, source_ref=source_ref, user_provided=True
             ),
-            kw=ExpressionTempVariableRef(
+            bases=makeBasesRef(),
+            class_decl_dict=ExpressionTempVariableRef(
                 variable=tmp_class_decl_dict, source_ref=source_ref
             ),
             source_ref=source_ref,
@@ -764,16 +794,13 @@ def buildClassNode3(provider, node, source_ref):
             ),
         )
 
-    if class_body_class is ExpressionClassDictBody:
-        prepare_condition = makeConstantRefNode(constant=False, source_ref=source_ref)
-    else:
-        prepare_condition = ExpressionAttributeCheck(
-            expression=ExpressionTempVariableRef(
-                variable=tmp_metaclass, source_ref=source_ref
-            ),
-            attribute_name="__prepare__",
-            source_ref=source_ref,
-        )
+    prepare_condition = ExpressionAttributeCheck(
+        expression=ExpressionTempVariableRef(
+            variable=tmp_metaclass, source_ref=source_ref
+        ),
+        attribute_name="__prepare__",
+        source_ref=source_ref,
+    )
 
     statements += (
         makeStatementAssignmentVariable(

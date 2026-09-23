@@ -4,6 +4,12 @@
 """Generate code that updates the source code line."""
 
 
+def getSourceCodeReferenceLineNumber(source_ref):
+    """Get the line number of a source ref to be used in generated code."""
+
+    return source_ref.getLineNumber()
+
+
 def getCurrentLineNumberCode(context):
     frame_handle = context.getFrameHandle()
 
@@ -15,7 +21,7 @@ def getCurrentLineNumberCode(context):
         if source_ref.isInternal():
             return ""
         else:
-            return str(source_ref.getLineNumber())
+            return str(getSourceCodeReferenceLineNumber(source_ref))
 
 
 def getLineNumberUpdateCode(context):

@@ -4,6 +4,10 @@
 #ifndef __NUITKA_ENVIRONMENT_VARIABLES_H__
 #define __NUITKA_ENVIRONMENT_VARIABLES_H__
 
+// This file bundles includes and may itself be unused, so it is kept
+// deliberately.
+// IWYU pragma: always_keep
+
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif

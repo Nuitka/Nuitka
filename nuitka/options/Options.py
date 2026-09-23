@@ -1829,6 +1829,11 @@ def isDevelPerformanceCounts():
     return options.devel_performance_counts
 
 
+def isDevelPgoWarnUnknown():
+    """:returns: bool derived from ``--devel-pgo-warn-unknown``"""
+    return options.devel_pgo_warn_unknown
+
+
 def shallGenerateReadableCode():
     """:returns: bool derived from ``--devel-generate-readable-code``"""
     return options.devel_generate_readable_code or _isDebug()
@@ -2422,6 +2427,19 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
     return options.devel_no_bytecode_to_compiled_fallback
 
 
+def getDevelModeIndications():
+    """*tuple* of active development options that need C level definitions."""
+
+    result = []
+
+    for devel_option_value_name in ("devel_pgo_warn_unknown",):
+        if getattr(options, devel_option_value_name) is True:
+            # The C name uses the family prefix, so drop the option prefix.
+            result.append(devel_option_value_name[len("devel_") :])
+
+    return tuple(result)
+
+
 def getDebugModeIndications():
     result = []
 
@@ -2551,6 +2569,15 @@ def isPythonPgoMode():
 def getPythonPgoInput():
     """:returns: str derived from ``--pgo-python-input``"""
     return options.python_pgo_input
+
+
+def getPythonPgoJsonFilename():
+    """:returns: str or None derived from ``--pgo-json``"""
+    return (
+        getUserInputNormalizedPath(options.python_pgo_json)
+        if options.python_pgo_json is not None
+        else None
+    )
 
 
 def shallCreatePythonPgoInput():

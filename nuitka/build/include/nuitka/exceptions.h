@@ -9,6 +9,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
+#include "nuitka/helper/tuples.h"
 #include "nuitka/string_functions.h"
 #endif
 

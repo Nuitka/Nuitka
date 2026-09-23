@@ -214,7 +214,7 @@ from .freezer.Standalone import (
     signDistributionMacOS,
 )
 from .optimizations.Optimization import optimizeModules
-from .pgo.PGO import readPGOInputFile
+from .pgo.Pgo import readPGOInputFile
 from .reports.Reports import writeCompilationReports
 from .States import states
 from .tree.Building import buildMainModuleTree

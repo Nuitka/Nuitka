@@ -9,18 +9,26 @@ The classes are are at the core of the language and have their complexities.
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.options.Options import hasNonDeploymentIndicator
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinType3Mixin,
     ChildrenHavingMetaclassBasesMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .ExpressionBasesGenerated import ExpressionCallMetaclassBase
+from .ExpressionBasesGenerated import (
+    ExpressionCallClassPrepareBase,
+    ExpressionCallMetaclassBase,
+)
 from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
+from .NodeMakingHelpers import makeConstantReplacementNode
 from .OutlineNodes import ExpressionOutlineFunctionBase
+from .shapes.BuiltinTypeShapes import tshape_dict
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
@@ -322,6 +330,97 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
 
     def mayRaiseException(self, exception_type):
         return True
+
+
+class ExpressionCallClassPrepare(ExpressionCallClassPrepareBase):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE"
+
+    named_children = ("called",)
+    node_attributes = (
+        "type_shape",
+        "code_name",
+        "expected_value",
+    )
+
+    def __init__(
+        self,
+        called,
+        type_shape,
+        code_name,
+        expected_value,
+        source_ref,
+    ):
+        # TODO: Add a "tshape_sane_mapping" shape for non-dict mappings, where
+        # setting does not raise and set values persist, which is what class
+        # body optimizations need. A plain mapping shape would not help, and
+        # "collections.OrderedDict" is not usable as a dict, since it keeps its
+        # own item order and dict operations would bypass it.
+        if type_shape is not tshape_dict:
+            type_shape = tshape_unknown
+            expected_value = None
+
+        assert expected_value is None or type(expected_value) is dict, expected_value
+
+        ExpressionCallClassPrepareBase.__init__(
+            self,
+            called=called,
+            type_shape=type_shape,
+            code_name=code_name,
+            expected_value=expected_value,
+            source_ref=source_ref,
+        )
+
+    def getExpectedValue(self):
+        if self.expected_value is not None:
+            return True, self.expected_value
+
+        return False, None
+
+    def getExpressionDictInConstant(self, value):
+        # The PGO value is asserted at run time, so it can be used for
+        # compile time decisions.
+        if self.expected_value is not None:
+            return value in self.expected_value
+
+        return None
+
+    def computeExpression(self, trace_collection):
+        if self.subnode_called.isCompileTimeConstant():
+            return (
+                makeConstantReplacementNode(
+                    constant=self.subnode_called.getCompileTimeConstant(),
+                    node=self,
+                    user_provided=False,
+                ),
+                "new_constant",
+                "Result of '__prepare__' computed at compile time.",
+            )
+
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseExceptionOperation(self):
+        # TODO: In the future we should not soletly rely on
+        # PGO but try ans consider subnode_called return value shape
+        if states.is_debug:
+            # Debug mode must reveal mismatches that user code might swallow.
+            return False
+
+        if not hasNonDeploymentIndicator("pgo-assertions"):
+            return False
+
+        return self.type_shape is not tshape_unknown
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_called.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    def getTypeShape(self):
+        return self.type_shape
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -7,14 +7,19 @@ Most the class specific stuff is solved in re-formulation. Only the selection
 of the metaclass remains as specific.
 """
 
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
+from nuitka.options.Options import hasNonDeploymentIndicator
 from nuitka.PythonVersions import python_version
+from nuitka.States import states
 
 from .AttributeCodes import getAttributeLookupCode
 from .CodeHelpers import (
     generateChildExpressionsCode,
+    generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .PgoCodes import checkPGOValueShape
 from .VariableCodes import getLocalVariableDeclaration
 
 
@@ -194,6 +199,47 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(value_name)
+
+
+def _shallUseClassPrepareResultOnce(expression, context):
+    """Is the class only created once per program run?
+
+    This is the case when the class creation is not inside a loop and its
+    entry point is the module, i.e. only module level code is executed exactly
+    once per run.
+    """
+    return (
+        expression.getContainingLoopNode() is None
+        and context.getOwner().getEntryPoint().isCompiledPythonModule()
+    )
+
+
+def generateCallClassPrepareCode(to_name, expression, emit, context):
+    generateExpressionCode(
+        to_name=to_name,
+        expression=expression.subnode_called,
+        emit=emit,
+        context=context,
+    )
+
+    if _shallUseClassPrepareResultOnce(expression=expression, context=context):
+        probe_function = "PGO_onProbeClassPrepareResultOnce"
+    else:
+        probe_function = "PGO_onProbeClassPrepareResult"
+
+    emit('%s(tstate, "%s", %s);' % (probe_function, expression.code_name, to_name))
+
+    if expression.getTypeShape() is not tshape_unknown and (
+        states.is_debug or hasNonDeploymentIndicator("pgo-assertions")
+    ):
+        checkPGOValueShape(
+            type_shape_to_check=expression.getTypeShape(),
+            value_name=to_name,
+            description="'__prepare__' result",
+            may_raise=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -31,7 +31,7 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallMakePackage,
 )
-from nuitka.pgo.PGO import decideInclusionFromPGO
+from nuitka.pgo.Pgo import decideInclusionFromPGO
 from nuitka.plugins.Hooks import (
     onModuleEncounter,
     onModuleRecursion,
