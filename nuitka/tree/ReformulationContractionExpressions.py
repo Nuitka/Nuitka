@@ -728,7 +728,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
-    # pylint: disable=too-many-locals
 
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
@@ -783,36 +782,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         ),
     )
 
-    if python_version < 0x300 or emit_class is not ExpressionYield:
-        body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
-    else:
-        parent_module = provider.getParentModule()
-
-        code_object = CodeObjectSpec(
-            co_name=name,
-            co_qualname=provider.getChildQualname(name),
-            co_kind="Function",
-            co_varnames=(),
-            co_freevars=(),
-            co_argcount=1,
-            co_posonlyargcount=0,
-            co_kwonlyargcount=0,
-            co_has_starlist=False,
-            co_has_stardict=False,
-            co_filename=parent_module.getRunTimeFilename(),
-            co_lineno=source_ref.getLineNumber(),
-            future_spec=parent_module.getFutureSpec(),
-        )
-
-        body = makeStatementsSequenceFromStatements(
-            assign_iter_statement,
-            StatementsFrameGenerator(
-                statements=mergeStatements(statements),
-                code_object=code_object,
-                owner_code_name=function_body.getCodeName(),
-                source_ref=source_ref,
-            ),
-        )
+    body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
 
     function_body.setChildBody(body)
 
