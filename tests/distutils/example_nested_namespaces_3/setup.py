@@ -4,11 +4,11 @@
 from setuptools import setup
 
 setup(
-    name="example-nested-namespaces32",
+    name="example-nested-namespaces-3",
     version="1.0",
     author="Nuitka Contributors",
     author_email="contributors@nuitka.invalid",
-    description="Nuitka distutils test case: example_nested_namespaces32",
+    description="Nuitka distutils test case: example_nested_namespaces_3",
     url="https://nuitka.net",
     packages=["a.b.pkg"],
     entry_points={"console_scripts": ["runner = a.b.pkg:main"]},

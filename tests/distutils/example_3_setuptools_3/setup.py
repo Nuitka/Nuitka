@@ -6,11 +6,11 @@
 from setuptools import setup
 
 setup(
-    name="example-3-setuptools32",
+    name="example-3-setuptools-3",
     version="1.0",
     author="Nuitka Contributors",
     author_email="contributors@nuitka.invalid",
-    description="Nuitka distutils test case: example_3_setuptools32",
+    description="Nuitka distutils test case: example_3_setuptools_3",
     url="https://nuitka.net",
     packages=["outer.inner"],
     entry_points={"console_scripts": ["runner = outer.inner.main:main"]},

@@ -342,7 +342,8 @@ def decideFilenameVersionSkip(filename):
     is the minimum version anyway.
 
     The "_2.py" indicates a maximum version of 2.7, i.e. not Python 3.x, for
-    language syntax no more supported.
+    language syntax no more supported. The "_3.py" indicates a minimum version
+    of 3.0, i.e. not Python 2.x, for language syntax not yet supported there.
     """
 
     # This will make many decisions with immediate returns.
@@ -363,6 +364,10 @@ def decideFilenameVersionSkip(filename):
 
     # Skip tests that require Python 2 at maximum.
     if filename.endswith("_2.py") and _python_version >= (3,):
+        return False
+
+    # Skip tests that require Python 3 at minimum.
+    if filename.endswith("_3.py") and _python_version < (3,):
         return False
 
     for version_suffix, max_excluded_version in _max_version_suffix_requirements:
