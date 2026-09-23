@@ -134,7 +134,7 @@ def _cleanupClangFormat(logger, filename, assume_yes_for_downloads, reject_messa
     )
 
     if clang_format_path:
-        with withPrivatePipSitePackagesPathAdded(logger=logger):
+        with withPrivatePipSitePackagesPathAdded():
             subprocess.call(
                 [
                     clang_format_path,

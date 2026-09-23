@@ -79,7 +79,7 @@ def getSystemPrefixExecutable():
     return sys.executable
 
 
-def _getCandidateBinPaths(logger, site_packages):
+def _getCandidateBinPaths(site_packages):
     """Get the candidate binary paths for the private pip space."""
     download_folder = getPrivatePipBaseFolder()
 
@@ -93,21 +93,25 @@ def _getCandidateBinPaths(logger, site_packages):
         candidate_bin_paths.insert(0, os.path.join(download_folder, "Scripts"))
 
     if site_packages is None:
-        site_packages = getPrivatePipSitePackagesDir(logger=logger)
+        site_packages_folders = _getPrivatePipSitePackagesDirs()
+    else:
+        site_packages_folders = (site_packages,)
 
-    if site_packages:
+    for site_packages_folder in site_packages_folders:
         if isWin32Windows():
             candidate_bin_paths.insert(
                 0,
                 os.path.join(
-                    os.path.dirname(os.path.dirname(site_packages)), "Scripts"
+                    os.path.dirname(os.path.dirname(site_packages_folder)), "Scripts"
                 ),
             )
         else:
             candidate_bin_paths.insert(
                 0,
                 os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.dirname(site_packages))),
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(site_packages_folder))
+                    ),
                     "bin",
                 ),
             )
@@ -218,9 +222,7 @@ def _cleanupPrivatePipBinaryState(logger, site_packages_folder, binary_names):
     removed = False
     seen_bin_paths = set()
 
-    for candidate_bin_path in _getCandidateBinPaths(
-        logger=logger, site_packages=site_packages_folder
-    ):
+    for candidate_bin_path in _getCandidateBinPaths(site_packages=site_packages_folder):
         if candidate_bin_path in seen_bin_paths:
             continue
 
@@ -243,30 +245,35 @@ def _cleanupPrivatePipBinaryState(logger, site_packages_folder, binary_names):
 
 def _cleanupPrivatePipPackageState(
     logger,
-    site_packages_folder,
     package_name,
     module_name,
     binary_names,
 ):
     """Remove stale package metadata, modules, and scripts before a refresh."""
+    removed = False
 
-    removed = _cleanupPrivatePipModuleState(
-        logger=logger,
-        site_packages_folder=site_packages_folder,
-        module_name=module_name,
-    )
-    removed = (
-        _cleanupPrivatePipMetadataState(
-            logger=logger,
-            site_packages_folder=site_packages_folder,
-            package_name=package_name,
+    for site_packages_folder in _getPrivatePipSitePackagesDirs():
+        removed = (
+            _cleanupPrivatePipModuleState(
+                logger=logger,
+                site_packages_folder=site_packages_folder,
+                module_name=module_name,
+            )
+            or removed
         )
-        or removed
-    )
+        removed = (
+            _cleanupPrivatePipMetadataState(
+                logger=logger,
+                site_packages_folder=site_packages_folder,
+                package_name=package_name,
+            )
+            or removed
+        )
+
     removed = (
         _cleanupPrivatePipBinaryState(
             logger=logger,
-            site_packages_folder=site_packages_folder,
+            site_packages_folder=None,
             binary_names=binary_names,
         )
         or removed
@@ -286,7 +293,7 @@ def _checkPrivatePipBinaryPath(
 ):
     """Check if a binary path is version compatible and usable."""
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         if version is None:
             ok = True
             message = None
@@ -337,7 +344,7 @@ def _getPrivatePipBinaryPath(
     version = getRequiredVersion(logger, package_name)
     report_rejection = reject_message is not None
 
-    candidate_bin_paths = _getCandidateBinPaths(logger=logger, site_packages=None)
+    candidate_bin_paths = _getCandidateBinPaths(site_packages=None)
 
     # Construct an extra_dir for search
     extra_dir = os.pathsep.join(candidate_bin_paths)
@@ -365,11 +372,8 @@ def _getPrivatePipBinaryPath(
         return None, None, assume_yes_for_downloads
 
     if force_package_update:
-        site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
-
         cleaned_private_pip = _cleanupPrivatePipPackageState(
             logger=logger,
-            site_packages_folder=site_packages_folder,
             package_name=package_name,
             module_name=module_name,
             binary_names=(binary_name,),
@@ -379,7 +383,6 @@ def _getPrivatePipBinaryPath(
             cleaned_private_pip = (
                 _cleanupPrivatePipPackageState(
                     logger=logger,
-                    site_packages_folder=site_packages_folder,
                     package_name=dep_package_name,
                     module_name=dep_module_name,
                     binary_names=(),
@@ -418,9 +421,7 @@ def _getPrivatePipBinaryPath(
             )
 
         # Check standard locations in the downloaded environment.
-        for candidate in _getCandidateBinPaths(
-            logger=logger, site_packages=site_packages_folder
-        ):
+        for candidate in _getCandidateBinPaths(site_packages=site_packages_folder):
             possible = os.path.join(candidate, binary_name)
             if isWin32Windows():
                 possible += ".exe"
@@ -458,44 +459,56 @@ def getPrivatePipBaseFolder():
     )
 
 
-_private_pip_site_packages_dir = None
+_private_pip_site_packages_dirs = None
 
 
-def getPrivatePipSitePackagesDir(logger):
-    """Get the site-packages directory of the private pip space."""
+def _getPrivatePipSitePackagesDirs():
+    """Get the site-packages directories of the private pip space.
+
+    Notes:
+        There can be more than one of them, e.g. when the private pip space has
+        been used by different Python installations, which install into
+        different locations, or when an older Nuitka version used a different
+        pip layout. All of them are considered, to be robust against stale
+        layouts.
+    """
     # We use the global statement to cache the result across calls.
     # pylint: disable=global-statement
-    global _private_pip_site_packages_dir
+    global _private_pip_site_packages_dirs
 
-    if _private_pip_site_packages_dir is None:
+    if _private_pip_site_packages_dirs is None:
         download_folder = getPrivatePipBaseFolder()
 
-        for root, dirnames, _filenames in os.walk(download_folder):
-            found_candidate = None
+        site_packages_dirs = []
 
+        for root, dirnames, _filenames in os.walk(download_folder):
             for candidate in getSitePackageCandidateNames():
                 if candidate in dirnames:
-                    # Unclear which one to use.
-                    if found_candidate is not None:
-                        return logger.sysexit(
-                            "Scan for pip folder found multiple candidates: %s and %s."
-                            % (found_candidate, candidate)
-                        )
+                    site_packages_dirs.append(os.path.join(root, candidate))
 
-                    found_candidate = candidate
+                    # Do not descend into the site-packages folders, only the
+                    # folders themselves are of interest.
+                    dirnames.remove(candidate)
 
-            if found_candidate:
-                _private_pip_site_packages_dir = os.path.join(root, found_candidate)
-                break
+        _private_pip_site_packages_dirs = site_packages_dirs
 
-    return _private_pip_site_packages_dir
+    return _private_pip_site_packages_dirs
 
 
-def withPrivatePipSitePackagesPathAdded(logger):
+def _invalidatePrivatePipSitePackagesDirs():
+    """Invalidate the cached site-packages directories after installation."""
+    # We use the global statement to reset the cache.
+    # pylint: disable=global-statement
+    global _private_pip_site_packages_dirs
+
+    _private_pip_site_packages_dirs = None
+
+
+def withPrivatePipSitePackagesPathAdded():
     """Context manager to add private pip site-packages to PYTHONPATH."""
-    return withEnvironmentPathAdded(
-        "PYTHONPATH", getPrivatePipSitePackagesDir(logger=logger), prefix=True
-    )
+    site_packages_dirs = _getPrivatePipSitePackagesDirs()
+
+    return withEnvironmentPathAdded("PYTHONPATH", *site_packages_dirs, prefix=True)
 
 
 def _isPackageInstalled(site_packages_folder, package_name, package_version):
@@ -536,6 +549,41 @@ def _isPackageInstalled(site_packages_folder, package_name, package_version):
     return True
 
 
+def _findPrivatePipSitePackagesDir(
+    package_name,
+    module_name,
+    package_version,
+):
+    """Find the site-packages directory that contains a package.
+
+    Notes:
+        Folders where the requested version of the package is installed are
+        preferred, but a folder with a different version is used as fallback,
+        so that packages in stale layouts can be found and refreshed.
+    """
+    fallback = None
+
+    for site_packages_folder in _getPrivatePipSitePackagesDirs():
+        module_path = getNormalizedPathJoin(
+            site_packages_folder, module_name.replace(".", os.path.sep)
+        )
+
+        if not os.path.exists(module_path):
+            continue
+
+        if _isPackageInstalled(
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+            package_version=package_version,
+        ):
+            return site_packages_folder
+
+        if fallback is None:
+            fallback = site_packages_folder
+
+    return fallback
+
+
 def tryDownloadPackageName(
     logger,
     package_name,
@@ -548,22 +596,23 @@ def tryDownloadPackageName(
     """Try to download a package from the private pip space."""
     download_folder = getPrivatePipBaseFolder()
 
-    site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
+    site_packages_folder = _findPrivatePipSitePackagesDir(
+        package_name=package_name,
+        module_name=module_name,
+        package_version=package_version,
+    )
 
     if site_packages_folder is not None and not force_update:
-        candidate = os.path.join(site_packages_folder, module_name)
-
-        if os.path.exists(candidate):
-            # If version is specified, check if it looks installed.
-            if _isPackageInstalled(
-                site_packages_folder=site_packages_folder,
-                package_name=package_name,
-                package_version=package_version,
-            ):
-                return (
-                    site_packages_folder,
-                    assume_yes_for_downloads,
-                )
+        # If version is specified, check if it looks installed.
+        if _isPackageInstalled(
+            site_packages_folder=site_packages_folder,
+            package_name=package_name,
+            package_version=package_version,
+        ):
+            return (
+                site_packages_folder,
+                assume_yes_for_downloads,
+            )
 
     if not _checkPackageConstraint(logger, package_name):
         return None, assume_yes_for_downloads
@@ -618,8 +667,17 @@ def tryDownloadPackageName(
         if exit_code != 0:
             return None, assume_yes_for_downloads
 
-        if site_packages_folder is None:
-            site_packages_folder = getPrivatePipSitePackagesDir(logger=logger)
+        # The package may have been installed into a different site-packages
+        # folder than it was previously found in, e.g. when the private pip
+        # space contains stale layouts of other Python installations, so the
+        # locations have to be found again.
+        _invalidatePrivatePipSitePackagesDirs()
+
+        site_packages_folder = _findPrivatePipSitePackagesDir(
+            package_name=package_name,
+            module_name=module_name,
+            package_version=package_version,
+        )
 
         if site_packages_folder is None or not _isPackageInstalled(
             site_packages_folder=site_packages_folder,

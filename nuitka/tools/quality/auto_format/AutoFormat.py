@@ -120,7 +120,7 @@ def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
             logger.warning("Need to accept mdformat download to format markdown files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         check_call([mdformat_path, "--number", "--wrap=100", filename])
 
 
@@ -153,7 +153,7 @@ def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads
             logger.warning("Need to accept rstfmt download to format RST files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         check_call([rstfmt_path, filename])
 
     cleanupWindowsNewlines(filename, effective_filename)

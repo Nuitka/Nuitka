@@ -270,7 +270,7 @@ def _cleanupImportSortOrder(
 
             return
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         isort_output = check_output(isort_call + isort_args + [filename])
 
     if isort_output == b"" and contents != "":
@@ -429,7 +429,7 @@ def formatPython(
 
         if not black_cache_hit:
             try:
-                with withPrivatePipSitePackagesPathAdded(logger=logger):
+                with withPrivatePipSitePackagesPathAdded():
                     check_call(black_call)
 
                 new_contents = getFileContents(filename, mode="rb")
