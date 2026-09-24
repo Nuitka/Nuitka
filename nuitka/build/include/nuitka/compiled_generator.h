@@ -235,9 +235,19 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
 }
 
 // Functions to preserver and restore from heap area temporary values during
-// yield/yield from/await exits of generator functions.
+// yield/yield from/await exits of generator functions. The capacity argument
+// is only passed and checked in debug mode.
+#ifndef __NUITKA_NO_ASSERT__
+extern void Nuitka_PreserveHeap(size_t capacity, void *dest, ...);
+extern void Nuitka_RestoreHeap(size_t capacity, void *source, ...);
+#define NUITKA_PRESERVE_HEAP(dest, capacity, ...) Nuitka_PreserveHeap(capacity, dest, __VA_ARGS__)
+#define NUITKA_RESTORE_HEAP(source, capacity, ...) Nuitka_RestoreHeap(capacity, source, __VA_ARGS__)
+#else
 extern void Nuitka_PreserveHeap(void *dest, ...);
 extern void Nuitka_RestoreHeap(void *source, ...);
+#define NUITKA_PRESERVE_HEAP(dest, capacity, ...) Nuitka_PreserveHeap(dest, __VA_ARGS__)
+#define NUITKA_RESTORE_HEAP(source, capacity, ...) Nuitka_RestoreHeap(source, __VA_ARGS__)
+#endif
 
 NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(PyThreadState *tstate,
                                                            struct Nuitka_GeneratorObject *generator) {

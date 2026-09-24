@@ -140,6 +140,42 @@ class VariableDeclaration(object):
         )
 
 
+class YieldTempsDeclaration(object):
+    """Storage for temporaries preserved across a yield.
+
+    Every yield site gets its own exact sized buffer, and the declaration is a
+    union of these, so the storage is only as big as the maximum needed.
+    """
+
+    __slots__ = ("heap_name", "size_expressions")
+
+    def __init__(self, heap_name):
+        self.heap_name = heap_name
+        self.size_expressions = []
+
+    def addSizeExpression(self, size_expression):
+        member_name = "yield_tmps_%d" % (len(self.size_expressions) + 1)
+        self.size_expressions.append(size_expression)
+
+        if self.heap_name is not None:
+            return "%s->yield_tmps.%s" % (self.heap_name, member_name)
+
+        return "yield_tmps.%s" % member_name
+
+    def makeDeclaration(self):
+        return "union {\n%s\n} yield_tmps;" % "\n".join(
+            "char yield_tmps_%d[%s];" % (index + 1, size_expression)
+            for index, size_expression in enumerate(self.size_expressions)
+        )
+
+    makeCStructDeclaration = makeDeclaration
+    makeCFunctionLevelDeclaration = makeDeclaration
+
+    @staticmethod
+    def makeCStructInit():
+        return None
+
+
 class VariableStorage(object):
     # The storage for variable declarations, with a couple of attributes for
     # exception variables, pylint: disable=too-many-instance-attributes
@@ -190,6 +226,20 @@ class VariableStorage(object):
     def getVariableDeclarationTop(self, code_name):
         return self.variable_declarations_top.get(code_name)
 
+    def getYieldTempsDeclaration(self):
+        result = self.variable_declarations_top.get("yield_tmps")
+
+        if result is None:
+            result = YieldTempsDeclaration(heap_name=self.heap_name)
+            self.variable_declarations_top["yield_tmps"] = result
+
+            if self.heap_name is not None:
+                self.variable_declarations_heap.append(result)
+            else:
+                self.variable_declarations_main.append(result)
+
+        return result
+
     def getVariableDeclarationClosure(self, closure_index):
         return self.variable_declarations_closure[closure_index]
 
@@ -205,11 +255,15 @@ class VariableStorage(object):
         ]
 
     def makeCStructInits(self):
-        return [
-            variable_declaration.makeCStructInit()
-            for variable_declaration in self.variable_declarations_heap
-            if variable_declaration.init_value is not None
-        ]
+        result = []
+
+        for variable_declaration in self.variable_declarations_heap:
+            init_value = variable_declaration.makeCStructInit()
+
+            if init_value is not None:
+                result.append(init_value)
+
+        return result
 
     def getExceptionVariableDescriptions(self):
         if self.exception_variable_name is None:

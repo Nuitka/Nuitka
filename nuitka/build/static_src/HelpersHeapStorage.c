@@ -12,11 +12,19 @@
 #include "nuitka/prelude.h"
 #endif
 
-void Nuitka_PreserveHeap(void *dest, ...) {
+void Nuitka_PreserveHeap(
+#ifndef __NUITKA_NO_ASSERT__
+    size_t capacity,
+#endif
+    void *dest, ...) {
     va_list(ap);
     va_start(ap, dest);
 
     char *w = (char *)dest;
+
+#ifndef __NUITKA_NO_ASSERT__
+    size_t total = 0;
+#endif
 
     for (;;) {
         void *source = va_arg(ap, void *);
@@ -25,6 +33,12 @@ void Nuitka_PreserveHeap(void *dest, ...) {
         }
 
         size_t size = va_arg(ap, size_t);
+
+#ifndef __NUITKA_NO_ASSERT__
+        total += size;
+        assert(total <= capacity);
+#endif
+
         memcpy(w, source, size);
         w += size;
     }
@@ -32,11 +46,19 @@ void Nuitka_PreserveHeap(void *dest, ...) {
     va_end(ap);
 }
 
-void Nuitka_RestoreHeap(void *source, ...) {
+void Nuitka_RestoreHeap(
+#ifndef __NUITKA_NO_ASSERT__
+    size_t capacity,
+#endif
+    void *source, ...) {
     va_list(ap);
     va_start(ap, source);
 
     char *w = (char *)source;
+
+#ifndef __NUITKA_NO_ASSERT__
+    size_t total = 0;
+#endif
 
     for (;;) {
         void *dest = va_arg(ap, void *);
@@ -45,6 +67,12 @@ void Nuitka_RestoreHeap(void *source, ...) {
         }
 
         size_t size = va_arg(ap, size_t);
+
+#ifndef __NUITKA_NO_ASSERT__
+        total += size;
+        assert(total <= capacity);
+#endif
+
         memcpy(dest, w, size);
         w += size;
     }

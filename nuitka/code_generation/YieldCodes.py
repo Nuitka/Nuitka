@@ -49,18 +49,19 @@ def _getYieldPreserveCode(
         locals_preserved.remove(to_name)
 
     if locals_preserved:
-        yield_tmp_storage = context.variable_storage.getVariableDeclarationTop(
-            "yield_tmps"
+        yield_temps = context.variable_storage.getYieldTempsDeclaration()
+
+        yield_tmp_storage = yield_temps.addSizeExpression(
+            " + ".join(
+                "sizeof(%s)" % local_preserved.c_type
+                for local_preserved in locals_preserved
+            )
         )
 
-        if yield_tmp_storage is None:
-            yield_tmp_storage = context.variable_storage.addVariableDeclarationTop(
-                "char[1024]", "yield_tmps", None
-            )
-
         emit(
-            "Nuitka_PreserveHeap(%s, %s, NULL);"
+            "NUITKA_PRESERVE_HEAP(%s, sizeof(%s), %s, NULL);"
             % (
+                yield_tmp_storage,
                 yield_tmp_storage,
                 ", ".join(
                     "&%s, sizeof(%s)" % (local_preserved, local_preserved.c_type)
@@ -98,8 +99,9 @@ def _getYieldPreserveCode(
 
     if locals_preserved:
         emit(
-            "Nuitka_RestoreHeap(%s, %s, NULL);"
+            "NUITKA_RESTORE_HEAP(%s, sizeof(%s), %s, NULL);"
             % (
+                yield_tmp_storage,
                 yield_tmp_storage,
                 ", ".join(
                     "&%s, sizeof(%s)" % (local_preserved, local_preserved.c_type)
