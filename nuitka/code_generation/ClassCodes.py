@@ -19,6 +19,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .LocalsDictCodes import assignDictOrMappingItem
 from .PgoCodes import checkPGOValueShape
 from .VariableCodes import getLocalVariableDeclaration
 
@@ -161,10 +162,17 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
 
     if python_version >= 0x360 and expression.class_variable.isSharedTechnically():
         # In Python 3.6+, type.__new__ requires "__classcell__" to be populated in the class dictionary
-        # if there are methods capturing it.
-        emit(
-            "DICT_SET_ITEM(%s, const_str_plain___classcell__, (PyObject *)%s);"
-            % (dict_name, class_var_name)
+        # if there are methods capturing it. The class namespace can be a custom mapping from the
+        # "__prepare__" of the metaclass though, and then it has to be set via the mapping interface,
+        # just like the class body does it.
+        assignDictOrMappingItem(
+            target_name=dict_name,
+            key_name=context.getConstantCode(constant="__classcell__"),
+            value_name="(PyObject *)%s" % class_var_name,
+            is_dict_shape=expression.subnode_dict_arg.hasShapeDictionaryExact(),
+            may_raise=True,
+            emit=emit,
+            context=context,
         )
 
     args_name = context.allocateTempName("metaclass_args")
