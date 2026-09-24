@@ -302,17 +302,28 @@ static int _Nuitka_FrameLocalsProxy_ass_subscript(PyObject *self, PyObject *key,
     struct Nuitka_FrameObject *frame = proxy->frame;
     PyThreadState *tstate = PyThreadState_GET();
     int type;
+    void *slot;
 
-    void *slot = _Nuitka_FrameLocalsProxy_lookup(proxy, key, &type);
+#if PYTHON_VERSION < 0x3d1
+    // Python 3.13.0 did not allow removing anything from the proxy at all.
+    if (value == NULL) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "cannot remove variables from FrameLocalsProxy");
+        return -1;
+    }
+#endif
+
+    slot = _Nuitka_FrameLocalsProxy_lookup(proxy, key, &type);
     if (slot == NULL && HAS_ERROR_OCCURRED(tstate)) {
         return -1;
     }
     if (slot != NULL) {
+#if PYTHON_VERSION >= 0x3d1
         if (value == NULL) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                             "cannot remove local variables from FrameLocalsProxy");
             return -1;
         }
+#endif
 
         switch (type) {
         case NUITKA_TYPE_DESCRIPTION_OBJECT:
@@ -471,6 +482,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_get(PyObject *self, PyObject *args) {
     return default_value;
 }
 
+#if PYTHON_VERSION >= 0x3d1
 static PyObject *_Nuitka_FrameLocalsProxy_pop(PyObject *self, PyObject *args) {
     Nuitka_FrameLocalsProxyObject *proxy = (Nuitka_FrameLocalsProxyObject *)self;
     PyThreadState *tstate = PyThreadState_GET();
@@ -506,6 +518,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_pop(PyObject *self, PyObject *args) {
     SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
     return NULL;
 }
+#endif
 
 static PyObject *_Nuitka_FrameLocalsProxy_update(PyObject *self, PyObject *other) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -596,7 +609,9 @@ static PyMethodDef Nuitka_FrameLocalsProxy_methods[] = {
     {"values", (PyCFunction)_Nuitka_FrameLocalsProxy_values, METH_NOARGS, NULL},
     {"items", (PyCFunction)_Nuitka_FrameLocalsProxy_items, METH_NOARGS, NULL},
     {"get", (PyCFunction)_Nuitka_FrameLocalsProxy_get, METH_VARARGS, NULL},
+#if PYTHON_VERSION >= 0x3d1
     {"pop", (PyCFunction)_Nuitka_FrameLocalsProxy_pop, METH_VARARGS, NULL},
+#endif
     {"setdefault", (PyCFunction)_Nuitka_FrameLocalsProxy_setdefault, METH_VARARGS, NULL},
     {"update", (PyCFunction)_Nuitka_FrameLocalsProxy_update, METH_O, NULL},
     {"__reversed__", (PyCFunction)_Nuitka_FrameLocalsProxy_reversed, METH_NOARGS, NULL},
