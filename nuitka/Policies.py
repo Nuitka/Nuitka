@@ -13,10 +13,45 @@ user control. They are kept here to avoid circular imports of "Options" and
 
 from nuitka.ModuleRegistry import hasDoneModule
 from nuitka.options.Options import (
+    hasNonDeploymentIndicator,
     isExperimental,
     isStandaloneMode,
     shallMakeModule,
 )
+from nuitka.States import states
+
+_default_pgo_assertion_policy = None
+
+
+def decidePGOClassDictAssertionPolicy(static_qualname):
+    """Decide how to check PGO data for a class dictionary.
+
+    Args:
+        static_qualname: Statically known qualified name of the class, for
+            future per class configuration decisions.
+
+    Notes:
+        This is the future point for user control of this decision.
+
+    Returns:
+        One of 'ignore', 'exception' or 'assertion'.
+    """
+    # TODO: Add Nuitka package configuration for deciding this per class name.
+    # pylint: disable=unused-argument
+
+    # Cached, since options do not change during a compilation.
+    global _default_pgo_assertion_policy  # pylint: disable=global-statement
+
+    if _default_pgo_assertion_policy is None:
+        if states.is_debug:
+            # Debug mode must reveal mismatches that user code might swallow.
+            _default_pgo_assertion_policy = "assertion"
+        elif hasNonDeploymentIndicator("pgo-assertions"):
+            _default_pgo_assertion_policy = "exception"
+        else:
+            _default_pgo_assertion_policy = "ignore"
+
+    return _default_pgo_assertion_policy
 
 
 def decideImportLoweringToFixed(module_name):

@@ -20,6 +20,9 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
     ExpressionCallClassPrepare,
+    ExpressionCallClassPrepareKnownStartValueDictAsserted,
+    ExpressionCallClassPrepareKnownStartValueDictException,
+    ExpressionCallClassPrepareKnownStartValueDictIgnored,
     ExpressionCallMetaclass,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
@@ -99,6 +102,7 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.options.Options import isExperimental
 from nuitka.pgo.Pgo import getPGOClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
+from nuitka.Policies import decidePGOClassDictAssertionPolicy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -151,14 +155,14 @@ def _needsOrigBases(_static_qualname):
 
 
 def makeExpressionClassPrepareCall(
-    code_name, metaclass, name, bases, class_decl_dict, source_ref
+    code_name, static_qualname, metaclass, name, bases, class_decl_dict, source_ref
 ):
     pgo_result = getPGOClassPrepareResult(code_name)
 
     if pgo_result is None and isExperimental("force-p2-class"):
         # Use a synthetic PGO result to exercise the dict shape path.
         type_shape = tshape_dict
-        expected_value = None
+        expected_value = {}
     else:
         # TODO: Rejecting non-empty values from PGO for now, as the value
         # space does not carry the dict contents yet. Later the prepare result
@@ -172,7 +176,19 @@ def makeExpressionClassPrepareCall(
         else:
             expected_value = pgo_result
 
-    return ExpressionCallClassPrepare(
+    if expected_value is None:
+        result_class = ExpressionCallClassPrepare
+    else:
+        pgo_policy = decidePGOClassDictAssertionPolicy(static_qualname)
+
+        if pgo_policy == "ignore":
+            result_class = ExpressionCallClassPrepareKnownStartValueDictIgnored
+        elif pgo_policy == "assertion":
+            result_class = ExpressionCallClassPrepareKnownStartValueDictAsserted
+        else:
+            result_class = ExpressionCallClassPrepareKnownStartValueDictException
+
+    return result_class(
         called=makeExpressionCall(
             called=makeExpressionAttributeLookup(
                 expression=metaclass.makeClone(),
@@ -734,6 +750,7 @@ def buildClassNode3(provider, node, source_ref):
         variable=tmp_prepared,
         source=makeExpressionClassPrepareCall(
             code_name=class_dict_creation_function.getCodeName(),
+            static_qualname=static_qualname,
             metaclass=ExpressionTempVariableRef(
                 variable=tmp_metaclass, source_ref=source_ref
             ),

@@ -1064,6 +1064,9 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
 
     # This is generated for use in
     #   ExpressionCallClassPrepare
+    #   ExpressionCallClassPrepareKnownStartValueDictAsserted
+    #   ExpressionCallClassPrepareKnownStartValueDictException
+    #   ExpressionCallClassPrepareKnownStartValueDictIgnored
 
     def __init__(self, called, type_shape, code_name, expected_value, source_ref):
         called.parent = self
@@ -1172,6 +1175,15 @@ class _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin(ExpressionBase):
 
 # Assign the names that are easier to import with a stable name.
 ExpressionCallClassPrepareBase = _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
+ExpressionCallClassPrepareKnownStartValueDictAssertedBase = (
+    _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
+)
+ExpressionCallClassPrepareKnownStartValueDictExceptionBase = (
+    _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
+)
+ExpressionCallClassPrepareKnownStartValueDictIgnoredBase = (
+    _ChildHavingCalledCodeNameExpectedValueTypeShapeMixin
+)
 
 
 class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):

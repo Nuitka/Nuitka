@@ -7,10 +7,7 @@ Most the class specific stuff is solved in re-formulation. Only the selection
 of the metaclass remains as specific.
 """
 
-from nuitka.nodes.shapes.StandardShapes import tshape_unknown
-from nuitka.options.Options import hasNonDeploymentIndicator
 from nuitka.PythonVersions import python_version
-from nuitka.States import states
 
 from .AttributeCodes import getAttributeLookupCode
 from .CodeHelpers import (
@@ -223,31 +220,53 @@ def _shallUseClassPrepareResultOnce(expression, context):
 
 
 def generateCallClassPrepareCode(to_name, expression, emit, context):
-    generateExpressionCode(
-        to_name=to_name,
-        expression=expression.subnode_called,
-        emit=emit,
-        context=context,
-    )
+    assert expression.pgo_policy in (
+        None,
+        "ignore",
+        "assertion",
+        "exception",
+    ), expression.pgo_policy
 
-    if _shallUseClassPrepareResultOnce(expression=expression, context=context):
-        probe_function = "PGO_onProbeClassPrepareResultOnce"
-    else:
-        probe_function = "PGO_onProbeClassPrepareResult"
+    # When the start value is trusted and the call is not executed, the
+    # recorded value is used as the class namespace, with plain dicts being
+    # data, so the "__prepare__" call is assumed to have no relevant side
+    # effects. Custom mappings keep the call.
+    if expression.pgo_policy == "ignore":
+        assert expression.expected_value is not None
 
-    emit('%s(tstate, "%s", %s);' % (probe_function, expression.code_name, to_name))
-
-    if expression.getTypeShape() is not tshape_unknown and (
-        states.is_debug or hasNonDeploymentIndicator("pgo-assertions")
-    ):
-        checkPGOValueShape(
-            type_shape_to_check=expression.getTypeShape(),
-            value_name=to_name,
-            description="'__prepare__' result",
-            may_raise=expression.mayRaiseExceptionOperation(),
+        to_name.getCType().emitAssignmentCodeFromConstant(
+            to_name=to_name,
+            constant=expression.expected_value,
+            may_escape=True,
             emit=emit,
             context=context,
         )
+    else:
+        generateExpressionCode(
+            to_name=to_name,
+            expression=expression.subnode_called,
+            emit=emit,
+            context=context,
+        )
+
+        if _shallUseClassPrepareResultOnce(expression=expression, context=context):
+            probe_function = "PGO_onProbeClassPrepareResultOnce"
+        else:
+            probe_function = "PGO_onProbeClassPrepareResult"
+
+        emit('%s(tstate, "%s", %s);' % (probe_function, expression.code_name, to_name))
+
+        if expression.pgo_policy in ("assertion", "exception"):
+            assert expression.expected_value is not None
+
+            checkPGOValueShape(
+                type_shape_to_check=expression.getTypeShape(),
+                value_name=to_name,
+                description="'__prepare__' result",
+                may_raise=expression.mayRaiseExceptionOperation(),
+                emit=emit,
+                context=context,
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
