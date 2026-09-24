@@ -78,6 +78,59 @@ Py_DECREF(%(locals_dict)s);
 %(locals_dict)s = NULL;""" % {"locals_dict": locals_declaration})
 
 
+def assignDictOrMappingItem(
+    target_name, key_name, value_name, is_dict_shape, may_raise, emit, context
+):
+    """Set a key and value in a mapping.
+
+    Notes:
+        For exact dictionary shapes, the faster dictionary API is used, while
+        for mappings the generic mapping API is used, and error checking is
+        done when setting is known to possibly raise.
+
+    Args:
+        target_name: Code name of the mapping to set in.
+        key_name: Code name of the key to set.
+        value_name: Code name of the value to set, the caller has to own a
+            reference for it.
+        is_dict_shape: Whether the mapping is known to be an exact dictionary.
+        may_raise: Whether setting the item may raise, e.g. for custom
+            mappings, and then error checking is done.
+        emit: Function to emit code to.
+        context: Code generation context.
+    """
+    if is_dict_shape:
+        res_name = context.getBoolResName()
+
+        emit(
+            "%s = DICT_SET_ITEM(%s, %s, %s);"
+            % (res_name, target_name, key_name, value_name)
+        )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=value_name,
+            needs_check=may_raise,
+            emit=emit,
+            context=context,
+        )
+    else:
+        res_name = context.getIntResName()
+
+        emit(
+            "%s = PyObject_SetItem(%s, %s, %s);"
+            % (res_name, target_name, key_name, value_name)
+        )
+
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            release_name=value_name,
+            needs_check=may_raise,
+            emit=emit,
+            context=context,
+        )
+
+
 def generateLocalsDictSetCode(statement, emit, context):
     value_arg_name = context.allocateTempName("dictset_value", unique=True)
     generateExpressionCode(
@@ -93,48 +146,15 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.hasShapeDictionaryExact()
-
-    if is_dict:
-        res_name = context.getBoolResName()
-
-        emit(
-            "%s = DICT_SET_ITEM(%s, %s, %s);"
-            % (
-                res_name,
-                locals_declaration,
-                context.getConstantCode(statement.getVariableName()),
-                value_arg_name,
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=value_arg_name,
-            needs_check=statement.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
-    else:
-        res_name = context.getIntResName()
-
-        emit(
-            "%s = PyObject_SetItem(%s, %s, %s);"
-            % (
-                res_name,
-                locals_declaration,
-                context.getConstantCode(statement.getVariableName()),
-                value_arg_name,
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
-            release_name=value_arg_name,
-            needs_check=statement.mayRaiseException(BaseException),
-            emit=emit,
-            context=context,
-        )
+    assignDictOrMappingItem(
+        target_name=locals_declaration,
+        key_name=context.getConstantCode(statement.getVariableName()),
+        value_name=value_arg_name,
+        is_dict_shape=locals_scope.hasShapeDictionaryExact(),
+        may_raise=statement.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
+    )
 
 
 def generateLocalsDictDelCode(statement, emit, context):
