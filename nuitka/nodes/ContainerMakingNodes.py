@@ -120,6 +120,10 @@ class ExpressionMakeSequenceBase(
         """The simulator for the container making, for overload."""
 
     def computeExpression(self, trace_collection):
+        # The values become part of the container, through which they can be
+        # accessed and changed, so they escape here.
+        self.onContentEscapes(trace_collection)
+
         for element in self.subnode_elements:
             if not element.isCompileTimeConstant():
                 return self, None, None

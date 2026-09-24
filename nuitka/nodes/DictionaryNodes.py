@@ -218,6 +218,10 @@ class ExpressionMakeDict(
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs
 
+        # The values become part of the dictionary, through which they can be
+        # accessed and changed, so they escape here.
+        self.onContentEscapes(trace_collection)
+
         is_constant = True
 
         for pair in pairs:
@@ -317,6 +321,9 @@ class StatementDictOperationSetMixin(object):
 
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
+
+        # This lets the value added to the dictionary escape.
+        self.subnode_value.onContentEscapes(trace_collection)
 
         return self, None, None
 
@@ -637,6 +644,9 @@ class ExpressionDictOperationSetdefault3(ExpressionDictOperationSetdefault3Base)
 
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(dict_arg)
+
+        # This lets the default value added to the dictionary escape.
+        self.subnode_default.onContentEscapes(trace_collection)
 
         # TODO: Check for "None" default and demote to ExpressionDictOperationSetdefault3 in
         # that case.
@@ -1198,6 +1208,9 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
 
+            # This lets the values added to the dictionary escape.
+            pair.onContentEscapes(trace_collection)
+
         # TODO: Until we can know iteration error won't happen, but then we should change into
         # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1237,6 +1250,9 @@ class ExpressionDictOperationUpdatePairs(
 
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
+
+            # This lets the values added to the dictionary escape.
+            pair.onContentEscapes(trace_collection)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
         # something else.

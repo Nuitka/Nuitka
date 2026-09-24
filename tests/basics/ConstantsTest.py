@@ -173,6 +173,30 @@ except AttributeError:
 else:
     print("Type prepare", type_prepare)
 
+
+# Mutation of a constant dictionary aliased in a container must not affect
+# compile time "in" decisions on the original constant.
+def aliasMutationInCheck():
+    d = {"a": 1}
+
+    lst = [d]
+    lst[0]["b"] = 2
+
+    tup = (d,)
+    tup[0]["c"] = 3
+
+    outer = {"inner": d}
+    outer["inner"]["e"] = 4
+
+    appended = []
+    appended.append(d)
+    appended[0]["f"] = 5
+
+    return "b" in d, "c" in d, "e" in d, "f" in d, displayDict(d)
+
+
+print("Aliased constant dict mutation:", aliasMutationInCheck())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
