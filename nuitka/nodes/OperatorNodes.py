@@ -8,9 +8,9 @@ no real difference.
 """
 
 import copy
-import math
 from abc import abstractmethod
 
+from nuitka.__past__ import long, unicode
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonOperators import (
     binary_operator_functions,
@@ -33,6 +33,115 @@ from .shapes.StandardShapes import (
     tshape_unknown,
     vshape_unknown,
 )
+
+# Limits for compile time constant folding, values taken from CPython.
+MAX_INT_SIZE = 128  # bits
+MAX_COLLECTION_SIZE = 256  # items
+MAX_STR_SIZE = 4096  # characters
+MAX_TOTAL_ITEMS = 1024  # including nested collections
+
+_INT_TYPES = (int, long, bool)
+_STR_TYPES = (str, bytes, unicode)
+_COLLECTION_TYPES = (tuple, list, frozenset)
+
+
+def _getIntBitLength(value):
+    # The "bit_length" method is not available on Python 2.6.
+    value = abs(value)
+
+    if value == 0:
+        return 0
+
+    return len(bin(value)) - 2
+
+
+def _computeComplexity(value, limit):
+    """Compute the remaining item budget of nested collections.
+
+    Notes:
+        This emulates the 'check_complexity' function of CPython.
+
+    Returns:
+        Remaining item budget, negative if exceeded.
+
+    """
+
+    if type(value) in _COLLECTION_TYPES:
+        limit -= len(value)
+
+        for element in value:
+            if limit < 0:
+                break
+
+            limit = _computeComplexity(element, limit)
+
+    return limit
+
+
+def _isTooLargeMultiply(left_value, right_value):
+    """Check multiplication against the compile time limits of CPython."""
+
+    left_type = type(left_value)
+    right_type = type(right_value)
+
+    result = False
+
+    if left_type in _INT_TYPES and right_type in _INT_TYPES:
+        if left_value and right_value:
+            result = (
+                _getIntBitLength(left_value) + _getIntBitLength(right_value)
+                > MAX_INT_SIZE
+            )
+    elif left_type in _INT_TYPES or right_type in _INT_TYPES:
+        if left_type in _INT_TYPES:
+            count, sequence = left_value, right_value
+        else:
+            count, sequence = right_value, left_value
+
+        sequence_type = type(sequence)
+
+        if sequence_type in _STR_TYPES:
+            if sequence:
+                result = count < 0 or count > MAX_STR_SIZE // len(sequence)
+        elif sequence_type in _COLLECTION_TYPES:
+            size = len(sequence)
+
+            if size:
+                if count < 0 or count > MAX_COLLECTION_SIZE // size:
+                    result = True
+                else:
+                    result = (
+                        bool(count)
+                        and _computeComplexity(sequence, MAX_TOTAL_ITEMS // count) < 0
+                    )
+
+    return result
+
+
+def _isTooLargePower(left_value, right_value):
+    """Check power against the compile time limits of CPython."""
+
+    if type(left_value) in _INT_TYPES and type(right_value) in _INT_TYPES:
+        if left_value and right_value > 0:
+            if right_value > MAX_INT_SIZE:
+                return True
+
+            return _getIntBitLength(left_value) > MAX_INT_SIZE // right_value
+
+    return False
+
+
+def _isTooLargeLshift(left_value, right_value):
+    """Check left shift against the compile time limits of CPython."""
+
+    if type(left_value) in _INT_TYPES and type(right_value) in _INT_TYPES:
+        if left_value and right_value:
+            if right_value < 0 or right_value > MAX_INT_SIZE:
+                return True
+
+            return _getIntBitLength(left_value) > MAX_INT_SIZE - right_value
+
+    return False
 
 
 class ExpressionPropertiesFromTypeShapeMixin(object):
@@ -296,57 +405,33 @@ class ExpressionOperationMultMixin(object):
         return self.shape
 
     def getTooLargeShape(self):
-        if self.subnode_right.isNumberConstant():
-            iter_length = self.subnode_left.getIterationLength()
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-            if iter_length is not None:
-                size = iter_length * self.subnode_right.getCompileTimeConstant()
-                if size > 256:
-                    return ShapeLargeConstantValuePredictable(
-                        size=size,
-                        predictor=None,  # predictValuesFromRightAndLeftValue,
-                        shape=self.subnode_left.getTypeShape(),
-                    )
+        if not _isTooLargeMultiply(left_value, right_value):
+            return None
 
-            if self.subnode_left.isNumberConstant():
-                if (
-                    self.subnode_left.isIndexConstant()
-                    and self.subnode_right.isIndexConstant()
-                ):
-                    # Estimate with logarithm, if the result of number
-                    # calculations is computable with acceptable effort,
-                    # otherwise, we will have to do it at runtime.
-                    left_value = self.subnode_left.getCompileTimeConstant()
+        left_type = type(left_value)
+        right_type = type(right_value)
 
-                    if left_value != 0:
-                        right_value = self.subnode_right.getCompileTimeConstant()
+        if left_type in _INT_TYPES and right_type not in _INT_TYPES:
+            size = len(right_value) * max(left_value, 0)
 
-                        # TODO: Is this really useful, can this be really slow.
-                        if right_value != 0:
-                            if (
-                                math.log10(abs(left_value))
-                                + math.log10(abs(right_value))
-                                > 20
-                            ):
-                                return ShapeLargeConstantValue(
-                                    size=None, shape=tshape_int_or_long
-                                )
+            return ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_right.getTypeShape(),
+            )
+        elif right_type in _INT_TYPES and left_type not in _INT_TYPES:
+            size = len(left_value) * max(right_value, 0)
 
-        elif self.subnode_left.isNumberConstant():
-            iter_length = self.subnode_right.getIterationLength()
-
-            if iter_length is not None:
-                left_value = self.subnode_left.getCompileTimeConstant()
-
-                size = iter_length * left_value
-                if iter_length * left_value > 256:
-                    return ShapeLargeConstantValuePredictable(
-                        size=size,
-                        predictor=None,  # predictValuesFromRightAndLeftValue,
-                        shape=self.subnode_right.getTypeShape(),
-                    )
-
-        return None
+            return ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_left.getTypeShape(),
+            )
+        else:
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
 
 class ExpressionOperationBinaryMult(
@@ -533,25 +618,11 @@ class ExpressionOperationPowMixin(object):
         return self.shape
 
     def getTooLargeShape(self):
-        if self.subnode_right.isIndexConstant():
-            # Estimate with logarithm, if the result of number
-            # calculations is computable with acceptable effort,
-            # otherwise, we will have to do it at runtime.
-            left_value = abs(self.subnode_left.getCompileTimeConstant())
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-            if left_value in (0, 1):
-                return None
-
-            if self.subnode_left.isIndexConstant():
-                right_value = self.subnode_right.getCompileTimeConstant()
-
-                # Negative values, and 0, 1 powers are not a problem.
-                if right_value <= 1:
-                    return None
-
-                # More than a typical pow, most likely a stupid test.
-                if math.log10(left_value) * right_value > 20:
-                    return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
+        if _isTooLargePower(left_value, right_value):
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
         return None
 
@@ -577,21 +648,11 @@ class ExpressionOperationLshiftMixin(object):
         return self.shape
 
     def getTooLargeShape(self):
-        if self.subnode_right.isNumberConstant():
-            if self.subnode_left.isNumberConstant():
-                # Estimate with logarithm, if the result of number
-                # calculations is computable with acceptable effort,
-                # otherwise, we will have to do it at runtime.
-                left_value = self.subnode_left.getCompileTimeConstant()
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-                if left_value != 0:
-                    right_value = self.subnode_right.getCompileTimeConstant()
-
-                    # More than a typical shift, most likely a stupid test.
-                    if right_value > 64:
-                        return ShapeLargeConstantValue(
-                            size=None, shape=tshape_int_or_long
-                        )
+        if _isTooLargeLshift(left_value, right_value):
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
         return None
 
