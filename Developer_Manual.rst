@@ -490,24 +490,13 @@ block.
  API Documentation and Guidelines
 **********************************
 
-There is API documentation generated with ``doxygen``, available at
-`this location <https://nuitka.net/apidoc>`__ .
-
-To ensure meaningful ``doxygen`` output, the following guidelines must
-be observed when creating or updating Python source:
-
-Use of Standard Python ``__doc__`` Strings
-==========================================
-
 Every class and every method should be documented via the standard
-Python delimiters (``""" ... """``) in the usual way.
+Python delimiters (``""" ... """``) in the usual way. To ensure
+meaningful output, the following guidelines must be observed when
+creating or updating Python source:
 
-Special ``doxygen`` Anatomy of ``__doc__``
-==========================================
-
-.. note::
-
-   We are replacing Doxygen with sphinx, this is all obsolete
+Anatomy of ``__doc__``
+======================
 
 -  Immediately after the leading ``"""``, and after 1 space on the same
    line, enter a brief description or title of the class or method. This
@@ -813,24 +802,6 @@ because Nuitka uses a lot of packages and imports between them.
 *********************
  Internal/Plugin API
 *********************
-
-The documentation from the source code for both the Python and the C
-parts are published as `Nuitka API <https://nuitka.net/apidoc>`__ and
-arguably in a relatively bad shape as we started generating those with
-Doxygen only relatively late.
-
-.. code:: bash
-
-   doxygen ./doc/Doxyfile
-   xdg-open html
-
-Improvements have already been implemented for plugins: The plugin base
-class defined in ``PluginBase.py`` (which is used as a template for all
-plugins) is fully documented in Doxygen now. The same is true for the
-recently added standard plugins ``NumpyPlugin.py`` and
-``TkinterPlugin.py``. These will be uploaded very soon.
-
-Going forward, this will also happen for the remaining standard plugins.
 
 Please find `here
 <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
