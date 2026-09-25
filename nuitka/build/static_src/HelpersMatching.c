@@ -27,6 +27,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
     bool needs_check = positional_count + keywords_count > 1;
     if (needs_check) {
         seen = PySet_New(NULL);
+        assert(seen != NULL);
     }
 
     assert(positional_count + keywords_count > 0);
@@ -41,6 +42,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
                 PyErr_Format(PyExc_TypeError, "%s.__match_args__ must be a tuple (got %s)", type->tp_name,
                              Py_TYPE(match_args)->tp_name);
                 Py_DECREF(match_args);
+                Py_XDECREF(seen);
                 return NULL;
             }
 
@@ -49,21 +51,26 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
             if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
                 if (positional_count > 1) {
                     FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, 1);
+                    Py_XDECREF(seen);
                     return NULL;
                 }
 
                 assert(keywords_count == 0);
 
+                Py_XDECREF(seen);
                 return MAKE_TUPLE1(tstate, matched);
             }
 
             actual = 0;
         } else {
+            Py_XDECREF(seen);
             return NULL;
         }
 
         if (positional_count > actual) {
             FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, actual);
+            Py_XDECREF(match_args);
+            Py_XDECREF(seen);
             return NULL;
         }
     }
@@ -79,29 +86,28 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
                          "(got %s)",
                          Py_TYPE(arg_name)->tp_name);
 
-            Py_DECREF(match_args);
-            Py_DECREF(result);
-
-            return NULL;
+            goto error;
         }
 
         if (needs_check) {
-            if (i != 0 && PySet_Contains(seen, arg_name)) {
-                _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
-                              ((PyTypeObject *)type)->tp_name, arg_name);
+            if (PySet_Contains(seen, arg_name) || PySet_Add(seen, arg_name)) {
+                if (!HAS_ERROR_OCCURRED(tstate)) {
+                    // Seen it before!
+                    _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
+                                  ((PyTypeObject *)type)->tp_name, arg_name);
+                }
 
-                return NULL;
+                goto error;
             }
-
-            PySet_Add(seen, arg_name);
         }
 
         PyObject *arg_value = LOOKUP_ATTRIBUTE(tstate, matched, arg_name);
         if (unlikely(arg_value == NULL)) {
             DROP_ERROR_OCCURRED(tstate);
 
-            Py_DECREF(match_args);
             Py_DECREF(result);
+            Py_XDECREF(match_args);
+            Py_XDECREF(seen);
 
             Py_INCREF_IMMORTAL(Py_None);
             return Py_None;
@@ -116,22 +122,24 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
         assert(PyUnicode_CheckExact(arg_name));
 
         if (needs_check) {
-            if (PySet_Contains(seen, arg_name)) {
-                _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
-                              ((PyTypeObject *)type)->tp_name, arg_name);
+            if (PySet_Contains(seen, arg_name) || PySet_Add(seen, arg_name)) {
+                if (!HAS_ERROR_OCCURRED(tstate)) {
+                    // Seen it before!
+                    _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
+                                  ((PyTypeObject *)type)->tp_name, arg_name);
+                }
 
-                return NULL;
+                goto error;
             }
-
-            PySet_Add(seen, arg_name);
         }
 
         PyObject *arg_value = LOOKUP_ATTRIBUTE(tstate, matched, arg_name);
         if (unlikely(arg_value == NULL)) {
             DROP_ERROR_OCCURRED(tstate);
 
-            Py_XDECREF(match_args);
             Py_DECREF(result);
+            Py_XDECREF(match_args);
+            Py_XDECREF(seen);
 
             Py_INCREF_IMMORTAL(Py_None);
             return Py_None;
@@ -141,7 +149,16 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
     }
 
     Py_XDECREF(match_args);
+    Py_XDECREF(seen);
+
     return result;
+
+error:
+    Py_DECREF(result);
+    Py_XDECREF(match_args);
+    Py_XDECREF(seen);
+
+    return NULL;
 }
 
 bool MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
