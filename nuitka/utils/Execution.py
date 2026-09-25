@@ -492,6 +492,18 @@ def wrapCommandForDebuggerForExec(command, debugger):
             "Error, the selected debugger '%s' was not found in path."
         )
 
+    # Some debuggers need to be run in their architecture, e.g. the "lldb"
+    # shim of newer Xcode "CommandLineTools" cannot be used from a translated
+    # process at all, and must be started with "arch -arm64" instead.
+    arch_prefix = getToolArchPrefix(args[0])
+
+    if arch_prefix:
+        # The "exec" style command contains an exec only "argv[0]" entry of
+        # the debugger, but the "arch" tool provides that itself, so it must
+        # be dropped, which also makes the subprocess style work, as that
+        # discards the second entry, which is the "arch" name then.
+        args = (arch_prefix[0], "arch") + tuple(arch_prefix[1:]) + (args[0],) + args[2:]
+
     return args
 
 
@@ -554,7 +566,7 @@ def filterOutputByLine(output, filter_func):
 # Nuitka or the tests are run by a translated x86_64 process, where they
 # would otherwise fail to load their libraries. This includes "git", which
 # is a shim that loads the ARM64 only "libxcrun" library.
-_macos_native_arch_tools = ("git", "install_name_tool", "lipo", "nm", "otool")
+_macos_native_arch_tools = ("git", "install_name_tool", "lldb", "lipo", "nm", "otool")
 
 
 def getToolArchPrefix(tool):
