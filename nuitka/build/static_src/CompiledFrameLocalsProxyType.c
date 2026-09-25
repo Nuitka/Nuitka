@@ -30,6 +30,13 @@ static void *_Nuitka_FrameLocalsProxy_lookup(Nuitka_FrameLocalsProxyObject *prox
 
 // ---------- FrameLocalsProxy ----------
 
+// TODO: Below is not CPython's localsplus order. Nuitka code objects have no
+// "co_cellvars" (cell locals are plain "co_varnames" entries) and real free
+// variables are in "co_freevars" after "co_nlocals", while CPython's proxy
+// covers "varnames + cellvars + freevars". So order differs when cell locals
+// exist, and free variables are not exposed. Accepted for now, parity not
+// urgent, fix is walking localsplus by kind.
+
 static void _Nuitka_FrameLocalsProxy_dealloc(PyObject *self) {
     Nuitka_GC_UnTrack(self);
     Py_XDECREF(((Nuitka_FrameLocalsProxyObject *)self)->frame);
@@ -641,6 +648,44 @@ static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *
     Py_RETURN_NOTIMPLEMENTED;
 }
 
+static PyObject *_Nuitka_FrameLocalsProxy_or(PyObject *self, PyObject *other) {
+    if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    // For '__ror__' the arguments arrive swapped, so 'self' may be the other
+    // mapping, and these have to handle both generic mapping and proxy.
+    PyObject *result = MAKE_DICT_EMPTY(PyThreadState_GET());
+    if (result == NULL) {
+        return NULL;
+    }
+
+    if (PyDict_Update(result, self) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    if (PyDict_Update(result, other) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+static PyObject *_Nuitka_FrameLocalsProxy_inplace_or(PyObject *self, PyObject *other) {
+    if (!PyDict_Check(other) && !Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    if (_Nuitka_FrameLocalsProxy_update(self, other) == NULL) {
+        return NULL;
+    }
+
+    Py_INCREF(self);
+    return self;
+}
+
 // Mapping protocol
 static PyMappingMethods Nuitka_FrameLocalsProxy_as_mapping = {
     (lenfunc)_Nuitka_FrameLocalsProxy_length,              // mp_length
@@ -661,6 +706,38 @@ static PySequenceMethods Nuitka_FrameLocalsProxy_as_sequence = {
     0,                                             // sq_inplace_repeat
 };
 
+static PyNumberMethods Nuitka_FrameLocalsProxy_as_number = {
+    0,                                               // nb_add
+    0,                                               // nb_subtract
+    0,                                               // nb_multiply
+    0,                                               // nb_remainder
+    0,                                               // nb_divmod
+    0,                                               // nb_power
+    0,                                               // nb_negative
+    0,                                               // nb_positive
+    0,                                               // nb_absolute
+    0,                                               // nb_bool
+    0,                                               // nb_invert
+    0,                                               // nb_lshift
+    0,                                               // nb_rshift
+    0,                                               // nb_and
+    0,                                               // nb_xor
+    (binaryfunc)_Nuitka_FrameLocalsProxy_or,         // nb_or
+    0,                                               // nb_int
+    0,                                               // nb_reserved
+    0,                                               // nb_float
+    0,                                               // nb_inplace_add
+    0,                                               // nb_inplace_subtract
+    0,                                               // nb_inplace_multiply
+    0,                                               // nb_inplace_remainder
+    0,                                               // nb_inplace_power
+    0,                                               // nb_inplace_lshift
+    0,                                               // nb_inplace_rshift
+    0,                                               // nb_inplace_and
+    0,                                               // nb_inplace_xor
+    (binaryfunc)_Nuitka_FrameLocalsProxy_inplace_or, // nb_inplace_or
+};
+
 static PyObject *_Nuitka_FrameLocalsProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
 
 static PyTypeObject Nuitka_FrameLocalsProxy_Type = {
@@ -673,7 +750,7 @@ static PyTypeObject Nuitka_FrameLocalsProxy_Type = {
     0,                                                            // tp_setattr
     0,                                                            // tp_compare
     (reprfunc)_Nuitka_FrameLocalsProxy_repr,                      // tp_repr
-    0,                                                            // tp_as_number
+    &Nuitka_FrameLocalsProxy_as_number,                           // tp_as_number
     &Nuitka_FrameLocalsProxy_as_sequence,                         // tp_as_sequence
     &Nuitka_FrameLocalsProxy_as_mapping,                          // tp_as_mapping
     0,                                                            // tp_hash
