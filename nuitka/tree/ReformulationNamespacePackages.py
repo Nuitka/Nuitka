@@ -32,6 +32,7 @@ from .FutureSpecState import popFutureSpec, pushFutureSpec
 from .TreeHelpers import (
     buildNode,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     parseSourceCodeToAst,
 )
 from .VariableClosure import completeVariableClosures
@@ -212,12 +213,30 @@ def createNamespacePackage(module_name, reason, is_top, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 0x300:
-        statement = createPython3NamespacePath(package=package, source_ref=source_ref)
+    if python_version >= 0x370:
+        # Match CPython, which only since 3.7 sets "__file__" to "None" for
+        # namespace packages. Otherwise compiled and uncompiled Nuitka
+        # disagree on detecting namespace packages already loaded at compile
+        # time.
+        body = makeStatementsSequenceFromStatements(
+            StatementAssignmentVariableName(
+                provider=package,
+                variable_name="__file__",
+                source=makeConstantRefNode(constant=None, source_ref=source_ref),
+                source_ref=source_ref,
+            ),
+            createPython3NamespacePath(package=package, source_ref=source_ref),
+        )
+    elif python_version >= 0x300:
+        body = makeStatementsSequenceFromStatement(
+            statement=createPython3NamespacePath(package=package, source_ref=source_ref)
+        )
     else:
-        statement = createPathAssignment(package, source_ref)
+        body = makeStatementsSequenceFromStatement(
+            statement=createPathAssignment(package=package, source_ref=source_ref)
+        )
 
-    package.setChildBody(makeStatementsSequenceFromStatement(statement=statement))
+    package.setChildBody(body)
 
     completeVariableClosures(package)
 
