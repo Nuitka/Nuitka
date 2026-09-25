@@ -1404,11 +1404,11 @@
     - depends:
         - 'django.template.loader_tags'
 
-- module-name: 'django.utils.autoreload' # checksum: dd39f804
+- module-name: 'django.utils.autoreload' # checksum: 2d8ce9b7
   anti-bloat:
     - description: 'workaround for django self forking'
       change_function:
-        'get_child_arguments': "'lambda : [__nuitka_binary_exe]+sys.argv[1:]'"
+        'get_child_arguments': "'lambda : [globals().get(\"__uncompiled__\", globals().get(\"__compiled__\")).process_exe or sys.argv[0]]+sys.argv[1:]'"
       when: 'standalone'
 
 - module-name: 'django.views' # checksum: 2e123618
@@ -4667,12 +4667,12 @@
           - 'node'
         executable: 'yes'
 
-- module-name: 'playwright._impl._transport' # checksum: 708d0cf7
+- module-name: 'playwright._impl._transport' # checksum: d3456721
   anti-bloat:
-    - description: 'fix globals.get() usage'
+    - description: 'workaround for broken Nuitka check'
       replacements_plain:
         'globals().get("_compiled__")': 'globals().get("__compiled__")'
-      when: 'version("playwright") >= (1, 45, 0)'
+      when: '(1, 45, 0) <= version("playwright") < (1, 46, 0)'
 
     - description: 'support for older versions of playwright'
       replacements_plain:
@@ -8750,12 +8750,12 @@
         'if has_triton()': 'if False'
       when: 'not use_setuptools'
 
-- module-name: 'torch._inductor.triton_ops.autotune' # checksum: f3c779b5
+- module-name: 'torch._inductor.triton_ops.autotune' # checksum: 8d25fff4
   anti-bloat:
     - description: 'remove setuptools usage'
       replacements_plain:
         'from ..codecache import cache_dir': ''
-        'cache_dir()': '__nuitka_binary_dir, ".cache"'
+        'cache_dir()': 'globals().get("__uncompiled__", globals().get("__compiled__")).python_runtime_dir, ".cache"'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.triton_ops.conv' # checksum: 6185b84c

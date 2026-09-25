@@ -72,6 +72,7 @@ def getConstantDefaultPopulation():
         # Nuitka specific
         "__compiled__",
         "__nuitka__",
+        "__uncompiled__",
         # Environment variable handling in helper code.
         "environ",
         # Patched module name.

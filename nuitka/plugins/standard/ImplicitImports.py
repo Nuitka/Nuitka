@@ -15,7 +15,7 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.options.Options import isExperimental
+from nuitka.options.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Distributions import (
     getDistributionFiles,
@@ -440,14 +440,16 @@ According to 'implicit-imports' configuration."""
         # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         if module_name == "site":
-            if source_code.startswith("def ") or source_code.startswith("class "):
-                source_code = "\n" + source_code
+            if isStandaloneMode():
+                if source_code.startswith(("def ", "class ")):
+                    source_code = "\n" + source_code
 
-            source_code = """\
-__file__ = (__nuitka_binary_dir + '%s" + "site.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
-                os.path.sep,
-                source_code,
-            )
+                source_code = """\
+import os
+__file__ = os.path.join(
+    globals().get("__uncompiled__", globals().get("__compiled__")).python_runtime_dir,
+    "site.py",
+);%s""" % source_code
 
             # Debian stretch site.py
             source_code = source_code.replace(

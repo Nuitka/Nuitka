@@ -3,7 +3,7 @@
 
 # nuitka-skip-unless-expression: False
 
-# Helper module for 'LoadAttrModuleCacheCollision_311.py', not a test entry point.
+# Helper module for 'ModuleDunderAttributeTest.py', not a test entry point.
 VALUE = "module"
 
 #     Python test originally created or extracted from other peoples work. The

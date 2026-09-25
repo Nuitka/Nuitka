@@ -1997,6 +1997,31 @@ PyObject *getDllFilenameObject(void) {
 }
 #endif
 
+// Get the runtime directory for the "__compiled__" field, returns a new reference.
+PyObject *getPythonRuntimeDirObject(void) {
+#if _NUITKA_EXE_MODE
+    return getBinaryDirectoryObject(true);
+#else
+    PyObject *result = getDllDirectoryObject();
+    Py_INCREF(result);
+
+    return result;
+#endif
+}
+
+// Get the process executable for the "__compiled__" field, returns a new reference.
+PyObject *getProcessExeObject(void) {
+#if _NUITKA_EXE_MODE
+    return getBinaryFilenameObject(true);
+#elif _NUITKA_ONEFILE_DLL_MODE
+    return Nuitka_String_FromFilename(getBinaryPath());
+#else
+    Py_INCREF_IMMORTAL(Py_None);
+
+    return Py_None;
+#endif
+}
+
 PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks) {
 #if _NUITKA_EXE_MODE
     return getBinaryDirectoryObject(resolve_symlinks);

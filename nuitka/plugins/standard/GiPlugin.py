@@ -28,8 +28,9 @@ class NuitkaPluginGi(NuitkaPluginBase):
         if module.getFullName() == "gi":
             code = r"""
 import os
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
 if not os.getenv("GI_TYPELIB_PATH"):
-    os.environ["GI_TYPELIB_PATH"] = os.path.join(__nuitka_binary_dir, "girepository")"""
+    os.environ["GI_TYPELIB_PATH"] = os.path.join(nuitka_info.python_runtime_dir, "girepository")"""
 
             return code, "Set typelib search path"
 

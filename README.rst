@@ -1393,6 +1393,20 @@ nested structure.
    except NameError:
       open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
 
+The directory that contains the running program's own files is
+``__compiled__.python_runtime_dir``. For standalone mode this is the
+``.dist`` folder, for onefile mode the directory the onefile bootstrap
+unpacks to, and for DLL and module builds the directory of the loaded
+library. This is where files that Nuitka bundled with the program, e.g.
+the ``tcl`` and ``tk`` data folders, are located, unlike
+``containing_dir`` above, which refers to the directory that contains
+the ``.dist`` folder or the onefile binary.
+
+.. code:: python
+
+   # This will find a bundled data file of the program
+   open(os.path.join(__compiled__.python_runtime_dir, "some", "bundled-file.txt"))
+
 Onefile: Finding files
 ======================
 
@@ -1448,6 +1462,14 @@ which you expect to be inside the onefile binary, access them like this.
    # invoked as `baz ...`:
    assert sys.argv[0] == "baz"
    assert __compiled__.original_argv0 is None
+
+For spawning another copy of the compiled program, e.g. what
+``multiprocessing`` does, the executable to use is
+``__compiled__.process_exe``. In accelerated and standalone mode this is
+the compiled binary, in onefile mode the unpacked executable, and in
+onefile DLL mode the outer launcher executable, which is the one that
+can be spawned, rather than the loaded DLL. In module and plain DLL mode
+the field is ``None``, as there is no executable of the program itself.
 
 Windows Programs without console give no errors
 ===============================================
@@ -1771,6 +1793,18 @@ triggers inferior code for no reason. For Nuitka, we have the module
 attribute ``__compiled__`` to test if a specific module was compiled,
 and the function attribute ``__compiled__`` to test if a specific
 function was compiled.
+
+Modules that Nuitka provides as bytecode are not compiled, and for those
+the module attribute ``__uncompiled__`` is set instead, e.g. for
+standard library modules included as bytecode. Both hold the same
+version information, so to detect that a module was provided by Nuitka,
+use:
+
+.. code:: python
+
+   nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+   if nuitka_info is not None:
+      ...
 
 Providing extra Options to Nuitka C compilation
 ===============================================

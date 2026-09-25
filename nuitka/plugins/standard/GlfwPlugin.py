@@ -108,7 +108,8 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
             code = r"""
 import os
-os.environ["PYGLFW_LIBRARY"] = os.path.join(__nuitka_binary_dir, "glfw", "%s")
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
 """ % os.path.basename(dll_filename)
             return (
                 code,

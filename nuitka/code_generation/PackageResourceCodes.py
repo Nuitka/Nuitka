@@ -3,7 +3,7 @@
 
 """Code generation for package resources access."""
 
-from nuitka.options.Options import shallMakeModule
+from nuitka.options.Options import isStandaloneMode, shallMakeModule
 
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .CallCodes import (
@@ -79,12 +79,18 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             for kw_name in kw_names
         ]
 
-        # Standalone mode, has a different location.
+        # Standalone mode has a different location, it is the directory the
+        # program runs from, while otherwise the compile time location is
+        # used.
         if "location" not in kw_names:
             kw_names += ("location",)
-        dict_value_names.append(
-            'LOOKUP_BUILTIN_STR("__nuitka_binary_dir")',
-        )
+
+            if isStandaloneMode():
+                dict_value_names.append("getPythonRuntimeDirObject()")
+            else:
+                dict_value_names.append(
+                    context.getConstantCode(expression.distribution.location)
+                )
 
         getCallCodeKwSplit(
             to_name=result_name,

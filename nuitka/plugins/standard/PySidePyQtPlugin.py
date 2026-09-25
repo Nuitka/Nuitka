@@ -927,11 +927,17 @@ os.environ["QT_DEBUG_PLUGINS"] = "1"
             )
 
         if full_name == self.binding_name and isWin32Windows():
+            # TODO: Check if this "PATH" manipulation is still necessary at all,
+            # or whether "os.add_dll_directory" (Python 3.8+) is enough, as the
+            # binary directory is already the application directory, and Qt's
+            # own loads may not honor added DLL directories anyway.
             code = """\
 import os
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+python_runtime_dir = nuitka_info.python_runtime_dir
 path = os.getenv("PATH", "")
-if not path.startswith(__nuitka_binary_dir):
-    os.environ["PATH"] = __nuitka_binary_dir + ";" + path
+if not path.startswith(python_runtime_dir):
+    os.environ["PATH"] = python_runtime_dir + ";" + path
 """
             yield (
                 code,
@@ -945,8 +951,9 @@ if not path.startswith(__nuitka_binary_dir):
         if self.isQtWebEngineModule(full_name):
             code = r"""
 import os
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
 os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
-    __nuitka_binary_dir,
+    nuitka_info.python_runtime_dir,
     %(web_engine_locales_path)r,
     "qtwebengine_locales"
 )
@@ -961,15 +968,17 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
                 # TODO: Need to do it for DLL mode for sure, but we should do it
                 # for all platforms.
                 code = r"""
+import os
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
 os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.normpath(
     os.path.join(
-        __nuitka_binary_dir,
+        nuitka_info.python_runtime_dir,
         %(web_engine_process_path)r
     )
 )
 os.environ["QTWEBENGINE_RESOURCES_PATH"] = os.path.normpath(
     os.path.join(
-        __nuitka_binary_dir,
+        nuitka_info.python_runtime_dir,
         %(web_engine_resources_path)r
     )
 )
@@ -986,12 +995,14 @@ os.environ["QTWEBENGINE_RESOURCES_PATH"] = os.path.normpath(
 
             if self._isUsingMacOSFrameworks():
                 code = r"""
+import os
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
 os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(
-    __nuitka_binary_dir,
+    nuitka_info.python_runtime_dir,
     %(web_engine_process_path)r
 )
 os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
-    __nuitka_binary_dir,
+    nuitka_info.python_runtime_dir,
     "qtwebengine_locales"
 )
 os.environ["QTWEBENGINE_DISABLE_SANDBOX"]="1"

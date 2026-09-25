@@ -32,7 +32,9 @@ else:
 
     compiled_function = type(ForCompiledTypeLookups.for_compiled_type)
     compiled_method = type(ForCompiledTypeLookups().for_compiled_type)
-    assert "__compiled__" in globals()
+
+    # Bytecode modules have "__uncompiled__", compiled ones "__compiled__".
+    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
 
     dill_version = tuple(int(d) for d in dill.__version__.split("."))
 
@@ -203,7 +205,7 @@ else:
             else:
                 dill._dill.StockPickler.save_global(pickler, obj)
 
-    if __compiled__.standalone:  # pylint: disable=undefined-variable  # type: ignore
+    if nuitka_info.standalone:
         builtins.compiled_method = compiled_method
         builtins.compiled_function = compiled_function
 

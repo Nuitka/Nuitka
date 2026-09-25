@@ -252,6 +252,25 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
         assert(b_res != false);
     }
 
+    // Bytecode modules also get the compiled module information. On Python
+    // 3.11, for packages it has to be added after the module code ran, or
+    // else their "LOAD_ATTR_MODULE" dict slots would shift relative to the
+    // compiled packages.
+    assert(Nuitka_dunder_compiled_value != NULL);
+
+    bool set_uncompiled_before = true;
+
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION < 0x3c0
+    set_uncompiled_before = !is_package;
+#endif
+
+    if (set_uncompiled_before) {
+        if (unlikely(SET_ATTRIBUTE(tstate, module, const_str_plain___uncompiled__, Nuitka_dunder_compiled_value) ==
+                     false)) {
+            return NULL;
+        }
+    }
+
     PyObject *module_path_entry = NULL;
     PyObject *module_path;
 
@@ -329,6 +348,15 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
     PGO_onModuleExit(name, module == NULL);
 
     Py_DECREF(module_path);
+
+    if (!set_uncompiled_before && module != NULL) {
+        if (unlikely(SET_ATTRIBUTE(tstate, module, const_str_plain___uncompiled__, Nuitka_dunder_compiled_value) ==
+                     false)) {
+            Py_DECREF(module);
+
+            return NULL;
+        }
+    }
 
     return module;
 }
@@ -2781,6 +2809,13 @@ void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate) {
                 SET_ATTRIBUTE(tstate, value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
                 CHECK_OBJECT(file_value);
+
+                // For consistency, the modules Nuitka provides early also get
+                // the "__uncompiled__" value, not only the ones loaded via the
+                // meta path based loader later on.
+                NUITKA_MAY_BE_UNUSED bool res =
+                    SET_ATTRIBUTE(tstate, value, const_str_plain___uncompiled__, Nuitka_dunder_compiled_value);
+                assert(res != false);
             }
         }
     }
