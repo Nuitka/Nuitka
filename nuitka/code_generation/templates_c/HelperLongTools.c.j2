@@ -21,10 +21,10 @@
         unsigned long t = {{operand}}_abs_ival;
 
         while (t != 0) {
-            {{operand}}_digit_count += 1;
-            assert({{operand}}_digit_count <= (Py_ssize_t)(sizeof({{operand}}_digit_count) / sizeof(digit)));
+            assert({{operand}}_digit_count < (Py_ssize_t)(sizeof({{operand}}_digits) / sizeof({{operand}}_digits[0])));
 
             {{operand}}_digits[{{operand}}_digit_count] = (digit)(t & PyLong_MASK);
+            {{operand}}_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }

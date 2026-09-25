@@ -478,6 +478,16 @@ class NodeBase(NodeMetaClassBase):
         return ()
 
     @staticmethod
+    def undoVariableTracingRaw(trace_collection):
+        """Undo the effects of a computation on the trace collection.
+
+        This is needed for the case of a node being removed from the tree,
+        such that e.g. variable usages remain correct and are no longer
+        counted. The default is to do nothing, and node kinds override this
+        as needed.
+        """
+
+    @staticmethod
     def collectVariableAccesses(emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -676,6 +686,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             full_name = name
 
         return self.temp_variables[full_name][0]
+
+    def hasTempVariable(self, temp_name):
+        return temp_name in self.temp_variables
 
     def getAllTempVariables(self):
         assert self.getEntryPoint() is self

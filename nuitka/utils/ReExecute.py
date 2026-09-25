@@ -5,58 +5,14 @@
 
 Note: This avoids imports at all costs, such that initial startup doesn't do more
 than necessary.
-
-spell-checker: ignore execl, Popen
 """
 
 import os
 import sys
 
-from .Execution import expandProcessCallForWindows
+from nuitka.Tracing import general
 
-
-def callExecProcess(args, shell):
-    """Do exec in a portable way preserving exit code.
-
-    On Windows, unfortunately there is no real exec, so we have to spawn
-    a new process instead.
-    """
-
-    # We better flush these, "os.execl" won't do it anymore.
-    sys.stdout.flush()
-    sys.stderr.flush()
-
-    # On Windows "os.execl" does not work properly
-    if os.name == "nt":
-        import subprocess
-
-        args = list(args)
-        del args[1]
-
-        args = expandProcessCallForWindows(command=args, shell=shell)
-
-        try:
-            # Context manager is not available on all Python versions, pylint: disable=consider-using-with
-            process = subprocess.Popen(args=args, shell=shell)
-            process.communicate()
-            # No point in cleaning up, just exit the hard way.
-            try:
-                os._exit(process.returncode)
-            except OverflowError:
-                # Seems negative values go wrong otherwise,
-                # see https://bugs.python.org/issue28474
-                os._exit(process.returncode - 2**32)
-        except KeyboardInterrupt:
-            # There was a more relevant stack trace already, so abort this
-            # right here.
-            os._exit(2)
-        except OSError as e:
-            print("Error, executing: %s" % e)
-            os._exit(2)
-
-    else:
-        # The star arguments is the API of execl
-        os.execl(*args)
+from .Execution import callExecProcess
 
 
 def setLaunchingNuitkaProcessEnvironmentValue(environment_variable_name, value):
@@ -138,7 +94,11 @@ def reExecuteNuitka(pgo_filename):
     setLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION", "1")
 
     # Does not return:
-    callExecProcess(args, shell=False)
+    callExecProcess(
+        args=args,
+        shell=False,
+        logger=general,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

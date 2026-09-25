@@ -12,6 +12,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 """
 
 import pkgutil
+import re
 import sys
 import time
 from hashlib import md5 as _md5
@@ -151,6 +152,36 @@ if not hasattr(pkgutil, "ModuleInfo"):
 
 else:
     iter_modules = pkgutil.iter_modules
+
+
+if sys.version_info >= (2, 7):
+    re_sub = re.sub
+else:
+
+    def re_sub(pattern, repl, string, count=0, flags=0):
+        """re.sub wrapper with flags keyword for Python 2.6.
+
+        Python 2.6 re.sub does not accept a flags argument.
+        This helper compiles when flags are given.
+        """
+
+        if flags:
+            # If pattern is already compiled, use its sub method with updated flags
+            # otherwise compile string pattern with flags.
+            if hasattr(pattern, "sub"):
+                # Compiled pattern: re-compile with combined flags if possible.
+                try:
+                    combined_flags = pattern.flags | flags
+                except AttributeError:
+                    combined_flags = flags
+
+                pattern = re.compile(pattern.pattern, combined_flags)
+
+                return pattern.sub(repl, string, count=count)
+
+            return re.compile(pattern, flags).sub(repl, string, count=count)
+
+        return re.sub(pattern, repl, string, count=count)
 
 
 try:

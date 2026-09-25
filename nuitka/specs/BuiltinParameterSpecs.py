@@ -488,8 +488,26 @@ builtin_bytes_p3_spec = BuiltinBytearraySpec(
 )
 
 
+class BuiltinSliceSpec(BuiltinParameterSpecNoKeywords):
+    def isCompileTimeComputable(self, values):
+        # Slices with mutable values, e.g. a list, must not be created at
+        # compile time, as the mutable values become part of the slice, and
+        # CPython creates a new slice object for these.
+        for value in values:
+            if (
+                value is not None
+                and value.isCompileTimeConstant()
+                and value.isMutable()
+            ):
+                return False
+
+        return BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+            self, values=values
+        )
+
+
 # Beware: One argument version defines "stop", not "start".
-builtin_slice_spec = BuiltinParameterSpecNoKeywords(
+builtin_slice_spec = BuiltinSliceSpec(
     "slice", ("start", "stop", "step"), default_count=2
 )
 

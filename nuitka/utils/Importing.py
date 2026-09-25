@@ -11,6 +11,7 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import imp
+from nuitka.plugins.Hooks import decideRecompileExtensionModules
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -215,17 +216,6 @@ def importFromCompileTime(module_name, must_exist):
 
 
 def isBuiltinModuleName(module_name):
-    """Check if a module name refers to a built-in or frozen module.
-
-    Also recognizes submodules of built-in packages, e.g. "math.integer"
-    where "math" is built-in.
-
-    Args:
-        module_name: ModuleName of the module to check.
-
-    Returns:
-        bool
-    """
     result = bool(imp.is_builtin(module_name) or imp.is_frozen(module_name))
 
     # Some frozen modules are not actually in that list, e.g.
@@ -242,14 +232,6 @@ def isBuiltinModuleName(module_name):
                 result = loader.__name__ == "FrozenImporter"
             except AttributeError:
                 pass
-
-    # Submodules of built-in packages are effectively built-in, e.g.
-    # "math.integer" is a submodule of the built-in "math" package.
-    if result is False:
-        parent_package = module_name.getPackageName()
-
-        if parent_package is not None and isBuiltinModuleName(parent_package):
-            result = True
 
     return result
 
@@ -310,7 +292,7 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
     return None, None
 
 
-def hasPackageDirFilename(path):
+def isPackageDirFilenameCandidate(path):
     path = os.path.basename(path)
 
     for suffix, _module_type in getModuleFilenameSuffixes():
@@ -322,16 +304,49 @@ def hasPackageDirFilename(path):
     return False
 
 
-def getPackageDirFilename(path):
+def hasPackageDirFilename(path):
+    """Check if a directory has a package ``__init__`` file of any kind.
+
+    Args:
+        path: The directory to check.
+
+    Returns:
+        bool, True if any ``__init__`` file exists in the directory.
+    """
+    return getPackageDirFilename(path, None) is not None
+
+
+def getPackageDirFilename(path, package_name):
     assert os.path.isdir(path)
 
-    for suffix, _module_type in getModuleFilenameSuffixes():
+    if package_name:
+        decision, _reason = decideRecompileExtensionModules(package_name)
+    else:
+        decision = False
+
+    candidates = []
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 2,
+        "C_EXTENSION": 1,
+    }
+
+    for suffix, module_type in getModuleFilenameSuffixes():
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):
-            return candidate
+            candidates.append((candidate, module_type))
 
-    return None
+    def prioritize(candidate):
+        if candidate[1] == "PY_SOURCE" and decision:
+            return priority_map[candidate[1]] - 2
+        return priority_map[candidate[1]]
+
+    if len(candidates) == 0:
+        return None
+    else:
+        return sorted(candidates, key=prioritize)[0][0]
 
 
 @contextmanager

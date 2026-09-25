@@ -2,6 +2,10 @@
 
 // Creates a stream object initialized with the data from an executable resource.
 
+#ifndef _WIN32
+#error "OnefileSplashScreen.cpp is Windows only"
+#else
+
 #include <shlwapi.h>
 #include <wincodec.h>
 #include <windows.h>
@@ -259,6 +263,8 @@ extern "C" bool checkSplashScreen(void) {
 
     return splash_active == false;
 }
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

@@ -8,6 +8,7 @@ modes, which are implemented here.
 """
 
 import os
+import re
 import sys
 from fnmatch import fnmatch
 
@@ -201,11 +202,16 @@ class SearchMode(object):
 
         path = os.path.join(*parts)
 
+        base = filename.rsplit(".", 1)[0]
+        base_without_version = re.sub(r"_?[0-9]{2,3}$", "", base)
+
         candidates = (
             dirname,
             filename,
-            filename.rsplit(".", 1)[0],
-            filename.rsplit(".", 1)[0].replace("Test", ""),
+            base,
+            base.replace("Test", ""),
+            base_without_version,
+            base_without_version.replace("Test", ""),
             path,
             path.rsplit(".", 1)[0],
             path.rsplit(".", 1)[0].replace("Test", ""),

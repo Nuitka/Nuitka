@@ -7,10 +7,6 @@
 # Make testing more reliable on Python2 with timeout features added.
 subprocess32 == 3.5.4 ; python_version == '2.7'
 
-# PyLint wouldn't be installable on 2.6 and not work with too old Python3
-pylint == 4.0.5 ; python_version >= '3.11'
-astroid == 4.0.4 ; python_version >= '3.11'
-
 # linting rest code snippets
 restructuredtext-lint==2.0.2 ; python_version >= '3.11'
 Pygments == 2.20.0 ; python_version >= '3.11'
@@ -38,7 +34,7 @@ virtualenv ; python_version >= '3.5'
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'
 
-# Onefile compression
+# Onefile compression - on Python 3.14+ the stdlib 'compression.zstd' is used instead of 'zstandard'
 zstandard >= 0.15; python_version >= '3.5' and python_version < '3.14'
 
 # Plugins need that

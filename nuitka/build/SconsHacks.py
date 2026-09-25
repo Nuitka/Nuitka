@@ -20,8 +20,12 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import getNormalizedPathJoin, openTextFile
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    getNormalizedPathJoin,
+    openTextFile,
+)
+from nuitka.utils.Utils import getArchCommandPrefix, isLinux, isMacOS
 
 from .SconsUtils import (
     decodeData,
@@ -99,6 +103,11 @@ def _myDetectVersion(cc):
             cc,
             "--version",
         )
+
+    # Zig is a self-contained toolchain and does not need to run natively,
+    # and it may only exist as an x86_64 binary.
+    if not isZigName(cc):
+        command = getArchCommandPrefix() + command
 
     process_result = executeProcess(command)
 
@@ -189,8 +198,23 @@ def getEnhancedToolDetect():
     return myDetect
 
 
-def makeGccUseLinkerFile(env, source_files):
-    tmp_linker_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
+def makeLinkerUseResponseFile(env, source_filenames):
+    """Make the linker use a response file instead of direct invocations.
+
+    Notes:
+        This avoids command line length limits for linker invocations, which
+        can make linking fail with many modules otherwise.
+
+    Args:
+        env: The SCons environment of the linker invocation.
+        source_filenames: The source filenames to link.
+    """
+    linker_response_filename = getNormalizedPathJoin(env.source_dir, "@link_input.txt")
+
+    if env.exe_mode:
+        object_suffix = env.subst("$OBJSUFFIX")
+    else:
+        object_suffix = env.subst("$SHOBJSUFFIX")
 
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
@@ -198,25 +222,21 @@ def makeGccUseLinkerFile(env, source_files):
     # spell-checker: ignore SHLINKCOM,LINKCOM
     if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
-            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(linker_response_filename)
         )
 
     env["LINKCOM"] = env["LINKCOM"].replace(
-        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+        "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(linker_response_filename)
     )
 
-    with openTextFile(tmp_linker_filename, "w") as tmpfile:
-        for filename in source_files:
-            filename = ".".join(filename.split(".")[:-1]) + (
-                ".o" if env.exe_mode or os.name == "nt" else ".os"
-            )
+    with openTextFile(linker_response_filename, "w") as linker_response_file:
+        for source_filename in source_filenames:
+            object_filename = changeFilenameExtension(source_filename, object_suffix)
 
             if os.name == "nt":
-                filename = filename.replace(os.path.sep, "/")
+                object_filename = object_filename.replace(os.path.sep, "/")
 
-            tmpfile.write('"%s"\n' % filename)
-
-        tmpfile.write(env.subst("$SOURCES"))
+            linker_response_file.write('"%s"\n' % object_filename)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

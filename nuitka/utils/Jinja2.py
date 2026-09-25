@@ -44,11 +44,6 @@ def takeImportedModules(module_name):
     return result
 
 
-def restoreImportedModules(saved_modules):
-    for loaded_module_name in sorted(saved_modules):
-        sys.modules[loaded_module_name] = saved_modules[loaded_module_name]
-
-
 def _getTemplateSubDirectory(package_name, template_subdir):
     if package_name not in sys.modules:
         try:
@@ -82,25 +77,14 @@ def getJinja2Package():
     global _jinja2, _markupsafe  # singleton package using a cache, pylint: disable=global-statement
 
     if _jinja2 is None:
-        old_pkg_resources = takeImportedModules("pkg_resources")
+        if _markupsafe is None:
+            # Prefer our inline copy over any already imported variant, older
+            # Jinja2 needs an API that newer MarkupSafe releases removed.
+            takeImportedModules("markupsafe")
+            _markupsafe = importFromInlineCopy("markupsafe", must_exist=True)
 
-        try:
-            # Keep Jinja2 import isolated from ambient pkg_resources state.
-            # Load this before our inline MarkupSafe, or else it will warn when
-            # site-packages contains another MarkupSafe installation.
-            importFromInlineCopy("pkg_resources", must_exist=False)
-
-            if _markupsafe is None:
-                # Prefer our inline copy over any already imported variant, older
-                # Jinja2 needs an API that newer MarkupSafe releases removed.
-                takeImportedModules("markupsafe")
-                _markupsafe = importFromInlineCopy("markupsafe", must_exist=True)
-
-            takeImportedModules("jinja2")
-            _jinja2 = importFromInlineCopy("jinja2", must_exist=True)
-        finally:
-            takeImportedModules("pkg_resources")
-            restoreImportedModules(old_pkg_resources)
+        takeImportedModules("jinja2")
+        _jinja2 = importFromInlineCopy("jinja2", must_exist=True)
 
     return _jinja2
 

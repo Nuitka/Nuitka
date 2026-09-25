@@ -1,16 +1,17 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_COMPILED_FUNCTION_H__
 #define __NUITKA_COMPILED_FUNCTION_H__
-
-#ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
-#endif
 
 // Compiled function type.
 
 // The backbone of the integration into CPython. Try to behave as well as normal
 // functions and built-in functions, or even better.
+
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 struct Nuitka_FunctionObject;
 

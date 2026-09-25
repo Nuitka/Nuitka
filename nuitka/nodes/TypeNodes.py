@@ -357,6 +357,7 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"
 
     auto_compute_handling = "final,no_raise"
+    named_children = ("bound|auto_none", "default_value|auto_none")
     node_attributes = ("name",)
 
     python_version_spec = ">= 0x3c0"

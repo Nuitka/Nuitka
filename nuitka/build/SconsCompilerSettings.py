@@ -22,8 +22,10 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
+from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 from nuitka.utils.PrivatePipSpace import getZigBinaryPath
 from nuitka.utils.Utils import (
+    getArchCommandPrefix,
     isAIX,
     isFedoraBasedLinux,
     isLinux,
@@ -54,6 +56,7 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
+    linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
     setupScons,
@@ -172,6 +175,9 @@ def _enableLtoSettings(
     elif env.monolithpy:
         lto_mode = True
         reason = "known to be supported (MonolithPy)"
+    elif env.python_build_standalone:
+        lto_mode = True
+        reason = "known to be supported (Python Build Standalone)"
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
@@ -650,7 +656,7 @@ _supported_resource_modes = (
 )
 
 
-def _decideBlobResourceMode(env):
+def _decideBlobResourceMode(env, blob_count):
     # This is a complicated decision with a lot of cases, as there are many
     # compiler, mode, OS and their versions related decisions.
     # pylint: disable=too-many-branches
@@ -676,8 +682,12 @@ def _decideBlobResourceMode(env):
             resource_mode = "c23_embed"
             reason = "default for macOS with clang 19 or later"
         else:
-            resource_mode = "mac_section"
-            reason = "default for macOS"
+            if blob_count > 1:
+                resource_mode = "code"
+                reason = "default for macOS with multiple blobs"
+            else:
+                resource_mode = "mac_section"
+                reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -937,7 +947,7 @@ def _addConstantBlobFileMacSection(env, blob_filename):
 
     section_name = _getSymbolName(blob_filename)
 
-    # spell-checker: ignore linkflags, sectcreate
+    # spell-checker: ignore linkflags,sectcreate
     env.Append(
         LINKFLAGS=[
             "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
@@ -955,7 +965,7 @@ def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
     if env.resource_mode == "absent":
-        env.resource_mode, reason = _decideBlobResourceMode(env)
+        env.resource_mode, reason = _decideBlobResourceMode(env, blob_count=1)
 
         scons_details_logger.info(
             "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
@@ -1003,16 +1013,12 @@ def _addConstantBlobFiles(env, source_dir):
         blob_filenames = sorted(blob_filenames)
 
         if env.resource_mode == "absent" and blob_filenames:
-            env.resource_mode, reason = _decideBlobResourceMode(env)
+            env.resource_mode, reason = _decideBlobResourceMode(
+                env, blob_count=len(blob_filenames)
+            )
 
             scons_details_logger.info(
                 "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
-            )
-
-        if len(blob_filenames) > 1 and env.resource_mode == "mac_section":
-            return scons_logger.sysexit(
-                "Resource mode 'mac_section' is not supported for direct constants blobs.",
-                env=env,
             )
 
         blob_define = None
@@ -1094,6 +1100,37 @@ def _enableOutputSettings(env):
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
         else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
+
+    if env.mingw_mode:
+        # Use static compiler runtime libraries, so that e.g. the
+        # 'libwinpthread-1.dll' of the compiler is not needed at runtime.
+        env.Append(LINKFLAGS=["-static"])
+        env.Append(SHLINKFLAGS=["-static"])
+
+
+def _addArchCompilerPrefixes(env):
+    """Add architecture prefix to compiler commands.
+
+    Notes:
+        On ARM64 macOS, an x86_64 process may not be able to run the C
+        compiler of newer Xcode "CommandLineTools", which only exists as
+        ARM64 binary, so the 'arch -arm64' prefix is added to 'CC' and
+        'CXX'.
+    """
+    if env.zig_mode:
+        return
+
+    arch_prefix = getArchCommandPrefix()
+
+    if not arch_prefix:
+        return
+
+    prefix = " ".join('"%s"' % part for part in arch_prefix)
+
+    scons_details_logger.info("Adding architecture prefix '%s' to compiler." % prefix)
+
+    for variable_name in ("CC", "CXX"):
+        env[variable_name] = prefix + " " + env[variable_name]
 
 
 def createNuitkaSconsEnvironment(needs_source_dir=True):
@@ -1199,6 +1236,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     # Target arch for macOS.
     macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+    # Target arch for C compiler (ISA baseline, not cross-compilation).
+    c_target_arch = getArgumentDefaulted("c_target_arch", None)
+
     # gcc compiler cf_protection option
     cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
@@ -1244,6 +1284,8 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
         env=env,
     )
 
+    _addArchCompilerPrefixes(env=env)
+
     enableFlagSettings(env, "no_deployment", no_deployment)
     env.no_deployment_flags = no_deployment
 
@@ -1264,6 +1306,7 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     env.macos_min_version = macos_min_version
     env.macos_target_arch = macos_target_arch
     env.target_arch = target_arch
+    env.c_target_arch = c_target_arch
     env.no_deployment = no_deployment
     env.debug_modes = debug_modes
     env.trace_mode = trace_mode
@@ -1334,6 +1377,23 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # define that allows us to test for it.
     if env.zig_mode:
         env.Append(CPPDEFINES=["__ZIG__"])
+
+    if env.gcc_mode or env.clang_mode or env.zig_mode:
+        # Zig defaults to native CPU features (SSE4.1, AVX2, etc.) which
+        # may not be available on older or more generic machines.
+        if env.c_target_arch is None and env.zig_mode and not isMacOS():
+            if env.target_arch == "x86_64":
+                env.c_target_arch = "x86_64"
+            elif env.target_arch == "arm64":
+                env.c_target_arch = "armv8-a"
+            elif env.target_arch == "x86":
+                env.c_target_arch = "i586"
+
+    if env.c_target_arch is not None:
+        if env.msvc_mode or env.clangcl_mode:
+            env.Append(CCFLAGS=["/arch:%s" % env.c_target_arch])
+        else:
+            env.Append(CCFLAGS=["-march=%s" % env.c_target_arch])
 
     if env.reproducible_mode:
         # Make sure we use a fixed date for macros like "__DATE__" to ensure
@@ -1621,22 +1681,19 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
         env.Append(CCFLAGS=["-fPIC"])
 
     # We use zlib for crc32 functionality
-    zlib_inline_copy_dir = os.path.join(env.nuitka_src, "inline_copy", "zlib")
-    if os.path.exists(os.path.join(zlib_inline_copy_dir, "crc32.c")):
+    zlib_inline_copy_dir = getInlineCopyFolderIfExists("zlib")
+    if zlib_inline_copy_dir is not None:
         env.Append(
             CPPPATH=[
                 zlib_inline_copy_dir,
             ],
         )
     else:
-        # TODO: Should only happen for official Debian packages, and there we
-        # can use the zlib static linking maybe, but for onefile it's not easy
-        # to get it, so just use slow checksum for now.
-        if onefile_compile:
-            env.Append(CPPDEFINES=["_NUITKA_USE_OWN_CRC32"])
-        else:
-            env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
-            env.Append(LIBS="z")
+        # Should only happen for official Debian packages, where the system
+        # zlib is linked statically instead.
+        env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
+
+        linkSystemLibrary(env=env, library_name="z")
 
     if isAIX():
         aix_dll_addr_inline_copy_dir = os.path.join(

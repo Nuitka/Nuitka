@@ -21,7 +21,6 @@ from nuitka.Version import (
 from .utils.AppDirs import getCacheDir
 from .utils.Download import withUrlOpen
 from .utils.FileOperations import (
-    deleteFile,
     getNormalizedPathJoin,
     replaceFileAtomic,
     withTemporaryFilename,
@@ -123,11 +122,8 @@ def _writeUpdateCheckCache(cache_filename, cache_data):
     with withTemporaryFilename(
         prefix="update-check-", suffix=".json", temp_path=cache_dir
     ) as temp_filename:
-        try:
-            writeJsonToFilename(temp_filename, cache_data)
-            replaceFileAtomic(temp_filename, cache_filename)
-        finally:
-            deleteFile(temp_filename, must_exist=False)
+        writeJsonToFilename(temp_filename, cache_data)
+        replaceFileAtomic(temp_filename, cache_filename)
 
 
 def fetchLatestNuitkaVersion(

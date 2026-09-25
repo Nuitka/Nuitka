@@ -821,6 +821,12 @@ from .Checkers import (
 )
 """)
 
+        emit2("""
+from .Checkers import (
+    convertNoneConstantToNone
+)
+""")
+
         emit3("""
 from .Checkers import (
     checkStatementsSequenceOrNone, \
@@ -958,6 +964,8 @@ def getSpecVersions(spec_module):
             (0x3B0, "311"),
             (0x3C0, "312"),
             (0x3D0, "313"),
+            (0x3E0, "314"),
+            (0x3F0, "315"),
         ):
             if "since_%s" % str_version in spec_name:
                 python_criterion = ">= 0x%x" % version

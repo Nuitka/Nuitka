@@ -63,3 +63,6 @@ recursive-include nuitka/code_generation/templates_c *.j2
 
 # Report templates
 recursive-include nuitka/reports *.j2
+
+# Installer backend templates
+recursive-include nuitka/installer/backends *.nsi

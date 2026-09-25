@@ -27,6 +27,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_list,
     tshape_str,
     tshape_tuple,
+    tshape_type,
     tshape_unicode,
 )
 from nuitka.nodes.shapes.ControlFlowDescriptions import (
@@ -129,6 +130,15 @@ class ValueTraceBase(object):
     def getPrevious(self):
         return self.previous
 
+    def isUnchangedResumeTrace(self, loop_entry_trace):
+        """Is this loop resume trace the loop entry value itself.
+
+        Escape and unknown traces only mean knowledge was lost, not that
+        the value identity changed, so they are looked through. Rebinding
+        would be an assignment or deletion trace.
+        """
+        return self is loop_entry_trace
+
     @abstractmethod
     def isUsingTrace(self):
         """Is the trace indicating a usage of the variable."""
@@ -139,6 +149,10 @@ class ValueTraceBase(object):
 
     @staticmethod
     def isAssignTrace():
+        return False
+
+    @staticmethod
+    def isIteratorPropagationTrace():
         return False
 
     @staticmethod
@@ -219,6 +233,18 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def hasShapeStrOrUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeBytesExact():
+        return False
+
+    @staticmethod
+    def hasShapeTypeExact():
+        return False
+
+    @staticmethod
     def hasShapeTupleExact():
         return False
 
@@ -283,6 +309,17 @@ def _getAttributeNodeVeryTrustedMatching(trace, visited):
         return Ellipsis
 
     if trace.isMergeTrace() or trace.isLoopTrace():
+        # A loop trace that is not completely analyzed yet only knows the
+        # trace from before the loop, and cannot tell if loop paths change
+        # the value, so it must not be used for propagation. When the value
+        # identity is known to be stable, the entry trace is sufficient.
+        if (
+            trace.isLoopTrace()
+            and not trace.isAnalysisComplete()
+            and not trace.isValueIdentityStable()
+        ):
+            return None
+
         visited.add(trace_id)
 
         result = Ellipsis
@@ -626,6 +663,9 @@ class ValueTraceUnknown(ValueTraceUnknownBase):
 
         self.previous = previous
 
+    def isUnchangedResumeTrace(self, loop_entry_trace):
+        return self.previous.isUnchangedResumeTrace(loop_entry_trace)
+
 
 class ValueTraceStartUnknown(ValueTraceStartMixin, ValueTraceUnknownBase):
 
@@ -805,6 +845,15 @@ class ValueTraceAssign(ValueTraceBase):
     def hasShapeUnicodeExact(self):
         return self.assign_node.subnode_source.hasShapeUnicodeExact()
 
+    def hasShapeStrOrUnicodeExact(self):
+        return self.assign_node.subnode_source.hasShapeStrOrUnicodeExact()
+
+    def hasShapeBytesExact(self):
+        return self.assign_node.subnode_source.hasShapeBytesExact()
+
+    def hasShapeTypeExact(self):
+        return self.assign_node.subnode_source.hasShapeTypeExact()
+
     def hasShapeBoolExact(self):
         return self.assign_node.subnode_source.hasShapeBoolExact()
 
@@ -881,6 +930,39 @@ class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
 
     def getReplacementNode(self, usage):
         return self.replacement(usage)
+
+
+class ValueTraceAssignIteratorPropagated(ValueTraceAssign):
+    """Assignment of iterator that is replaced by direct access to the iterated value.
+
+    The iterator variable itself becomes unused, only the temp variable
+    holding the iterated value remains, references to the iterator replace
+    themselves with subscripts of it.
+    """
+
+    __slots__ = ("tmp_iterated",)
+
+    @counted_init
+    def __init__(self, owner, assign_node, previous, tmp_iterated):
+        # For performance reasons, we don't do super init, but duplicate it here.
+        # pylint: disable=super-init-not-called
+
+        self.owner = owner
+        self.usage_count = 0
+        self.name_usage_count = 0
+        self.merge_usage_count = 0
+
+        self.previous = previous
+        self.assign_node = assign_node
+
+        self.tmp_iterated = tmp_iterated
+
+    @staticmethod
+    def isIteratorPropagationTrace():
+        return True
+
+    def getIteratedTempVariable(self):
+        return self.tmp_iterated
 
 
 class ValueTraceMergeBase(ValueTraceBase):
@@ -1048,6 +1130,12 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         return True
 
+    def isUnchangedResumeTrace(self, loop_entry_trace):
+        return all(
+            previous.isUnchangedResumeTrace(loop_entry_trace)
+            for previous in self.previous
+        )
+
     def mustHaveValue(self):
         for previous in self.previous:
             if not previous.isInitTrace() and not previous.isAssignTrace():
@@ -1098,17 +1186,37 @@ class ValueTraceMerge(ValueTraceMergeBase):
         return False, None
 
 
-class ValueTraceLoopBase(ValueTraceMergeBase):
-    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+class ValueTraceLoop(ValueTraceMergeBase):
+    """Loop value trace.
+
+    Combines the value from before the loop with the loop resume traces.
+    Type shapes may still be incomplete while the loop analysis is running,
+    and the resume traces are only attached after the loop body was traced.
+    """
 
     # This one has many attributes, pylint: disable=too-many-instance-attributes
-    __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
+    __slots__ = (
+        "loop_node",
+        "type_shapes",
+        "type_shape",
+        "shapes_incomplete",
+        "value_identity_stable",
+        "must_have_value",
+        "analysis_complete",
+        "recursion",
+    )
 
     @counted_init
-    def __init__(self, loop_node, previous, type_shapes):
+    def __init__(
+        self,
+        loop_node,
+        previous,
+        type_shapes,
+        shapes_incomplete,
+        value_identity_stable,
+        must_have_value,
+    ):
         # For performance reasons, we don't do super init, but duplicate it here.
-        # pylint: disable=super-init-not-called
-
         self.owner = previous.owner
 
         # Note: That previous is being added to later, we will learn about more.
@@ -1121,6 +1229,14 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
         self.loop_node = loop_node
         self.type_shapes = type_shapes
         self.type_shape = None
+        self.shapes_incomplete = shapes_incomplete
+        self.value_identity_stable = value_identity_stable
+        self.must_have_value = must_have_value
+
+        # Loop continue traces are only known after the loop body was fully
+        # traced, until then value decisions for this trace must be
+        # conservative.
+        self.analysis_complete = False
 
         self.recursion = False
 
@@ -1146,14 +1262,36 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def compareValueTrace(self, other):
         return other.isLoopTrace() and self.loop_node is other.loop_node
 
+    def emitShapeAlternativesForLoop(self, emit, loop_node):
+        # For our own loop, we can contribute the known shape alternatives, but
+        # for a foreign loop we must stay conservative. This has to be identical
+        # for the incomplete and complete shape state, otherwise the shape of a
+        # variable would toggle when a foreign loop transitions between them,
+        # which would prevent convergence.
+        if self.loop_node is loop_node:
+            self.getTypeShape().emitAlternatives(emit)
+        else:
+            emit(tshape_unknown)
+
     def getTypeShape(self):
         if self.type_shape is None:
-            if len(self.type_shapes) > 1:
+            if self.shapes_incomplete:
+                self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
+            elif len(self.type_shapes) > 1:
                 self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
             else:
                 self.type_shape = next(iter(self.type_shapes))
 
         return self.type_shape
+
+    def isAnalysisComplete(self):
+        return self.analysis_complete
+
+    def isValueIdentityStable(self):
+        return self.value_identity_stable
+
+    def markLoopTraceComplete(self):
+        self.analysis_complete = True
 
     def addLoopContinueTraces(self, continue_traces):
         self.previous += tuple(continue_traces)
@@ -1161,7 +1299,26 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
         for previous in continue_traces:
             previous.addMergeUsage()
 
+        self.analysis_complete = True
+
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: May consider the shapes for better result
+        return ControlFlowDescriptionFullEscape
+
     def mustHaveValue(self):
+        # A stable value identity means the loop paths do not rebind the
+        # variable, so the value from before the loop is what is seen on
+        # every iteration, and only that entry trace needs to answer.
+        if self.value_identity_stable:
+            return self.previous[0].mustHaveValue()
+
+        # Without complete loop analysis, the loop may still delete or assign
+        # the variable. The answer from the previous pass is used then, so
+        # that in-loop decisions match the code generation.
+        if not self.analysis_complete:
+            return self.must_have_value
+
         # To handle recursion, we lie to ourselves.
         if self.recursion:
             return True
@@ -1175,6 +1332,10 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
 
         self.recursion = False
         return True
+
+    @staticmethod
+    def mustNotHaveValue():
+        return False
 
     def hasShapeListExact(self):
         return self.type_shapes == _only_list_shape
@@ -1204,6 +1365,9 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def hasShapeBytesExact(self):
         return self.type_shapes == _only_bytes_shape
 
+    def hasShapeTypeExact(self):
+        return self.type_shapes == _only_type_shape
+
     def hasShapeBoolExact(self):
         return self.type_shapes == _only_bool_shape
 
@@ -1214,69 +1378,8 @@ _only_str_shape = frozenset((tshape_str,))
 _only_unicode_shape = frozenset((tshape_unicode,))
 _str_plus_unicode_shape = frozenset((tshape_unicode, tshape_str))
 _only_bytes_shape = frozenset((tshape_bytes,))
+_only_type_shape = frozenset((tshape_type,))
 _only_bool_shape = frozenset((tshape_bool,))
-
-
-class ValueTraceLoopComplete(ValueTraceLoopBase):
-    __slots__ = ()
-
-    @staticmethod
-    def getReleaseEscape():
-        # TODO: May consider the shapes for better result
-        return ControlFlowDescriptionFullEscape
-
-    # TODO: These could be better
-    @staticmethod
-    def mustHaveValue():
-        return False
-
-    @staticmethod
-    def mustNotHaveValue():
-        return False
-
-    @staticmethod
-    def getTruthValue():
-        return None
-
-    @staticmethod
-    def getComparisonValue():
-        return False, None
-
-
-class ValueTraceLoopIncomplete(ValueTraceLoopBase):
-    __slots__ = ()
-
-    def getTypeShape(self):
-        if self.type_shape is None:
-            self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
-
-        return self.type_shape
-
-    @staticmethod
-    def getReleaseEscape():
-        return ControlFlowDescriptionFullEscape
-
-    @staticmethod
-    def mustHaveValue():
-        return False
-
-    @staticmethod
-    def mustNotHaveValue():
-        return False
-
-    @staticmethod
-    def getTruthValue():
-        return None
-
-    @staticmethod
-    def getComparisonValue():
-        return False, None
-
-    def emitShapeAlternativesForLoop(self, emit, loop_node):
-        if self.loop_node is loop_node:
-            self.getTypeShape().emitAlternatives(emit)
-        else:
-            emit(tshape_unknown)
 
 
 _is_debug = None

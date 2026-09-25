@@ -13,6 +13,7 @@ import os
 
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 
+from .CStrings import encodePythonStringToC
 from .Hashing import getStringHash
 
 
@@ -97,6 +98,26 @@ class ModuleName(str):
         """
 
         return str(self)
+
+    def asBytes(self):
+        """Get the bytes representation of the module name.
+
+        Notes:
+            This should only be used to create constant values for code
+            generation, e.g. for C string literals.
+        """
+
+        return self.asString().encode("utf8")
+
+    def asCString(self):
+        """Get the module name as a C string literal.
+
+        Notes:
+            This should only be used to create constant values for code
+            generation.
+        """
+
+        return encodePythonStringToC(self.asBytes())
 
     def asPath(self):
         return str(self).replace(".", os.path.sep)

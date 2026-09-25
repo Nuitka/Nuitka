@@ -453,13 +453,19 @@ def autoFormatFile(
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
         elif is_json:
-            formatJson(
-                tmp_filename,
-                effective_filename=effective_filename,
-                assume_yes_for_downloads=assume_yes_for_downloads,
-            )
+            if not _shouldNotFormatCode(
+                filename=tmp_filename, effective_filename=effective_filename
+            ):
+                formatJson(
+                    tmp_filename,
+                    effective_filename=effective_filename,
+                    assume_yes_for_downloads=assume_yes_for_downloads,
+                )
         elif is_png or is_jpeg:
-            formatImage(tmp_filename, logger=tools_logger)
+            if not _shouldNotFormatCode(
+                filename=tmp_filename, effective_filename=effective_filename
+            ):
+                formatImage(tmp_filename, logger=tools_logger)
 
         if is_python:
             _transferBOM(filename, tmp_filename)

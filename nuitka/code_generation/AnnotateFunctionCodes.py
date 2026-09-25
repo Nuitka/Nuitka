@@ -10,11 +10,32 @@ them with `_StringifierDict` globals for FORWARDREF resolution.
 
 import marshal
 
+from nuitka.options.Options import isExperimental
+
+from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
     generateFunctionSourceFromBody,
     getFunctionMakerIdentifier,
 )
-from .SpecialConstantData import BlobData
+
+
+def isBytecodeBackedFunction(function_body):
+    """Decide if a function is backed by Python bytecode, not compiled C code.
+
+    Currently this is true for functions marked with flag "annotate". We
+    mean to add more plugin and user control though.
+
+    Args:
+        function_body: Function body node to check.
+
+    Returns:
+        True if bytecode backed
+    """
+    return (
+        function_body.hasFlag("annotate")
+        and not isExperimental("no-deferred-annotation")
+        and not function_body.hasFlag("force_c")
+    )
 
 
 def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
@@ -32,27 +53,25 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
 
     emit("%s = %s(tstate);" % (to_name, function_maker_identifier))
 
+    getAssertionCode(check="%s != NULL" % to_name, emit=emit)
+
+    context.addCleanupTempName(to_name)
+
 
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
     """Generate a C maker function that creates a PyFunctionObject from bytecode."""
 
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
 
-    source = generateFunctionSourceFromBody(
-        function_name="__annotate__",
-        parameter_names=("format",),
-        function_body=function_body,
-    )
+    source = generateFunctionSourceFromBody(function_body)
 
     compiled = compile(source, function_identifier, "exec")
     marshalled = marshal.dumps(compiled.co_consts[0])
     marshalled_size = len(marshalled)
 
-    marshalled_ptr = context.getConstantCode(
-        BlobData(
-            marshalled,
-            "annotate marshalled code for '%s'" % function_identifier,
-        )
+    marshalled_ptr = context.getBlobConstantCode(
+        marshalled,
+        "annotate marshalled code for '%s'" % function_identifier,
     )
 
     module_code_name = context.getModuleCodeName()
@@ -82,6 +101,11 @@ static PyObject *%(maker)s(PyThreadState *tstate) {
     }
 
     context.addHelperCode(function_identifier, maker_code)
+
+    declaration_code = "static PyObject *%(maker)s(PyThreadState *tstate);" % {
+        "maker": maker_identifier,
+    }
+    context.addDeclaration(function_identifier, declaration_code)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

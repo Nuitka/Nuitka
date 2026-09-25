@@ -52,6 +52,7 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_backport_files_spec,
     importlib_resources_backport_read_binary_spec,
     importlib_resources_backport_read_text_spec,
+    importlib_resources_files_since_312_spec,
     importlib_resources_files_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_before_313_spec,
@@ -83,6 +84,7 @@ from .ChildrenHavingMixins import (
     ChildHavingDistributionNameMixin,
     ChildHavingExitCodeOptionalMixin,
     ChildHavingPackageMixin,
+    ChildHavingPackageOptionalMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
     ChildHavingPathOptionalMixin,
@@ -169,7 +171,7 @@ class ExpressionCtypesCdllSince38CallBase(
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for CtypesCdllCall
+    """Base class for CtypesCdllSince38Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
@@ -240,7 +242,7 @@ class ExpressionCtypesCdllBefore38CallBase(
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for CtypesCdllCall
+    """Base class for CtypesCdllBefore38Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
@@ -835,7 +837,7 @@ hard_import_node_classes[ExpressionImportlibMetadataEntryPointsRef] = (
 class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     ChildHavingParamsTupleMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataEntryPointsCall
+    """Base class for ImportlibMetadataEntryPointsSince310Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
@@ -887,7 +889,7 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
 class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     ExpressionDictShapeExactMixin, ExpressionBase
 ):
-    """Base class for ImportlibMetadataEntryPointsCall
+    """Base class for ImportlibMetadataEntryPointsBefore310Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
@@ -1438,6 +1440,23 @@ class ExpressionImportlibResourcesFilesRef(
         # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        if python_version >= 0x3C0:
+            from .PackageResourceNodes import (
+                makeExpressionImportlibResourcesFilesSince312Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=makeExpressionImportlibResourcesFilesSince312Call,
+                builtin_spec=importlib_resources_files_since_312_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'importlib.resources.files' recognized.",
+            )
+
         from .PackageResourceNodes import ExpressionImportlibResourcesFilesCall
 
         result = extractBuiltinArgs(
@@ -1454,8 +1473,60 @@ class ExpressionImportlibResourcesFilesRef(
 
 
 hard_import_node_classes[ExpressionImportlibResourcesFilesRef] = (
-    importlib_resources_files_spec
+    importlib_resources_files_since_312_spec
 )
+
+
+class ExpressionImportlibResourcesFilesSince312CallBase(
+    ChildHavingPackageOptionalMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesFilesSince312Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x3c0"
+
+    named_children = ("package|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_files_since_312_spec
+
+    def __init__(self, package, source_ref):
+
+        ChildHavingPackageOptionalMixin.__init__(
+            self,
+            package=package,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_files_since_312_spec.isCompileTimeComputable(
+                (self.subnode_package,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibResourcesFilesCallBase(
@@ -1674,7 +1745,7 @@ class ExpressionImportlibResourcesReadTextSince313CallBase(
     ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for ImportlibResourcesReadTextCall
+    """Base class for ImportlibResourcesReadTextSince313Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
@@ -1736,7 +1807,7 @@ class ExpressionImportlibResourcesReadTextBefore313CallBase(
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
-    """Base class for ImportlibResourcesReadTextCall
+    """Base class for ImportlibResourcesReadTextBefore313Call
 
     Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """

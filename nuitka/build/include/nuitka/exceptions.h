@@ -1,14 +1,15 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
 // Exception helpers for generated code and compiled code helpers.
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
-#include "stdbool.h"
+#include "nuitka/string_functions.h"
 #endif
 
 // Fundamental, because we use it for print style debugging in everything.
@@ -344,6 +345,19 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyThreadState *tst
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3b0
+// Helper that sets the current thread exception to a value, for use in the
+// "except*" handling, where the match of a clause is published.
+NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION_VALUE(PyThreadState *tstate, PyObject *value) {
+    CHECK_OBJECT(value);
+
+    Py_INCREF(value);
+    struct Nuitka_ExceptionStackItem exc_state = {value};
+
+    SET_CURRENT_EXCEPTION(tstate, &exc_state);
+}
+#endif
+
 // Normalize an exception, may release old values and replace them, expects
 // references passed and returns them.
 NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyThreadState *tstate, PyObject **exception_type,
@@ -662,6 +676,18 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
 NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(PyThreadState *tstate) {
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopIteration);
 }
+
+#if PYTHON_VERSION >= 0x350
+/* Special helper that checks for StopAsyncIteration and if so clears it, only
+   indicating if it was set in the return value.
+
+   Equivalent to if(PyErr_ExceptionMatches(PyExc_StopAsyncIteration) PyErr_Clear();
+
+*/
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ASYNC_ITERATION_OCCURRED(PyThreadState *tstate) {
+    return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_StopAsyncIteration);
+}
+#endif
 
 /* Special helper that checks for KeyError and if so clears it, only
    indicating if it was set in the return value.

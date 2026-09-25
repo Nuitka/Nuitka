@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_DEFINES_H__
 #define __NUITKA_DEFINES_H__
 
@@ -21,6 +22,8 @@
 
 #define likely(x) HEDLEY_LIKELY(x)
 #define unlikely(x) HEDLEY_UNLIKELY(x)
+
+#define STATIC_ASSERT(expr, msg) HEDLEY_STATIC_ASSERT(expr, msg)
 
 #endif
 

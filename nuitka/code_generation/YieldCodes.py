@@ -10,9 +10,19 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
+
+
+def _checkDeferredReleaseYield(value_name, expression, context):
+    checkDeferredReleaseUse(
+        usage="yield",
+        tmp_name=value_name,
+        context=context,
+        detail=expression.getSourceReference().getAsString(),
+    )
 
 
 def _getYieldPreserveCode(
@@ -117,6 +127,8 @@ def generateYieldCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
+    _checkDeferredReleaseYield(value_name, expression, context)
+
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
@@ -153,6 +165,8 @@ def generateYieldFromCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
+    _checkDeferredReleaseYield(value_name, expression, context)
+
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
@@ -186,6 +200,8 @@ def generateYieldFromAwaitableCode(to_name, expression, emit, context):
     (awaited_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
+
+    _checkDeferredReleaseYield(awaited_name, expression, context)
 
     yield_code = """\
 %(object_name)s->m_yield_from = %(yield_from)s;

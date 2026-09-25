@@ -136,7 +136,7 @@ def generateTryCode(statement, emit, context):
         (
             exception_state_name,
             exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         emit(
             """\

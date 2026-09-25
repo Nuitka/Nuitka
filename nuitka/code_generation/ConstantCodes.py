@@ -27,7 +27,6 @@ from nuitka.options.Options import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
-from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Distributions import (
     getDistribution,
     getDistributionTopLevelPackageNames,
@@ -35,7 +34,7 @@ from nuitka.utils.Distributions import (
 from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
-from .ErrorCodes import getAssertionCode
+from .ErrorCodes import getAssertionCode, getReleaseCode
 from .GlobalConstants import getConstantDefaultPopulation
 from .Namify import namifyConstant
 from .SpecialConstantData import hasSpecialDetails
@@ -84,6 +83,9 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
         emit("%s = Py_GenericAlias(%s, %s);" % (value_name, origin_name, args_name))
 
         getAssertionCode(check="%s != NULL" % value_name, emit=emit)
+
+        getReleaseCode(origin_name, emit, context)
+        getReleaseCode(args_name, emit, context)
 
         context.addCleanupTempName(value_name)
 
@@ -168,9 +170,7 @@ def getConstantsDefinitionCode():
     major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
     body = template_constants_reading % {
-        "module_name_cstr": encodePythonStringToC(
-            getRootTopModule().getFullName().asString().encode("utf8")
-        ),
+        "module_name_cstr": getRootTopModule().getFullName().asCString(),
         "global_constants_count": constant_accessor.getConstantsCount(),
         "global_constants_blob_symbol_name": getConstantBlobSymbolName(
             "__constants.const"

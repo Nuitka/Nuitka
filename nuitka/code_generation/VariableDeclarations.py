@@ -132,6 +132,8 @@ class VariableDeclaration(object):
 
 
 class VariableStorage(object):
+    # The storage for variable declarations, with a couple of attributes for
+    # exception variables, pylint: disable=too-many-instance-attributes
     __slots__ = (
         "heap_name",
         "variable_declarations_heap",
@@ -139,6 +141,7 @@ class VariableStorage(object):
         "variable_declarations_closure",
         "variable_declarations_locals",
         "exception_variable_name",
+        "exception_lineno_count",
         "variable_declarations_top",
     )
 
@@ -152,6 +155,7 @@ class VariableStorage(object):
         self.variable_declarations_locals = []
 
         self.exception_variable_name = None
+        self.exception_lineno_count = 0
 
         self.variable_declarations_top = {}
 
@@ -208,6 +212,24 @@ class VariableStorage(object):
             )
 
         return self.exception_variable_name
+
+    def getExceptionVariableDescriptionsWithOwnLineno(self):
+        # The exception state must remain shared across outline bodies, only
+        # the line number is specific to the outline, so that the caller line
+        # number is not overwritten by code inside of it.
+        exception_state_name, _exception_lineno = (
+            self.getExceptionVariableDescriptions()
+        )
+
+        self.exception_lineno_count += 1
+
+        result_lineno = self.addVariableDeclarationTop(
+            "NUITKA_MAY_BE_UNUSED int",
+            "exception_lineno_%d" % self.exception_lineno_count,
+            "0",
+        )
+
+        return (exception_state_name, result_lineno)
 
     def addVariableDeclarationLocal(self, c_type, code_name):
         result = VariableDeclaration(c_type, code_name, None, None)

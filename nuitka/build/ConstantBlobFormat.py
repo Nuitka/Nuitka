@@ -172,6 +172,7 @@ def _isIgnorableConstantBlobSpecLine(line):
         return True
 
     if line in (
+        "#pragma once",
         "#ifndef __NUITKA_CONSTANTS_BLOB_SPEC_H__",
         "#define __NUITKA_CONSTANTS_BLOB_SPEC_H__",
         "#endif",

@@ -12,7 +12,7 @@ from nuitka.tools.quality.Git import (
     getCheckoutFileChangeDesc,
     getFileHashContent,
     putFileHashContent,
-    updateGitFile,
+    updateFileIndex,
 )
 from nuitka.TreeXML import convertStringToXML, convertXmlToString
 from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
@@ -80,6 +80,7 @@ def _acceptOptimizationTimeChanges(old_report, new_report):
         old_node = findMatchingNode(old_report, new_node)
 
         if old_node is not None:
+            new_node.tail = old_node.tail
             old_node.getparent().replace(old_node, new_node)
             changed = True
 
@@ -87,6 +88,7 @@ def _acceptOptimizationTimeChanges(old_report, new_report):
         old_node = findMatchingNode(old_report, new_node)
 
         if old_node is not None:
+            new_node.tail = old_node.tail
             old_node.getparent().replace(old_node, new_node)
             changed = True
         else:
@@ -126,16 +128,17 @@ def onCompilationReportChange(filename, git_stage):
         changed = changed | _acceptOptimizationTimeChanges(old_report, new_report)
 
     if changed:
-        new_git_contents = convertXmlToString(old_report)
-        with withTemporaryFile(mode="w", delete=False) as output_file:
+        new_git_contents = convertXmlToString(old_report, use_lxml=True)
+
+        with withTemporaryFile(mode="wb", suffix=".xml", delete=False) as output_file:
             tmp_filename = output_file.name
-            output_file.write(new_git_contents)
+            output_file.write(new_git_contents.encode("utf8"))
             output_file.close()
 
         new_hash_value = putFileHashContent(tmp_filename)
 
         if git_stage["src_hash"] != new_hash_value:
-            updateGitFile(filename, git_stage["src_hash"], new_hash_value, staged=False)
+            updateFileIndex(git_stage, new_hash_value)
 
 
 def onFileChange(git_stage):

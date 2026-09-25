@@ -84,7 +84,9 @@ def scanModule(module_name, scan_function):
     onCompilationStartChecks()
 
     if module_kind != "extension":
-        package_filename = getPackageDirFilename(package_directory)
+        package_filename = getPackageDirFilename(
+            path=package_directory, package_name=module_name
+        )
 
         if package_filename is not None:
             readSourceCodeFromFilename(module_name, package_filename, pre_load=False)

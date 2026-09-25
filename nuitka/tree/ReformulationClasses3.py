@@ -96,6 +96,7 @@ from nuitka.plugins.Hooks import onClassBodyParsing
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
+from .FutureSpecState import getFutureSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
@@ -317,7 +318,11 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if python_version >= 0x3E0 and isExperimental("deferred-annotations"):
+    if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+    ):
         if class_dict_creation_function.deferred_annotations:
             outer_body, return_statement = makeDeferredAnnotateFunctionBody(
                 provider=class_dict_creation_function,

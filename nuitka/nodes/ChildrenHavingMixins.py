@@ -162,6 +162,17 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
             c.finalize()
         del self.subnode_functions
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -269,15 +280,15 @@ class ChildHavingAsyncgenRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -400,15 +411,15 @@ class ChildHavingBodyOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -540,15 +551,15 @@ class ChildHavingBytesArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -701,15 +712,15 @@ class ChildrenHavingBytesArgCharsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -838,15 +849,15 @@ class ChildrenHavingBytesArgEncodingMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -991,15 +1002,15 @@ class ChildrenHavingBytesArgEncodingErrorsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1127,15 +1138,15 @@ class ChildrenHavingBytesArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1262,15 +1273,15 @@ class ChildrenHavingBytesArgKeependsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1415,15 +1426,15 @@ class ChildrenHavingBytesArgOldNewMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1587,15 +1598,15 @@ class ChildrenHavingBytesArgOldNewCountMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1724,15 +1735,15 @@ class ChildrenHavingBytesArgPrefixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -1877,15 +1888,15 @@ class ChildrenHavingBytesArgPrefixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2051,15 +2062,15 @@ class ChildrenHavingBytesArgPrefixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2193,15 +2204,15 @@ class ChildrenHavingBytesArgSepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2350,15 +2361,15 @@ class ChildrenHavingBytesArgSepMaxsplitMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2491,15 +2502,15 @@ class ChildrenHavingBytesArgSubMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2652,15 +2663,15 @@ class ChildrenHavingBytesArgSubStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2832,15 +2843,15 @@ class ChildrenHavingBytesArgSubStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2973,15 +2984,15 @@ class ChildrenHavingBytesArgSuffixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3126,15 +3137,15 @@ class ChildrenHavingBytesArgSuffixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3298,15 +3309,15 @@ class ChildrenHavingBytesArgSuffixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3437,15 +3448,15 @@ class ChildrenHavingBytesArgTableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3590,15 +3601,15 @@ class ChildrenHavingBytesArgTableDeleteMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3726,15 +3737,15 @@ class ChildrenHavingBytesArgTabsizeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -3864,15 +3875,15 @@ class ChildrenHavingBytesArgWidthMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4022,15 +4033,15 @@ class ChildrenHavingBytesArgWidthFillcharMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4133,15 +4144,15 @@ class ChildHavingCalledMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4272,15 +4283,15 @@ class ChildrenHavingCalledArgsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4430,15 +4441,15 @@ class ChildrenHavingCalledArgsKwargsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4571,15 +4582,15 @@ class ChildrenHavingCalledKwargsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4674,15 +4685,15 @@ class ChildHavingClsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4808,15 +4819,15 @@ class ChildrenHavingClsClassesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -4961,15 +4972,15 @@ class ChildrenHavingConditionExpressionYesExpressionNoMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5067,15 +5078,15 @@ class ChildHavingCoroutineRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5212,15 +5223,15 @@ class ChildrenHavingDefaultsTupleFunctionRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5448,15 +5459,15 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5584,15 +5595,15 @@ class ChildHavingDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5738,15 +5749,15 @@ class ChildrenHavingDictArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -5900,15 +5911,15 @@ class ChildrenHavingDictArgIterablePairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6043,15 +6054,15 @@ class ChildrenHavingDictArgKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6202,15 +6213,15 @@ class ChildrenHavingDictArgKeyDefaultMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6349,15 +6360,15 @@ class ChildrenHavingDictArgPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6454,15 +6465,15 @@ class ChildHavingDistMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6566,15 +6577,15 @@ class ChildHavingDistributionNameMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6715,15 +6726,15 @@ class ChildHavingElementsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6738,6 +6749,276 @@ ChildrenExpressionMakeListMixin = ChildHavingElementsTupleMixin
 ChildrenExpressionMakeSetMixin = ChildHavingElementsTupleMixin
 ChildrenExpressionMakeSetLiteralMixin = ChildHavingElementsTupleMixin
 ChildrenExpressionMakeTupleMixin = ChildHavingElementsTupleMixin
+
+
+class ChildrenHavingExceptionMatchTypeMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionExceptionGroupMatch
+
+    def __init__(
+        self,
+        exception,
+        match_type,
+    ):
+        exception.parent = self
+
+        self.subnode_exception = exception
+
+        match_type.parent = self
+
+        self.subnode_match_type = match_type
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_exception,
+            self.subnode_match_type,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("exception", self.subnode_exception),
+            ("match_type", self.subnode_match_type),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_exception
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_exception = new_node
+
+            return
+
+        value = self.subnode_match_type
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_match_type = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "exception": self.subnode_exception.makeClone(),
+            "match_type": self.subnode_match_type.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_exception.finalize()
+        del self.subnode_exception
+        self.subnode_match_type.finalize()
+        del self.subnode_match_type
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_exception.collectVariableAccesses(emit_variable)
+        self.subnode_match_type.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionExceptionGroupMatchMixin = ChildrenHavingExceptionMatchTypeMixin
+
+
+class ChildrenHavingExceptionRaisedMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionExceptionGroupPrepareReraise
+
+    def __init__(
+        self,
+        exception,
+        raised,
+    ):
+        exception.parent = self
+
+        self.subnode_exception = exception
+
+        raised.parent = self
+
+        self.subnode_raised = raised
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_exception,
+            self.subnode_raised,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("exception", self.subnode_exception),
+            ("raised", self.subnode_raised),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_exception
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_exception = new_node
+
+            return
+
+        value = self.subnode_raised
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_raised = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "exception": self.subnode_exception.makeClone(),
+            "raised": self.subnode_raised.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_exception.finalize()
+        del self.subnode_exception
+        self.subnode_raised.finalize()
+        del self.subnode_raised
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_exception.collectVariableAccesses(emit_variable)
+        self.subnode_raised.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionExceptionGroupPrepareReraiseMixin = ChildrenHavingExceptionRaisedMixin
 
 
 class ChildHavingExceptionTypeMixin(object):
@@ -6821,15 +7102,15 @@ class ChildHavingExceptionTypeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -6938,15 +7219,15 @@ class ChildHavingExitCodeOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -7232,15 +7513,15 @@ class ChildHavingExpressionMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -7599,15 +7880,15 @@ class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -7743,15 +8024,15 @@ class ChildrenHavingExpressionMatchTypeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -7907,15 +8188,15 @@ class ChildrenHavingExpressionNameDefaultOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -8064,15 +8345,15 @@ class ChildrenHavingExpressionNameValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -8202,15 +8483,15 @@ class ChildrenHavingExpressionSubscriptMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -8308,15 +8589,15 @@ class ChildHavingFallbackMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -8481,15 +8762,15 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -8810,15 +9091,15 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9262,15 +9543,15 @@ class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompil
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9459,15 +9740,15 @@ class ChildrenHavingFunctionValuesTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9563,15 +9844,15 @@ class ChildHavingGeneratorRefMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9707,15 +9988,15 @@ class ChildrenHavingGroupNameOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9850,15 +10131,15 @@ class ChildrenHavingInstanceClassesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -9953,15 +10234,15 @@ class ChildHavingIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10087,15 +10368,15 @@ class ChildrenHavingIterableValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10222,15 +10503,15 @@ class ChildrenHavingIteratorDefaultMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10358,15 +10639,15 @@ class ChildrenHavingKeyDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10494,15 +10775,15 @@ class ChildrenHavingKeyValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10771,15 +11052,15 @@ class ChildrenHavingLeftRightMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -10916,15 +11197,15 @@ class ChildHavingListArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11052,15 +11333,15 @@ class ChildrenHavingListArgIndexMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11205,15 +11486,15 @@ class ChildrenHavingListArgIndexItemMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11341,15 +11622,15 @@ class ChildrenHavingListArgKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11503,15 +11784,15 @@ class ChildrenHavingListArgKeyOptionalReverseMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11645,15 +11926,15 @@ class ChildrenHavingListArgValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11801,15 +12082,15 @@ class ChildrenHavingListArgValueStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -11973,15 +12254,15 @@ class ChildrenHavingListArgValueStartStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12079,15 +12360,15 @@ class ChildHavingLowMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12215,15 +12496,15 @@ class ChildrenHavingLowHighMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12370,15 +12651,15 @@ class ChildrenHavingLowHighStepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12507,15 +12788,15 @@ class ChildrenHavingMetaclassBasesMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12610,15 +12891,15 @@ class ChildHavingModuleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -12849,15 +13130,15 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13097,15 +13378,15 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13374,15 +13655,15 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13539,15 +13820,15 @@ class ChildrenHavingNamePackageOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13708,15 +13989,15 @@ class ChildrenHavingNameTypeParamsTupleValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13818,15 +14099,15 @@ class ChildHavingOperandMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -13926,15 +14207,15 @@ class ChildHavingPMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14032,15 +14313,15 @@ class ChildHavingPackageMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14054,6 +14335,130 @@ ChildrenExpressionImportlibResourcesBackportFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesBackportFilesCallMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesCallMixin = ChildHavingPackageMixin
+
+
+class ChildHavingPackageOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionImportlibResourcesFiles
+    #   ExpressionImportlibResourcesFilesSince312Call
+
+    def __init__(
+        self,
+        package,
+    ):
+        if package is not None:
+            package.parent = self
+
+        self.subnode_package = package
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        value = self.subnode_package
+
+        if value is None:
+            return ()
+        else:
+            return (value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("package", self.subnode_package),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_package
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_package = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "package": (
+                self.subnode_package.makeClone()
+                if self.subnode_package is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_package is not None:
+            self.subnode_package.finalize()
+        del self.subnode_package
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = self.subnode_package
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_package = self.subnode_package
+
+        if subnode_package is not None:
+            self.subnode_package.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageOptionalMixin
+ChildrenExpressionImportlibResourcesFilesSince312CallMixin = (
+    ChildHavingPackageOptionalMixin
+)
 
 
 class ChildrenHavingPackageResourceMixin(object):
@@ -14174,15 +14579,15 @@ class ChildrenHavingPackageResourceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14381,15 +14786,15 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14618,15 +15023,15 @@ class ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalM
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14773,15 +15178,15 @@ class ChildrenHavingPackageOrRequirementResourceNameMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -14908,15 +15313,15 @@ class ChildHavingPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15035,15 +15440,15 @@ class ChildHavingParamsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15151,15 +15556,15 @@ class ChildHavingPathMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15270,15 +15675,15 @@ class ChildHavingPathOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15427,15 +15832,15 @@ class ChildrenHavingPathOptionalDirFdOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15617,15 +16022,15 @@ class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object)
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15784,15 +16189,15 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -15932,15 +16337,15 @@ class ChildrenHavingRealOptionalImagMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16062,15 +16467,15 @@ class ChildHavingRequirementsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16166,15 +16571,15 @@ class ChildHavingSMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16269,15 +16674,15 @@ class ChildHavingSequenceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16405,15 +16810,15 @@ class ChildrenHavingSequenceStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16541,15 +16946,15 @@ class ChildrenHavingSetArgValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16700,15 +17105,15 @@ class ChildrenHavingSideEffectsTupleExpressionMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -16804,15 +17209,15 @@ class ChildHavingSourceMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17045,15 +17450,15 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17212,15 +17617,15 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17398,15 +17803,15 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgClosureOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17540,15 +17945,15 @@ class ChildrenHavingStartStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17693,15 +18098,15 @@ class ChildrenHavingStartStopStepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17797,15 +18202,15 @@ class ChildHavingStopMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -17933,15 +18338,15 @@ class ChildHavingStrArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18137,15 +18542,15 @@ class ChildrenHavingStrArgArgsTuplePairsTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18277,15 +18682,15 @@ class ChildrenHavingStrArgCharsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18415,15 +18820,15 @@ class ChildrenHavingStrArgEncodingMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18570,15 +18975,15 @@ class ChildrenHavingStrArgEncodingErrorsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18707,15 +19112,15 @@ class ChildrenHavingStrArgIterableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18842,15 +19247,15 @@ class ChildrenHavingStrArgKeependsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -18995,15 +19400,15 @@ class ChildrenHavingStrArgOldNewMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19167,15 +19572,15 @@ class ChildrenHavingStrArgOldNewCountMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19304,15 +19709,15 @@ class ChildrenHavingStrArgPrefixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19457,15 +19862,15 @@ class ChildrenHavingStrArgPrefixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19629,15 +20034,15 @@ class ChildrenHavingStrArgPrefixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19769,15 +20174,15 @@ class ChildrenHavingStrArgSepMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -19926,15 +20331,15 @@ class ChildrenHavingStrArgSepMaxsplitMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20067,15 +20472,15 @@ class ChildrenHavingStrArgSubMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20228,15 +20633,15 @@ class ChildrenHavingStrArgSubStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20408,15 +20813,15 @@ class ChildrenHavingStrArgSubStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20549,15 +20954,15 @@ class ChildrenHavingStrArgSuffixMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20702,15 +21107,15 @@ class ChildrenHavingStrArgSuffixStartMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -20874,15 +21279,15 @@ class ChildrenHavingStrArgSuffixStartEndMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21012,15 +21417,15 @@ class ChildrenHavingStrArgTableMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21148,15 +21553,15 @@ class ChildrenHavingStrArgTabsizeMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21286,15 +21691,15 @@ class ChildrenHavingStrArgWidthMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21444,15 +21849,15 @@ class ChildrenHavingStrArgWidthFillcharMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21602,15 +22007,15 @@ class ChildrenHavingStrictOptionalValuesTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21781,15 +22186,15 @@ class ChildrenHavingStringEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -21893,15 +22298,15 @@ class ChildHavingTypeArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22065,15 +22470,15 @@ class ChildrenHavingTypeArgArgsOptionalKwargsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22210,15 +22615,15 @@ class ChildrenHavingTypeArgObjectArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22364,15 +22769,15 @@ class ChildrenHavingTypeNameBasesDictArgMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22468,15 +22873,15 @@ class ChildHavingTypeParamsMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22604,15 +23009,15 @@ class ChildHavingValueMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22784,15 +23189,15 @@ class ChildrenHavingValueOptionalBaseMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -22976,15 +23381,15 @@ class ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -23142,15 +23547,15 @@ class ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -23282,15 +23687,15 @@ class ChildrenHavingValueKeyMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -23415,15 +23820,15 @@ class ChildHavingValuesTupleMixin(object):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):

@@ -166,13 +166,14 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
 
     def computeExpressionRaw(self, trace_collection):
         if self.variable.getModule().isMainModule():
-            result = makeConstantRefNode(constant=None, source_ref=self.source_ref)
+            if not self.variable.getModule().getRuntimePackageValue():
+                result = makeConstantRefNode(constant=None, source_ref=self.source_ref)
 
-            return (
-                result,
-                "new_expression",
-                "Using constant '__spec__' value for main module.",
-            )
+                return (
+                    result,
+                    "new_expression",
+                    "Using constant '__spec__' value for main module.",
+                )
 
         return self, None, None
 

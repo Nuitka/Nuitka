@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_TYPE_ALIASES_H__
 #define __NUITKA_TYPE_ALIASES_H__
 
@@ -10,7 +11,11 @@
 
 // Helpers for type aliases, type variables, and generic base classes.
 extern PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *value, PyObject *module_name);
-extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name);
+#if PYTHON_VERSION >= 0x3d0
+extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *bound, PyObject *default_value);
+#else
+extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *bound);
+#endif
 extern PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_PARAM_SPEC(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params);

@@ -96,9 +96,9 @@ def _runDataComposer(source_dir):
                 executable=executable,
                 shell=False,
             )
-        except subprocess.CalledProcessError:
-            data_composer_logger.sysexit(
-                "Error executing data composer, please report the above exception."
+        except subprocess.CalledProcessError as e:
+            return data_composer_logger.sysexit(
+                "Error executing data composer, exit code %d." % e.returncode
             )
 
     return getConstantBlobFilenames(source_dir), loadJsonFromFilename(stats_filename)

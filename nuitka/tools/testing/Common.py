@@ -32,6 +32,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     getNullInput,
     getNullOutput,
+    getToolArchPrefix,
     withEnvironmentVarOverridden,
 )
 from nuitka.utils.FileOperations import (
@@ -135,6 +136,7 @@ def _parsePythonVersionOutput(python_binary):
             "-c",
             """\
 import sys, os;\
+print(sys.version.split(" ")[0]);\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(\
 ("x86_64" if "AMD64" in sys.version else (\
@@ -153,16 +155,17 @@ print(hasattr(sys, "gettotalrefcount"))\
         version_output = version_output.decode("utf8")
 
     python_version_str = version_output.split("\n")[0].strip()
-    python_arch = version_output.split("\n")[1].strip()
-    python_executable = version_output.split("\n")[2].strip()
-    python_vendor = version_output.split("\n")[3].strip()
-    python_debug = version_output.split("\n")[4].strip()
+    python_version_numeric = version_output.split("\n")[1].strip()
+    python_arch = version_output.split("\n")[2].strip()
+    python_executable = version_output.split("\n")[3].strip()
+    python_vendor = version_output.split("\n")[4].strip()
+    python_debug = version_output.split("\n")[5].strip()
 
     assert type(python_version_str) is str, repr(python_version_str)
     assert type(python_arch) is str, repr(python_arch)
     assert type(python_executable) is str, repr(_python_executable)
 
-    python_version = tuple(int(d) for d in python_version_str.split("."))
+    python_version = tuple(int(d) for d in python_version_numeric.split("."))
     python_debug = python_debug == "True"
 
     return (
@@ -1347,7 +1350,13 @@ def setupCacheHashSalt(test_code_path):
     assert os.path.exists(test_code_path)
 
     if os.path.exists(os.path.join(test_code_path, ".git")):
-        git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
+        git_cmd = list(getToolArchPrefix("git")) + [
+            "git",
+            "ls-tree",
+            "-r",
+            "HEAD",
+            test_code_path,
+        ]
 
         with getNullInput() as null_input:
             process = subprocess.Popen(
@@ -1874,7 +1883,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
             continue
 
         # Allow reading time zone info of local system.
-        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+        if isFilenameSameAsOrBelowPath("/usr/share/zoneinfo", loaded_filename):
             continue
 
         # The access to .pth files has no effect.

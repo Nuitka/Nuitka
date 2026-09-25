@@ -103,22 +103,6 @@ def detectFunctionBodyKind(nodes, start_value=None):
 
     flags = set()
 
-    def _checkCoroutine(field):
-        """Check only for co-routine nature of the field and only update that."""
-        # TODO: This is clumsy code, trying to achieve what non-local does for
-        # Python2 as well.
-
-        old = set(indications)
-        indications.clear()
-
-        _check(field)
-
-        if "Coroutine" in indications:
-            old.add("Coroutine")
-
-        indications.clear()
-        indications.update(old)
-
     def _check(node):
         node_class = node.__class__
 
@@ -176,28 +160,9 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.GeneratorExp:
-            for name, field in ast.iter_fields(node):
-                if name == "name":
-                    pass
-                elif name in ("body", "comparators", "elt"):
-                    if python_version >= 0x370:
-                        _checkCoroutine(field)
-                elif name == "generators":
-                    _check(field[0].iter)
-
-                    # New syntax in 3.7 allows these to be present in functions not
-                    # declared with "async def", so we need to check them, but
-                    # only if top level.
-                    if python_version >= 0x370 and node in nodes:
-                        for gen in field:
-                            if gen.is_async:
-                                indications.add("Coroutine")
-                                break
-
-                            if _checkCoroutine(gen):
-                                break
-                else:
-                    assert False, (name, field, ast.dump(node))
+            # Only the first iterable is evaluated in the enclosing scope;
+            # the generator body has its own scope.
+            _check(node.generators[0].iter)
         elif node_class is ast.ListComp and python_version >= 0x300:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators"):

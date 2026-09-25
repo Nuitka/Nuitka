@@ -46,8 +46,13 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
 
         if support_info == "parameter":
             message = "Module '%s' has parameter: %s" % (full_name, description)
-        elif support_info == "plugin":
+        elif support_info == "plugin-warning":
             message = "Module '%s' has plugin consideration: %s" % (
+                full_name,
+                description,
+            )
+        elif support_info == "plugin-error":
+            message = "Module '%s' has plugin requirement: %s" % (
                 full_name,
                 description,
             )
@@ -66,9 +71,9 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
                 description,
             )
 
-        if support_info == "error":
+        if support_info in ("error", "plugin-error"):
             self.sysexit(message)
-        elif support_info in ("warning", "parameter", "plugin"):
+        elif support_info in ("warning", "parameter", "plugin-warning"):
             self.warning(message)
         elif support_info == "info":
             self.info(message)

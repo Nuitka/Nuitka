@@ -3,7 +3,9 @@
 
 """Signing of executables."""
 
+import os
 import re
+from contextlib import contextmanager
 
 from nuitka.options.Options import (
     getMacOSSignedAppName,
@@ -15,7 +17,12 @@ from nuitka.options.Options import (
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
-from .FileOperations import getExternalUsePath, withMadeWritableFileMode
+from .FileOperations import (
+    copyFile,
+    getExternalUsePath,
+    withMadeWritableFileMode,
+    withTemporaryFilename,
+)
 
 _macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
@@ -106,20 +113,100 @@ def _getMacOSCodeSigningIdentities(signing_keychain_filename):
 
 
 def _unlockMacIdentityKeychain(signing_keychain_filename):
-    command = [
-        "security",
-        "unlock-keychain",
-        "-p",
-        getMacOSSigningCertificatePassword() or "",
-        signing_keychain_filename,
-    ]
+    password = getMacOSSigningCertificatePassword() or ""
 
+    # Unlock the keychain. This alone works interactively, but in non-interactive
+    # contexts (CI, SSH) the keychain will auto-lock again (fixed below) and
+    # codesign will still hit ACL restrictions on the private key (also fixed
+    # below).
     executeToolChecked(
         logger=postprocessing_logger,
-        command=command,
+        command=[
+            "security",
+            "unlock-keychain",
+            "-p",
+            password,
+            signing_keychain_filename,
+        ],
         absence_message=_macos_security_usage,
         stderr_filter=_filterSecurityErrorOutput,
     )
+
+    # Prevent the keychain from re-locking during the codesign step. The
+    # "-lut 21600" pattern is the standard macOS CI recipe: lock on sleep
+    # (-l), enable timeout-based locking (-u), with a 6-hour window (-t
+    # 21600). Without this, SSH/CI sessions will see the keychain lock
+    # almost immediately after unlock.
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=[
+            "security",
+            "set-keychain-settings",
+            "-lut",
+            "21600",
+            signing_keychain_filename,
+        ],
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+    # Allow Apple-signed tools (including /usr/bin/codesign) to access private
+    # keys in the keychain without an interactive prompt. Without this, running
+    # codesign in a non-interactive context (CI, SSH) will fail with
+    # errSecInternalComponent because the security framework cannot show the
+    # "codesign wants to sign using key..." dialog.
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=[
+            "security",
+            "set-key-partition-list",
+            "-S",
+            "apple-tool:,apple:",
+            "-s",
+            "-k",
+            password,
+            signing_keychain_filename,
+        ],
+        absence_message=_macos_security_usage,
+        stderr_filter=_filterSecurityErrorOutput,
+    )
+
+
+@contextmanager
+def withUnlockedMacIdentityKeychain(signing_keychain_filename):
+    """Unlock a macOS keychain for codesign without dirtying the original.
+
+    Args:
+        signing_keychain_filename: Original keychain path or None.
+
+    Yields:
+        None if no keychain was given, otherwise the path of an unlocked
+        temporary copy that is cleaned up on exit. The original file is
+        never modified (``security`` commands change the file in place).
+
+    Notes:
+        ``security unlock-keychain`` / ``set-keychain-settings`` /
+        ``set-key-partition-list`` modify the keychain file in place
+        (timestamps / ACL). When the keychain is the checked-in
+        this would dirty the git worktree, so we operate on a git-ignored
+        temporary copy.
+    """
+    if signing_keychain_filename is None:
+        yield None
+        return
+
+    signing_keychain_filename = getExternalUsePath(signing_keychain_filename)
+
+    with withTemporaryFilename(
+        prefix=".nuitka-keychain-",
+        suffix=".tmp",
+        temp_path=os.path.dirname(signing_keychain_filename) or ".",
+    ) as tmp_filename:
+        copyFile(signing_keychain_filename, tmp_filename)
+
+        _unlockMacIdentityKeychain(tmp_filename)
+
+        yield tmp_filename
 
 
 def _detectMacOSCodeSigningIdentity(signing_keychain_filename=None):
@@ -189,64 +276,61 @@ def addMacOSCodeSignature(filenames, entitlements_filename):
     # Weak signing.
     identity = getMacOSSigningIdentity()
 
-    signing_keychain_filename = getMacOSSigningCertificateFilename()
+    with withUnlockedMacIdentityKeychain(
+        getMacOSSigningCertificateFilename()
+    ) as signing_keychain_filename:
+        if identity == "auto":
+            identity = _detectMacOSCodeSigningIdentity(
+                signing_keychain_filename=signing_keychain_filename
+            )
 
-    if signing_keychain_filename is not None:
-        signing_keychain_filename = getExternalUsePath(signing_keychain_filename)
-        _unlockMacIdentityKeychain(signing_keychain_filename)
-
-    if identity == "auto":
-        identity = _detectMacOSCodeSigningIdentity(
-            signing_keychain_filename=signing_keychain_filename
-        )
-
-    command = [
-        # Need to avoid Anaconda codesign.
-        "/usr/bin/codesign",
-        "-s",
-        identity,
-        "--force",
-        "--deep",
-        "--preserve-metadata=entitlements",
-    ]
-
-    if signing_keychain_filename is not None:
-        command += [
-            "--keychain",
-            signing_keychain_filename,
+        command = [
+            # Need to avoid Anaconda codesign.
+            "/usr/bin/codesign",
+            "-s",
+            identity,
+            "--force",
+            "--deep",
+            "--preserve-metadata=entitlements",
         ]
 
-    macos_signed_app_name = getMacOSSignedAppName()
+        if signing_keychain_filename is not None:
+            command += [
+                "--keychain",
+                signing_keychain_filename,
+            ]
 
-    if macos_signed_app_name is not None:
-        command += [
-            "-i",
-            macos_signed_app_name,
-        ]
+        macos_signed_app_name = getMacOSSignedAppName()
 
-    if entitlements_filename is not None:
-        command += [
-            "--entitlements",
-            getExternalUsePath(entitlements_filename),
-        ]
+        if macos_signed_app_name is not None:
+            command += [
+                "-i",
+                macos_signed_app_name,
+            ]
 
-    if shallUseSigningForNotarization():
-        command.append("--options=runtime")
+        if entitlements_filename is not None:
+            command += [
+                "--entitlements",
+                getExternalUsePath(entitlements_filename),
+            ]
 
-    assert type(filenames) is not str
-    command.extend(filenames)
+        if shallUseSigningForNotarization():
+            command.append("--options=runtime")
 
-    with withMadeWritableFileMode(filenames):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=command,
-            absence_message=_macos_codesign_usage,
-            stderr_filter=_filterCodesignErrorOutput,
-            context={
-                "signing_identity": identity,
-                "signing_keychain_filename": signing_keychain_filename,
-            },
-        )
+        assert type(filenames) is not str
+        command.extend(filenames)
+
+        with withMadeWritableFileMode(filenames):
+            executeToolChecked(
+                logger=postprocessing_logger,
+                command=command,
+                absence_message=_macos_codesign_usage,
+                stderr_filter=_filterCodesignErrorOutput,
+                context={
+                    "signing_identity": identity,
+                    "signing_keychain_filename": signing_keychain_filename,
+                },
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

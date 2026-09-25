@@ -183,6 +183,9 @@ class IncludedDataFile(object):
         self.tags = tags_set
         self.tracer = tracer
 
+    def isExternal(self):
+        return "external" in self.tags
+
     def __repr__(self):
         return "<%s %s source '%s' dest '%s' reason '%s' tags '%s'>" % (
             self.__class__.__name__,
@@ -679,7 +682,7 @@ def addIncludedPdbFile(entry_point):
                 pdb_dest,
             )
 
-            if pdb_source_candidate == pdb_dest_full:
+            if areSamePaths(pdb_source_candidate, pdb_dest_full):
                 addIncludedDataFile(
                     makeIncludedDataFileGenerated(
                         dest_path=pdb_dest,
@@ -886,11 +889,20 @@ def addIncludedDataFilesFromFlavor():
         )
 
         if not os.path.exists(lib_filename_full):
-            return inclusion_logger.sysexit(
-                """\
-Error, the defined path of the '%s' file in the Python installation '%s' is wrong."""
-                % (lib_filename_full, getSystemPrefixPath())
-            )
+            system_prefix = getSystemPrefixPath()
+
+            for lib_part in ("lib64", "lib"):
+                candidate = os.path.join(system_prefix, lib_part, lib_filename)
+
+                if os.path.exists(candidate):
+                    lib_filename_full = candidate
+                    break
+            else:
+                return inclusion_logger.sysexit(
+                    """\
+Error, cannot find '%s' in the Python installation '%s' (tried LIBPL, lib64, lib)."""
+                    % (lib_filename, system_prefix)
+                )
 
         addIncludedDataFile(
             makeIncludedDataFile(

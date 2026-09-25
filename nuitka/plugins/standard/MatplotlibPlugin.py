@@ -17,8 +17,8 @@ from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Jinja2 import renderTemplateFromString
 from nuitka.utils.Utils import isMacOS
 
-# spell-checker: ignore matplotlib, scipy, scikit, matplotlibrc, matplotlibdata
-# spell-checker: ignore mpl_toolkits, tkagg, MPLBACKEND
+# spell-checker: ignore matplotlib,scipy,scikit,matplotlibrc,matplotlibdata
+# spell-checker: ignore mpl_toolkits,tkagg,MPLBACKEND
 
 
 class NuitkaPluginMatplotlib(NuitkaPluginBase):

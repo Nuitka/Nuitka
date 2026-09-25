@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationInplace.c.j2 instead! */
+#pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/helper/long_helpers.h"
 #endif
 
 #include "HelpersOperationInplaceAddUtils.c"
@@ -2533,10 +2536,10 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_CLONG(PyObject **operand1, long o
         unsigned long t = operand2_abs_ival;
 
         while (t != 0) {
-            operand2_digit_count += 1;
-            assert(operand2_digit_count <= (Py_ssize_t)(sizeof(operand2_digit_count) / sizeof(digit)));
+            assert(operand2_digit_count < (Py_ssize_t)(sizeof(operand2_digits) / sizeof(operand2_digits[0])));
 
             operand2_digits[operand2_digit_count] = (digit)(t & PyLong_MASK);
+            operand2_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }

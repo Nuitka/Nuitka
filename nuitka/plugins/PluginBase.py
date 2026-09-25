@@ -88,6 +88,8 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
+    getNormalizedPath,
+    getNormalizedPathJoin,
     getReportSourceReference,
 )
 from nuitka.utils.Importing import (
@@ -197,9 +199,7 @@ def _getEvaluationContext():
             # Getting data files contents
             "get_data": _getPackageData,
             # Querying package properties
-            "has_builtin_module": lambda module_name: isBuiltinModuleName(
-                ModuleName(module_name)
-            ),
+            "has_builtin_module": isBuiltinModuleName,
             # Architectures
             "arch_x86": getArchitecture() == "x86",
             "arch_amd64": getArchitecture() == "x86_64",
@@ -277,7 +277,7 @@ def _convertVersionToTuple(distribution_name, version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    # spell-checker: ignore opencv, pyobjc, objc
+    # spell-checker: ignore opencv,pyobjc,objc
 
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
@@ -1232,6 +1232,18 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onInstallerOutput(self, filename):
+        """Called after an installer has been created.
+
+        Args:
+            filename: the created installer, setup executable or DMG file
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
         """Suppress import warnings for unknown modules.
 
@@ -1292,18 +1304,21 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def getPreprocessorSymbols(self):
+    def getPreprocessorSymbols(self, onefile):
         """Decide which C defines to be used in compilation.
 
         Notes:
             The plugins can each contribute, but are hopefully using
             a namespace for their defines.
 
+        Args:
+            onefile: bool, True if onefile compilation mode
+
         Returns:
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
         """
-        # Virtual method, pylint: disable=no-self-use
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         # spell-checker: ignore -Dkey
         return None
 
@@ -1333,13 +1348,13 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     @classmethod
     def getPluginDataFilesDir(cls):
         """Helper function that returns path, where data files for the plugin are stored."""
-        plugin_filename = sys.modules[cls.__module__].__file__
+        plugin_filename = getNormalizedPath(sys.modules[cls.__module__].__file__)
         return changeFilenameExtension(plugin_filename, "")
 
     def getPluginDataFileContents(self, filename):
         """Helper function that returns contents of a plugin data file."""
         return getFileContents(
-            os.path.join(
+            getNormalizedPathJoin(
                 self.getPluginDataFilesDir(),
                 filename,
             )
@@ -1349,6 +1364,28 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     def getReportSourceReference(source_ref):
         """Format a source reference suitable for user output."""
         return getReportSourceReference(source_ref)
+
+    def onMetaPathLoaderEntryTemplate(self, module, template_args):
+        """Modify template arguments for meta path loader entry generation.
+
+        Args:
+            module: the module node
+            template_args: dict of template arguments (mutated in-place),
+                e.g. 'flags' (list), 'module_name', 'file_path', etc.
+        """
+
+    def getModuleIncludes(self, context):
+        """Return extra include header names for a module's C file.
+
+        Args:
+            context: the module code generation context being compiled
+
+        Returns:
+            Iterable of header filenames.
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.

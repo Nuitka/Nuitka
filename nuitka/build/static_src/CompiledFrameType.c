@@ -1,8 +1,10 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifdef __IDE_ONLY__
-#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 
@@ -635,7 +637,11 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *
     }
 
 #if PYTHON_VERSION >= 0x3d0
-    if (Nuitka_Frame_IsSuspended(frame)) {
+    // CPython 3.13+ only rejects clearing a generated-owned suspended frame.
+    // Frame-object-owned frames can always be cleared, matching CPython's
+    // frame_clear logic.
+    PyObject *frame_gen = Nuitka_GetFrameGenerator(frame);
+    if ((frame_gen != NULL) && Nuitka_Frame_IsSuspended(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear a suspended frame");
 
         return NULL;
@@ -807,7 +813,7 @@ void _initCompiledFrameType(void) {
     Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
 
     // These are to be used interchangeably. Make sure that's true.
-    assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
+    STATIC_ASSERT(offsetof(struct Nuitka_FrameObject, m_frame) == 0, "m_frame must be at offset 0");
 }
 
 static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,

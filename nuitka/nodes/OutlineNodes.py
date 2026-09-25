@@ -233,6 +233,13 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
     def isExpressionOutlineFunctionBase():
         return True
 
+    @staticmethod
+    def willRaiseAnyException():
+        # The outline function as an expression only creates the function
+        # object, and it does not execute its body as part of that, so it
+        # cannot raise by itself.
+        return False
+
     def makeClone(self):
         result = ExpressionFunctionBodyBase.makeClone(self)
 
@@ -244,14 +251,35 @@ class ExpressionOutlineFunctionBase(ExpressionOutlineMixin, ExpressionFunctionBo
         )
 
         for temp_variable in entry_point.getTempVariables(self):
-            new_temp_variable = entry_point.allocateTempVariable(
-                temp_scope=None,
-                name=temp_variable.getName() + "_clone",
+            clone_number = 1
+
+            while True:
+                clone_suffix = (
+                    "_clone" if clone_number == 1 else "_clone_%d" % clone_number
+                )
+                new_temp_name = temp_variable.getName() + clone_suffix
+
+                if not entry_point.hasTempVariable(new_temp_name):
+                    break
+
+                clone_number += 1
+
+            # Make the clone own separate temporary variables, without
+            # registering them in a trace collection, the clone will
+            # initialize them when it gets computed.
+            new_temp_variable = entry_point.createTempVariable(
+                temp_name=new_temp_name,
                 temp_type=temp_variable.getVariableType(),
                 outline=result,
             )
 
             variable_translations[temp_variable] = new_temp_variable
+
+        # Taken variables are not owned by the outline either, replicate
+        # them for the clone, translating the temporary variables, which
+        # are cloned above, but keeping e.g. module variables as they are.
+        for taken_variable in self.taken:
+            result.taken.add(variable_translations.get(taken_variable, taken_variable))
 
         updateVariableUsage(
             provider=result,

@@ -458,6 +458,7 @@ def loadStandardPluginClasses():
 class Plugins(object):
     implicit_imports_cache = {}
     extra_scan_paths_cache = {}
+    recompile_extension_modules_cache = {}
 
     @staticmethod
     @counted_plugin_method
@@ -707,6 +708,15 @@ through implicit import by '%s' plugin encountered."""
 
     @staticmethod
     @counted_plugin_method
+    def onMetaPathLoaderEntryTemplate(module, template_args):
+        """Let plugins modify meta path loader entry template arguments."""
+        for plugin in getActivePlugins():
+            plugin.onMetaPathLoaderEntryTemplate(
+                module=module, template_args=template_args
+            )
+
+    @staticmethod
+    @counted_plugin_method
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
@@ -732,6 +742,13 @@ through implicit import by '%s' plugin encountered."""
         """Let plugins add to final binary in some way"""
         for plugin in getActivePlugins():
             plugin.onFinalResult(filename)
+
+    @staticmethod
+    @counted_plugin_method
+    def onInstallerOutput(filename):
+        """Let plugins post-process the created installer"""
+        for plugin in getActivePlugins():
+            plugin.onInstallerOutput(filename)
 
     @staticmethod
     def considerExtraDlls(module):
@@ -931,7 +948,7 @@ through implicit import by '%s' plugin encountered."""
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if states.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                getSourceDirectoryPath(onefile=False, create=False),
+                getSourceDirectoryPath(onefile=False, create=True),
                 module_name + ".py",
             )
 
@@ -1469,6 +1486,9 @@ through incomplete set import by '%s' plugin encountered."""
             The decision is made by the first plugin "never", otherwise a matching
             "yes" config wins, "no" is allowed to be overridden by command line options.
         """
+        if module_name in Plugins.recompile_extension_modules_cache:
+            return Plugins.recompile_extension_modules_cache[module_name]
+
         result = None
 
         for plugin in getActivePlugins():
@@ -1480,26 +1500,29 @@ through incomplete set import by '%s' plugin encountered."""
                     assert value in ("yes", "no", "never"), value
 
                     if value == "never":
-                        return False, plugin_reason
-                    elif value == "yes":
+                        result = False, plugin_reason
+                        break
+                    if value == "yes":
                         result = True, plugin_reason
                     elif value == "no" and result is None:
                         result = False, plugin_reason
 
         options_value = shallRecompileExtensionModules(module_name)
         if options_value[0] in (True, False):
-            return options_value
+            result = options_value
 
         if result is None:
-            return None, "default behavior"
-        else:
-            return result
+            result = None, "default behavior"
+
+        Plugins.recompile_extension_modules_cache[module_name] = result
+
+        return result
 
     preprocessor_symbols = None
 
     @classmethod
     @counted_plugin_method
-    def getPreprocessorSymbols(cls):
+    def getPreprocessorSymbols(cls, onefile):
         """Let plugins provide C defines to be used in compilation.
 
         Notes:
@@ -1517,7 +1540,7 @@ through incomplete set import by '%s' plugin encountered."""
             cls.preprocessor_symbols = OrderedDict()
 
             for plugin in getActivePlugins():
-                value = plugin.getPreprocessorSymbols()
+                value = plugin.getPreprocessorSymbols(onefile=onefile)
 
                 if value is not None:
                     assert type(value) is dict, value
@@ -1587,6 +1610,17 @@ through incomplete set import by '%s' plugin encountered."""
                     cls.extra_include_directories.update(value)
 
         return tuple(cls.extra_include_directories)
+
+    @staticmethod
+    @counted_plugin_method
+    def getModuleIncludes(context):
+        result = OrderedSet()
+
+        for plugin in getActivePlugins():
+            for value in plugin.getModuleIncludes(context):
+                result.add(value)
+
+        return tuple(result)
 
     @staticmethod
     @counted_plugin_method

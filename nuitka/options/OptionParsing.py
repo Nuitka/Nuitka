@@ -1308,6 +1308,17 @@ development_group.add_option(
 Enable verbose mode for the data composer. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-no-bytecode-to-compiled-fallback",
+    action="store_true",
+    dest="devel_no_bytecode_to_compiled_fallback",
+    default=False,
+    github_action=False,
+    help="""\
+Forbid fallback from bytecode backed annotate functions to compiled code when \
+source regeneration fails. Instead abort compilation with an error. Defaults to off.""",
+)
+
 del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
@@ -1442,6 +1453,24 @@ value. Refer to gcc documentation for "-fcf-protection" for the
 details.""",
 )
 
+c_compiler_group.add_option(
+    "--target-arch",
+    action="store",
+    dest="c_target_arch",
+    metavar="MARCH",
+    default=None,
+    help="""\
+What minimum CPU instruction set to compile for. This is NOT about
+cross-compilation (which requires Python of that architecture). It
+controls the baseline ISA level for the backend C compiler via
+'-march'. When not given, gcc and clang use their default (already
+portable), and zig defaults to the baseline ISA for the target
+architecture (e.g. "x86_64" on x86_64, "armv8-a" on arm64) to
+produce portable binaries. Set to an explicit value like
+"x86-64-v3" to require a higher ISA level. Check compiler docs
+for allowed values. If you choose wrong, build errors will occur.""",
+)
+
 del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
@@ -1554,6 +1583,18 @@ pgo_group.add_option(
     choices=("include", "exclude", "bytecode"),
     default="include",
     help=SUPPRESS_HELP,  # Not yet ready
+)
+
+pgo_group.add_option(
+    "--pgo-python-error-exit",
+    action="store",
+    dest="python_pgo_error_exit",
+    choices=("yes", "no"),
+    default="no",
+    help="""\
+Control how non-zero exit codes of the PGO profiling run are handled. The default
+'no' tolerates no error exits and aborts compilation on a non-zero exit code, but
+that can be disabled with 'yes'.""",
 )
 
 pgo_group.add_option(
@@ -1935,17 +1976,6 @@ macos_group.add_option(
 )
 
 macos_group.add_option(
-    "--macos-app-create-dmg",
-    action="store_true",
-    dest="macos_create_dmg",
-    default=False,
-    help="""\
-When compiling for macOS, create a DMG file for the application bundle.
-Defaults to off.""",
-)
-
-
-macos_group.add_option(
     "--macos-signed-app-name",
     action="store",
     dest="macos_signed_app_name",
@@ -2094,13 +2124,45 @@ del macos_group
 linux_group = parser.add_option_group("Linux specific controls")
 
 linux_group.add_option(
+    "--linux-app-icon",
     "--linux-icon",
     "--linux-onefile-icon",
     action="append",
     dest="linux_icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
+    help="""\
+Add executable icon for the Linux desktop file to use. Can be given
+only one time. Defaults to Python icon if available. Note that the
+desktop file references the icon by name only, it will not display
+unless the icon file is also installed into the system icon paths,
+e.g. '/usr/share/icons/hicolor/' or '~/.local/share/icons/'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-console-mode",
+    action="store",
+    dest="linux_app_console_mode",
+    choices=("force", "disable"),
+    metavar="LINUX_APP_CONSOLE_MODE",
+    default=None,
+    help="""\
+Select console mode to use with the Linux desktop file. Default mode
+is 'disable' and the 'Terminal' entry makes it launch without a
+terminal. With 'force' a terminal is opened when launched from the
+desktop environment. Default is 'disable'.""",
+)
+
+linux_group.add_option(
+    "--linux-app-license",
+    action="store",
+    dest="linux_app_license",
+    metavar="LINUX_APP_LICENSE",
+    default=None,
+    help="""\
+SPDX license expression of the application used in the AppStream
+metainfo file created on Linux, e.g. 'Apache-2.0'. Defaults
+to 'Proprietary'.""",
 )
 
 del linux_group
@@ -2161,7 +2223,9 @@ version_group.add_option(
     metavar="FILE_DESCRIPTION",
     default=None,
     help="""\
-Description of the file used in version information. Windows only at this time. Defaults to binary filename.""",
+Description of the file used in version information. On Windows, it is mandatory and
+defaults to the binary filename. On Linux app mode, it is used as the summary of the
+AppStream metadata. Defaults to unused.""",
 )
 
 version_group.add_option(
@@ -2186,6 +2250,156 @@ Trademark used in version information. Windows/macOS only at this time. Defaults
 
 
 del version_group
+
+installer_group = parser.add_option_group("Installer controls")
+
+installer_group.add_option(
+    "--macos-create-installer",
+    "--macos-app-create-dmg",
+    action="store_true",
+    dest="macos_create_dmg",
+    default=False,
+    help="""\
+When compiling for macOS, create a DMG file for the application bundle.
+Defaults to off.""",
+)
+
+installer_group.add_option(
+    "--macos-installer-output",
+    action="store",
+    dest="macos_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the DMG file to create. Defaults to the app bundle name with a \
+".dmg" suffix next to the application bundle.""",
+)
+
+installer_group.add_option(
+    "--windows-create-installer",
+    action="store_true",
+    dest="windows_create_installer",
+    default=False,
+    help="""\
+Create a Windows installer (NSIS) for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--windows-nsis-path",
+    action="store",
+    dest="windows_installer_nsis_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The installer backend tool to use, or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-output",
+    action="store",
+    dest="windows_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the installer executable to create. Defaults to the program or \
+dist folder name with a "-setup.exe" suffix in the output directory.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-install-dir",
+    action="store",
+    dest="windows_installer_install_dir",
+    default=None,
+    metavar="INSTALLER_INSTALL_DIR",
+    help="""\
+Default installation directory presented to the end user, backend specific \
+values like "$PROGRAMFILES64\\ProductName" are allowed. Defaults to a \
+standard location derived from the product name and install mode.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-shortcuts",
+    action="store",
+    dest="windows_installer_shortcuts",
+    default=None,
+    multi_choices=("desktop", "start-menu"),
+    metavar="INSTALLER_SHORTCUTS",
+    help="""\
+Comma separated list of shortcuts the installer offers, allowed values are \
+"desktop" and "start-menu". Default is no shortcuts.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-license-file",
+    action="store",
+    dest="windows_installer_license_filename",
+    default=None,
+    metavar="INSTALLER_LICENSE_FILENAME",
+    help="""\
+License text file the installer shall present during installation. Default \
+is to have no license page.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-no-user-change-install-dir",
+    action="store_true",
+    dest="windows_installer_no_user_change_install_dir",
+    default=False,
+    help="""\
+Do not allow the end user to override the default installation directory. \
+Default is to allow it.""",
+)
+
+installer_group.add_option(
+    "--windows-installer-mode",
+    action="store",
+    dest="windows_installer_mode",
+    default="multiuser",
+    choices=("multiuser", "user", "machine"),
+    metavar="INSTALLER_MODE",
+    help="""\
+Installation scope. "multiuser" lets the end user choose between per-user \
+and all-users (default), "user" forces a per-user install with no UAC \
+prompt, "machine" forces an all-users install requiring admin elevation.""",
+)
+
+installer_group.add_option(
+    "--linux-create-installer",
+    action="store_true",
+    dest="linux_create_installer",
+    default=False,
+    help="""\
+Create a Linux AppImage installer for the compiled standalone or onefile \
+result. If not given, no installer is created.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-appimagetool-path",
+    action="store",
+    dest="linux_installer_appimagetool_path",
+    default=None,
+    metavar="INSTALLER_TOOL_PATH",
+    help="""\
+The appimagetool binary to use or the directory it lives in. By default \
+it is searched in 'PATH', and then a cached download of the official \
+upstream release is used.""",
+)
+
+installer_group.add_option(
+    "--linux-installer-output",
+    action="store",
+    dest="linux_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the AppImage to create. Defaults to the dist folder name with \
+an architecture suffix and '.AppImage' extension in the output directory.""",
+)
+
+del installer_group
 
 plugin_group = parser.add_option_group("Plugin control")
 

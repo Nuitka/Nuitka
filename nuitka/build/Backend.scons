@@ -12,8 +12,8 @@ build process for itself, although it can be compiled using the same method.
 
 # Make nuitka package importable from calling installation
 
-import sys
 import os
+import sys
 import types
 
 sys.modules["nuitka"] = types.ModuleType("nuitka")
@@ -48,7 +48,7 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeGccUseLinkerFile
+from .SconsHacks import makeLinkerUseResponseFile
 from .SconsProgress import setSconsProgressBarTotal
 from .SconsPythonBuild import (
     addPythonHaclLib,
@@ -281,6 +281,9 @@ elif env.exe_mode or env.dll_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
+    if env.onefile_mode and isLinux():
+        env.Append(LIBS=["pthread"])
+
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
     # and AIX don't have it, but some Python flavors like Standalone Python
     # won't find it unless provided like this, so lets try to add this by
@@ -485,6 +488,10 @@ def createBuildDefinitionsFile():
         main_module_name != "__main__"
     )
 
+    env.build_definitions["NUITKA_HAS_FROZEN_MODULES_BOOL"] = (
+        1 if env.frozen_modules else 0
+    )
+
     if env.forced_stdout_path is not None:
         if env.forced_stdout_path == "{NONE}":
             env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
@@ -515,13 +522,13 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
-# which can make linking fail with many modules otherwise. Most needed on Windows,
-# but useful on other platforms too.
-if env.gcc_mode and (not env.clang_mode or env.zig_mode):
-    makeGccUseLinkerFile(
+# Hack to make Scons use a response file for gcc linking, to avoid line length
+# limits, which can make linking fail with many modules otherwise. Most needed
+# on Windows, but useful on other platforms too.
+if env.gcc_mode:
+    makeLinkerUseResponseFile(
         env=env,
-        source_files=source_files,
+        source_filenames=source_files,
     )
 
 # Plugin contributed C defines should be used too.

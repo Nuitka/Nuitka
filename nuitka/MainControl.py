@@ -15,7 +15,10 @@ import sys
 
 from nuitka.build.AdaptPythonHeaderFiles import createAdaptedPythonHeaderFiles
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsInterface import provideStaticSourceFilesBackend
+from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
+    provideStaticSourceFilesBackend,
+)
 from nuitka.build.SconsUtils import (
     getSconsCompilerUsed,
     getSconsReportValue,
@@ -46,8 +49,8 @@ from nuitka.freezer.IncludedEntryPoints import (
     addMainEntryPoint,
     getStandaloneEntryPoints,
 )
+from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
-from nuitka.freezer.MacOSDmg import createDmgFile
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
     locateModule,
@@ -59,6 +62,7 @@ from nuitka.importing.Recursion import (
     scanPluginPath,
     scanPluginSinglePath,
 )
+from nuitka.installer.Installer import createInstallerDispatch
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
 from nuitka.options.Options import (
     assumeYesForDownloads,
@@ -97,6 +101,7 @@ from nuitka.options.Options import (
     isLowMemory,
     isMultidistMode,
     isOnefileMode,
+    isPythonPgoErrorExitStrict,
     isRemoveBuildDir,
     isRuntimeProfile,
     isShowInclusion,
@@ -104,7 +109,7 @@ from nuitka.options.Options import (
     isShowProgress,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
-    shallCreateDmgFile,
+    shallCreateLinuxApp,
     shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallExecuteImmediately,
@@ -145,6 +150,7 @@ from nuitka.PythonFlavors import (
     isFedoraPackagePython,
     isMonolithPy,
     isPyenvPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import (
     getModuleLinkerLibs,
@@ -166,7 +172,7 @@ from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
-    callProcess,
+    executeCompiledBinary,
     withEnvironmentVarOverridden,
     wrapCommandForDebuggerForExec,
 )
@@ -180,7 +186,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     removeDirectory,
 )
-from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
@@ -623,6 +629,10 @@ def makeSourceDirectory():
     return module_filenames
 
 
+def _getPgoCommand():
+    return [getExternalUsePath(OutputDirectories.getPgoRunExecutable())] + getPgoArgs()
+
+
 def _runPgoBinary():
     pgo_executable = OutputDirectories.getPgoRunExecutable()
 
@@ -631,9 +641,10 @@ def _runPgoBinary():
             "Error, failed to produce PGO binary '%s'" % pgo_executable
         )
 
-    return callProcess(
-        [getExternalUsePath(pgo_executable)] + getPgoArgs(),
+    return executeCompiledBinary(
+        args=_getPgoCommand(),
         shell=False,
+        logger=pgo_logger,
     )
 
 
@@ -709,13 +720,37 @@ def _runPythonPgoBinary():
 
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
+    pgo_executable = OutputDirectories.getPgoRunExecutable()
+
+    if not os.path.isfile(pgo_executable):
+        return general.sysexit(
+            "Error, failed to produce PGO binary '%s'" % pgo_executable
+        )
+
+    pgo_command = _getPgoCommand()
+
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
-        exit_code = _runPgoBinary()
+        exit_code = executeCompiledBinary(
+            args=pgo_command,
+            shell=False,
+            logger=pgo_logger,
+        )
 
     if not os.path.exists(pgo_filename):
         return general.sysexit("""\
 Error, no Python PGO information produced, did the created binary
 run (exit code %d) as expected?""" % exit_code)
+
+    if isPythonPgoErrorExitStrict() and exit_code != 0:
+        return general.sysexit(
+            """\
+Error, the command '%s' exited with code %d. Use
+'--pgo-python-error-exit=yes' to tolerate error exits."""
+            % (
+                " ".join(pgo_command),
+                exit_code,
+            )
+        )
 
     return pgo_filename
 
@@ -781,6 +816,8 @@ def runSconsBackend():
         scons_options["apple_python"] = asBoolStr(True)
     if isPyenvPython():
         scons_options["pyenv_python"] = asBoolStr(True)
+    if isPythonBuildStandalonePython():
+        scons_options["python_build_standalone"] = asBoolStr(True)
 
     if getForcedStdoutPath():
         scons_options["forced_stdout_path"] = getForcedStdoutPath()
@@ -871,6 +908,8 @@ def runSconsBackend():
     if shallCreatePythonPgoInput():
         scons_options["pgo_mode"] = "python"
 
+        applyPreprocessorSymbols(scons_options, onefile=False)
+
         result = runScons(
             scons_options=scons_options,
             env_values=env_values,
@@ -896,6 +935,8 @@ def runSconsBackend():
         if isCPgoMode():
             scons_options["pgo_mode"] = "generate"
 
+            applyPreprocessorSymbols(scons_options, onefile=False)
+
             result = runScons(
                 scons_options=scons_options,
                 env_values=env_values,
@@ -911,6 +952,8 @@ def runSconsBackend():
             executePostProcessing(scons_options["result_exe"])
             _runCPgoBinary()
             scons_options["pgo_mode"] = "use"
+
+    applyPreprocessorSymbols(scons_options, onefile=False)
 
     result = (
         runScons(
@@ -945,7 +988,11 @@ def callExecPython(args, add_path, uac):
     # Add the main arguments, previous separated.
     args += getPositionalArgs()[1:] + getMainArgs()
 
-    callExecProcess(args, shell=uac)
+    callExecProcess(
+        args=args,
+        shell=uac,
+        logger=general,
+    )
 
 
 def _executeMain(binary_filename):
@@ -1308,6 +1355,9 @@ def _main():
         if isOnefileMode():
             packDistFolderToOnefile(dist_dir)
 
+            if shallCreateLinuxApp():
+                createLinuxAppFiles(logger=general, onefile=True)
+
             if isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
 
@@ -1370,7 +1420,7 @@ def _main():
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and getPackageDirFilename(base_path):
+        if os.path.isdir(base_path) and hasPackageDirFilename(base_path):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
@@ -1381,9 +1431,7 @@ exist, out e.g. '--output-dir=output' to sure is importable.""" % base_path,
 
     general.info("Successfully created '%s'." % getReportPath(final_filename))
 
-    # Archive creations, installer creations go here.
-    if shallCreateDmgFile():
-        createDmgFile(general)
+    createInstallerDispatch()
 
     writeCompilationReports(aborted=False)
     printPluginUsageStats()

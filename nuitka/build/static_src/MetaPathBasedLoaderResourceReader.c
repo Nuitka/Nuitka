@@ -11,6 +11,11 @@
 #include "nuitka/unfreezing.h"
 #endif
 
+static void Nuitka_LoaderEntryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
+                                          size_t buffer_size);
+static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static char const *_kw_list_get_data[];
+
 // Just for the IDE to know, this file is not included otherwise.
 #if PYTHON_VERSION >= 0x370
 
@@ -29,7 +34,10 @@ static void Nuitka_ResourceReader_tp_dealloc(struct Nuitka_ResourceReaderObject 
 }
 
 static PyObject *Nuitka_ResourceReader_tp_repr(struct Nuitka_ResourceReaderObject *reader) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", entryDisplayName(reader->m_loader_entry));
+    char display_name[NUITKA_LOADER_NAME_MAX_LEN];
+    Nuitka_LoaderEntryDisplayName(reader->m_loader_entry, display_name, sizeof(display_name));
+
+    return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", display_name);
 }
 
 // Obligatory, even if we have nothing to own

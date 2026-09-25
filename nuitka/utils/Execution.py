@@ -11,6 +11,7 @@ import errno
 import os
 import select
 import shlex
+import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems, selectors, subprocess
@@ -19,7 +20,13 @@ from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath, hasFilenameExtension
-from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
+from .Utils import (
+    getArchCommandPrefix,
+    getArchitecture,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
@@ -115,6 +122,8 @@ def check_output(*popenargs, **kwargs):
     """
     logger = kwargs.pop("logger", None)
 
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
+
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
@@ -153,6 +162,8 @@ def check_call(*popenargs, **kwargs):
     """
     logger = kwargs.pop("logger", None)
 
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
+
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
@@ -171,6 +182,8 @@ def callProcess(*popenargs, **kwargs):
     """Call a process and return result code."""
     logger = kwargs.pop("logger", None)
 
+    popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
+
     if logger is not None:
         logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
@@ -178,6 +191,81 @@ def callProcess(*popenargs, **kwargs):
         _checkEnvironment(kwargs["env"])
 
     return subprocess.call(*popenargs, **kwargs)
+
+
+def callExecProcess(args, shell, logger):
+    """Do exec in a portable way preserving exit code.
+
+    On Windows, unfortunately there is no real exec, so we have to spawn
+    a new process instead and return via 'os._exit'.
+    """
+    # We better flush these, "os.execl" won't do it anymore.
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # On Windows "os.execl" does not work properly
+    if os.name == "nt":
+        args = list(args)
+        del args[1]
+
+        args = expandProcessCallForWindows(command=args, shell=shell)
+
+        try:
+            # The context manager for Popen is not available on all Python
+            # versions, so we do it manually.
+            process = subprocess.Popen(args=args, shell=shell)
+            process.communicate()
+            # No point in cleaning up, just exit the hard way.
+            try:
+                os._exit(process.returncode)
+            except OverflowError:
+                # Seems negative values go wrong otherwise,
+                # see https://bugs.python.org/issue28474
+                os._exit(process.returncode - 2**32)
+        except KeyboardInterrupt:
+            # There was a more relevant stack trace already, so abort this
+            # right here.
+            os._exit(2)
+        except OSError as e:
+            logger.error("Error, executing: %s" % e)
+            os._exit(2)
+
+    else:
+        # The star arguments is the API of execl
+        os.execl(*args)
+
+
+def executeCompiledBinary(args, shell, logger):
+    """Run a compiled binary and return its exit code.
+
+    On Windows handles .cmd/.bat wrappers through expandProcessCallForWindows.
+    """
+    args = list(args)
+
+    if os.name == "nt":
+        args = expandProcessCallForWindows(command=args, shell=shell)
+
+    # Build an explicit environment that strips Nuitka variables which may
+    # confuse compiled binaries inheriting the parent environment, except
+    # those explicitly set for the binary's use.
+    env = {}
+    for key, value in os.environ.items():
+        if not key.startswith("NUITKA_") or key == "NUITKA_PGO_OUTPUT":
+            env[key] = value
+
+    try:
+        # The context manager for Popen is not available on all Python
+        # versions, so we do it manually.
+        process = subprocess.Popen(args=args, shell=shell, env=env)
+        process.communicate()
+        return process.returncode
+    except KeyboardInterrupt:
+        # There was a more relevant stack trace already, so abort this
+        # right here.
+        return 2
+    except OSError as e:
+        logger.warning("Error, executing: %s" % e)
+        return 2
 
 
 def callProcessChunked(command, chunks, **kwargs):
@@ -461,6 +549,53 @@ def filterOutputByLine(output, filter_func):
     return (0 if non_errors else None), output
 
 
+# These macOS tools of the Xcode "CommandLineTools" are only available as
+# ARM64 binaries in newer versions and need to be run natively, even when
+# Nuitka or the tests are run by a translated x86_64 process, where they
+# would otherwise fail to load their libraries. This includes "git", which
+# is a shim that loads the ARM64 only "libxcrun" library.
+_macos_native_arch_tools = ("git", "install_name_tool", "lipo", "nm", "otool")
+
+
+def getToolArchPrefix(tool):
+    """Get command prefix to run a tool in the architecture it needs.
+
+    Args:
+        tool: The tool name or path that is to be run.
+
+    Returns:
+        Tuple of values to prepend to the tool invocation, empty tuple in
+        case no prefix is needed.
+
+    Notes:
+        Some macOS tools only exist as ARM64 binaries in newer Xcode
+        "CommandLineTools" and cannot be loaded by a translated x86_64
+        process at all.
+    """
+    if isMacOS() and os.path.basename(tool) in _macos_native_arch_tools:
+        return getArchCommandPrefix()
+    else:
+        return ()
+
+
+def _getToolCommand(command):
+    """Add architecture prefix to a command if necessary.
+
+    Args:
+        command: Command sequence as passed to a process execution.
+
+    Returns:
+        Command sequence, possibly with an architecture prefix added.
+    """
+    if type(command) in (list, tuple):
+        arch_prefix = getToolArchPrefix(command[0])
+
+        if arch_prefix:
+            return type(command)(arch_prefix) + command
+
+    return command
+
+
 def executeToolChecked(
     logger,
     command,
@@ -469,12 +604,13 @@ def executeToolChecked(
     optional=False,
     decoding=False,
     context=None,
+    stderr_is_fatal=True,
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
     # We are doing many returns, because for logger.sysexit() we need to
     # return from the function, for proper pylint support.
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-locals,too-many-return-statements
 
     command = list(command)
     tool = command[0]
@@ -488,6 +624,10 @@ def executeToolChecked(
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
+
+    # Some tools need to be run in their architecture to be able to work
+    # at all, even if Nuitka is running translated.
+    command = list(getToolArchPrefix(tool)) + command
 
     if None in command:
         return logger.sysexit(
@@ -527,7 +667,7 @@ def executeToolChecked(
         return logger.sysexit(
             "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
         )
-    elif stderr:
+    elif stderr_is_fatal and stderr:
         return logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
@@ -667,6 +807,8 @@ def executeProcess(
     timeout=None,
     logger=None,
 ):
+    command = _getToolCommand(command)
+
     process = Process(
         command=command,
         env=env,

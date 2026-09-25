@@ -13,8 +13,8 @@ contents to have a launch it.
 
 # Make nuitka package importable from calling installation
 
-import sys
 import os
+import sys
 import types
 
 sys.modules["nuitka"] = types.ModuleType("nuitka")
@@ -29,6 +29,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.FileOperations import getExternalUsePath
+from nuitka.utils.InlineCopies import getInlineCopyFolderIfExists
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
@@ -44,6 +45,7 @@ from .SconsUtils import (
     getArgumentDefaulted,
     getArgumentList,
     getArgumentRequired,
+    linkSystemLibrary,
     makeResultPathFileSystemEncodable,
     scanSourceDir,
     writeSconsReport,
@@ -98,6 +100,10 @@ link_libraries = getArgumentList("link_libraries", "")
 # Onefile bootstrap is optional.
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
+# Onefile payload compression is optional, and will use zstd for decompression
+# in the bootstrap binary when enabled.
+onefile_compression = getArgumentBool("onefile_compression", False)
+
 # Report the C compiler used.
 reportCCompiler(env, "Onefile", output_func=scons_logger.info)
 
@@ -147,16 +153,27 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
     )
 
 # We have include files in the build directory and the static include directory
-# that is located inside Nuitka installation, as well as an inline copy of zstd
-# that should be found.
+# that is located inside Nuitka installation.
 env.Append(
     CPPPATH=[
         env.source_dir,
         nuitka_include,
         os.path.join(env.nuitka_src, "static_src"),
-        os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
 )
+
+# For decompression of the payload, we use an inline copy of zstd. For some
+# packages, e.g. Debian, it is removed from the source, and the system installed
+# zstd should be used instead.
+if onefile_compression:
+    zstd_inline_copy_dir = getInlineCopyFolderIfExists("zstd")
+
+    if zstd_inline_copy_dir is not None:
+        env.Append(CPPPATH=[zstd_inline_copy_dir])
+    else:
+        env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_ZSTD"])
+
+        linkSystemLibrary(env=env, library_name="zstd")
 
 # Indicate, that the common code is used to build an executable.
 env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
@@ -231,6 +248,10 @@ def createBuildDefinitionsFile():
 
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
+    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = (
+        1 if onefile_compression else 0
+    )
 
     if env.onefile_dll_mode and os.name == "nt":
         env.Append(LIBS=["PsApi"])

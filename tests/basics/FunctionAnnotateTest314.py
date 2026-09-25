@@ -3,6 +3,8 @@
 
 """Test Python 3.14 function '__annotate__' behavior."""
 
+import io
+from annotationlib import Format, call_annotate_function
 from functools import singledispatch
 
 
@@ -58,6 +60,7 @@ print(
 class TestClassAnnotations:
     x: int = 1
     y: str
+    z: io.BytesIO
 
     def method(self, a: int) -> str:
         return str(a)
@@ -71,6 +74,14 @@ print("Class annotation attribute x:", TestClassAnnotations.x)
 print(
     "Class annotation method result:",
     TestClassAnnotations().method(42),
+)
+print(
+    "Class annotations by calling the function:",
+    displayDict(
+        call_annotate_function(
+            TestClassAnnotations.__annotate__, format=Format.FORWARDREF
+        )
+    ),
 )
 
 

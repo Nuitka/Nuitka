@@ -6,8 +6,16 @@
 import os
 
 from nuitka.build.AdaptPythonHeaderFiles import getOffsetsJsonRequiredKeys
-from nuitka.build.SconsInterface import getCommonSconsOptions, runScons
-from nuitka.PythonVersions import isPythonWithGil, python_version_str
+from nuitka.build.SconsInterface import (
+    asBoolStr,
+    getCommonSconsOptions,
+    runScons,
+)
+from nuitka.PythonVersions import (
+    isDebugPython,
+    isPythonWithGil,
+    python_version_str,
+)
 from nuitka.tools.quality.auto_format.AutoFormat import (
     withFileOpenedAndAutoFormatted,
 )
@@ -41,8 +49,26 @@ def getPythonInternalsOffsetDir():
     )
 
 
+def makePythonInternalsOffsetId(python_debug):
+    """Return the identifier used for the offsets JSON filename.
+
+    Args:
+        python_debug: Whether the target Python is a debug build.
+    """
+    return "%s-%s-%s-%s%s" % (
+        python_version_str,
+        getOS(),
+        getArchitecture(),
+        "gil" if isPythonWithGil() else "no-gil",
+        "-debug" if python_debug else "",
+    )
+
+
 def generateHeader():
     scons_options, env_values = getCommonSconsOptions()
+
+    python_debug = isDebugPython()
+    scons_options["python_debug"] = asBoolStr(python_debug)
 
     if getOS() == "Windows":
         scons_options["zig_exe_path"] = getZigBinaryPath(
@@ -53,12 +79,7 @@ def generateHeader():
         if scons_options["zig_exe_path"] is None:
             return offsets_logger.sysexit("Nuitka needs zig for header generation.")
 
-    python_version_id = "%s-%s-%s-%s" % (
-        python_version_str,
-        getOS(),
-        getArchitecture(),
-        "gil" if isPythonWithGil() else "no-gil",
-    )
+    python_version_id = makePythonInternalsOffsetId(python_debug=python_debug)
 
     with withTemporaryDirectory(
         logger=offsets_logger,
@@ -66,14 +87,12 @@ def generateHeader():
     ) as source_dir:
         source_dir_external = getExternalUsePath(source_dir)
 
-        keys = getOffsetsJsonRequiredKeys(python_version_str)
-
         template = getTemplateC(
             package_name="nuitka.tools.general.generate_header",
             template_name="GenerateHeadersMain.c.j2",
         )
 
-        c_code = template.render(keys=keys)
+        c_code = template.render(keys=getOffsetsJsonRequiredKeys(python_version_str))
 
         c_filepath = os.path.join(
             source_dir,

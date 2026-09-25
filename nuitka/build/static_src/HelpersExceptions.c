@@ -9,8 +9,7 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "nuitka/exceptions.h"
+#include "nuitka/prelude.h"
 #endif
 
 void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value) {

@@ -9,6 +9,7 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import os
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
@@ -243,6 +244,7 @@ class CompiledPythonModule(
         "temp_scopes",
         "preserver_id",
         "needs_annotations_dict",
+        "deferred_annotations",
         "trace_collection",
         "mode",
         "variables",
@@ -279,6 +281,9 @@ class CompiledPythonModule(
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
+
+        # PEP 649 deferred module-level annotations (3.14+), same mechanism as class bodies.
+        self.deferred_annotations = OrderedDict() if python_version >= 0x3E0 else None
 
         EntryPointMixin.__init__(self)
 
@@ -428,7 +433,7 @@ class CompiledPythonModule(
         return None
 
     def hasVariableName(self, variable_name):
-        return variable_name in self.variables or variable_name in self.temp_variables
+        return variable_name in self.variables or self.hasTempVariable(variable_name)
 
     def getProvidedVariables(self):
         return self.variables.values()
@@ -1063,7 +1068,9 @@ class PythonExtensionModule(PythonModuleBase):
         self.used_modules = None
 
         if os.path.isdir(module_filename):
-            module_filename = getPackageDirFilename(module_filename)
+            module_filename = getPackageDirFilename(
+                path=module_filename, package_name=module_name
+            )
             self.is_package = True
         else:
             self.is_package = False

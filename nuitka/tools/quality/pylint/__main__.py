@@ -19,7 +19,10 @@ from nuitka.utils.FileOperations import (
     getFileModificationTime,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.PrivatePipSpace import tryDownloadPackageName
+from nuitka.utils.PrivatePipSpace import (
+    getRequiredVersion,
+    tryDownloadPackageName,
+)
 
 
 def _getPathParts(filename):
@@ -217,6 +220,53 @@ def _watchPylint(options, positional_args):
     return tools_logger.sysexit(exit_code=0)
 
 
+def _ensurePylintInstalled(options):
+    site_packages_folder = None
+
+    if options.assume_yes_for_downloads:
+        # Try private pip space first. If the correct version is already
+        # installed there, this returns it without any prompt or download.
+        site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
+            logger=tools_logger,
+            package_name="pylint",
+            module_name="pylint",
+            package_version=getRequiredVersion(tools_logger, "pylint"),
+            force_update=False,
+            assume_yes_for_downloads=True,
+            reject_message="PyLint is needed for checking source code.",
+        )
+
+        if site_packages_folder is not None:
+            addPYTHONPATH(site_packages_folder)
+
+            # Also ensure astroid in the private pip space.
+            tryDownloadPackageName(
+                logger=tools_logger,
+                package_name="astroid",
+                module_name="astroid",
+                package_version=getRequiredVersion(
+                    tools_logger,
+                    "astroid",
+                ),
+                force_update=False,
+                assume_yes_for_downloads=True,
+                reject_message=None,
+            )
+
+            return True
+
+    # Private pip space not available, fall back to global.
+    if options.not_installed_is_no_error:
+        tools_logger.warning(
+            "PyLint is not installed for this interpreter version: SKIPPED",
+            style="yellow",
+        )
+
+        return False
+
+    return hasModule("pylint")
+
+
 def main():
     setup(go_main=False)
 
@@ -226,30 +276,8 @@ def main():
 
     options, positional_args = _parseArguments()
 
-    if not hasModule("pylint"):
-        if options.not_installed_is_no_error:
-            tools_logger.warning(
-                "PyLint is not installed for this interpreter version: SKIPPED",
-                style="yellow",
-            )
-
-            return tools_logger.sysexit(exit_code=0)
-
-        if options.assume_yes_for_downloads:
-            tools_logger.info("Installing PyLint...")
-
-            site_packages_folder, _assume_yes_for_downloads = tryDownloadPackageName(
-                logger=tools_logger,
-                package_name="pylint",
-                module_name="pylint",
-                package_version=None,
-                force_update=False,
-                assume_yes_for_downloads=True,
-                reject_message="PyLint is needed for checking source code.",
-            )
-
-            if site_packages_folder is not None:
-                addPYTHONPATH(site_packages_folder)
+    if not _ensurePylintInstalled(options):
+        return tools_logger.sysexit(exit_code=0)
 
     if options.watch:
         return _watchPylint(options=options, positional_args=positional_args)

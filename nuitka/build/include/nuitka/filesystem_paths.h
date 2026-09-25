@@ -1,7 +1,8 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-#ifndef __NUITKA_FILESYSTEM_PATH_OPS_H__
-#define __NUITKA_FILESYSTEM_PATH_OPS_H__
+#pragma once
+#ifndef __NUITKA_FILESYSTEM_PATHS_H__
+#define __NUITKA_FILESYSTEM_PATHS_H__
 
 #include "nuitka/safe_string_ops.h"
 

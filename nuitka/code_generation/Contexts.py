@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
@@ -21,6 +22,7 @@ from nuitka.utils.InstanceCounters import (
 )
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
+from .SpecialConstantData import BlobData
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
@@ -53,6 +55,10 @@ class TempMixin(object):
         self.preserver_variable_declaration = {}
 
         self.cleanup_names = []
+
+        # Names of values whose release is deferred to the end of the
+        # enclosing code scope, mapped to opaque release details.
+        self.deferred_release_names = []
 
     def _formatTempName(self, base_name, number):
         if number is None:
@@ -119,6 +125,13 @@ class TempMixin(object):
         number = self.tmp_names.get(base_name, 0)
         number += 1
         self.tmp_names[base_name] = number
+
+    def getUniqueCodeName(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
+
+        return "%s_%d" % (base_name, number)
 
     def getIntResName(self):
         return self.allocateTempName("res", "int", unique=True)
@@ -249,16 +262,44 @@ class TempMixin(object):
         if self.needsCleanup(tmp_source):
             self.addCleanupTempName(tmp_dest)
             self.removeCleanupTempName(tmp_source)
+            self.transferDeferredReleaseName(tmp_source, tmp_dest)
 
     def needsCleanup(self, tmp_name):
         return tmp_name in self.cleanup_names[-1]
 
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        assert tmp_name not in self.deferred_release_names[-1], tmp_name
+
+        self.deferred_release_names[-1][tmp_name] = release_info
+
+    def removeDeferredReleaseName(self, tmp_name):
+        assert tmp_name in self.deferred_release_names[-1], tmp_name
+
+        del self.deferred_release_names[-1][tmp_name]
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        if self.isDeferredReleaseName(tmp_source):
+            self.addDeferredReleaseName(
+                tmp_dest, self.deferred_release_names[-1][tmp_source]
+            )
+            self.removeDeferredReleaseName(tmp_source)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return tmp_name in self.deferred_release_names[-1]
+
+    def getDeferredReleaseNames(self):
+        return self.deferred_release_names[-1]
+
     def pushCleanupScope(self):
         self.cleanup_names.append([])
+        self.deferred_release_names.append(OrderedDict())
 
     def popCleanupScope(self):
         assert not self.cleanup_names[-1]
+        assert not self.deferred_release_names[-1]
+
         del self.cleanup_names[-1]
+        del self.deferred_release_names[-1]
 
 
 # TODO: Remove when isExperimental("new-code-objects") is becoming the
@@ -437,6 +478,9 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def getBoolResName(self):
         pass
 
+    def getExceptionVariableDescriptions(self):
+        return self.variable_storage.getExceptionVariableDescriptions()
+
     @abstractmethod
     def hasTempName(self, base_name):
         pass
@@ -525,10 +569,6 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def popCleanupScope(self):
         pass
 
-    @abstractmethod
-    def addInclude(self, header_name):
-        pass
-
 
 class PythonChildContextBase(PythonContextBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
@@ -542,6 +582,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def getConstantCode(self, constant, deep_check=False):
         return self.parent.getConstantCode(constant, deep_check=deep_check)
+
+    def getBlobConstantCode(self, data, name):
+        return self.parent.getBlobConstantCode(data, name)
 
     def addModuleInitCode(self, code):
         self.parent.addModuleInitCode(code)
@@ -587,9 +630,6 @@ class PythonChildContextBase(PythonContextBase):
 
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
-
-    def addInclude(self, header_name):
-        self.parent.addInclude(header_name)
 
 
 class FrameDeclarationsMixin(object):
@@ -786,6 +826,7 @@ class PythonModuleContext(
         "module",
         "name",
         "code_name",
+        "data_filename",
         "declaration_codes",
         "helper_codes",
         "frame_handle",
@@ -793,7 +834,6 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
-        "module_includes",
         "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
@@ -814,6 +854,7 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "deferred_release_names",
         # TODO: Remove when isExperimental("new-code-objects") is becoming the
         # standard.
         # CodeObjectsMixin
@@ -839,6 +880,7 @@ class PythonModuleContext(
         self.module = module
         self.name = module.getFullName()
         self.code_name = module.getCodeName()
+        self.data_filename = data_filename
 
         self.declaration_codes = {}
         self.helper_codes = {}
@@ -854,8 +896,6 @@ class PythonModuleContext(
         )
 
         self.module_init_codes = []
-
-        self.module_includes = set()
 
         self.module_variable_caching = {}
 
@@ -896,6 +936,9 @@ class PythonModuleContext(
     def getModuleCodeName(self):
         return self.code_name
 
+    def getDataFilename(self):
+        return self.data_filename
+
     def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
 
@@ -927,6 +970,9 @@ class PythonModuleContext(
 
         return self.constant_accessor.getConstantCode(constant)
 
+    def getBlobConstantCode(self, data, name):
+        return self.getConstantCode(BlobData(data, name))
+
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()
 
@@ -944,12 +990,6 @@ class PythonModuleContext(
 
     def addModuleInitCode(self, code):
         self.module_init_codes.append(code)
-
-    def addInclude(self, header_name):
-        self.module_includes.add(header_name)
-
-    def getModuleIncludes(self):
-        return sorted(self.module_includes)
 
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)
@@ -996,6 +1036,7 @@ class PythonFunctionContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1126,6 +1167,7 @@ class PythonFunctionOutlineContext(
     __slots__ = (
         "outline",
         "variable_storage",
+        "exception_variables",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1142,12 +1184,21 @@ class PythonFunctionOutlineContext(
         self.outline = outline
 
         self.variable_storage = parent.variable_storage
+        self.exception_variables = None
 
     def getOwner(self):
         return self.outline
 
     def getEntryPoint(self):
         return self.outline.getEntryPoint()
+
+    def getExceptionVariableDescriptions(self):
+        if self.exception_variables is None:
+            self.exception_variables = (
+                self.variable_storage.getExceptionVariableDescriptionsWithOwnLineno()
+            )
+
+        return self.exception_variables
 
     def allocateLabel(self, label):
         return self.parent.allocateLabel(label)
@@ -1160,6 +1211,9 @@ class PythonFunctionOutlineContext(
 
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
+
+    def getUniqueCodeName(self, base_name):
+        return self.parent.getUniqueCodeName(base_name)
 
     def getCleanupTempNames(self):
         return self.parent.getCleanupTempNames()
@@ -1176,6 +1230,21 @@ class PythonFunctionOutlineContext(
 
     def needsCleanup(self, tmp_name):
         return self.parent.needsCleanup(tmp_name)
+
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        self.parent.addDeferredReleaseName(tmp_name, release_info)
+
+    def removeDeferredReleaseName(self, tmp_name):
+        self.parent.removeDeferredReleaseName(tmp_name)
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        self.parent.transferDeferredReleaseName(tmp_source, tmp_dest)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return self.parent.isDeferredReleaseName(tmp_name)
+
+    def getDeferredReleaseNames(self):
+        return self.parent.getDeferredReleaseNames()
 
     def pushCleanupScope(self):
         return self.parent.pushCleanupScope()

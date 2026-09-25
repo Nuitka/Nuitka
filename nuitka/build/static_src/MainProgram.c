@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #endif
@@ -47,6 +48,7 @@
 #define SYSFLAG_DONTWRITEBYTECODE 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
+#define NUITKA_HAS_FROZEN_MODULES_BOOL 1
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #if defined(__APPLE__)
 #define _NUITKA_MACOS_BUNDLE_MODE 1
@@ -104,8 +106,9 @@ static char **orig_argv;
 #endif
 static int orig_argc;
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
 extern void copyFrozenModulesTo(struct _frozen *destination);
+extern Py_ssize_t getFrozenModuleCount(void);
 
 // The original frozen modules list.
 #if PYTHON_VERSION < 0x300
@@ -138,7 +141,7 @@ static void prepareFrozenModules(void) {
     // advantage that e.g. "import this" is going to be compatible, and there
     // might be Python flavors that add more.
     struct _frozen *merged =
-        (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
+        (struct _frozen *)malloc(sizeof(struct _frozen) * (getFrozenModuleCount() + pre_existing_count + 1));
 
     memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
@@ -271,7 +274,7 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 
 #if _DEBUG_REFCOUNTS
 static void PRINT_REFCOUNTS(void) {
-    // spell-checker: ignore Asend, Athrow
+    // spell-checker: ignore Asend,Athrow
 
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
@@ -410,7 +413,9 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
                             "<frozen importlib._bootstrap>")) {
                 tstate->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
+                // Process is exiting, not releasing the old head frame
+                // here is acceptable.
+                Py_XINCREF(tb->tb_next);
 
                 continue;
             }
@@ -498,7 +503,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
             memset(buffer, 0, sizeof(buffer));
             memcpy(buffer, module_name, s - module_name);
 
-            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer);
+            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer, false);
 
             if (HAS_ERROR_OCCURRED(tstate)) {
                 return result;
@@ -506,7 +511,7 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
         }
     }
 
-    return IMPORT_EMBEDDED_MODULE(tstate, module_name);
+    return IMPORT_EMBEDDED_MODULE(tstate, module_name, false);
 }
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -1476,6 +1481,10 @@ extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #if PYTHON_VERSION >= 0x3d0
 PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
+#if PYTHON_VERSION >= 0x3f0
+PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+PyAPI_FUNC(wchar_t *) Py_GetPath(void);
+#endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
 static native_command_line_argument_t const *original_argv0 = NULL;
@@ -1569,26 +1578,27 @@ void setLANGSystemLocaleMacOS(void) {
 // forwarding. This detects and suppresses the duplicate.
 
 static void (*_python_saved_sigint_handler)(int) = NULL;
-static volatile struct timespec _last_sigint_timespec = {0, 0};
+static volatile struct timeval _last_sigint_timeval = {0, 0};
 static volatile sig_atomic_t _last_sigint_from_parent = 0;
 
 static void _ourSigintDeduplicationHandler(int sig, siginfo_t *info, void *ucontext) {
     bool from_parent = (info != NULL && info->si_code == SI_USER && info->si_pid == getppid());
-    struct timespec now;
+    struct timeval now;
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
-        if (_last_sigint_timespec.tv_sec != 0) {
-            long elapsed_ms = (now.tv_sec - _last_sigint_timespec.tv_sec) * 1000 +
-                              (now.tv_nsec - _last_sigint_timespec.tv_nsec) / 1000000;
+    if (gettimeofday(&now, NULL) == 0) {
+        if (_last_sigint_timeval.tv_sec != 0) {
+            long elapsed_ms =
+                (now.tv_sec - _last_sigint_timeval.tv_sec) * 1000 + (now.tv_usec - _last_sigint_timeval.tv_usec) / 1000;
 
-            if (elapsed_ms < 100) {
+            if (elapsed_ms >= 0 && elapsed_ms < 100) {
                 if (from_parent || _last_sigint_from_parent) {
                     // Duplicate detected, suppress.s
                     return;
                 }
             }
         }
-        _last_sigint_timespec = now;
+        _last_sigint_timeval.tv_sec = now.tv_sec;
+        _last_sigint_timeval.tv_usec = now.tv_usec;
         _last_sigint_from_parent = from_parent;
     }
 
@@ -1721,7 +1731,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     prepareStandaloneEnvironment();
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TIMING("main(): Preparing frozen modules.");
     prepareFrozenModules();
 #endif
@@ -2074,12 +2084,20 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     setEarlyFrozenModulesFileAttribute(tstate);
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
     PyImport_FrozenModules = old_frozen;
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
+
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled. Must be initialized
+    // before the meta path loader, otherwise PGO probes triggered during
+    // loader setup will write to an uninitialized 'pgo_output' and crash.
+    PGO_Initialize();
+#endif
+
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
@@ -2099,11 +2117,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     // Two times, so "__warningregistry__" version matches.
     CALL_FUNCTION_NO_ARGS(tstate, meth);
 #endif
-#endif
-
-#if _NUITKA_PGO_PYTHON
-    // Profiling with our own Python PGO if enabled.
-    PGO_Initialize();
 #endif
 
 #if PYTHON_VERSION >= 0x300

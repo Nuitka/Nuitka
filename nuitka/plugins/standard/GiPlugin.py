@@ -6,6 +6,7 @@
 import os
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
+from nuitka.utils.Utils import isWin32Windows
 
 
 class NuitkaPluginGi(NuitkaPluginBase):
@@ -67,6 +68,13 @@ if not os.getenv("GI_TYPELIB_PATH"):
             yield "gi.overrides.Gdk"
             yield "gi.overrides.GLib"
             yield "gi.overrides.GObject"
+
+            if isWin32Windows():
+                yield "gi.overrides.GLibWin32"
+                yield "gi.overrides.GioWin32"
+            else:
+                yield "gi.overrides.GLibUnix"
+                yield "gi.overrides.GioUnix"
         elif full_name == "gi._gi":
             yield "gi._error"
         elif full_name == "gi._gi_cairo":

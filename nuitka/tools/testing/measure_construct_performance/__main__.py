@@ -117,7 +117,8 @@ def main():
 
     if nuitka:
         nuitka_id = check_output(
-            "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka), shell=True
+            ["git", "rev-parse", "HEAD"],
+            cwd=os.path.dirname(nuitka),
         )
         nuitka_id = nuitka_id.strip()
 

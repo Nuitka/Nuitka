@@ -8,6 +8,8 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
+from collections import defaultdict
+
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
@@ -37,6 +39,8 @@ class StatementLoop(StatementLoopBase):
         "loop_start",
         "loop_resume",
         "loop_previous_resume",
+        "loop_gave_up",
+        "loop_variable_hints",
         "incomplete_count",
     )
 
@@ -57,6 +61,14 @@ class StatementLoop(StatementLoopBase):
         # Shapes from last time around, to detect the when it becomes complete, i.e.
         # we have seen it all.
         self.loop_previous_resume = {}
+
+        # Variables whose analysis was given up on, they stay loop variables
+        # with unknown shapes, but are not analyzed again.
+        self.loop_gave_up = set()
+
+        # Per variable hints from the previous pass, as tuple of "stable
+        # value identity" and "must have value" indicators.
+        self.loop_variable_hints = defaultdict(lambda: (False, False))
 
         # To allow an upper limit in case it doesn't terminate.
         self.incomplete_count = 0
@@ -97,6 +109,48 @@ class StatementLoop(StatementLoopBase):
         #  return loop_body is not None and \
         #         self.subnode_loop_body.mayRaiseException(exception_type)
 
+    def _noteValueIdentityStable(
+        self, trace_collection, loop_variable, value_identity_stable
+    ):
+        # A change to stable value identity means references can be optimized
+        # with the value from before the loop, so another pass is needed.
+        old_value_identity_stable, must_have_value = self.loop_variable_hints[
+            loop_variable
+        ]
+
+        if value_identity_stable and not old_value_identity_stable:
+            trace_collection.signalChange(
+                "loop_analysis",
+                self.source_ref,
+                lambda: "Loop variable '%s' has stable value identity in loop."
+                % loop_variable.getName(),
+            )
+
+        self.loop_variable_hints[loop_variable] = (
+            value_identity_stable,
+            must_have_value,
+        )
+
+    def _noteMustHaveValue(self, trace_collection, loop_variable, must_have_value):
+        # Gaining the knowledge that the variable has a value, references in
+        # the loop can avoid checks, so another pass is needed.
+        value_identity_stable, old_must_have_value = self.loop_variable_hints[
+            loop_variable
+        ]
+
+        if must_have_value and not old_must_have_value:
+            trace_collection.signalChange(
+                "loop_analysis",
+                self.source_ref,
+                lambda: "Loop variable '%s' is known to have a value in loop."
+                % loop_variable.getName(),
+            )
+
+        self.loop_variable_hints[loop_variable] = (
+            value_identity_stable,
+            must_have_value,
+        )
+
     def _computeLoopBody(self, trace_collection):
         # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
         # print("Enter loop body", self.source_ref)
@@ -127,6 +181,32 @@ class StatementLoop(StatementLoopBase):
         loop_entry_traces = set()
         for loop_variable in self.loop_variables:
             current = trace_collection.getVariableCurrentTrace(loop_variable)
+
+            value_identity_stable, must_have_value = self.loop_variable_hints[
+                loop_variable
+            ]
+
+            if loop_variable in self.loop_gave_up:
+                # Restart if the value from before the loop changed.
+                if not self.loop_start[loop_variable].compareValueTrace(current):
+                    self.loop_start[loop_variable] = current
+
+                loop_entry_traces.add(
+                    (
+                        loop_variable,
+                        trace_collection.markActiveVariableAsLoopMerge(
+                            loop_node=self,
+                            current=current,
+                            variable=loop_variable,
+                            shapes=set((tshape_unknown_loop,)),
+                            incomplete=False,
+                            value_identity_stable=value_identity_stable,
+                            must_have_value=must_have_value,
+                        ),
+                    )
+                )
+
+                continue
 
             if all_first_pass:
                 first_pass = True
@@ -186,6 +266,8 @@ class StatementLoop(StatementLoopBase):
                         variable=loop_variable,
                         shapes=self.loop_resume[loop_variable],
                         incomplete=incomplete,
+                        value_identity_stable=value_identity_stable,
+                        must_have_value=must_have_value,
                     ),
                 )
             )
@@ -220,8 +302,39 @@ class StatementLoop(StatementLoopBase):
             self.loop_variables = []
 
             for loop_variable, loop_entry_trace in loop_entry_traces:
+                loop_resume_traces = set(
+                    continue_collection.getVariableCurrentTrace(loop_variable)
+                    for continue_collection in continue_collections
+                )
+
+                value_identity_stable = all(
+                    resume_trace.isUnchangedResumeTrace(loop_entry_trace)
+                    for resume_trace in loop_resume_traces
+                )
+
                 # Giving up
                 if self.incomplete_count >= 20:
+                    self.loop_gave_up.add(loop_variable)
+
+                if loop_variable in self.loop_gave_up:
+                    # Still keep the loop trace complete for value decisions,
+                    # only the type shapes are degraded.
+                    loop_entry_trace.addLoopContinueTraces(loop_resume_traces)
+
+                    # Keep the variable a loop variable, so it is not
+                    # mistaken for loop invariant in later passes.
+                    self.loop_variables.append(loop_variable)
+
+                    self._noteValueIdentityStable(
+                        trace_collection, loop_variable, value_identity_stable
+                    )
+
+                    self._noteMustHaveValue(
+                        trace_collection,
+                        loop_variable,
+                        loop_entry_trace.mustHaveValue(),
+                    )
+
                     self.loop_previous_resume[loop_variable] = self.loop_resume[
                         loop_variable
                     ] = set((tshape_unknown_loop,))
@@ -232,11 +345,6 @@ class StatementLoop(StatementLoopBase):
                     loop_variable
                 ]
                 self.loop_resume[loop_variable] = set()
-
-                loop_resume_traces = set(
-                    continue_collection.getVariableCurrentTrace(loop_variable)
-                    for continue_collection in continue_collections
-                )
 
                 # Only if the variable is re-entering the loop, annotate that.
                 if not loop_resume_traces or (
@@ -251,6 +359,12 @@ class StatementLoop(StatementLoopBase):
                     del self.loop_previous_resume[loop_variable]
                     del self.loop_start[loop_variable]
 
+                    self.loop_variable_hints.pop(loop_variable, None)
+
+                    # Proven to be unchanged in the loop, so entry trace
+                    # knowledge is complete for it.
+                    loop_entry_trace.markLoopTraceComplete()
+
                     # pylint: disable=cell-var-from-loop
                     trace_collection.signalChange(
                         "loop_analysis",
@@ -264,8 +378,16 @@ class StatementLoop(StatementLoopBase):
                 # Keep this as a loop variable
                 self.loop_variables.append(loop_variable)
 
+                self._noteValueIdentityStable(
+                    trace_collection, loop_variable, value_identity_stable
+                )
+
                 # Tell the loop trace about the continue traces.
                 loop_entry_trace.addLoopContinueTraces(loop_resume_traces)
+
+                self._noteMustHaveValue(
+                    trace_collection, loop_variable, loop_entry_trace.mustHaveValue()
+                )
 
                 # Also consider the entry trace before loop from here on.
                 loop_resume_traces.add(self.loop_start[loop_variable])

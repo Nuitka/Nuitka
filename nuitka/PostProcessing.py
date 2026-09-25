@@ -7,6 +7,7 @@ import ctypes
 import os
 import sys
 
+from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import createPlistInfoFile
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
@@ -22,8 +23,10 @@ from nuitka.options.Options import (
     shallAskForWindowsAdminRights,
     shallAskForWindowsUIAccessRights,
     shallCreateAppBundle,
+    shallCreateLinuxApp,
     shallCreatePyiFile,
     shallCreatePyiFileContainStubs,
+    shallCreatePythonPgoInput,
     shallCreateScriptFileForExecution,
     shallMakeModule,
     shallRunInDebugger,
@@ -543,6 +546,13 @@ Error, expected 'libpython dependency not found. Please report the bug.""")
 
     if shallCreateAppBundle():
         createPlistInfoFile(logger=postprocessing_logger)
+
+    if (
+        shallCreateLinuxApp()
+        and not isOnefileMode()
+        and not shallCreatePythonPgoInput()
+    ):
+        createLinuxAppFiles(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.

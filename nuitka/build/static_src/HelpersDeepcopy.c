@@ -369,7 +369,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyString_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyString_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);
@@ -383,7 +383,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         Py_ssize_t size;
         char *s;
 
-        int res = PyBytes_AsStringAndSize(value, &s, &size);
+        NUITKA_MAY_BE_UNUSED int res = PyBytes_AsStringAndSize(value, &s, &size);
         assert(res != -1);
 
         DEEP_HASH_BLOB(&result, s, size);

@@ -12,6 +12,8 @@
 
 #include "nuitka/prelude.h"
 
+#include "nuitka/compiled_types_common.h"
+
 #include "HelpersBuiltinTypeMethods.c"
 
 static void _initBuiltinTypeMethods(void) {

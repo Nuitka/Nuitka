@@ -13,7 +13,9 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-static PyObject *Nuitka_LongFromCLong(long ival);
+#endif
+
+#include "nuitka/helper/long_helpers.h"
 
 // Most often used modes per OS, more exist and could be used of course.
 #if defined(_WIN32)
@@ -22,8 +24,6 @@ static PyObject *Nuitka_LongFromCLong(long ival);
 #define _NUITKA_CONSTANTS_FROM_MACOS_SECTION 1
 #else
 #define _NUITKA_CONSTANTS_FROM_CODE 1
-#endif
-
 #endif
 
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
@@ -62,6 +62,8 @@ static PyObject *unicode_cache = NULL;
 static PyObject *tuple_cache = NULL;
 
 static PyObject *list_cache = NULL;
+
+static PyObject *slice_cache = NULL;
 
 static PyObject *dict_cache = NULL;
 
@@ -130,6 +132,29 @@ static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *
     } else if (Py_SIZE(tuple1) != Py_SIZE(tuple2)) {
         result = Py_False;
     } else if (memcmp(&tuple1->ob_item[0], &tuple2->ob_item[0], Py_SIZE(tuple1) * sizeof(PyObject *)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
+    }
+
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+
+static Py_hash_t our_slice_hash(PySliceObject *slice) {
+    PyObject *values[3] = {slice->start, slice->stop, slice->step};
+
+    return Nuitka_FastHashBytes(values, sizeof(values));
+}
+
+static PyObject *our_slice_tp_richcompare(PySliceObject *slice1, PySliceObject *slice2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    if (slice1 == slice2) {
+        result = Py_True;
+    } else if (slice1->start == slice2->start && slice1->stop == slice2->stop && slice1->step == slice2->step) {
         result = Py_True;
     } else {
         result = Py_False;
@@ -312,6 +337,8 @@ static void initCaches(void) {
 
     list_cache = PyDict_New();
 
+    slice_cache = PyDict_New();
+
     dict_cache = PyDict_New();
 
     set_cache = PyDict_New();
@@ -353,7 +380,14 @@ static void _finalizeUnpackedConstantObject(void **output, PyObject *value) {
     Py_INCREF(value);
     Py_INCREF(value);
 #else
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     Py_SET_REFCNT_IMMORTAL(value);
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic pop
+#endif
 #endif
     *output = (void *)((PyObject **)*output + 1);
 }
@@ -381,7 +415,7 @@ static uint16_t unpackValueUint16(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 2);
+    STATIC_ASSERT(sizeof(value) == 2, "uint16_t must be 2 bytes");
 
     *data += sizeof(value);
 
@@ -393,7 +427,7 @@ static uint32_t unpackValueUint32(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 4);
+    STATIC_ASSERT(sizeof(value) == 4, "uint32_t must be 4 bytes");
 
     *data += sizeof(value);
 
@@ -947,6 +981,8 @@ static unsigned char const *_unpackBlobConstantObjectSlice(PyThreadState *tstate
     data = _unpackBlobConstantsAt(tstate, items, data, 3);
 
     PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
+
+    insertToDictCacheForcedHash(slice_cache, &s, (hashfunc)our_slice_hash, (richcmpfunc)our_slice_tp_richcompare);
 
     _finalizeUnpackedConstantObject(output, s);
 

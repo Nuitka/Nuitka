@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from nuitka.build.SconsInterface import (
+    applyPreprocessorSymbols,
     asBoolStr,
     cleanSconsDirectory,
     getCommonSconsOptions,
@@ -107,11 +108,11 @@ def _runOnefileScons(
     scons_options["onefile_splash_screen"] = asBoolStr(
         getWindowsSplashScreen() is not None
     )
+    scons_options["onefile_compression"] = asBoolStr(onefile_compression)
     if isWin32Windows() and shallIncludeWindowsRuntimeDLLs():
         scons_options["onefile_windows_static_runtime"] = asBoolStr(True)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
-    env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
     env_values["_NUITKA_ONEFILE_HAS_PAYLOAD_BOOL"] = "1" if hasOnefilePayload() else "0"
     env_values["_NUITKA_ONEFILE_PAYLOAD_SIZE_INT"] = str(onefile_payload_size)
@@ -129,6 +130,8 @@ def _runOnefileScons(
 
     # Allow plugins to build definitions.
     env_values.update(getBuildDefinitions())
+
+    applyPreprocessorSymbols(scons_options, onefile=True)
 
     result = runScons(
         scons_options=scons_options,
@@ -282,7 +285,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     if has_payload:
         expected_files = []
         for data_file in getIncludedDataFiles():
-            if "copy" in data_file.tags:
+            if "copy" in data_file.tags and "external" not in data_file.tags:
                 expected_files.append(data_file.dest_path)
 
         for entry_point in getStandaloneEntryPoints():

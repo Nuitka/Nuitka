@@ -114,7 +114,7 @@ Extending "%s" for compiled types to be pickle-able as well.""",
             return True, "Needed to handle %s" % module_name.getTopLevelPackageName()
 
     @staticmethod
-    def getPreprocessorSymbols():
+    def getPreprocessorSymbols(onefile):
         return {"_NUITKA_PLUGIN_DILL_ENABLED": "1"}
 
     def getExtraCodeFiles(self):

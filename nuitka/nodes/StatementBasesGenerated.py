@@ -93,6 +93,17 @@ class _StatementNoChildHavingLocalsScopeMixin(StatementBase):
 
         del self.locals_scope
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -239,6 +250,17 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
             self.subnode_no_branch.finalize()
         del self.subnode_no_branch
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -324,6 +346,17 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
         if self.subnode_dest is not None:
             self.subnode_dest.finalize()
         del self.subnode_dest
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -445,6 +478,17 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         self.subnode_value.finalize()
         del self.subnode_value
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -552,6 +596,17 @@ class _StatementChildrenHavingDictArgKeyOperationMixin(StatementBase):
         self.subnode_key.finalize()
         del self.subnode_key
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -655,6 +710,17 @@ class _StatementChildrenHavingDictArgValueOperationMixin(StatementBase):
         del self.subnode_dict_arg
         self.subnode_value.finalize()
         del self.subnode_value
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -842,6 +908,17 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
             self.subnode_exception_cause.finalize()
         del self.subnode_exception_cause
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -943,6 +1020,17 @@ class _StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
         self.subnode_expression.finalize()
         del self.subnode_expression
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -1026,6 +1114,17 @@ class _StatementChildHavingExpressionMixin(StatementBase):
 
         self.subnode_expression.finalize()
         del self.subnode_expression
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1157,6 +1256,17 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
             self.subnode_upper.finalize()
         del self.subnode_upper
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -1242,6 +1352,17 @@ class _StatementChildHavingIteratedLengthOperationCountMixin(StatementBase):
         self.subnode_iterated_length.finalize()
         del self.subnode_iterated_length
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -1265,6 +1386,108 @@ class _StatementChildHavingIteratedLengthOperationCountMixin(StatementBase):
 # Assign the names that are easier to import with a stable name.
 StatementSpecialUnpackCheckFromIteratedBase = (
     _StatementChildHavingIteratedLengthOperationCountMixin
+)
+
+
+class _StatementChildHavingIteratedValueOperationCountMixin(StatementBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   StatementSpecialUnpackCheckFromIteratedValue
+
+    def __init__(self, iterated_value, count, source_ref):
+        iterated_value.parent = self
+
+        self.subnode_iterated_value = iterated_value
+
+        self.count = count
+
+        StatementBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "count": self.count,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_iterated_value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("iterated_value", self.subnode_iterated_value),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterated_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_iterated_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterated_value": self.subnode_iterated_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_iterated_value.finalize()
+        del self.subnode_iterated_value
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_iterated_value.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+StatementSpecialUnpackCheckFromIteratedValueBase = (
+    _StatementChildHavingIteratedValueOperationCountMixin
 )
 
 
@@ -1332,6 +1555,17 @@ class _StatementChildHavingIteratorOperationCountMixin(StatementBase):
 
         self.subnode_iterator.finalize()
         del self.subnode_iterator
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -1436,6 +1670,17 @@ class _StatementChildrenHavingListArgValueOperationMixin(StatementBase):
         self.subnode_value.finalize()
         del self.subnode_value
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -1533,6 +1778,17 @@ class _StatementChildHavingLocalsArgOperationPostInitLocalsScopeMixin(StatementB
         del self.subnode_locals_arg
 
         del self.locals_scope
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -1645,6 +1901,17 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
             self.subnode_loop_body.finalize()
         del self.subnode_loop_body
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -1730,6 +1997,17 @@ class _StatementChildHavingModuleOperationPostInitTargetScopeMixin(StatementBase
         del self.subnode_module
 
         del self.target_scope
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -1821,6 +2099,17 @@ class _StatementChildHavingNewLocalsOperationLocalsScopeMixin(StatementBase):
         del self.subnode_new_locals
 
         del self.locals_scope
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -1924,6 +2213,17 @@ class _StatementChildrenHavingSetArgValueOperationMixin(StatementBase):
         del self.subnode_set_arg
         self.subnode_value.finalize()
         del self.subnode_value
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -2038,6 +2338,17 @@ class _StatementChildHavingSourcePostInitVariableVariableVersionMixin(StatementB
 
         del self.variable
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -2151,6 +2462,17 @@ class _StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
 
         del self.locals_scope
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -2249,6 +2571,17 @@ class _StatementChildHavingSourcePostInitProviderVariableNameMixin(StatementBase
 
         self.subnode_source.finalize()
         del self.subnode_source
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2349,6 +2682,17 @@ class _StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(
         del self.subnode_source
         self.subnode_expression.finalize()
         del self.subnode_expression
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -2514,6 +2858,17 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
             self.subnode_upper.finalize()
         del self.subnode_upper
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -2630,6 +2985,17 @@ class _StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementB
         del self.subnode_subscribed
         self.subnode_subscript.finalize()
         del self.subnode_subscript
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -2783,6 +3149,17 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
             self.subnode_locals_arg.finalize()
         del self.subnode_locals_arg
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection=trace_collection
@@ -2900,6 +3277,17 @@ class _StatementChildHavingStatementsTupleMixin(StatementBase):
             c.finalize()
         del self.subnode_statements
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -2995,6 +3383,17 @@ class _StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
         del self.subnode_subscribed
         self.subnode_subscript.finalize()
         del self.subnode_subscript
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -3255,6 +3654,17 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
             self.subnode_return_handler.finalize()
         del self.subnode_return_handler
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -3279,6 +3689,99 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
 
 # Assign the names that are easier to import with a stable name.
 StatementTryBase = _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNoneBreakHandlerOptionalStatementsOrNoneContinueHandlerOptionalStatementsOrNoneReturnHandlerOptionalStatementsOrNonePostInitMixin
+
+
+class _StatementChildHavingValueOperationMixin(StatementBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   StatementPublishExceptionValue
+
+    def __init__(self, value, source_ref):
+        value.parent = self
+
+        self.subnode_value = value
+
+        StatementBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("value", self.subnode_value),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "value": self.subnode_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_value.finalize()
+        del self.subnode_value
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_value.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+StatementPublishExceptionValueBase = _StatementChildHavingValueOperationMixin
 
 
 class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
@@ -3377,6 +3880,17 @@ class _StatementChildrenHavingValueDictArgKeyOperationMixin(StatementBase):
         del self.subnode_dict_arg
         self.subnode_key.finalize()
         del self.subnode_key
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(

@@ -32,7 +32,6 @@ from nuitka.options.Options import (
 )
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Hooks import (
-    considerImplicitImports,
     onModuleEncounter,
     onModuleRecursion,
     onModuleUsageLookAhead,
@@ -42,8 +41,8 @@ from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
-    getPackageDirFilename,
     hasPackageDirFilename,
+    isPackageDirFilenameCandidate,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -428,7 +427,9 @@ def _addIncludedModule(module, package_only):
 
         if not package_only:
             for sub_path, sub_filename in listDir(package_dir):
-                if sub_filename == "__pycache__" or hasPackageDirFilename(sub_filename):
+                if sub_filename == "__pycache__" or isPackageDirFilenameCandidate(
+                    sub_filename
+                ):
                     continue
 
                 if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):
@@ -439,7 +440,7 @@ def _addIncludedModule(module, package_only):
                     )
                 elif sub_filename.endswith(".py"):
                     if os.path.isdir(sub_path[:-3]):
-                        if getPackageDirFilename(sub_path[:-3]) is not None:
+                        if hasPackageDirFilename(sub_path[:-3]):
                             continue
 
                     scanPluginSinglePath(
@@ -674,14 +675,6 @@ def considerUsedModules(module, pass_count):
                     used_module.source_ref.getAsString(),
                 )
             )
-
-    try:
-        considerImplicitImports(module=module)
-    except NuitkaForbiddenImportEncounter as e:
-        recursion_logger.sysexit(
-            "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."
-            % (e.args[0], e.args[1], module.getFullName())
-        )
 
 
 def scanIncludedPackage(package_name):

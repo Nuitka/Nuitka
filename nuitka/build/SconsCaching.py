@@ -24,7 +24,12 @@ from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
 )
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS
+from nuitka.utils.SharedLibraries import hasMacOSArchitecture
+from nuitka.utils.Utils import (
+    getArchCommandPrefix,
+    hasMacOSIntelSupport,
+    isMacOS,
+)
 
 from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
@@ -66,6 +71,35 @@ def _getCcacheGuessedPaths(python_prefix):
         yield "/opt/homebrew/bin/ccache"
 
 
+def _getArchCcacheRunPrefixes(ccache_binary, arch_prefix):
+    """Get run prefixes for ccache and the compiler it spawns.
+
+    Args:
+        ccache_binary: Path to the ccache binary.
+        arch_prefix: Command prefix tuple for the required architecture.
+
+    Returns:
+        Tuple of (ccache_run_prefix, compiler_run_prefix) command tuples,
+        both empty if no architecture prefix is needed.
+
+    Notes:
+        A ccache supporting the architecture can run in it and will also
+        spawn the compiler that way, preserving caching. Otherwise the
+        architecture prefix has to be passed on to the compiler, which
+        disables caching.
+    """
+    ccache_run_prefix = ()
+    compiler_run_prefix = ()
+
+    if arch_prefix:
+        if hasMacOSArchitecture(ccache_binary, "arm64"):
+            ccache_run_prefix = arch_prefix
+        else:
+            compiler_run_prefix = arch_prefix
+
+    return ccache_run_prefix, compiler_run_prefix
+
+
 def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
     ccache_binary = os.getenv("NUITKA_CCACHE_BINARY")
 
@@ -88,25 +122,27 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
 
                     break
 
-        if ccache_binary is None:
-            if hasMacOSIntelSupport():
-                # The 10.14 is the minimum we managed to compile ccache for.
-                if tuple(int(d) for d in platform.release().split(".")) >= (18, 2):
-                    url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
+        # The 10.14 is the minimum we managed to compile ccache for Intel for.
+        if (
+            ccache_binary is None
+            and hasMacOSIntelSupport()
+            and tuple(int(d) for d in platform.release().split(".")) >= (18, 2)
+        ):
+            url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
 
-                    ccache_binary = getCachedDownload(
-                        name="ccache",
-                        url=url,
-                        is_arch_specific=False,
-                        specificity=url.rsplit("/", 2)[1],
-                        unzip=True,
-                        flatten=True,
-                        binary="ccache",
-                        message="Nuitka will make use of ccache to speed up repeated compilation.",
-                        reject=None,
-                        assume_yes_for_downloads=assume_yes_for_downloads,
-                        download_ok=True,
-                    )
+            ccache_binary = getCachedDownload(
+                name="ccache",
+                url=url,
+                is_arch_specific=False,
+                specificity=url.rsplit("/", 2)[1],
+                unzip=True,
+                flatten=True,
+                binary="ccache",
+                message="Nuitka will make use of ccache to speed up repeated compilation.",
+                reject=None,
+                assume_yes_for_downloads=assume_yes_for_downloads,
+                download_ok=True,
+            )
 
     else:
         scons_details_logger.info(
@@ -121,10 +157,6 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
         )
 
-        # Spare ccache the detection of the compiler, seems it will also misbehave when it's
-        # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
-        env["LINK"] = '"%s"' % cc_path
-
         scons_details_logger.info(
             "Found ccache '%s' to cache C compilation result." % ccache_binary
         )
@@ -132,16 +164,34 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
 
-        values = [ccache_binary, cc_path]
+        # Make sure to run the ccache and the compiler with the right architectures
+        # if necessary.
+        arch_prefix = getArchCommandPrefix()
+
+        ccache_run_prefix, compiler_run_prefix = _getArchCcacheRunPrefixes(
+            ccache_binary=ccache_binary,
+            arch_prefix=arch_prefix,
+        )
 
         if env.zig_mode:
-            values.append("cc" if env.c11_mode else "c++")
+            compiler_values = (cc_path, "cc" if env.c11_mode else "c++")
+            link_values = compiler_run_prefix + compiler_values
+        else:
+            compiler_values = (cc_path,)
+            link_values = arch_prefix + compiler_values
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = " ".join('"%s"' % value for value in values)
+        env["CXX"] = env["CC"] = " ".join(
+            '"%s"' % value
+            for value in ccache_run_prefix
+            + (ccache_binary,)
+            + compiler_run_prefix
+            + compiler_values
+        )
 
-        if env.zig_mode:
-            env["LINK"] = " ".join('"%s"' % value for value in values[1:])
+        # Spare ccache the detection of the compiler, seems it will also misbehave when it's
+        # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
+        env["LINK"] = " ".join('"%s"' % value for value in link_values)
 
         return True
 

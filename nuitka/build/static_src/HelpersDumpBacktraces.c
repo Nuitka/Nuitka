@@ -6,6 +6,10 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#if !defined(_WIN32)
+#include <ucontext.h>
+#endif
 #endif
 
 #include "backtrace/backtrace.h"

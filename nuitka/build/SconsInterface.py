@@ -31,6 +31,7 @@ from nuitka.options.Options import (
     getProductVersion,
     getProgressBar,
     getPythonPathForScons,
+    getTargetArch,
     getWindowsConsoleMode,
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
@@ -201,11 +202,11 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
     if python_version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
-    elif os.name == "nt" and python_version_info >= (3, 7):
-        # Windows can use latest, supported MSVC 2026 this way
+    elif python_version_info >= (3, 7):
+        # Python 3.7+ can use latest
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
-        # Windows can use latest, supported MSVC 2022 this way
+        # Windows supports MSVC 2022 this way
         return "scons-4.3.0"
     else:
         # Everything else 2.7 or higher works with this.
@@ -519,6 +520,15 @@ def _removeUnwantedArtifacts(scons_created_exe):
                 )
 
 
+def applyPreprocessorSymbols(scons_options, onefile):
+    cpp_defines = getPreprocessorSymbols(onefile=onefile)
+    if cpp_defines:
+        scons_options["cpp_defines"] = ",".join(
+            "%s%s%s" % (key, "=" if value else "", value or "")
+            for key, value in cpp_defines.items()
+        )
+
+
 def runScons(
     scons_options,
     env_values,
@@ -806,13 +816,6 @@ def getCommonSconsOptions():
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
-    cpp_defines = getPreprocessorSymbols()
-    if cpp_defines:
-        scons_options["cpp_defines"] = ",".join(
-            "%s%s%s" % (key, "=" if value else "", value or "")
-            for key, value in cpp_defines.items()
-        )
-
     cpp_include_dirs = getExtraIncludeDirectories()
     if cpp_include_dirs:
         scons_options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
@@ -838,6 +841,9 @@ def getCommonSconsOptions():
         scons_options["macos_target_arch"] = getMacOSTargetArch()
 
     scons_options["target_arch"] = getArchitecture()
+    c_target_arch = getTargetArch()
+    if c_target_arch is not None:
+        scons_options["c_target_arch"] = c_target_arch
 
     if getFcfProtectionMode() != "auto":
         scons_options["cf_protection"] = getFcfProtectionMode()

@@ -164,6 +164,15 @@ class ExpressionFunctionBodyBase(
     def hasFlag(self, flag):
         return self.flags is not None and flag in self.flags
 
+    def addFlag(self, flag):
+        if self.flags is None:
+            self.flags = set()
+
+        if isinstance(self.flags, frozenset):
+            self.flags = set(self.flags)
+
+        self.flags.add(flag)
+
     def discardFlag(self, flag):
         if self.flags is not None:
             if isinstance(self.flags, frozenset):
@@ -189,10 +198,9 @@ class ExpressionFunctionBodyBase(
 
     # TODO: Dubious function doing to distinct things, should be moved to users.
     def hasVariableName(self, variable_name):
-        return (
-            self.locals_scope.hasProvidedVariable(variable_name)
-            or variable_name in self.temp_variables
-        )
+        return self.locals_scope.hasProvidedVariable(
+            variable_name
+        ) or self.hasTempVariable(variable_name)
 
     def getProvidedVariables(self):
         if self.locals_scope is not None:

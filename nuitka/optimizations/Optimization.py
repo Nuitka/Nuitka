@@ -158,6 +158,8 @@ that is done in debug mode: '%s'""" % (module_name, tag_set.asString()),
 
     considerUsedModules(module=module, pass_count=pass_count)
 
+    considerImplicitImports(module=module)
+
     return touched, micro_pass
 
 

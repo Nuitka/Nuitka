@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+#pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/helper/long_helpers.h"
 #endif
 
 /* C helpers for type specialized "-" (SUB) operations */
@@ -2151,10 +2154,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_CLONG(PyObject *operand1, lon
         unsigned long t = operand2_abs_ival;
 
         while (t != 0) {
-            operand2_digit_count += 1;
-            assert(operand2_digit_count <= (Py_ssize_t)(sizeof(operand2_digit_count) / sizeof(digit)));
+            assert(operand2_digit_count < (Py_ssize_t)(sizeof(operand2_digits) / sizeof(operand2_digits[0])));
 
             operand2_digits[operand2_digit_count] = (digit)(t & PyLong_MASK);
+            operand2_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }
@@ -2257,10 +2260,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_CLONG_LONG(long operand1, PyObject
         unsigned long t = operand1_abs_ival;
 
         while (t != 0) {
-            operand1_digit_count += 1;
-            assert(operand1_digit_count <= (Py_ssize_t)(sizeof(operand1_digit_count) / sizeof(digit)));
+            assert(operand1_digit_count < (Py_ssize_t)(sizeof(operand1_digits) / sizeof(operand1_digits[0])));
 
             operand1_digits[operand1_digit_count] = (digit)(t & PyLong_MASK);
+            operand1_digit_count += 1;
             t >>= PyLong_SHIFT;
         }
     }

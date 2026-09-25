@@ -1656,11 +1656,10 @@ static inline bool _Nuitka_is_resume(_Py_CODEUNIT *instr) {
 
 PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
 #if PYTHON_VERSION >= 0x3f0
-    int8_t frame_state = gen->gi_frame_state;
-    if (frame_state != FRAME_SUSPENDED_YIELD_FROM) {
-        Py_RETURN_NONE;
+    if (gen->gi_frame_state == FRAME_SUSPENDED_YIELD_FROM) {
+        return PyStackRef_AsPyObjectNew(_PyFrame_StackPeek(&gen->gi_iframe, 2));
     }
-    return PyStackRef_AsPyObjectNew(_PyFrame_StackPeek(&gen->gi_iframe, 2));
+    return NULL;
 #elif PYTHON_VERSION >= 0x3e0
     if (gen->gi_frame_state == FRAME_SUSPENDED_YIELD_FROM) {
         _PyInterpreterFrame *frame = &gen->gi_iframe;

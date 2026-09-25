@@ -20,12 +20,19 @@ from nuitka.nodes.AttributeNodesGenerated import (
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
-from nuitka.options.Options import isCompileTimeProfile
-from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
+from nuitka.options.Options import (
+    isCompileTimeProfile,
+    shallNotFallbackBytecodeToCompiled,
+)
+from nuitka.plugins.Hooks import (
+    deriveModuleConstantsBlobName,
+    getModuleIncludes,
+)
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Timing import TimerReport
 
+from .AnnotateFunctionCodes import isBytecodeBackedFunction
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -160,7 +167,10 @@ from .ExceptionCodes import (
     generateExceptionCaughtTracebackCode,
     generateExceptionCaughtTypeCode,
     generateExceptionCaughtValueCode,
+    generateExceptionGroupMatchCode,
+    generateExceptionGroupPrepareReraiseCode,
     generateExceptionPublishCode,
+    generateExceptionPublishValueCode,
     generateExceptionRefCode,
 )
 from .ExpressionCodes import (
@@ -226,6 +236,7 @@ from .IteratorCodes import (
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
+    generateUnpackCheckFromIteratedValueCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -368,9 +379,11 @@ from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
 from .TypeAliasCodes import (
+    generateParamSpecCode,
     generateTypeAliasCode,
     generateTypeGenericCode,
     generateTypeVarCode,
+    generateTypeVarTupleCode,
 )
 from .VariableCodes import (
     generateAssignmentVariableCode,
@@ -390,6 +403,9 @@ _generated_functions = {}
 def generateFunctionBodyCode(function_body, context):
     # TODO: Generate both codes, and base direct/etc. decisions on context.
     # pylint: disable=too-many-branches
+
+    if isBytecodeBackedFunction(function_body):
+        return None, None
 
     function_identifier = function_body.getCodeName()
 
@@ -560,6 +576,31 @@ def _generateModuleCode(module, data_filename):
             if is_constant_returning:
                 continue
 
+        if isBytecodeBackedFunction(function_body):
+            from .PythonSourceCodeGeneration import (
+                PythonSourceGenerationError,
+                generateFunctionSourceFromBody,
+            )
+
+            try:
+                generateFunctionSourceFromBody(function_body)
+            except PythonSourceGenerationError as e:
+                function_qualname = function_body.getFunctionQualname()
+                source_ref = function_body.getSourceReference()
+
+                if shallNotFallbackBytecodeToCompiled(
+                    module_name=context.getModuleName(),
+                    function_qualname=function_qualname,
+                    source_ref=source_ref,
+                ):
+                    return code_generation_logger.sysexit(
+                        """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                        % (function_qualname, source_ref.getAsString(), e)
+                    )
+
+                function_body.addFlag("force_c")
+
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
         )
@@ -597,6 +638,7 @@ def _generateModuleCode(module, data_filename):
             deriveModuleConstantsBlobName(data_filename)
         ),
         module_const_blob_symbol_name=getConstantBlobSymbolName(data_filename),
+        module_includes=getModuleIncludes(context),
         context=context,
     )
 
@@ -830,6 +872,8 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
+        "EXPRESSION_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatchCode,
+        "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE": generateExceptionGroupPrepareReraiseCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
@@ -996,6 +1040,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL": generateImportlibResourcesFilesCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED": generateImportlibResourcesFilesCallCode,
@@ -1019,8 +1064,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
-        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarCode,
-        "EXPRESSION_PARAMETER_SPECIFICATION": generateTypeVarCode,
+        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarTupleCode,
+        "EXPRESSION_PARAMETER_SPECIFICATION": generateParamSpecCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
@@ -1109,6 +1154,7 @@ setStatementDispatchDict(
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
+        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE": generateUnpackCheckFromIteratedValueCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsMappingCode,
@@ -1117,6 +1163,7 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
+        "STATEMENT_PUBLISH_EXCEPTION_VALUE": generateExceptionPublishValueCode,
     }
 )
 

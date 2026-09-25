@@ -97,6 +97,8 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
                 dest_path = os.path.join(full_name.asPath(), "..")
 
         for source_path, dest_name in zip(source_paths, dest_names):
+            source_path = getNormalizedPath(os.path.abspath(source_path))
+
             yield self.makeDllEntryPoint(
                 source_path=source_path,
                 dest_path=os.path.normpath(
@@ -434,7 +436,9 @@ conditions are missing, or this version of the module needs treatment added."""
                         sys.version_info[0],
                         sys.version_info[1],
                     )
-                    pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
+                    pythoncom_dll_path = getNormalizedPathJoin(
+                        pywin_dir, pythoncom_filename
+                    )
 
                     if os.path.exists(pythoncom_dll_path):
                         yield self.makeDllEntryPoint(

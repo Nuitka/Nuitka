@@ -111,9 +111,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         sensible_qt_plugins = self._getSensiblePlugins()
 
-        self.include_qt_plugins = OrderedSet(
-            sum([value.split(",") for value in self.include_qt_plugins], [])
-        )
+        self.include_qt_plugins = OrderedSet(self.include_qt_plugins)
+        self.noinclude_qt_plugins = OrderedSet(self.noinclude_qt_plugins)
 
         # Useless, but nice for old option usage, where expanding it meant to repeat it.
         if "sensible" in self.include_qt_plugins:
@@ -163,7 +162,7 @@ newer, or downgrade to patchelf 0.9.""" % (patchelf_version, self.binding_name))
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="include_qt_plugins",
             default=[],
             help="""\
@@ -175,7 +174,7 @@ not exist, a list of all available will be given.""",
 
         group.add_option(
             "--noinclude-qt-plugins",
-            action="append",
+            action="append_comma",
             dest="noinclude_qt_plugins",
             default=[],
             help="""\
@@ -553,7 +552,7 @@ import %(binding_name)s.QtCore
 
         # File types that are build artifacts, not DLLs and not data files,
         # spell-checker: ignore prl
-        non_dll_artifact_suffixes = (".a", ".la", ".prl")
+        non_dll_artifact_suffixes = (".a", ".la", ".prl", ".obj", ".o", ".cpp")
 
         if dlls:
             ignore_suffixes = datafile_suffixes + non_dll_artifact_suffixes
@@ -565,6 +564,7 @@ import %(binding_name)s.QtCore
         try:
             return getFileList(
                 qml_plugin_dir,
+                ignore_dirs=("objects-RelWithDebInfo", "objects-Debug"),
                 ignore_suffixes=ignore_suffixes,
                 only_suffixes=only_suffixes,
             )

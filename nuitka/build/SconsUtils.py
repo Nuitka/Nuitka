@@ -379,6 +379,7 @@ def createEnvironment(
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
     env.apple_python = getArgumentBool("apple_python", False)
+    env.python_build_standalone = getArgumentBool("python_build_standalone", False)
     env.self_compiled_python_uninstalled = getArgumentBool(
         "self_compiled_python_uninstalled", False
     )
@@ -592,6 +593,24 @@ def addToPATH(env, dirname, prefix):
         path_value.append(dirname)
 
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
+
+
+def linkSystemLibrary(env, library_name):
+    """Link a system library, preferring the static variant if supported.
+
+    Notes:
+        The static variant is selected with the literal syntax of GNU linkers,
+        which keeps bootstrap binaries free from a runtime dependency on the
+        library.
+
+    Args:
+        env: SCons environment to modify.
+        library_name: Name of the library to link, e.g. 'zstd'.
+    """
+    if env.get("LIBLITERALPREFIX") == ":":
+        env.Append(LIBS=[":lib%s.a" % library_name])
+    else:
+        env.Append(LIBS=[library_name])
 
 
 def writeSconsReport(env, target):
@@ -853,20 +872,21 @@ def readSconsResourceUsageReports(source_dir):
     if source_dir not in _scons_resource_usage_reports:
         results = {}
 
-        for filename, _filename_only in listDir(source_dir):
-            if filename.endswith(".resource-usage.json"):
-                data = loadJsonFromFilename(filename)
-                source_filename = data["source_filename"]
-                if source_filename.startswith("module.") and source_filename.endswith(
-                    ".c"
-                ):
-                    # TODO: Could resolve this more reliable by checking mapping to
-                    # actually picked source file names in "pickSourceFilenames"
-                    module_name = source_filename[7:-2]
+        if os.path.isdir(source_dir):
+            for filename, _filename_only in listDir(source_dir):
+                if filename.endswith(".resource-usage.json"):
+                    data = loadJsonFromFilename(filename)
+                    source_filename = data["source_filename"]
+                    if source_filename.startswith(
+                        "module."
+                    ) and source_filename.endswith(".c"):
+                        # TODO: Could resolve this more reliable by checking mapping to
+                        # actually picked source file names in "pickSourceFilenames"
+                        module_name = source_filename[7:-2]
 
-                    results[module_name] = data["rusage"]
-                elif source_filename == "@linker":
-                    results["@linker"] = data["rusage"]
+                        results[module_name] = data["rusage"]
+                    elif source_filename == "@linker":
+                        results["@linker"] = data["rusage"]
 
         _scons_resource_usage_reports[source_dir] = results
 

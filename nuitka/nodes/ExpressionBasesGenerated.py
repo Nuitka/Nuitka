@@ -35,6 +35,7 @@ spell-checker: ignore winmode zfill
 
 from abc import abstractmethod
 
+from .Checkers import convertNoneConstantToNone
 from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
@@ -60,17 +61,6 @@ class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -78,6 +68,17 @@ class _NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     @staticmethod
     def mayRaiseException(exception_type):
         return False
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -96,7 +97,6 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
     # This is generated for use in
     #   ExpressionParameterSpecification
-    #   ExpressionTypeVariable
     #   ExpressionTypeVariableTuple
 
     def __init__(self, name, source_ref):
@@ -150,17 +150,6 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -169,13 +158,23 @@ class _NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     def mayRaiseException(exception_type):
         return False
 
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
 
 # Assign the names that are easier to import with a stable name.
 ExpressionParameterSpecificationBase = _NoChildHavingFinalNoRaiseNameMixin
-ExpressionTypeVariableBase = _NoChildHavingFinalNoRaiseNameMixin
 ExpressionTypeVariableTupleBase = _NoChildHavingFinalNoRaiseNameMixin
 
 
@@ -279,17 +278,6 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -298,6 +286,17 @@ class _ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         return any(
             value.mayRaiseException(exception_type) for value in self.subnode_args
         )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -473,17 +472,6 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -500,6 +488,17 @@ class _ChildrenHavingArgsTupleNameOptionalObjOptionalFinalNoRaiseForRaiseMixin(
                 and self.subnode_obj.mayRaiseException(exception_type)
             )
         )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -686,17 +685,6 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -713,6 +701,17 @@ class _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
                 and self.subnode_path.mayRaiseException(exception_type)
             )
         )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -735,6 +734,194 @@ ExpressionBuiltinMakeExceptionImportErrorBase = (
 )
 ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
     _ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
+)
+
+
+class _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin(
+    ExpressionBase
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTypeVariable
+
+    def __init__(self, bound, default_value, name, source_ref):
+        bound = convertNoneConstantToNone(bound)
+        if bound is not None:
+            bound.parent = self
+
+        self.subnode_bound = bound
+
+        default_value = convertNoneConstantToNone(default_value)
+        if default_value is not None:
+            default_value.parent = self
+
+        self.subnode_default_value = default_value
+
+        self.name = name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "name": self.name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_bound
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_default_value
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("bound", self.subnode_bound),
+            ("default_value", self.subnode_default_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_bound
+        if old_node is value:
+            new_node = convertNoneConstantToNone(new_node)
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_bound = new_node
+
+            return
+
+        value = self.subnode_default_value
+        if old_node is value:
+            new_node = convertNoneConstantToNone(new_node)
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_default_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "bound": (
+                self.subnode_bound.makeClone()
+                if self.subnode_bound is not None
+                else None
+            ),
+            "default_value": (
+                self.subnode_default_value.makeClone()
+                if self.subnode_default_value is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_bound is not None:
+            self.subnode_bound.finalize()
+        del self.subnode_bound
+        if self.subnode_default_value is not None:
+            self.subnode_default_value.finalize()
+        del self.subnode_default_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_bound is not None
+            and self.subnode_bound.mayRaiseException(exception_type)
+        ) or (
+            self.subnode_default_value is not None
+            and self.subnode_default_value.mayRaiseException(exception_type)
+        )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_bound = self.subnode_bound
+
+        if subnode_bound is not None:
+            self.subnode_bound.collectVariableAccesses(emit_variable)
+        subnode_default_value = self.subnode_default_value
+
+        if subnode_default_value is not None:
+            self.subnode_default_value.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionTypeVariableBase = (
+    _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin
 )
 
 
@@ -849,15 +1036,15 @@ class _ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -941,20 +1128,20 @@ class _ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1074,17 +1261,6 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -1093,6 +1269,17 @@ class _ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
         return any(
             value.mayRaiseException(exception_type) for value in self.subnode_elements
         )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1198,20 +1385,20 @@ class _ChildHavingExpressionAttributeNameMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1341,20 +1528,20 @@ class _ChildrenHavingExpressionNameRaiseWaitConstantNameMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1481,20 +1668,20 @@ class _ChildHavingInterpolationsTupleStrValuesMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1617,17 +1804,6 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -1636,6 +1812,17 @@ class _ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
         return self.subnode_left.mayRaiseException(
             exception_type
         ) or self.subnode_right.mayRaiseException(exception_type)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1729,17 +1916,6 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -1750,6 +1926,17 @@ class _ChildHavingListArgNoRaiseMixin(ExpressionBase):
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -1873,17 +2060,6 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -1896,6 +2072,17 @@ class _ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2018,17 +2205,6 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -2037,6 +2213,17 @@ class _ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
         return self.subnode_list_arg.mayRaiseException(
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2229,20 +2416,20 @@ class _ChildrenHavingMetaclassNameBasesDictArgClassDeclDictClassVariableMixin(
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2361,17 +2548,6 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -2380,6 +2556,17 @@ class _ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
         return any(
             value.mayRaiseException(exception_type) for value in self.subnode_pairs
         )
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2492,15 +2679,15 @@ class _ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
 
-        self.undoComputeExpression()
+        self.undoVariableTracing()
 
     # For overload only
     @staticmethod
-    def undoComputeExpression():
+    def undoVariableTracing():
         pass
 
     def collectVariableAccesses(self, emit_variable):
@@ -2596,23 +2783,23 @@ class _ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
@@ -2756,20 +2943,20 @@ class _ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBa
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""

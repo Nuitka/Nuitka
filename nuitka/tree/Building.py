@@ -36,7 +36,6 @@ catching and passing in exceptions raised.
 """
 
 import marshal
-import os
 
 from nuitka import ModuleRegistry, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode
@@ -82,6 +81,10 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionRef,
+    makeExpressionFunctionCreation,
+)
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import (
     StatementGeneratorReturn,
@@ -125,8 +128,10 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
+    getMainModuleName,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
+    isExperimental,
     isShowMemory,
     isStandaloneMode,
     shallDisableBytecodeCacheUsage,
@@ -144,7 +149,6 @@ from nuitka.Tracing import (
     unusual_logger,
 )
 from nuitka.utils import MemoryUsage
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import withNoSyntaxWarning
 
 from . import SyntaxErrors
@@ -180,6 +184,7 @@ from .ReformulationForLoopStatements import (
 from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
     buildFunctionNode,
+    makeDeferredAnnotateFunctionBody,
 )
 from .ReformulationImportStatements import (
     buildImportFromNode,
@@ -217,12 +222,14 @@ from .SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
 )
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildNode,
     buildNodeTuple,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
     getKind,
+    makeDictCreationOrConstant2,
     makeModuleFrame,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
@@ -855,6 +862,7 @@ setBuildingDispatchers(
         "Slice": buildSliceNode,
         "Match": buildMatchNode,
         "TypeAlias": buildTypeAliasNode,
+        "TypeVar": buildTypeVarNode,
         "TemplateStr": buildTemplateStringNode,
         "Interpolation": buildInterpolationNode,
     },
@@ -865,7 +873,6 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
-        "TypeVar": buildTypeVarNode,
         "TypeVarTuple": buildTypeVarTupleNode,
         "ParamSpec": buildTypeParamSpec,
     },
@@ -873,9 +880,47 @@ setBuildingDispatchers(
 )
 
 
+def _makeModuleDeferredAnnotateStatement(provider, source_ref):
+    # PEP 649 module-level deferral: build a module "__annotate__" holding the
+    # forward-ref-tolerant lazy annotations, mirroring the class body path. The
+    # annotation values are built inside the annotate function body, so a module-level
+    # forward reference is only resolved when "__annotations__" is accessed, not at import.
+    outer_body, return_statement = makeDeferredAnnotateFunctionBody(
+        provider=provider, source_ref=source_ref
+    )
+
+    keys = []
+    values = []
+    for var_name, ast_node in provider.deferred_annotations.items():
+        keys.append(var_name)
+        values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+
+    return_statement.subnode_expression = makeDictCreationOrConstant2(
+        keys=keys, values=values, source_ref=source_ref
+    )
+    return_statement.subnode_expression.parent = return_statement
+
+    return StatementAssignmentVariableName(
+        provider=provider,
+        variable_name="__annotate__",
+        source=makeExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=outer_body, source_ref=source_ref
+            ),
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            type_params=None,
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
+
+
 def buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables.
+    # pylint: disable=too-many-branches
 
     # Maybe one day, we do exec inlining again, that is what this is for,
     # then is_module won't be True, for now it always is.
@@ -1005,7 +1050,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                 )
             )
 
-    if python_version >= 0x300:
+    if 0x300 <= python_version < 0x3F0:
         statements.append(
             StatementAssignmentVariableName(
                 provider=provider,
@@ -1027,7 +1072,17 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
         )
     )
 
-    if provider.needsAnnotationsDictionary():
+    if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+        and provider.deferred_annotations
+    ):
+        statements.append(
+            _makeModuleDeferredAnnotateStatement(provider, internal_source_ref)
+        )
+        provider.deferred_annotations = None
+    elif provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariableName(
@@ -1252,20 +1307,13 @@ def buildMainModuleTree(source_code):
 
     filename = getMainEntryPointFilenames()[0]
 
-    if shallMakeModule():
-        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+    module_name = getMainModuleName()
 
-        if module_name is None:
-            general.sysexit(
-                "Error, filename '%s' suffix does not appear to be Python module code."
-                % filename
-            )
-    else:
-        # TODO: Doesn't work for deeply nested packages at all.
-        if hasPythonFlagPackageMode():
-            module_name = ModuleName(os.path.basename(filename) + ".__main__")
-        else:
-            module_name = ModuleName("__main__")
+    if module_name is None:
+        return general.sysexit(
+            "Error, filename '%s' suffix does not appear to be Python module code."
+            % filename
+        )
 
     module = buildModule(
         module_name=module_name,

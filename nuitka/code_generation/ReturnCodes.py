@@ -13,8 +13,18 @@ from nuitka.Constants import isConstantImmortal
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
+from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .LabelCodes import getGotoCode
+
+
+def _checkDeferredReleaseReturn(return_value_name, statement, context):
+    checkDeferredReleaseUse(
+        usage="return",
+        tmp_name=return_value_name,
+        context=context,
+        detail=statement.getSourceReference().getAsString(),
+    )
 
 
 def generateReturnCode(statement, emit, context):
@@ -34,6 +44,8 @@ def generateReturnCode(statement, emit, context):
         emit=emit,
         context=context,
     )
+
+    _checkDeferredReleaseReturn(return_value_name, statement, context)
 
     if context.needsCleanup(return_value_name):
         context.removeCleanupTempName(return_value_name)
@@ -96,6 +108,8 @@ def generateGeneratorReturnValueCode(statement, emit, context):
         generateExpressionCode(
             to_name=return_value_name, expression=expression, emit=emit, context=context
         )
+
+        _checkDeferredReleaseReturn(return_value_name, statement, context)
 
         if context.needsCleanup(return_value_name):
             context.removeCleanupTempName(return_value_name)

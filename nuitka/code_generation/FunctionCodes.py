@@ -3,10 +3,14 @@
 
 """Code to generate and interact with compiled function objects."""
 
+from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general
+from nuitka.Tracing import code_generation_logger
 
-from .AnnotateFunctionCodes import generateAnnotateFunctionCreationCode
+from .AnnotateFunctionCodes import (
+    generateAnnotateFunctionCreationCode,
+    isBytecodeBackedFunction,
+)
 from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyCellObject,
@@ -28,7 +32,6 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .PythonSourceCodeGeneration import (
@@ -212,23 +215,53 @@ def getFunctionMakerCode(
     return result
 
 
+def _tryGenerateAnnotateFunctionCreationCode(
+    to_name, expression, emit, context, function_body
+):
+    try:
+        generateAnnotateFunctionCreationCode(
+            to_name=to_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
+    except PythonSourceGenerationError as e:
+        function_body.addFlag("force_c")
+
+        function_qualname = function_body.getFunctionQualname()
+        source_ref = expression.getSourceReference()
+
+        if shallNotFallbackBytecodeToCompiled(
+            module_name=context.getModuleName(),
+            function_qualname=function_qualname,
+            source_ref=source_ref,
+        ):
+            return code_generation_logger.sysexit(
+                """\
+Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at %s: %s"""
+                % (function_qualname, source_ref.getAsString(), e)
+            )
+
+        return False
+
+    return True
+
+
 def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=too-many-locals
 
     function_body = expression.subnode_function_ref.getFunctionBody()
 
-    if function_body.hasFlag("annotate"):
-        try:
-            generateAnnotateFunctionCreationCode(
-                to_name=to_name,
-                expression=expression,
-                emit=emit,
-                context=context,
-            )
+    if isBytecodeBackedFunction(function_body):
+        if _tryGenerateAnnotateFunctionCreationCode(
+            to_name=to_name,
+            expression=expression,
+            emit=emit,
+            context=context,
+            function_body=function_body,
+        ):
             return
-        except PythonSourceGenerationError:
-            pass
 
     defaults = expression.subnode_defaults
     kw_defaults = expression.subnode_kw_defaults
@@ -651,7 +684,9 @@ def getFunctionCode(
             needs_exception_exit=needs_exception_exit,
         )
     except Exception:
-        general.warning("Problem creating function code %r." % function_identifier)
+        code_generation_logger.warning(
+            "Problem creating function code %r." % function_identifier
+        )
         raise
 
 
@@ -707,7 +742,7 @@ def _getFunctionCode(
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
             "function_cleanup": indented(function_cleanup),
@@ -804,6 +839,8 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
+    # Many details for the outline code, including the exception line number
+    # handover, pylint: disable=too-many-locals
     assert (
         expression.isExpressionOutlineBody()
         or expression.isExpressionOutlineFunctionBase()
@@ -865,9 +902,20 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         if exception_target is not None:
             getLabelCode(exception_target, emit)
 
-            context.setCurrentSourceCodeReference(expression.getSourceReference())
+            # The exception line number of the outline is handed over to the
+            # parent, so that tracebacks show the class statement line for
+            # class bodies, and the comprehension line for comprehensions,
+            # rather than the line inside of them.
+            (
+                _outline_exception_state_name,
+                outline_exception_lineno,
+            ) = context.getExceptionVariableDescriptions()
+            (
+                _parent_exception_state_name,
+                parent_exception_lineno,
+            ) = context.parent.getExceptionVariableDescriptions()
 
-            emitErrorLineNumberUpdateCode(emit, context)
+            emit("%s = %s;" % (parent_exception_lineno, outline_exception_lineno))
             getGotoCode(old_exception_target, emit)
 
             context.setExceptionEscape(old_exception_target)

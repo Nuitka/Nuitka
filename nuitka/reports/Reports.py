@@ -33,6 +33,12 @@ from nuitka.importing.Importing import (
     getRecompileDecisionReason,
 )
 from nuitka.importing.Recursion import getRecursionDecisions
+from nuitka.installer.Installer import (
+    getInstallerBackendName,
+    getInstallerOutputFilename,
+    getInstallerToolVersion,
+    wasInstallerCreated,
+)
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleCodeGenerationTimingInfos,
@@ -330,6 +336,13 @@ def _getReportInputData(aborted):
         onefile_executable = None
         onefile_executable_size = None
         onefile_resource_mode = None
+
+    installer_executable = (
+        getInstallerOutputFilename() if wasInstallerCreated() else None
+    )
+
+    installer_backend = getInstallerBackendName()
+    installer_tool_version = getInstallerToolVersion()
 
     source_dir = (
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
@@ -1343,6 +1356,17 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     if report_input_data["output_run_filename"] != "failed too early":
         python_xml_node.attrib["run_filename"] = _getCompilationReportPath(
             report_input_data["output_run_filename"]
+        )
+
+    if report_input_data.get("installer_executable") is not None:
+        appendTreeElement(
+            python_xml_node,
+            "installer",
+            filename=_getCompilationReportPath(
+                report_input_data["installer_executable"]
+            ),
+            backend=report_input_data.get("installer_backend") or "",
+            tool_version=report_input_data.get("installer_tool_version") or "",
         )
 
     contents = convertXmlToString(root)

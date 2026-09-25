@@ -18,6 +18,7 @@ from .HardImportNodesGenerated import (
     ExpressionImportlibResourcesBackportReadBinaryCallBase,
     ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
+    ExpressionImportlibResourcesFilesSince312CallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
     ExpressionImportlibResourcesReadTextBefore313CallBase,
     ExpressionImportlibResourcesReadTextSince313CallBase,
@@ -262,6 +263,9 @@ class ExpressionImportlibResourcesFilesCallMixin:
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        if self.subnode_package is None:
+            return self, None, None
+
         package_name = self.subnode_package.getCompileTimeConstant()
 
         if type(package_name) is str:
@@ -355,6 +359,28 @@ class ExpressionImportlibResourcesBackportFilesCallFixed(
         trace_collection.onModuleUsageAttempt(self.module_usage_attempt)
 
         return self, None, None
+
+
+def makeExpressionImportlibResourcesFilesSince312Call(package, source_ref):
+    return ExpressionImportlibResourcesFilesSince312Call(
+        package=package, source_ref=source_ref
+    )
+
+
+class ExpressionImportlibResourcesFilesSince312Call(
+    ExpressionImportlibResourcesFilesCallMixin,
+    ExpressionImportlibResourcesFilesSince312CallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_SINCE312_CALL"
+    python_version_spec = ">= 0x3C0"
+    importlib_resources_name = "importlib.resources"
+    makeImportlibResourcesFilesCallFixedExpression = (
+        ExpressionImportlibResourcesFilesCallFixed
+    )
+    named_children = ("package|optional",)
+
+    def getPackageNameUsed(self):
+        return self.subnode_package
 
 
 class ExpressionImportlibResourcesFilesCall(

@@ -3,8 +3,11 @@
 
 """Code generation for type alias statement helpers."""
 
+from nuitka.PythonVersions import python_version
+
 from .CodeHelpers import (
     generateChildExpressionCode,
+    generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
@@ -52,25 +55,74 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
 
 def generateTypeVarCode(to_name, expression, emit, context):
+    bound_name, default_value_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_value", expression, emit, context
     ) as value_name:
-        if expression.isExpressionTypeVariable():
-            # TypeVar
-            helper_function = "MAKE_TYPE_VAR"
-        elif expression.isExpressionTypeVariableTuple():
-            # TypeVarTuple
-            helper_function = "MAKE_TYPE_VAR_TUPLE"
+        if python_version >= 0x3D0:
+            emit(
+                "%s = MAKE_TYPE_VAR(tstate, %s, %s, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                    bound_name if bound_name is not None else "NULL",
+                    default_value_name if default_value_name is not None else "NULL",
+                )
+            )
         else:
-            # ParamSpec
-            assert expression.isExpressionParameterSpecification()
-            helper_function = "MAKE_PARAM_SPEC"
+            emit(
+                "%s = MAKE_TYPE_VAR(tstate, %s, %s);"
+                % (
+                    value_name,
+                    context.getConstantCode(constant=expression.name),
+                    bound_name if bound_name is not None else "NULL",
+                )
+            )
 
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(bound_name, default_value_name),
+            emit=emit,
+            context=context,
+            needs_check=False,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateTypeVarTupleCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "type_var_tuple_value", expression, emit, context
+    ) as value_name:
         emit(
-            "%s = %s(tstate, %s);"
+            "%s = MAKE_TYPE_VAR_TUPLE(tstate, %s);"
             % (
                 value_name,
-                helper_function,
+                context.getConstantCode(constant=expression.name),
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            emit=emit,
+            context=context,
+            needs_check=False,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateParamSpecCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "param_spec_value", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = MAKE_PARAM_SPEC(tstate, %s);"
+            % (
+                value_name,
                 context.getConstantCode(constant=expression.name),
             )
         )
