@@ -46,6 +46,7 @@
 #define NUITKA_PGO_VALUE_TAG_BIG_INT 0x49            /* 'I' */
 #define NUITKA_PGO_VALUE_TAG_GLOBAL 0x47             /* 'G' */
 #define NUITKA_PGO_VALUE_TAG_REDUCED 0x52            /* 'R' */
+#define NUITKA_PGO_VALUE_TAG_UNSUPPORTED 0x56        /* 'V' */
 
 #endif
 

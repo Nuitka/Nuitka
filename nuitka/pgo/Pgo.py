@@ -94,6 +94,14 @@ class PgoValueUnsupported(object):
         self.type_name = type_name
 
 
+class PgoValueUnsupportedCapture(object):
+    """PGO value that could not be captured at run time.
+
+    The writer could not represent the value at all, so nothing is known
+    about it. Its presence still proves that the probe was executed.
+    """
+
+
 def getPGOClassPrepareResult(scope_id):
     return _class_prepare_calls.get(scope_id)
 
@@ -412,6 +420,9 @@ def _readValueEntry(input_file, strings):
             dictitems=dictitems,
         )
 
+    if tag == spec.value_tag_unsupported:
+        return PgoValueUnsupportedCapture()
+
     if tag == spec.value_tag_too_large:
         value_type = _readRawBytes(input_file, 1)
         size = _readUvarint(input_file)
@@ -439,7 +450,7 @@ def _readKeyName(input_file, strings, keys):
 
 
 def _getUnusableValueReason(value):
-    # One branch per unusable value type, pylint: disable=too-many-return-statements
+    # One branch per unusable value type, pylint: disable=too-many-branches,too-many-return-statements
     value_type = type(value)
 
     if value_type is PgoValueTooLarge:
@@ -456,6 +467,9 @@ def _getUnusableValueReason(value):
             return "value could not be reconstructed (type %r)" % value.type_name
 
         return "value could not be reconstructed"
+
+    if value_type is PgoValueUnsupportedCapture:
+        return "value could not be captured"
 
     if value_type is dict:
         for key, item in value.items():
@@ -696,6 +710,9 @@ def _jsonifyValue(value):
 
     if type(value) is PgoValueUnsupported:
         return {"$unsupported": {"type": value.type_name}}
+
+    if type(value) is PgoValueUnsupportedCapture:
+        return {"$unsupported_capture": True}
 
     return {"$unknown": repr(value)}
 
