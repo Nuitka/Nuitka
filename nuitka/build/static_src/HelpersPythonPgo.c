@@ -250,6 +250,14 @@ static void PGO_serializeTooManyValue(void) {
     PGO_valueOpsAppendByte(NUITKA_PGO_VALUE_TAG_TOO_MANY);
 }
 
+// A value that the writer could not represent at all, e.g. because even the
+// reduce fallback failed. Recorded so that a missing key reliably means the
+// probe never fired.
+static void PGO_serializeUnsupportedValue(void) {
+    PGO_valueOpsAppendByte(PGO_VALUE_OP_TAG);
+    PGO_valueOpsAppendByte(NUITKA_PGO_VALUE_TAG_UNSUPPORTED);
+}
+
 // Add a string object (unicode on Python3, str or unicode on Python2) to the
 // string space and return its ID.
 static bool PGO_getStringIDFromTextObject(PyObject *value, uint32_t *string_id) {
@@ -788,6 +796,14 @@ static uint32_t PGO_getTooManyValueID(void) {
     return PGO_registerValue(ops_start);
 }
 
+static uint32_t PGO_getUnsupportedValueID(void) {
+    uint32_t ops_start = pgo_value_ops_used;
+
+    PGO_serializeUnsupportedValue();
+
+    return PGO_registerValue(ops_start);
+}
+
 static bool PGO_getValueID(PyThreadState *tstate, PyObject *value, uint32_t *value_id, uint32_t depth) {
     uint32_t ops_start = pgo_value_ops_used;
 
@@ -1043,10 +1059,7 @@ void PGO_onProbeClassPrepareResult(PyThreadState *tstate, char const *code_name,
     uint32_t value_id;
 
     if (!PGO_getValueID(tstate, result, &value_id, 0)) {
-#ifdef _NUITKA_DEVEL_PGO_WARN_UNKNOWN
-        PySys_WriteStderr("PGO warning: Cannot capture value for class prepare of '%s'.\n", code_name);
-#endif
-        return;
+        value_id = PGO_getUnsupportedValueID();
     }
 
     for (uint32_t i = 0; i < pgo_class_observations_used; i++) {
@@ -1093,10 +1106,7 @@ void PGO_onProbeClassPrepareResultOnce(PyThreadState *tstate, char const *code_n
     uint32_t value_id;
 
     if (!PGO_getValueID(tstate, result, &value_id, 0)) {
-#ifdef _NUITKA_DEVEL_PGO_WARN_UNKNOWN
-        PySys_WriteStderr("PGO warning: Cannot capture value for class prepare of '%s'.\n", code_name);
-#endif
-        return;
+        value_id = PGO_getUnsupportedValueID();
     }
 
     uint32_t key_id = PGO_getClassKeyID(code_name);

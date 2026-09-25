@@ -53,6 +53,7 @@ _value_tag_define_names = (
     ("big_int", "NUITKA_PGO_VALUE_TAG_BIG_INT"),
     ("global", "NUITKA_PGO_VALUE_TAG_GLOBAL"),
     ("reduced", "NUITKA_PGO_VALUE_TAG_REDUCED"),
+    ("unsupported", "NUITKA_PGO_VALUE_TAG_UNSUPPORTED"),
 )
 
 _required_define_names = (
