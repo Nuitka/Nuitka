@@ -2059,6 +2059,9 @@ void _initBuiltinModule(PyThreadState *tstate) {
     assert(PyDict_Check(dict_builtin));
 
 #if _NUITKA_STANDALONE_MODE
+    // TODO: Do not add more uses of these, and remove them eventually. Exposing
+    // Nuitka internals in "builtins" is undesirable, the proper API for this is
+    // "__compiled__" instead.
     {
 #if _NUITKA_EXE_MODE
         PyObject *nuitka_binary_dir = getBinaryDirectoryObject(true);
