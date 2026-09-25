@@ -159,7 +159,7 @@ def checkSectionValues(logger, filename, module_name, section, value):
 
     result = True
 
-    if type(value) is dict:
+    if type(value) in (dict, OrderedDict):
         for k, v in value.items():
             if k == "description" and v != v.strip():
                 logger.info(
