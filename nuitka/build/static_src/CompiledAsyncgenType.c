@@ -605,7 +605,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
             ret = _Nuitka_AsyncgenAsend_throw2(tstate, asyncgen_asend, exception_state);
             Nuitka_MarkAsyncgenAsNotRunning(asyncgen);
         } else {
-            PyObject *meth = PyObject_GetAttr(asyncgen->m_yield_from, const_str_plain_throw);
+            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, asyncgen->m_yield_from, const_str_plain_throw);
 
             if (unlikely(meth == NULL)) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {

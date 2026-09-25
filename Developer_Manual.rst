@@ -1835,6 +1835,223 @@ implicit and explicit ``raise`` of an exception.
 Code trailing an abortive statement can be discarded, and the control
 flow will follow these "exits".
 
+Python C-API Replacements
+-------------------------
+
+Generated code should not call the Python C-API directly when a Nuitka
+helper exists for it. The helpers in
+``nuitka/build/include/nuitka/helper/`` implement optimizations, version
+compatibility, error checking and ``CHECK_OBJECT`` debugging, and they
+are the designated place to add missing functionality, rather than
+calling the C-API at a use site. When reviewing C code, a direct C-API
+call of the functions below is a hint that it should be replaced.
+
+.. list-table:: Nuitka replacements for Python C-API functions
+   :header-rows: 1
+   :widths: auto
+
+   -  -  ``PyObject_GetItem``
+      -  ``LOOKUP_SUBSCRIPT``, ``..._CONST``
+      -  ``helper/subscripts.h``
+      -  Same result; direct mapping/sequence slots and exact-list fast
+         path, plus `__class_getitem__` handling for types.
+
+   -  -  ``PyObject_SetItem``
+      -  ``SET_SUBSCRIPT``, ``..._CONST``
+      -  ``helper/subscripts.h``
+      -  Same semantics; returns ``bool`` instead of ``int``, direct
+         assignment slots, exact-list fast path.
+
+   -  -  ``PyObject_DelItem``
+      -  ``DEL_SUBSCRIPT``
+      -  ``helper/subscripts.h``
+      -  Same semantics; returns ``bool``, direct delete slot.
+
+   -  -  slice lookups
+      -  ``LOOKUP_SLICE``, ``LOOKUP_INDEX_SLICE``
+      -  ``helper/slices.h``
+      -  Avoids creating a slice object for integer bounds; otherwise
+         the same.
+
+   -  -  slice sets
+      -  ``SET_SLICE``
+      -  ``helper/slices.h``
+      -  Same semantics, direct slice assignment with a ``bool`` result.
+
+   -  -  slice deletes
+      -  ``DEL_SLICE``, ``DEL_INDEX_SLICE``
+      -  ``helper/slices.h``
+      -  Avoids creating a slice object for integer bounds; ``bool``
+         result.
+
+   -  -  ``PyDict_GetItem``
+      -  ``DICT_GET_ITEM0`` (borrowed), ``DICT_GET_ITEM1`` (new ref)
+      -  ``helper/dictionaries.h``
+      -  Reference ownership is explicit in the name; only hash errors
+         are propagated.
+
+   -  -  ``PyDict_SetItem``
+      -  ``DICT_SET_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool`` and asserts the exact dict kind; stored result
+         is the same.
+
+   -  -  ``PyDict_DelItem``
+      -  ``DICT_REMOVE_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool``; the ``KeyError`` is the same.
+
+   -  -  ``PyDict_Contains``
+      -  ``DICT_HAS_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Same 1/0/-1 contract, no exception suppression.
+
+   -  -  ``PyDict_New``
+      -  ``MAKE_DICT_EMPTY``, ``MAKE_DICT``
+      -  ``helper/dictionaries.h``
+      -  ``MAKE_DICT`` fills from a C array, no per-item C-API calls.
+
+   -  -  string dict keys
+      -  ``UPDATE_STRING_DICT0``, ``..._1``
+      -  ``helper/dictionaries.h``
+      -  Interns the string key and updates the dict entry in place, so
+         key identity can change.
+
+   -  -  ``PyObject_GetAttr``
+
+      -  ``LOOKUP_ATTRIBUTE``, ``..._DICT_SLOT``, ``..._CLASS_SLOT``
+
+      -  ``helper/attributes.h``
+
+      -  Same for ``LOOKUP_ATTRIBUTE``; the slot variants bypass
+         ``tp_getattro`` and descriptors and must only be used where
+         that is guaranteed.
+
+   -  -  ``PyObject_SetAttr``
+      -  ``SET_ATTRIBUTE``
+      -  ``helper/attributes.h``
+      -  Returns ``bool``; direct ``tp_setattro`` with an optimized
+         ``__dict__`` path.
+
+   -  -  ``PyObject_DelAttr``
+      -  not yet available, add it there
+      -  ``helper/attributes.h``
+      -  Currently a raw C-API call at use sites.
+
+   -  -  ``PySequence_Contains``
+      -  no enhanced form yet, see the TODO
+      -  ``helper/sequences.h``
+      -  Still the CPython function; a lower-overhead variant is
+         planned.
+
+   -  -  ``PyObject_IsTrue``
+      -  ``CHECK_IF_TRUE``, ``CHECK_IF_FALSE``
+      -  ``helper/boolean.h``
+      -  Fast paths for ``True``/``False``/``None`` and direct
+         number/sequence slots; same truthiness.
+
+   -  -  ``PyObject_Hash``
+      -  ``BUILTIN_HASH``
+      -  ``helpers.h``
+      -  Calls ``tp_hash`` directly and returns a Python ``int``; same
+         value and errors.
+
+   -  -  ``PyObject_IsInstance``
+      -  ``Nuitka_Object_IsInstance``
+      -  ``checkers.h``
+      -  Same ``__instancecheck__`` handling; no error suppression
+         differences.
+
+   -  -  ``PyObject_Call``
+
+      -  ``CALL_FUNCTION``, ``CALL_FUNCTION_WITH_ARGSn``,
+         ``..._VECTORCALL``, ``..._KW_SPLIT``
+
+      -  ``calling.h``, ``helper/calling_generated.h``
+
+      -  Specialized compiled-function, PyCFunction and
+         type-instantiation paths, and result normalization; keyword
+         variants need values/names split from the dict.
+
+   -  -  ``PyList_Append``
+      -  ``LIST_APPEND0``, ``LIST_APPEND1``
+      -  ``helper/lists.h``
+      -  ``bool`` result; the suffix selects borrowed (``0``) versus
+         owned (``1``) item reference transfer.
+
+   -  -  ``PyList_New``
+      -  ``MAKE_LIST``, ``MAKE_LIST_REPEATED``
+      -  ``helper/lists.h``
+      -  ``MAKE_LIST`` builds from an iterable, ``MAKE_LIST_REPEATED``
+         fills a repeated element.
+
+   -  -  ``PyTuple_New``
+      -  ``MAKE_TUPLE``, ``MAKE_TUPLE1``, ...
+      -  ``helper/tuples.h``
+      -  Items are filled inline; the ``_0`` suffix variants take
+         borrowed references.
+
+   -  -  ``PyObject_GetIter``
+      -  ``MAKE_ITERATOR``, ``..._INFALLIBLE``
+      -  ``helper/iterators.h``
+      -  Exact-type fast paths and an infallible variant for known
+         iterables.
+
+   -  -  ``PyIter_Next``
+      -  ``ITERATOR_NEXT``, ``BUILTIN_NEXT2``
+      -  ``helper/iterators.h``
+      -  Same semantics with optimized slots and error normalization.
+
+   -  -  ``PyMapping_HasKey``
+
+      -  ``MAPPING_HAS_ITEM``
+
+      -  ``helper/mappings.h``
+
+      -  Behavior difference: ``PyMapping_HasKey`` swallows all
+         exceptions, ``MAPPING_HAS_ITEM`` only ``KeyError`` and returns
+         -1 for other errors.
+
+   -  -  ``PyObject_Size``
+      -  ``Nuitka_PyMapping_Size`` for mappings
+      -  ``helper/mappings.h``
+      -  Mapping sizes only, not sequences.
+
+   -  -  ``PyNumber_Add`` etc.
+      -  ``BINARY_OPERATION_*``, ``INPLACE_OPERATION_*``,
+         ``UNARY_OPERATION_*``
+      -  ``helper/operations_*.h``
+      -  Same results; specialized per operand type and C types, some
+         operations inlined, error formatting can differ.
+
+   -  -  ``PyObject_RichCompare``
+      -  ``RICH_COMPARE_*`` families
+      -  ``helper/comparisons_*.h``
+      -  The ``BOOL`` variants return a tri-state with an exception
+         sentinel instead of ``-1``; comparison semantics are the same.
+
+   -  -  ``PyErr_Fetch``
+      -  ``FETCH_ERROR_OCCURRED_STATE``
+      -  ``exceptions.h``
+      -  Fetches into Nuitka's normalizable error state instead of using
+         the deprecated CPython API.
+
+   -  -  ``PyErr_Occurred``
+      -  ``HAS_ERROR_OCCURRED``
+      -  ``exceptions.h``
+      -  Checks the thread state; equivalent behavior.
+
+   -  -  ``PyErr_Clear``
+      -  ``CLEAR_ERROR_OCCURRED``
+      -  ``exceptions.h``
+      -  Clears through the thread state; equivalent behavior.
+
+   -  -  ``PyErr_SetString``
+      -  ``SET_CURRENT_EXCEPTION_TYPE*``
+      -  ``exceptions.h``
+      -  Sets into Nuitka's error state without creating a temporary
+         exception object.
+
 Constant Preparation
 ====================
 

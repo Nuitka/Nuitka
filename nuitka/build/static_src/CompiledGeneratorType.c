@@ -279,10 +279,10 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
     // The yielding generator is being closed, but we also are tasked to
     // immediately close the currently running sub-generator.
     if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
-        PyObject *close_method = PyObject_GetAttr(value, const_str_plain_close);
+        PyObject *close_method = LOOKUP_ATTRIBUTE(tstate, value, const_str_plain_close);
 
         if (close_method) {
-            PyObject *close_value = PyObject_Call(close_method, const_tuple_empty, NULL);
+            PyObject *close_value = CALL_FUNCTION_NO_ARGS(tstate, close_method);
             Py_DECREF(close_method);
 
             if (unlikely(close_value == NULL)) {
@@ -342,7 +342,7 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
     }
 #endif
 
-    PyObject *throw_method = PyObject_GetAttr(value, const_str_plain_throw);
+    PyObject *throw_method = LOOKUP_ATTRIBUTE(tstate, value, const_str_plain_throw);
 
     if (throw_method != NULL) {
         PyObject *result = Nuitka_CallGeneratorThrowMethod(throw_method, exception_state);
@@ -1106,7 +1106,7 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
     }
 #endif
 
-    PyObject *meth = PyObject_GetAttr(yield_from, const_str_plain_close);
+    PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yield_from, const_str_plain_close);
 
     if (unlikely(meth == NULL)) {
         if (unlikely(!PyErr_ExceptionMatches(PyExc_AttributeError))) {
@@ -1236,7 +1236,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 #endif
 #endif
         } else {
-            PyObject *meth = PyObject_GetAttr(generator->m_yield_from, const_str_plain_throw);
+            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, generator->m_yield_from, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
                     // Release exception, we are done with it now.

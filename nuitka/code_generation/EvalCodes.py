@@ -31,7 +31,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
                 )
             else:
                 emit(
-                    "%s = PyObject_GetItem(%s, %s);"
+                    "%s = LOOKUP_SUBSCRIPT(tstate, %s, %s);"
                     % (value_name, locals_name, key_name)
                 )
 

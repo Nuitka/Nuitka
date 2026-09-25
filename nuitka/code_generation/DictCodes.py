@@ -174,10 +174,10 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
                 key_needs_release, value_needs_release = generatePairCode(pair)
 
             needs_check = not is_hashable_key[count]
-            res_name = context.getIntResName()
+            res_name = context.getBoolResName()
 
             emit(
-                "%s = PyDict_SetItem(%s, %s, %s);"
+                "%s = DICT_SET_ITEM(%s, %s, %s);"
                 % (res_name, to_name, dict_key_name, dict_value_name)
             )
 
@@ -188,7 +188,7 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
                 emit("Py_DECREF(%s);" % dict_key_name)
 
             getErrorExitBoolCode(
-                condition="%s != 0" % res_name,
+                condition="%s == false" % res_name,
                 needs_check=needs_check,
                 emit=emit,
                 context=context,
@@ -496,7 +496,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
     dict_key_name = context.allocateTempName("dictupdate_key")
     dict_value_name = context.allocateTempName("dictupdate_value")
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     for count, pair in enumerate(expression.subnode_pairs):
         generateExpressionCode(
@@ -514,12 +514,12 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
         )
 
         emit(
-            "%s = PyDict_SetItem(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(%s, %s, %s);"
             % (res_name, dict_name, dict_key_name, dict_value_name)
         )
 
         getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
+            condition="%s == false" % res_name,
             needs_check=not expression.subnode_pairs[count].isKnownToBeHashable(),
             release_names=(dict_key_name, dict_value_name),
             emit=emit,
@@ -800,15 +800,15 @@ def generateDictOperationSetCode(statement, emit, context):
     )
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = PyDict_SetItem(%s, %s, %s);
+%s = DICT_SET_ITEM(%s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
+        condition="%s == false" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
         needs_check=not statement.subnode_key.isKnownToBeHashable(),
@@ -843,15 +843,15 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = PyDict_SetItem(%s, %s, %s);
+%s = DICT_SET_ITEM(%s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
+        condition="%s == false" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
         needs_check=not statement.subnode_key.isKnownToBeHashable(),
