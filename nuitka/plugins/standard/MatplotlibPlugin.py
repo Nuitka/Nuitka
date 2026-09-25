@@ -218,8 +218,9 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
             code = renderTemplateFromString(
                 r"""
 import os
-os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
-os.environ["MATPLOTLIBRC"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data", "matplotlibrc")
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+os.environ["MATPLOTLIBDATA"] = os.path.join(nuitka_info.python_runtime_dir, "matplotlib", "mpl-data")
+os.environ["MATPLOTLIBRC"] = os.path.join(nuitka_info.python_runtime_dir, "matplotlib", "mpl-data", "matplotlibrc")
 os.environ["MPLBACKEND"] = "{{matplotlib_info.backend}}"
 {% if qt_binding_name %}
 os.environ["QT_API"] = "{{qt_binding_name}}"

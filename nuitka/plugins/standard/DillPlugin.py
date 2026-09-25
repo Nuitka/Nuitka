@@ -88,10 +88,11 @@ Extending "%s" for compiled types to be pickle-able as well.""" % candidate,
             return (
                 """\
 import sys
-sys.modules[__compiled__.main]._create_compiled_function = \
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+sys.modules[nuitka_info.main]._create_compiled_function = \
     sys.modules[__name__.replace("-postLoad", "-preLoad")]._create_compiled_function
-sys.modules[__compiled__.main]._create_compiled_function.__module__ = \
-    __compiled__.main
+sys.modules[nuitka_info.main]._create_compiled_function.__module__ = \
+    nuitka_info.main
 """,
                 """
 Extending for compiled types to be pickle-able as well.""",

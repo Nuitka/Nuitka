@@ -131,8 +131,9 @@ Please report as a issue.""" % self.tk_inter_version)
             # If required we set the respective environment values.
             code = r"""
 import os
-os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tcl_target_path)s")
-os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tk_target_path)s")""" % {
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+os.environ["TCL_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tcl_target_path)s")
+os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tk_target_path)s")""" % {
                 "tcl_target_path": tcl_target,
                 "tk_target_path": tk_target,
             }

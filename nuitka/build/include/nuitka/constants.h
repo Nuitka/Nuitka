@@ -67,6 +67,7 @@ extern PyObject **global_constants;
 #define const_str_plain___loader__ global_constants[0]
 #define const_str_plain___compiled__ global_constants[0]
 #define const_str_plain___nuitka__ global_constants[0]
+#define const_str_plain___uncompiled__ global_constants[0]
 #define const_str_plain_environ global_constants[0]
 #define const_str_plain_inspect global_constants[0]
 #define const_str_plain_compile global_constants[0]

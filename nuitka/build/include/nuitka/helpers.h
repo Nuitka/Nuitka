@@ -356,6 +356,12 @@ extern PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks);
 // Get the containing directory as an object with symlinks resolved or not.
 extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
+// Get the runtime directory of the program for "__compiled__", returns a new reference.
+extern PyObject *getPythonRuntimeDirObject(void);
+
+// Get the process executable of the program for "__compiled__", returns a new reference.
+extern PyObject *getProcessExeObject(void);
+
 // Get the loaded extension filename for module/package mode.
 extern PyObject *getDllFilenameObject(void);
 

@@ -147,6 +147,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"main", (char *)"name of main module at runtime"},
         {(char *)"original_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
         {(char *)"extension_filename", (char *)"loaded extension filename in module/package mode, None otherwise"},
+        {(char *)"python_runtime_dir", (char *)"directory the runtime files are in"},
+        {(char *)"process_exe", (char *)"process executable, None otherwise"},
         {0}
     };
 
@@ -251,6 +253,9 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *extension_filename = Py_None;
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 14, extension_filename);
+
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 15, getPythonRuntimeDirObject());
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 16, getProcessExeObject());
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

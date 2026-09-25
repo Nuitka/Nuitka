@@ -31,12 +31,12 @@ def _normalizePath(path):
 
     paths = list(sys.path)
 
-    # Nuitka standalone mode.
-    try:
-        paths.append(__nuitka_binary_dir)
+    # Nuitka compiled mode.
+    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+
+    if nuitka_info is not None:
+        paths.append(nuitka_info.python_runtime_dir)
         paths.append(os.getcwd())
-    except NameError:
-        pass
 
     for path_entry in paths:
         path_entry = os.path.normcase(path_entry)

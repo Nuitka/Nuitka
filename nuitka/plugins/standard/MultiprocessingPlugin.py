@@ -17,7 +17,11 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
     getRootTopModule,
 )
-from nuitka.options.Options import isStandaloneMode, shallMakeModule
+from nuitka.options.Options import (
+    isMakeOnefileDllMode,
+    shallMakeDll,
+    shallMakeModule,
+)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -78,16 +82,28 @@ if "--multiprocessing-fork" in sys.argv:
             )
 
         if full_name in ("multiprocessing", "anyio"):
-            yield (
-                """\
+            if shallMakeDll() and not isMakeOnefileDllMode():
+                # Plain DLL mode has no process executable of its own, the host
+                # process is what gets spawned, so use its argv[0].
+                code = """\
 import sys, os
 argv0 = sys.argv[0]
 if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(".exe"):
     argv0 += ".exe"
 
-sys.executable = %s
+sys.executable = argv0
 sys._base_executable = sys.executable
-""" % ("__nuitka_binary_exe" if isStandaloneMode() else "argv0"),
+"""
+            else:
+                code = """\
+import sys
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+sys.executable = nuitka_info.process_exe
+sys._base_executable = sys.executable
+"""
+
+            yield (
+                code,
                 """\
 Monkey patching "%s" load environment.""" % full_name,
             )
