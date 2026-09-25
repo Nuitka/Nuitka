@@ -1074,7 +1074,7 @@ def _enableWin32TargetSettings(env):
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
 
 
-def enableWindowsStackSize(env, target_arch):
+def _enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
         stack_size = 1024 * 1204 * 8
@@ -1368,6 +1368,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     env.exe_target = exe_target
     env.onefile_compile = onefile_compile
+
+    if exe_target:
+        _enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
     # Enable LTO for compiler.
     _enableLtoSettings(
