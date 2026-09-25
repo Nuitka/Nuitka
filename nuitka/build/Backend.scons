@@ -45,7 +45,6 @@ from nuitka.utils.Utils import (
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
-    enableWindowsStackSize,
     reportCCompiler,
     setupCCompiler,
 )
@@ -162,9 +161,6 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
-if env.exe_mode:
-    enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
