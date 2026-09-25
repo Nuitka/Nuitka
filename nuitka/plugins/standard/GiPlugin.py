@@ -66,6 +66,7 @@ if not os.getenv("GI_TYPELIB_PATH"):
         if full_name == "gi.overrides":
             yield "gi.overrides.Gtk"
             yield "gi.overrides.Gdk"
+            yield "gi.overrides.GdkPixbuf"
             yield "gi.overrides.GLib"
             yield "gi.overrides.GObject"
 
