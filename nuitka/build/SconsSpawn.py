@@ -96,7 +96,7 @@ class SubprocessThread(threading.Thread):
         return self.process_result
 
 
-def _runProcessMonitored(env, cmdline, os_env):
+def _runProcessMonitored(env, cmdline, os_env, source_filename):
     thread = SubprocessThread(cmdline, os_env)
     thread.start()
 
@@ -104,7 +104,11 @@ def _runProcessMonitored(env, cmdline, os_env):
     thread.join(360)
 
     if thread.is_alive():
-        reportSlowCompilation(env, cmdline, thread.timer_report.getTimer().getDelta())
+        reportSlowCompilation(
+            env=env,
+            delta_time=thread.timer_report.getTimer().getDelta(),
+            source_filename=source_filename,
+        )
 
     thread.join()
 
@@ -153,6 +157,29 @@ def _getNoSuchCommandErrorMessage():
     return ctypes.WinError(3).args[1]
 
 
+def _getSourceFilename(args):
+    """Get the C source filename from compiler command arguments.
+
+    Args:
+        args: List of compiler command arguments.
+
+    Returns:
+        Filename of C source or None if not found.
+    """
+
+    for arg in args[1:]:
+        if arg[:1] == '"' and arg[-1:] == '"':
+            arg = arg[1:-1]
+
+        source_basename = os.path.basename(arg)
+        source_ext = getFilenameExtension(source_basename)
+
+        if source_ext in (".c", ".cpp") and os.path.exists(arg):
+            return arg
+
+    return None
+
+
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def _getWindowsSpawnFunction(env, source_filenames):
@@ -184,6 +211,8 @@ def _getWindowsSpawnFunction(env, source_filenames):
         new_args = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
         cmdline = cmd + " " + new_args
 
+        source_filename = _getSourceFilename(args)
+
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
             process_result = runClCache(
@@ -195,6 +224,7 @@ def _getWindowsSpawnFunction(env, source_filenames):
                 env=env,
                 cmdline=cmdline,
                 os_env=os_env,
+                source_filename=source_filename,
             )
 
             if process_result.exception:
@@ -442,7 +472,7 @@ def _stopOtherThreads():
                 thread.stopThread()
 
 
-def _runSpawnMonitored(env, args, os_env):
+def _runSpawnMonitored(env, args, os_env, source_filename):
     thread = SpawnThread(env, args, os_env)
 
     _threads.append(thread)
@@ -454,7 +484,11 @@ def _runSpawnMonitored(env, args, os_env):
         thread.join(360)
 
         if thread.is_alive():
-            reportSlowCompilation(env, args, thread.timer_report.getTimer().getDelta())
+            reportSlowCompilation(
+                env=env,
+                delta_time=thread.timer_report.getTimer().getDelta(),
+                source_filename=source_filename,
+            )
 
         thread.join()
 
@@ -476,25 +510,22 @@ def _getWrappedSpawnFunction(env):
 
         args = [reverseShQuoting(arg) for arg in args]
 
-        source_filename = None
-        source_name = None
-
-        for arg in args[1:]:
-            source_basename = os.path.basename(arg)
-            source_ext = getFilenameExtension(source_basename)
-
-            if source_ext in (".c", ".cpp") and os.path.exists(arg):
-                source_name = source_basename[: -len(source_ext)]
-                source_filename = arg
-                break
+        source_filename = _getSourceFilename(args)
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
-        if source_filename is not None and source_name.startswith("__constants_data"):
+        if source_filename is not None and os.path.basename(source_filename).startswith(
+            "__constants_data"
+        ):
             os_env = dict(os_env)
             os_env["CCACHE_DISABLE"] = "1"
 
-        spawn_result = _runSpawnMonitored(env, args, os_env)
+        spawn_result = _runSpawnMonitored(
+            env=env,
+            args=args,
+            os_env=os_env,
+            source_filename=source_filename,
+        )
 
         if spawn_result.exception:
             closeSconsProgressBar()
