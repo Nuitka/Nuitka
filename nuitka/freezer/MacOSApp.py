@@ -21,6 +21,7 @@ from nuitka.options.Options import (
     isMacOSUiElementApp,
     isStandaloneMode,
     shallMacOSProhibitMultipleInstances,
+    shallRunInDebugger,
 )
 from nuitka.OutputDirectories import (
     getResultFullpath,
@@ -31,6 +32,7 @@ from nuitka.OutputDirectories import (
 from nuitka.Tracing import options_logger
 from nuitka.utils.FileOperations import copyFile, makePath, openTextFile
 from nuitka.utils.Images import convertImageToIconFormat
+from nuitka.utils.Utils import isMacOSRosetta
 
 from .IncludedDataFiles import (
     addIncludedDataFile,
@@ -166,6 +168,13 @@ def createPlistInfoFile(logger):
 
 def createEntitlementsInfoFile():
     entitlements_dict = {}
+
+    # The debug server for translated x86_64 processes refuses to work unless
+    # the binary allows being debugged, and unlike ARM64 binaries these do not
+    # get that entitlement from the linker automatically.
+    if isMacOSRosetta() and shallRunInDebugger():
+        entitlements_dict["com.apple.security.get-task-allow"] = True
+
     for (
         _protected_resource,
         _description,

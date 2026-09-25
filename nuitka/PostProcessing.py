@@ -8,7 +8,10 @@ import os
 import sys
 
 from nuitka.freezer.LinuxApp import createLinuxAppFiles
-from nuitka.freezer.MacOSApp import createPlistInfoFile
+from nuitka.freezer.MacOSApp import (
+    createEntitlementsInfoFile,
+    createPlistInfoFile,
+)
 from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.options.Options import (
     getDebuggerName,
@@ -18,6 +21,7 @@ from nuitka.options.Options import (
     getWindowsIconPaths,
     getWindowsSplashScreen,
     getWindowsVersionInfoStrings,
+    isAcceleratedMode,
     isOnefileMode,
     isStandaloneMode,
     shallAskForWindowsAdminRights,
@@ -64,10 +68,12 @@ from nuitka.utils.SharedLibraries import (
     getOtoolDependencyOutput,
     parseOtoolListingOutput,
 )
+from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Utils import (
     isAIX,
     isAndroidBasedLinux,
     isMacOS,
+    isMacOSRosetta,
     isWin32Windows,
 )
 from nuitka.utils.WindowsResources import (
@@ -542,6 +548,18 @@ Error, expected 'libpython dependency not found. Please report the bug.""")
             ),
             id_path=None,
             rpath=python_lib_path,
+        )
+
+    # The debug server for translated x86_64 processes of macOS refuses to
+    # work unless the binary allows being debugged, and unlike ARM64 binaries
+    # these do not get that entitlement from the linker automatically. Only
+    # accelerated mode has no signing step of its own, standalone mode signs
+    # its distribution with the same entitlements, while module/package and
+    # onefile mode have the debugger run the Python interpreter or bootstrap.
+    if isAcceleratedMode() and isMacOSRosetta() and shallRunInDebugger():
+        addMacOSCodeSignature(
+            filenames=[result_filename],
+            entitlements_filename=createEntitlementsInfoFile(),
         )
 
     if shallCreateAppBundle():
