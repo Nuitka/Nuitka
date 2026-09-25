@@ -1,5 +1,5 @@
 # This requirement is optional to use and for development purposes mainly.
-# spell-checker: ignore Pygments,deepdiff,doxypypy,mdformat,frontmatter
+# spell-checker: ignore Pygments,deepdiff,mdformat,frontmatter
 # spell-checker: ignore orderedset,rstcheck,rstfmt,ruamel,tqdm,pytest
 # spell-checker: ignore pyyaml
 
@@ -14,9 +14,6 @@ rstcheck == 6.2.5 ; python_version >= '3.11'
 
 # Auto-format needs and private pip space requirements
 -r nuitka/utils/requirements-private.txt
-
-# API doc, doxygen helper for Python
-doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
 # Run time code generation needs Jinja2 now
 Jinja2 == 2.11.3 ; python_version == '2.7'

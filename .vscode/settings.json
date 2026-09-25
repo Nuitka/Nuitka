@@ -252,7 +252,6 @@
     "dllexport",
     "dlopen",
     "dontwritebytecode",
-    "Doxygen",
     "dpkg",
     "dtrace",
     "dtruss",
