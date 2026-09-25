@@ -292,10 +292,6 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
             # name unique.
             entry_name = "entry_excluded_%d" % excluded_index
 
-            metapath_loader_decls.append(
-                "static struct Nuitka_MetaPathBasedLoaderEntry %s;" % entry_name
-            )
-
             module_c_name = module_name.asCString()
             get_name_func = _getGetNameFuncCode()
             reason_c_string = encodePythonStringToC(reason.encode("utf8"))
