@@ -892,6 +892,12 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 #pragma GCC diagnostic pop
 #endif
 
+    // Check if already immortal to avoid degrading from static immortal to
+    // plain immortal, which would e.g. change the "sys.getrefcount" value.
+    if (_Py_IsImmortal(object)) {
+        return;
+    }
+
 #ifdef Py_GIL_DISABLED
     object->ob_tid = _Py_UNOWNED_TID;
     object->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
