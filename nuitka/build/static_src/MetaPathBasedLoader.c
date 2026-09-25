@@ -301,8 +301,8 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
         /* Set __path__ properly, unlike frozen module importer does. */
         PyObject *path_list = _makeDunderPathObject(tstate, module_path_entry);
 
-        int res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
-        if (unlikely(res != 0)) {
+        bool res = SET_ATTRIBUTE(tstate, module, const_str_plain___path__, path_list);
+        if (unlikely(res == false)) {
             return NULL;
         }
 
@@ -447,7 +447,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     PyObject *parent_module = PyDict_GetItemString(sys_modules, parent_module_name);
     CHECK_OBJECT(parent_module);
 
-    PyObject *parent_path = PyObject_GetAttr(parent_module, const_str_plain___path__);
+    PyObject *parent_path = LOOKUP_ATTRIBUTE(tstate, parent_module, const_str_plain___path__);
 
     // Accept that it might be deleted.
     if (parent_path == NULL || !PyList_Check(parent_path)) {
@@ -2778,7 +2778,7 @@ void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate) {
             if (is_package || HAS_ATTR_BOOL(tstate, value, const_str_plain___file__) ||
                 PySequence_Contains(builtin_module_names, key) == 0) {
                 PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package, false);
-                PyObject_SetAttr(value, const_str_plain___file__, file_value);
+                SET_ATTRIBUTE(tstate, value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
                 CHECK_OBJECT(file_value);
             }

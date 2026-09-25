@@ -85,8 +85,8 @@ def assignDictOrMappingItem(
 
     Notes:
         For exact dictionary shapes, the faster dictionary API is used, while
-        for mappings the generic mapping API is used, and error checking is
-        done when setting is known to possibly raise.
+        for mappings "SET_SUBSCRIPT" is used, and error checking is done when
+        setting is known to possibly raise.
 
     Args:
         target_name: Code name of the mapping to set in.
@@ -106,29 +106,21 @@ def assignDictOrMappingItem(
             "%s = DICT_SET_ITEM(%s, %s, %s);"
             % (res_name, target_name, key_name, value_name)
         )
-
-        getErrorExitBoolCode(
-            condition="%s == false" % res_name,
-            release_name=value_name,
-            needs_check=may_raise,
-            emit=emit,
-            context=context,
-        )
     else:
-        res_name = context.getIntResName()
+        res_name = context.getBoolResName()
 
         emit(
-            "%s = PyObject_SetItem(%s, %s, %s);"
+            "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
             % (res_name, target_name, key_name, value_name)
         )
 
-        getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
-            release_name=value_name,
-            needs_check=may_raise,
-            emit=emit,
-            context=context,
-        )
+    getErrorExitBoolCode(
+        condition="%s == false" % res_name,
+        release_name=value_name,
+        needs_check=may_raise,
+        emit=emit,
+        context=context,
+    )
 
 
 def generateLocalsDictSetCode(statement, emit, context):
@@ -185,10 +177,10 @@ def generateLocalsDictDelCode(statement, emit, context):
             context=context,
         )
     else:
-        res_name = context.getIntResName()
+        res_name = context.getBoolResName()
 
         emit(
-            "%s = PyObject_DelItem(%s, %s);"
+            "%s = DEL_SUBSCRIPT(%s, %s);"
             % (
                 res_name,
                 dict_arg_name,
@@ -197,7 +189,7 @@ def generateLocalsDictDelCode(statement, emit, context):
         )
 
         getErrorExitBoolCode(
-            condition="%s == -1" % res_name,
+            condition="%s == false" % res_name,
             needs_check=statement.mayRaiseException(BaseException),
             emit=emit,
             context=context,

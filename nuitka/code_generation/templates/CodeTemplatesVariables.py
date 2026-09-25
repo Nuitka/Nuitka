@@ -168,10 +168,10 @@ template_read_locals_dict_without_fallback = """\
 """
 
 
-# Fallback has no ref, so take one to agree with PyObject_GetItem doing
+# Fallback has no ref, so take one to agree with LOOKUP_SUBSCRIPT doing
 # it.
 template_read_locals_mapping_with_fallback_no_ref = """\
-%(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = LOOKUP_SUBSCRIPT(tstate, %(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
     if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
@@ -185,7 +185,7 @@ if (%(to_name)s == NULL) {
 """
 
 template_read_locals_mapping_with_fallback_ref = """\
-%(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = LOOKUP_SUBSCRIPT(tstate, %(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
     if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
@@ -198,7 +198,7 @@ if (%(to_name)s == NULL) {
 """
 
 template_read_locals_mapping_without_fallback = """\
-%(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
+%(to_name)s = LOOKUP_SUBSCRIPT(tstate, %(locals_dict)s, %(var_name)s);
 """
 
 # TODO: Have DICT_REMOVE_ITEM_WITHOUT_ERROR and use that instead.
@@ -231,13 +231,13 @@ if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
-    int res = PyDict_SetItem(
+    bool res = DICT_SET_ITEM(
         %(dict_name)s,
         %(var_name)s,
         value
     );
 
-    assert(res == 0);
+    assert(res == true);
 }
 """
 
@@ -246,15 +246,15 @@ if (%(test_code)s) {
     PyObject *value;
 %(access_code)s
 
-    int res = PyObject_SetItem(
+    %(tmp_name)s = SET_SUBSCRIPT(
+        tstate,
         %(mapping_name)s,
         %(var_name)s,
         value
     );
-
-    %(tmp_name)s = res == 0;
 } else {
-    PyObject *test_value = PyObject_GetItem(
+    PyObject *test_value = LOOKUP_SUBSCRIPT(
+        tstate,
         %(mapping_name)s,
         %(var_name)s
     );
@@ -262,12 +262,10 @@ if (%(test_code)s) {
     if (test_value) {
         Py_DECREF(test_value);
 
-        int res = PyObject_DelItem(
+        %(tmp_name)s = DEL_SUBSCRIPT(
             %(mapping_name)s,
             %(var_name)s
         );
-
-        %(tmp_name)s = res == 0;
     } else {
         CLEAR_ERROR_OCCURRED(tstate);
         %(tmp_name)s = true;

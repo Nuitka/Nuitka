@@ -780,7 +780,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
             Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #endif
         } else {
-            PyObject *meth = PyObject_GetAttr(coroutine->m_yield_from, const_str_plain_throw);
+            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, coroutine->m_yield_from, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
                     // Release exception, we are done with it now.
