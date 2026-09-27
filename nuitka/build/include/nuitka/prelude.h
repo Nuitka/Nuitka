@@ -252,6 +252,11 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_unicodeobject.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3f0
+#include <internal/pycore_import.h>
+#include <internal/pycore_lazyimportobject.h>
+#endif
+
 #ifndef __IDE_ONLY__
 // IDEs keep the define, so they can still parse private headers included later.
 #undef Py_BUILD_CORE

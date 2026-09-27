@@ -11,6 +11,8 @@ source code comments with Developer Manual sections.
 # spell-checker: ignore fromlist,asname
 
 from nuitka.importing.ImportResolving import resolveModuleName
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIn
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
@@ -20,9 +22,14 @@ from nuitka.nodes.ImportNodes import (
     makeExpressionImportModuleFixed,
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -30,7 +37,12 @@ from nuitka.utils.ModuleNames import ModuleName
 from .FutureSpecState import enableFutureFeature, getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
-from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
+from .TreeHelpers import (
+    makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
+    makeStatementsSequenceOrStatement,
+    mangleName,
+)
 
 # For checking afterwards, if __future__ imports really were at the beginning
 # of the file.
@@ -154,6 +166,7 @@ def buildImportFromNode(provider, node, source_ref):
                 locals_arg=import_locals,
                 fromlist=makeConstantRefNode(("*",), source_ref, True),
                 level=level_obj,
+                is_lazy=False,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -167,12 +180,16 @@ def buildImportFromNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
         else:
+            # TODO: Lazy "from" imports are not supported yet, the imported
+            # names are looked up on the module immediately, which a lazy
+            # import object cannot provide, so these are always eager for now.
             imported_from_module = ExpressionBuiltinImport(
                 name=makeConstantRefNode(module_name, source_ref, True),
                 globals_arg=ExpressionBuiltinGlobals(source_ref),
                 locals_arg=makeConstantRefNode(None, source_ref, True),
                 fromlist=makeConstantRefNode(tuple(import_names), source_ref, True),
                 level=level_obj,
+                is_lazy=False,
                 source_ref=source_ref,
             )
 
@@ -245,6 +262,27 @@ def buildImportFromNode(provider, node, source_ref):
         )
 
 
+def _makeImportModuleNode(module_name, is_lazy, source_ref):
+    # Note: The "level" of import is influenced by the future absolute
+    # imports. Each call creates fresh child nodes, because a node may only
+    # have a single parent in the tree.
+    level = (
+        makeConstantRefNode(0, source_ref, True)
+        if getFutureSpec().isAbsoluteImport()
+        else None
+    )
+
+    return ExpressionBuiltinImport(
+        name=makeConstantRefNode(module_name, source_ref, True),
+        globals_arg=ExpressionBuiltinGlobals(source_ref),
+        locals_arg=makeConstantRefNode(None, source_ref, True),
+        fromlist=makeConstantRefNode(None, source_ref, True),
+        level=level,
+        is_lazy=is_lazy,
+        source_ref=source_ref,
+    )
+
+
 def buildImportModulesNode(provider, node, source_ref):
     # Import modules statement. As described in the Developer Manual, these
     # statements can be treated as several ones.
@@ -260,27 +298,58 @@ def buildImportModulesNode(provider, node, source_ref):
 
         module_top_name = module_name.split(".")[0]
 
-        # Note: The "level" of import is influenced by the future absolute
-        # imports.
-        level = (
-            makeConstantRefNode(0, source_ref, True)
-            if getFutureSpec().isAbsoluteImport()
-            else None
-        )
+        if python_version >= 0x3F0:
+            is_lazy = node.is_lazy
+        else:
+            is_lazy = False
 
         module_name = _resolveImportModuleName(module_name)
 
         # TODO: Go to fixed node directly, avoiding the optimization for the
         # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
         # instead.
-        import_node = ExpressionBuiltinImport(
-            name=makeConstantRefNode(module_name, source_ref, True),
-            globals_arg=ExpressionBuiltinGlobals(source_ref),
-            locals_arg=makeConstantRefNode(None, source_ref, True),
-            fromlist=makeConstantRefNode(None, source_ref, True),
-            level=level,
-            source_ref=source_ref,
-        )
+        if python_version >= 0x3F0 and not is_lazy:
+            maybe_lazy_node = ExpressionOutlineBody(
+                provider, "potentially_lazy_import", source_ref
+            )
+            conditional = makeStatementConditional(
+                condition=ExpressionComparisonIn(
+                    left=makeConstantRefNode("__lazy_modules__", source_ref),
+                    right=ExpressionBuiltinGlobals(source_ref),
+                    source_ref=source_ref,
+                ),
+                yes_branch=makeStatementConditional(
+                    condition=ExpressionComparisonIn(
+                        left=makeConstantRefNode(module_name, source_ref, True),
+                        right=ExpressionVariableNameRef(
+                            provider, "__lazy_modules__", source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    yes_branch=StatementReturn(
+                        expression=_makeImportModuleNode(module_name, True, source_ref),
+                        source_ref=source_ref,
+                    ),
+                    no_branch=StatementReturn(
+                        expression=_makeImportModuleNode(
+                            module_name, False, source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                ),
+                no_branch=StatementReturn(
+                    expression=_makeImportModuleNode(module_name, False, source_ref),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+            maybe_lazy_node.setChildBody(
+                makeStatementsSequenceFromStatement(conditional)
+            )
+            import_node = maybe_lazy_node
+        else:
+            import_node = _makeImportModuleNode(module_name, is_lazy, source_ref)
 
         if local_name:
             # If is gets a local name, the real name must be used as a

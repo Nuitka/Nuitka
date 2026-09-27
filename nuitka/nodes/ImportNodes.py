@@ -61,6 +61,7 @@ from nuitka.utils.Utils import withNoDeprecationWarning, withWarningRemoved
 
 from .BuiltinOpenNodes import makeBuiltinOpenRefNode
 from .ChildrenHavingMixins import (
+    ChildHavingLazyImportMixin,
     ChildHavingModuleMixin,
     ChildrenExpressionBuiltinImportMixin,
     ChildrenExpressionImportlibImportModuleCallMixin,
@@ -863,11 +864,7 @@ def _makeParentImportModuleUsages(module_name, source_ref):
 
 
 class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBase):
-    __slots__ = (
-        "follow_attempted",
-        "finding",
-        "used_modules",
-    )
+    __slots__ = ("follow_attempted", "finding", "used_modules", "is_lazy")
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
@@ -879,7 +876,9 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         "level|optional",
     )
 
-    def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
+    def __init__(
+        self, name, globals_arg, locals_arg, fromlist, level, is_lazy, source_ref
+    ):
         ChildrenExpressionBuiltinImportMixin.__init__(
             self,
             name=name,
@@ -898,6 +897,8 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         self.used_modules = []
 
         self.finding = None
+
+        self.is_lazy = is_lazy
 
     def _getLevelValue(self):
         parent_module = self.getParentModule()
@@ -1326,6 +1327,20 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         return self.subnode_module.mayRaiseExceptionImportName(
             exception_type=exception_type, import_name=self.import_name
         )
+
+
+class ExpressionResolveLazyImport(ChildHavingLazyImportMixin, ExpressionBase):
+    kind = "EXPRESSION_RESOLVE_LAZY_IMPORT"
+
+    named_children = ("lazy_import",)
+
+    def __init__(self, lazy_import, source_ref):
+        ChildHavingLazyImportMixin.__init__(self, lazy_import=lazy_import)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
 
 
 def makeExpressionImportModuleFixed(
