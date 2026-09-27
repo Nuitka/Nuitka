@@ -166,6 +166,7 @@ def buildImportFromNode(provider, node, source_ref):
                 locals_arg=import_locals,
                 fromlist=makeConstantRefNode(("*",), source_ref, True),
                 level=level_obj,
+                is_lazy=False,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -179,12 +180,16 @@ def buildImportFromNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
         else:
+            # TODO: Lazy "from" imports are not supported yet, the imported
+            # names are looked up on the module immediately, which a lazy
+            # import object cannot provide, so these are always eager for now.
             imported_from_module = ExpressionBuiltinImport(
                 name=makeConstantRefNode(module_name, source_ref, True),
                 globals_arg=ExpressionBuiltinGlobals(source_ref),
                 locals_arg=makeConstantRefNode(None, source_ref, True),
                 fromlist=makeConstantRefNode(tuple(import_names), source_ref, True),
                 level=level_obj,
+                is_lazy=False,
                 source_ref=source_ref,
             )
 
