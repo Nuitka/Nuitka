@@ -46,7 +46,7 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
             import_list_name=import_list_name,
             level_name=level_name,
             needs_check=expression.mayRaiseException(BaseException),
-            is_lazy=expression.is_lazy,
+            is_lazy="1" if expression.is_lazy else "0",
             emit=emit,
             context=context,
         )
