@@ -229,6 +229,11 @@ def _cleanupImportSortOrder(
 
     contents = getFileContents(filename, encoding="utf8")
 
+    if not contents.strip():
+        # Whitespace only files have nothing to sort, and isort would empty
+        # them, which we do not want.
+        return
+
     start_index = None
     if "\n# isort:start" in contents:
         parts = contents.splitlines()
