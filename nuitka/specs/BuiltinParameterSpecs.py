@@ -400,6 +400,10 @@ builtin_eval_before_313_spec = BuiltinParameterSpecNoKeywords(
 builtin_eval_since_313_spec = BuiltinParameterSpecPosArgs(
     "eval", ("source",), ("globals", "locals"), default_count=2
 )
+
+# TODO: Convert the other specs with version differences, e.g. "compile",
+# "int", "sum" and "enumerate", to the "_since_"/"_before_" naming too, with
+# the version selection done in the users of the spec, and not here.
 if python_version < 0x300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
