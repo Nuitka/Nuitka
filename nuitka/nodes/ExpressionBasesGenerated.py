@@ -737,7 +737,7 @@ ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
 )
 
 
-class _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin(
+class _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin(
     ExpressionBase
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -747,7 +747,6 @@ class _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin(
     #   ExpressionTypeVariable
 
     def __init__(self, bound, default_value, name, source_ref):
-        bound = convertNoneConstantToNone(bound)
         if bound is not None:
             bound.parent = self
 
@@ -798,7 +797,6 @@ class _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin(
     def replaceChild(self, old_node, new_node):
         value = self.subnode_bound
         if old_node is value:
-            new_node = convertNoneConstantToNone(new_node)
             if new_node is not None:
                 new_node.parent = self
 
@@ -921,7 +919,7 @@ class _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin(
 
 # Assign the names that are easier to import with a stable name.
 ExpressionTypeVariableBase = (
-    _ChildrenHavingBoundAutoNoneDefaultValueAutoNoneFinalNoRaiseNameMixin
+    _ChildrenHavingBoundOptionalDefaultValueAutoNoneFinalNoRaiseNameMixin
 )
 
 
