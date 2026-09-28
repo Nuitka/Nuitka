@@ -2375,6 +2375,18 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         return module;
     }
 
+#if PYTHON_VERSION >= 0x350
+    // Extension modules installed below compiled packages were initialized
+    // during "create_module", but multi-phase extension modules still need
+    // their module definition to be executed at this point. For single phase
+    // and non-extension modules this is a no-op.
+    if (unlikely(executeExtensionModuleDef(tstate, module) == false)) {
+        Py_DECREF(module_name);
+
+        return NULL;
+    }
+#endif
+
     Py_DECREF(module_name);
 
     return EXECUTE_EMBEDDED_MODULE(tstate, module);
