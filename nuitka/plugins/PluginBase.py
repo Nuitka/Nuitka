@@ -718,6 +718,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         # Virtual method, pylint: disable=unused-argument
         return None
 
+    def createVirtualModule(self, module_name):
+        """Create a virtual module for a module name that was not found.
+
+        Notes:
+            Called when module location returns "not-found", to give plugins a
+            chance to provide generated source code for a module that only
+            exists at runtime, e.g. "gi.repository.Gtk".
+
+        Args:
+            module_name: full module name that was not found.
+
+        Returns:
+            None (does not apply, default)
+            FakeModuleDescription(module_name, source_code, source_filename, reason)
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     @staticmethod
     def hasPreModuleLoadCode(module_name):
         return (

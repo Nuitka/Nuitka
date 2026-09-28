@@ -57,6 +57,8 @@ from nuitka.importing.Importing import (
     setupImportingFromOptions,
 )
 from nuitka.importing.Recursion import (
+    buildVirtualModule,
+    decideRecursion,
     scanIncludedPackage,
     scanPluginFilenamePattern,
     scanPluginPath,
@@ -234,6 +236,38 @@ def _deleteResultFile(filename):
         )
 
 
+def _includeVirtualModule(module_name, module_kind):
+    """Include a virtual module that the user asked to include.
+
+    Args:
+        module_name: full name of the virtual module.
+        module_kind: kind of the virtual module.
+
+    Returns:
+        None
+    """
+    decision, decision_reason = decideRecursion(
+        using_module_name=None,
+        module_filename=None,
+        module_name=module_name,
+        module_kind=module_kind,
+        extra_recursion=True,
+    )
+
+    if decision:
+        ModuleRegistry.addRootModule(
+            buildVirtualModule(
+                module_name=module_name,
+                using_module_name=None,
+            )
+        )
+    else:
+        inclusion_logger.warning(
+            "Not allowed to include module '%s' due to '%s'."
+            % (module_name.asString(), decision_reason)
+        )
+
+
 def _createMainModule():
     """Create a node tree.
 
@@ -325,6 +359,13 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
             parent_package=None,
             level=0,
         )
+
+        if finding == "virtual":
+            _includeVirtualModule(
+                module_name=module_name,
+                module_kind=module_kind,
+            )
+            continue
 
         if finding != "absolute":
             return inclusion_logger.sysexit(

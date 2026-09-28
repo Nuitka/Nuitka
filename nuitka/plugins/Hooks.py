@@ -283,6 +283,17 @@ def considerImplicitImports(module):
     return Plugins.considerImplicitImports(module=module)
 
 
+def createVirtualModule(module_name):
+    """Let plugins provide a virtual module for a not found module name.
+
+    Args:
+        module_name: full module name that was not found.
+    Returns:
+        FakeModuleDescription or None
+    """
+    return Plugins.createVirtualModule(module_name=module_name)
+
+
 def suppressUnknownImportWarning(importing, source_ref, module_name):
     """Let plugins decide whether to suppress import warnings for an unknown module.
 

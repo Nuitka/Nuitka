@@ -38,6 +38,7 @@ from nuitka.options.Options import (
 )
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import (
+    createVirtualModule,
     decideRecompileExtensionModules,
     getPackageExtraScanPaths,
     suppressUnknownImportWarning,
@@ -77,7 +78,12 @@ from nuitka.utils.Utils import (
 )
 from nuitka.utils.Zipfiles import getZipFile
 
-from .FakeModules import locateFakeModule
+from .FakeModules import (
+    addVirtualModuleDescription,
+    getFakeModulePlugin,
+    locateFakeModule,
+    locateVirtualModule,
+)
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .ImportingResults import makeFindModuleResult
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -513,11 +519,68 @@ _find_module_not_found = makeFindModuleResult(
 )
 
 
-def _locateFakeModule(module_name, logger, log_message):
+def _makePluginProvidedModuleLogMessage(
+    module_name, relative_name, module_kind_name, plugin
+):
+    """Create the log message for a located plugin provided module.
+
+    Args:
+        module_name: the full module name that was searched.
+        relative_name: the relative module name used for logging or None.
+        module_kind_name: either "fake" or "virtual".
+        plugin: plugin that provided the module.
+
+    Returns:
+        str
+    """
+    if relative_name is not None:
+        log_message = "findModule: Relative imported %s module '%s' as '%s'" % (
+            module_kind_name,
+            relative_name,
+            module_name,
+        )
+    else:
+        log_message = "findModule: Found %s module '%s'" % (
+            module_kind_name,
+            module_name,
+        )
+
+    return "%s (provided by plugin '%s')." % (log_message, plugin.plugin_name)
+
+
+def _locatePluginProvidedModule(module_name, relative_name, logger):
+    """Locate a fake or plugin provided virtual module.
+
+    Notes:
+        Fake modules, virtual modules and real modules must be mutually
+        exclusive, collisions are an error. Preloaded packages are checked by
+        the callers before this is called.
+
+    Args:
+        module_name: the full module name that was searched.
+        relative_name: the relative module name used for logging or None.
+        logger: logger to use or None.
+
+    Returns:
+        FindModuleResult or None
+    """
     fake_result = locateFakeModule(module_name)
 
-    if fake_result is None:
-        return None
+    virtual_module = createVirtualModule(module_name)
+
+    if virtual_module is not None:
+        virtual_module_description, virtual_module_plugin = virtual_module
+
+        addVirtualModuleDescription(
+            module_name=module_name,
+            description=virtual_module_description,
+            plugin=virtual_module_plugin,
+        )
+
+        virtual_result = locateVirtualModule(module_name)
+    else:
+        virtual_module_plugin = None
+        virtual_result = None
 
     try:
         _found_module_name, module_filename, _module_kind = _findModule(
@@ -525,17 +588,54 @@ def _locateFakeModule(module_name, logger, log_message):
             logger=None,
         )
     except ImportError:
-        pass
-    else:
+        module_filename = None
+
+    if module_filename is not None:
+        if fake_result is not None:
+            module_kind_name = "fake"
+        elif virtual_result is not None:
+            module_kind_name = "virtual"
+        else:
+            return None
+
         return recursion_logger.sysexit(
-            "Error, fake module name '%s' collides with real module in '%s'."
-            % (module_name, module_filename)
+            "Error, %s module name '%s' collides with real module in '%s'."
+            % (module_kind_name, module_name, module_filename)
         )
 
-    if fake_result is not None and logger is not None:
-        logger.info(log_message)
+    if fake_result is not None and virtual_result is not None:
+        return recursion_logger.sysexit(
+            "Error, module name '%s' is provided as both fake and virtual module."
+            % module_name
+        )
 
-    return fake_result
+    if fake_result is not None:
+        if logger is not None:
+            logger.info(
+                _makePluginProvidedModuleLogMessage(
+                    module_name=module_name,
+                    relative_name=relative_name,
+                    module_kind_name="fake",
+                    plugin=getFakeModulePlugin(module_name),
+                )
+            )
+
+        return fake_result
+
+    if virtual_result is not None:
+        if logger is not None:
+            logger.info(
+                _makePluginProvidedModuleLogMessage(
+                    module_name=module_name,
+                    relative_name=relative_name,
+                    module_kind_name="virtual",
+                    plugin=virtual_module_plugin,
+                )
+            )
+
+        return virtual_result
+
+    return None
 
 
 def findModule(module_name, parent_package, level, logger):
@@ -588,16 +688,6 @@ def findModule(module_name, parent_package, level, logger):
 
         full_name = normalizePackageName(full_name)
 
-        fake_result = _locateFakeModule(
-            module_name=full_name,
-            logger=logger,
-            log_message="findModule: Relative imported fake module '%s' as '%s'."
-            % (module_name, full_name),
-        )
-
-        if fake_result is not None:
-            return fake_result
-
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
@@ -610,6 +700,15 @@ def findModule(module_name, parent_package, level, logger):
                 module_kind="py",
                 finding="pth",
             )
+
+        plugin_result = _locatePluginProvidedModule(
+            module_name=full_name,
+            relative_name=module_name,
+            logger=logger,
+        )
+
+        if plugin_result is not None:
+            return plugin_result
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -637,15 +736,6 @@ def findModule(module_name, parent_package, level, logger):
     if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
 
-        fake_result = _locateFakeModule(
-            module_name=module_name,
-            logger=logger,
-            log_message="findModule: Found fake imported module '%s'." % module_name,
-        )
-
-        if fake_result is not None:
-            return fake_result
-
         package_name = module_name.getPackageName()
 
         preloaded_path = getPreloadedPackagePath(module_name)
@@ -660,6 +750,15 @@ def findModule(module_name, parent_package, level, logger):
                 module_kind="py",
                 finding="pth",
             )
+
+        plugin_result = _locatePluginProvidedModule(
+            module_name=module_name,
+            relative_name=None,
+            logger=logger,
+        )
+
+        if plugin_result is not None:
+            return plugin_result
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -1232,7 +1331,8 @@ def locateModule(module_name, parent_package, level, logger=None):
     elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
         module_name = found_module_name
-
+    elif finding == "virtual":
+        module_name = found_module_name
     elif finding == "not-found":
         if parent_package is not None:
             if not module_name:

@@ -84,6 +84,7 @@ from .PluginsUsage import counted_plugin_method
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
 active_plugins_with_implicit_imports = []
+active_plugins_with_create_virtual_module = []
 active_plugins_with_decide_compilation = []
 active_plugins_with_decide_annotations = []
 active_plugins_with_decide_doc_strings = []
@@ -159,6 +160,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     for callback_name, plugin_collection in (
         ("getImplicitImports", active_plugins_with_implicit_imports),
+        ("createVirtualModule", active_plugins_with_create_virtual_module),
         ("decideCompilation", active_plugins_with_decide_compilation),
         ("decideAnnotations", active_plugins_with_decide_annotations),
         ("decideDocStrings", active_plugins_with_decide_doc_strings),
@@ -480,6 +482,7 @@ def _addImplicitImportModuleUsage(
 
 class Plugins(object):
     implicit_imports_cache = {}
+    virtual_modules_cache = {}
     extra_scan_paths_cache = {}
     recompile_extension_modules_cache = {}
 
@@ -556,7 +559,7 @@ not %r (for module '%s')""" % (plugin.plugin_name, v, module.getFullName()))
                 )
                 raise
 
-            if module_filename is None:
+            if module_filename is None and finding != "virtual":
                 if isShowInclusion():
                     plugin.info(
                         "Implicit module '%s' suggested for '%s' not found."
@@ -632,6 +635,41 @@ through implicit import by '%s' plugin encountered."""
                     reason=decision_reason,
                     source_ref=module.source_ref,
                 )
+
+    @classmethod
+    @counted_plugin_method
+    def createVirtualModule(cls, module_name):
+        """Let plugins provide a virtual module for a not found module name.
+
+        Args:
+            module_name: full module name that was not found.
+
+        Returns:
+            tuple of FakeModuleDescription and plugin, or None
+        """
+        if module_name in cls.virtual_modules_cache:
+            return cls.virtual_modules_cache[module_name]
+
+        result = None
+
+        for plugin in active_plugins_with_create_virtual_module:
+            with withPluginModuleNameProblemReporting(plugin, module_name):
+                description = plugin.createVirtualModule(module_name=module_name)
+
+            if description is None:
+                continue
+
+            if result is not None:
+                plugin.sysexit(
+                    "Error, virtual module '%s' provided by multiple plugins."
+                    % module_name
+                )
+
+            result = description, plugin
+
+        cls.virtual_modules_cache[module_name] = result
+
+        return result
 
     @classmethod
     def _getPackageExtraScanPaths(cls, plugin, package_name, package_dir):
@@ -1107,8 +1145,11 @@ through implicit import by '%s' plugin encountered."""
                 _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
 
-        for _plugin, fake_module_description in fake_module_descriptions:
-            addFakeModule(fake_module_description.module_name)
+        for plugin, fake_module_description in fake_module_descriptions:
+            addFakeModule(
+                module_name=fake_module_description.module_name,
+                plugin=plugin,
+            )
 
         def combineLoadCodes(module_load_descriptions):
             future_imports_code = []
@@ -1414,7 +1455,10 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
     def _addIncompleteModules(modules_to_add):
         for module in getDoneModules():
             for module_usage_attempt in module.getUsedModules():
-                if module_usage_attempt.filename is not None:
+                if (
+                    module_usage_attempt.filename is not None
+                    or module_usage_attempt.finding == "virtual"
+                ):
                     used_module_name = module_usage_attempt.module_name
 
                     if not hasDoneModule(used_module_name):

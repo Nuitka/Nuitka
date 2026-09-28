@@ -47,6 +47,7 @@ from nuitka.utils.Importing import (
 )
 from nuitka.utils.ModuleNames import ModuleName
 
+from .FakeModules import getVirtualModuleDescription
 from .Importing import (
     getModuleNameAndKindFromFilename,
     isPackageDir,
@@ -121,12 +122,18 @@ def recurseTo(
             reason=reason,
         )
 
-        module = _recurseTo(
-            module_name=module_name,
-            module_filename=module_filename,
-            module_kind=module_kind,
-            reason=reason,
-        )
+        if getVirtualModuleDescription(module_name) is not None:
+            module = buildVirtualModule(
+                module_name=module_name,
+                using_module_name=using_module_name,
+            )
+        else:
+            module = _recurseTo(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                reason=reason,
+            )
 
     return module
 
@@ -627,6 +634,54 @@ def scanPluginFilenamePattern(pattern):
         )
 
 
+def buildVirtualModule(module_name, using_module_name):
+    """Build a plugin provided virtual module and add it to the import cache.
+
+    Args:
+        module_name: name of the virtual module.
+        using_module_name: name of the module using it, or None for user choice.
+
+    Returns:
+        The module object.
+    """
+    description = getVirtualModuleDescription(module_name)
+
+    assert description is not None, module_name
+
+    if ImportCache.isImportedModuleByName(module_name):
+        return ImportCache.getImportedModuleByName(module_name)
+
+    # Local import to avoid a cyclic dependency at module load time.
+    from nuitka.tree.Building import buildModule
+
+    module = buildModule(
+        module_name=module_name,
+        module_kind="py",
+        module_filename=description.source_filename,
+        reason=description.reason,
+        source_code=description.source_code,
+        is_top=False,
+        is_main=False,
+        is_fake=module_name,
+        hide_syntax_error=False,
+    )
+
+    ImportCache.addImportedModule(module)
+
+    if isShowInclusion():
+        if using_module_name is None:
+            recursion_logger.info(
+                "Included virtual module '%s' by command line." % module_name
+            )
+        else:
+            recursion_logger.info(
+                "Included virtual module '%s' for '%s'."
+                % (module_name, using_module_name)
+            )
+
+    return module
+
+
 def considerUsedModules(module, pass_count):
     """Consider the used modules of a module for recursion.
 
@@ -657,8 +712,8 @@ def considerUsedModules(module, pass_count):
                 level=used_module.level,
             )
 
-        # Nothing was found here
-        if used_module.filename is None:
+        # Nothing was found here, virtual modules are recursed to without file.
+        if used_module.filename is None and used_module.finding != "virtual":
             continue
 
         try:
