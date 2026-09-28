@@ -1967,6 +1967,16 @@
     - depends:
         - 'gi._enum'
 
+- module-name: 'gi._gi' # checksum: d895d722
+  implicit-imports:
+    - depends:
+        - 'gi._error'
+
+- module-name: 'gi._gi_cairo' # checksum: 85fe4e20
+  implicit-imports:
+    - depends:
+        - 'cairo'
+
 - module-name: 'git.objects.submodule.base' # checksum: 3c6d40d1
   anti-bloat:
     - description: 'remove unittest reference'
