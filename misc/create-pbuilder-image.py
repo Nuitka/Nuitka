@@ -28,11 +28,21 @@ try:
     os.chdir(stage)
 
     if debian == "debian":
-        # Certificate for https is not good.
-        mirror = "http://ftp.us.debian.org/debian"
+        if codename in ("jessie", "stretch", "buster"):
+            # These releases are no longer on the regular mirror.
+            mirror = "http://archive.debian.org/debian"
+        else:
+            # Certificate for https is not good.
+            mirror = "http://ftp.us.debian.org/debian"
+
         components = "main"
     elif debian == "ubuntu":
-        mirror = "http://de.archive.ubuntu.com/ubuntu"
+        if codename in ("groovy", "impish", "kinetic", "oracular"):
+            # These releases are no longer on the regular mirror.
+            mirror = "http://old-releases.ubuntu.com/ubuntu"
+        else:
+            mirror = "http://de.archive.ubuntu.com/ubuntu"
+
         components = "main,universe"
     else:
         assert False, debian
@@ -57,6 +67,21 @@ try:
     os.makedirs("chroot/etc/apt.conf.d")
     with open("chroot/etc/apt.conf.d/75mine", "w", encoding="utf8") as output_file:
         output_file.write('Acquire::Languages "none";\n')
+
+    if debian == "debian" and codename == "jessie":
+        # The archive signing key of jessie is expired, apt refuses its
+        # packages without the archive being trusted explicitly.
+        sources_list_filename = "chroot/etc/apt/sources.list"
+
+        with open(sources_list_filename, "r", encoding="utf8") as input_file:
+            sources_list = input_file.read()
+
+        sources_list = sources_list.replace(
+            "deb %s" % mirror, "deb [trusted=yes] %s" % mirror
+        )
+
+        with open(sources_list_filename, "w", encoding="utf8") as output_file:
+            output_file.write(sources_list)
 
     target_filename = codename + ".tgz"
     subprocess.check_call(["tar", "czf", target_filename, "-C", "chroot", "."])
