@@ -822,16 +822,16 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print
 
 
 def createSearchMode():
-    # Dealing with many options, pylint: disable=too-many-branches
+    # Dealing with many options, pylint: disable=too-many-branches,too-many-statements
 
     parser = makeOptionsParser(
         usage="%prog [options]",
         epilog="""\
 The following shortcuts are available for the default "search" mode:
 
-resume [pattern]    : Same as "search --resume [pattern]"
-skip [pattern]      : Same as "search --skip [pattern]" (resumes, skips current)
-only [pattern]      : Same as "search --only-one [pattern]"
+resume [pattern]    : Same as "search --resume --pattern [pattern]"
+skip [pattern]      : Same as "search --resume --skip --pattern [pattern]" (resumes, skips current)
+only [pattern]      : Same as "search --pattern [pattern]"
 all [pattern]       : Same as "search --all [pattern]"
 coverage [pattern]  : Same as "search --coverage [pattern]"
 
@@ -853,7 +853,7 @@ Examples:
         dest="pattern",
         default="",
         help="""\
-Start at the first test matching the pattern. With '--only-one', execute only
+Execute only tests matching the pattern. With '--only-one', execute only
 the first matching test. Defaults to all tests.""",
     )
     select_group.add_option(
@@ -914,6 +914,14 @@ Defaults to off.""",
     )
 
     debug_group.add_option(
+        "--skip",
+        action="store_true",
+        dest="skip",
+        default=False,
+        help="""Resume, skipping the current test.""",
+    )
+
+    debug_group.add_option(
         "--only-one",
         action="store_true",
         dest="only",
@@ -946,10 +954,15 @@ Run tests with coverage enabled.""",
     # Default to searching.
     mode = positional_args[0] if positional_args else "search"
 
+    patterns = [options.pattern] if options.pattern else []
+    start_at = None
+
     # Avoid having to use options style.
-    if mode in ("search", "only", "coverage"):
-        if len(positional_args) >= 2 and not options.pattern:
-            options.pattern = positional_args[1]
+    if len(positional_args) >= 2:
+        if mode in ("search", "coverage", "all"):
+            start_at = positional_args[1]
+        elif mode in ("only", "resume", "skip"):
+            patterns.append(positional_args[1])
 
     if mode == "resume":
         options.resume = True
@@ -957,7 +970,9 @@ Run tests with coverage enabled.""",
         options.resume = True
         options.skip = True
     elif mode == "only":
-        options.only = True
+        # Without a pattern, execute only the first test.
+        if not patterns:
+            options.only = True
     elif mode == "all":
         options.all = True
     elif mode == "coverage":
@@ -967,24 +982,26 @@ Run tests with coverage enabled.""",
     else:
         return test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
+    if options.skip:
+        options.resume = True
+
     if options.max_failures is not None and not options.all:
         return test_logger.sysexit("Error, '--max-failures' requires '--all'.")
 
-    if options.pattern and options.all:
-        return test_logger.sysexit(
-            "Error, '--pattern' cannot be combined with '--all'. Use only '--pattern' to run just the matching tests."
-        )
+    if start_at:
+        start_at = start_at.replace("/", os.path.sep)
 
-    start_at = options.pattern.replace("/", os.path.sep) if options.pattern else None
+    patterns = [pattern.replace("/", os.path.sep) for pattern in patterns]
 
     return SearchMode(
         logger=test_logger,
         start_at=start_at,
+        patterns=patterns,
         start_dir=getStartDir(),
         resume=options.resume,
         only=options.only,
         abort_on_error=not options.all,
-        skip=getattr(options, "skip", False),
+        skip=options.skip,
         coverage=options.coverage,
         max_failures=options.max_failures,
     )

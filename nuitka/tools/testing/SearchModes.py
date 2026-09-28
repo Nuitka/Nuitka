@@ -26,6 +26,7 @@ class SearchMode(object):
     __slots__ = (
         "active",
         "start_at",
+        "patterns",
         "only",
         "skip",
         "coverage",
@@ -45,6 +46,7 @@ class SearchMode(object):
         self,
         logger,
         start_at,
+        patterns,
         start_dir,
         resume=False,
         only=False,
@@ -55,6 +57,7 @@ class SearchMode(object):
     ):
         self.active = False
         self.start_at = start_at
+        self.patterns = patterns
         self.only = only
         self.skip = skip
         self.coverage = coverage
@@ -67,7 +70,7 @@ class SearchMode(object):
         self.may_fail = []
 
         if only and not abort_on_error:
-            self.logger.sysexit("Error, cannot combine --only-one and --all.")
+            self.logger.sysexit("Error, cannot combine '--only-one' and '--all'.")
 
         self.verifications = 0
         self.failed = []
@@ -86,24 +89,29 @@ class SearchMode(object):
 
         from .Common import getTestingCacheDir
 
-        cache_filename = os.path.join(getTestingCacheDir(), case_hash.hexdigest())
+        self.cache_filename = os.path.join(getTestingCacheDir(), case_hash.hexdigest())
 
-        self.cache_filename = cache_filename
-
-        if resume and os.path.exists(cache_filename):
-            self.resume_from = getFileContents(cache_filename) or None
+        if resume and os.path.exists(self.cache_filename):
+            self.resume_from = getFileContents(self.cache_filename) or None
         else:
             self.resume_from = None
 
+    def _matchPatterns(self, dirname, filename):
+        if not self.patterns:
+            return True
+
+        for pattern in self.patterns:
+            if self._match(dirname, filename, pattern):
+                return True
+
+        return False
+
     def consider(self, dirname, filename):
-        if self.active and self.only:
+        if self.only and self.had_match:
             return False
 
         # Check if we become active
         if not self.active:
-            if self.only and self.had_match:
-                return False
-
             if self.start_at is None and not self.resume_from:
                 self.active = True
             elif self.resume_from:
@@ -116,11 +124,15 @@ class SearchMode(object):
                     self.active = True
 
         if self.active:
+            # If active, we still filter by pattern if one was given.
+            if not self._matchPatterns(dirname, filename):
+                return False
+
             if self.only:
                 self.active = False
-            else:
-                # If we are active, we can save the current file as the one to resume
-                # from.
+
+            # Partial runs do not update the resume state.
+            if not self.only and not self.patterns:
                 self._saveResume(dirname, filename)
 
             self.had_match = True
@@ -170,7 +182,15 @@ class SearchMode(object):
         if not self.active and not self.had_match:
             return self.exit("Error, became never active.")
 
-        if success and not self.only and os.path.exists(self.cache_filename):
+        if self.patterns and not self.had_match:
+            return self.exit("Error, no test matched the pattern.")
+
+        if (
+            success
+            and not self.only
+            and not self.patterns
+            and os.path.exists(self.cache_filename)
+        ):
             os.unlink(self.cache_filename)
 
         print(
