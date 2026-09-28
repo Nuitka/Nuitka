@@ -393,15 +393,13 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords("vars", ("object",), default_
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords("locals", (), default_count=0)
 builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_count=0)
-if python_version >= 0x3D0:
-    # 3.13 made "globals" and "locals" keyword arguments.
-    builtin_eval_spec = BuiltinParameterSpecPosArgs(
-        "eval", ("source",), ("globals", "locals"), default_count=2
-    )
-else:
-    builtin_eval_spec = BuiltinParameterSpecNoKeywords(
-        "eval", ("source", "globals", "locals"), 2
-    )
+builtin_eval_before_313_spec = BuiltinParameterSpecNoKeywords(
+    "eval", ("source", "globals", "locals"), 2
+)
+# 3.13 made "globals" and "locals" keyword arguments.
+builtin_eval_since_313_spec = BuiltinParameterSpecPosArgs(
+    "eval", ("source",), ("globals", "locals"), default_count=2
+)
 if python_version < 0x300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
@@ -415,25 +413,22 @@ else:
         default_count=3,
     )
 
-if python_version >= 0x3D0:
-    builtin_exec_spec = BuiltinParameterSpec(
-        "exec",
-        ("globals", "locals"),
-        default_count=3,
-        pos_only_args=("source",),
-        kw_only_args=("closure",),
-    )
-elif python_version >= 0x3B0:
-    builtin_exec_spec = BuiltinParameterSpec(
-        "exec",
-        ("source", "globals", "locals"),
-        default_count=3,
-        kw_only_args=("closure",),
-    )
-elif python_version >= 0x300:
-    builtin_exec_spec = BuiltinParameterSpecNoKeywords(
-        "exec", ("source", "globals", "locals"), default_count=2
-    )
+builtin_exec_before_311_spec = BuiltinParameterSpecNoKeywords(
+    "exec", ("source", "globals", "locals"), default_count=2
+)
+builtin_exec_since_311_spec = BuiltinParameterSpec(
+    "exec",
+    ("source", "globals", "locals"),
+    default_count=3,
+    kw_only_args=("closure",),
+)
+builtin_exec_since_313_spec = BuiltinParameterSpec(
+    "exec",
+    ("globals", "locals"),
+    default_count=3,
+    pos_only_args=("source",),
+    kw_only_args=("closure",),
+)
 
 # Note: Iter in fact names its first argument if the default applies
 # "collection", fixed up in a wrapper.

@@ -1045,10 +1045,15 @@ def eval_extractor(node):
 
         return outline_body
 
+    if python_version >= 0x3D0:
+        builtin_eval_spec = BuiltinParameterSpecs.builtin_eval_since_313_spec
+    else:
+        builtin_eval_spec = BuiltinParameterSpecs.builtin_eval_before_313_spec
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=wrapEvalBuiltin,
-        builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+        builtin_spec=builtin_eval_spec,
     )
 
 
@@ -1107,10 +1112,17 @@ if python_version >= 0x300:
 
             return outline_body
 
+        if python_version >= 0x3D0:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_since_313_spec
+        elif python_version >= 0x3B0:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_since_311_spec
+        else:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_before_311_spec
+
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=wrapExpressionBuiltinExecCreation,
-            builtin_spec=BuiltinParameterSpecs.builtin_exec_spec,
+            builtin_spec=builtin_exec_spec,
         )
 
 
