@@ -311,7 +311,7 @@ def _checkPrivatePipBinaryPath(
                 binary_path=binary_path,
             )
 
-    if report_rejection and not ok and logger is not None:
+    if report_rejection and not ok and message is not None and logger is not None:
         logger.info(
             "Rejecting '%s' binary '%s' due to: %s"
             % (binary_name, binary_path, message)
@@ -906,6 +906,10 @@ def _checkMdformatUsability(logger, binary_path):
                 False,
                 "failed to format a test file: %s" % (stderr or e),
             )
+        except OSError:
+            # A binary that cannot be executed at all is best silently treated
+            # as not existing, the private pip space is used instead.
+            result = False, None
 
     _check_mdformat_usability_cache[binary_path] = result
 
@@ -1102,6 +1106,12 @@ def _checkRequiredVersion(logger, tool, tool_call, dependencies):
         version_output = check_output(tool_call)
     except NuitkaCalledProcessError as e:
         result = False, "failed to execute: %s" % e.stderr
+        _check_required_version_cache[tool_call] = result
+        return result
+    except OSError:
+        # A binary that cannot be executed at all is best silently treated as
+        # not existing, the private pip space is used instead.
+        result = False, None
         _check_required_version_cache[tool_call] = result
         return result
 
