@@ -418,6 +418,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionConditionalBool():
+        return False
+
+    @staticmethod
     def isExpressionSideEffects():
         return False
 

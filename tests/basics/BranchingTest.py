@@ -241,6 +241,152 @@ def conditionalExpressionDictDel(score):
 
 conditionalExpressionDictDel(3)
 
+
+def conditionalExpressionSetAdd(score):
+    hits = set()
+    misses = set()
+    for item in (("kept", 3), ("dropped", 7)):
+        if item[1] <= 3:
+            (hits if score == item[1] else misses).add(item[0])
+
+    if hits:
+        print("Conditional expression set add result:", sorted(hits))
+    else:
+        print("Conditional expression set add result: empty")
+
+
+conditionalExpressionSetAdd(3)
+
+
+def conditionalOrExpressionSetAdd(given):
+    hits = set()
+    for item in ("kept",):
+        (given or hits).add(item)
+
+    if hits:
+        print("Conditional or expression set add result:", sorted(hits))
+    else:
+        print("Conditional or expression set add result: empty")
+
+
+conditionalOrExpressionSetAdd(None)
+
+
+def conditionalAndExpressionSetAdd(given):
+    hits = set()
+    for item in ("kept",):
+        (given and hits).add(item)
+
+    if hits:
+        print("Conditional and expression set add result:", sorted(hits))
+    else:
+        print("Conditional and expression set add result: empty")
+
+
+conditionalAndExpressionSetAdd(True)
+
+
+def addToSet(value, item):
+    value.add(item)
+
+
+def conditionalExpressionSetArgument(score):
+    hits = set()
+    misses = set()
+    for item in (("kept", 3), ("dropped", 7)):
+        if item[1] <= 3:
+            addToSet(hits if score == item[1] else misses, item[0])
+
+    if hits:
+        print("Conditional expression set argument result:", sorted(hits))
+    else:
+        print("Conditional expression set argument result: empty")
+
+
+conditionalExpressionSetArgument(3)
+
+
+def conditionalOrExpressionSetArgument(given):
+    hits = set()
+    for item in ("kept",):
+        addToSet(given or hits, item)
+
+    if hits:
+        print("Conditional or expression set argument result:", sorted(hits))
+    else:
+        print("Conditional or expression set argument result: empty")
+
+
+conditionalOrExpressionSetArgument(None)
+
+
+class MutatingDelAttribute(object):
+    def __init__(self):
+        self.removed = False
+        self.item = "value"
+
+    def __delattr__(self, name):
+        self.removed = True
+        object.__delattr__(self, name)
+
+
+def conditionalExpressionDelAttribute(given):
+    hits = MutatingDelAttribute()
+    misses = MutatingDelAttribute()
+    for item in ("kept",):
+        del (hits if given else misses).item
+
+    print(
+        "Conditional expression del attribute result:",
+        hits.removed,
+        misses.removed,
+    )
+
+
+conditionalExpressionDelAttribute(True)
+
+
+class MutatingSubscript:
+    def __init__(self):
+        self.items = []
+
+    def __getitem__(self, key):
+        self.items.append(key)
+        return key
+
+
+def conditionalExpressionSubscriptGet(given):
+    hits = MutatingSubscript()
+    misses = MutatingSubscript()
+    for item in ("kept",):
+        (hits if given else misses)[item]
+
+    print("Conditional expression subscript get result:", bool(hits.items))
+
+
+conditionalExpressionSubscriptGet(True)
+
+
+class MutatingSlice:
+    def __init__(self):
+        self.items = []
+
+    def __getitem__(self, key):
+        self.items.append(key)
+        return key
+
+
+def conditionalExpressionSliceGet(given):
+    hits = MutatingSlice()
+    misses = MutatingSlice()
+    for item in ("kept",):
+        (hits if given else misses)[0:1]
+
+    print("Conditional expression slice get result:", bool(hits.items))
+
+
+conditionalExpressionSliceGet(True)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

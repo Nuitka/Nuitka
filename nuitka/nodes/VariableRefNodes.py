@@ -357,6 +357,9 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
                         description="Subscript of variable immutable value.",
                     )
 
+        # The subscript may execute any code and change the value.
+        trace_collection.removeKnowledge(self)
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 

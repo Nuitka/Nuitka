@@ -197,6 +197,7 @@ class ExpressionBase(NodeBase):
         # By default, an attribute lookup may change everything about the lookup
         # source.
         # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
+        trace_collection.removeKnowledge(self)
 
         if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -210,13 +211,12 @@ class ExpressionBase(NodeBase):
         self, lookup_node, attribute_name, trace_collection
     ):
         # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method, pylint: disable=unused-argument
+        # source. Virtual method.
         # trace_collection.onValueEscapeAttributeLookup(self, attribute_name)
+        trace_collection.removeKnowledge(self)
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if self.mayRaiseExceptionAttributeLookup(BaseException, attribute_name):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
@@ -248,7 +248,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionDelAttribute(self, set_node, attribute_name, trace_collection):
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
-        # trace_collection.removeKnowledge(self)
+        trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -262,6 +262,8 @@ class ExpressionBase(NodeBase):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
         # but generally we don't know what to do. pylint: disable=unused-argument
+        trace_collection.removeKnowledge(self)
+
         trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -302,7 +304,7 @@ class ExpressionBase(NodeBase):
         # pylint: disable=unused-argument
 
         # By default, a slicing may change everything about the lookup source.
-        # trace_collection.removeKnowledge(self)
+        trace_collection.removeKnowledge(self)
         # trace_collection.onValueEscapeSliceOperation(self, lower, upper)
 
         # Any code could be run, note that.
