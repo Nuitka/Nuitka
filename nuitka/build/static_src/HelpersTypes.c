@@ -1062,13 +1062,14 @@ static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject 
 }
 
 #if PYTHON_VERSION >= 0x3d0
-PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *bound, PyObject *default_value) {
-    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, bound, NULL, NULL, NULL, default_value, false, false, true,
-                                             NULL);
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound, PyObject *default_value) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, default_value, false,
+                                             false, true, NULL);
 }
 #else
-PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *bound) {
-    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, bound, NULL, NULL, NULL, NULL, false, false, true, NULL);
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, NULL, false, false, true,
+                                             NULL);
 }
 #endif
 

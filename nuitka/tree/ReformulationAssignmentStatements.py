@@ -1234,7 +1234,17 @@ def buildNamedExprNode(provider, node, source_ref):
 
 
 def buildTypeVarNode(provider, node, source_ref):
-    bound = buildNode(provider, node.bound, source_ref, allow_none=True)
+    if node.bound is not None:
+        evaluate_bound = _makeDeferredEvaluationFunction(
+            provider=provider,
+            function_name=node.name,
+            create_expression=lambda inner_provider: buildNode(
+                inner_provider, node.bound, source_ref
+            ),
+            source_ref=source_ref,
+        )
+    else:
+        evaluate_bound = None
 
     if python_version >= 0x3D0:
         default_value = buildNode(
@@ -1248,7 +1258,7 @@ def buildTypeVarNode(provider, node, source_ref):
 
     return ExpressionTypeVariable(
         name=node.name,
-        bound=bound,
+        bound=evaluate_bound,
         default_value=default_value,
         source_ref=source_ref,
     )
@@ -1262,7 +1272,9 @@ def buildTypeParamSpec(node, source_ref):
     return ExpressionParameterSpecification(node.name, source_ref=source_ref)
 
 
-def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
+def _makeDeferredEvaluationFunction(
+    provider, function_name, create_expression, source_ref
+):
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),
@@ -1301,13 +1313,9 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         source_ref=source_ref,
     )
 
-    type_expression = _createTypeExpression(
-        provider=body, node=node, source_ref=source_ref
-    )
-
     body.setChildBody(
         makeStatementsSequenceFromStatement(
-            StatementReturn(type_expression, source_ref)
+            StatementReturn(create_expression(body), source_ref)
         )
     )
 
@@ -1320,6 +1328,18 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         kw_defaults=None,
         annotations=None,
         type_params=None,
+        source_ref=source_ref,
+    )
+
+
+def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
+    type_expression = lambda inner_provider: _createTypeExpression(
+        provider=inner_provider, node=node, source_ref=source_ref
+    )
+    return _makeDeferredEvaluationFunction(
+        provider=provider,
+        function_name=function_name,
+        create_expression=type_expression,
         source_ref=source_ref,
     )
 

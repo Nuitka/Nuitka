@@ -143,6 +143,30 @@ class TypeVariablesInBases[T](list[T]):
 
 print("Type variables in bases:", TypeVariablesInBases.__orig_bases__)
 
+
+def sideEffect():
+    print("Side effect")
+    return 42
+
+
+def usingBound[T: str, UnionT: str | int, Deferred: sideEffect()]():
+    print("T.__bound__", T.__bound__)
+    print("UnionT.__bound__", UnionT.__bound__)
+    print("Deferred.__bound__", Deferred.__bound__)
+
+
+print("Function with bound")
+usingBound()
+
+print("Class with bound")
+
+
+class UsingBound[T: str, UnionT: str | int, Deferred: sideEffect()]:
+    print("T.__bound__", T.__bound__)
+    print("UnionT.__bound__", UnionT.__bound__)
+    print("Deferred.__bound__", Deferred.__bound__)
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
