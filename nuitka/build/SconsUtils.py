@@ -1392,18 +1392,29 @@ c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):
+    """Create a target path usable for the C compiler.
+
+    Notes:
+        The target is placed inside the build directory, because SCons turns
+        target paths outside of its top level directory into absolute paths,
+        and those can contain characters that the C compiler cannot handle,
+        e.g. for Unicode output directories, at least once the command line
+        spills into a response file. The actual result is renamed into its
+        proper place after the build by 'runScons', see there.
+
+    Args:
+        env: SCons environment, must have 'source_dir' set.
+        result_exe: Intended result path, used for the filename suffix.
+
+    Returns:
+        Path of the target inside the build directory.
+    """
+
+    result_exe = getNormalizedPathJoin(
+        env.source_dir, "_nuitka_temp" + getFilenameExtension(result_exe)
+    )
+
     deleteFile(result_exe, must_exist=False)
-
-    if os.name == "nt" and not isFilesystemEncodable(result_exe):
-        result_exe = getNormalizedPathJoin(
-            os.path.dirname(result_exe),
-            "_nuitka_temp.pyd" if env.module_mode else "_nuitka_temp.exe",
-        )
-
-        if not isFilesystemEncodable(result_exe):
-            result_exe = getNormalizedPath(os.path.relpath(result_exe))
-
-            deleteFile(result_exe, must_exist=False)
 
     return result_exe
 

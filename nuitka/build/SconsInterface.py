@@ -104,6 +104,7 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    makeContainingPath,
     makePath,
     putTextFileContents,
     renameFile,
@@ -653,6 +654,7 @@ def runScons(
                 _removeUnwantedArtifacts(scons_created_exe)
 
                 if not areSamePaths(scons_options["result_exe"], scons_created_exe):
+                    makeContainingPath(orig_result_exe)
                     renameFile(scons_created_exe, orig_result_exe)
 
             checkCachingSuccess(source_dir)

@@ -329,7 +329,7 @@ def makeContainingPath(filename):
     """
     target_dir = os.path.dirname(filename)
 
-    if not os.path.isdir(target_dir):
+    if target_dir and not os.path.isdir(target_dir):
         makePath(target_dir)
 
 
