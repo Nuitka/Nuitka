@@ -418,8 +418,9 @@ builtin_exec_before_311_spec = BuiltinParameterSpecNoKeywords(
 )
 builtin_exec_since_311_spec = BuiltinParameterSpec(
     "exec",
-    ("source", "globals", "locals"),
+    (),
     default_count=3,
+    pos_only_args=("source", "globals", "locals"),
     kw_only_args=("closure",),
 )
 builtin_exec_since_313_spec = BuiltinParameterSpec(
