@@ -76,6 +76,28 @@ git push <owner> HEAD:<branch>
 Use `git push --force <owner> HEAD:<branch>` only after a rebase. GitHub applies these commits to
 the open PR automatically.
 
+## 6. Reviewing: PRs must not auto-close issues
+
+When reviewing a PR, check that its body does **not** auto-close the issues it references. Nuitka
+merges PRs into `develop`, but issues are closed only once their solution has landed on `main` (the
+release/maintenance branch). A closing keyword would close the issue as soon as the PR is merged to
+`develop`, i.e. before the fix is released.
+
+Reject/flag closing keywords such as:
+
+- `Fixes #N`, `fixes #N`, `Fix #N`
+- `Closes #N`, `closes #N`, `Close #N`
+- `Resolves #N`, `resolves #N`, `Resolve #N`
+- the same with a colon (`Fixes: #N`), and any alternative spelling GitHub recognizes.
+
+Prefer a plain reference in the "Why was it initiated?" list, e.g. `- #N`, which links the issue
+without closing it. If the PR already uses a closing keyword, ask the contributor to change it, or
+edit the body yourself:
+
+```bash
+gh api -X PATCH repos/Nuitka/Nuitka/pulls/<N> -f body="$(cat fixed-body.md)"
+```
+
 ## Notes / pitfalls
 
 - `gh pr checkout <N>` fetches the **entire** fork; prefer the manual steps above to fetch only the
