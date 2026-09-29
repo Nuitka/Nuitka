@@ -83,11 +83,15 @@ class NodeCheckMetaClass(ABCMeta):
             set(dictionary["__slots__"])
         ), dictionary["__slots__"]
 
-        if "python_version_spec" in dictionary:
-            condition = "%s %s" % (
-                hex(python_version),
-                dictionary["python_version_spec"],
+        python_version_spec = dictionary.get("python_version_spec")
+
+        if python_version_spec:
+            condition = " and ".join(
+                "%s %s" % (hex(python_version), spec.strip())
+                for spec in python_version_spec.split(",")
+                if spec.strip()
             )
+            assert condition, python_version_spec
 
             # We trust our node class files, pylint: disable=eval-used
             if not eval(condition):
