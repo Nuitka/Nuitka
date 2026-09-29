@@ -349,6 +349,56 @@ def getPackageDirFilename(path, package_name):
         return sorted(candidates, key=prioritize)[0][0]
 
 
+def _addModuleCandidate(candidates, filename_full, filename):
+    """Add the best candidate for a module filename, keeping one per kind."""
+    for suffix_index, (suffix, module_type) in enumerate(getModuleFilenameSuffixes()):
+        if filename.endswith(suffix):
+            module_name, _ = getModuleNameAndKindFromFilenameSuffix(filename)
+
+            key = module_name, module_type
+            previous = candidates.get(key)
+
+            if previous is None or suffix_index < previous[0]:
+                candidates[key] = suffix_index, (filename_full, filename)
+
+            break
+
+
+def _getPreferredModuleEntries(candidates, package_name):
+    """Select the preferred entry for each module name found."""
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 2,
+        "C_EXTENSION": 1,
+    }
+
+    def prioritize(candidate):
+        (module_name, module_type), (_suffix_index, _entry) = candidate
+
+        decision, _reason = decideRecompileExtensionModules(
+            ModuleName.makeModuleNameInPackage(module_name, package_name)
+        )
+
+        if module_type == "PY_SOURCE" and decision:
+            return priority_map[module_type] - 2
+        return priority_map[module_type]
+
+    result = []
+    seen = set()
+
+    for (module_name, _module_type), (_suffix_index, entry) in sorted(
+        candidates.items(), key=prioritize
+    ):
+        if module_name in seen:
+            continue
+
+        seen.add(module_name)
+        result.append(entry)
+
+    return result
+
+
 def listPackageDirEntries(path, package_name):
     """List directory entries with duplicate modules resolved.
 
@@ -368,7 +418,9 @@ def listPackageDirEntries(path, package_name):
         file and an extension module file of the same module name, e.g.
         'foo.py' and 'foo.pyd', and only one of them is to be used. The
         decision is made like for package '__init__' files, see
-        'getPackageDirFilename'.
+        'getPackageDirFilename'. Where there are multiple files of the same
+        module name and kind, the platform suffix order decides, e.g.
+        'foo.cpython-312-x86_64-linux-gnu.so' over 'foo.abi3.so'.
     """
     assert os.path.isdir(path)
     assert package_name is None or type(package_name) is ModuleName, package_name
@@ -376,42 +428,18 @@ def listPackageDirEntries(path, package_name):
     # Cyclic dependency here
     from .FileOperations import listDir
 
+    candidates = {}
     result = []
-    candidates = []
-    # Higher values are lower priority.
-    priority_map = {
-        "PY_COMPILED": 3,
-        "PY_SOURCE": 2,
-        "C_EXTENSION": 1,
-    }
 
     for filename_full, filename in listDir(path):
         if os.path.isdir(filename_full):
             result.append((filename_full, filename))
-            continue
+        else:
+            _addModuleCandidate(
+                candidates, filename_full=filename_full, filename=filename
+            )
 
-        for suffix, module_type in getModuleFilenameSuffixes():
-            if filename.endswith(suffix):
-                module_name, _ = getModuleNameAndKindFromFilenameSuffix(filename)
-                candidates.append((module_name, module_type, (filename_full, filename)))
-                break
-
-    def prioritize(candidate):
-        decision, _reason = decideRecompileExtensionModules(
-            ModuleName.makeModuleNameInPackage(candidate[0], package_name)
-        )
-
-        if candidate[1] == "PY_SOURCE" and decision:
-            return priority_map[candidate[1]] - 2
-        return priority_map[candidate[1]]
-
-    seen = set()
-
-    for candidate in sorted(candidates, key=prioritize):
-        if candidate[0] in seen:
-            continue
-        seen.add(candidate[0])
-        result.append(candidate[2])
+    result.extend(_getPreferredModuleEntries(candidates, package_name))
 
     return result
 
