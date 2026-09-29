@@ -994,31 +994,52 @@ def getYamlPackage():
     return getYamlPackage.yaml
 
 
+_ordered_loader = None
+
+
+def _getYamlLoader(yaml):
+    """Get the YAML loader to use for parsing.
+
+    Args:
+        yaml: The YAML package to use.
+
+    Returns:
+        The loader class to use with 'yaml.load'.
+    """
+    # Singleton, pylint: disable=global-statement
+    global _ordered_loader
+
+    if _ordered_loader is None:
+        # Prefer the "libyaml" based loader when available (built with
+        # the C extension), it tokenizes in C and is several times
+        # faster on the large package configuration, while using the
+        # same Python constructor and resolver. Our inline copy has no
+        # C loader, in which case we fall back to the pure Python one.
+        safe_loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+        # Make sure dictionaries are ordered even before 3.6 in the result. We
+        # use them for hashing in caching keys.
+        class OrderedLoader(safe_loader):
+            pass
+
+        def construct_mapping(loader, node):
+            loader.flatten_mapping(node)
+
+            return OrderedDict(loader.construct_pairs(node))
+
+        OrderedLoader.add_constructor(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+        )
+
+        _ordered_loader = OrderedLoader
+
+    return _ordered_loader
+
+
 def parseYaml(logger, data, error_message):
     yaml = getYamlPackage()
 
-    # Prefer the "libyaml" based loader when available (built with
-    # the C extension), it tokenizes in C and is several times
-    # faster on the large package configuration, while using the
-    # same Python constructor and resolver. Our inline copy has no
-    # C loader, in which case we fall back to the pure Python one.
-    safe_loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
-
-    # Make sure dictionaries are ordered even before 3.6 in the result. We use
-    # them for hashing in caching keys.
-    class OrderedLoader(safe_loader):
-        pass
-
-    def construct_mapping(loader, node):
-        loader.flatten_mapping(node)
-
-        return OrderedDict(loader.construct_pairs(node))
-
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
-    )
-
-    result = yaml.load(data, OrderedLoader)
+    result = yaml.load(data, _getYamlLoader(yaml))
 
     if not result:
         return logger.sysexit(error_message)
