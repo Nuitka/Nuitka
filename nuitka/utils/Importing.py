@@ -349,12 +349,34 @@ def getPackageDirFilename(path, package_name):
         return sorted(candidates, key=prioritize)[0][0]
 
 
-def listPackageDirFilename(path):
+def listPackageDirEntries(path, package_name):
+    """List directory entries with duplicate modules resolved.
+
+    Args:
+        path: The directory to list.
+        package_name: The 'ModuleName' of the package that the directory
+            belongs to, or 'None' if its modules are top-level, used to
+            decide whether source code is preferred over extension modules.
+
+    Returns:
+        List of tuples of full filename and basename, with sub-directories
+        passed through and only the preferred file for each module name
+        found.
+
+    Notes:
+        Duplicate modules can occur when a package contains both a source
+        file and an extension module file of the same module name, e.g.
+        'foo.py' and 'foo.pyd', and only one of them is to be used. The
+        decision is made like for package '__init__' files, see
+        'getPackageDirFilename'.
+    """
     assert os.path.isdir(path)
+    assert package_name is None or type(package_name) is ModuleName, package_name
 
     # Cyclic dependency here
     from .FileOperations import listDir
 
+    result = []
     candidates = []
     # Higher values are lower priority.
     priority_map = {
@@ -364,6 +386,10 @@ def listPackageDirFilename(path):
     }
 
     for filename_full, filename in listDir(path):
+        if os.path.isdir(filename_full):
+            result.append((filename_full, filename))
+            continue
+
         for suffix, module_type in getModuleFilenameSuffixes():
             if filename.endswith(suffix):
                 module_name, _ = getModuleNameAndKindFromFilenameSuffix(filename)
@@ -371,19 +397,22 @@ def listPackageDirFilename(path):
                 break
 
     def prioritize(candidate):
-        decision, _reason = decideRecompileExtensionModules(candidate[0])
+        decision, _reason = decideRecompileExtensionModules(
+            ModuleName.makeModuleNameInPackage(candidate[0], package_name)
+        )
+
         if candidate[1] == "PY_SOURCE" and decision:
             return priority_map[candidate[1]] - 2
         return priority_map[candidate[1]]
 
     seen = set()
-    result = []
 
     for candidate in sorted(candidates, key=prioritize):
         if candidate[0] in seen:
             continue
         seen.add(candidate[0])
         result.append(candidate[2])
+
     return result
 
 
