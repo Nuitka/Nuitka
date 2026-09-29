@@ -179,11 +179,20 @@ static PyObject *_Nuitka_Frame_GetLocalsDict(struct Nuitka_FrameObject *nuitka_f
     NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *result = MAKE_DICT_EMPTY(tstate);
+
+    // The published pointer is the authoritative storage: the stack struct
+    // while the frame executes, or the frame's copy after the exception
+    // detach. It is NULL once the frame exited normally.
+    char const *storage = (char *)nuitka_frame->m_locals_ptr;
+
+    if (storage == NULL) {
+        return result;
+    }
+
     PyObject **var_names = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
     PyCodeObject *co = Nuitka_GetFrameCodeObject(nuitka_frame);
     unsigned char const *w = (unsigned char const *)nuitka_frame->m_type_description;
-    char const *storage = (char *)NUITKA_FRAME_LOCALS_STORAGE(nuitka_frame);
     size_t offset = 0;
 
     Py_ssize_t locals_count = Nuitka_GetCodeLocalsCount(co);
@@ -1305,6 +1314,7 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object) {
 
     unsigned char const *w = (unsigned char const *)type_description;
     void *src = frame_object->m_locals_ptr;
+    assert(src != NULL);
     char *dst = NUITKA_FRAME_LOCALS_STORAGE(frame_object);
     size_t offset = 0;
 
