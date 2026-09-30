@@ -67,6 +67,21 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
     # the tried block executed up to the end. And then we make the else block be
     # a conditional statement checking that.
 
+    # If the handling aborts, no indicator is needed, since only normal
+    # completion of the "tried" block can reach the "no_raise" block.
+    if handling is not None and handling.isStatementAborting():
+        return makeStatementsSequenceFromStatements(
+            StatementTry(
+                tried=tried,
+                except_handler=handling,
+                break_handler=None,
+                continue_handler=None,
+                return_handler=None,
+                source_ref=source_ref,
+            ),
+            no_raise,
+        )
+
     # Indicator variable, will end up with C bool type, and need not be released.
     tmp_handler_indicator_variable = provider.allocateTempVariable(
         temp_scope=temp_scope, name="unhandled_indicator", temp_type="bool"
