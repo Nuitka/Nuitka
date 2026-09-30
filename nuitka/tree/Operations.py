@@ -8,31 +8,35 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
+# Stack indicator for the leave call of a node, when its children are done.
+_leave_indicator = object()
+
 
 def visitTree(tree, visitor):
     # Iterative pre-/post-order traversal using an explicit stack, so that very
     # deeply nested node trees do not exceed the Python recursion limit.
-    stack = [(tree, False)]
+    stack = [tree]
 
     while stack:
-        node, children_visited = stack.pop()
+        item = stack.pop()
 
-        if children_visited:
-            visitor.onLeaveNode(node)
+        if item is _leave_indicator:
+            visitor.onLeaveNode(stack.pop())
         else:
-            visitor.onEnterNode(node)
-            children = node.getVisitableNodes()
+            visitor.onEnterNode(item)
+            children = item.getVisitableNodes()
 
             if children:
                 # Revisit this node for the leave call once its children are
                 # done, then push the children in reverse, so they are visited
                 # left to right.
-                stack.append((node, True))
+                stack.append(item)
+                stack.append(_leave_indicator)
 
                 for visitable in reversed(children):
-                    stack.append((visitable, False))
+                    stack.append(visitable)
             else:
-                visitor.onLeaveNode(node)
+                visitor.onLeaveNode(item)
 
 
 class VisitorNoopMixin(object):
