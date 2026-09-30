@@ -1174,45 +1174,6 @@ def buildInplaceAssignNode(provider, node, source_ref):
     return makeStatementsSequenceFromStatements(*statements)
 
 
-def _isGeneratorExpressionBody(node):
-    return node.isExpressionGeneratorObjectBody() and node.name == "<genexpr>"
-
-
-def _bindNamedExprInEnclosingFunction(genexpr_body, variable_name, source_ref):
-    """Make an assignment expression's target a variable of the scope around.
-
-    Inside a generator expression, the target belongs to the nearest scope that
-    is no comprehension, as CPython binds it. The generator expression reaches
-    it as a non-local, but a function that does not otherwise assign the name
-    has no such variable, and the look up then found a module variable: every
-    call, from every thread, shared one value. A function gets it as a local,
-    unless it declares it global or non-local itself.
-    """
-    target = genexpr_body.getParentVariableProvider()
-
-    while target.isExpressionOutlineFunction() or _isGeneratorExpressionBody(target):
-        # Nested generator expressions pass the name on to the outer one.
-        if _isGeneratorExpressionBody(target):
-            target.addNonlocalsDeclaration(
-                (variable_name,), user_provided=False, source_ref=source_ref
-            )
-
-        target = target.getParentVariableProvider()
-
-    # At module level, the target is a module variable indeed, and class bodies
-    # do not allow assignment expressions in comprehensions.
-    if target.isCompiledPythonModule() or target.isExpressionClassBodyBase():
-        return
-
-    for non_local_names, _user_provided, _source_ref in (
-        target.non_local_declarations or ()
-    ):
-        if variable_name in non_local_names:
-            return
-
-    target.getVariableForAssignment(variable_name)
-
-
 def buildNamedExprNode(provider, node, source_ref):
     """Assignment expressions, Python3.8 or higher only."""
 
@@ -1240,7 +1201,17 @@ def buildNamedExprNode(provider, node, source_ref):
             (variable_name,), user_provided=False, source_ref=source_ref
         )
 
-        _bindNamedExprInEnclosingFunction(locals_owner, variable_name, source_ref)
+        # The target belongs to the scope around the generator expressions,
+        # which needs to have the variable, or else the non-local look-up
+        # finds a module variable instead.
+        target_owner = locals_owner.getParentVariableProvider()
+        while target_owner.isExpressionOutlineFunction() or (
+            target_owner.isExpressionGeneratorObjectBody()
+            and target_owner.name == "<genexpr>"
+        ):
+            target_owner = target_owner.getParentVariableProvider()
+
+        target_owner.getVariableForAssignment(variable_name)
 
     statements = (
         makeStatementAssignmentVariable(
