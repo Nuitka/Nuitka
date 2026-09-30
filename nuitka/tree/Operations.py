@@ -11,8 +11,7 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 def visitTree(tree, visitor):
     # Iterative pre-/post-order traversal using an explicit stack, so that very
-    # deeply nested node trees do not exceed the Python recursion limit, which
-    # the previous per-node recursion did.
+    # deeply nested node trees do not exceed the Python recursion limit.
     stack = [(tree, False)]
 
     while stack:
