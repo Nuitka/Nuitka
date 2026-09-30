@@ -1175,6 +1175,14 @@ def buildInplaceAssignNode(provider, node, source_ref):
     return makeStatementsSequenceFromStatements(*statements)
 
 
+def _isGeneratorExpressionBody(node):
+    """Generator expressions, asynchronous ones are a node kind of their own."""
+
+    return (
+        node.isExpressionGeneratorObjectBody() or node.isExpressionAsyncgenObjectBody()
+    ) and node.name == "<genexpr>"
+
+
 def buildNamedExprNode(provider, node, source_ref):
     """Assignment expressions, Python3.8 or higher only."""
 
@@ -1194,13 +1202,21 @@ def buildNamedExprNode(provider, node, source_ref):
 
     variable_name = mangleName(node.target.id, provider)
 
-    if (
-        locals_owner.isExpressionGeneratorObjectBody()
-        and locals_owner.name == "<genexpr>"
-    ):
+    if _isGeneratorExpressionBody(locals_owner):
         locals_owner.addNonlocalsDeclaration(
             (variable_name,), user_provided=False, source_ref=source_ref
         )
+
+        # The target belongs to the enclosing scope, which needs to have the
+        # variable, or else the non-local look-up finds a module variable
+        # instead.
+        target_owner = locals_owner.getParentVariableProvider()
+        while target_owner.isExpressionOutlineFunction() or _isGeneratorExpressionBody(
+            target_owner
+        ):
+            target_owner = target_owner.getParentVariableProvider()
+
+        target_owner.getVariableForAssignment(variable_name)
 
     statements = (
         makeStatementAssignmentVariable(
