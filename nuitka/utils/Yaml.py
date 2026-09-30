@@ -27,7 +27,7 @@ from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
 from .Hashing import HashCRC32
-from .Importing import importFromInlineCopy
+from .InlineCopies import importFromInlineCopy
 from .ModuleNames import checkModuleName
 from .PrivatePipSpace import getPrivatePackage, getRequiredVersion
 

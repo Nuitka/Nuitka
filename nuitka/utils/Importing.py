@@ -15,12 +15,6 @@ from nuitka.plugins.Hooks import decideRecompileExtensionModules
 from nuitka.PythonVersions import python_version
 
 from .FileOperations import listDir
-
-# For re-export only:
-from .InlineCopies import (  # pylint: disable=unused-import
-    getInlineCopyFolder,
-    importFromInlineCopy,
-)
 from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 

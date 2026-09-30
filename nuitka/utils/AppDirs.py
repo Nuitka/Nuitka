@@ -19,7 +19,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 from nuitka.Tracing import general
 
 from .FileOperations import getNormalizedPath, makePath, removeDirectory
-from .Importing import importFromInlineCopy
+from .InlineCopies import importFromInlineCopy
 
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
 
