@@ -22,8 +22,12 @@ extern volatile int _Py_Ticker;
 
 // Signals pending got their own indicator only in 3.8, covered by calls to do before.
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval2->pending.calls_to_do._value)
-#elif PYTHON_VERSION < 0x3d0
+#elif PYTHON_VERSION < 0x3c0
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
+#elif PYTHON_VERSION < 0x3d0
+#define HAS_WORK_TO_DO(ceval, ceval2)                                                                                  \
+    (ceval->signals_pending._value || ceval2->pending.calls_to_do._value ||                                            \
+     (_Py_IsMainThread() && _Py_IsMainInterpreter(tstate->interp) && ceval->pending_mainthread.calls_to_do._value))
 #else
 #define HAS_WORK_TO_DO(ceval, ceval2) _Py_eval_breaker_bit_is_set(tstate, _PY_SIGNALS_PENDING_BIT | _PY_CALLS_TO_DO_BIT)
 #endif
