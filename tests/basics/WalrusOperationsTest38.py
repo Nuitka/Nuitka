@@ -1,7 +1,7 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Walrus dictionary operation corner cases."""
+"""Walrus operation corner cases."""
 
 
 def case1_pop3_unknown_key(key, **kwargs):
@@ -56,6 +56,40 @@ def case5_pop3_in_try(key, **kwargs):
     return None
 
 
+def case6_shadows_outer_function():
+    """Without a declaration, a variable of an outer function is not written."""
+
+    f = "outer"
+
+    def inner():
+        result = tuple(f for v in [1, 2] if (f := v))
+
+        return result, f
+
+    return inner(), f
+
+
+async def asyncSource():
+    yield 1
+    yield 2
+
+
+async def case7_asynchronous_generator_expression():
+    """An asynchronous generator expression is a generator expression too."""
+
+    generator = (o async for v in asyncSource() if (o := v + 100))
+    results = [item async for item in generator]
+
+    return results, o
+
+
+def runCoroutine(coroutine):
+    try:
+        coroutine.send(None)
+    except StopIteration as stop:
+        return stop.value
+
+
 print("case1-hit", case1_pop3_unknown_key("x", x=1))
 print("case1-miss", case1_pop3_unknown_key("x"))
 
@@ -74,6 +108,9 @@ print("case4", case4_setdefault3_unknown_key("x"))
 print("case5-hit", case5_pop3_in_try("x", x=1))
 print("case5-miss", case5_pop3_in_try("x"))
 print("case5-caught", case5_pop3_in_try([], x=1))
+
+print("case6", case6_shadows_outer_function())
+print("case7", runCoroutine(case7_asynchronous_generator_expression()))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
