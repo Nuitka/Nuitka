@@ -6,6 +6,7 @@
 from __future__ import print_function
 
 import inspect
+import traceback
 
 print("Generator expression that demonstrates the timing:")
 
@@ -140,6 +141,30 @@ def genexprSend():
         x.throw(ValueError(5))
     except ValueError as e:
         print("Gave expected ValueError with text:", e)
+
+    print("Throwing a previously raised exception to it.")
+    try:
+        raise ValueError("origin")
+    except ValueError as e:
+        origin = e
+
+    try:
+        x.throw(origin)
+    except ValueError as e:
+        frames = traceback.extract_tb(e.__traceback__)
+        print("Gave expected ValueError with traceback frames:", frames)
+
+    print(
+        "Throwing a previously raised exception to a not yet started generator expression."
+    )
+
+    fresh = (z for z in range(1))
+
+    try:
+        fresh.throw(origin)
+    except ValueError as e:
+        frames = traceback.extract_tb(e.__traceback__)
+        print("Gave expected ValueError with traceback frames:", frames)
 
 
 print("Generator expressions have send too:")

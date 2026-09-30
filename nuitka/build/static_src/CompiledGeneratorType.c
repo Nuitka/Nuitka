@@ -986,6 +986,14 @@ static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
                                                          PyObject *exception_type, PyObject *exception_value,
                                                          PyTracebackObject *exception_tb) {
 
+#if PYTHON_VERSION >= 0x300
+    if (exception_tb == NULL || (PyObject *)exception_tb == Py_None) {
+        if (PyExceptionInstance_Check(exception_type)) {
+            exception_tb = GET_EXCEPTION_TRACEBACK(exception_type);
+        }
+    }
+#endif
+
 #if PYTHON_VERSION >= 0x3c0
     Py_INCREF(exception_type);
     Py_XINCREF(exception_value);
@@ -1353,16 +1361,21 @@ throw_here:
     } else {
         PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
 
+        // TODO: Our compiled objects really need a way to store common
+        // stuff in a "shared" part across all instances, and outside of
+        // run time, so we could reuse this.
+        struct Nuitka_FrameObject *frame =
+            MAKE_FUNCTION_FRAME(tstate, generator->m_code_object, generator->m_module, 0, NULL);
+
         if (exception_tb == NULL) {
-            // TODO: Our compiled objects really need a way to store common
-            // stuff in a "shared" part across all instances, and outside of
-            // run time, so we could reuse this.
-            struct Nuitka_FrameObject *frame =
-                MAKE_FUNCTION_FRAME(tstate, generator->m_code_object, generator->m_module, 0, NULL);
-            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
-                                          MAKE_TRACEBACK(frame, generator->m_code_object->co_firstlineno));
-            Py_DECREF(frame);
+            exception_tb = MAKE_TRACEBACK(frame, generator->m_code_object->co_firstlineno);
+        } else {
+            exception_tb = ADD_TRACEBACK(exception_tb, frame, generator->m_code_object->co_firstlineno);
         }
+
+        SET_EXCEPTION_STATE_TRACEBACK(exception_state, exception_tb);
+
+        Py_DECREF(frame);
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
 
