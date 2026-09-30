@@ -399,7 +399,7 @@ can be used to turn all of these on.""",
             help="""\
 What to do if a specific import is encountered. Format is module name,
 which can and should be a top level package and then one choice, "error",
-"warning", "nofollow", e.g. PyQt5:error.""",
+"warning", e.g. PyQt5:error.""",
         )
 
     def _getContextCode(self, module_name, anti_bloat_config):
