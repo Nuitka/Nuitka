@@ -195,6 +195,11 @@ except NameError:
     BaseExceptionGroup = None
 
 try:
+    frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    frozendict = None
+
+try:
     BrokenPipeError = BrokenPipeError  # pylint: disable=I0021,redefined-builtin
 except NameError:
     BrokenPipeError = OSError
