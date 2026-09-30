@@ -19,16 +19,20 @@ def visitTree(tree, visitor):
 
         if children_visited:
             visitor.onLeaveNode(node)
-            continue
+        else:
+            visitor.onEnterNode(node)
+            children = node.getVisitableNodes()
 
-        visitor.onEnterNode(node)
+            if children:
+                # Revisit this node for the leave call once its children are
+                # done, then push the children in reverse, so they are visited
+                # left to right.
+                stack.append((node, True))
 
-        # Revisit this node for the leave call once its children are done, then
-        # push the children in reverse, so they are visited left to right.
-        stack.append((node, True))
-
-        for visitable in reversed(node.getVisitableNodes()):
-            stack.append((visitable, False))
+                for visitable in reversed(children):
+                    stack.append((visitable, False))
+            else:
+                visitor.onLeaveNode(node)
 
 
 class VisitorNoopMixin(object):
