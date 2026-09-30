@@ -12,6 +12,19 @@ def isFrozendictSubclassCheck(value):
     return isinstance(value, frozendict)
 
 
+def isMapping(value):
+    return isinstance(value, (dict, frozendict))
+
+
+def matchKind(value):
+    match value:
+        case frozendict():
+            return "frozendict"
+        case dict():
+            return "dict"
+    return "other"
+
+
 def makeFrozendict():
     return frozendict({"a": 1, "b": 2})
 
@@ -20,6 +33,8 @@ value = makeFrozendict()
 
 print("type is frozendict:", isFrozendict(value), isFrozendict({"a": 1}))
 print("isinstance:", isFrozendictSubclassCheck(value), isFrozendictSubclassCheck([]))
+print("isinstance tuple:", isMapping(value), isMapping({}), isMapping([]))
+print("match:", matchKind(value), matchKind({}), matchKind([]))
 print("class compare:", value.__class__ == frozendict)
 print("type name:", frozendict.__name__)
 print("value:", value, len(value), value["b"])
