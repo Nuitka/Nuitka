@@ -793,11 +793,13 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
                 break
 
 
-def getSubDirectoriesWithDlls(path, ignore_permission_error=False):
+def getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
     """Get all directories below a given path.
 
     Args:
         path: directory to create a recursive listing from
+        ignore_dirs: directories named that like will be ignored, in
+            addition to the ones ignored by default.
         ignore_permission_error: When True, permission errors are
             silently ignored.
 
@@ -813,15 +815,17 @@ def getSubDirectoriesWithDlls(path, ignore_permission_error=False):
     result = set()
 
     for dll_sub_directory in _getSubDirectoriesWithDlls(
-        path, ignore_permission_error=ignore_permission_error
+        path,
+        ignore_dirs=ignore_dirs,
+        ignore_permission_error=ignore_permission_error,
     ):
         result.add(dll_sub_directory)
 
     return tuple(sorted(result))
 
 
-def _getSubDirectoriesWithDlls(path, ignore_permission_error=False):
-    ignore_dirs = ["__pycache__"]
+def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=False):
+    ignore_dirs = ["__pycache__"] + list(ignore_dirs)
 
     # On macOS the "Resources" directories of frameworks contain no DLLs and
     # can have restrictive permissions, so we exclude them from the scan.

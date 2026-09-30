@@ -30,6 +30,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getNormalizedPath,
     getReportPath,
+    getSubDirectoriesWithDlls,
     isFilenameBelowPath,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
@@ -58,64 +59,6 @@ def _clearBinaryPathDLLsMacOSCache(binary_filename):
     for cache_key in list(_detect_binary_path_dlls_cache):
         if areSamePaths(cache_key[1], binary_filename):
             del _detect_binary_path_dlls_cache[cache_key]
-
-
-def _isHomebrewLibraryDirectory(directory_name, filenames):
-    """Return True if this directory may hold loadable Homebrew libraries."""
-    # spell-checker: ignore dylibs
-    if directory_name in ("lib", "Frameworks", ".dylibs"):
-        return True
-    if directory_name.endswith(".framework"):
-        return True
-
-    for filename in filenames:
-        filename_c = os.path.normcase(filename)
-        if filename_c.endswith((".dylib", ".so")):
-            return True
-        if ".so." in filename_c:
-            return True
-
-    return False
-
-
-def _iterHomebrewLibraryRpaths(homebrew_prefix):
-    """Yield Homebrew subdirectories that can contain shared libraries.
-
-    Replaces a full ``getSubDirectories`` walk of the Homebrew prefix, which
-    otherwise adds tens of thousands of non-library paths (share/include/docs)
-    as rpath candidates on every standalone build.
-    """
-    # spell-checker: ignore Caskroom
-    ignore_dirs = (
-        "__pycache__",
-        "share",
-        "include",
-        "etc",
-        "var",
-        "Caskroom",
-        "site-packages",
-        ".git",
-        "docs",
-        "man",
-        "info",
-    )
-    ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
-
-    try:
-        for root, dirnames, filenames in os.walk(homebrew_prefix):
-            dirnames_normalized = [os.path.normcase(dirname) for dirname in dirnames]
-            for ignore_dir in ignore_dirs:
-                if ignore_dir in dirnames_normalized:
-                    idx = dirnames_normalized.index(ignore_dir)
-                    del dirnames[idx]
-                    del dirnames_normalized[idx]
-
-            dirnames.sort()
-
-            if _isHomebrewLibraryDirectory(os.path.basename(root), filenames):
-                yield root
-    except OSError:
-        return
 
 
 def _detectPythonRpaths():
@@ -149,9 +92,24 @@ def _detectPythonRpaths():
             result.append(candidate)
 
     if isHomebrewPython() or isPyenvHomebrewPython():
-        # Homebrew's prefix holds tens of thousands of dirs (Cellar docs, share,
-        # site-packages, ...). Only keep paths that can resolve @rpath dylibs.
-        result.extend(_iterHomebrewLibraryRpaths(getHomebrewInstallPath()))
+        # Only add the directories with DLLs in them, but never "site-packages".
+        # spell-checker: ignore Caskroom
+        result.extend(
+            getSubDirectoriesWithDlls(
+                path=getHomebrewInstallPath(),
+                ignore_dirs=(
+                    "include",
+                    "etc",
+                    "var",
+                    "Caskroom",
+                    "site-packages",
+                    ".git",
+                    "docs",
+                    "man",
+                    "info",
+                ),
+            )
+        )
 
     return tuple(
         getNormalizedPath(candidate)
