@@ -832,7 +832,11 @@ def _getSubDirectoriesWithDlls(path, ignore_dirs=(), ignore_permission_error=Fal
     if isMacOS():
         ignore_dirs.append("Resources")
 
-    for sub_directory in getSubDirectories(path=path, ignore_dirs=ignore_dirs):
+    for sub_directory in getSubDirectories(
+        path=path,
+        ignore_dirs=ignore_dirs,
+        ignore_permission_error=ignore_permission_error,
+    ):
         if any(
             listDllFilesFromDirectory(
                 path=sub_directory,
