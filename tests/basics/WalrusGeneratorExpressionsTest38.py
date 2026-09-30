@@ -151,6 +151,38 @@ def case15_calls_do_not_share():
     return next(first), next(second), next(first), next(second)
 
 
+async def asyncSource():
+    yield 1
+    yield 2
+
+
+async def case18_asynchronous_generator_expression():
+    """An asynchronous generator expression is one too, a node kind of its own."""
+
+    generator = (o async for v in asyncSource() if (o := v + 100))
+    results = [item async for item in generator]
+
+    return results, o
+
+
+async def case19_in_asynchronous_generator_expression():
+    """A generator expression inside an asynchronous one is passed through it."""
+
+    generator = (tuple((q := v) for v in (1, 2)) async for _ in asyncSource())
+    results = [item async for item in generator]
+
+    return results, q
+
+
+async def case20_asynchronous_with_plain_loop():
+    """The asynchronous loop may come second."""
+
+    generator = (r for v in [1, 2] async for _ in asyncSource() if (r := v * 10))
+    results = [item async for item in generator]
+
+    return results, r
+
+
 def runCoroutine(coroutine):
     try:
         coroutine.send(None)
@@ -178,6 +210,9 @@ print("case12", list(case12_generator_function()))
 print("case13", runCoroutine(case13_coroutine()))
 print("case14", case14_read_while_suspended())
 print("case15", case15_calls_do_not_share())
+print("case18", runCoroutine(case18_asynchronous_generator_expression()))
+print("case19", runCoroutine(case19_in_asynchronous_generator_expression()))
+print("case20", runCoroutine(case20_asynchronous_with_plain_loop()))
 print("case16", case16_result, case16_value)
 print("case17", case17_result, case17_value)
 
@@ -196,7 +231,10 @@ for name in (
     "l",
     "m",
     "n",
+    "o",
     "p",
+    "q",
+    "r",
     "x",
     "y",
     "case9_value",
