@@ -30,7 +30,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getNormalizedPath,
     getReportPath,
-    getSubDirectories,
+    getSubDirectoriesWithDlls,
     isFilenameBelowPath,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
@@ -92,10 +92,22 @@ def _detectPythonRpaths():
             result.append(candidate)
 
     if isHomebrewPython() or isPyenvHomebrewPython():
+        # Only add the directories with DLLs in them, but never "site-packages".
+        # spell-checker: ignore Caskroom
         result.extend(
-            os.path.join(getHomebrewInstallPath(), directory)
-            for directory in getSubDirectories(
-                path=getHomebrewInstallPath(), ignore_dirs=("__pycache__",)
+            getSubDirectoriesWithDlls(
+                path=getHomebrewInstallPath(),
+                ignore_dirs=(
+                    "include",
+                    "etc",
+                    "var",
+                    "Caskroom",
+                    "site-packages",
+                    ".git",
+                    "docs",
+                    "man",
+                    "info",
+                ),
             )
         )
 
