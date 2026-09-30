@@ -1324,8 +1324,13 @@ class ValueTraceLoop(ValueTraceMergeBase):
     def addLoopContinueTraces(self, continue_traces):
         self.previous += tuple(continue_traces)
 
-        for previous in continue_traces:
-            previous.addMergeUsage()
+        # Usage of the loop trace has been propagated to the continue traces
+        # known at the time. Late attached continue traces only need to catch
+        # up when the loop trace is actually in use, otherwise the versions
+        # would be marked as used, e.g. preventing dead assignment removal.
+        if self.usage_count:
+            for previous in continue_traces:
+                previous.addMergeUsage()
 
         self.analysis_complete = True
 
