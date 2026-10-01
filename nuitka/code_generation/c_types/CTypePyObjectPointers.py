@@ -3,7 +3,7 @@
 
 """CType classes for PyObject *, PyObject **, and struct Nuitka_CellObject *"""
 
-from nuitka.__past__ import iterItems, xrange
+from nuitka.__past__ import frozendict, iterItems, xrange
 from nuitka.code_generation.ErrorCodes import (
     getErrorExitBoolCode,
     getReleaseCode,
@@ -206,6 +206,25 @@ class CPythonPyObjectPtrBase(CTypeBase):
             else:
                 code = "MAKE_DICT_EMPTY(tstate)"
                 ref_count = 1
+        elif type(constant) is frozendict:
+            needs_deep = False
+
+            if may_escape:
+                for _key, value in iterItems(constant):
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+
+            if needs_deep:
+                code = "DEEP_COPY_FROZENDICT(tstate, %s)" % context.getConstantCode(
+                    constant, deep_check=False
+                )
+                ref_count = 1
+            else:
+                # The frozendict is immutable, and so is all its content, it
+                # can be shared without copying.
+                code = context.getConstantCode(constant)
+                ref_count = 0
         elif type(constant) is set:
             if not may_escape:
                 code = context.getConstantCode(constant)

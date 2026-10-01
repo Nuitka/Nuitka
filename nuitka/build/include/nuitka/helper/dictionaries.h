@@ -20,6 +20,15 @@ static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
     return ((PyDictObject *)dict)->ma_used;
 }
 
+#if PYTHON_VERSION >= 0x3f0
+static inline Py_ssize_t FROZENDICT_SIZE(PyObject *frozendict) {
+    CHECK_OBJECT(frozendict);
+    assert(PyFrozenDict_CheckExact(frozendict));
+
+    return ((PyDictObject *)frozendict)->ma_used;
+}
+#endif
+
 static inline PyDictObject *MODULE_DICT(PyObject *module) {
     CHECK_OBJECT(module);
 
@@ -458,6 +467,11 @@ extern void DICT_CLEAR(PyObject *dict);
 
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
+
+#if PYTHON_VERSION >= 0x3f0
+// Replacement for PyDict_Next for frozendicts, that are always combined dicts.
+extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
+#endif
 
 #if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL) &&                                  \
     !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)

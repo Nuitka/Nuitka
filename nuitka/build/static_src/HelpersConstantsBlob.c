@@ -71,6 +71,10 @@ static PyObject *set_cache = NULL;
 
 static PyObject *frozenset_cache = NULL;
 
+#if PYTHON_VERSION >= 0x3f0
+static PyObject *frozendict_cache = NULL;
+#endif
+
 // Use our own non-random hash for some of the things to be fast. This is inspired
 // from the original Python2 hash func, but we are mostly using it on pointer values
 static Py_hash_t Nuitka_FastHashBytes(const void *value, Py_ssize_t size) {
@@ -302,6 +306,56 @@ static PyObject *our_dict_tp_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
+#if PYTHON_VERSION >= 0x3f0
+static Py_hash_t our_frozendict_hash(PyObject *frozendict) {
+    Py_hash_t result = 0;
+
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+
+    while (Nuitka_FrozenDictNext(frozendict, &pos, &key, &value)) {
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
+    }
+
+    return result;
+}
+
+static PyObject *our_frozendict_tp_richcompare(PyObject *a, PyObject *b, int op) {
+    PyObject *result;
+
+    if (FROZENDICT_SIZE(a) != FROZENDICT_SIZE(b)) {
+        result = Py_False;
+    } else {
+        result = Py_True;
+
+        Py_ssize_t pos1 = 0, pos2 = 0;
+        PyObject *key1, *value1;
+        PyObject *key2, *value2;
+
+        // Same sized frozendict, simply check if key and values are identical.
+        // Other reductions should make it identical, or else this won't have the
+        // effect intended.
+        while (Nuitka_FrozenDictNext(a, &pos1, &key1, &value1)) {
+            {
+                NUITKA_MAY_BE_UNUSED int res = Nuitka_FrozenDictNext(b, &pos2, &key2, &value2);
+                assert(res != 0);
+            }
+
+            if (key1 != key2 || value1 != value2) {
+                result = Py_False;
+                break;
+            }
+        }
+    }
+
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+#endif
+
 // For creation of small long singleton long values as required by Python3.
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
@@ -344,6 +398,10 @@ static void initCaches(void) {
     set_cache = PyDict_New();
 
     frozenset_cache = PyDict_New();
+
+#if PYTHON_VERSION >= 0x3f0
+    frozendict_cache = PyDict_New();
+#endif
 
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
@@ -663,6 +721,44 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
 
     return data;
 }
+
+#if PYTHON_VERSION >= 0x3f0
+static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *tstate, void **output,
+                                                                unsigned char const *data) {
+    int size = (int)_unpackVariableLength(&data);
+
+    PyObject *d = _PyDict_NewPresized(size);
+    CHECK_OBJECT(d);
+
+    if (size > 0) {
+        NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+        NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
+
+        data = _unpackBlobConstantsAt(tstate, keys, data, size);
+        data = _unpackBlobConstantsAt(tstate, values, data, size);
+
+        CHECK_OBJECTS(&keys[0], size);
+        CHECK_OBJECTS(&values[0], size);
+
+        for (int i = 0; i < size; i++) {
+            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, keys[i], values[i]);
+            assert(res == 0);
+        }
+    }
+
+    PyObject *result = PyFrozenDict_New(d);
+    CHECK_OBJECT(result);
+
+    Py_DECREF(d);
+
+    insertToDictCacheForcedHash(frozendict_cache, &result, (hashfunc)our_frozendict_hash,
+                                (richcmpfunc)our_frozendict_tp_richcompare);
+
+    _finalizeUnpackedConstantObject(output, result);
+
+    return data;
+}
+#endif
 
 static unsigned char const *_unpackBlobConstantObjectSetOrFrozenset(PyThreadState *tstate, void **output,
                                                                     unsigned char const *data, unsigned char c) {
@@ -1368,6 +1464,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         data = _unpackBlobConstantObjectSetOrFrozenset(tstate, output, data, c);
         break;
     }
+#if PYTHON_VERSION >= 0x3f0
+    case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT: {
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data);
+        break;
+    }
+#endif
 #if PYTHON_VERSION < 0x300
     case NUITKA_CONSTANT_BLOB_TAG_INT_NEGATIVE:
     case NUITKA_CONSTANT_BLOB_TAG_INT_POSITIVE: {

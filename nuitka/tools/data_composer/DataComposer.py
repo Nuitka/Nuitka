@@ -9,7 +9,7 @@ import struct
 import sys
 from math import copysign, isinf, isnan
 
-from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
+from nuitka.__past__ import BytesIO, frozendict, long, to_byte, unicode, xrange
 from nuitka.build.ConstantBlobFormat import loadConstantBlobSpec
 from nuitka.build.DataComposerInterface import (
     deriveModuleConstantsBlobName,
@@ -113,8 +113,11 @@ def _writeConstantValue(output, constant_value, blob_spec):
 
         for element in constant_value:
             _writeConstantValue(output, element, blob_spec)
-    elif constant_type is dict:
-        output.write(blob_spec.tag_dict + _encodeVariableLength(len(constant_value)))
+    elif constant_type is dict or constant_type is frozendict:
+        output.write(
+            (blob_spec.tag_dict if constant_type is dict else blob_spec.tag_frozendict)
+            + _encodeVariableLength(len(constant_value))
+        )
 
         # Write keys first, and values second, such that we allow for the
         # last_written to have an impact.

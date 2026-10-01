@@ -29,6 +29,19 @@ def makeFrozendict():
     return frozendict({"a": 1, "b": 2})
 
 
+def makeMutableFrozendict():
+    return frozendict({"items": [1, 2]})
+
+
+def makeNestedFrozendict():
+    return (frozendict({"items": [1]}), 2)
+
+
+def unpackFrozendict(key_a, key_b):
+    key1, key2 = frozendict({key_a: 1, key_b: 2})
+    return key1, key2
+
+
 value = makeFrozendict()
 
 print("type is frozendict:", isFrozendict(value), isFrozendict({"a": 1}))
@@ -38,6 +51,34 @@ print("match:", matchKind(value), matchKind({}), matchKind([]))
 print("class compare:", value.__class__ == frozendict)
 print("type name:", frozendict.__name__)
 print("value:", value, len(value), value["b"])
+print("iterate:", sorted(value), sorted(iter(value)))
+print("next:", next(iter(value)), next(iter(frozendict({"z": 0}))))
+print("contains:", "a" in value, "c" in value)
+print("methods:", sorted(value.keys()), value.get("a"), value.get("c", 42))
+print("copy:", value.copy() == value, type(value.copy()) is frozendict)
+print("fromkeys:", frozendict.fromkeys(("x", "y"), 0))
+print("or:", value | {"c": 3}, value | frozendict({"c": 3}))
+print("empty:", frozendict(), bool(frozendict()), bool(value))
+print("equal:", value == frozendict({"a": 1, "b": 2}))
+print("hash:", hash(value) == hash(frozendict({"a": 1, "b": 2})))
+
+try:
+    hash(frozendict({"items": []}))
+except TypeError as e:
+    print("unhashable:", type(e).__name__)
+
+mutable = makeMutableFrozendict()
+mutable["items"].append(3)
+print("deep copy:", mutable, makeMutableFrozendict())
+
+nested = makeNestedFrozendict()
+nested[0]["items"].append(3)
+print("nested deep copy:", nested, makeNestedFrozendict())
+
+print("kwargs:", (lambda **kw: sorted(kw.items()))(**frozendict({"a": 1, "b": 2})))
+print("dict:", dict(value), {key: value[key] for key in sorted(value)})
+print("mapping format:", "%(a)s-%(b)s" % value)
+print("unpack:", unpackFrozendict("x", "y"))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

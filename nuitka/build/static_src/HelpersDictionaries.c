@@ -2132,6 +2132,69 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3f0
+bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
+    CHECK_OBJECT(frozendict);
+    assert(PyFrozenDict_CheckExact(frozendict));
+    assert(key_ptr != NULL);
+    assert(value_ptr != NULL);
+
+    PyDictObject *mp = (PyDictObject *)frozendict;
+
+    // Frozens are always combined dictionaries, there is no split table.
+    assert(mp->ma_values == NULL);
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+    Py_ssize_t n = mp->ma_keys->dk_nentries;
+
+    if (i >= n) {
+        return false;
+    }
+
+    PyObject *key, *value;
+
+    // Unicode keys or general keys have different sizes, make sure to index
+    // the right type, the algorithm is the same however.
+    if (DK_IS_UNICODE(mp->ma_keys)) {
+        PyDictUnicodeEntry *entry_ptr = &DK_UNICODE_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry_ptr->me_value == NULL) {
+            entry_ptr++;
+            i++;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        key = entry_ptr->me_key;
+        value = entry_ptr->me_value;
+    } else {
+        PyDictKeyEntry *entry_ptr = &DK_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry_ptr->me_value == NULL) {
+            entry_ptr++;
+            i++;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        key = entry_ptr->me_key;
+        value = entry_ptr->me_value;
+    }
+
+    *pos = i + 1;
+
+    *key_ptr = key;
+    *value_ptr = value;
+
+    return true;
+}
+#endif
+
 PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) {
     PyObject *result;
 

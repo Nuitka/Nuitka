@@ -392,6 +392,9 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 // Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value);
 extern PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value);
+#if PYTHON_VERSION >= 0x3f0
+extern PyObject *DEEP_COPY_FROZENDICT(PyThreadState *tstate, PyObject *frozendict_value);
+#endif
 extern PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value);

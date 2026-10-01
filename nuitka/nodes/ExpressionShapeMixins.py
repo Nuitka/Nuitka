@@ -12,6 +12,7 @@ from abc import abstractmethod
 from nuitka.Constants import (
     the_empty_bytearray,
     the_empty_dict,
+    the_empty_frozendict,
     the_empty_frozenset,
     the_empty_list,
     the_empty_set,
@@ -32,6 +33,7 @@ from .shapes.BuiltinTypeShapes import (
     tshape_dict,
     tshape_ellipsis,
     tshape_float,
+    tshape_frozendict,
     tshape_frozenset,
     tshape_int,
     tshape_int_or_long,
@@ -83,6 +85,10 @@ class ExpressionSpecificDerivedMixinBase(object):
 
     @staticmethod
     def hasShapeFrozensetExact():
+        return False
+
+    @staticmethod
+    def hasShapeFrozendictExact():
         return False
 
     @staticmethod
@@ -250,10 +256,6 @@ class ExpressionDictShapeExactMixin(
     def isKnownToBeHashable():
         return False
 
-    @staticmethod
-    def isKnownToBeIndexable():
-        return True
-
     def extractUnhashableNodeType(self):
         return makeConstantReplacementNode(
             constant=dict, node=self, user_provided=False
@@ -330,6 +332,30 @@ class ExpressionFrozensetShapeExactMixin(
     @staticmethod
     def isKnownToBeHashable():
         return True
+
+
+class ExpressionFrozendictShapeExactMixin(
+    ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
+):
+    """Mixin for nodes with exact frozendict shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_frozendict
+
+    @staticmethod
+    def hasShapeFrozendictExact():
+        return True
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_frozendict, attribute_name)
+
+    @staticmethod
+    def getKnownAttributeValue(attribute_name):
+        return getattr(the_empty_frozendict, attribute_name)
 
 
 class ExpressionSetShapeExactMixin(

@@ -17,6 +17,7 @@
 #define NUITKA_CONSTANT_BLOB_TAG_DICT 0x44                             /* 'D' */
 #define NUITKA_CONSTANT_BLOB_TAG_SET 0x53                              /* 'S' */
 #define NUITKA_CONSTANT_BLOB_TAG_FROZENSET 0x50                        /* 'P' */
+#define NUITKA_CONSTANT_BLOB_TAG_FROZENDICT 0x65                       /* 'e' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_SMALL 0x6c              /* 'l' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_NEGATIVE_SMALL 0x71              /* 'q' */
 #define NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_LARGE 0x67              /* 'g' */

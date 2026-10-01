@@ -38,6 +38,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
     tshape_dict,
+    tshape_frozendict,
     tshape_int,
     tshape_list,
     tshape_none,
@@ -118,6 +119,8 @@ def _getMixinForShape(shape):
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionNoneShapeExactMixin"
     elif shape is tshape_dict:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionDictShapeExactMixin"
+    elif shape is tshape_frozendict:
+        return "nuitka.nodes.ExpressionShapeMixins.ExpressionFrozendictShapeExactMixin"
     elif shape is tshape_bytes:
         return "nuitka.nodes.ExpressionShapeMixins.ExpressionBytesShapeExactMixin"
     else:

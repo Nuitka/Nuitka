@@ -14,7 +14,15 @@ import re
 import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import GenericAlias, UnionType, long, md5, unicode, xrange
+from nuitka.__past__ import (
+    GenericAlias,
+    UnionType,
+    frozendict,
+    long,
+    md5,
+    unicode,
+    xrange,
+)
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.nodes.CodeObjectSpecs import (
     CodeObjectSpec,
@@ -115,6 +123,11 @@ def namifyConstant(constant):
             return "frozenset_empty"
         else:
             return "frozenset_" + _digest(repr(constant))
+    elif constant_type is frozendict:
+        if not constant:
+            return "frozendict_empty"
+        else:
+            return "frozendict_" + _digest(repr(constant))
     elif constant_type is tuple:
         if constant == ():
             return "tuple_empty"

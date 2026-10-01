@@ -15800,6 +15800,7 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
 
     # This is generated for use in
     #   ExpressionBuiltinDict
+    #   ExpressionBuiltinFrozendict
 
     def __init__(
         self,
@@ -15948,6 +15949,7 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionBuiltinDictMixin = ChildrenHavingPosArgOptionalPairsTupleMixin
+ChildrenExpressionBuiltinFrozendictMixin = ChildrenHavingPosArgOptionalPairsTupleMixin
 
 
 class ChildrenHavingRealOptionalImagMixin(object):

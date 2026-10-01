@@ -11,6 +11,7 @@ of operations allowed.
 import operator
 import re
 
+from nuitka.__past__ import frozendict
 from nuitka.PythonVersions import python_version
 
 binary_operator_functions = {
@@ -259,7 +260,7 @@ def predictStringFormatSizeRange(format_string, args):
     """
     # Check for mapping being involved.
     mapping_mode = False
-    if type(args) is dict:
+    if type(args) is dict or type(args) is frozendict:
         # Check if format uses mapping keys.
         match = _format_spec_re.search(format_string)
         if match and match.group(1) is not None:

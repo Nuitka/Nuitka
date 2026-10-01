@@ -25,7 +25,9 @@ from .PythonAPICodes import (
 )
 
 
-def generateBuiltinDictCode(to_name, expression, emit, context):
+def _generateBuiltinDictValueCode(to_name, expression, emit, context):
+    # Generated a plain dictionary for the arguments of the "dict" and
+    # "frozendict" built-ins.
     if expression.subnode_pos_arg:
         seq_name = context.allocateTempName("dict_seq")
 
@@ -39,48 +41,76 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
     else:
         seq_name = None
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "dict_value", expression, emit, context
-    ) as value_name:
-        if expression.subnode_pairs:
-            # If there is no sequence to mix in, then directly generate
-            # into to_name.
+    if expression.subnode_pairs:
+        # If there is no sequence to mix in, then directly generate
+        # into to_name.
 
-            if seq_name is None:
-                getDictionaryCreationCode(
-                    to_name=value_name,
-                    pairs=expression.subnode_pairs,
-                    emit=emit,
-                    context=context,
-                )
-
-                dict_name = None
-            else:
-                dict_name = context.allocateTempName("dict_arg")
-
-                getDictionaryCreationCode(
-                    to_name=dict_name,
-                    pairs=expression.subnode_pairs,
-                    emit=emit,
-                    context=context,
-                )
-        else:
-            dict_name = None
-
-        if seq_name is not None:
-            emit(
-                "%s = TO_DICT(tstate, %s, %s);"
-                % (value_name, seq_name, "NULL" if dict_name is None else dict_name)
-            )
-
-            getErrorExitCode(
-                check_name=value_name,
-                release_names=(seq_name, dict_name),
+        if seq_name is None:
+            getDictionaryCreationCode(
+                to_name=to_name,
+                pairs=expression.subnode_pairs,
                 emit=emit,
                 context=context,
             )
 
-            context.addCleanupTempName(value_name)
+            dict_name = None
+        else:
+            dict_name = context.allocateTempName("dict_arg")
+
+            getDictionaryCreationCode(
+                to_name=dict_name,
+                pairs=expression.subnode_pairs,
+                emit=emit,
+                context=context,
+            )
+    else:
+        dict_name = None
+
+    if seq_name is not None:
+        emit(
+            "%s = TO_DICT(tstate, %s, %s);"
+            % (to_name, seq_name, "NULL" if dict_name is None else dict_name)
+        )
+
+        getErrorExitCode(
+            check_name=to_name,
+            release_names=(seq_name, dict_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(to_name)
+
+
+def generateBuiltinDictCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        _generateBuiltinDictValueCode(
+            to_name=value_name, expression=expression, emit=emit, context=context
+        )
+
+
+def generateBuiltinFrozendictCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "frozendict_value", expression, emit, context
+    ) as value_name:
+        dict_name = context.allocateTempName("frozendict_dict")
+
+        _generateBuiltinDictValueCode(
+            to_name=dict_name, expression=expression, emit=emit, context=context
+        )
+
+        emit("%s = PyFrozenDict_New(%s);" % (value_name, dict_name))
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name,),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
 
 
 def generateDictionaryCreationCode(to_name, expression, emit, context):

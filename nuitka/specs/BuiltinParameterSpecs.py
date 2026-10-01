@@ -356,6 +356,8 @@ builtin_frozenset_spec = BuiltinParameterSpecNoKeywords(
     "frozenset", ("iterable",), default_count=1
 )
 
+builtin_frozendict_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("frozendict")
+
 builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )

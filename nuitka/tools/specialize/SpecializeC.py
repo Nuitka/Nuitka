@@ -49,6 +49,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
     tshape_dict,
+    tshape_frozendict,
     tshape_int,
     tshape_list,
     tshape_none,
@@ -1418,6 +1419,8 @@ def _getCheckForShape(shape):
         return None
     elif shape is tshape_dict:
         return "PyDict_CheckExact"
+    elif shape is tshape_frozendict:
+        return "PyFrozenDict_CheckExact"
     elif shape is tshape_bytes:
         return "PyBytes_CheckExact"
     else:

@@ -125,6 +125,7 @@ from .CoroutineCodes import (
 from .CtypesCodes import generateCtypesCdllCallCode
 from .DictCodes import (
     generateBuiltinDictCode,
+    generateBuiltinFrozendictCode,
     generateDictionaryCreationCode,
     generateDictOperationClearCode,
     generateDictOperationCopyCode,
@@ -752,6 +753,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_FROZENSET": generateBuiltinFrozensetCode,
         "EXPRESSION_BUILTIN_ALL": generateBuiltinAllCode,
         "EXPRESSION_BUILTIN_DICT": generateBuiltinDictCode,
+        "EXPRESSION_BUILTIN_FROZENDICT": generateBuiltinFrozendictCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
@@ -822,6 +824,8 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_EMPTY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENDICT_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENDICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
@@ -829,6 +833,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_DICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_SET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_FROZENDICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,

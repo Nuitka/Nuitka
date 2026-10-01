@@ -23,6 +23,7 @@ _tag_define_names = (
     ("dict", "NUITKA_CONSTANT_BLOB_TAG_DICT"),
     ("set", "NUITKA_CONSTANT_BLOB_TAG_SET"),
     ("frozenset", "NUITKA_CONSTANT_BLOB_TAG_FROZENSET"),
+    ("frozendict", "NUITKA_CONSTANT_BLOB_TAG_FROZENDICT"),
     ("long_positive_small", "NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_SMALL"),
     ("long_negative_small", "NUITKA_CONSTANT_BLOB_TAG_LONG_NEGATIVE_SMALL"),
     ("long_positive_large", "NUITKA_CONSTANT_BLOB_TAG_LONG_POSITIVE_LARGE"),

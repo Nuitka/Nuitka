@@ -29,7 +29,10 @@ from nuitka.nodes.BuiltinDecoratorNodes import (
     ExpressionBuiltinClassmethod,
     ExpressionBuiltinStaticmethod,
 )
-from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.BuiltinDictNodes import (
+    ExpressionBuiltinDict,
+    ExpressionBuiltinFrozendict,
+)
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinBin,
@@ -375,6 +378,30 @@ def dict_extractor(node):
         node=node,
         builtin_class=wrapExpressionBuiltinDictCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_dict_spec,
+    )
+
+
+def frozendict_extractor(node):
+    # The "frozendict" built-in behaves like "dict" for its arguments.
+    def wrapExpressionBuiltinFrozendictCreation(
+        positional_args, dict_star_arg, source_ref
+    ):
+        if positional_args:
+            # Only one allowed, the spec converted too many into an exception.
+            (pos_arg,) = positional_args
+        else:
+            pos_arg = None
+
+        return ExpressionBuiltinFrozendict(
+            pos_arg=pos_arg,
+            pairs=makeKeyValuePairExpressionsFromKwArgs(dict_star_arg),
+            source_ref=source_ref,
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapExpressionBuiltinFrozendictCreation,
+        builtin_spec=BuiltinParameterSpecs.builtin_frozendict_spec,
     )
 
 
@@ -1526,6 +1553,9 @@ else:
 
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
+
+if python_version >= 0x3F0:
+    _dispatch_dict["frozendict"] = frozendict_extractor
 
 
 def check():

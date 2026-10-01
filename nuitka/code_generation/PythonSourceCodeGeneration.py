@@ -10,7 +10,8 @@ important use is "__annotate__" functions.
 import re
 import types
 
-from nuitka.__past__ import GenericAlias, UnionType, re_sub
+from nuitka.__past__ import GenericAlias, UnionType, frozendict, re_sub
+from nuitka.Constants import EllipsisType, NoneType
 from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.Tracing import code_generation_logger
 
@@ -64,7 +65,9 @@ def _generateConstantTypeRefSource(expression):
     return _formatTypeSource(expression.getCompileTimeConstant(), expression)
 
 
-def _formatConstantFloat(value):
+def _formatConstantFloat(value, expression):
+    # The expression argument is for the uniform dispatch only.
+    # pylint: disable=unused-argument
     # "repr" gives bare "inf", "-inf" and "nan", which are names, not literals.
     result = repr(value)
 
@@ -74,71 +77,43 @@ def _formatConstantFloat(value):
     return result
 
 
-def _formatConstantElement(value, expression):
-    # Return driven, pylint: disable=too-many-return-statements
-    if value is Ellipsis:
-        return "..."
-    elif isinstance(value, type):
-        return _formatTypeSource(value, expression)
-    elif isinstance(value, str):
-        return repr(value)
-    elif isinstance(value, float):
-        return _formatConstantFloat(value)
-    elif isinstance(value, (int, bool, bytes)):
-        return repr(value)
-    elif isinstance(value, complex):
-        # "repr" of complex numbers with nan/inf components yields bare
-        # "nan"/"inf" tokens (e.g. "(nan+1j)"), which are names, not
-        # literals. For such values fall back to "complex(real, imag)" so
-        # each component is formatted via '_formatConstantFloat'.
-        real, imag = value.real, value.imag
+def _formatConstantComplex(value, expression):
+    real, imag = value.real, value.imag
 
-        if repr(real) in ("inf", "-inf", "nan") or repr(imag) in ("inf", "-inf", "nan"):
-            return "complex(%s, %s)" % (
-                _formatConstantFloat(real),
-                _formatConstantFloat(imag),
-            )
-
-        return repr(value)
-    elif value is None:
-        return "None"
-    elif GenericAlias is not None and isinstance(value, GenericAlias):
-        return str(value)
-    elif UnionType is not None and isinstance(value, UnionType):
-        return str(value)
-    elif isinstance(value, (types.BuiltinFunctionType, types.FunctionType)):
-        return value.__name__
-    else:
-        return _formatConstantContainer(value, expression)
-
-
-def _formatConstantContainer(value, expression):
-    if isinstance(value, tuple):
-        return _formatConstantTuple(value, expression)
-    elif isinstance(value, list):
-        return "[%s]" % ", ".join(_formatConstantElement(e, expression) for e in value)
-    elif isinstance(value, dict):
-        return "{%s}" % ", ".join(
-            "%s: %s"
-            % (
-                _formatConstantElement(k, expression),
-                _formatConstantElement(v, expression),
-            )
-            for k, v in value.items()
+    # "repr" of complex numbers with nan/inf components yields bare
+    # "nan"/"inf" tokens (e.g. "(nan+1j)"), which are names, not literals.
+    # For such values fall back to "complex(real, imag)" so each component
+    # is formatted via '_formatConstantFloat'.
+    if repr(real) in ("inf", "-inf", "nan") or repr(imag) in ("inf", "-inf", "nan"):
+        return "complex(%s, %s)" % (
+            _formatConstantFloat(real, expression),
+            _formatConstantFloat(imag, expression),
         )
-    elif isinstance(value, (set, frozenset)):
-        if not value:
-            return "frozenset()" if isinstance(value, frozenset) else "set()"
 
-        inner = ", ".join(_formatConstantElement(e, expression) for e in value)
-        if isinstance(value, frozenset):
-            return "frozenset({%s})" % inner
-        return "{%s}" % inner
-    else:
-        raise PythonSourceGenerationError(
-            "Unsupported constant value for source generation: %s (%s)"
-            % (type(value).__name__, repr(value))
-        )
+    return repr(value)
+
+
+def _formatConstantRepr(value, expression):
+    # The expression argument is for the uniform dispatch only.
+    # pylint: disable=unused-argument
+    return repr(value)
+
+
+def _formatConstantStr(value, expression):
+    # The expression argument is for the uniform dispatch only.
+    # pylint: disable=unused-argument
+    return str(value)
+
+
+def _formatEllipsisValue(value, expression):
+    # We insist on this value that is not the repr, pylint: disable=unused-argument
+    return "..."
+
+
+def _formatFunctionValue(value, expression):
+    # The expression argument is for the uniform dispatch only.
+    # pylint: disable=unused-argument
+    return value.__name__
 
 
 def _formatConstantTuple(value, expression):
@@ -150,40 +125,111 @@ def _formatConstantTuple(value, expression):
         return "(%s)" % ", ".join(_formatConstantElement(e, expression) for e in value)
 
 
-def _generateCollectionConstantSource(expression, open_br, close_br):
-    elements = []
-    for element in expression.getCompileTimeConstant():
-        elements.append(_formatConstantElement(element, expression))
-    return "%s%s%s" % (open_br, ", ".join(elements), close_br)
+def _formatConstantList(value, expression):
+    return "[%s]" % ", ".join(_formatConstantElement(e, expression) for e in value)
+
+
+def _formatConstantDict(value, expression):
+    return "{%s}" % ", ".join(
+        "%s: %s"
+        % (
+            _formatConstantElement(k, expression),
+            _formatConstantElement(v, expression),
+        )
+        for k, v in value.items()
+    )
+
+
+def _formatConstantSet(value, expression):
+    if not value:
+        return "set()"
+
+    return "{%s}" % ", ".join(_formatConstantElement(e, expression) for e in value)
+
+
+def _formatConstantFrozenset(value, expression):
+    if not value:
+        return "frozenset()"
+
+    return "frozenset({%s})" % ", ".join(
+        _formatConstantElement(e, expression) for e in value
+    )
+
+
+def _formatConstantFrozendict(value, expression):
+    if not value:
+        return "frozendict()"
+
+    return "frozendict(%s)" % _formatConstantDict(value, expression)
+
+
+# Dispatch by exact constant type. The 'GenericAlias', 'UnionType' and
+# 'frozendict' are 'None' before Python 3.9, 3.10 and 3.15 respectively, which
+# no value can have as its type, so this is harmless.
+_constant_formatters = {
+    str: _formatConstantRepr,
+    int: _formatConstantRepr,
+    bool: _formatConstantRepr,
+    bytes: _formatConstantRepr,
+    bytearray: _formatConstantRepr,
+    float: _formatConstantFloat,
+    complex: _formatConstantComplex,
+    NoneType: _formatConstantRepr,
+    EllipsisType: _formatEllipsisValue,
+    GenericAlias: _formatConstantStr,
+    UnionType: _formatConstantStr,
+    types.BuiltinFunctionType: _formatFunctionValue,
+    types.FunctionType: _formatFunctionValue,
+    tuple: _formatConstantTuple,
+    list: _formatConstantList,
+    dict: _formatConstantDict,
+    set: _formatConstantSet,
+    frozenset: _formatConstantFrozenset,
+    frozendict: _formatConstantFrozendict,
+}
+
+
+def _formatConstantElement(value, expression):
+    constant_type = type(value)
+
+    formatter = _constant_formatters.get(constant_type)
+
+    if formatter is not None:
+        return formatter(value, expression)
+
+    # Class objects are not covered by the exact type dispatch dictionary.
+    if isinstance(value, type):
+        return _formatTypeSource(value, expression)
+
+    raise PythonSourceGenerationError(
+        "Unsupported constant value for source generation: %s (%s)"
+        % (constant_type.__name__, repr(value))
+    )
 
 
 def _generateListConstantSource(expression):
-    return _generateCollectionConstantSource(expression, "[", "]")
+    return _formatConstantList(expression.getCompileTimeConstant(), expression)
 
 
 def _generateSetConstantSource(expression):
-    # An empty "{}" is a dictionary, not a set.
-    if not expression.getCompileTimeConstant():
-        return "set()"
-
-    return _generateCollectionConstantSource(expression, "{", "}")
+    return _formatConstantSet(expression.getCompileTimeConstant(), expression)
 
 
 def _generateFrozensetConstantSource(expression):
-    return "frozenset(%s)" % _generateCollectionConstantSource(expression, "[", "]")
+    return _formatConstantFrozenset(expression.getCompileTimeConstant(), expression)
 
 
 def _generateDictConstantSource(expression):
-    items = []
-    for key, value in expression.getCompileTimeConstant().items():
-        items.append(
-            "%s: %s"
-            % (
-                _formatConstantElement(key, expression),
-                _formatConstantElement(value, expression),
-            )
-        )
-    return "{%s}" % ", ".join(items)
+    return _formatConstantDict(expression.getCompileTimeConstant(), expression)
+
+
+def _generateFrozendictConstantSource(expression):
+    constant_value = expression.getCompileTimeConstant()
+
+    if not constant_value:
+        return "frozendict()"
+
+    return "frozendict(%s)" % _formatConstantDict(constant_value, expression)
 
 
 def _findAliasForModule(module, target):
@@ -260,15 +306,7 @@ def _generateGenericAliasSource(expression):
 
 
 def _generateTupleConstantSource(expression):
-    elements = []
-    for element in expression.getCompileTimeConstant():
-        elements.append(_formatConstantElement(element, expression))
-    if len(elements) == 0:
-        return "()"
-    elif len(elements) == 1:
-        return "(%s,)" % elements[0]
-    else:
-        return "(%s)" % ", ".join(elements)
+    return _formatConstantTuple(expression.getCompileTimeConstant(), expression)
 
 
 def _generateConstantStrRefSource(expression):
@@ -284,11 +322,11 @@ def _generateConstantIntRefSource(expression):
 
 
 def _generateConstantFloatRefSource(expression):
-    return _formatConstantFloat(expression.getCompileTimeConstant())
+    return _formatConstantFloat(expression.getCompileTimeConstant(), expression)
 
 
 def _generateConstantComplexRefSource(expression):
-    return _formatConstantElement(expression.getCompileTimeConstant(), expression)
+    return _formatConstantComplex(expression.getCompileTimeConstant(), expression)
 
 
 def _generateConstantBytearrayRefSource(expression):
@@ -472,6 +510,32 @@ def _generateDictSource(expression):
     return "{%s}" % ", ".join(items)
 
 
+def _generateBuiltinMappingSource(expression, name):
+    pos_arg = expression.subnode_pos_arg
+
+    if pos_arg is None:
+        return "%s(%s)" % (name, _generateDictSource(expression))
+
+    pos_arg_source = generateExpressionSource(pos_arg)
+
+    if not expression.subnode_pairs:
+        return "%s(%s)" % (name, pos_arg_source)
+
+    return "%s(%s, **%s)" % (name, pos_arg_source, _generateDictSource(expression))
+
+
+def _generateBuiltinDictSource(expression):
+    return _generateBuiltinMappingSource(expression, "dict")
+
+
+def _generateBuiltinFrozendictSource(expression):
+    return _generateBuiltinMappingSource(expression, "frozendict")
+
+
+def _generateBuiltinFrozensetSource(expression):
+    return "frozenset(%s)" % generateExpressionSource(expression.subnode_value)
+
+
 def _generateSliceSource(expression):
     lower = expression.subnode_lower
     upper = expression.subnode_upper
@@ -642,44 +706,12 @@ def _generateStatementsFrameSource(statement, indent):
 
 def _generateReturnSource(statement, indent):
     if statement.isStatementReturnConstant():
-        constant = statement.getConstant()
-        if isinstance(constant, dict):
-            items = []
-            for key, value in constant.items():
-                items.append(
-                    "%s: %s" % (repr(key), _constantToSource(value, statement))
-                )
-
-            value = "{%s}" % ", ".join(items)
-        else:
-            value = _constantToSource(constant, statement)
-
+        value = _formatConstantElement(statement.getConstant(), statement)
         return "%sreturn %s" % (indent, value)
     else:
         expression = statement.subnode_expression
         value = generateExpressionSource(expression)
         return "%sreturn %s" % (indent, value)
-
-
-def _constantToSource(value, expression):
-    """Convert a compile-time constant to its Python source representation."""
-    # return driven, pylint: disable=too-many-return-statements
-    if isinstance(value, type):
-        return _formatTypeSource(value, expression)
-    elif isinstance(value, float):
-        return _formatConstantFloat(value)
-    elif isinstance(value, (str, int, complex, bytes, bytearray)):
-        return repr(value)
-    elif value is None:
-        return "None"
-    elif value is Ellipsis:
-        return "..."
-    elif isinstance(value, (tuple, list, set, frozenset, dict)):
-        # "repr" of a container renders a contained type as "<class 'int'>",
-        # which is not valid source and escapes as an uncaught SyntaxError.
-        return _formatConstantElement(value, expression)
-    else:
-        return _formatConstantElement(value, expression)
 
 
 def generateFunctionSourceFromBody(function_body):
@@ -772,6 +804,7 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_TYPE_DICT_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_LIST_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_SET_REF": _generateConstantTypeRefSource,
+    "EXPRESSION_CONSTANT_TYPE_FROZENDICT_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": _generateConstantTypeRefSource,
     "EXPRESSION_CONSTANT_TYPE_TYPE_REF": _generateConstantTypeRefSource,
@@ -814,9 +847,14 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_SET_EMPTY_REF": _generateSetConstantSource,
     "EXPRESSION_CONSTANT_DICT_REF": _generateDictConstantSource,
     "EXPRESSION_CONSTANT_DICT_EMPTY_REF": _generateDictConstantSource,
+    "EXPRESSION_CONSTANT_FROZENDICT_REF": _generateFrozendictConstantSource,
+    "EXPRESSION_CONSTANT_FROZENDICT_EMPTY_REF": _generateFrozendictConstantSource,
     "EXPRESSION_CONSTANT_FROZENSET_REF": _generateFrozensetConstantSource,
     "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": _generateFrozensetConstantSource,
     "EXPRESSION_MAKE_DICT": _generateDictSource,
+    "EXPRESSION_BUILTIN_DICT": _generateBuiltinDictSource,
+    "EXPRESSION_BUILTIN_FROZENDICT": _generateBuiltinFrozendictSource,
+    "EXPRESSION_BUILTIN_FROZENSET": _generateBuiltinFrozensetSource,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE3": _generateSliceSource,

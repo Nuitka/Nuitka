@@ -255,6 +255,7 @@ assert MutableSet
 assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
+assert frozendict or intern
 assert FileNotFoundError
 assert imp
 
