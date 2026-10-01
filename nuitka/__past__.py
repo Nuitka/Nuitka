@@ -117,6 +117,11 @@ try:
 except ImportError:
     UnionType = None
 
+try:
+    frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    frozendict = None
+
 
 if str is bytes:
     try:

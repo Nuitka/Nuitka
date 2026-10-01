@@ -12,6 +12,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     GenericAlias,
     UnionType,
     basestring,
+    frozendict,
     to_byte,
     xrange,
 )
@@ -226,6 +227,8 @@ class GlobalConstantAccessor(object):
                 return "(PyObject *)&PyEnum_Type"
             elif constant is frozenset:
                 return "(PyObject *)&PyFrozenSet_Type"
+            elif constant is frozendict:
+                return "(PyObject *)&PyFrozenDict_Type"
             elif python_version >= 0x270 and constant is memoryview:
                 return "(PyObject *)&PyMemoryView_Type"
             elif python_version < 0x300 and constant is basestring:
