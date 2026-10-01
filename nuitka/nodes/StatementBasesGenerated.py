@@ -157,19 +157,14 @@ class _StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranch
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_condition)
-        value = self.subnode_yes_branch
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_no_branch
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_condition,
+        ]
+        if self.subnode_yes_branch is not None:
+            result.append(self.subnode_yes_branch)
+        if self.subnode_no_branch is not None:
+            result.append(self.subnode_no_branch)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -297,12 +292,10 @@ class _StatementChildHavingDestOptionalOperationMixin(StatementBase):
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        value = self.subnode_dest
-
-        if value is None:
+        if self.subnode_dest is None:
             return ()
-        else:
-            return (value,)
+
+        return (self.subnode_dest,)
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -412,14 +405,13 @@ class _StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        value = self.subnode_dest
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        result.append(self.subnode_value)
-        return tuple(result)
+        if self.subnode_dest is None:
+            return (self.subnode_value,)
+
+        return (
+            self.subnode_dest,
+            self.subnode_value,
+        )
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -794,24 +786,16 @@ class _StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceO
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_exception_type)
-        value = self.subnode_exception_value
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_exception_trace
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_exception_cause
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_exception_type,
+        ]
+        if self.subnode_exception_value is not None:
+            result.append(self.subnode_exception_value)
+        if self.subnode_exception_trace is not None:
+            result.append(self.subnode_exception_trace)
+        if self.subnode_exception_cause is not None:
+            result.append(self.subnode_exception_cause)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -1165,19 +1149,14 @@ class _StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statemen
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_expression)
-        value = self.subnode_lower
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_upper
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_expression,
+        ]
+        if self.subnode_lower is not None:
+            result.append(self.subnode_lower)
+        if self.subnode_upper is not None:
+            result.append(self.subnode_upper)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -1848,12 +1827,10 @@ class _StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Stateme
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        value = self.subnode_loop_body
-
-        if value is None:
+        if self.subnode_loop_body is None:
             return ()
-        else:
-            return (value,)
+
+        return (self.subnode_loop_body,)
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -2754,20 +2731,15 @@ class _StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_source)
-        result.append(self.subnode_expression)
-        value = self.subnode_lower
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_upper
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_source,
+            self.subnode_expression,
+        ]
+        if self.subnode_lower is not None:
+            result.append(self.subnode_lower)
+        if self.subnode_upper is not None:
+            result.append(self.subnode_upper)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -3056,19 +3028,14 @@ class _StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOpera
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_source_code)
-        value = self.subnode_globals_arg
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_locals_arg
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_source_code,
+        ]
+        if self.subnode_globals_arg is not None:
+            result.append(self.subnode_globals_arg)
+        if self.subnode_locals_arg is not None:
+            result.append(self.subnode_locals_arg)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -3512,29 +3479,18 @@ class _StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNo
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        result = []
-        result.append(self.subnode_tried)
-        value = self.subnode_except_handler
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_break_handler
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_continue_handler
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_return_handler
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
+        result = [
+            self.subnode_tried,
+        ]
+        if self.subnode_except_handler is not None:
+            result.append(self.subnode_except_handler)
+        if self.subnode_break_handler is not None:
+            result.append(self.subnode_break_handler)
+        if self.subnode_continue_handler is not None:
+            result.append(self.subnode_continue_handler)
+        if self.subnode_return_handler is not None:
+            result.append(self.subnode_return_handler)
+        return result
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.

@@ -915,6 +915,24 @@ from .Checkers import (
 
             assert not auto_compute_handling_set, auto_compute_handling_set
 
+            leading_normals = []
+
+            for named_child in named_children:
+                if named_children_types.get(named_child) in ("tuple", "optional"):
+                    break
+
+                leading_normals.append(named_child)
+
+            optional_children = [
+                named_child
+                for named_child in named_children
+                if named_children_types.get(named_child) == "optional"
+            ]
+
+            single_optional = (
+                optional_children[0] if len(optional_children) == 1 else None
+            )
+
             code = template.render(
                 name=template.name,
                 is_expression=is_expression,
@@ -922,6 +940,8 @@ from .Checkers import (
                 mixin_name=mixin_name,
                 named_children=named_children,
                 named_children_types=named_children_types,
+                leading_normals=leading_normals,
+                single_optional=single_optional,
                 named_children_checkers=named_children_checkers,
                 children_mixing_setters_needed=sorted(
                     tuple(children_mixing_setters_needed.get(mixin_name, ()))
