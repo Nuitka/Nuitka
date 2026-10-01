@@ -986,6 +986,14 @@ static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
                                                          PyObject *exception_type, PyObject *exception_value,
                                                          PyTracebackObject *exception_tb) {
 
+#if PYTHON_VERSION >= 0x300
+    if (exception_tb == NULL || (PyObject *)exception_tb == Py_None) {
+        if (PyExceptionInstance_Check(exception_type)) {
+            exception_tb = GET_EXCEPTION_TRACEBACK(exception_type);
+        }
+    }
+#endif
+
 #if PYTHON_VERSION >= 0x3c0
     Py_INCREF(exception_type);
     Py_XINCREF(exception_value);
@@ -1009,6 +1017,29 @@ static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
 #endif
 
     return true;
+}
+
+// Add the frame of a not started generator, coroutine or async generator to
+// the traceback of the exception that is thrown into it.
+static void _Nuitka_Generator_add_throw_traceback_frame(PyThreadState *tstate,
+                                                        struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                        PyCodeObject *code_object, PyObject *module) {
+    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
+
+    // TODO: Our compiled objects really need a way to store common
+    // stuff in a "shared" part across all instances, and outside of
+    // run time, so we could reuse this.
+    struct Nuitka_FrameObject *frame = MAKE_FUNCTION_FRAME(tstate, code_object, module, 0, NULL);
+
+    if (exception_tb == NULL) {
+        exception_tb = MAKE_TRACEBACK(frame, code_object->co_firstlineno);
+    } else {
+        exception_tb = ADD_TRACEBACK(exception_tb, frame, code_object->co_firstlineno);
+    }
+
+    SET_EXCEPTION_STATE_TRACEBACK(exception_state, exception_tb);
+
+    Py_DECREF(frame);
 }
 
 // Shared code for checking a thrown exception, coroutines, asyncgen, uncompiled
@@ -1351,18 +1382,8 @@ throw_here:
 
         return NULL;
     } else {
-        PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
-
-        if (exception_tb == NULL) {
-            // TODO: Our compiled objects really need a way to store common
-            // stuff in a "shared" part across all instances, and outside of
-            // run time, so we could reuse this.
-            struct Nuitka_FrameObject *frame =
-                MAKE_FUNCTION_FRAME(tstate, generator->m_code_object, generator->m_module, 0, NULL);
-            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
-                                          MAKE_TRACEBACK(frame, generator->m_code_object->co_firstlineno));
-            Py_DECREF(frame);
-        }
+        _Nuitka_Generator_add_throw_traceback_frame(tstate, exception_state, generator->m_code_object,
+                                                    generator->m_module);
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
 
