@@ -8,17 +8,77 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
+import sys
+
+# Depth at which the iterative traversal takes over, leaving headroom for the
+# caller stack and the visitor calls.
+_visit_depth_threshold = sys.getrecursionlimit() // 2
+
+
+def _visitorIsEnterOnly(visitor):
+    # Visitors without their own leave callback only need the entering nodes,
+    # which can be done much faster without post-order handling.
+    return getattr(type(visitor), "onLeaveNode") is getattr(
+        VisitorNoopMixin, "onLeaveNode"
+    )
+
 
 def visitTree(tree, visitor):
-    visitor.onEnterNode(tree)
+    if _visitorIsEnterOnly(visitor):
+        _visitTreeEnterOnly(tree, visitor)
+    else:
+        _visitTreeRecursive(tree, visitor, 0)
 
-    for visitable in tree.getVisitableNodes():
-        if visitable is None:
-            raise AssertionError("'None' child encountered", tree, tree.source_ref)
 
-        visitTree(visitable, visitor)
+def _visitTreeEnterOnly(tree, visitor):
+    # Iterative pre-order entering using an explicit stack, so that very
+    # deeply nested node trees do not exceed the Python recursion limit.
+    stack = [tree]
 
-    visitor.onLeaveNode(tree)
+    while stack:
+        node = stack.pop()
+        visitor.onEnterNode(node)
+        stack.extend(node.getVisitableNodes())
+
+
+def _visitTreeRecursive(tree, visitor, depth):
+    if depth > _visit_depth_threshold:
+        _visitTreeIterative(tree, visitor)
+    else:
+        visitor.onEnterNode(tree)
+
+        for visitable in tree.getVisitableNodes():
+            _visitTreeRecursive(visitable, visitor, depth + 1)
+
+        visitor.onLeaveNode(tree)
+
+
+# Stack indicator for the leave call of a node, when its children are done.
+_leave_indicator = object()
+
+
+def _visitTreeIterative(tree, visitor):
+    # Iterative pre-/post-order traversal using an explicit stack, so that very
+    # deeply nested node trees do not exceed the Python recursion limit.
+    stack = [tree]
+
+    while stack:
+        item = stack.pop()
+
+        if item is _leave_indicator:
+            visitor.onLeaveNode(stack.pop())
+        else:
+            visitor.onEnterNode(item)
+            children = item.getVisitableNodes()
+
+            if children:
+                # Revisit this node for the leave call once its children are
+                # done, then push the reversed children.
+                stack.append(item)
+                stack.append(_leave_indicator)
+                stack.extend(reversed(children))
+            else:
+                visitor.onLeaveNode(item)
 
 
 class VisitorNoopMixin(object):
