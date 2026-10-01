@@ -91,6 +91,16 @@ gen_dir = dir(for_dir)
 print(sorted(g for g in gen_dir))
 
 
+def printTracebackFrames():
+    print(
+        "Gave expected ValueError with traceback frames:",
+        [
+            (os.path.basename(frame[0]), frame[1], frame[2])
+            for frame in traceback.extract_tb(sys.exc_info()[2])
+        ],
+    )
+
+
 def genexprSend():
     x = (x for x in range(9))
 
@@ -165,16 +175,6 @@ def genexprSend():
         fresh.throw(origin)
     except ValueError:
         printTracebackFrames()
-
-
-def printTracebackFrames():
-    print(
-        "Gave expected ValueError with traceback frames:",
-        [
-            (os.path.basename(frame[0]), frame[1], frame[2])
-            for frame in traceback.extract_tb(sys.exc_info()[2])
-        ],
-    )
 
 
 print("Generator expressions have send too:")
