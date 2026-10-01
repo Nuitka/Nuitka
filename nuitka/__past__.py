@@ -117,6 +117,11 @@ try:
 except ImportError:
     UnionType = None
 
+try:
+    frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    frozendict = None
+
 
 if str is bytes:
     try:
@@ -193,11 +198,6 @@ try:
     BaseExceptionGroup = BaseExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
     BaseExceptionGroup = None
-
-try:
-    frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
-except NameError:
-    frozendict = None
 
 try:
     BrokenPipeError = BrokenPipeError  # pylint: disable=I0021,redefined-builtin
