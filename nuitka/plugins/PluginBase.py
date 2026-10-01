@@ -1701,9 +1701,13 @@ except Exception as e:
         return None
 
     def getReportData(self):
-        """Provide dictionary of data for reporting purposes."""
+        """Provide key/value pairs of data for reporting purposes.
+
+        Returns:
+            Iterable of tuples with key and value.
+        """
         # Virtual method, pylint: disable=no-self-use
-        return {}
+        return ()
 
     @staticmethod
     def getPackageVersion(module_name):

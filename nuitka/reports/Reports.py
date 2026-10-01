@@ -1282,15 +1282,32 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         try:
             # TODO: Actually expose these to other reports as well.
             for key, value in plugin.getReportData():
+                if not isinstance(key, (str, unicode)):
+                    return reports_logger.sysexit(
+                        "Error, plugin '%s' report key is not a string."
+                        % plugin.plugin_name
+                    )
+
                 if type(value) is bool:
                     value = "yes" if value else "no"
+                elif not isinstance(value, (str, unicode)):
+                    return reports_logger.sysexit(
+                        """\
+Error, plugin '%s' report value for key '%s' is not a string or boolean."""
+                        % (plugin.plugin_name, key)
+                    )
 
                 plugin_element.attrib[key] = value
 
-        except Exception:  # pylint: disable=broad-exception-caught
-            # Don't fail report generation for plugin report issues, they might be badly coded,
-            # for now we don't even warn about them.
-            pass
+        except (TypeError, ValueError):
+            return reports_logger.sysexit(
+                "Error, plugin '%s' report data is not key/value pairs."
+                % plugin.plugin_name
+            )
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            return reports_logger.sysexit(
+                "Error, plugin '%s' report data failed, '%s'." % (plugin.plugin_name, e)
+            )
 
     if isOnefileMode():
         _onefile_xml_node = appendTreeElement(

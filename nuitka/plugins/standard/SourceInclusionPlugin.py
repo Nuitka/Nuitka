@@ -438,11 +438,9 @@ def install(inspect_module):
         yield self.source_data
 
     def getReportData(self):
-        return {
-            "recorded_source_keys": tuple(self.source_data),
-            "source_inclusion_arg_sets": self.source_inclusion_arg_sets,
-            "source_inclusion_timeout": self.source_inclusion_timeout,
-        }
+        yield "recorded_source_keys", tuple(self.source_data)
+        yield "source_inclusion_arg_sets", self.source_inclusion_arg_sets
+        yield "source_inclusion_timeout", self.source_inclusion_timeout
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

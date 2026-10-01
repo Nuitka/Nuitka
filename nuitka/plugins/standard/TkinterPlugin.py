@@ -550,11 +550,9 @@ class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
                     break
 
     def getReportData(self):
-        return {
-            "tk_inter_version": self.tk_inter_version,
-            "tcl_library_dir": self.tcl_library_dir,
-            "tk_library_dir": self.tk_library_dir,
-        }
+        yield "tk_inter_version", self.tk_inter_version
+        yield "tcl_library_dir", self.tcl_library_dir
+        yield "tk_library_dir", self.tk_library_dir
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

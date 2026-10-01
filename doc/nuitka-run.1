@@ -658,6 +658,51 @@ Run the themida call manually, useful for debugging.
 .TP
 \fB\-\-themida\-debug\-force\-duplicates\-mode\fR
 Force duplicates mode, even if not needed, useful for debugging.
+.TP
+\fB\-\-themida\-block\-virtual\-machine\fR
+Disallow the protected application from running under virtual machines, showing the customized "cannot run under a Virtual Machine" message. By default, execution under virtual machines is allowed.
+.TP
+\fB\-\-themida\-no\-compression\fR
+Disable the compression of the application, its resources and the protection itself. This can help with startup performance and anti\-virus false positives.
+.TP
+\fB\-\-themida\-no\-anti\-debug\fR
+Disable the anti\-debugger detection of Themida.
+.TP
+\fB\-\-themida\-no\-api\-wrapper\fR
+Disable the advanced API wrapping of Themida. This can help with compatibility or performance problems.
+.TP
+\fB\-\-themida\-no\-file\-registry\-monitors\fR
+Disable the file and registry monitors of Themida. This can help with compatibility or performance problems.
+.TP
+\fB\-\-themida\-entrypoint\-obfuscation\fR
+Enable entry point obfuscation of Themida, this is disabled by default.
+.TP
+\fB\-\-themida\-antipatching\fR
+Enable anti\-patching of Themida, this is disabled by default.
+.TP
+\fB\-\-themida\-sandbox\-monitors\fR
+Enable sandbox monitors of Themida, this is disabled by default.
+.TP
+\fB\-\-themida\-encrypt\-strings\fR
+Enable the encryption and re\-encryption of ANSI and Unicode strings, this is disabled by default.
+.TP
+\fB\-\-themida\-advanced\-option\fR=\fI\,THEMIDA_ADVANCED_OPTIONS\/\fR
+Add a Themida advanced option by name and value, e.g. '\-\-themida\-advanced\-option=OPTION_TRIAL_IS_DEBUG_MODE=YES'. This can be given multiple times and is passed in addition to the used config.
+.TP
+\fB\-\-winlicense\-trial\fR=\fI\,WINLICENSE_TRIAL\/\fR
+Enable trial mode of WinLicense, the value is the identifier of the trial state, e.g. '\-\-winlicense\-trial=IDENTIFIER'. The value is used as given, so make it unique per application. Keeping it stable continues the trial across releases, changing it enables a new trial. Without restrictions from '\-\-winlicense\-trial\-days' or '\-\-winlicense\-trial\-executions', this is an unlimited trial. This requires a WinLicense installation, as well as the '\-\-winlicense\-trial\-email' and '\-\-winlicense\-trial\-website' options.
+.TP
+\fB\-\-winlicense\-trial\-days\fR=\fI\,WINLICENSE_TRIAL_DAYS\/\fR
+Number of trial days of WinLicense, this requires '\-\-winlicense\-trial' and a WinLicense installation.
+.TP
+\fB\-\-winlicense\-trial\-executions\fR=\fI\,WINLICENSE_TRIAL_EXECUTIONS\/\fR
+Number of trial executions of WinLicense, this requires '\-\-winlicense\-trial' and a WinLicense installation.
+.TP
+\fB\-\-winlicense\-trial\-email\fR=\fI\,WINLICENSE_TRIAL_EMAIL\/\fR
+Email address to use in the WinLicense trial messages, e.g. for support requests. This is required with '\-\-winlicense\-trial' and a WinLicense installation.
+.TP
+\fB\-\-winlicense\-trial\-website\fR=\fI\,WINLICENSE_TRIAL_WEBSITE\/\fR
+Website URL to use in the WinLicense trial messages, where users can register or purchase. This is required with '\-\-winlicense\-trial' and a WinLicense installation.
 .IP
 Plugin options of 'anti\-debugger' (categories: commercial, protection):
 .TP
