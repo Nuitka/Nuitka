@@ -91,16 +91,6 @@ gen_dir = dir(for_dir)
 print(sorted(g for g in gen_dir))
 
 
-def printTracebackFrames():
-    print(
-        "Gave expected ValueError with traceback frames:",
-        [
-            (os.path.basename(frame[0]), frame[1], frame[2])
-            for frame in traceback.extract_tb(sys.exc_info()[2])
-        ],
-    )
-
-
 def genexprSend():
     x = (x for x in range(9))
 
@@ -154,28 +144,6 @@ def genexprSend():
     except ValueError as e:
         print("Gave expected ValueError with text:", e)
 
-    print("Throwing a previously raised exception to it.")
-    try:
-        raise ValueError("origin")
-    except ValueError as e:
-        origin = e
-
-    try:
-        x.throw(origin)
-    except ValueError:
-        printTracebackFrames()
-
-    print(
-        "Throwing a previously raised exception to a not yet started generator expression."
-    )
-
-    fresh = (z for z in range(1))
-
-    try:
-        fresh.throw(origin)
-    except ValueError:
-        printTracebackFrames()
-
 
 print("Generator expressions have send too:")
 
@@ -223,6 +191,49 @@ def genexprThrown():
 
 
 genexprThrown()
+
+
+def printTracebackFrames():
+    print(
+        "Gave expected ValueError with traceback frames:",
+        [
+            (os.path.basename(frame[0]), frame[1], frame[2])
+            for frame in traceback.extract_tb(sys.exc_info()[2])
+        ],
+    )
+
+
+print("Generator expressions have throw too:")
+
+
+def genexprThrow():
+    x = (x for x in range(9))
+    next(x)
+
+    print("Throwing a previously raised exception to it.")
+    try:
+        raise ValueError("origin")
+    except ValueError as e:
+        origin = e
+
+    try:
+        x.throw(origin)
+    except ValueError:
+        printTracebackFrames()
+
+    print(
+        "Throwing a previously raised exception to a not yet started generator expression."
+    )
+
+    fresh = (z for z in range(1))
+
+    try:
+        fresh.throw(origin)
+    except ValueError:
+        printTracebackFrames()
+
+
+genexprThrow()
 
 
 def nestedExpressions():
