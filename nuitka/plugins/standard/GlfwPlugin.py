@@ -8,7 +8,11 @@ import re
 
 from nuitka.options.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileContents, getNormalizedPath
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    getNormalizedPath,
+    getNormalizedPathJoin,
+)
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
@@ -96,7 +100,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
             yield self.makeDllEntryPoint(
                 source_path=dll_filename,
-                dest_path=os.path.join("glfw", os.path.basename(dll_filename)),
+                dest_path=getNormalizedPathJoin("glfw", os.path.basename(dll_filename)),
                 module_name="glfw",
                 package_name="glfw.library",
                 reason="needed by 'glfw'",
