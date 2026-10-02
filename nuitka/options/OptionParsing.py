@@ -26,6 +26,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
@@ -3014,8 +3015,6 @@ def parseOptions(logger):
     _considerGithubWorkflowOptions(phase="late")
 
     if os.getenv("OPTPARSE_AUTO_COMPLETE"):
-        from nuitka.utils.Importing import importFromInlineCopy
-
         # spell-checker: ignore optcomplete
         opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
         if opt_complete is not None:

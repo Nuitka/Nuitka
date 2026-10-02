@@ -23,7 +23,7 @@ from nuitka.utils.FileOperations import (
     getLinkTarget,
     getNormalizedPathJoin,
 )
-from nuitka.utils.Importing import importFromInlineCopy
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.SharedLibraries import hasMacOSArchitecture
 from nuitka.utils.Utils import (
     getArchCommandPrefix,

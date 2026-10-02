@@ -36,7 +36,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, my_print, options_logger, queryUser
 
 from .Hashing import Hash
-from .Importing import importFromInlineCopy
+from .InlineCopies import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import (
     decoratorRetries,

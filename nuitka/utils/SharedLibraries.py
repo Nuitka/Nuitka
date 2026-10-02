@@ -27,7 +27,7 @@ from .FileOperations import (
     withMadeWritableFileMode,
     withTemporaryDirectory,
 )
-from .Importing import importFromInlineCopy
+from .InlineCopies import importFromInlineCopy
 from .Utils import (
     getOS,
     isAlpineLinux,

@@ -74,7 +74,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
-from nuitka.utils.Importing import getInlineCopyFolder
+from nuitka.utils.InlineCopies import getInlineCopyFolder
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.StaticLibraries import (
     getStaticLinkLibraryProblem,

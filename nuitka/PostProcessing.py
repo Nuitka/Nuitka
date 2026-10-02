@@ -61,7 +61,7 @@ from nuitka.utils.FileOperations import (
     removeFileExecutablePermission,
 )
 from nuitka.utils.Images import convertImageToIconFormat
-from nuitka.utils.Importing import importFromInlineCopy
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,
