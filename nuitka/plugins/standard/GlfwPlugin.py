@@ -94,6 +94,28 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
         return getNormalizedPath(glfw_info.dll_filename)
 
+    def _getImguiBundleDLLFilename(self):
+        imgui_bundle_info = self.queryRuntimeInformationMultiple(
+            info_name="imgui_bundle_info",
+            setup_codes="""\
+import os
+
+os.environ.pop("PYGLFW_LIBRARY", None)
+
+try:
+    import imgui_bundle
+    imgui_bundle_dll_filename = os.getenv("PYGLFW_LIBRARY")
+except Exception:
+    imgui_bundle_dll_filename = None
+""",
+            values=(("dll_filename", "imgui_bundle_dll_filename"),),
+        )
+
+        if imgui_bundle_info is None:
+            return None
+
+        return imgui_bundle_info.dll_filename
+
     def getExtraDlls(self, module):
         if module.getFullName() == "glfw":
             dll_filename = self._getDLLFilename()
@@ -109,16 +131,31 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
     def createPreModuleLoadCode(self, module):
         if module.getFullName() == "glfw":
             dll_filename = self._getDLLFilename()
+            imgui_bundle_dll_filename = self._getImguiBundleDLLFilename()
 
-            code = r"""
+            if imgui_bundle_dll_filename is None:
+                code = r"""
 import os
-if not os.getenv("PYGLFW_LIBRARY"):
-    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
-    os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
+
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
 """ % os.path.basename(dll_filename)
+            else:
+                code = r"""
+import os
+
+imgui_bundle_library = os.path.join(nuitka_info.python_runtime_dir, "imgui_bundle", "%s")
+
+if not os.path.exists(imgui_bundle_library):
+    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+    imgui_bundle_library = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
+
+os.environ["PYGLFW_LIBRARY"] = imgui_bundle_library
+""" % (os.path.basename(imgui_bundle_dll_filename), os.path.basename(dll_filename))
+
             return (
                 code,
-                "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL unless already provided.",
+                "Setting 'PYGLFW_LIBRARY' environment variable for glfw to find platform DLL.",
             )
 
 
