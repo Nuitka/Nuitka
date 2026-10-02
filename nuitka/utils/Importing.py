@@ -302,14 +302,32 @@ def _getPreferredModuleEntries(candidates, package_name):
         "C_EXTENSION": 1,
     }
 
-    def prioritize(candidate):
-        (module_name, module_type), (_suffix_index, _entry) = candidate
+    # Recompilation decisions are only relevant, when source code and an
+    # extension module are available for the same module name.
+    source_module_names = set(
+        module_name
+        for (module_name, module_type) in candidates
+        if module_type == "PY_SOURCE"
+    )
+    extension_module_names = set(
+        module_name
+        for (module_name, module_type) in candidates
+        if module_type == "C_EXTENSION"
+    )
 
+    recompile_decisions = {}
+
+    for module_name in source_module_names & extension_module_names:
         decision, _reason = decideRecompileExtensionModules(
             ModuleName.makeModuleNameInPackage(module_name, package_name)
         )
 
-        if module_type == "PY_SOURCE" and decision:
+        recompile_decisions[module_name] = decision
+
+    def prioritize(candidate):
+        (module_name, module_type), (_suffix_index, _entry) = candidate
+
+        if module_type == "PY_SOURCE" and recompile_decisions.get(module_name):
             return priority_map[module_type] - 2
         return priority_map[module_type]
 
