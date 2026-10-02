@@ -8,7 +8,6 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
-import ast
 import fnmatch
 import os
 
@@ -690,23 +689,37 @@ tuple(
             except ImportError:
                 pass
             else:
-                with open(pyi_filename, "rb") as f:
-                    stub_node = ast.parse(f.read())
+                captured = {}
 
-                # We are using private code here, to avoid use duplicating,
-                # pylint: disable=protected-access
-                visitor = lazy_loader._StubVisitor()
-                visitor.visit(stub_node)
+                def captureAttach(_package_name, submodules=None, submod_attrs=None):
+                    captured["submodules"] = submodules or ()
+                    captured["submod_attrs"] = submod_attrs or {}
+
+                    return None, None, ()
+
+                original_attach = lazy_loader.attach
+                lazy_loader.attach = captureAttach
+
+                try:
+                    lazy_loader.attach_stub(
+                        package_name=module_name.asString(),
+                        filename=pyi_filename,
+                    )
+                finally:
+                    lazy_loader.attach = original_attach
+
+                if "submodules" not in captured:
+                    return None
 
                 self._addLazyLoader(
                     module_name=module_name,
-                    submodules=visitor._submodules,
+                    submodules=captured["submodules"],
                     submodule_attrs=dict(
                         ("." + submodule_name, attributes)
                         for (
                             submodule_name,
                             attributes,
-                        ) in visitor._submod_attrs.items()
+                        ) in captured["submod_attrs"].items()
                     ),
                 )
 
