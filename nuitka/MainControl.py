@@ -79,6 +79,7 @@ from nuitka.options.Options import (
     getOutputDir,
     getPgoArgs,
     getPositionalArgs,
+    getPythonFlagTraceImportsValue,
     getPythonPgoInput,
     getShallFollowExtra,
     getShallFollowExtraFilePatterns,
@@ -912,7 +913,7 @@ def runSconsBackend():
         scons_options["python_sysflag_no_site"] = asBoolStr(True)
 
     if hasPythonFlagTraceImports():
-        scons_options["python_sysflag_verbose"] = asBoolStr(True)
+        scons_options["python_sysflag_verbose"] = str(getPythonFlagTraceImportsValue())
 
     if hasPythonFlagNoRandomization():
         scons_options["python_sysflag_no_randomization"] = asBoolStr(True)
