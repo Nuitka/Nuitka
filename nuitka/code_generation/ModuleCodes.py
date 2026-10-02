@@ -12,6 +12,7 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
+from nuitka.plugins.Hooks import getModuleIncludes
 from nuitka.PythonVersions import python_version
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
@@ -50,7 +51,6 @@ def getModuleCode(
     function_body_codes,
     module_const_blob_name,
     module_const_blob_symbol_name,
-    module_includes,
     context,
 ):
     # For the module code, lots of arguments and attributes come together.
@@ -229,7 +229,7 @@ def getModuleCode(
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(
-            '#include "%s"' % include for include in module_includes
+            '#include "%s"' % include for include in getModuleIncludes(context)
         ),
         "module_loader_entry": getModuleLoaderEntryCode(module=module),
         "pgo_probe_module_enter_code": getPGOProbeModuleEnterCode(module.getFullName()),

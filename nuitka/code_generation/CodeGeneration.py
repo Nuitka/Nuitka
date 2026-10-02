@@ -24,10 +24,7 @@ from nuitka.options.Options import (
     isCompileTimeProfile,
     shallNotFallbackBytecodeToCompiled,
 )
-from nuitka.plugins.Hooks import (
-    deriveModuleConstantsBlobName,
-    getModuleIncludes,
-)
+from nuitka.plugins.Hooks import deriveModuleConstantsBlobName
 from nuitka.Tracing import code_generation_logger
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Timing import TimerReport
@@ -644,7 +641,6 @@ Error, bytecode-to-compiled fallback is disallowed for annotate function '%s' at
             deriveModuleConstantsBlobName(data_filename)
         ),
         module_const_blob_symbol_name=getConstantBlobSymbolName(data_filename),
-        module_includes=getModuleIncludes(context),
         context=context,
     )
 
