@@ -1414,6 +1414,12 @@ def _main():
                     % dist_dir
                 )
 
+    final_filename = OutputDirectories.getResultFullpath(
+        onefile=isOnefileMode(), real=True
+    )
+
+    onFinalResult(filename=final_filename)
+
     # Remove the source directory (now build directory too) if asked to.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
@@ -1435,10 +1441,6 @@ def _main():
     else:
         general.info("Keeping build directory '%s'." % source_dir)
 
-    final_filename = OutputDirectories.getResultFullpath(
-        onefile=isOnefileMode(), real=True
-    )
-
     if isStandaloneMode() and isMacOS():
         general.info(
             "Created binary that runs on macOS %s (%s) or higher."
@@ -1455,8 +1457,6 @@ def _main():
                 ),
                 mnemonic="macos-cross-compile",
             )
-
-    onFinalResult(final_filename)
 
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
