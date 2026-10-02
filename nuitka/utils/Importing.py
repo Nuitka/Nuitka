@@ -13,9 +13,8 @@ from contextlib import contextmanager
 from nuitka.__past__ import imp
 from nuitka.plugins.Hooks import decideRecompileExtensionModules
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general
 
-from .InlineCopies import getInlineCopyFolder
+from .FileOperations import listDir
 from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 
@@ -115,76 +114,6 @@ def getExtensionModuleSuffix(preferred):
             result = suffix
 
     return result
-
-
-def _importFromFolder(logger, module_name, path, must_exist, message):
-    """Import a module from a folder by adding it temporarily to sys.path"""
-
-    # Cyclic dependency here
-    from .FileOperations import isFilenameBelowPath
-
-    if module_name in sys.modules:
-        # May already be loaded, but the wrong one from a ".pth" file of
-        # clcache that we then don't want to use.
-        if module_name != "clcache" or isFilenameBelowPath(
-            path=path, filename=sys.modules[module_name].__file__
-        ):
-            return sys.modules[module_name]
-        else:
-            del sys.modules[module_name]
-
-    # Temporarily add the inline path of the module to the import path.
-    sys.path.insert(0, path)
-
-    # Handle case without inline copy too.
-    try:
-        return __import__(module_name, level=0)
-    except (ImportError, SyntaxError, RuntimeError) as e:
-        if not must_exist:
-            return None
-
-        exit_message = (
-            "Error, expected inline copy of '%s' to be in '%s', error was: %r."
-            % (module_name, path, e)
-        )
-
-        if message is not None:
-            exit_message += "\n" + message
-
-        return logger.sysexit(exit_message)
-    finally:
-        # Do not forget to remove it from sys.path again.
-        del sys.path[0]
-
-
-_deleted_modules = {}
-
-
-def importFromInlineCopy(module_name, must_exist, delete_module=False):
-    """Import a module from the inline copy stage."""
-
-    folder_name = getInlineCopyFolder(module_name)
-
-    module = _importFromFolder(
-        module_name=module_name,
-        path=folder_name,
-        must_exist=must_exist,
-        message=None,
-        logger=general,
-    )
-
-    if delete_module and module_name in sys.modules:
-        delete_module_names = set([module_name])
-
-        for m in sys.modules:
-            if m.startswith(module_name + "."):
-                delete_module_names.add(m)
-
-        for delete_module_name in delete_module_names:
-            _deleted_modules[delete_module_name] = sys.modules[delete_module_name]
-            del sys.modules[delete_module_name]
-
-    return module
 
 
 _compile_time_modules = {}
@@ -347,6 +276,116 @@ def getPackageDirFilename(path, package_name):
         return None
     else:
         return sorted(candidates, key=prioritize)[0][0]
+
+
+def _addModuleCandidate(candidates, filename_full, filename):
+    """Add the best candidate for a module filename, keeping one per kind."""
+    for suffix_index, (suffix, module_type) in enumerate(getModuleFilenameSuffixes()):
+        if filename.endswith(suffix):
+            module_name, _ = getModuleNameAndKindFromFilenameSuffix(filename)
+
+            key = module_name, module_type
+            previous = candidates.get(key)
+
+            if previous is None or suffix_index < previous[0]:
+                candidates[key] = suffix_index, (filename_full, filename)
+
+            break
+
+
+def _getPreferredModuleEntries(candidates, package_name):
+    """Select the preferred entry for each module name found."""
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 2,
+        "C_EXTENSION": 1,
+    }
+
+    # Recompilation decisions are only relevant, when source code and an
+    # extension module are available for the same module name.
+    source_module_names = set(
+        module_name
+        for (module_name, module_type) in candidates
+        if module_type == "PY_SOURCE"
+    )
+    extension_module_names = set(
+        module_name
+        for (module_name, module_type) in candidates
+        if module_type == "C_EXTENSION"
+    )
+
+    recompile_decisions = {}
+
+    for module_name in source_module_names & extension_module_names:
+        decision, _reason = decideRecompileExtensionModules(
+            ModuleName.makeModuleNameInPackage(module_name, package_name)
+        )
+
+        recompile_decisions[module_name] = decision
+
+    def prioritize(candidate):
+        (module_name, module_type), (_suffix_index, _entry) = candidate
+
+        if module_type == "PY_SOURCE" and recompile_decisions.get(module_name):
+            return priority_map[module_type] - 2
+        return priority_map[module_type]
+
+    result = []
+    seen = set()
+
+    for (module_name, _module_type), (_suffix_index, entry) in sorted(
+        candidates.items(), key=prioritize
+    ):
+        if module_name in seen:
+            continue
+
+        seen.add(module_name)
+        result.append(entry)
+
+    return result
+
+
+def listPackageDirEntries(path, package_name):
+    """List directory entries with duplicate modules resolved.
+
+    Args:
+        path: The directory to list.
+        package_name: The 'ModuleName' of the package that the directory
+            belongs to, or 'None' if its modules are top-level, used to
+            decide whether source code is preferred over extension modules.
+
+    Returns:
+        List of tuples of full filename and basename, with sub-directories
+        passed through and only the preferred file for each module name
+        found.
+
+    Notes:
+        Duplicate modules can occur when a package contains both a source
+        file and an extension module file of the same module name, e.g.
+        'foo.py' and 'foo.pyd', and only one of them is to be used. The
+        decision is made like for package '__init__' files, see
+        'getPackageDirFilename'. Where there are multiple files of the same
+        module name and kind, the platform suffix order decides, e.g.
+        'foo.cpython-312-x86_64-linux-gnu.so' over 'foo.abi3.so'.
+    """
+    assert os.path.isdir(path)
+    assert package_name is None or type(package_name) is ModuleName, package_name
+
+    candidates = {}
+    result = []
+
+    for filename_full, filename in listDir(path):
+        if os.path.isdir(filename_full):
+            result.append((filename_full, filename))
+        else:
+            _addModuleCandidate(
+                candidates, filename_full=filename_full, filename=filename
+            )
+
+    result.extend(_getPreferredModuleEntries(candidates, package_name))
+
+    return result
 
 
 @contextmanager

@@ -4,8 +4,10 @@
 """Policies for locating inline copies."""
 
 import os
+import sys
 
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 
 def _getInlineCopyBaseFolder():
@@ -39,6 +41,76 @@ def getInlineCopyFolderIfExists(module_name):
         return folder_name
     else:
         return None
+
+
+def _importFromFolder(logger, module_name, path, must_exist, message):
+    """Import a module from a folder by adding it temporarily to sys.path"""
+
+    # Cyclic dependency here
+    from .FileOperations import isFilenameBelowPath
+
+    if module_name in sys.modules:
+        # May already be loaded, but the wrong one from a ".pth" file of
+        # clcache that we then don't want to use.
+        if module_name != "clcache" or isFilenameBelowPath(
+            path=path, filename=sys.modules[module_name].__file__
+        ):
+            return sys.modules[module_name]
+        else:
+            del sys.modules[module_name]
+
+    # Temporarily add the inline path of the module to the import path.
+    sys.path.insert(0, path)
+
+    # Handle case without inline copy too.
+    try:
+        return __import__(module_name, level=0)
+    except (ImportError, SyntaxError, RuntimeError) as e:
+        if not must_exist:
+            return None
+
+        exit_message = (
+            "Error, expected inline copy of '%s' to be in '%s', error was: %r."
+            % (module_name, path, e)
+        )
+
+        if message is not None:
+            exit_message += "\n" + message
+
+        return logger.sysexit(exit_message)
+    finally:
+        # Do not forget to remove it from sys.path again.
+        del sys.path[0]
+
+
+_deleted_modules = {}
+
+
+def importFromInlineCopy(module_name, must_exist, delete_module=False):
+    """Import a module from the inline copy stage."""
+
+    folder_name = getInlineCopyFolder(module_name)
+
+    module = _importFromFolder(
+        module_name=module_name,
+        path=folder_name,
+        must_exist=must_exist,
+        message=None,
+        logger=general,
+    )
+
+    if delete_module and module_name in sys.modules:
+        delete_module_names = set([module_name])
+
+        for m in sys.modules:
+            if m.startswith(module_name + "."):
+                delete_module_names.add(m)
+
+        for delete_module_name in delete_module_names:
+            _deleted_modules[delete_module_name] = sys.modules[delete_module_name]
+            del sys.modules[delete_module_name]
+
+    return module
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
