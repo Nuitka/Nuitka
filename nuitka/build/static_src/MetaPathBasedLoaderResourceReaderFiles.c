@@ -776,7 +776,14 @@ static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
         Nuitka_ResourceReaderFiles_Type.tp_as_number->nb_true_divide =
             (binaryfunc)Nuitka_ResourceReaderFiles_nb_truediv;
 
-        Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, NULL, true, false, true, false, false);
+        Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, // type
+                            NULL,                             // base
+                            true,                             // generic_get_attr
+                            false,                            // generic_set_attr
+                            true,                             // self_iter
+                            false,                            // await_self_iter
+                            false                             // await_self_aiter
+        );
 
 #if PYTHON_VERSION >= 0x390
         // Also register our open, which can avoid a temporary file being created.

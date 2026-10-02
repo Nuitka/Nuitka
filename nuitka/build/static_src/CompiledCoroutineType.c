@@ -1915,7 +1915,14 @@ PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value) {
 }
 
 static void _initCompiledCoroutineTypes(void) {
-    Nuitka_PyType_Ready(&Nuitka_Coroutine_Type, &PyCoro_Type, true, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Coroutine_Type, // type
+                        &PyCoro_Type,           // base
+                        true,                   // generic_get_attr
+                        false,                  // generic_set_attr
+                        false,                  // self_iter
+                        false,                  // await_self_iter
+                        false                   // await_self_aiter
+    );
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Coroutine_Type.tp_doc != PyCoro_Type.tp_doc || PyCoro_Type.tp_doc == NULL);
@@ -1947,10 +1954,24 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_del != PyCoro_Type.tp_del || PyCoro_Type.tp_del == NULL);
     assert(Nuitka_Coroutine_Type.tp_finalize != PyCoro_Type.tp_finalize || PyCoro_Type.tp_finalize == NULL);
 
-    Nuitka_PyType_Ready(&Nuitka_CoroutineWrapper_Type, NULL, true, false, true, false, false);
+    Nuitka_PyType_Ready(&Nuitka_CoroutineWrapper_Type, // type
+                        NULL,                          // base
+                        true,                          // generic_get_attr
+                        false,                         // generic_set_attr
+                        true,                          // self_iter
+                        false,                         // await_self_iter
+                        false                          // await_self_aiter
+    );
 
 #if PYTHON_VERSION >= 0x352
-    Nuitka_PyType_Ready(&Nuitka_AIterWrapper_Type, NULL, true, false, true, true, false);
+    Nuitka_PyType_Ready(&Nuitka_AIterWrapper_Type, // type
+                        NULL,                      // base
+                        true,                      // generic_get_attr
+                        false,                     // generic_set_attr
+                        true,                      // self_iter
+                        true,                      // await_self_iter
+                        false                      // await_self_aiter
+    );
 #endif
 }
 

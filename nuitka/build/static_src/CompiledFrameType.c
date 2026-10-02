@@ -865,7 +865,14 @@ void _initCompiledFrameType(void) {
 #if PYTHON_VERSION >= 0x300
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
 #endif
-    Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Frame_Type, // type
+                        &PyFrame_Type,      // base
+                        true,               // generic_get_attr
+                        true,               // generic_set_attr
+                        false,              // self_iter
+                        false,              // await_self_iter
+                        false               // await_self_aiter
+    );
 
 #if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
     _initCompiledFrameLocalsProxyType();

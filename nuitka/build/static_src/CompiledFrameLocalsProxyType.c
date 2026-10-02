@@ -625,14 +625,14 @@ static PyMethodDef Nuitka_FrameLocalsProxy_methods[] = {
     {NULL, NULL},
 };
 
-static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *other, int op) {
-    if (op != Py_EQ && op != Py_NE) {
+static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *other, int op_id) {
+    if (op_id != Py_EQ && op_id != Py_NE) {
         Py_RETURN_NOTIMPLEMENTED;
     }
 
     if (Nuitka_PyObject_TypeCheck(other, &Nuitka_FrameLocalsProxy_Type)) {
         bool result = ((Nuitka_FrameLocalsProxyObject *)self)->frame == ((Nuitka_FrameLocalsProxyObject *)other)->frame;
-        PyObject *result_object = BOOL_FROM(op == Py_EQ ? result : !result);
+        PyObject *result_object = BOOL_FROM(op_id == Py_EQ ? result : !result);
         Py_INCREF_IMMORTAL(result_object);
         return result_object;
     } else if (PyDict_Check(other)) {
@@ -640,7 +640,7 @@ static PyObject *_Nuitka_FrameLocalsProxy_richcompare(PyObject *self, PyObject *
         if (snapshot_dict == NULL) {
             return NULL;
         }
-        PyObject *result = PyObject_RichCompare(snapshot_dict, other, op);
+        PyObject *result = PyObject_RichCompare(snapshot_dict, other, op_id);
         Py_DECREF(snapshot_dict);
         return result;
     }
@@ -756,8 +756,8 @@ static PyTypeObject Nuitka_FrameLocalsProxy_Type = {
     0,                                                            // tp_hash
     0,                                                            // tp_call
     0,                                                            // tp_str
-    PyObject_GenericGetAttr,                                      // tp_getattro
-    PyObject_GenericSetAttr,                                      // tp_setattro
+    0,                                                            // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                            // tp_setattro (PyObject_GenericSetAttr)
     0,                                                            // tp_as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_MAPPING, // tp_flags
     0,                                                            // tp_doc
@@ -776,9 +776,9 @@ static PyTypeObject Nuitka_FrameLocalsProxy_Type = {
     0,                                                            // tp_descr_set
     0,                                                            // tp_dictoffset
     0,                                                            // tp_init
-    PyType_GenericAlloc,                                          // tp_alloc
+    0,                                                            // tp_alloc
     (newfunc)_Nuitka_FrameLocalsProxy_new,                        // tp_new
-    PyObject_GC_Del,                                              // tp_free
+    0,                                                            // tp_free
 };
 
 // Create a new FrameLocalsProxy for the given frame.
@@ -820,7 +820,14 @@ static PyObject *_Nuitka_FrameLocalsProxy_new(PyTypeObject *type, PyObject *args
 }
 
 static void _initCompiledFrameLocalsProxyType(void) {
-    Nuitka_PyType_Ready(&Nuitka_FrameLocalsProxy_Type, NULL, false, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_FrameLocalsProxy_Type, // type
+                        NULL,                          // base
+                        true,                          // generic_get_attr
+                        true,                          // generic_set_attr
+                        false,                         // self_iter
+                        false,                         // await_self_iter
+                        false                          // await_self_aiter
+    );
 }
 
 #endif // PYTHON_VERSION >= 0x3d0

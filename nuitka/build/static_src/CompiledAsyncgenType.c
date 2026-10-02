@@ -2264,7 +2264,14 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
 
 static void _initCompiledAsyncgenTypes(void) {
 
-    Nuitka_PyType_Ready(&Nuitka_Asyncgen_Type, &PyAsyncGen_Type, true, false, false, false, true);
+    Nuitka_PyType_Ready(&Nuitka_Asyncgen_Type, // type
+                        &PyAsyncGen_Type,      // base
+                        true,                  // generic_get_attr
+                        false,                 // generic_set_attr
+                        false,                 // self_iter
+                        false,                 // await_self_iter
+                        true                   // await_self_aiter
+    );
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Asyncgen_Type.tp_doc != PyAsyncGen_Type.tp_doc || PyAsyncGen_Type.tp_doc == NULL);
@@ -2298,9 +2305,30 @@ static void _initCompiledAsyncgenTypes(void) {
     assert(Nuitka_Asyncgen_Type.tp_del != PyAsyncGen_Type.tp_del || PyAsyncGen_Type.tp_del == NULL);
     assert(Nuitka_Asyncgen_Type.tp_finalize != PyAsyncGen_Type.tp_finalize || PyAsyncGen_Type.tp_finalize == NULL);
 
-    Nuitka_PyType_Ready(&Nuitka_AsyncgenAsend_Type, NULL, true, false, true, true, false);
-    Nuitka_PyType_Ready(&Nuitka_AsyncgenAthrow_Type, NULL, true, false, true, true, false);
-    Nuitka_PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type, NULL, false, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenAsend_Type, // type
+                        NULL,                       // base
+                        true,                       // generic_get_attr
+                        false,                      // generic_set_attr
+                        true,                       // self_iter
+                        true,                       // await_self_iter
+                        false                       // await_self_aiter
+    );
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenAthrow_Type, // type
+                        NULL,                        // base
+                        true,                        // generic_get_attr
+                        false,                       // generic_set_attr
+                        true,                        // self_iter
+                        true,                        // await_self_iter
+                        false                        // await_self_aiter
+    );
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type, // type
+                        NULL,                              // base
+                        false,                             // generic_get_attr
+                        false,                             // generic_set_attr
+                        false,                             // self_iter
+                        false,                             // await_self_iter
+                        false                              // await_self_aiter
+    );
 
 #if PYTHON_VERSION >= 0x3d0
     PyThreadState *tstate = PyThreadState_GET();

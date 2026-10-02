@@ -1833,7 +1833,14 @@ PyTypeObject Nuitka_Generator_Type = {
 };
 
 void _initCompiledGeneratorType(void) {
-    Nuitka_PyType_Ready(&Nuitka_Generator_Type, &PyGen_Type, true, false, true, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Generator_Type, // type
+                        &PyGen_Type,            // base
+                        true,                   // generic_get_attr
+                        false,                  // generic_set_attr
+                        true,                   // self_iter
+                        false,                  // await_self_iter
+                        false                   // await_self_aiter
+    );
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Generator_Type.tp_doc != PyGen_Type.tp_doc || PyGen_Type.tp_doc == NULL);

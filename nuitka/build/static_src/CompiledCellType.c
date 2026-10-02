@@ -231,7 +231,16 @@ PyTypeObject Nuitka_Cell_Type = {
     Nuitka_Cell_tp_getset, // tp_getset
 };
 
-void _initCompiledCellType(void) { Nuitka_PyType_Ready(&Nuitka_Cell_Type, NULL, true, false, false, false, false); }
+void _initCompiledCellType(void) {
+    Nuitka_PyType_Ready(&Nuitka_Cell_Type, // type
+                        NULL,              // base
+                        true,              // generic_get_attr
+                        false,             // generic_set_attr
+                        false,             // self_iter
+                        false,             // await_self_iter
+                        false              // await_self_aiter
+    );
+}
 
 struct Nuitka_CellObject *Nuitka_Cell_NewEmpty(void) {
 #if _DEBUG_REFCOUNTS

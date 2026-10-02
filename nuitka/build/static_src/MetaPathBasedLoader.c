@@ -2767,10 +2767,24 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **_loade
     }
 #endif
 
-    Nuitka_PyType_Ready(&Nuitka_Loader_Type, NULL, true, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Loader_Type, // type
+                        NULL,                // base
+                        true,                // generic_get_attr
+                        false,               // generic_set_attr
+                        false,               // self_iter
+                        false,               // await_self_iter
+                        false                // await_self_aiter
+    );
 
 #if PYTHON_VERSION >= 0x370
-    Nuitka_PyType_Ready(&Nuitka_ResourceReader_Type, NULL, true, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_ResourceReader_Type, // type
+                        NULL,                        // base
+                        true,                        // generic_get_attr
+                        false,                       // generic_set_attr
+                        false,                       // self_iter
+                        false,                       // await_self_iter
+                        false                        // await_self_aiter
+    );
 #endif
 
     // Register it as a meta path loader.
