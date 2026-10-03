@@ -77,6 +77,7 @@ def getRichComparisonCode(
         left=left,
         right=right,
         may_swap_arguments="always",
+        allow_float_intermediates=False,
         context=context,
     )
 

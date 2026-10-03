@@ -14,6 +14,10 @@ class CTypeCFloat(CTypeBase):
     helper_code = "CFLOAT"
 
     @classmethod
+    def hasErrorIndicator(cls):
+        return False
+
+    @classmethod
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):

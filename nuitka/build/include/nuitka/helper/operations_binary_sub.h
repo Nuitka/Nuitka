@@ -103,6 +103,21 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_CFLOAT(PyObject *operand1, do
 /* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_SUB_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_SUB_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_SUB_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_SUB_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 

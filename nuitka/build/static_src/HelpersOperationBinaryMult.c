@@ -3644,6 +3644,258 @@ nuitka_bool BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double 
     return _BINARY_OPERATION_MULT_NBOOL_FLOAT_CFLOAT(operand1, operand2);
 }
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    PyObject *result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    const double a = operand1;
+    const double b = PyFloat_AS_DOUBLE(operand2);
+
+    double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+PyObject *BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MULT_OBJECT_CFLOAT_FLOAT(operand1, operand2);
+}
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+static PyObject *_BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    PyObject *result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    const double a = operand1;
+    const double b = operand2;
+
+    double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+PyObject *BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+    return _BINARY_OPERATION_MULT_OBJECT_CFLOAT_CFLOAT(operand1, operand2);
+}
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    double result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    const double a = PyFloat_AS_DOUBLE(operand1);
+    const double b = PyFloat_AS_DOUBLE(operand2);
+
+    // Round each unboxed result before another operation can contract it.
+    volatile double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = cfloat_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+double BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MULT_CFLOAT_FLOAT_FLOAT(operand1, operand2);
+}
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+static double _BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+
+    double result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+
+    const double a = PyFloat_AS_DOUBLE(operand1);
+    const double b = operand2;
+
+    // Round each unboxed result before another operation can contract it.
+    volatile double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = cfloat_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+double BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2) {
+    return _BINARY_OPERATION_MULT_CFLOAT_FLOAT_CFLOAT(operand1, operand2);
+}
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    double result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+    const double a = operand1;
+    const double b = PyFloat_AS_DOUBLE(operand2);
+
+    // Round each unboxed result before another operation can contract it.
+    volatile double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = cfloat_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+double BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_FLOAT(operand1, operand2);
+}
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+static double _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    double result;
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+    const double a = operand1;
+    const double b = operand2;
+
+    // Round each unboxed result before another operation can contract it.
+    volatile double r = a * b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    result = cfloat_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+double BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2) {
+    return _BINARY_OPERATION_MULT_CFLOAT_CFLOAT_CFLOAT(operand1, operand2);
+}
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
 static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_INT(PyObject *operand1, PyObject *operand2) {

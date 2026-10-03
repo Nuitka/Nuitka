@@ -8,6 +8,7 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_float
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 
 from .BinaryOperationHelperDefinitions import (
@@ -16,6 +17,7 @@ from .BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
 )
 from .c_types.CTypeBooleans import CTypeBool
+from .c_types.CTypeCFloats import CTypeCFloat
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
@@ -32,7 +34,10 @@ from .ErrorCodes import (
     getReleaseCodes,
     getTakeReferenceCode,
 )
-from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
+from .ExpressionCTypeSelectionHelpers import (
+    canUseCFloatIntermediate,
+    decideExpressionCTypes,
+)
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -94,6 +99,20 @@ def _getBinaryOperationCode(
     # This is detail rich stuff, encoding the complexity of what helpers are
     # available, and can be used as a fallback.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    allow_float_intermediates = (
+        operator in ("Add", "Sub", "Mult")
+        and not inplace
+        and not needs_check
+        and left.getTypeShape() is tshape_float
+        and right.getTypeShape() is tshape_float
+        and to_name.getCType() in (CTypePyObjectPtr, CTypeCFloat)
+        and (
+            to_name.getCType() is CTypeCFloat
+            or canUseCFloatIntermediate(left)
+            or canUseCFloatIntermediate(right)
+        )
+    )
+
     (
         _unknown_types,
         needs_argument_swap,
@@ -106,13 +125,14 @@ def _getBinaryOperationCode(
         right=right,
         may_swap_arguments=(
             "never"
-            if inplace
+            if inplace or allow_float_intermediates
             else (
                 "number"
                 if operator in ("Add", "Mult", "BitOr", "BitAnd", "BitXor")
                 else "never"
             )
         ),
+        allow_float_intermediates=allow_float_intermediates,
         context=context,
     )
 
@@ -187,6 +207,9 @@ def _getBinaryOperationCode(
         )
 
     if helper_function is None:
+        # Native targets require a complete helper matrix; no object conversion exists.
+        assert target_type is not CTypeCFloat, (prefix, left_c_type, right_c_type)
+
         # Give up and warn about it.
         left_c_type = CTypePyObjectPtr
         right_c_type = CTypePyObjectPtr
