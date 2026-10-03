@@ -88,7 +88,7 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
             self.sysexit("Error, it seems 'tk-inter' is not installed.")
 
         # Only ever saw these in use, report if there are more.
-        if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
+        if self.tk_inter_version not in ("8.5", "8.6", "9.0", "9.1"):
             self.sysexit("""\
 Error, it seems 'tk-inter' has an unsupported version '%s'. \
 Please report as a issue.""" % self.tk_inter_version)
