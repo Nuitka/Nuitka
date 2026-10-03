@@ -442,9 +442,10 @@ def getDirectoryRealPath(path):
     path = os.path.realpath(path)
 
     # Attempt to resolve Windows symlinks older Python
-    if os.name == "nt":
-        if os.path.islink(path) or (not os.path.isdir(path) and os.path.exists(path)):
-            path = _getRealPathWindows(path)
+    if os.name == "nt" and (
+        os.path.islink(path) or (not os.path.isdir(path) and os.path.exists(path))
+    ):
+        path = _getRealPathWindows(path)
 
     return path
 
@@ -1568,16 +1569,19 @@ def isFilenameBelowPath(path, filename, consider_short=True):
 
     result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
 
-    if not result and consider_short:
-        if os.path.exists(filename) and os.path.exists(path):
-            filename = getExternalUsePath(filename)
-            path = getExternalUsePath(path)
+    if (
+        not result
+        and consider_short
+        and os.path.exists(filename)
+        and os.path.exists(path)
+    ):
+        filename = getExternalUsePath(filename)
+        path = getExternalUsePath(path)
 
-            if isWin32Windows():
-                if getWindowsDrive(path) != getWindowsDrive(filename):
-                    return False
+        if isWin32Windows() and getWindowsDrive(path) != getWindowsDrive(filename):
+            return False
 
-            result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
+        result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
 
     return result
 

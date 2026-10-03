@@ -404,9 +404,10 @@ def _getCcacheStatistics(ccache_logfile):
                     command = "unknown command leading to " + line
 
                 # Older ccache on e.g. RHEL6 wasn't explicit about linking.
-                if result == "unsupported compiler option":
-                    if " -o " in command or "unknown command" in command:
-                        result = "called for link"
+                if result == "unsupported compiler option" and (
+                    " -o " in command or "unknown command" in command
+                ):
+                    result = "called for link"
 
                 # But still try to catch this with log output if it happens.
                 if result == "unsupported compiler option":
