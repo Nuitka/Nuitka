@@ -3784,7 +3784,7 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnxruntime' # checksum: 49499325
+- module-name: 'onnxruntime' # checksum: ec84b6
   dlls:
     - from_filenames:
         relative_path: 'capi'
@@ -3795,14 +3795,7 @@
         relative_path: 'capi'
         prefixes:
           - 'libonnxruntime'
-      dest_path: '.'
-      when: 'not win32 and not linux'
-    - from_filenames:
-        relative_path: 'capi'
-        prefixes:
-          - 'libonnxruntime'
-        # on linux,  shared objects are expected to be located at "*.dist/onnxruntime/capi/*"
-      when: 'linux'
+      when: 'not win32'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
   implicit-imports:
