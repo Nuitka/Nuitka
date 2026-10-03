@@ -95,9 +95,16 @@ _created_cache_dirs = set()
 
 
 def getCacheDir(cache_basename, create=False):
+    # The environment variable name is based on the top level cache name only,
+    # any sub directory is appended to the result of it.
+    cache_basename, _sep, cache_sub_dir = cache_basename.partition("/")
+
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
+
+    if cache_sub_dir:
+        cache_dir = os.path.join(cache_dir, cache_sub_dir)
 
     cache_dir = _getCacheDirNormalizedPath(cache_dir)
 

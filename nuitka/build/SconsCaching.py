@@ -216,7 +216,7 @@ def enableCcache(env, source_dir, python_prefix):
 
         # Unless asked to do otherwise, store ccache files in our own directory.
         if "CCACHE_DIR" not in os.environ:
-            ccache_dir = getCacheDir("ccache", create=True)
+            ccache_dir = getCacheDir("ccache/%s" % env.python_abi_version, create=True)
             ccache_dir = getExternalUsePath(ccache_dir)
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
