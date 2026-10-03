@@ -88,7 +88,7 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
             self.sysexit("Error, it seems 'tk-inter' is not installed.")
 
         # Only ever saw these in use, report if there are more.
-        if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
+        if self.tk_inter_version not in ("8.5", "8.6", "9.0", "9.1"):
             self.sysexit("""\
 Error, it seems 'tk-inter' has an unsupported version '%s'. \
 Please report as a issue.""" % self.tk_inter_version)
@@ -202,6 +202,20 @@ The Tcl library dir. See comments for Tk library dir.""",
                     "tcl9",
                 )
             )
+            yield os.path.normpath(
+                os.path.join(
+                    getHomebrewInstallPath(),
+                    "lib",
+                    "tcl9.0",
+                )
+            )
+            yield os.path.normpath(
+                os.path.join(
+                    getHomebrewInstallPath(),
+                    "lib",
+                    "tcl9.1",
+                )
+            )
 
         if isMacOS():
             yield os.path.normpath(
@@ -251,6 +265,13 @@ The Tcl library dir. See comments for Tk library dir.""",
                         getHomebrewInstallPath(),
                         "lib",
                         "tk9.0",
+                    )
+                )
+                yield os.path.normpath(
+                    os.path.join(
+                        getHomebrewInstallPath(),
+                        "lib",
+                        "tk9.1",
                     )
                 )
 
