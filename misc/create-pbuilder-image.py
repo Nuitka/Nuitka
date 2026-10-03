@@ -50,8 +50,8 @@ try:
     subprocess.check_call(
         [
             "debootstrap",  # spell-checker: ignore debootstrap
-            "--include=ccache",
-            "--include=dpkg-dev",
+            # The pbuilder dependency resolution needs aptitude.
+            "--include=aptitude,ccache,dpkg-dev",
             "--arch=" + arch,
             "--components=" + components,
             codename,
