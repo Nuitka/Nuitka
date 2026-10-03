@@ -1792,7 +1792,7 @@
     - patterns:
         - '*.zip'
 
-- module-name: 'gevent' # checksum: e22f6639
+- module-name: 'gevent' # checksum: cab7f45f
   implicit-imports:
     - depends:
         - 'gevent._config'
@@ -1804,6 +1804,7 @@
         - 'gevent.thread'
         - 'gevent.threading'
         - 'gevent.select'
+        - 'gevent.selectors'
         - 'gevent.hub'
         - 'gevent.greenlet'
         - 'gevent.local'
