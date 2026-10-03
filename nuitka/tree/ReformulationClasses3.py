@@ -311,7 +311,8 @@ def buildClassNode3(provider, node, source_ref):
     source_ref_orig = source_ref
 
     if body is not None:
-        # The frame guard has nothing to tell its line number to.
+        # The frame guard tells the class statement line to the caller, just
+        # like CPython does in tracebacks of class bodies.
         body.source_ref = source_ref
 
     locals_scope = class_dict_creation_function.getLocalsScope()
