@@ -401,24 +401,6 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findContainingPackageEntry(char c
     return NULL;
 }
 
-static PyObject *_getFileList(PyThreadState *tstate, PyObject *dirname) {
-    static PyObject *listdir_func = NULL;
-
-    // TODO: Use OS_LISTDIR instead.
-
-    if (listdir_func == NULL) {
-        listdir_func = PyObject_GetAttrString(IMPORT_HARD_OS(), "listdir");
-    }
-
-    if (unlikely(listdir_func == NULL)) {
-        return NULL;
-    }
-
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, listdir_func, dirname);
-
-    return result;
-}
-
 #if PYTHON_VERSION < 0x300
 static PyObject *_getImportingSuffixesByPriority(PyThreadState *tstate, int kind) {
     static PyObject *result = NULL;
@@ -492,7 +474,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     for (Py_ssize_t i = 0; i < parent_path_size; i += 1) {
         PyObject *path_element = PyList_GET_ITEM(parent_path, i);
 
-        PyObject *filenames_list = _getFileList(tstate, path_element);
+        PyObject *filenames_list = OS_LISTDIR(tstate, path_element);
 
         if (filenames_list == NULL) {
             CLEAR_ERROR_OCCURRED(tstate);
