@@ -69,7 +69,6 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
-    isCheckOnlyMode,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -79,6 +78,7 @@ from .Common import (
     python3_dict_methods,
     python3_list_methods,
     python3_str_methods,
+    traceSpecialization,
     withFileOpenedAndAutoFormattedWithClaim,
     writeLine,
 )
@@ -584,8 +584,12 @@ def makeHelpersComparisonOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
-    filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
+    )
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -638,10 +642,10 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparisonDual.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersComparisonDual%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/comparisons_dual_%s.h" % op_code.lower()
     )
 
@@ -720,10 +724,10 @@ def makeHelpersBinaryOperation(operator, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
@@ -775,10 +779,10 @@ def makeHelpersInplaceOperation(operator, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
@@ -842,10 +846,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinaryDual.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationBinaryDual%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_binary_dual_%s.h"
         % op_code.lower()
     )
@@ -894,8 +898,8 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
 
 def makeHelpersImportHard():
-    filename_c = "nuitka/build/static_src/HelpersImportHard.c"
-    filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersImportHard.c")
+    filename_h = getNormalizedPath("nuitka/build/include/nuitka/helper/import_hard.h")
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
@@ -978,8 +982,10 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
-    filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
-    filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersCallingGenerated.c")
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/calling_generated.h"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -1092,8 +1098,10 @@ def makeHelperCalls():
 
 
 def makeHelperLists():
-    filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
-    filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersListsGenerated.c")
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/lists_generated.h"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -1380,7 +1388,9 @@ generate_builtin_type_operations = [
 
 
 def makeDictCopyHelperCodes():
-    filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersDictionariesGenerated.c"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -1429,8 +1439,13 @@ def _getCheckForShape(shape):
 
 def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
-    filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
-    filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
+    )
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
+    )
+
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
@@ -1704,30 +1719,37 @@ def _writeCompiledOffsetsHeader(template_groups):
     ) as output_c:
         output_c.write(header_c_code)
 
-    if not isCheckOnlyMode():
-        tools_logger.info("Generated C header at %s" % out_path)
+    traceSpecialization("Generated C header at %s" % out_path)
 
 
 def main():
     # Many operations to specialize, pylint: disable=too-many-statements
     parseOptions()
 
-    makeHelpersBinaryDualOperation("+", "ADD")
-    makeHelpersBinaryDualOperation("-", "SUB")
+    traceSpecialization("Code generation of Nuitka for specializing C code.")
 
+    traceSpecialization("Make dict copy helper codes...")
     makeDictCopyHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.
+    traceSpecialization("Make some operation helpers for early coverage...")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("-", "SUB")
 
+    traceSpecialization("Make helper builtin type methods...")
     makeHelperBuiltinTypeMethods()
 
+    traceSpecialization("Make helper for hard imports...")
     makeHelpersImportHard()
 
+    traceSpecialization("Make helper for calls...")
     makeHelperCalls()
+    traceSpecialization("Make helper for lists...")
     makeHelperLists()
 
+    traceSpecialization("Make remaining operation helpers...")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
     makeHelpersBinaryOperation("%", "MOD")
@@ -1773,6 +1795,11 @@ def main():
 
     updateCompiledOffsetsHeader()
 
+    traceSpecialization("OK")
+
+
+if __name__ == "__main__":
+    main()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

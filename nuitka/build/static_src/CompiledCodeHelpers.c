@@ -688,10 +688,6 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 // Helper functions for print. Need to play nice with Python softspace
 // behavior. spell-checker: ignore softspace
 
-#if PYTHON_VERSION >= 0x300
-NUITKA_DEFINE_BUILTIN(print);
-#endif
-
 bool PRINT_NEW_LINE_TO(PyObject *file) {
     PyThreadState *tstate = PyThreadState_GET();
 

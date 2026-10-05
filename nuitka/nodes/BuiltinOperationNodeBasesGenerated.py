@@ -10,23 +10,23 @@
 
 WARNING, this code is GENERATED. Modify the template BuiltinOperationNodeBases.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph capitalize casefold center chars
-spell-checker: ignore clear copy count decode default delete dist distribution_name encode
-spell-checker: ignore encoding end endswith errors exit_code expandtabs
-spell-checker: ignore experimental_attributes experimental_autograph_options
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
-spell-checker: ignore experimental_implements experimental_relax_shapes extend fillchar
-spell-checker: ignore find format format_map formatmap fromkeys func get group handle
-spell-checker: ignore has_key haskey index input_signature insert isalnum isalpha isascii
-spell-checker: ignore isdecimal isdigit isidentifier islower isnumeric isprintable isspace
-spell-checker: ignore istitle isupper item items iterable iteritems iterkeys itervalues
-spell-checker: ignore jit_compile join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new old p package
-spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
-spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
-spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
-spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline object old opener p
+spell-checker: ignore package package_or_requirement pairs partition path pop popitem
+spell-checker: ignore prefix prepare reduce_retracing remove replace resource
+spell-checker: ignore resource_name reverse rfind rindex rjust rpartition rsplit rstrip s
+spell-checker: ignore sep setdefault sort split splitlines start startswith stop strip sub
+spell-checker: ignore suffix swapcase table tabsize title translate update upper use_errno
 spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
 spell-checker: ignore winmode zfill
 """

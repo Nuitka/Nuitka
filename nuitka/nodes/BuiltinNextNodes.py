@@ -73,6 +73,10 @@ class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase)
 
     named_children = ("iterator", "default")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, iterator, default, source_ref):
         ChildrenHavingIteratorDefaultMixin.__init__(
             self,

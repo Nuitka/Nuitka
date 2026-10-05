@@ -58,8 +58,8 @@ class {{mixin_class_name}}({{base_class}}):
 
 {% if named_children or node_attributes %}
     def __init__(self,
-{% for named_child in named_children %}
-                 {{named_child}},
+{% for named_child, param_name in init_args_spec %}
+                 {{param_name}},
 {% endfor %}
 {% for node_attribute in node_attributes %}
                  {{node_attribute}},
@@ -68,23 +68,23 @@ class {{mixin_class_name}}({{base_class}}):
                  source_ref
 {% endif %}
     ):
-{% for named_child in named_children %}
+{% for named_child, param_name in init_args_spec %}
 {% if named_child in named_children_checkers %}
-        {{named_child}} = {{named_children_checkers[named_child]}}({{named_child}})
+        {{param_name}} = {{named_children_checkers[named_child]}}({{param_name}})
 {% endif %}
 {% if named_children_types.get(named_child) == "tuple" %}
-        assert type({{named_child}}) is tuple
+        assert type({{param_name}}) is tuple
 
-        for val in {{named_child}}:
+        for val in {{param_name}}:
             val.parent = self
 {% elif named_children_types.get(named_child) == "optional" %}
-        if {{named_child}} is not None:
-            {{named_child}}.parent = self
+        if {{param_name}} is not None:
+            {{param_name}}.parent = self
 {% else %}
-        {{named_child}}.parent = self
+        {{param_name}}.parent = self
 {% endif %}
 
-        self.subnode_{{named_child}} = {{named_child}}
+        self.subnode_{{named_child}} = {{param_name}}
 
 {% endfor %}
 {% for node_attribute in node_attributes %}

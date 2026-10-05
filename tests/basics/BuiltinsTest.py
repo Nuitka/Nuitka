@@ -13,6 +13,7 @@ from __future__ import print_function
 # Patch away "__file__" path in a hard to detect way. This will make sure,
 # repeated calls to locals really get the same dictionary.
 import os
+import sys
 from math import copysign
 
 
@@ -84,6 +85,14 @@ def displayDict(d):
     import pprint
 
     return pprint.pformat(d)
+
+
+def displayIterable(iterator):
+    print("Displaying result: ")
+    print(type(iterator), iterator)
+    for element in iterator:
+        print("   ", type(element), element)
+    print("End.")
 
 
 print("Vars on module level", displayDict(vars()))
@@ -764,6 +773,59 @@ try:
     enumerate()
 except TypeError as e:
     print("Occurred", type(e).__name__)
+
+print("Tests for reversed():")
+displayIterable(reversed([1, 2, 3]))
+displayIterable(reversed("abc"))
+
+print("Tests for sorted():")
+displayIterable(sorted([3, 1, 2]))
+displayIterable(sorted([3, 1, 2], reverse=True))
+displayIterable(sorted(["a", "c", "b"], key=lambda x: x))
+
+print("Sorted kwarg correctness:")
+try:
+    sorted(iterable=[1, 2, 3])
+except TypeError as e:
+    print("Caught expected TypeError:", e)
+else:
+    print("Error: sorted accepted 'iterable' keyword arg!")
+
+print("Sorted no-args handling:")
+try:
+    sorted()
+except TypeError as e:
+    print("Caught expected TypeError no-args:", e)
+
+print("Zip kwarg correctness:")
+try:
+    zip(iterables=[1, 2])
+except TypeError as e:
+    print("Caught expected TypeError:", e)
+else:
+    print("Error: zip accepted 'iterables' keyword arg!")
+
+print("Zip with three iterables:")
+displayIterable(zip([1, 2], [3, 4], [5, 6]))
+
+print("Zip no-args handling:")
+displayIterable(zip())
+
+print("Tests for memoryview():")
+if sys.version_info >= (2, 7):
+    m = memoryview(b"abc")
+    # Accessing elements might differ Py2/Py3 (Py2 returns str char, Py3 int)
+    # but we just print it to check no crash.
+    displayIterable(m)
+    displayIterable(m.tobytes())  # spell-checker: ignore tobytes
+else:
+    print("Skipped memoryview on old Py2")
+
+print("Print options:", end="")
+print("End works", end="!\n")
+print("Sep", "works", sep="-")
+print("Empty print:")
+print()
 
 # This used to crash, because of how variables are to be picked apart rather
 # that propagated as call argument.

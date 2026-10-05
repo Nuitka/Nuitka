@@ -19,6 +19,10 @@ class ExpressionBuiltinInput(ExpressionStrShapeExactMixin, ExpressionBuiltinInpu
     auto_compute_handling = "final"
 
     @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
     def mayRaiseExceptionOperation():
         return True
 

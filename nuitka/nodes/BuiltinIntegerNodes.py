@@ -37,6 +37,10 @@ class ExpressionBuiltinInt1(ChildHavingValueMixin, ExpressionBase):
 
     named_children = ("value",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
 
@@ -62,6 +66,10 @@ class ExpressionBuiltinIntLong2Base(
     ExpressionBase,
 ):
     named_children = ("value|optional", "base")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     # Note: Python version specific, it may be allowed or not to leave out value.
     try:
@@ -124,6 +132,10 @@ class ExpressionBuiltinLong1(ChildHavingValueMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_LONG1"
 
     named_children = ("value",)
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)

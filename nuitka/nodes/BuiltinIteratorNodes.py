@@ -22,6 +22,13 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
+from .ExpressionShapeMixins import ExpressionListShapeExactMixin
+from .HardImportNodesGenerated import (
+    ExpressionBuiltinsReversedCallBase,
+    ExpressionBuiltinsSortedBefore3CallBase,
+    ExpressionBuiltinsSortedSince3Call1Base,
+    ExpressionBuiltinsSortedSince3CallBase,
+)
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
@@ -202,6 +209,10 @@ class ExpressionBuiltinEnumerate1(
 
     named_children = ("sequence",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, sequence, source_ref):
         ChildHavingSequenceMixin.__init__(self, sequence=sequence)
 
@@ -214,6 +225,10 @@ class ExpressionBuiltinEnumerate2(
     kind = "EXPRESSION_BUILTIN_ENUMERATE2"
 
     named_children = ("sequence", "start")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, sequence, start, source_ref):
         ChildrenHavingSequenceStartMixin.__init__(
@@ -311,6 +326,10 @@ class ExpressionBuiltinZip(
 
     named_children = ("values|tuple",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
 
     def __init__(self, values, source_ref):
@@ -327,6 +346,10 @@ class ExpressionBuiltinZip310(
     kind = "EXPRESSION_BUILTIN_ZIP310"
 
     named_children = ("strict|optional", "values|tuple")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     python_version_spec = ">= 0x3A0"
 
@@ -527,6 +550,10 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
 
     named_children = ("callable_arg", "sentinel")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     auto_compute_handling = "final"
 
     # TODO: The "callable" be investigated in a non-final
@@ -612,6 +639,64 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
         # source with a computeExpressionAsyncNext slot, but we delay that.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        return self, None, None
+
+
+class ExpressionBuiltinsReversedCall(ExpressionBuiltinsReversedCallBase):
+    kind = "EXPRESSION_BUILTINS_REVERSED_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+
+class ExpressionBuiltinsSortedSince3Call1(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedSince3Call1Base,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+
+class ExpressionBuiltinsSortedSince3Call(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedSince3CallBase,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Implement actual optimization logic
+        return self, None, None
+
+
+def makeExpressionBuiltinsSortedSince3Call(iterable, key, reverse, source_ref):
+    if key is None and reverse is None:
+        return ExpressionBuiltinsSortedSince3Call1(
+            iterable=iterable, source_ref=source_ref
+        )
+
+    return ExpressionBuiltinsSortedSince3Call(
+        iterable=iterable, key=key, reverse=reverse, source_ref=source_ref
+    )
+
+
+class ExpressionBuiltinsSortedBefore3Call(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedBefore3CallBase,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_BEFORE3_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Implement actual optimization logic
         return self, None, None
 
 

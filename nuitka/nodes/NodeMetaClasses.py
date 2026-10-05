@@ -36,11 +36,6 @@ def _checkBases(name, bases):
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 
 
-@staticmethod
-def returnTrueShared():
-    return True
-
-
 def returnFalseSharedFunction():
     return False
 
@@ -140,9 +135,6 @@ class NodeCheckMetaClass(ABCMeta):
         ABCMeta.__init__(cls, name, bases, dictionary)
 
         if not name.endswith(("Base", "Mixin")):
-            if kind.startswith("EXPRESSION_BUILTIN_"):
-                cls.isExpressionBuiltin = returnTrueShared
-
             # Add automatic checker "True" to the node class.
             if getattr(cls, checker_method_name) is returnFalseSharedFunction:
 

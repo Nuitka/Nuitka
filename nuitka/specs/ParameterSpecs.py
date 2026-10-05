@@ -323,6 +323,8 @@ def matchCall(
     num_pos_only,
     positional,
     pairs,
+    simulator,
+    example_arguments,
     improved=False,
 ):
     """Match a call arguments to a signature.
@@ -346,13 +348,14 @@ def matchCall(
 
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs
 
     # Make a copy, we are going to modify it.
     pairs = list(pairs)
+    supplied_pairs = tuple(pairs)
 
     result = {}
 
@@ -402,39 +405,6 @@ def matchCall(
 
     for arg, value in zip(args, positional):
         assign(arg, value)
-
-    # Python3 does this check earlier.
-    if python_version >= 0x300 and not star_dict_arg:
-        for pair in pairs:
-            try:
-                arg_index = (args + kw_only_args).index(pair[0])
-            except ValueError:
-                if python_version < 0x370 and not improved:
-                    template = "'%(arg_name)s' is an invalid keyword argument for this function"
-                elif python_version < 0x3D0 and not improved:
-                    template = "'%(arg_name)s' is an invalid keyword argument for %(func_name)s()"
-                else:
-                    template = "%(func_name)s() got an unexpected keyword argument '%(arg_name)s'"
-
-                message = template % {
-                    "arg_name": pair[0],
-                    "func_name": func_name,
-                }
-
-                raise TooManyArguments(TypeError(message))
-
-            if arg_index < num_pos_only:
-                if python_version < 0x3D0:
-                    template = "'%(arg_name)s' is an invalid keyword argument for %(func_name)s()"
-                else:
-                    template = "%(func_name)s() got an unexpected keyword argument '%(arg_name)s'"
-
-                message = template % {
-                    "arg_name": pair[0],
-                    "func_name": func_name,
-                }
-
-                raise TooManyArguments(TypeError(message))
 
     if star_list_arg:
         if num_pos > num_args:
@@ -502,9 +472,14 @@ def matchCall(
             )
 
     named_argument_names = [pair[0] for pair in pairs]
+    pos_only_names = args[:num_pos_only]
 
     for arg in args + kw_only_args:
-        if type(arg) is str and arg in named_argument_names:
+        if (
+            type(arg) is str
+            and arg in named_argument_names
+            and arg not in pos_only_names
+        ):
             if isAssigned(arg):
                 raise TooManyArguments(
                     TypeError(
@@ -533,25 +508,11 @@ def matchCall(
 
     if star_dict_arg:
         assign(star_dict_arg, pairs)
-    elif pairs:
-        unexpected = next(iter(dict(pairs)))
-
-        if improved or python_version >= 0x3D0:
-            message = "%s() got an unexpected keyword argument '%s'" % (
-                func_name,
-                unexpected,
-            )
-        else:
-            message = (
-                "'%s' is an invalid keyword argument for this function" % unexpected
-            )
-
-        raise TooManyArguments(TypeError(message))
 
     unassigned = num_args - len([arg for arg in args if isAssigned(arg)])
 
     if unassigned:
-        num_required = num_args - num_defaults
+        num_required = num_args - max(0, num_defaults - len(kw_only_args))
 
         # Special case required arguments.
         if num_required > 0 or improved:
@@ -563,38 +524,82 @@ def matchCall(
                     )
                 )
 
-            if num_required == 1:
-                arg_desc = "1 argument" if python_version < 0x350 else "one argument"
-            else:
-                arg_desc = "%d arguments" % num_required
+            if not improved and simulator is not None:
+                if example_arguments is None:
+                    example_arguments = [1] * len(args)
 
-            raise TooManyArguments(
-                TypeError(
-                    "%s() takes %s %s (%d given)"
-                    % (
-                        func_name,
-                        "at least" if num_defaults > 0 else "exactly",
-                        arg_desc,
-                        num_total,
+                # TODO: May have to become a lot better, but for now it works
+                # for the test suites it seems.
+                simulator_args = example_arguments[: len(positional)]
+
+                # Replay keyword arguments given, so that errors that depend
+                # on them, e.g. encoding without a string for "bytearray" are
+                # produced by the actual built-in.
+                simulator_kwargs = {}
+                for pair_name, _pair_value in supplied_pairs:
+                    if pair_name in args:
+                        arg_index = args.index(pair_name)
+
+                        if arg_index < len(example_arguments):
+                            simulator_kwargs[pair_name] = example_arguments[arg_index]
+                        else:
+                            simulator_kwargs[pair_name] = 1
+                    elif pair_name in kw_only_args:
+                        simulator_kwargs[pair_name] = 1
+
+                try:
+                    simulator(*simulator_args, **simulator_kwargs)
+                except TypeError as e:
+                    raise TooManyArguments(e)
+
+                assert False, "Should not get here %s(%s, %s)" % (
+                    simulator,
+                    ",".join("%r" % arg for arg in example_arguments),
+                    ",".join(
+                        "%s=%r" % (pair_name, 1)
+                        for pair_name in sorted(simulator_kwargs)
+                    ),
+                )
+
+            else:
+                if num_required == 1:
+                    arg_desc = (
+                        "1 argument" if python_version < 0x350 else "one argument"
+                    )
+                else:
+                    arg_desc = "%d arguments" % num_required
+
+                if num_defaults > 0:
+                    if python_version < 0x300:
+                        modifier = "at least"
+                    else:
+                        modifier = ""
+                else:
+                    modifier = "exactly"
+
+                if modifier:
+                    raise TooManyArguments(
+                        TypeError(
+                            "%s() takes %s %s (%d given)"
+                            % (
+                                func_name,
+                                modifier,
+                                arg_desc,
+                                num_total,
+                            )
+                        )
+                    )
+
+                raise TooManyArguments(
+                    TypeError(
+                        "%s() takes %s (%d given)"
+                        % (
+                            func_name,
+                            arg_desc,
+                            num_total,
+                        )
                     )
                 )
-            )
-
-        raise TooManyArguments(
-            TypeError(
-                "%s expected %s%s, got %d"
-                % (
-                    func_name,
-                    (
-                        ("at least " if python_version < 0x300 else "")
-                        if num_defaults > 0
-                        else "exactly "
-                    ),
-                    "%d arguments" % num_required,
-                    num_total,
-                )
-            )
-        )
 
     unassigned = len(kw_only_args) - len(
         [arg for arg in kw_only_args if isAssigned(arg)]
@@ -613,6 +618,29 @@ def matchCall(
                 )
             )
         )
+
+    # Unexpected keywords are only reported after missing arguments, as CPython
+    # does it, e.g. "sorted" gives a missing argument error first.
+    if pairs and not star_dict_arg:
+        unexpected = next(iter(dict(pairs)))
+
+        if python_version < 0x370 and not improved:
+            template = "'%(arg_name)s' is an invalid keyword argument for this function"
+        elif python_version < 0x3D0 and not improved:
+            template = (
+                "'%(arg_name)s' is an invalid keyword argument for %(func_name)s()"
+            )
+        else:
+            template = (
+                "%(func_name)s() got an unexpected keyword argument '%(arg_name)s'"
+            )
+
+        message = template % {
+            "arg_name": unexpected,
+            "func_name": func_name,
+        }
+
+        raise TooManyArguments(TypeError(message))
 
     return result
 

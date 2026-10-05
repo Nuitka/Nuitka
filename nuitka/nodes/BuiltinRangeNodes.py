@@ -38,6 +38,10 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def getTruthValue(self):
         length = self.getIterationLength()
 
@@ -393,6 +397,10 @@ class ExpressionBuiltinXrangeMixin(object):
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     @staticmethod
     def getTypeShape():

@@ -1012,6 +1012,8 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
                 num_pos_only=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
+                simulator=None,
+                example_arguments=None,
             )
 
             values = [args_dict[name] for name in call_spec.getParameterNames()]

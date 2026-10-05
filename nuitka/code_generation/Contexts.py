@@ -62,6 +62,15 @@ class TempMixin(object):
         else:
             return "tmp_{name}_{number:d}".format(name=base_name, number=number)
 
+    def allocateTempNumber(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
+        return number
+
+    def skipTempName(self, base_name):
+        self.allocateTempNumber(base_name)
+
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
         # We might be hard coding too many details for special temps
         # here, pylint: disable=too-many-branches
@@ -70,12 +79,10 @@ class TempMixin(object):
         # assert not base_name.startswith("tmp_"), base_name
 
         if unique:
+            self.tmp_names[base_name] = None
             number = None
         else:
-            number = self.tmp_names.get(base_name, 0)
-            number += 1
-
-        self.tmp_names[base_name] = number
+            number = self.allocateTempNumber(base_name)
 
         formatted_name = self._formatTempName(base_name=base_name, number=number)
 
@@ -117,10 +124,8 @@ class TempMixin(object):
 
         return result
 
-    def skipTempName(self, base_name):
-        number = self.tmp_names.get(base_name, 0)
-        number += 1
-        self.tmp_names[base_name] = number
+    def hasTempName(self, base_name):
+        return base_name in self.tmp_names
 
     def getUniqueCodeName(self, base_name):
         number = self.tmp_names.get(base_name, 0)
@@ -134,9 +139,6 @@ class TempMixin(object):
 
     def getBoolResName(self):
         return self.allocateTempName("result", "bool", unique=True)
-
-    def hasTempName(self, base_name):
-        return base_name in self.tmp_names
 
     def getExceptionEscape(self):
         return self.exception_escape
@@ -390,6 +392,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
 
     @abstractmethod
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
+        pass
+
+    @abstractmethod
+    def allocateTempNumber(self, base_name):
         pass
 
     @abstractmethod
@@ -1099,6 +1105,9 @@ class PythonFunctionOutlineContext(
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
         return self.parent.allocateTempName(base_name, type_name, unique)
+
+    def allocateTempNumber(self, base_name):
+        return self.parent.allocateTempNumber(base_name)
 
     def skipTempName(self, base_name):
         return self.parent.skipTempName(base_name)

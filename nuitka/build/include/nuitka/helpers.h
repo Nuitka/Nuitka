@@ -265,6 +265,35 @@ extern PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *
 extern PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base);
 #endif
 
+// For built-in "reversed()" functionality.
+extern PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value);
+
+// For built-in "sorted()" functionality.
+#if PYTHON_VERSION < 0x300
+extern PyObject *BUILTIN_SORTED(PyThreadState *tstate, PyObject *iterable, PyObject *cmp, PyObject *key,
+                                PyObject *reverse);
+#else
+extern PyObject *BUILTIN_SORTED(PyThreadState *tstate, PyObject *iterable, PyObject *key, PyObject *reverse);
+extern PyObject *BUILTIN_SORTED1(PyThreadState *tstate, PyObject *iterable);
+#endif
+
+// For built-in "memoryview()" functionality.
+extern PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value);
+
+// For built-in "print()" functionality.
+#if PYTHON_VERSION < 0x300
+extern PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyObject *sep, PyObject *end,
+                               PyObject *file);
+#else
+extern PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyObject *sep, PyObject *end,
+                               PyObject *file, PyObject *flush);
+#endif
+
+extern PyObject *BUILTIN_PRINT1(PyThreadState *tstate, PyObject **values, int count);
+extern PyObject *BUILTIN_PRINT1_NO_ARGS(PyThreadState *tstate);
+extern PyObject *BUILTIN_PRINT1_SINGLE_ARG(PyThreadState *tstate, PyObject *arg);
+extern PyObject *BUILTIN_PRINT1_TWO_ARGS(PyThreadState *tstate, PyObject *arg1, PyObject *arg2);
+
 #include "nuitka/importing.h"
 
 // Hard imports have their own helpers.

@@ -135,6 +135,10 @@ class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, Expression
 
     named_children = ("expression", "name", "default|optional")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, expression, name, default, source_ref):
         ChildrenExpressionBuiltinGetattrMixin.__init__(
             self, expression=expression, name=name, default=default
@@ -194,6 +198,10 @@ class ExpressionBuiltinSetattr(
 
     named_children = ("expression", "name", "value")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, expression, name, value, source_ref):
         ChildrenExpressionBuiltinSetattrMixin.__init__(
             self,
@@ -226,6 +234,10 @@ class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("expression", "name")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     auto_compute_handling = "wait_constant:name,raise"
 

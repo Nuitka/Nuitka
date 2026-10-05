@@ -15,9 +15,17 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
 )
 
-from .BuiltinParameterSpecs import (
+from .BuiltinParameterSpecs import (  # For re-export, pylint: disable=unused-import
     BuiltinParameterSpec,
     BuiltinParameterSpecNoKeywords,
+    builtin_memoryview_spec,
+    builtin_open_before_3_spec,
+    builtin_open_since_3_spec,
+    builtin_print_before_3_spec,
+    builtin_print_since_3_spec,
+    builtin_reversed_spec,
+    builtin_sorted_before_3_spec,
+    builtin_sorted_since_3_spec,
 )
 
 # Metadata:

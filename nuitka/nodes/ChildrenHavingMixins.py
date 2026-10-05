@@ -10,23 +10,23 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph capitalize casefold center chars
-spell-checker: ignore clear copy count decode default delete dist distribution_name encode
-spell-checker: ignore encoding end endswith errors exit_code expandtabs
-spell-checker: ignore experimental_attributes experimental_autograph_options
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
-spell-checker: ignore experimental_implements experimental_relax_shapes extend fillchar
-spell-checker: ignore find format format_map formatmap fromkeys func get group handle
-spell-checker: ignore has_key haskey index input_signature insert isalnum isalpha isascii
-spell-checker: ignore isdecimal isdigit isidentifier islower isnumeric isprintable isspace
-spell-checker: ignore istitle isupper item items iterable iteritems iterkeys itervalues
-spell-checker: ignore jit_compile join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new old p package
-spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
-spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
-spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
-spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline object old opener p
+spell-checker: ignore package package_or_requirement pairs partition path pop popitem
+spell-checker: ignore prefix prepare reduce_retracing remove replace resource
+spell-checker: ignore resource_name reverse rfind rindex rjust rpartition rsplit rstrip s
+spell-checker: ignore sep setdefault sort split splitlines start startswith stop strip sub
+spell-checker: ignore suffix swapcase table tabsize title translate update upper use_errno
 spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
 spell-checker: ignore winmode zfill
 """
@@ -8585,195 +8585,19 @@ ChildrenExpressionLocalsMappingVariableRefOrFallbackMixin = ChildHavingFallbackM
 ChildrenExpressionLocalsVariableRefOrFallbackMixin = ChildHavingFallbackMixin
 
 
-class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinOpenP2
-
-    def __init__(
-        self,
-        filename,
-        mode,
-        buffering,
-    ):
-        filename.parent = self
-
-        self.subnode_filename = filename
-
-        if mode is not None:
-            mode.parent = self
-
-        self.subnode_mode = mode
-
-        if buffering is not None:
-            buffering.parent = self
-
-        self.subnode_buffering = buffering
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        result = [
-            self.subnode_filename,
-        ]
-        if self.subnode_mode is not None:
-            result.append(self.subnode_mode)
-        if self.subnode_buffering is not None:
-            result.append(self.subnode_buffering)
-        return result
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (
-            ("filename", self.subnode_filename),
-            ("mode", self.subnode_mode),
-            ("buffering", self.subnode_buffering),
-        )
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_filename
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_filename = new_node
-
-            return
-
-        value = self.subnode_mode
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_mode = new_node
-
-            return
-
-        value = self.subnode_buffering
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_buffering = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "filename": self.subnode_filename.makeClone(),
-            "mode": (
-                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
-            ),
-            "buffering": (
-                self.subnode_buffering.makeClone()
-                if self.subnode_buffering is not None
-                else None
-            ),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_filename.finalize()
-        del self.subnode_filename
-        if self.subnode_mode is not None:
-            self.subnode_mode.finalize()
-        del self.subnode_mode
-        if self.subnode_buffering is not None:
-            self.subnode_buffering.finalize()
-        del self.subnode_buffering
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def undoVariableTracingRaw(self, trace_collection):
-        for child in reversed(self.getVisitableNodes()):
-            child.undoVariableTracingRaw(trace_collection)
-
-        self.undoVariableTracing()
-
-    # For overload only
-    @staticmethod
-    def undoVariableTracing():
-        pass
-
-    def collectVariableAccesses(self, emit_variable):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_filename.collectVariableAccesses(emit_variable)
-        subnode_mode = self.subnode_mode
-
-        if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_variable)
-        subnode_buffering = self.subnode_buffering
-
-        if subnode_buffering is not None:
-            self.subnode_buffering.collectVariableAccesses(emit_variable)
-
-
-# Assign the names that are easier to import with a stable name.
-ChildrenExpressionBuiltinOpenP2Mixin = (
-    ChildrenHavingFilenameModeOptionalBufferingOptionalMixin
-)
-
-
-class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin(
+class ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin(
     object
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     # This is generated for use in
-    #   ExpressionBuiltinOpenP3
+    #   ExpressionBuiltinsOpen
+    #   ExpressionBuiltinsOpenSince3Call
 
     def __init__(
         self,
-        filename,
+        file,
         mode,
         buffering,
         encoding,
@@ -8782,9 +8606,9 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         closefd,
         opener,
     ):
-        filename.parent = self
+        file.parent = self
 
-        self.subnode_filename = filename
+        self.subnode_file = file
 
         if mode is not None:
             mode.parent = self
@@ -8825,7 +8649,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         """The visitable nodes, with tuple values flattened."""
 
         result = [
-            self.subnode_filename,
+            self.subnode_file,
         ]
         if self.subnode_mode is not None:
             result.append(self.subnode_mode)
@@ -8850,7 +8674,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         """
 
         return (
-            ("filename", self.subnode_filename),
+            ("file", self.subnode_file),
             ("mode", self.subnode_mode),
             ("buffering", self.subnode_buffering),
             ("encoding", self.subnode_encoding),
@@ -8861,11 +8685,11 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         )
 
     def replaceChild(self, old_node, new_node):
-        value = self.subnode_filename
+        value = self.subnode_file
         if old_node is value:
             new_node.parent = self
 
-            self.subnode_filename = new_node
+            self.subnode_file = new_node
 
             return
 
@@ -8941,7 +8765,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         """
 
         values = {
-            "filename": self.subnode_filename.makeClone(),
+            "file": self.subnode_file.makeClone(),
             "mode": (
                 self.subnode_mode.makeClone() if self.subnode_mode is not None else None
             ),
@@ -8984,8 +8808,8 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
     def finalize(self):
         del self.parent
 
-        self.subnode_filename.finalize()
-        del self.subnode_filename
+        self.subnode_file.finalize()
+        del self.subnode_file
         if self.subnode_mode is not None:
             self.subnode_mode.finalize()
         del self.subnode_mode
@@ -9054,7 +8878,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
     def collectVariableAccesses(self, emit_variable):
         """Collect variable reads and writes of child nodes."""
 
-        self.subnode_filename.collectVariableAccesses(emit_variable)
+        self.subnode_file.collectVariableAccesses(emit_variable)
         subnode_mode = self.subnode_mode
 
         if subnode_mode is not None:
@@ -9086,7 +8910,8 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionBuiltinOpenP3Mixin = ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
+ChildrenExpressionBuiltinsOpenMixin = ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
+ChildrenExpressionBuiltinsOpenSince3CallMixin = ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
 
 
 class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin(
@@ -10165,6 +9990,526 @@ class ChildHavingIterableMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionDictOperationFromkeys2Mixin = ChildHavingIterableMixin
+
+
+class ChildHavingIterableOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsSorted
+    #   ExpressionBuiltinsSortedSince3Call1
+
+    def __init__(
+        self,
+        iterable,
+    ):
+        if iterable is not None:
+            iterable.parent = self
+
+        self.subnode_iterable = iterable
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        if self.subnode_iterable is None:
+            return ()
+
+        return (self.subnode_iterable,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("iterable", self.subnode_iterable),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterable
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_iterable = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterable": (
+                self.subnode_iterable.makeClone()
+                if self.subnode_iterable is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_iterable is not None:
+            self.subnode_iterable.finalize()
+        del self.subnode_iterable
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = self.subnode_iterable
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_iterable = self.subnode_iterable
+
+        if subnode_iterable is not None:
+            self.subnode_iterable.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsSortedMixin = ChildHavingIterableOptionalMixin
+ChildrenExpressionBuiltinsSortedSince3Call1Mixin = ChildHavingIterableOptionalMixin
+
+
+class ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsSorted
+    #   ExpressionBuiltinsSortedBefore3Call
+
+    def __init__(
+        self,
+        iterable,
+        cmp,
+        key,
+        reverse,
+    ):
+        iterable.parent = self
+
+        self.subnode_iterable = iterable
+
+        if cmp is not None:
+            cmp.parent = self
+
+        self.subnode_cmp = cmp
+
+        if key is not None:
+            key.parent = self
+
+        self.subnode_key = key
+
+        if reverse is not None:
+            reverse.parent = self
+
+        self.subnode_reverse = reverse
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = [
+            self.subnode_iterable,
+        ]
+        if self.subnode_cmp is not None:
+            result.append(self.subnode_cmp)
+        if self.subnode_key is not None:
+            result.append(self.subnode_key)
+        if self.subnode_reverse is not None:
+            result.append(self.subnode_reverse)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("iterable", self.subnode_iterable),
+            ("cmp", self.subnode_cmp),
+            ("key", self.subnode_key),
+            ("reverse", self.subnode_reverse),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterable
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_iterable = new_node
+
+            return
+
+        value = self.subnode_cmp
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_cmp = new_node
+
+            return
+
+        value = self.subnode_key
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_key = new_node
+
+            return
+
+        value = self.subnode_reverse
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_reverse = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterable": self.subnode_iterable.makeClone(),
+            "cmp": (
+                self.subnode_cmp.makeClone() if self.subnode_cmp is not None else None
+            ),
+            "key": (
+                self.subnode_key.makeClone() if self.subnode_key is not None else None
+            ),
+            "reverse": (
+                self.subnode_reverse.makeClone()
+                if self.subnode_reverse is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_iterable.finalize()
+        del self.subnode_iterable
+        if self.subnode_cmp is not None:
+            self.subnode_cmp.finalize()
+        del self.subnode_cmp
+        if self.subnode_key is not None:
+            self.subnode_key.finalize()
+        del self.subnode_key
+        if self.subnode_reverse is not None:
+            self.subnode_reverse.finalize()
+        del self.subnode_reverse
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_iterable.collectVariableAccesses(emit_variable)
+        subnode_cmp = self.subnode_cmp
+
+        if subnode_cmp is not None:
+            self.subnode_cmp.collectVariableAccesses(emit_variable)
+        subnode_key = self.subnode_key
+
+        if subnode_key is not None:
+            self.subnode_key.collectVariableAccesses(emit_variable)
+        subnode_reverse = self.subnode_reverse
+
+        if subnode_reverse is not None:
+            self.subnode_reverse.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsSortedMixin = (
+    ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin
+)
+ChildrenExpressionBuiltinsSortedBefore3CallMixin = (
+    ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin
+)
+
+
+class ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsSorted
+    #   ExpressionBuiltinsSortedSince3Call
+
+    def __init__(
+        self,
+        iterable,
+        key,
+        reverse,
+    ):
+        if iterable is not None:
+            iterable.parent = self
+
+        self.subnode_iterable = iterable
+
+        if key is not None:
+            key.parent = self
+
+        self.subnode_key = key
+
+        if reverse is not None:
+            reverse.parent = self
+
+        self.subnode_reverse = reverse
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        if self.subnode_iterable is not None:
+            result.append(self.subnode_iterable)
+        if self.subnode_key is not None:
+            result.append(self.subnode_key)
+        if self.subnode_reverse is not None:
+            result.append(self.subnode_reverse)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("iterable", self.subnode_iterable),
+            ("key", self.subnode_key),
+            ("reverse", self.subnode_reverse),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterable
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_iterable = new_node
+
+            return
+
+        value = self.subnode_key
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_key = new_node
+
+            return
+
+        value = self.subnode_reverse
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_reverse = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterable": (
+                self.subnode_iterable.makeClone()
+                if self.subnode_iterable is not None
+                else None
+            ),
+            "key": (
+                self.subnode_key.makeClone() if self.subnode_key is not None else None
+            ),
+            "reverse": (
+                self.subnode_reverse.makeClone()
+                if self.subnode_reverse is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_iterable is not None:
+            self.subnode_iterable.finalize()
+        del self.subnode_iterable
+        if self.subnode_key is not None:
+            self.subnode_key.finalize()
+        del self.subnode_key
+        if self.subnode_reverse is not None:
+            self.subnode_reverse.finalize()
+        del self.subnode_reverse
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_iterable = self.subnode_iterable
+
+        if subnode_iterable is not None:
+            self.subnode_iterable.collectVariableAccesses(emit_variable)
+        subnode_key = self.subnode_key
+
+        if subnode_key is not None:
+            self.subnode_key.collectVariableAccesses(emit_variable)
+        subnode_reverse = self.subnode_reverse
+
+        if subnode_reverse is not None:
+            self.subnode_reverse.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsSortedMixin = (
+    ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin
+)
+ChildrenExpressionBuiltinsSortedSince3CallMixin = (
+    ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin
+)
 
 
 class ChildrenHavingIterableValueMixin(object):
@@ -12968,6 +13313,195 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
 ChildrenExpressionBuiltinImportMixin = ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevelOptionalMixin
 
 
+class ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsOpen
+    #   ExpressionBuiltinsOpenBefore3Call
+
+    def __init__(
+        self,
+        name,
+        mode,
+        buffering,
+    ):
+        if name is not None:
+            name.parent = self
+
+        self.subnode_name = name
+
+        if mode is not None:
+            mode.parent = self
+
+        self.subnode_mode = mode
+
+        if buffering is not None:
+            buffering.parent = self
+
+        self.subnode_buffering = buffering
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        if self.subnode_name is not None:
+            result.append(self.subnode_name)
+        if self.subnode_mode is not None:
+            result.append(self.subnode_mode)
+        if self.subnode_buffering is not None:
+            result.append(self.subnode_buffering)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("name", self.subnode_name),
+            ("mode", self.subnode_mode),
+            ("buffering", self.subnode_buffering),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_name
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_name = new_node
+
+            return
+
+        value = self.subnode_mode
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_mode = new_node
+
+            return
+
+        value = self.subnode_buffering
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_buffering = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_name is not None:
+            self.subnode_name.finalize()
+        del self.subnode_name
+        if self.subnode_mode is not None:
+            self.subnode_mode.finalize()
+        del self.subnode_mode
+        if self.subnode_buffering is not None:
+            self.subnode_buffering.finalize()
+        del self.subnode_buffering
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_name = self.subnode_name
+
+        if subnode_name is not None:
+            self.subnode_name.collectVariableAccesses(emit_variable)
+        subnode_mode = self.subnode_mode
+
+        if subnode_mode is not None:
+            self.subnode_mode.collectVariableAccesses(emit_variable)
+        subnode_buffering = self.subnode_buffering
+
+        if subnode_buffering is not None:
+            self.subnode_buffering.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsOpenMixin = (
+    ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin
+)
+ChildrenExpressionBuiltinsOpenBefore3CallMixin = (
+    ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin
+)
+
+
 class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin(
     object
 ):
@@ -13782,6 +14316,710 @@ class ChildrenHavingNameTypeParamsTupleValueMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionTypeAliasMixin = ChildrenHavingNameTypeParamsTupleValueMixin
+
+
+class ChildHavingObjectMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsMemoryview
+    #   ExpressionBuiltinsMemoryviewCall
+    #   ExpressionBuiltinsReversed
+    #   ExpressionBuiltinsReversedCall
+
+    def __init__(
+        self,
+        object_arg,
+    ):
+        object_arg.parent = self
+
+        self.subnode_object = object_arg
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_object,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("object", self.subnode_object),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_object
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_object = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "object": self.subnode_object.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_object.finalize()
+        del self.subnode_object
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_object)
+
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_object.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsMemoryviewMixin = ChildHavingObjectMixin
+ChildrenExpressionBuiltinsMemoryviewCallMixin = ChildHavingObjectMixin
+ChildrenExpressionBuiltinsReversedMixin = ChildHavingObjectMixin
+ChildrenExpressionBuiltinsReversedCallMixin = ChildHavingObjectMixin
+
+
+class ChildHavingObjectsTupleMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsPrint
+    #   ExpressionBuiltinsPrintSince3Call1
+
+    def __init__(
+        self,
+        objects,
+    ):
+        assert type(objects) is tuple
+
+        for val in objects:
+            val.parent = self
+
+        self.subnode_objects = objects
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_objects
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("objects", self.subnode_objects),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_objects
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_objects = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_objects = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "objects": tuple(v.makeClone() for v in self.subnode_objects),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_objects:
+            c.finalize()
+        del self.subnode_objects
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        old_subnode_objects = self.subnode_objects
+
+        for sub_expression in old_subnode_objects:
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=self.subnode_objects[
+                        : old_subnode_objects.index(sub_expression)
+                    ],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_objects:
+            element.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsPrintMixin = ChildHavingObjectsTupleMixin
+ChildrenExpressionBuiltinsPrintSince3Call1Mixin = ChildHavingObjectsTupleMixin
+
+
+class ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsPrint
+    #   ExpressionBuiltinsPrintBefore3Call
+
+    def __init__(
+        self,
+        objects,
+        sep,
+        end,
+        file,
+    ):
+        assert type(objects) is tuple
+
+        for val in objects:
+            val.parent = self
+
+        self.subnode_objects = objects
+
+        if sep is not None:
+            sep.parent = self
+
+        self.subnode_sep = sep
+
+        if end is not None:
+            end.parent = self
+
+        self.subnode_end = end
+
+        if file is not None:
+            file.parent = self
+
+        self.subnode_file = file
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_objects)
+        if self.subnode_sep is not None:
+            result.append(self.subnode_sep)
+        if self.subnode_end is not None:
+            result.append(self.subnode_end)
+        if self.subnode_file is not None:
+            result.append(self.subnode_file)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("objects", self.subnode_objects),
+            ("sep", self.subnode_sep),
+            ("end", self.subnode_end),
+            ("file", self.subnode_file),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_objects
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_objects = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_objects = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_sep
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_sep = new_node
+
+            return
+
+        value = self.subnode_end
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_end = new_node
+
+            return
+
+        value = self.subnode_file
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_file = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "objects": tuple(v.makeClone() for v in self.subnode_objects),
+            "sep": (
+                self.subnode_sep.makeClone() if self.subnode_sep is not None else None
+            ),
+            "end": (
+                self.subnode_end.makeClone() if self.subnode_end is not None else None
+            ),
+            "file": (
+                self.subnode_file.makeClone() if self.subnode_file is not None else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_objects:
+            c.finalize()
+        del self.subnode_objects
+        if self.subnode_sep is not None:
+            self.subnode_sep.finalize()
+        del self.subnode_sep
+        if self.subnode_end is not None:
+            self.subnode_end.finalize()
+        del self.subnode_end
+        if self.subnode_file is not None:
+            self.subnode_file.finalize()
+        del self.subnode_file
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_objects:
+            element.collectVariableAccesses(emit_variable)
+        subnode_sep = self.subnode_sep
+
+        if subnode_sep is not None:
+            self.subnode_sep.collectVariableAccesses(emit_variable)
+        subnode_end = self.subnode_end
+
+        if subnode_end is not None:
+            self.subnode_end.collectVariableAccesses(emit_variable)
+        subnode_file = self.subnode_file
+
+        if subnode_file is not None:
+            self.subnode_file.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsPrintMixin = (
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin
+)
+ChildrenExpressionBuiltinsPrintBefore3CallMixin = (
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin
+)
+
+
+class ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin(
+    object
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinsPrint
+    #   ExpressionBuiltinsPrintSince3Call
+
+    def __init__(
+        self,
+        objects,
+        sep,
+        end,
+        file,
+        flush,
+    ):
+        assert type(objects) is tuple
+
+        for val in objects:
+            val.parent = self
+
+        self.subnode_objects = objects
+
+        if sep is not None:
+            sep.parent = self
+
+        self.subnode_sep = sep
+
+        if end is not None:
+            end.parent = self
+
+        self.subnode_end = end
+
+        if file is not None:
+            file.parent = self
+
+        self.subnode_file = file
+
+        if flush is not None:
+            flush.parent = self
+
+        self.subnode_flush = flush
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_objects)
+        if self.subnode_sep is not None:
+            result.append(self.subnode_sep)
+        if self.subnode_end is not None:
+            result.append(self.subnode_end)
+        if self.subnode_file is not None:
+            result.append(self.subnode_file)
+        if self.subnode_flush is not None:
+            result.append(self.subnode_flush)
+        return result
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("objects", self.subnode_objects),
+            ("sep", self.subnode_sep),
+            ("end", self.subnode_end),
+            ("file", self.subnode_file),
+            ("flush", self.subnode_flush),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_objects
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_objects = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_objects = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_sep
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_sep = new_node
+
+            return
+
+        value = self.subnode_end
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_end = new_node
+
+            return
+
+        value = self.subnode_file
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_file = new_node
+
+            return
+
+        value = self.subnode_flush
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_flush = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "objects": tuple(v.makeClone() for v in self.subnode_objects),
+            "sep": (
+                self.subnode_sep.makeClone() if self.subnode_sep is not None else None
+            ),
+            "end": (
+                self.subnode_end.makeClone() if self.subnode_end is not None else None
+            ),
+            "file": (
+                self.subnode_file.makeClone() if self.subnode_file is not None else None
+            ),
+            "flush": (
+                self.subnode_flush.makeClone()
+                if self.subnode_flush is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_objects:
+            c.finalize()
+        del self.subnode_objects
+        if self.subnode_sep is not None:
+            self.subnode_sep.finalize()
+        del self.subnode_sep
+        if self.subnode_end is not None:
+            self.subnode_end.finalize()
+        del self.subnode_end
+        if self.subnode_file is not None:
+            self.subnode_file.finalize()
+        del self.subnode_file
+        if self.subnode_flush is not None:
+            self.subnode_flush.finalize()
+        del self.subnode_flush
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
+
+    def collectVariableAccesses(self, emit_variable):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_objects:
+            element.collectVariableAccesses(emit_variable)
+        subnode_sep = self.subnode_sep
+
+        if subnode_sep is not None:
+            self.subnode_sep.collectVariableAccesses(emit_variable)
+        subnode_end = self.subnode_end
+
+        if subnode_end is not None:
+            self.subnode_end.collectVariableAccesses(emit_variable)
+        subnode_file = self.subnode_file
+
+        if subnode_file is not None:
+            self.subnode_file.collectVariableAccesses(emit_variable)
+        subnode_flush = self.subnode_flush
+
+        if subnode_flush is not None:
+            self.subnode_flush.collectVariableAccesses(emit_variable)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionBuiltinsPrintMixin = (
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin
+)
+ChildrenExpressionBuiltinsPrintSince3CallMixin = (
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin
+)
 
 
 class ChildHavingOperandMixin(object):

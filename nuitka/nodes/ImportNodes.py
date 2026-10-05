@@ -973,6 +973,10 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     named_children = (
         "name|setter",
         "globals_arg|optional",

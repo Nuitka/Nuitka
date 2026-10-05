@@ -104,16 +104,16 @@ def checkSequence(filename, statements):
         if kind == "PrintNewline":
             continue
 
-        # Printing in Python3 is a function call whose return value is ignored.
+        # Printing as a function call is a statement whose return value is ignored.
         if kind == "Only":
             only_expression = getRole(statement, "expression")[0]
 
-            if getKind(only_expression) == "CallNoKeywords":
-                called_expression = getRole(only_expression, "called")[0]
-
-                if getKind(called_expression) == "BuiltinRef":
-                    if called_expression.attrib["builtin_name"] == "print":
-                        continue
+            if getKind(only_expression) in (
+                "BuiltinsPrintBefore3Call",
+                "BuiltinsPrintSince3Call",
+                "BuiltinsPrintSince3Call1",
+            ):
+                continue
 
         if kind == "FrameModule":
             checkSequence(filename, getRole(statement, "statements"))

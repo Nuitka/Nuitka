@@ -23,6 +23,10 @@ class ExpressionBuiltinSumMixin(object):
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 

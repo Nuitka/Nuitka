@@ -4,6 +4,7 @@
 """This tool is generating node variants from Jinja templates."""
 
 import sys
+import importlib
 
 from nuitka.States import states
 
@@ -63,6 +64,7 @@ from .Common import (
     python3_list_methods,
     python3_str_methods,
     python3_type_methods,
+    traceSpecialization,
     withFileOpenedAndAutoFormattedWithClaim,
     writeLine,
 )
@@ -273,7 +275,7 @@ def emitGenerationWarning(emit, doc_string, template_name):
     generate_names.update(sum(attribute_shape_args.values(), ()))
 
     for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
-        spec = spec_descriptions[0][2]
+        spec = spec_descriptions[0].spec
         generate_names.update(spec.getArgumentNames())
 
     ignores = textwrap.fill(
@@ -497,6 +499,12 @@ def getCallModuleName(module_name, function_name):
     if module_name == "builtins":
         if function_name == "open":
             return "BuiltinOpenNodes"
+        if function_name in ("sorted", "reversed"):
+            return "BuiltinIteratorNodes"
+        if function_name == "print":
+            return "PrintNodes"
+        if function_name == "memoryview":
+            return "BuiltinTypeNodes"
 
     if module_name == "tensorflow":
         return "TensorflowNodes"
@@ -625,7 +633,7 @@ def addChildrenMixin(
         children_mixins_intentions[mixin_name].append(intended_for)
 
     for named_child in named_children_types:
-        assert named_child in named_children, named_child
+        assert named_child in named_children, (mixin_name, named_children_types)
 
     for named_child, named_child_checker in named_children_checkers.items():
         if named_child_checker == "convertNoneConstantToNone":
@@ -941,6 +949,13 @@ from .Checkers import (
                 is_expression=is_expression,
                 is_statement=is_statement,
                 mixin_name=mixin_name,
+                init_args_spec=tuple(
+                    (
+                        named_child,
+                        "object_arg" if named_child == "object" else named_child,
+                    )
+                    for named_child in named_children
+                ),
                 named_children=named_children,
                 named_children_types=named_children_types,
                 leading_normals=leading_normals,
@@ -971,7 +986,14 @@ from .Checkers import (
 
 
 SpecVersion = namedtuple(
-    "SpecVersion", ("spec_name", "python_criterion", "spec", "suffix")
+    "SpecVersion",
+    (
+        "spec_name",
+        "python_criterion",
+        "python_version_spec",
+        "spec",
+        "suffix",
+    ),
 )
 
 
@@ -980,6 +1002,7 @@ def getSpecVersions(spec_module):
 
     for spec_name, spec in getSpecs(spec_module):
         for version, str_version in (
+            (0x300, "3"),
             (0x370, "37"),
             (0x380, "38"),
             (0x390, "39"),
@@ -990,12 +1013,12 @@ def getSpecVersions(spec_module):
             (0x3E0, "314"),
             (0x3F0, "315"),
         ):
-            if "since_%s" % str_version in spec_name:
+            if spec_name.endswith("_since_%s_spec" % str_version):
                 python_criterion = ">= 0x%x" % version
                 suffix = "Since%s" % str_version
                 break
 
-            if "before_%s" % str_version in spec_name:
+            if spec_name.endswith("_before_%s_spec" % str_version):
                 python_criterion = "< 0x%x" % version
                 suffix = "Before%s" % str_version
                 break
@@ -1008,16 +1031,42 @@ def getSpecVersions(spec_module):
         if spec.name not in result:
             result[spec.name] = []
 
-        result[spec.name].append(SpecVersion(spec_name, python_criterion, spec, suffix))
+        result[spec.name].append(
+            SpecVersion(spec_name, python_criterion, python_criterion, spec, suffix)
+        )
         result[spec.name].sort(
             key=lambda spec_version: spec_version.python_criterion or "", reverse=True
         )
+
+        # Logic to tighten the criteria for older versions to not match the
+        # newer versions.
+        sorted_specs = result[spec.name]
+        for i, spec_version in enumerate(sorted_specs):
+            if i > 0:
+                prev_spec_version = sorted_specs[i - 1]
+
+                if (
+                    prev_spec_version.python_criterion
+                    and spec_version.python_criterion
+                    and prev_spec_version.python_criterion.startswith(">= ")
+                    and spec_version.python_criterion.startswith(">= ")
+                ):
+                    limit = prev_spec_version.python_criterion.replace(">=", "<")
+                    new_criterion = "%s and python_version %s" % (
+                        spec_version.python_criterion,
+                        limit,
+                    )
+                    new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
+
+                    result[spec.name][i] = spec_version._replace(
+                        python_criterion=new_criterion, python_version_spec=new_spec
+                    )
 
     return tuple(sorted(result.values()))
 
 
 def makeHardImportNodes():
-    # Too many details, pylint: disable=too-many-locals
+    # Too many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     filename_python = getNormalizedPath("nuitka/nodes/HardImportNodesGenerated.py")
 
@@ -1045,16 +1094,20 @@ def makeHardImportNodes():
         emitGenerationWarning(emit, "Hard import nodes", template_ref_node.name)
 
         emit("""
-hard_import_node_classes = {}
+from nuitka.nodes.HardImportNodes import addHardImportNodeClass, addBuiltinRefNode
 
 """)
 
         for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
-            spec = spec_descriptions[0][2]
+            spec = spec_descriptions[0].spec
 
             named_children_checkers = OrderedDict()
 
-            module_name, function_name = spec.name.rsplit(".", 1)
+            if "." in spec.name:
+                module_name, function_name = spec.name.rsplit(".", 1)
+            else:
+                module_name = "builtins"
+                function_name = spec.name
             module_name_title = makeTitleCased(adaptModuleName(module_name))
             function_name_title = makeTitleCased(function_name)
 
@@ -1062,6 +1115,23 @@ hard_import_node_classes = {}
                 module_name_title,
                 function_name_title,
             )
+
+            for spec_desc in spec_descriptions:
+                # Check for make factory
+                call_node_module_name = getCallModuleName(module_name, function_name)
+                # Helper to import module dynamically
+                loaded_module = importlib.import_module(
+                    "nuitka.nodes." + call_node_module_name
+                )
+
+                call_node_name = "Expression%s%s%sCall" % (
+                    module_name_title,
+                    function_name_title,
+                    spec_desc.suffix,
+                )
+                factory_name = "make" + call_node_name
+                if hasattr(loaded_module, factory_name):
+                    node_factory_translations[call_node_name] = factory_name
 
             code = template_ref_node.render(
                 name=template_ref_node.name,
@@ -1082,90 +1152,133 @@ hard_import_node_classes = {}
 
             for spec_desc in spec_descriptions:
                 spec = spec_desc.spec
-                parameter_names = spec.getParameterNames2()
 
-                named_children_types = {}
-                if spec.name == "pkg_resources.require":
-                    named_children_types["requirements"] = "tuple"
+                variations = spec.getVariations()
+                if variations is None:
+                    variations = (None,)
 
-                if spec.getDefaultCount():
-                    for optional_name in spec.getArgumentNames()[
-                        -spec.getDefaultCount() :
-                    ]:
-                        assert optional_name not in named_children_types
-                        named_children_types[optional_name] = "optional"
+                for variation in variations:
+                    if variation is None:
+                        variation_suffix = ""
+                        parameter_names = spec.getParameterNames2()
+                        argument_names = spec.getArgumentNames()
+                    else:
+                        variation_suffix = str(variation)
+                        parameter_names = spec.getParameterNames2()[:variation]
+                        argument_names = spec.getArgumentNames()[:variation]
 
-                if spec.getStarListArgumentName():
-                    named_children_types[spec.getStarListArgumentName()] = "tuple"
-
-                if spec.getStarDictArgumentName():
-                    named_children_types[spec.getStarDictArgumentName()] = "tuple"
-
-                for kw_only_name in spec.getKwOnlyParameterNames():
-                    assert kw_only_name not in named_children_types
-                    named_children_types[kw_only_name] = "optional"
-
-                if parameter_names:
-                    mixin_name = addChildrenMixin(
-                        True,
-                        False,
-                        node_class_name,
-                        parameter_names,
-                        named_children_types,
-                        named_children_checkers,
+                    init_args_spec = tuple(
+                        (
+                            arg_name,
+                            "object_arg" if arg_name == "object" else arg_name,
+                        )
+                        for arg_name in parameter_names
                     )
-                else:
-                    mixin_name = None
 
-                extra_mixins = []
+                    named_children_types = {}
+                    if spec.name == "pkg_resources.require":
+                        named_children_types["requirements"] = "tuple"
 
-                result_shape = spec.getTypeShape()
-                if result_shape is not None:
-                    extra_mixins.append(_getMixinForShape(result_shape))
+                    if spec.getDefaultCount():
+                        for optional_name in spec.getArgumentNames()[
+                            -spec.getDefaultCount() :
+                        ]:
+                            if optional_name in parameter_names:
+                                assert optional_name not in named_children_types
+                                named_children_types[optional_name] = "optional"
 
-                code = template_call_node.render(
-                    name=template_call_node.name,
-                    mixin_name=mixin_name,
-                    suffix=spec_desc.suffix,
-                    python_criterion=spec_desc.python_criterion,
-                    extra_mixins=extra_mixins,
-                    parameter_names_count=len(spec.getParameterNames()),
-                    named_children=parameter_names,
-                    named_children_types=named_children_types,
-                    argument_names=spec.getArgumentNames(),
-                    star_list_argument_name=spec.getStarListArgumentName(),
-                    star_dict_argument_name=spec.getStarDictArgumentName(),
-                    function_name=function_name,
-                    function_name_title=function_name_title,
-                    function_name_code=makeCodeCased(function_name),
-                    module_name=module_name,
-                    is_stdlib_module=module_name
-                    in (
-                        "builtins",
-                        "os",
-                        "os.path",
-                        "pkgutil",
-                        "ctypes",
-                        "importlib.metadata",
-                        "importlib.resources",
-                    ),
-                    module_name_code=makeCodeCased(adaptModuleName(module_name)),
-                    module_name_title=module_name_title,
-                    call_node_module_name=getCallModuleName(module_name, function_name),
-                    spec_name=spec_desc.spec_name,
-                )
+                    if (
+                        spec.getStarListArgumentName()
+                        and spec.getStarListArgumentName() in parameter_names
+                    ):
+                        named_children_types[spec.getStarListArgumentName()] = "tuple"
 
-                emit(code)
+                    if (
+                        spec.getStarDictArgumentName()
+                        and spec.getStarDictArgumentName() in parameter_names
+                    ):
+                        named_children_types[spec.getStarDictArgumentName()] = "tuple"
+
+                    for kw_only_name in spec.getKwOnlyParameterNames():
+                        if kw_only_name in parameter_names:
+                            assert kw_only_name not in named_children_types
+                            named_children_types[kw_only_name] = "optional"
+
+                    if parameter_names:
+                        mixin_name = addChildrenMixin(
+                            True,
+                            False,
+                            node_class_name,
+                            parameter_names,
+                            named_children_types,
+                            named_children_checkers,
+                        )
+                    else:
+                        mixin_name = None
+
+                    extra_mixins = []
+
+                    result_shape = spec.getTypeShape()
+                    if result_shape is not None:
+                        extra_mixins.append(_getMixinForShape(result_shape))
+
+                    code = template_call_node.render(
+                        init_args_spec=init_args_spec,
+                        name=template_call_node.name,
+                        mixin_name=mixin_name,
+                        suffix=spec_desc.suffix,
+                        variation_suffix=variation_suffix,
+                        python_criterion=spec_desc.python_criterion,
+                        extra_mixins=extra_mixins,
+                        parameter_names_count=len(parameter_names),
+                        named_children=parameter_names,
+                        named_children_types=named_children_types,
+                        argument_names=argument_names,
+                        star_list_argument_name=spec.getStarListArgumentName(),
+                        star_dict_argument_name=spec.getStarDictArgumentName(),
+                        function_name=function_name,
+                        function_name_title=function_name_title,
+                        function_name_code=makeCodeCased(function_name),
+                        module_name=module_name,
+                        is_stdlib_module=module_name
+                        in (
+                            "builtins",
+                            "os",
+                            "os.path",
+                            "pkgutil",
+                            "ctypes",
+                            "importlib.metadata",
+                            "importlib.resources",
+                        ),
+                        module_name_code=makeCodeCased(adaptModuleName(module_name)),
+                        module_name_title=module_name_title,
+                        call_node_module_name=getCallModuleName(
+                            module_name, function_name
+                        ),
+                        spec_name=spec_desc.spec_name,
+                        python_version_spec=spec_desc.python_version_spec,
+                    )
+
+                    emit(code)
 
 
 def main():
     parseOptions()
 
+    traceSpecialization("Code generation of Nuitka for specializing Python code.")
+    traceSpecialization("Make hard import nodes...")
     makeHardImportNodes()
+    traceSpecialization("Make attribute nodes...")
     makeAttributeNodes()
+    traceSpecialization("Make builtin operation nodes...")
     makeBuiltinOperationNodes()
+    traceSpecialization("Make children having mixin nodes...")
     makeChildrenHavingMixinNodes()
+    traceSpecialization("OK.")
 
+
+if __name__ == "__main__":
+    main()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

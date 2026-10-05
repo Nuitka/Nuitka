@@ -240,6 +240,10 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
 
     named_children = ("type_name", "bases", "dict_arg")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, type_name, bases, dict_arg, source_ref):
         ChildrenExpressionBuiltinType3Mixin.__init__(
             self,

@@ -19,6 +19,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_typed_classes,
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
+from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
 from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.options.Options import (
     isCompileTimeProfile,
@@ -59,12 +60,19 @@ from .BuiltinCodes import (
     generateBuiltinFloatCode,
     generateBuiltinHexCode,
     generateBuiltinInputCode,
+    generateBuiltinMemoryviewCode,
     generateBuiltinOctCode,
     generateBuiltinOpenCode,
+    generateBuiltinPrint1Code,
+    generateBuiltinPrintCode,
     generateBuiltinRange1Code,
     generateBuiltinRange2Code,
     generateBuiltinRange3Code,
     generateBuiltinRefCode,
+    generateBuiltinReversedCode,
+    generateBuiltinSortedP2Code,
+    generateBuiltinSortedP3Code,
+    generateBuiltinSortedP3Code1,
     generateBuiltinStaticmethodCode,
     generateBuiltinSum1Code,
     generateBuiltinSum2Code,
@@ -772,8 +780,8 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_GETATTR": generateBuiltinGetattrCode,
         "EXPRESSION_BUILTIN_SETATTR": generateBuiltinSetattrCode,
         "EXPRESSION_BUILTIN_INPUT": generateBuiltinInputCode,
-        "EXPRESSION_BUILTIN_OPEN_P2": generateBuiltinOpenCode,
-        "EXPRESSION_BUILTIN_OPEN_P3": generateBuiltinOpenCode,
+        "EXPRESSION_BUILTINS_OPEN_BEFORE3_CALL": generateBuiltinOpenCode,
+        "EXPRESSION_BUILTINS_OPEN_SINCE3_CALL": generateBuiltinOpenCode,
         "EXPRESSION_BUILTIN_STATICMETHOD": generateBuiltinStaticmethodCode,
         "EXPRESSION_BUILTIN_CLASSMETHOD": generateBuiltinClassmethodCode,
         "EXPRESSION_BUILTIN_RANGE1": generateBuiltinRange1Code,
@@ -867,6 +875,14 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_VIEWITEMS": generateDictOperationViewitemsCode,
         "EXPRESSION_DICT_OPERATION_KEYS": generateDictOperationKeysCode,
         "EXPRESSION_DICT_OPERATION_ITERKEYS": generateDictOperationIterkeysCode,
+        "EXPRESSION_BUILTINS_REVERSED_CALL": generateBuiltinReversedCode,
+        "EXPRESSION_BUILTINS_SORTED_BEFORE3_CALL": generateBuiltinSortedP2Code,
+        "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL": generateBuiltinSortedP3Code,
+        "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1": generateBuiltinSortedP3Code1,
+        "EXPRESSION_BUILTINS_MEMORYVIEW_CALL": generateBuiltinMemoryviewCode,
+        "EXPRESSION_BUILTINS_PRINT_BEFORE3_CALL": generateBuiltinPrintCode,
+        "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL": generateBuiltinPrintCode,
+        "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL1": generateBuiltinPrint1Code,
         "EXPRESSION_DICT_OPERATION_VIEWKEYS": generateDictOperationViewkeysCode,
         "EXPRESSION_DICT_OPERATION_VALUES": generateDictOperationValuesCode,
         "EXPRESSION_DICT_OPERATION_ITERVALUES": generateDictOperationItervaluesCode,
@@ -1034,7 +1050,6 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
-        "EXPRESSION_BUILTINS_OPEN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
@@ -1108,6 +1123,12 @@ addExpressionDispatchDict(
 # Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
+)
+
+
+# Add code generation for the EXPRESSION_BUILTINS_*_REF nodes.
+addExpressionDispatchDict(
+    dict((cls.kind, generateBuiltinRefCode) for cls in getBuiltinRefNodes().values())
 )
 
 

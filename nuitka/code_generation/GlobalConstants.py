@@ -90,6 +90,7 @@ def getConstantDefaultPopulation():
         "classmethod",
         "keys",
         "get",
+        "print",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",
@@ -131,8 +132,9 @@ def getConstantDefaultPopulation():
         # For Python3 modules
         result += ("__cached__",)
 
+    if python_version >= 0x300:
         # For Python3 print
-        result += ("print", "end", "file")
+        result += ("end", "file")
 
         # For Python3 "bytes" built-in.
         result.append("bytes")

@@ -28,6 +28,10 @@ class ExpressionBuiltinDict(
 
     named_children = ("pos_arg|optional", "pairs|tuple")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, pos_arg, pairs, source_ref):
         ChildrenHavingPosArgOptionalPairsTupleMixin.__init__(
             self,
@@ -136,6 +140,10 @@ class ExpressionBuiltinFrozendict(
     kind = "EXPRESSION_BUILTIN_FROZENDICT"
 
     named_children = ("pos_arg|optional", "pairs|tuple")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, pos_arg, pairs, source_ref):
         ChildrenHavingPosArgOptionalPairsTupleMixin.__init__(

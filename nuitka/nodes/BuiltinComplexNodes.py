@@ -23,6 +23,10 @@ class ExpressionBuiltinComplex1(
 
     named_children = ("value",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
 
@@ -45,6 +49,10 @@ class ExpressionBuiltinComplex2(
     kind = "EXPRESSION_BUILTIN_COMPLEX2"
 
     named_children = ("real|optional", "imag")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     builtin_spec = BuiltinParameterSpecs.builtin_complex_spec
 

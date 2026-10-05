@@ -58,6 +58,7 @@ from .ExpressionShapeMixins import (
     ExpressionTupleShapeExactMixin,
     ExpressionUnicodeShapeExactMixin,
 )
+from .HardImportNodes import getBuiltinRefNode
 from .IterationHandles import (
     ConstantBytearrayIterationHandle,
     ConstantBytesIterationHandle,
@@ -1784,9 +1785,14 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
     elif constant in builtin_named_values:
         from .BuiltinRefNodes import ExpressionBuiltinRef
 
-        return ExpressionBuiltinRef(
-            builtin_name=builtin_named_values[constant], source_ref=source_ref
-        )
+        builtin_name = builtin_named_values[constant]
+
+        builtin_ref_node_class = getBuiltinRefNode(builtin_name)
+
+        if builtin_ref_node_class is not None:
+            return builtin_ref_node_class(source_ref=source_ref)
+
+        return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
     elif constant in builtin_exception_values_list:
         from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 

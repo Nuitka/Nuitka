@@ -378,7 +378,7 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
-    def isExpressionBuiltin():
+    def isExpressionBuiltinCall():
         return False
 
     @staticmethod

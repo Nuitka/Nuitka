@@ -146,6 +146,10 @@ class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBa
 
     named_children = ("type_arg",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, type_arg, source_ref):
         ChildrenExpressionBuiltinSuper1Mixin.__init__(
             self,
@@ -167,6 +171,10 @@ class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBa
     kind = "EXPRESSION_BUILTIN_SUPER2"
 
     named_children = ("type_arg", "object_arg")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, type_arg, object_arg, source_ref):
         ChildrenExpressionBuiltinSuper2Mixin.__init__(
@@ -191,6 +199,10 @@ class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBa
 
     named_children = ("type_arg", "object_arg")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, type_arg, object_arg, source_ref):
         ChildrenExpressionBuiltinSuper0Mixin.__init__(
             self,
@@ -211,6 +223,10 @@ class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, Expression
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ("instance", "classes")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, instance, classes, source_ref):
         ChildrenHavingInstanceClassesMixin.__init__(
@@ -256,6 +272,10 @@ class ExpressionBuiltinIssubclass(
     kind = "EXPRESSION_BUILTIN_ISSUBCLASS"
 
     named_children = ("cls", "classes")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, cls, classes, source_ref):
         ChildrenExpressionBuiltinIssubclassMixin.__init__(

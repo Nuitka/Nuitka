@@ -11,10 +11,16 @@ Predicting the behavior of 'print' is not trivial at all, due to many special
 cases.
 """
 
+from .HardImportNodesGenerated import (
+    ExpressionBuiltinsPrintBefore3CallBase,
+    ExpressionBuiltinsPrintSince3Call1Base,
+    ExpressionBuiltinsPrintSince3CallBase,
+)
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
 )
+from .shapes.BuiltinTypeShapes import tshape_none
 from .StatementBasesGenerated import (
     StatementPrintNewlineBase,
     StatementPrintValueBase,
@@ -87,6 +93,70 @@ class StatementPrintNewline(StatementPrintNewlineBase):
     def mayRaiseException(exception_type):
         # Output may always fail due to external reasons.
         return True
+
+
+class ExpressionBuiltinsPrintSince3Call1(ExpressionBuiltinsPrintSince3Call1Base):
+    kind = "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL1"
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+    def getTypeShape(self):
+        return tshape_none
+
+
+class ExpressionBuiltinsPrintSince3Call(ExpressionBuiltinsPrintSince3CallBase):
+    kind = "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL"
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+    def getTypeShape(self):
+        return tshape_none
+
+
+def makeExpressionBuiltinsPrintSince3Call(objects, sep, end, file, flush, source_ref):
+    if sep is None and end is None and file is None and flush is None:
+        return ExpressionBuiltinsPrintSince3Call1(
+            objects=objects, source_ref=source_ref
+        )
+
+    return ExpressionBuiltinsPrintSince3Call(
+        objects=objects,
+        sep=sep,
+        end=end,
+        file=file,
+        flush=flush,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionBuiltinsPrintBefore3Call(ExpressionBuiltinsPrintBefore3CallBase):
+    kind = "EXPRESSION_BUILTINS_PRINT_BEFORE3_CALL"
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+    def getTypeShape(self):
+        return tshape_none
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

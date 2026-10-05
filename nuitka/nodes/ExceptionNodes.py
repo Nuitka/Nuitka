@@ -203,6 +203,10 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 
     __slots__ = ("exception_name", "for_raise")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
@@ -245,6 +249,10 @@ class ExpressionBuiltinMakeExceptionImportError(
     node_attributes = ("for_raise",)
 
     __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
@@ -294,6 +302,10 @@ class ExpressionBuiltinMakeExceptionAttributeError(
     node_attributes = ("for_raise",)
 
     __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"

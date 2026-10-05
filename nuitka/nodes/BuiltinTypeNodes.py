@@ -33,6 +33,7 @@ from .ExpressionShapeMixins import (
     ExpressionStrOrUnicodeDerivedShapeMixin,
     ExpressionTupleShapeExactMixin,
 )
+from .HardImportNodesGenerated import ExpressionBuiltinsMemoryviewCallBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects,
@@ -56,6 +57,10 @@ class ExpressionBuiltinContainerBase(
     builtin_spec = None
 
     named_children = ("value",)
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
@@ -124,6 +129,10 @@ class ExpressionBuiltinFloat(ChildHavingValueMixin, ExpressionBase):
 
     named_children = ("value",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
 
@@ -188,6 +197,10 @@ class ExpressionBuiltinUnicodeBase(
     ExpressionBase,
 ):
     named_children = ("value|optional", "encoding|optional", "errors|optional")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, value, encoding, errors, source_ref):
         ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin.__init__(
@@ -290,6 +303,10 @@ class ExpressionBuiltinBytes1(ChildHavingValueMixin, ExpressionBase):
 
     named_children = ("value",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
 
@@ -316,6 +333,10 @@ class ExpressionBuiltinBytearray1(
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
@@ -328,6 +349,10 @@ class ExpressionBuiltinBytearray3(
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
     named_children = ("string", "encoding|optional", "errors|optional")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
@@ -435,6 +460,15 @@ class ExpressionTypeOperationPrepare(
                 "Predicted result 'type.__prepare__' as empty dict.",
             )
 
+        return self, None, None
+
+
+class ExpressionBuiltinsMemoryviewCall(ExpressionBuiltinsMemoryviewCallBase):
+    kind = "EXPRESSION_BUILTINS_MEMORYVIEW_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
 

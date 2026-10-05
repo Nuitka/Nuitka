@@ -249,6 +249,10 @@ class ExpressionBuiltinSliceMixin(
 
     builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     # We use SideEffectsFromChildrenMixin for the other things.
     def mayHaveSideEffects(self):
         return self.mayRaiseException(BaseException)
