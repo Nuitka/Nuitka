@@ -259,8 +259,11 @@ if python_version >= 0x360:
     def _pickCellCType(variable):
         if variable.getName() == "__class__":
             return CTypePyCellObject
-        else:
-            return CTypeCellObject
+
+        if variable.needsPyCell():
+            return CTypePyCellObject
+
+        return CTypeCellObject
 
 else:
 
@@ -401,6 +404,38 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
         closure_index = user.getClosureVariableIndex(variable)
 
         return context.variable_storage.getVariableDeclarationClosure(closure_index)
+
+
+def getClosureCopyCode(closure_variables, context):
+    """Get code to copy closure variables storage.
+
+    This gets used by generator/coroutine/asyncgen and annotate functions.
+    """
+    if closure_variables:
+        closure_name = context.allocateTempName(
+            "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
+        )
+    else:
+        closure_name = None
+
+    closure_copy = []
+
+    for count, (variable, variable_trace) in enumerate(closure_variables):
+        variable_declaration = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
+
+        target_cell_code = "%s[%d]" % (closure_name, count)
+
+        variable_c_type = variable_declaration.getCType()
+
+        variable_c_type.getCellObjectAssignmentCode(
+            target_cell_code=target_cell_code,
+            variable_code_name=variable_declaration,
+            emit=closure_copy.append,
+        )
+
+    return closure_name, closure_copy
 
 
 def getVariableAssignmentCode(

@@ -13,7 +13,6 @@ from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
-    getClosureCopyCode,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
@@ -29,6 +28,7 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine,
 )
+from .VariableCodes import getClosureCopyCode
 from .YieldCodes import getYieldReturnDispatchCode
 
 

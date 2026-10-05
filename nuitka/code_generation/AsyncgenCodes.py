@@ -8,7 +8,6 @@ from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
-    getClosureCopyCode,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
@@ -23,6 +22,7 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_return_exit,
     template_make_asyncgen,
 )
+from .VariableCodes import getClosureCopyCode
 from .YieldCodes import getYieldReturnDispatchCode
 
 

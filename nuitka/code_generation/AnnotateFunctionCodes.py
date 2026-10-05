@@ -10,20 +10,27 @@ them with `_StringifierDict` globals for FORWARDREF resolution.
 
 import marshal
 
-from nuitka.options.Options import isExperimental
-
 from .ErrorCodes import getAssertionCode
 from .PythonSourceCodeGeneration import (
+    PythonSourceGenerationError,
     generateFunctionSourceFromBody,
+    getFunctionCodeObjectFromSource,
     getFunctionMakerIdentifier,
 )
+from .templates.CodeTemplatesFunction import (
+    template_annotate_function_closure_setup,
+    template_make_function,
+)
+from .VariableCodes import getClosureCopyCode
 
 
 def isBytecodeBackedFunction(function_body):
     """Decide if a function is backed by Python bytecode, not compiled C code.
 
-    Currently this is true for functions marked with flag "annotate". We
-    mean to add more plugin and user control though.
+    Notes:
+        This is true for function bodies created by the source backed
+        machinery, e.g. "annotate" functions. We mean to add more plugin and
+        user control though.
 
     Args:
         function_body: Function body node to check.
@@ -31,10 +38,8 @@ def isBytecodeBackedFunction(function_body):
     Returns:
         True if bytecode backed
     """
-    return (
-        function_body.hasFlag("annotate")
-        and not isExperimental("no-deferred-annotation")
-        and not function_body.hasFlag("force_c")
+    return function_body.hasFlag("python_source") and not function_body.hasFlag(
+        "force_c"
     )
 
 
@@ -46,65 +51,114 @@ def generateAnnotateFunctionCreationCode(to_name, expression, emit, context):
     if not context.hasHelperCode(function_identifier):
         _generateAnnotateFunctionMaker(function_body, function_identifier, context)
 
-    # Emit the call to the maker.
+    closure_name, closure_copy = getClosureCopyCode(
+        closure_variables=expression.getClosureVariableVersions(),
+        context=context,
+    )
+
     function_maker_identifier = getFunctionMakerIdentifier(
         function_identifier=function_identifier
     )
 
-    emit("%s = %s(tstate);" % (to_name, function_maker_identifier))
+    args = ["tstate"]
+
+    if closure_name:
+        args.append(closure_name)
+
+    emit(
+        template_make_function
+        % {
+            "to_name": to_name,
+            "function_maker_identifier": function_maker_identifier,
+            "args": ", ".join(str(arg) for arg in args),
+            "closure_copy": "\n".join(closure_copy),
+        }
+    )
 
     getAssertionCode(check="%s != NULL" % to_name, emit=emit)
-
     context.addCleanupTempName(to_name)
+
+
+def _getClosureSetupCode(closure_variables):
+    """Get the C parameter and setup code for attaching closure cells."""
+    if not closure_variables:
+        return "", ""
+
+    return (
+        ", struct Nuitka_CellObject **closure",
+        template_annotate_function_closure_setup
+        % {
+            "closure_count": len(closure_variables),
+        },
+    )
 
 
 def _generateAnnotateFunctionMaker(function_body, function_identifier, context):
     """Generate a C maker function that creates a PyFunctionObject from bytecode."""
-
     maker_identifier = getFunctionMakerIdentifier(function_identifier)
 
     source = generateFunctionSourceFromBody(function_body)
 
     compiled = compile(source, function_identifier, "exec")
-    marshalled = marshal.dumps(compiled.co_consts[0])
-    marshalled_size = len(marshalled)
 
-    marshalled_ptr = context.getBlobConstantCode(
-        marshalled,
-        "annotate marshalled code for '%s'" % function_identifier,
+    annotate_code = getFunctionCodeObjectFromSource(
+        function_body=function_body, compiled=compiled
     )
 
-    module_code_name = context.getModuleCodeName()
-    module_dict_name = "(PyObject *)moduledict_%s" % module_code_name
-    qualname = function_body.getFunctionQualname()
-    qualname_obj = context.getConstantCode(constant=qualname)
+    closure_variables = function_body.getClosureVariables()
+
+    # Nuitka closure variables and CPython free variables are both sorted by
+    # name, so the closure cells are already in the order of the code object.
+    if annotate_code.co_freevars != tuple(
+        variable.getName() for variable in closure_variables
+    ):
+        raise PythonSourceGenerationError(
+            "Closure variables of annotate function '%s' do not match its free variables"
+            % function_identifier
+        )
+
+    marshalled = marshal.dumps(annotate_code)
+
+    closure_parameter, closure_setup = _getClosureSetupCode(closure_variables)
 
     maker_code = """\
-static PyObject *%(maker)s(PyThreadState *tstate) {
+static PyObject *%(maker)s(PyThreadState *tstate%(closure_parameter)s) {
     PyObject *result;
     PyObject *code = PyMarshal_ReadObjectFromString(
         %(marshalled)s,
         %(marshalled_size)d);
-    if (unlikely(code == NULL)) {
-        return NULL;
-    }
+    assert(code != NULL);
+
     result = PyFunction_NewWithQualName(code, %(module_dict)s, %(qualname)s);
     Py_DECREF(code);
+    assert(result != NULL);
+%(closure_setup)s
     return result;
 }
 """ % {
         "maker": maker_identifier,
-        "marshalled": marshalled_ptr,
-        "marshalled_size": marshalled_size,
-        "module_dict": module_dict_name,
-        "qualname": qualname_obj,
+        "marshalled": context.getBlobConstantCode(
+            marshalled,
+            "annotate marshalled code for '%s'" % function_identifier,
+        ),
+        "marshalled_size": len(marshalled),
+        "module_dict": "(PyObject *)moduledict_%s" % context.getModuleCodeName(),
+        "qualname": context.getConstantCode(
+            constant=function_body.getFunctionQualname()
+        ),
+        "closure_parameter": closure_parameter,
+        "closure_setup": closure_setup,
     }
 
     context.addHelperCode(function_identifier, maker_code)
 
-    declaration_code = "static PyObject *%(maker)s(PyThreadState *tstate);" % {
-        "maker": maker_identifier,
-    }
+    declaration_code = (
+        "static PyObject *%(maker)s(PyThreadState *tstate%(closure_parameter)s);"
+        % {
+            "maker": maker_identifier,
+            "closure_parameter": closure_parameter,
+        }
+    )
     context.addDeclaration(function_identifier, declaration_code)
 
 

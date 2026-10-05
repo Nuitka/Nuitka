@@ -52,6 +52,7 @@ from .templates.CodeTemplatesFunction import (
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     decideLocalVariableCodeType,
+    getClosureCopyCode,
     getLocalVariableDeclaration,
 )
 
@@ -373,38 +374,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     getReleaseCodes(
         release_names=(annotations_name, type_params_name), emit=emit, context=context
     )
-
-
-def getClosureCopyCode(closure_variables, context):
-    """Get code to copy closure variables storage.
-
-    This gets used by generator/coroutine/asyncgen with varying "closure_type".
-    """
-    if closure_variables:
-        closure_name = context.allocateTempName(
-            "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
-        )
-    else:
-        closure_name = None
-
-    closure_copy = []
-
-    for count, (variable, variable_trace) in enumerate(closure_variables):
-        variable_declaration = getLocalVariableDeclaration(
-            context, variable, variable_trace
-        )
-
-        target_cell_code = "%s[%d]" % (closure_name, count)
-
-        variable_c_type = variable_declaration.getCType()
-
-        variable_c_type.getCellObjectAssignmentCode(
-            target_cell_code=target_cell_code,
-            variable_code_name=variable_declaration,
-            emit=closure_copy.append,
-        )
-
-    return closure_name, closure_copy
 
 
 def getFunctionCreationCode(

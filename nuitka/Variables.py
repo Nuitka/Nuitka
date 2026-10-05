@@ -35,7 +35,6 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         "version_number",
         "shared_users",
         "traces",
-        "users",
         "writers",
     )
 
@@ -158,6 +157,19 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
                 user = user.getParentVariableProvider()
 
             if user is not owner:
+                return True
+
+        return False
+
+    def needsPyCell(self):
+        """Do users of this variable require a real CPython cell?
+
+        Notes:
+            Function bodies consumed by CPython, e.g. source backed functions
+            re-wrapped by 'annotationlib', reject Nuitka cells for closures.
+        """
+        for user in self.traces:
+            if user.isExpressionFunctionBodyBase() and user.hasFlag("python_closure"):
                 return True
 
         return False
@@ -509,7 +521,7 @@ def updateVariablesFromCollection(old_collection, new_collection, source_ref):
     for variable in old_traces:
         # Remove traces for variables that are not in the new collection unless
         # they are finalized, then we don't need to update them.
-        if variable not in new_traces and hasattr(variable, "users"):
+        if variable not in new_traces and hasattr(variable, "traces"):
             variable.removeTracesForUser(owner)
 
     for variable, old_loop_nodes in iterItems(old_collection.loop_variables):
@@ -540,7 +552,8 @@ def removeVariablesFromCollection(old_collection):
         owner = old_collection.owner
 
         for variable in old_collection.getVariableTracesAll():
-            variable.removeTracesForUser(owner)
+            if hasattr(variable, "traces"):
+                variable.removeTracesForUser(owner)
 
 
 # To detect the Python2 shared variable deletion, that would be a syntax

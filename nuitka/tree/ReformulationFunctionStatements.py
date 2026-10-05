@@ -662,14 +662,27 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
-_annotate_flags = frozenset(("annotate",))
+# The "python_source" flag marks functions that are generated from Python
+# source rather than compiled C code, and the "python_closure" flag additionally
+# marks those whose closures may be consumed by CPython, e.g. 'annotationlib'
+# re-wrapping of deferred annotations, so their variables need real cells.
+# Neither is specific to "annotate" functions.
+_annotate_flags = frozenset(("annotate", "python_source", "python_closure"))
 
 
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
+
+    # Not using the CPython parameter name "format" here, since following
+    # annotation values may reference a variable of that name, which would
+    # wrongly resolve to the parameter. The parameter is only ever passed
+    # positionally by "annotationlib" and the C API, so its name is internal,
+    # and ".0" cannot be used in annotations at all.
+    format_arg_name = ".0"
+
     parameters = ParameterSpec(
         ps_name=function_name,
-        ps_normal_args=("format",),
+        ps_normal_args=(format_arg_name,),
         ps_list_star_arg=None,
         ps_dict_star_arg=None,
         ps_default_count=0,
@@ -714,7 +727,9 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
 
     body = makeStatementConditional(
         condition=ExpressionComparisonGt(
-            ExpressionVariableNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionVariableNameRef(
+                outer_body, format_arg_name, source_ref=source_ref
+            ),
             ExpressionConstantIntRef(2, source_ref=source_ref),
             source_ref,
         ),

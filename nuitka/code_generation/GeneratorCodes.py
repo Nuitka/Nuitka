@@ -10,7 +10,6 @@ from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
-    getClosureCopyCode,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
@@ -26,6 +25,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_make_empty_generator,
     template_make_generator,
 )
+from .VariableCodes import getClosureCopyCode
 from .YieldCodes import getYieldReturnDispatchCode
 
 

@@ -714,29 +714,67 @@ def _generateReturnSource(statement, indent):
         return "%sreturn %s" % (indent, value)
 
 
+_annotate_function_source_template = """\
+def %(function_name)s(%(parameters)s):
+%(body_source)s"""
+
+_annotate_factory_source_template = """\
+def %(factory_name)s(%(factory_parameters)s):
+    def %(function_name)s(%(parameters)s):
+%(body_source)s
+    return %(function_name)s"""
+
+
+# The ".0" argument of annotate functions is not a valid Python identifier,
+# and is replaced in generated source with this name. A user variable of that
+# name in an annotation falls back to compiled C code, where scopes are kept
+# apart.
+_annotate_argument_name = "_annotate_argument"
+
+
 def generateFunctionSourceFromBody(function_body):
-    """Generate a complete `def ...` Python source from a function body."""
-    # TODO: Bytecode backed functions cannot resolve names from enclosing
-    # scopes through the module dictionary, which is their only globals.
-    # Make closure variables resolve instead of raising and falling back
-    # to compiled C code.
+    """Generate a complete 'def ...' Python source from a function body.
+
+    Notes:
+        With closure variables, the function is wrapped in a factory taking
+        them as parameters, so they become free variables of the function and
+        can be resolved through real cells when the function is created.
+    """
     closure_variables = function_body.getClosureVariables()
 
+    function_name = function_body.getFunctionName()
+    parameter_names = function_body.getParameters().getParameterNames()
+
     if closure_variables:
-        raise PythonSourceGenerationError(
-            "Closure variables cannot be resolved from module dictionary: %s"
-            % ", ".join(variable.getName() for variable in closure_variables)
-        )
+        indent = " " * 8
+    else:
+        indent = " " * 4
+
+    parameter_spec = ", ".join(
+        parameter_name if parameter_name.isidentifier() else _annotate_argument_name
+        for parameter_name in parameter_names
+    )
 
     body_source = generateStatementSequenceSource(
-        function_body.subnode_body, indent=" " * 4
+        function_body.subnode_body, indent=indent
     )
 
-    source = "def %s(%s):\n%s" % (
-        function_body.getFunctionName(),
-        ", ".join(function_body.getParameters().getParameterNames()),
-        body_source,
-    )
+    if closure_variables:
+        source = _annotate_factory_source_template % {
+            "factory_name": "__annotate_factory__",
+            "factory_parameters": ", ".join(
+                variable.getName() for variable in closure_variables
+            ),
+            "function_name": function_name,
+            "parameters": parameter_spec,
+            "body_source": body_source,
+        }
+    else:
+        source = _annotate_function_source_template % {
+            "function_name": function_name,
+            "parameters": parameter_spec,
+            "body_source": body_source,
+        }
 
     try:
         compile(source, function_body.getCodeName(), "exec")
@@ -749,13 +787,56 @@ def generateFunctionSourceFromBody(function_body):
     return source
 
 
+def getFunctionCodeObjectFromSource(function_body, compiled):
+    """Get the code object for a function generated from source.
+
+    Notes:
+        With closure variables, the source is wrapped in a factory, and the
+        function code object is nested inside the factory's code object.
+
+    Args:
+        function_body: Function body node the source was generated for.
+        compiled: Compiled source (module code object) to extract from.
+
+    Returns:
+        The code object of the generated function.
+    """
+    result = compiled.co_consts[0]
+
+    if not function_body.getClosureVariables():
+        return result
+
+    for constant in result.co_consts:
+        if (
+            isinstance(constant, types.CodeType)
+            and constant.co_name == function_body.getFunctionName()
+        ):
+            return constant
+
+    raise PythonSourceGenerationError(
+        "Could not find function code object in generated factory source for '%s'"
+        % function_body.getCodeName()
+    )
+
+
 def _generateBuiltinNext1Source(expression):
     inner = generateExpressionSource(expression.subnode_value)
     return "next(iter(%s))" % inner
 
 
 def _generateVariableRefSource(expression):
-    return expression.variable.getName()
+    variable = expression.variable
+
+    if variable.isParameterVariable() and not variable.getName().isidentifier():
+        return _annotate_argument_name
+
+    if variable.getName() == _annotate_argument_name:
+        raise PythonSourceGenerationError(
+            "Variable name '%s' conflicts with the annotate function argument"
+            % _annotate_argument_name
+        )
+
+    return variable.getName()
 
 
 def _generateEllipsisSource(_expression):

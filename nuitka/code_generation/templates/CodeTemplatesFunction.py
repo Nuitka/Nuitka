@@ -81,6 +81,16 @@ function_return_exit:
    assert(had_error || !HAS_ERROR_OCCURRED(tstate));
    return tmp_return_value;"""
 
+template_annotate_function_closure_setup = """\
+PyObject *closure_tuple = MAKE_TUPLE_VAR0(tstate, (PyObject *const *)closure, %(closure_count)d);
+assert(closure_tuple != NULL);
+
+NUITKA_MAY_BE_UNUSED int set_closure_result = PyFunction_SetClosure(result, closure_tuple);
+assert(set_closure_result == 0);
+
+Py_DECREF(closure_tuple);
+"""
+
 function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
