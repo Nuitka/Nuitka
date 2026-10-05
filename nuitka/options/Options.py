@@ -3126,6 +3126,11 @@ def _getPythonFlags():
     # singleton, pylint: disable=global-statement
     global _python_flags
 
+    # Without parsed options, no Python flags were given, this is used e.g. by
+    # packaging backends querying Nuitka without argument parsing.
+    if options is None:
+        return set()
+
     if _python_flags is None:
         _python_flags = set()
 
