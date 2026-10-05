@@ -10,6 +10,7 @@ from nuitka.__past__ import re_sub
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    putBinaryFileContents,
     putTextFileContents,
 )
 from nuitka.utils.PrivatePipSpace import (
@@ -17,6 +18,16 @@ from nuitka.utils.PrivatePipSpace import (
     withPrivatePipSitePackagesPathAdded,
 )
 from nuitka.utils.Utils import counted
+
+# Typographic dash and hyphen variants to be normalized to a plain dash.
+_dash_characters = (
+    "\u2010",  # HYPHEN
+    "\u2011",  # NON-BREAKING HYPHEN
+    "\u2012",  # FIGURE DASH
+    "\u2013",  # EN DASH
+    "\u2014",  # EM DASH
+    "\u2015",  # HORIZONTAL BAR
+)
 
 
 def cleanupWindowsNewlines(filename, effective_filename):
@@ -81,6 +92,24 @@ def cleanupTrailingWhitespace(filename):
     if clean_lines != source_lines or (clean_lines and clean_lines[-1] != ""):
         putTextFileContents(filename, contents=clean_lines, encoding="utf8")
         cleanupWindowsNewlines(filename, filename)
+
+
+def cleanupDashes(filename):
+    """Replace typographic dashes and hyphens with standard dashes in text files.
+
+    Args:
+        filename: path to the file
+    """
+
+    source_code = getFileContents(filename, mode="rb")
+
+    updated_code = source_code
+
+    for dash_character in _dash_characters:
+        updated_code = updated_code.replace(dash_character.encode("utf8"), b"-")
+
+    if updated_code != source_code:
+        putBinaryFileContents(filename, updated_code)
 
 
 _clang_format_path = False

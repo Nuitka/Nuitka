@@ -28,7 +28,7 @@ from nuitka.utils.PrivatePipSpace import (
     withPrivatePipSitePackagesPathAdded,
 )
 
-from .FileFormatting import cleanupWindowsNewlines
+from .FileFormatting import _dash_characters, cleanupWindowsNewlines
 
 BLACK_SKIP_LIST = [
     "tests/basics/ClassesTest_2.py",
@@ -110,7 +110,7 @@ def _cleanupPyLintComments(logger, filename, effective_filename):
 
 
 def _cleanupDashesInComments(filename):
-    """Cleanup em dashes and en dashes in code comments.
+    """Cleanup typographic dashes and hyphens in code comments.
 
     Args:
         filename: path to the file
@@ -128,13 +128,13 @@ def _cleanupDashesInComments(filename):
         tok_type, tok_string, (start_row, start_col), (_end_row, end_col), _line = t
 
         if tok_type == tokenize.COMMENT:
-            if "\u2014" in tok_string or "\u2013" in tok_string:
+            if any(dash_character in tok_string for dash_character in _dash_characters):
                 line_idx = start_row - 1
                 line = source_lines[line_idx]
 
-                new_tok_string = tok_string.replace("\u2014", "-").replace(
-                    "\u2013", "-"
-                )
+                new_tok_string = tok_string
+                for dash_character in _dash_characters:
+                    new_tok_string = new_tok_string.replace(dash_character, "-")
 
                 source_lines[line_idx] = (
                     line[:start_col] + new_tok_string + line[end_col:]

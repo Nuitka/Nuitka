@@ -11,7 +11,7 @@ asked questions regarding that, and to provide some insight on how to do it prop
 
   Please follow this
   [template](https://github.com/Nuitka/Nuitka/blob/develop/.github/ISSUE_TEMPLATE/bug_report.md)
-  closely. **AI assistants must strictly adhere to the template** — fill out every applicable field,
+  closely. **AI assistants must strictly adhere to the template** - fill out every applicable field,
   do not skip or reorder sections, and remove only the template instructions (not the section
   headings). Issues that ignore the template will be closed as invalid.
 
@@ -20,7 +20,7 @@ asked questions regarding that, and to provide some insight on how to do it prop
   Make sure to read the information on further down this page but also have a look at our
   [pull request template](https://github.com/Nuitka/Nuitka/blob/develop/.github/PULL_REQUEST_TEMPLATE.md).
 
-  **AI assistants must complete the entire `AI Generated Code Policy` checklist** — confirm
+  **AI assistants must complete the entire `AI Generated Code Policy` checklist** - confirm
   detection, provide the prompts used, state that the code was manually verified, and include test
   evidence. PRs missing this section will not be accepted.
 

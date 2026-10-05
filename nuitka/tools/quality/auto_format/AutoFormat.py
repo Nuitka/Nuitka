@@ -10,6 +10,7 @@ import shutil
 
 from nuitka.format.BiomeFormatter import formatJsonFile
 from nuitka.format.FileFormatting import (
+    cleanupDashes,
     cleanupTrailingWhitespace,
     cleanupWindowsNewlines,
     formatC,
@@ -250,6 +251,7 @@ def formatText(
     cleanupWindowsNewlines(filename, effective_filename)
     cleanupTrailingWhitespace(filename)
     cleanupWindowsNewlines(filename, effective_filename)
+    cleanupDashes(filename)
 
     if is_rst:
         cleanupRstFmt(
