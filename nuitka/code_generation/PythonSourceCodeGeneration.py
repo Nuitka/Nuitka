@@ -388,17 +388,36 @@ def _generateSubscriptLookupSource(expression):
     return "%s[%s]" % (looked_up, subscript)
 
 
+_binary_operator_symbols = {
+    "Add": "+",
+    "Sub": "-",
+    "Mult": "*",
+    "MatMult": "@",
+    "TrueDiv": "/",
+    "FloorDiv": "//",
+    "Mod": "%",
+    "Pow": "**",
+    "LShift": "<<",
+    "RShift": ">>",
+    "BitAnd": "&",
+    "BitOr": "|",
+    "BitXor": "^",
+}
+
+
 def _generateBinaryOpSource(expression):
     operator = expression.getOperator()
 
-    if operator == "BitOr":
-        left = _maybeParens(expression.subnode_left)
-        right = _maybeParens(expression.subnode_right)
-        return "%s | %s" % (left, right)
+    symbol = _binary_operator_symbols.get(operator)
 
-    raise PythonSourceGenerationError(
-        "Unsupported binary operator for source generation: %s" % operator
-    )
+    if symbol is None:
+        raise PythonSourceGenerationError(
+            "Unsupported binary operator for source generation: %s" % operator
+        )
+
+    left = _maybeParens(expression.subnode_left)
+    right = _maybeParens(expression.subnode_right)
+    return "%s %s %s" % (left, symbol, right)
 
 
 # Node kinds that bind tighter than binary operators and need no parens.
@@ -428,6 +447,9 @@ _atomic_kinds = frozenset(
         "EXPRESSION_FUNCTION_CALL",
         "EXPRESSION_MAKE_TUPLE",
         "EXPRESSION_MAKE_LIST",
+        "EXPRESSION_MAKE_SET",
+        "EXPRESSION_MAKE_SET_LITERAL",
+        "EXPRESSION_TEMPLATE_STRING",
     )
 )
 
@@ -498,6 +520,108 @@ def _generateTupleSource(expression):
         return "(%s,)" % elements[0]
     else:
         return "(%s)" % ", ".join(elements)
+
+
+def _generateMakeSetSource(expression):
+    elements = expression.subnode_elements
+
+    if not elements:
+        return "set()"
+
+    return "{%s}" % ", ".join(generateExpressionSource(element) for element in elements)
+
+
+_template_string_conversion_characters = {
+    1: "a",
+    2: "r",
+    3: "s",
+}
+
+
+def _escapeTemplateStringText(value):
+    parts = []
+
+    for char in value:
+        if char == "{":
+            parts.append("{{")
+        elif char == "}":
+            parts.append("}}")
+        elif char == "\\":
+            parts.append("\\\\")
+        elif char == '"':
+            parts.append('\\"')
+        elif char == "\n":
+            parts.append("\\n")
+        elif char == "\r":
+            parts.append("\\r")
+        elif char == "\t":
+            parts.append("\\t")
+        elif ord(char) < 32 or ord(char) == 127:
+            parts.append("\\x%02x" % ord(char))
+        else:
+            parts.append(char)
+
+    return "".join(parts)
+
+
+def _generateTemplateInterpolationSource(interpolation):
+    value_source = generateExpressionSource(interpolation.subnode_value)
+
+    conversion = interpolation.conversion
+
+    if conversion > 0:
+        conversion_character = _template_string_conversion_characters.get(
+            conversion % 4
+        )
+
+        if conversion_character is None:
+            raise PythonSourceGenerationError(
+                "Unsupported conversion for template string source generation: %d"
+                % conversion
+            )
+
+        value_source += "!" + conversion_character
+
+    format_spec = interpolation.subnode_format_spec
+
+    if format_spec is not None:
+        if not format_spec.isCompileTimeConstant():
+            raise PythonSourceGenerationError(
+                "Unsupported dynamic format specifier for template string source generation"
+            )
+
+        value_source += ":" + _escapeTemplateStringText(
+            format_spec.getCompileTimeConstant()
+        )
+
+    return "{%s}" % value_source
+
+
+def _generateTemplateStringSource(expression):
+    str_values = expression.str_values
+    interpolations = expression.subnode_interpolations
+
+    if not interpolations:
+        if not str_values:
+            return 't""'
+
+        return 't"%s"' % _escapeTemplateStringText(str_values[0])
+
+    if len(str_values) != len(interpolations) + 1:
+        raise PythonSourceGenerationError(
+            "Unexpected template string segment count for source generation"
+        )
+
+    parts = ['t"']
+
+    for index, interpolation in enumerate(interpolations):
+        parts.append(_escapeTemplateStringText(str_values[index]))
+        parts.append(_generateTemplateInterpolationSource(interpolation))
+
+    parts.append(_escapeTemplateStringText(str_values[-1]))
+    parts.append('"')
+
+    return "".join(parts)
 
 
 def _generateDictSource(expression):
@@ -603,6 +727,10 @@ def _generateUnaryOperationSource(expression):
         return "+%s" % _maybeParens(expression.subnode_operand)
     elif expression.isExpressionOperationUnaryInvert():
         return "~%s" % _maybeParens(expression.subnode_operand)
+    elif expression.isExpressionOperationUnaryAbs():
+        return "abs(%s)" % generateExpressionSource(expression.subnode_operand)
+    elif expression.isExpressionOperationUnaryRepr():
+        return "repr(%s)" % generateExpressionSource(expression.subnode_operand)
     else:
         raise PythonSourceGenerationError(
             "Unsupported unary operation for source generation: %s" % expression.kind
@@ -909,7 +1037,19 @@ _expression_source_dispatch = {
     "EXPRESSION_CONSTANT_XRANGE_REF": _generateConstantXrangeRefSource,
     "EXPRESSION_ATTRIBUTE_LOOKUP": _generateAttributeLookupSource,
     "EXPRESSION_SUBSCRIPT_LOOKUP": _generateSubscriptLookupSource,
+    "EXPRESSION_OPERATION_BINARY_ADD": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_SUB": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_MULT": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_MAT_MULT": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_TRUE_DIV": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_FLOOR_DIV": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_MOD": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_POW": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_LSHIFT": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_RSHIFT": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_BIT_AND": _generateBinaryOpSource,
     "EXPRESSION_OPERATION_BINARY_BIT_OR": _generateBinaryOpSource,
+    "EXPRESSION_OPERATION_BINARY_BIT_XOR": _generateBinaryOpSource,
     "EXPRESSION_FUNCTION_CALL": _generateFunctionCallSource,
     "EXPRESSION_CALL": _generateCallSource,
     "EXPRESSION_CALL_NO_KEYWORDS": _generateCallSource,
@@ -917,6 +1057,9 @@ _expression_source_dispatch = {
     "EXPRESSION_CALL_EMPTY": _generateCallSource,
     "EXPRESSION_MAKE_TUPLE": _generateTupleSource,
     "EXPRESSION_MAKE_LIST": _generateListSource,
+    "EXPRESSION_MAKE_SET": _generateMakeSetSource,
+    "EXPRESSION_MAKE_SET_LITERAL": _generateMakeSetSource,
+    "EXPRESSION_TEMPLATE_STRING": _generateTemplateStringSource,
     "EXPRESSION_CONSTANT_UNION_TYPE": _generateGenericAliasSource,
     "EXPRESSION_CONSTANT_GENERIC_ALIAS": _generateGenericAliasSource,
     "EXPRESSION_CONSTANT_TUPLE_REF": _generateTupleConstantSource,
@@ -957,6 +1100,8 @@ _expression_source_dispatch = {
     "EXPRESSION_OPERATION_UNARY_SUB": _generateUnaryOperationSource,
     "EXPRESSION_OPERATION_UNARY_ADD": _generateUnaryOperationSource,
     "EXPRESSION_OPERATION_UNARY_INVERT": _generateUnaryOperationSource,
+    "EXPRESSION_OPERATION_UNARY_ABS": _generateUnaryOperationSource,
+    "EXPRESSION_OPERATION_UNARY_REPR": _generateUnaryOperationSource,
     "EXPRESSION_YIELD": _generateYieldSource,
     "EXPRESSION_YIELD_FROM": _generateYieldFromSource,
     "EXPRESSION_FUNCTION_CREATION": _generateLambdaSource,
