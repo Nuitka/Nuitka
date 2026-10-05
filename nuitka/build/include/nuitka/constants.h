@@ -110,6 +110,8 @@ extern PyObject **global_constants;
 #define const_str_plain_stat global_constants[0]
 #define const_str_plain_lstat global_constants[0]
 #define const_str_plain_close global_constants[0]
+#define const_str_plain_acquire global_constants[0]
+#define const_str_plain_release global_constants[0]
 #define const_str_plain___newobj__ global_constants[0]
 #define const_str_plain_getattr global_constants[0]
 #define const_str_plain___cached__ global_constants[0]

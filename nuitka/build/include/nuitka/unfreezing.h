@@ -70,6 +70,18 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     // Entry function if compiled module, otherwise NULL.
     module_init_func python_init_func;
 
+    // Function to import this module directly, or NULL. A NULL module means
+    // the module is created and run, a provided module is run and tracked.
+    // Returns a new reference, or NULL with an exception set.
+    PyObject *(*m_import_module)(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                 PyObject *module);
+
+    // Optional load state slots of the entry importer, or NULL. The module
+    // slot keeps a reference to the loaded module, so it cannot be unloaded,
+    // the owner slot holds the thread state that currently loads the module.
+    PyObject **m_module_state;
+    PyThreadState **m_owner_state;
+
     // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
     int bytecode_size;
@@ -88,6 +100,31 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 #endif
 #endif
 };
+
+/* Import a module with explicit load state slots. A NULL module means the
+ * module is created and run, a provided module is run and tracked. Returns a
+ * new reference, or NULL with an exception set.
+ */
+extern PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                              PyObject **module_state, PyThreadState **owner_state, PyObject *module);
+
+/* Import a module through its loader entry, using the load state slots of the
+ * entry. A NULL module means the module is created and run, a provided module
+ * is run and tracked. Returns a new reference, or NULL with an exception set.
+ */
+extern PyObject *IMPORT_EMBEDDED_MODULE_ENTRY(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module);
+
+/* Import a hard module through its loader entry, aborting on failure like the
+ * "IMPORT_HARD_*" helpers do, for guaranteed imports that do not check.
+ */
+extern PyObject *Nuitka_ImportHardModuleEntry(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
+/* Load the pre- or post-load trigger module of an entry, if any. */
+extern void Nuitka_LoadTriggeredModule(PyThreadState *tstate,
+                                       struct Nuitka_MetaPathBasedLoaderEntry const *trigger_entry);
 
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.

@@ -276,6 +276,9 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def getModuleName(self):
         return self.module_name
 
+    def getFoundModuleName(self):
+        return self.found_module_name
+
     def getValueName(self):
         return self.value_name
 
@@ -1160,10 +1163,19 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         if not self._isFromlistConstant():
             return None
 
+        if self.subnode_fromlist is not None and self.subnode_fromlist.getTruthValue():
+            # The "from" import gives the resolved module.
+            module_name = self.found_module_name
+        else:
+            # An "import" statement binds the top level package of the requested
+            # name, which can differ from the resolved module for aliases like
+            # "os.path" that points to "ntpath".
+            module_name = ModuleName(self.subnode_name.getCompileTimeConstant())
+
         return makeExpressionImportModuleFixed(
             using_module_name=self.getParentModule().getFullName(),
-            module_name=self.found_module_name,
-            value_name=self._getImportedValueName(self.found_module_name),
+            module_name=module_name,
+            value_name=self._getImportedValueName(module_name),
             extra_module_usages=self._getLoweredExtraModuleUsages(),
             source_ref=self.source_ref,
         )

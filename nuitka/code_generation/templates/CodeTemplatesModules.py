@@ -302,10 +302,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     }
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad", false);
-    if (pre_load == NULL) {
-        return NULL;
-    }
+    Nuitka_LoadTriggeredModule(tstate, entry_%(module_identifier)s.m_pre_load);
 #endif
 
     // PRINT_STRING("in init%(module_identifier)s\n");
@@ -434,12 +431,7 @@ static PyObject *module_code_%(module_identifier)s(PyThreadState *tstate, PyObje
     %(pgo_probe_module_exit_code)s
 
 #if _NUITKA_MODULE_MODE && %(is_top)d
-    {
-        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad", false);
-        if (post_load == NULL) {
-            return NULL;
-        }
-    }
+    Nuitka_LoadTriggeredModule(tstate, entry_%(module_identifier)s.m_post_load);
 #endif
 
     Py_INCREF(module_%(module_identifier)s);
@@ -660,11 +652,19 @@ template_module_exception_exit = """\
 template_module_no_exception_exit = """\
 }"""
 
+template_module_importer = """\
+static PyThreadState *module_owner_%(module_identifier)s = NULL;
+
+static PyObject *module_import_%(module_identifier)s(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module) {
+    return IMPORT_EMBEDDED_MODULE_STATE(tstate, &entry_%(module_identifier)s, &module_%(module_identifier)s, &module_owner_%(module_identifier)s, module);
+}"""
+
 template_module_loader_entry = """\
 %(module_loader_entry_decls)s
 %(module_loader_entry_body)s
+%(module_importer_wrapper)s
 struct Nuitka_MetaPathBasedLoaderEntry entry_%(module_identifier)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, module_code_%(module_identifier)s, 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, module_code_%(module_identifier)s, module_import_%(module_identifier)s, NULL, NULL, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif

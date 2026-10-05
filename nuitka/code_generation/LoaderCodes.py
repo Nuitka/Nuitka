@@ -50,12 +50,36 @@ from .templates.CodeTemplatesLoader import (
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_excluded_module_entry,
     template_metapath_loader_extension_module_entry,
+    template_metapath_loader_module_state,
 )
-from .templates.CodeTemplatesModules import template_module_loader_entry
+from .templates.CodeTemplatesModules import (
+    template_module_importer,
+    template_module_loader_entry,
+)
 
 
-def _getModuleEntryCodeName(module_name):
-    return "entry_" + encodePythonIdentifierToC(module_name)
+def getModuleEntryIdentifier(module_name):
+    """Get the C identifier for the loader entry of a module name.
+
+    Args:
+        module_name: ModuleName of the module.
+
+    Returns:
+        C identifier of the entry, without the 'entry_' prefix.
+    """
+    return encodePythonIdentifierToC(module_name)
+
+
+def getModuleEntryCodeName(module_name):
+    """Get the C symbol name of the loader entry of a module name.
+
+    Args:
+        module_name: ModuleName of the module.
+
+    Returns:
+        C symbol name of the loader entry.
+    """
+    return "entry_" + getModuleEntryIdentifier(module_name)
 
 
 def _getLoaderModuleOrderKey(module):
@@ -74,7 +98,7 @@ def _getModuleEntryRefName(module_name):
     if module_name not in _getLoaderModuleNames():
         return "NULL"
 
-    return "&%s" % _getModuleEntryCodeName(module_name)
+    return "&%s" % getModuleEntryCodeName(module_name)
 
 
 def _getGetNameFuncCode():
@@ -158,9 +182,12 @@ def getModuleLoaderEntryCode(module):
     if module.isCompiledPythonPackage():
         template_args["flags"].append("NUITKA_PACKAGE_FLAG")
 
-    template_args["entry_name"] = _getModuleEntryCodeName(module.getFullName())
+    template_args["entry_name"] = getModuleEntryCodeName(module.getFullName())
     template_args["module_identifier"] = module_identifier
     template_args["module_loader_entry_body"] = ""
+    template_args["module_importer_wrapper"] = template_module_importer % {
+        "module_identifier": module_identifier
+    }
     template_args["template"] = template_module_loader_entry
 
     onMetaPathLoaderEntryTemplate(module=module, template_args=template_args)
@@ -180,6 +207,14 @@ def getModuleLoaderEntryCode(module):
 def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor, entry_name):
     template_args = _getModuleEntryCommonArgs(module)
     template_args["entry_name"] = entry_name
+
+    # Bytecode and extension modules have no module C file, so unlike compiled
+    # modules, their code name is derived from the full name only.
+    module_identifier = getModuleEntryIdentifier(module.getFullName())
+    template_args["module_identifier"] = module_identifier
+    template_args["module_state_decls"] = template_metapath_loader_module_state % {
+        "module_identifier": module_identifier
+    }
 
     if module.isUncompiledPythonModule():
         code_data = module.getByteCode()
@@ -227,7 +262,7 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
     ordered_modules = _getLoaderModuleOrder()
 
     for module in ordered_modules:
-        entry_name = _getModuleEntryCodeName(module.getFullName())
+        entry_name = getModuleEntryCodeName(module.getFullName())
 
         # Bytecode and extension entries need external linkage, as compiled
         # modules may reference them.
@@ -246,6 +281,8 @@ def getMetaPathLoaderBodyCode(bytecode_accessor):
                 )
             )
 
+        # Keep every entry in the loader table for name based and dynamic
+        # imports. Direct imports reach their entry symbol without the table.
         metapath_loader_refs.append("    &%s," % entry_name)
 
     frozen_defs = []

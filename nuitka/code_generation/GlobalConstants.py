@@ -137,6 +137,9 @@ def getConstantDefaultPopulation():
         # For Python3 "bytes" built-in.
         result.append("bytes")
 
+        # Module lock handling of direct imports.
+        result += ("acquire", "release")
+
     # For meta path based loader, iter_modules and Python3 "__name__" to
     # "__package__" parsing
     result.append(".")

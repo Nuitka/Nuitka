@@ -369,6 +369,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
+    def hasDeclaration(self, key):
+        pass
+
+    @abstractmethod
     def getTypeDescriptionCode(self, type_description_value):
         pass
 
@@ -525,6 +529,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
+
+    def hasDeclaration(self, key):
+        return self.parent.hasDeclaration(key)
 
     def getTypeDescriptionCode(self, type_description_value):
         return self.parent.getTypeDescriptionCode(type_description_value)
@@ -829,6 +836,9 @@ class PythonModuleContext(
         assert key not in self.declaration_codes
 
         self.declaration_codes[key] = code
+
+    def hasDeclaration(self, key):
+        return key in self.declaration_codes
 
     def getTypeDescriptionCode(self, type_description_value):
         return self.constant_accessor.getTypeDescriptionCode(type_description_value)

@@ -5,7 +5,12 @@
 #define __NUITKA_IMPORTING_H__
 
 #ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
+#include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#include "nuitka/helper/dictionaries.h"
+#include "nuitka/string_functions.h"
 #endif
 
 /* These are for the built-in import.
@@ -35,7 +40,8 @@ extern PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_nam
 extern bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *module, PyObject *import_name,
                                                  PyObject *module_name);
 
-// Import an embedded module directly.
+// Import an embedded module directly. Returns a borrowed reference, the module
+// is kept alive through its "sys.modules" entry and its load state.
 extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name, bool internal);
 
 // Execute a module, the module object is prepared empty, but with __name__.

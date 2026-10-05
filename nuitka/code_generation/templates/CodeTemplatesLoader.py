@@ -3,17 +3,25 @@
 
 """Templates for the loading of embedded modules."""
 
+# Bytecode and extension modules share the importer of the entry and only need
+# their load state slots generated in the loader body.
+template_metapath_loader_module_state = """\
+static PyObject *module_state_%(module_identifier)s = NULL;
+static PyThreadState *module_owner_%(module_identifier)s = NULL;"""
+
 template_metapath_loader_extension_module_entry = """\
+%(module_state_decls)s
 struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, IMPORT_EMBEDDED_MODULE_ENTRY, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif
 };"""
 
 template_metapath_loader_bytecode_module_entry = """\
+%(module_state_decls)s
 struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, %(bytecode)s, %(size)d, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, %(get_display_name)s, %(pre_load)s, %(post_load)s, %(parent)s, NULL, IMPORT_EMBEDDED_MODULE_ENTRY, &module_state_%(module_identifier)s, &module_owner_%(module_identifier)s, %(bytecode)s, %(size)d, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , %(file_path)s
 #endif
@@ -23,7 +31,7 @@ struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
 # bytecode and extension module entries, they remain private to the loader.
 template_metapath_loader_excluded_module_entry = """\
 static struct Nuitka_MetaPathBasedLoaderEntry %(entry_name)s = {
-    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, NULL, NULL, NULL, NULL, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), 0, 0, %(flags)s
+    %(module_name)s, %(get_name_func)s, %(compare_name_func)s, NULL, NULL, NULL, NULL, NUITKA_CAST_INIT_REASON(%(exclusion_reason)s), NULL, NULL, NULL, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
     , NULL
 #endif

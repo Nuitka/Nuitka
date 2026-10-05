@@ -234,9 +234,6 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
                     "var_name": context.getConstantCode(constant=variable_name),
                 }
             )
-
-            if needs_ref:
-                context.addCleanupTempName(value_name)
         else:
             if needs_ref:
                 template = template_read_locals_mapping_with_fallback_ref
