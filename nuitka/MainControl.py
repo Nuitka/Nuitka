@@ -932,7 +932,11 @@ def runSconsBackend():
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
 
-    if hasPythonFlagIsolated():
+    # The Python PGO input build is compiled as accelerated mode and has to
+    # load the standard library from "sys.path" during its profiling run, so
+    # the isolation effect cannot be applied to it. The actual build after the
+    # re-execution will apply it normally.
+    if hasPythonFlagIsolated() and not shallCreatePythonPgoInput():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
     abiflags = getPythonABI(python_debug=shallUsePythonDebug())

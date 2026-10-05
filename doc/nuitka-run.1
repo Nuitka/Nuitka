@@ -690,7 +690,7 @@ Enable the encryption and re\-encryption of ANSI and Unicode strings, this is di
 Add a Themida advanced option by name and value, e.g. '\-\-themida\-advanced\-option=OPTION_TRIAL_IS_DEBUG_MODE=YES'. This can be given multiple times and is passed in addition to the used config.
 .TP
 \fB\-\-winlicense\-trial\fR=\fI\,WINLICENSE_TRIAL\/\fR
-Enable trial mode of WinLicense, the value is the identifier of the trial state, e.g. '\-\-winlicense\-trial=IDENTIFIER'. The value is used as given, so make it unique per application. Keeping it stable continues the trial across releases, changing it enables a new trial. Without restrictions from '\-\-winlicense\-trial\-days' or '\-\-winlicense\-trial\-executions', this is an unlimited trial. This requires a WinLicense installation, as well as the '\-\-winlicense\-trial\-email' and '\-\-winlicense\-trial\-website' options.
+Enable trial mode of WinLicense, the value is the identifier of the trial state, e.g. '\-\-winlicense\-trial=IDENTIFIER'. The value is used as given, so make it unique per application. Keeping it stable continues the trial across releases, changing it enables a new trial. Without restrictions from '\-\-winlicense\-trial\-days' or '\-\-winlicense\-trial\-executions', this is an unlimited trial. This requires a WinLicense installation, as well as the '\-\-winlicense\-email' and '\-\-winlicense\-website' options.
 .TP
 \fB\-\-winlicense\-trial\-days\fR=\fI\,WINLICENSE_TRIAL_DAYS\/\fR
 Number of trial days of WinLicense, this requires '\-\-winlicense\-trial' and a WinLicense installation.
@@ -698,11 +698,53 @@ Number of trial days of WinLicense, this requires '\-\-winlicense\-trial' and a 
 \fB\-\-winlicense\-trial\-executions\fR=\fI\,WINLICENSE_TRIAL_EXECUTIONS\/\fR
 Number of trial executions of WinLicense, this requires '\-\-winlicense\-trial' and a WinLicense installation.
 .TP
-\fB\-\-winlicense\-trial\-email\fR=\fI\,WINLICENSE_TRIAL_EMAIL\/\fR
-Email address to use in the WinLicense trial messages, e.g. for support requests. This is required with '\-\-winlicense\-trial' and a WinLicense installation.
+\fB\-\-winlicense\-email\fR=\fI\,WINLICENSE_EMAIL\/\fR
+Email address to use in the WinLicense trial and license messages, e.g. for support requests. This is required with '\-\-winlicense\-trial' or '\-\-winlicense\-registration' and a WinLicense installation.
 .TP
-\fB\-\-winlicense\-trial\-website\fR=\fI\,WINLICENSE_TRIAL_WEBSITE\/\fR
-Website URL to use in the WinLicense trial messages, where users can register or purchase. This is required with '\-\-winlicense\-trial' and a WinLicense installation.
+\fB\-\-winlicense\-website\fR=\fI\,WINLICENSE_WEBSITE\/\fR
+Website URL to use in the WinLicense trial and license messages, where users can register or purchase. This is required with '\-\-winlicense\-trial' or '\-\-winlicense\-registration' and a WinLicense installation.
+.TP
+\fB\-\-winlicense\-registration\fR
+Enable registration of WinLicense, requiring license keys for the protected application. This requires the license key material of the used software and a WinLicense installation.
+.TP
+\fB\-\-winlicense\-registration\-keys\-file\fR=\fI\,WINLICENSE_REGISTRATION_KEYS_FILE\/\fR
+File with the 'OPTION_REGISTRATION_*' key material of the used software, e.g. exported from the WinLicense GUI project. Values given as options override those from this file.
+.TP
+\fB\-\-winlicense\-registration\-hash\fR=\fI\,WINLICENSE_REGISTRATION_HASH\/\fR
+License hash of the used software, this is required with '\-\-winlicense\-registration'.
+.TP
+\fB\-\-winlicense\-registration\-rsa\-public\-key1\fR=\fI\,WINLICENSE_REGISTRATION_RSA_PUBLIC_KEY1\/\fR
+RSA public key 1 of the used software, this is required with '\-\-winlicense\-registration'.
+.TP
+\fB\-\-winlicense\-registration\-rsa\-public\-key2\fR=\fI\,WINLICENSE_REGISTRATION_RSA_PUBLIC_KEY2\/\fR
+RSA public key 2 of the used software, this is required with '\-\-winlicense\-registration'.
+.TP
+\fB\-\-winlicense\-registration\-ecc\-public\-key\fR=\fI\,WINLICENSE_REGISTRATION_ECC_PUBLIC_KEY\/\fR
+ECC public key of the used software, this is required with '\-\-winlicense\-registration'.
+.TP
+\fB\-\-winlicense\-registration\-file\fR=\fI\,WINLICENSE_REGISTRATION_FILE\/\fR
+File name where the protected application looks for a license key, e.g. 'regkey.dat' or '%%USER_DOCS%%\eMyApp\elicense.dat', this enables file licenses.
+.TP
+\fB\-\-winlicense\-registration\-registry\-hive\fR=\fI\,WINLICENSE_REGISTRATION_REGISTRY_HIVE\/\fR
+Registry hive for registry license keys, e.g. 'HKEY_CURRENT_USER', by default 'HKEY_LOCAL_MACHINE' is used.
+.TP
+\fB\-\-winlicense\-registration\-registry\-key\fR=\fI\,WINLICENSE_REGISTRATION_REGISTRY_KEY\/\fR
+Registry key name where the protected application looks for a license key, this enables registry licenses.
+.TP
+\fB\-\-winlicense\-registration\-registry\-value\fR=\fI\,WINLICENSE_REGISTRATION_REGISTRY_VALUE\/\fR
+Registry value name where the protected application looks for a license key, this requires '\-\-winlicense\-registration\-registry\-key'.
+.TP
+\fB\-\-winlicense\-only\-run\-registered\fR
+Allow the protected application to run only with a valid license key.
+.TP
+\fB\-\-winlicense\-only\-hardware\-licenses\fR
+Accept only license keys that are locked to the machine.
+.TP
+\fB\-\-winlicense\-only\-temporal\-licenses\fR
+Accept only license keys that expire, denying time unlimited ones.
+.TP
+\fB\-\-winlicense\-clear\-trial\-when\-registered\fR
+Clear trial information when registered, this restarts the trial from zero if the license key is removed or expires.
 .IP
 Plugin options of 'anti\-debugger' (categories: commercial, protection):
 .TP

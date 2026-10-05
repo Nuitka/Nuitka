@@ -792,6 +792,19 @@ it before using it: '%s' (from --output-filename='%s')."""
             % getPythonFlavorName()
         )
 
+    # The Python PGO input build is accelerated, but compiled without the
+    # isolation effect, and the actual build is checked again after the
+    # re-execution.
+    if (
+        isAcceleratedMode()
+        and hasPythonFlagIsolated()
+        and not shallCreatePythonPgoInput()
+    ):
+        return options_logger.sysexit("""\
+Error, the Python flag 'isolated' cannot be used in accelerated mode, since \
+Nuitka empties 'sys.path' for it, and accelerated mode loads the standard \
+library from there.""")
+
     if isOnefileMode() and not hasOnefileSupportedOS():
         return options_logger.sysexit(
             "Error, unsupported OS for onefile '%s'." % getOS()
