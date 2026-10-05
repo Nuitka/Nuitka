@@ -43,14 +43,14 @@
 /* This is used to indicate code control flows we know cannot happen. */
 #ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
-    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    fprintf(stderr, "%s : %s\n", __FUNCTION__, #NAME);                                                                 \
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
 
 #define NUITKA_ERROR_EXIT(NAME)                                                                                        \
-    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    fprintf(stderr, "%s : %s\n", __FUNCTION__, #NAME);                                                                 \
     abort();
 
 #endif
