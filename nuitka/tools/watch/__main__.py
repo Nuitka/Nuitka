@@ -242,7 +242,6 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
 def _updateCaseLock(
     installed_python,
     case_data,
-    case_dir,
     reset_pipenv,
     no_pipenv_update,
     result_path,
@@ -266,7 +265,7 @@ def _updateCaseLock(
                 case_data=case_data,
             )
 
-            pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
+            pipenv_filename_full = os.path.join(result_path, pipenv_filename)
 
             # Update or create lockfile of pipenv.
             lock_filename = updatePipenvLockFile(
@@ -341,7 +340,6 @@ def _updateCase(
             _updateCaseLock(
                 installed_python=installed_python,
                 case_data=case_data,
-                case_dir=case_dir,
                 reset_pipenv=True,
                 no_pipenv_update=False,
                 result_path=result_path,
@@ -365,7 +363,6 @@ def _updateCase(
         lock_filename = _updateCaseLock(
             installed_python=installed_python,
             case_data=case_data,
-            case_dir=case_dir,
             reset_pipenv=reset_pipenv,
             no_pipenv_update=no_pipenv_update,
             result_path=result_path,
