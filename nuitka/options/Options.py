@@ -21,6 +21,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
+from nuitka.plugins.Hooks import redactCommandLineArg
 from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
@@ -438,7 +439,11 @@ longer part of Winlibs and therefore no more available this way. Use only \
     if not options.version:
         options_logger.info(
             leader="Used command line options:",
-            message=" ".join(doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])),
+            message=" ".join(
+                doNotBreakSpaces(
+                    _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
+                )
+            ),
         )
 
     if (

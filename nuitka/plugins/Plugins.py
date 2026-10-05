@@ -199,6 +199,18 @@ def _addActivePlugin(plugin_class, args, force=False):
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
 
+def redactCommandLineArg(arg):
+    """Redact the value of sensitive command line options.
+
+    Args:
+        arg: Command line argument to potentially redact.
+
+    Returns:
+        The argument, with value redacted if sensitive.
+    """
+    return Plugins.redactCommandLineArg(arg)
+
+
 def getActivePlugins():
     """Return list of active plugins.
 
@@ -2117,6 +2129,43 @@ through incomplete set import by '%s' plugin encountered."""
                 )
 
         return result, plugin_name
+
+    @staticmethod
+    def getReportRedactedOptions():
+        """Return option prefixes with values to redact in reports and output.
+
+        Returns:
+            Tuple of option name prefixes.
+        """
+        # Load plugin classes, to know what we are talking about.
+        loadPlugins()
+
+        result = set()
+
+        for plugin_classes in plugin_name2plugin_classes.values():
+            result.update(plugin_classes[0].getReportRedactedOptions())
+
+        for plugin_class in user_plugins:
+            result.update(plugin_class.getReportRedactedOptions())
+
+        return tuple(sorted(result))
+
+    @staticmethod
+    def redactCommandLineArg(arg):
+        """Redact the value of sensitive command line options.
+
+        Args:
+            arg: Command line argument to potentially redact.
+
+        Returns:
+            The argument, with value redacted if sensitive.
+        """
+        redacted_option_prefixes = Plugins.getReportRedactedOptions()
+
+        if redacted_option_prefixes and arg.startswith(redacted_option_prefixes):
+            arg = arg.split("=", 1)[0] + "=REDACTED"
+
+        return arg
 
 
 def listPlugins():

@@ -1710,6 +1710,11 @@ except Exception as e:
         return ()
 
     @staticmethod
+    def getReportRedactedOptions():
+        """Provide option prefixes with values that are redacted in reports."""
+        return ()
+
+    @staticmethod
     def getPackageVersion(module_name):
         """Provide package version of a distribution."""
         distribution_name = _getDistributionNameFromPackageName(module_name)

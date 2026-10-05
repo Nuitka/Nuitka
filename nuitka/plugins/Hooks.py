@@ -407,6 +407,11 @@ def getUncompiledDecoratorNames():
     return Plugins.getUncompiledDecoratorNames()
 
 
+def redactCommandLineArg(arg):
+    """Redact the value of sensitive command line options."""
+    return Plugins.redactCommandLineArg(arg)
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

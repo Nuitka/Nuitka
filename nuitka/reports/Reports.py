@@ -64,7 +64,7 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     hasMainModule,
 )
-from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.plugins.Plugins import getActivePlugins, redactCommandLineArg
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import (
     getLaunchingSystemPrefixPath,
@@ -1261,7 +1261,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
 
     for arg in sys.argv[1:]:
-        appendTreeElement(options_xml_node, "option", value=arg)
+        appendTreeElement(options_xml_node, "option", value=redactCommandLineArg(arg))
 
     active_plugins_xml_node = appendTreeElement(
         root,
