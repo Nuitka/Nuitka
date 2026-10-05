@@ -699,20 +699,19 @@ def buildTemplateStringNode(provider, node, source_ref):
     str_values = []
     interpolations = []
 
-    last_was_interpolation = False
-
     for value in buildNodeTuple(provider, node.values, source_ref):
         if value.isExpressionConstantRef():
             str_values.append(value.getCompileTimeConstant())
-            last_was_interpolation = False
         elif value.isExpressionTemplateInterpolation():
-            if last_was_interpolation:
+            # The string values are the literal parts around the
+            # interpolations and must outnumber them by one, including the
+            # empty leading and trailing parts.
+            if len(str_values) == len(interpolations):
                 str_values.append("")
 
             interpolations.append(value)
-            last_was_interpolation = True
 
-    if last_was_interpolation:
+    if len(str_values) == len(interpolations):
         str_values.append("")
 
     return ExpressionTemplateString(
