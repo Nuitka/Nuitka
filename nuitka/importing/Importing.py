@@ -34,6 +34,7 @@ from nuitka.options.Options import (
     getMainEntryPointFilenames,
     getOutputFolderName,
     hasPythonFlagNoCurrentDirectoryInPath,
+    hasPythonFlagPackageMode,
     shallExplainImports,
 )
 from nuitka.OutputDirectories import getSourceDirectoryPath
@@ -1123,12 +1124,25 @@ def getPackageSearchPath(package_name):
         return None
 
     if package_name is None:
-        result = []
+        if hasPythonFlagPackageMode():
+            # For "python -m" mode, the current directory is what CPython
+            # searches first, and it takes precedence over the main script
+            # directory.
+            result = []
 
-        if not _safe_path:
-            result.append(os.getcwd())
+            if not _safe_path:
+                result.append(os.getcwd())
 
-        result += list(_main_paths) + getPythonUnpackedSearchPath() + list(_extra_paths)
+            result += list(_main_paths)
+        else:
+            # The main script directory comes first, as for CPython running a
+            # script, where the current directory is not searched by default.
+            result = list(_main_paths)
+
+            if not _safe_path:
+                result.append(os.getcwd())
+
+        result += getPythonUnpackedSearchPath() + list(_extra_paths)
     elif "." in package_name:
         parent_package_name, child_package_name = package_name.splitModuleBasename()
 
