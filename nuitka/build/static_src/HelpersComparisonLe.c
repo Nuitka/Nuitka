@@ -8873,6 +8873,42 @@ nuitka_bool RICH_COMPARE_LE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 #endif
 }
 
+static PyObject *COMPARE_LE_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    const double a = operand1;
+    const double b = operand2;
+
+    bool r = a <= b;
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+PyObject *RICH_COMPARE_LE_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    return COMPARE_LE_OBJECT_CFLOAT_CFLOAT(operand1, operand2);
+}
+
+static bool COMPARE_LE_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    const double a = operand1;
+    const double b = operand2;
+
+    bool r = a <= b;
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+bool RICH_COMPARE_LE_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    return COMPARE_LE_CBOOL_CFLOAT_CFLOAT(operand1, operand2);
+}
+
 static PyObject *COMPARE_LE_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyTuple_CheckExact(operand1));

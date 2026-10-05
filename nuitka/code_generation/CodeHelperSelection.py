@@ -3,7 +3,7 @@
 
 """Select from code helpers.
 
-This aims at being general, but right now is only used for comparison code helpers.
+This aims at being general, and is used for comparison and operation code helpers.
 """
 
 from nuitka.States import states

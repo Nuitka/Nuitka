@@ -166,6 +166,12 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObje
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern bool RICH_COMPARE_LE_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
 
