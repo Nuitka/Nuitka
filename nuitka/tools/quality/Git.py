@@ -264,6 +264,11 @@ def updateGitFile(path, orig_object_hash, new_object_hash, staged):
         new_object_hash: str - new hash of the file
         staged: bool - if True, apply as a staged change
     """
+    # The working tree file may be gone, e.g. a staged addition that was
+    # removed from the working tree, in which case there is nothing to sync.
+    if staged and not os.path.exists(path):
+        return True
+
     patch = check_output(
         ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
     )
