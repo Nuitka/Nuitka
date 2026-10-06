@@ -5499,14 +5499,58 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: 233c47b6
+- module-name: 'PySide6' # checksum: 48cb31e4
   implicit-imports:
+    # Non-limited API builds of Shiboken call "PyFunction_GetDefaults" on
+    # compiled functions in its signal argument counting and leak the
+    # resulting SystemError. Passing a "functools.partial" avoids that, but
+    # it has to be the same object for "connect" and "disconnect", therefore
+    # cached wrappers are used. Limited API builds use an attribute based
+    # fallback and are not affected, and only for them the compiled method is
+    # kept, preserving the receiver life time tracking of PySide6. The
+    # detection is done lazily with a probing connection, since frozen
+    # extension module filenames hide the API flavor, and imports are not
+    # safe while PySide6 itself is still being imported.
     - post-import-code:
         - |
+          import functools
+
+          from PySide6 import QtCore
+
+          def doesCompiledMethodLeak():
+            try:
+              class NuitkaProbeHandler:
+                def probeMethod(self, value):
+                  pass
+
+              handler = NuitkaProbeHandler()
+              sender = QtCore.QObject()
+
+              affected = False
+
+              try:
+                orig_connect(sender.destroyed, handler.probeMethod)
+                orig_connect(sender.destroyed, handler.probeMethod)
+              except SystemError:
+                affected = True
+
+              del sender, handler
+
+              return affected
+            except Exception:
+              return False
+
+          _wrap_compiled_methods = None
           _protected = []
+          _wrapped = {}
 
           def protect(func):
+            global _wrap_compiled_methods
+
             if hasattr(func, "__compiled__") and hasattr(func, "im_func"):
+                if _wrap_compiled_methods is None:
+                  _wrap_compiled_methods = doesCompiledMethodLeak()
+
                 _protected.append(func)
 
                 protected_name = func.im_func.__name__
@@ -5524,6 +5568,17 @@
                 except Exception:
                   pass
 
+                if _wrap_compiled_methods:
+                  key = (id(func.im_self), func.im_func)
+
+                  wrapper = _wrapped.get(key)
+
+                  if wrapper is None:
+                    wrapper = functools.partial(func)
+                    _wrapped[key] = wrapper
+
+                  return wrapper
+
             return func
 
           def patched_disconnect(self, slot=None):
@@ -5534,7 +5589,6 @@
 
               return orig_connect(self, protect(slot), type)
 
-          from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
           QtCore.SignalInstance.disconnect = patched_disconnect
           orig_connect = QtCore.SignalInstance.connect
