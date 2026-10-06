@@ -33,6 +33,7 @@ from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
     getOutputFolderName,
+    getProjectName,
     hasPythonFlagNoCurrentDirectoryInPath,
     hasPythonFlagPackageMode,
     shallExplainImports,
@@ -127,7 +128,10 @@ def setupImportingFromOptions():
             if not isHardModule(builtin_module_name):
                 addModuleDynamicBuiltinHard(builtin_module_name)
 
-    if getOutputFolderName() is not None:
+    # The source directory is computable from the output folder name or the
+    # project name. Generated main entry point files live there and must not be
+    # usable to shadow the modules they import.
+    if getOutputFolderName() is not None or getProjectName() is not None:
         source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
         source_dir = None
