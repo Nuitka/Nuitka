@@ -396,7 +396,7 @@ Add executable icon. Can be given multiple times for different resolutions or fi
 Copy executable icons from this existing executable (Windows only).
 .TP
 \fB\-\-onefile\-windows\-splash\-screen\-image\fR=\fI\,SPLASH_SCREEN_IMAGE\/\fR
-When compiling for Windows and onefile, show this while loading the application. Defaults to off.
+When compiling for Windows and onefile, show this while loading the application. Defaults to off. Setting the environment variable 'NUITKA_SPLASH_SCREEN' to "0" or "off" hides the splash screen at runtime, e.g. for automated tests.
 .TP
 \fB\-\-windows\-uac\-admin\fR
 Request Windows User Control, to grant admin rights on execution. (Windows only). Defaults to off.

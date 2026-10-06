@@ -1013,6 +1013,12 @@ project syntax to combine the code with the creation, compile this:
 
    # Rest of your program goes here.
 
+The splash screen can be suppressed at runtime by setting the
+environment variable ``NUITKA_SPLASH_SCREEN`` to ``0`` or ``off``. This
+is useful for automated tests or other situations, where the display
+would be disruptive. The application code signaling the splash screen
+removal keeps working the same way.
+
 Reports
 =======
 

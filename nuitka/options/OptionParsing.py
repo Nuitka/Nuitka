@@ -1894,7 +1894,9 @@ windows_group.add_option(
     dest="splash_screen_image",
     default=None,
     help="""\
-When compiling for Windows and onefile, show this while loading the application. Defaults to off.""",
+When compiling for Windows and onefile, show this while loading the application. Defaults to off.
+Setting the environment variable 'NUITKA_SPLASH_SCREEN' to "0" or "off" hides the splash screen at
+runtime, e.g. for automated tests.""",
 )
 
 windows_group.add_option(
