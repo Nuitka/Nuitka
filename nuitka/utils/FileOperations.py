@@ -1455,16 +1455,22 @@ def copyFileWithPermissions(source_path, dest_path, target_dir):
     Args:
         source_path: Source file.
         dest_path: Destination file.
-        target_dir: Target directory (to check for symlink containment).
+        target_dir: Target directory (to check for symlink containment and
+            target presence).
     """
 
     if os.path.islink(source_path) and not isWin32Windows():
         link_target_rel = resolveSymlink(source_path)
 
+        resolved_target_path = getNormalizedPathJoin(
+            os.path.dirname(dest_path), link_target_rel
+        )
+
+        # Only preserve the symlink, if its target is present in the target
+        # directory, otherwise it would be dangling in the result.
         if isFilenameBelowPath(
-            path=target_dir,
-            filename=getNormalizedPathJoin(os.path.dirname(dest_path), link_target_rel),
-        ):
+            path=target_dir, filename=resolved_target_path
+        ) and os.path.exists(resolved_target_path):
             os.symlink(link_target_rel, dest_path)
             return
 

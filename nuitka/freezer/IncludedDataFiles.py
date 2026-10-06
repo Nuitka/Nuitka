@@ -1212,7 +1212,15 @@ def copyDataFiles(standalone_entry_points):
 
     data_file_paths = []
 
-    for included_datafile in getIncludedDataFiles():
+    # Copy symlinks last, so their targets are present in the distribution, and
+    # the symlinks can be preserved, rather than being dereferenced.
+    included_datafiles = sorted(
+        getIncludedDataFiles(),
+        key=lambda included_datafile: included_datafile.kind == "data_file"
+        and os.path.islink(included_datafile.source_path),
+    )
+
+    for included_datafile in included_datafiles:
         # TODO: directories should be resolved to files.
         if included_datafile.needsCopy():
             if shallMakeModule():
