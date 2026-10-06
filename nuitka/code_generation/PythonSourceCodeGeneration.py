@@ -971,7 +971,7 @@ def _generateEllipsisSource(_expression):
     return "..."
 
 
-def _generateBuiltinExceptionRefSource(expression):
+def _generateBuiltinRefSource(expression):
     return expression.getBuiltinName()
 
 
@@ -1105,12 +1105,14 @@ _expression_source_dispatch = {
     "EXPRESSION_YIELD": _generateYieldSource,
     "EXPRESSION_YIELD_FROM": _generateYieldFromSource,
     "EXPRESSION_FUNCTION_CREATION": _generateLambdaSource,
-    "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinExceptionRefSource,
+    "EXPRESSION_BUILTIN_REF": _generateBuiltinRefSource,
+    "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinRefSource,
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_BUILTIN": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": _generateImportModuleNameHardSource,
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
+    "EXPRESSION_CTYPES_CDLL_REF": _generateImportModuleNameHardSource,
 }
 
 _statement_source_dispatch = {
