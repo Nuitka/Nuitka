@@ -783,8 +783,6 @@ static PyObject *Nuitka_Asyncgen_throw(PyThreadState *tstate, struct Nuitka_Asyn
     PRINT_CURRENT_EXCEPTION();
 #endif
 
-    CHECK_EXCEPTION_STATE(&exception_state);
-
     return result;
 }
 
