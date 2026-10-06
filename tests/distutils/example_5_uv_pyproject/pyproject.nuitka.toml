@@ -13,6 +13,9 @@ authors = [{name = "Nuitka User", email = "user@example.com"}]
 [project.scripts]
 runner = "example_uv.runner:main"
 
+[tool.nuitka]
+include-data-dir = ["extra_assets=extra_assets"]
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be

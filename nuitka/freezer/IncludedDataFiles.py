@@ -337,6 +337,34 @@ default_ignored_filenames = ("py.typed",)
 if not isMacOS():
     default_ignored_filenames += (".DS_Store",)
 
+# Normalized form for checking too.
+normalized_ignored_filenames = set(
+    os.path.normcase(ignored) for ignored in default_ignored_filenames
+)
+
+
+def isIgnoredDataFilename(filename):
+    """Check if a filename is ignored as a data file by Nuitka.
+
+    Notes:
+        Nuitka ignores files like 'py.typed' or '.pyi' files for data file
+        inclusion, and project configurations may list them as expected
+        data files nonetheless, which must not be considered a mismatch.
+
+    Args:
+        filename: The path of the data file.
+
+    Returns:
+        bool: True if the file is ignored.
+    """
+    if os.path.normcase(os.path.basename(filename)) in normalized_ignored_filenames:
+        return True
+
+    if os.path.normcase(filename).endswith(default_ignored_suffixes):
+        return True
+
+    return containsPathElements(filename, default_ignored_dirs)
+
 
 def makeIncludedDataDirectory(
     source_path,
@@ -750,7 +778,10 @@ def checkProjectExpectedDataFiles():
     Notes:
         This is used to verify that the project configuration tools like
         'uv' or 'poetry' are not having their data files ignored by
-        Nuitka or that Nuitka is not ignoring them.
+        Nuitka or that Nuitka is not ignoring them. Data files that Nuitka
+        ignores by default, e.g. 'py.typed' files, are not expected, and
+        data files included beyond the project configuration, e.g. from
+        explicit user options, are not considered an error.
     """
 
     expected_data_files = getProjectExpectedDataFiles()
@@ -759,32 +790,24 @@ def checkProjectExpectedDataFiles():
         return
 
     expected_data_files = set(
-        getNormalizedPath(filename) for filename in expected_data_files
+        getNormalizedPath(filename)
+        for filename in expected_data_files
+        if not isIgnoredDataFilename(filename)
     )
 
-    included_data_files = set()
+    included_data_files = set(
+        included_data_file.dest_path
+        for included_data_file in _included_data_files
+        if "user" in included_data_file.tags
+    )
 
-    for included_data_file in _included_data_files:
-        if "user" in included_data_file.tags:
-            included_data_files.add(included_data_file.dest_path)
+    missing_data_files = expected_data_files - included_data_files
 
-    if expected_data_files != included_data_files:
-        start_message = "Error, the expected data files from project configuration do not match the included data files."
-
-        missing_data_files = expected_data_files - included_data_files
-        extra_data_files = included_data_files - expected_data_files
-
-        if missing_data_files:
-            start_message += "\nMissing data files:\n" + "\n".join(
-                sorted(missing_data_files)
-            )
-
-        if extra_data_files:
-            start_message += "\nExtra data files:\n" + "\n".join(
-                sorted(extra_data_files)
-            )
-
-        inclusion_logger.sysexit(start_message)
+    if missing_data_files:
+        return inclusion_logger.sysexit("""\
+Error, the expected data files from project configuration do not match the included data files.
+Missing data files:
+%s""" % "\n".join(sorted(missing_data_files)))
 
 
 def _addIncludedDataFilesFromFileOptions():
