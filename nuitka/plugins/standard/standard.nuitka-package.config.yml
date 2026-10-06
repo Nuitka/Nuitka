@@ -9891,6 +9891,18 @@
         executable: 'yes'
       when: 'win32'
 
+- module-name: 'wirerope.callable' # checksum: cd1347ae
+  anti-bloat:
+    - description: 'workaround compiled function type checks'
+      replacements_re:
+        'is_descriptor = type\(self\.wrapped_object\)\.__get__.*?is not types\.FunctionType\.__get__': 'is_descriptor = not isinstance(self.wrapped_object, types.FunctionType) and type(self.wrapped_object).__get__ is not types.FunctionType.__get__'
+
+- module-name: 'wirerope.wire' # checksum: 1a6566cb
+  anti-bloat:
+    - description: 'workaround compiled function type dispatch'
+      replacements_re:
+        'def descriptor_bind\(descriptor, obj, type_\):\n    binder = Descriptor\(descriptor\)\.detect_binder\(obj, type_\)': 'def descriptor_bind(descriptor, obj, type_):\n    if isinstance(descriptor, types.FunctionType):\n        return obj, obj\n    binder = Descriptor(descriptor).detect_binder(obj, type_)'
+
 - module-name: 'wordninja_enhanced' # checksum: ae5ca038
   data-files:
     - dirs:
