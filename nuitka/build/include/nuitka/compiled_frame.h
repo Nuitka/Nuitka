@@ -450,9 +450,9 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
     CHECK_OBJECT_X(frame_object->m_frame.f_back);
     Py_CLEAR(frame_object->m_frame.f_back);
 
-    Py_DECREF(frame_object);
-
     frame_object->m_interpreter_frame.previous = NULL;
+
+    Py_DECREF(frame_object);
 #endif
 
 #if _DEBUG_FRAME
