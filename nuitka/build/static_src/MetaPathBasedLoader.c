@@ -806,6 +806,21 @@ static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 }
 #endif
 
+// Musl defines no symbol to identify itself, so non-glibc Linux is used to
+// avoid this for the common case, and the actual error string decides at
+// runtime.
+#if defined(__linux__) && !defined(__GLIBC__) && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                  \
+    !defined(_NUITKA_NO_DEPLOYMENT_STATIC_EXTENSION_LOADING)
+static void raiseStaticExtensionModuleImportError(char const *full_name, char const *filename) {
+    PyErr_Format(
+        PyExc_RuntimeError,
+        "Cannot dynamically load extension module '%s' from '%s', because this is a statically linked binary. Static \
+linking, e.g. with '-static', does not allow dynamic loading of extension modules. Disable this message with \
+'--no-deployment-flag=static-extension-loading'.",
+        full_name, filename);
+}
+#endif
+
 static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char const *full_name,
                                                     const filename_char_t *filename) {
     // Determine the basename of the module to load.
@@ -913,6 +928,16 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
         if (unlikely(error == NULL)) {
             error = "unknown dlopen() error";
         }
+
+#if defined(__linux__) && !defined(__GLIBC__) && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                  \
+    !defined(_NUITKA_NO_DEPLOYMENT_STATIC_EXTENSION_LOADING)
+        // Statically linked musl has a "dlopen" stub that always fails like
+        // this, so explain the actual cause instead.
+        if (strcmp(error, "Dynamic loading not supported") == 0) {
+            raiseStaticExtensionModuleImportError(full_name, (char const *)filename);
+            return NULL;
+        }
+#endif
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, error);
         return NULL;
