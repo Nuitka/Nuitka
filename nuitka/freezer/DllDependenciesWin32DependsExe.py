@@ -12,7 +12,7 @@ import os
 # pylint: disable=I0021,import-error,redefined-builtin
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import assumeYesForDownloads
+from nuitka.options.Options import assumeYesForDownloads, isExperimental
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden
@@ -214,8 +214,14 @@ SxS
     # processes.
     result = parseDependsExeOutput(output_filename)
 
-    deleteFile(output_filename, must_exist=True)
-    deleteFile(dwp_filename, must_exist=True)
+    if isExperimental("keep-dependency-walker-files"):
+        inclusion_logger.info(
+            "Keeping dependency walker output '%s' and configuration '%s'."
+            % (output_filename, dwp_filename)
+        )
+    else:
+        deleteFile(output_filename, must_exist=True)
+        deleteFile(dwp_filename, must_exist=True)
 
     reportMissingMsvcRedistDLLs()
 
