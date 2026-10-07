@@ -344,7 +344,13 @@ static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *modul
 #endif
 
     PGO_onModuleEntered(name);
+
+#if PYTHON_VERSION >= 0x300
+    module = PyImport_ExecCodeModuleObject(module_name, (PyObject *)code_object, module_path, NULL);
+#else
     module = PyImport_ExecCodeModuleEx((char *)name, (PyObject *)code_object, Nuitka_String_AsString(module_path));
+#endif
+
     PGO_onModuleExit(name, module == NULL);
 
     Py_DECREF(module_path);

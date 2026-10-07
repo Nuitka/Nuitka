@@ -253,6 +253,8 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 
     for (int i = 0; i < argc; i++) {
 #if PYTHON_VERSION >= 0x350
+        // On Python 3.7 the "Py_UTF8Mode" global set above is used, on
+        // Python 3.8+ the pre-initialization has applied it already.
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
 #elif defined(__APPLE__) && PYTHON_VERSION >= 0x300
         argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
@@ -1763,10 +1765,51 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION >= 0x370
     Py_UTF8Mode = SYSFLAG_UTF8;
 
+#if !defined(_WIN32)
+    // CPython enables the UTF-8 mode by default for the C and POSIX locales
+    // (PEP 540), and Nuitka should behave the same, or else non-ASCII paths
+    // in these locales can break, because Nuitka decodes them as UTF-8. The
+    // environment is not considered for this, as usual for Nuitka.
+    if (Py_UTF8Mode == 0) {
+        // Make sure the locale from the environment is considered.
+        setlocale(LC_CTYPE, "");
+
+        char const *ctype_locale = setlocale(LC_CTYPE, NULL);
+
+        if (ctype_locale != NULL && (strcmp(ctype_locale, "C") == 0 || strcmp(ctype_locale, "POSIX") == 0)) {
+            Py_UTF8Mode = 1;
+        }
+    }
+#endif
+
     if (Py_UTF8Mode) {
         if (Py_FileSystemDefaultEncoding == NULL) {
             Py_FileSystemDefaultEncoding = "utf-8";
             Py_HasFileSystemDefaultEncoding = 1;
+        }
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x380 && !defined(_WIN32)
+    // Pre-initialize Python with the UTF-8 mode that was decided on above,
+    // so that "Py_DecodeLocale" uses it for command line argument conversion
+    // and the filesystem encoding of the interpreter matches it.
+    {
+        PyPreConfig preconfig;
+        PyPreConfig_InitPythonConfig(&preconfig);
+
+        preconfig.utf8_mode = Py_UTF8Mode;
+        preconfig.parse_argv = 0;
+
+        // The environment is not considered for the UTF-8 mode, and the
+        // locale is not coerced, like it was decided on above.
+        preconfig.coerce_c_locale = 0;
+        preconfig.coerce_c_locale_warn = 0;
+
+        PyStatus status = Py_PreInitialize(&preconfig);
+
+        if (PyStatus_Exception(status)) {
+            Py_ExitStatusException(status);
         }
     }
 #endif
