@@ -125,7 +125,7 @@ def check_output(*popenargs, **kwargs):
     popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
+        logger.info("Executing command '%s'." % (popenargs[0],), keep_format=True)
 
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
@@ -165,7 +165,7 @@ def check_call(*popenargs, **kwargs):
     popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
+        logger.info("Executing command '%s'." % (popenargs[0],), keep_format=True)
 
     try:
         if "env" in kwargs:
@@ -174,7 +174,7 @@ def check_call(*popenargs, **kwargs):
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
         return general.sysexit(
-            "Error, failed to execute '%s'. Is it installed?" % popenargs[0]
+            "Error, failed to execute '%s'. Is it installed?" % (popenargs[0],)
         )
 
 
@@ -185,7 +185,7 @@ def callProcess(*popenargs, **kwargs):
     popenargs = (_getToolCommand(popenargs[0]),) + popenargs[1:]
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
+        logger.info("Executing command '%s'." % (popenargs[0],), keep_format=True)
 
     if "env" in kwargs:
         _checkEnvironment(kwargs["env"])
