@@ -144,10 +144,11 @@ os.environ["PYGLFW_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "glf
                 code = r"""
 import os
 
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+
 imgui_bundle_library = os.path.join(nuitka_info.python_runtime_dir, "imgui_bundle", "%s")
 
 if not os.path.exists(imgui_bundle_library):
-    nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
     imgui_bundle_library = os.path.join(nuitka_info.python_runtime_dir, "glfw", "%s")
 
 os.environ["PYGLFW_LIBRARY"] = imgui_bundle_library
