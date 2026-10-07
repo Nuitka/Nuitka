@@ -13,6 +13,7 @@ import types
 from nuitka.__past__ import GenericAlias, UnionType, frozendict, re_sub
 from nuitka.Constants import EllipsisType, NoneType
 from nuitka.Errors import NuitkaCodeDeficit
+from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
 from nuitka.Tracing import code_generation_logger
 
 from .CodeHelpers import getExpressionDispatchDict, getStatementDispatchDict
@@ -660,6 +661,10 @@ def _generateBuiltinFrozensetSource(expression):
     return "frozenset(%s)" % generateExpressionSource(expression.subnode_value)
 
 
+def _generateBuiltinType1Source(expression):
+    return "type(%s)" % generateExpressionSource(expression.subnode_value)
+
+
 def _generateSliceSource(expression):
     lower = expression.subnode_lower
     upper = expression.subnode_upper
@@ -975,6 +980,41 @@ def _generateBuiltinRefSource(expression):
     return expression.getBuiltinName()
 
 
+# Anonymous builtin references, e.g. "NoneType" or "function" do not have
+# names that are available at runtime, so they get an equivalent expression
+# to produce the value instead.
+_anonymous_ref_sources = {
+    "NoneType": "type(None)",
+    "ellipsis": "type(...)",
+    "NotImplementedType": "type(NotImplemented)",
+    "function": "type(lambda: None)",
+    "generator": "type(_ for _ in ())",
+    "builtin_function_or_method": "type(len)",
+    "code": "type((lambda: None).__code__)",
+    "module": "type(__import__('types'))",
+    "version_info": "type(__import__('sys').version_info)",
+    "GenericAlias": "type(list[int])",
+    "UnionType": "type(int | str)",
+    "Union": "type(int | str)",
+}
+
+
+def _generateBuiltinAnonymousRefSource(expression):
+    source = _anonymous_ref_sources.get(expression.getBuiltinName())
+
+    if source is None:
+        raise PythonSourceGenerationError(
+            "Unsupported anonymous builtin reference for source generation: %s"
+            % expression.getBuiltinName()
+        )
+
+    return source
+
+
+def _generateBuiltinPatchableTypeRefSource(expression):
+    return expression.getImportName()
+
+
 def _generateImportModuleHardSource(expression):
     # Hard imports (e.g. `typing`) may be optimized away and not kept as a
     # global variable (e.g. `t` for `import typing as t` can be dead).
@@ -1079,6 +1119,7 @@ _expression_source_dispatch = {
     "EXPRESSION_BUILTIN_DICT": _generateBuiltinDictSource,
     "EXPRESSION_BUILTIN_FROZENDICT": _generateBuiltinFrozendictSource,
     "EXPRESSION_BUILTIN_FROZENSET": _generateBuiltinFrozensetSource,
+    "EXPRESSION_BUILTIN_TYPE1": _generateBuiltinType1Source,
     "EXPRESSION_BUILTIN_SLICE1": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE2": _generateSliceSource,
     "EXPRESSION_BUILTIN_SLICE3": _generateSliceSource,
@@ -1106,6 +1147,9 @@ _expression_source_dispatch = {
     "EXPRESSION_YIELD_FROM": _generateYieldFromSource,
     "EXPRESSION_FUNCTION_CREATION": _generateLambdaSource,
     "EXPRESSION_BUILTIN_REF": _generateBuiltinRefSource,
+    "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": _generateBuiltinRefSource,
+    "EXPRESSION_BUILTIN_ANONYMOUS_REF": _generateBuiltinAnonymousRefSource,
+    "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": _generateBuiltinPatchableTypeRefSource,
     "EXPRESSION_BUILTIN_EXCEPTION_REF": _generateBuiltinRefSource,
     "EXPRESSION_IMPORT_MODULE_HARD": _generateImportModuleHardSource,
     "EXPRESSION_IMPORT_MODULE_FIXED": _generateImportModuleHardSource,
@@ -1114,6 +1158,14 @@ _expression_source_dispatch = {
     "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": _generateImportModuleNameHardSource,
     "EXPRESSION_CTYPES_CDLL_REF": _generateImportModuleNameHardSource,
 }
+
+# Hard import builtin reference nodes, e.g. "memoryview", "open", "print",
+# "reversed" and "sorted" use specialized classes with their own kinds, and
+# are to be treated like the generic builtin references.
+_expression_source_dispatch.update(
+    (builtin_ref_class.kind, _generateBuiltinRefSource)
+    for builtin_ref_class in getBuiltinRefNodes().values()
+)
 
 _statement_source_dispatch = {
     "STATEMENT_CONDITIONAL": _generateConditionalSource,
