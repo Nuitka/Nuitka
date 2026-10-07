@@ -762,6 +762,70 @@ def considerUsedModules(module, pass_count):
             )
 
 
+def scanIncludedModule(module_name, include_reason):
+    """Scan a single module for inclusion.
+
+    This is used when a module is explicitly requested to be included, either
+    directly or through a main entry point. The given reason is used to make
+    messages more precise about where the request came from.
+
+    Args:
+        module_name: full name of the module to include.
+        include_reason: reason why the module is included, used for messages.
+
+    Returns:
+        None
+    """
+    module_name, module_filename, module_kind, finding = locateModule(
+        module_name=ModuleName(module_name),
+        parent_package=None,
+        level=0,
+    )
+
+    if finding == "virtual":
+        decision, decision_reason = decideRecursion(
+            using_module_name=None,
+            module_filename=None,
+            module_name=module_name,
+            module_kind=module_kind,
+            extra_recursion=True,
+        )
+
+        if decision:
+            addRootModule(
+                buildVirtualModule(
+                    module_name=module_name,
+                    using_module_name=None,
+                )
+            )
+        else:
+            recursion_logger.warning(
+                "Not allowed to include module '%s' due to '%s'."
+                % (module_name.asString(), decision_reason)
+            )
+
+        return
+
+    if finding != "absolute":
+        return recursion_logger.sysexit(
+            "Error, failed to locate module '%s' %s."
+            % (module_name.asString(), include_reason)
+        )
+
+    if module_kind == "built-in":
+        # TODO:
+        recursion_logger.warning(
+            "Note, module '%s' %s is built-in."
+            % (module_name.asString(), include_reason)
+        )
+    else:
+        scanPluginSinglePath(
+            plugin_filename=module_filename,
+            module_package=module_name.getPackageName(),
+            package_only=True,
+        )
+
+
 def scanIncludedPackage(package_name):
     """Scan a whole package for inclusion.
 

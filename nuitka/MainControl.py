@@ -53,16 +53,13 @@ from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
-    locateModule,
     setupImportingFromOptions,
 )
 from nuitka.importing.Recursion import (
-    buildVirtualModule,
-    decideRecursion,
+    scanIncludedModule,
     scanIncludedPackage,
     scanPluginFilenamePattern,
     scanPluginPath,
-    scanPluginSinglePath,
 )
 from nuitka.installer.Installer import createInstallerDispatch
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
@@ -74,6 +71,7 @@ from nuitka.options.Options import (
     getForcedStdoutPath,
     getMainArgs,
     getMainEntryPointFilenames,
+    getMainEntryPointSpecs,
     getMustIncludeModules,
     getMustIncludePackages,
     getOutputDir,
@@ -191,7 +189,6 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
@@ -233,38 +230,6 @@ def _deleteResultFile(filename):
         deleteFile(
             path=changeFilenameExtension(filename, ".pdb"),
             must_exist=False,
-        )
-
-
-def _includeVirtualModule(module_name, module_kind):
-    """Include a virtual module that the user asked to include.
-
-    Args:
-        module_name: full name of the virtual module.
-        module_kind: kind of the virtual module.
-
-    Returns:
-        None
-    """
-    decision, decision_reason = decideRecursion(
-        using_module_name=None,
-        module_filename=None,
-        module_name=module_name,
-        module_kind=module_kind,
-        extra_recursion=True,
-    )
-
-    if decision:
-        ModuleRegistry.addRootModule(
-            buildVirtualModule(
-                module_name=module_name,
-                using_module_name=None,
-            )
-        )
-    else:
-        inclusion_logger.warning(
-            "Not allowed to include module '%s' due to '%s'."
-            % (module_name.asString(), decision_reason)
         )
 
 
@@ -354,37 +319,16 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
         scanIncludedPackage(package_name)
 
     for module_name in getMustIncludeModules():
-        module_name, module_filename, module_kind, finding = locateModule(
-            module_name=ModuleName(module_name),
-            parent_package=None,
-            level=0,
+        scanIncludedModule(
+            module_name=module_name,
+            include_reason="that you asked to include",
         )
 
-        if finding == "virtual":
-            _includeVirtualModule(
-                module_name=module_name,
-                module_kind=module_kind,
-            )
-            continue
-
-        if finding != "absolute":
-            return inclusion_logger.sysexit(
-                "Error, failed to locate module '%s' that you asked to include."
-                % module_name.asString()
-            )
-
-        if module_kind == "built-in":
-            # TODO:
-            inclusion_logger.warning(
-                "Note, module '%s' that you asked to include is built-in."
-                % module_name.asString()
-            )
-        else:
-            scanPluginSinglePath(
-                plugin_filename=module_filename,
-                module_package=module_name.getPackageName(),
-                package_only=True,
-            )
+    for _binary_name, module_name, _function_name in getMainEntryPointSpecs():
+        scanIncludedModule(
+            module_name=module_name,
+            include_reason="of a main entry point",
+        )
 
     # Allow plugins to add more modules based on the initial set being complete.
     onModuleInitialSet()

@@ -554,6 +554,16 @@ longer part of Winlibs and therefore no more available this way. Use only \
                 "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
             )
 
+    # The '--main-entry-point' is intended for project-based builds and
+    # does not allow to derive build output names from the entry point,
+    # if specified as the sole entry point form. TODO: Proper handling
+    # of mixed entry point forms, and relax the project name requirement
+    # by deriving build output names from the entry points.
+    if getMainEntryPointSpecs() and not getProjectName():
+        return options_logger.sysexit("""\
+Error, '--main-entry-point' requires a project name, use \
+'--project-name=NAME' to specify it.""")
+
     if isMacOS():
         if (options.macos_target_arch or "native") != "native":
             from nuitka.utils.SharedLibraries import (
@@ -977,16 +987,6 @@ def commentArgs():
     """
     # A ton of cases to consider.
     # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
-
-    # Option '--main-entry-point' is intended for project-based builds. Require
-    # a project name (from pyproject.toml / distutils / '--project') so we can
-    # use it for naming build artifacts.
-    if getMainEntryPointSpecs():
-        if not getProjectName():
-            return options_logger.sysexit("""\
-Error, '--main-entry-point' requires a project name. Use '--project' \
-or run from a project directory with 'pyproject.toml', 'setup.py', or \
-'setup.cfg'.""")
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
