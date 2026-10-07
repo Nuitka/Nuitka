@@ -34,6 +34,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 
+from .AIXObjGenerator import generateAIXXcoffObject
 from .DataComposerInterface import getConstantBlobSymbolName
 from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
@@ -651,9 +652,41 @@ _supported_resource_modes = (
     "linker",
     "incbin",
     "coff_obj",
+    "xcoff_obj",
     "mac_section",
     "code",
 )
+
+
+def _checkBlobResourceMode(env, resource_mode):
+    if resource_mode not in _supported_resource_modes:
+        return scons_logger.sysexit(
+            "Unknown resource mode '%s', supported modes are: %s"
+            % (resource_mode, _supported_resource_modes),
+            env=env,
+        )
+
+    if resource_mode in ("linker", "incbin") and env.msvc_mode:
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
+            env=env,
+        )
+
+    mode_platform_names = {
+        "mac_section": (isMacOS(), "macOS"),
+        "coff_obj": (isWin32Windows(), "Windows"),
+        "xcoff_obj": (isAIX(), "AIX"),
+    }
+
+    if resource_mode in mode_platform_names:
+        mode_supported, platform_name = mode_platform_names[resource_mode]
+
+        if not mode_supported:
+            return scons_logger.sysexit(
+                "Resource mode '%s' is not supported on non-%s platforms."
+                % (resource_mode, platform_name),
+                env=env,
+            )
 
 
 def _decideBlobResourceMode(env, blob_count):
@@ -695,6 +728,7 @@ def _decideBlobResourceMode(env, blob_count):
         resource_mode = "c23_embed"
         reason = "default for newer gcc"
     elif isAIX():
+        # The 'xcoff_obj' can be selected with NUITKA_RESOURCE_MODE= for now.
         resource_mode = "code"
         reason = "AIX is not compatible with incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
@@ -709,30 +743,7 @@ def _decideBlobResourceMode(env, blob_count):
         resource_mode = "incbin"
         reason = "default"
 
-    if resource_mode not in _supported_resource_modes:
-        return scons_logger.sysexit(
-            "Unknown resource mode '%s', supported modes are: %s"
-            % (resource_mode, _supported_resource_modes),
-            env=env,
-        )
-
-    if resource_mode in ("linker", "incbin") and env.msvc_mode:
-        return scons_logger.sysexit(
-            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
-            env=env,
-        )
-
-    if resource_mode == "mac_section" and not isMacOS():
-        return scons_logger.sysexit(
-            "Resource mode 'mac_section' is not supported on non-macOS platforms.",
-            env=env,
-        )
-
-    if resource_mode == "coff_obj" and not isWin32Windows():
-        return scons_logger.sysexit(
-            "Resource mode 'coff_obj' is not supported on non-Windows platforms.",
-            env=env,
-        )
+    _checkBlobResourceMode(env, resource_mode)
 
     env.resource_mode = resource_mode
     return resource_mode, reason
@@ -769,6 +780,23 @@ def _addConstantBlobFileCoffObj(env, blob_filename):
     env.Append(LINKFLAGS=[obj_filename])
 
     return "_NUITKA_CONSTANTS_FROM_COFF_OBJ"
+
+
+def _addConstantBlobFileXcoffObj(env, blob_filename):
+
+    obj_filename = blob_filename + ".o"
+
+    generateAIXXcoffObject(
+        in_filename=blob_filename,
+        out_filename=obj_filename,
+        symbol_name=_getSymbolName(blob_filename) + "_data",
+        writeable=_isWriteableConstantsBlob(blob_filename),
+    )
+
+    # Link the generated object file
+    env.Append(LINKFLAGS=[obj_filename])
+
+    return "_NUITKA_CONSTANTS_FROM_XCOFF_OBJ"
 
 
 def _addConstantBlobFileIncbin(env, blob_filename):
@@ -961,6 +989,17 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     return "_NUITKA_CONSTANTS_FROM_MACOS_SECTION"
 
 
+_constant_blob_mode_functions = {
+    "coff_obj": _addConstantBlobFileCoffObj,
+    "xcoff_obj": _addConstantBlobFileXcoffObj,
+    "mac_section": _addConstantBlobFileMacSection,
+    "incbin": _addConstantBlobFileIncbin,
+    "linker": _addConstantBlobFileLinker,
+    "code": _addConstantBlobFileCode,
+    "c23_embed": _addConstantBlobFileCode,
+}
+
+
 def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
@@ -971,21 +1010,13 @@ def _addConstantBlobFile(env, blob_filename):
             "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
         )
 
-    if env.resource_mode == "coff_obj":
-        return _addConstantBlobFileCoffObj(env, blob_filename)
-    elif env.resource_mode == "mac_section":
-        return _addConstantBlobFileMacSection(env, blob_filename)
-    elif env.resource_mode == "incbin":
-        return _addConstantBlobFileIncbin(env, blob_filename)
-    elif env.resource_mode == "linker":
-        return _addConstantBlobFileLinker(env, blob_filename)
-    elif env.resource_mode in ("code", "c23_embed"):
-        return _addConstantBlobFileCode(env, blob_filename)
-    else:
-        return scons_logger.sysexit(
-            "Error, illegal resource mode '%s' specified" % env.resource_mode,
-            env=env,
-        )
+    if env.resource_mode in _constant_blob_mode_functions:
+        return _constant_blob_mode_functions[env.resource_mode](env, blob_filename)
+
+    return scons_logger.sysexit(
+        "Error, illegal resource mode '%s' specified" % env.resource_mode,
+        env=env,
+    )
 
 
 def _addConstantBlobFiles(env, source_dir):

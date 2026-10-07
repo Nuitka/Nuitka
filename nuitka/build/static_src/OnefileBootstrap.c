@@ -183,8 +183,9 @@ static unsigned char const *payload_current = NULL;
 static unsigned long long payload_size = 0;
 
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
-    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
-    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+    defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
+    defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 
 NUITKA_DECLARE_CONSTANT_BLOB(payload_bin, payload_bin, const)
 

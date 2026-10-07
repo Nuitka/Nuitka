@@ -33,8 +33,9 @@
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
-    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
-    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+    defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
+    defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 NUITKA_DECLARE_CONSTANT_BLOB(constant_bin, constant_bin, CONSTANT_BIN_CONSTANT);
 #endif
 
@@ -1669,8 +1670,9 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_LINKER) ||                                \
-    defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                                \
-    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+    defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                               \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
         constant_bin = getconstant_binData();
 #endif
         NUITKA_PRINT_TIMING("loadConstantsBlob(): Found blob, decoding now.");
