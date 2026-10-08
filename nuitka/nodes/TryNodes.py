@@ -332,6 +332,14 @@ class StatementTry(StatementTryBase):
         return self, None, None
 
     def mayReturn(self):
+        return_handler = self.subnode_return_handler
+
+        if return_handler is not None:
+            # The return handler is what performs the return of the tried
+            # block, and it may not be able to do it anymore, e.g. when the
+            # "finally" block raises.
+            return return_handler.mayReturn()
+
         # TODO: If we optimized return handler away, this would be not needed
         # or even non-optimal.
         if self.subnode_tried.mayReturn():
@@ -351,11 +359,6 @@ class StatementTry(StatementTryBase):
         continue_handler = self.subnode_continue_handler
 
         if continue_handler is not None and continue_handler.mayReturn():
-            return True
-
-        return_handler = self.subnode_return_handler
-
-        if return_handler is not None and return_handler.mayReturn():
             return True
 
         return False

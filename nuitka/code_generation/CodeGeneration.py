@@ -462,7 +462,7 @@ def generateFunctionBodyCode(function_body, context):
                 temp_variables=function_body.getAllTempVariables(),
                 local_variables=function_body.getLocalVariables(),
                 needs_exception_exit=needs_exception_exit,
-                needs_generator_return=function_body.needsGeneratorReturnExit(),
+                needs_generator_return=function_body.needsReturnExit(),
             )
 
             function_decl = getGeneratorObjectDeclCode(
@@ -482,7 +482,7 @@ def generateFunctionBodyCode(function_body, context):
             temp_variables=function_body.getAllTempVariables(),
             local_variables=function_body.getLocalVariables(),
             needs_exception_exit=needs_exception_exit,
-            needs_generator_return=function_body.needsGeneratorReturnExit(),
+            needs_generator_return=function_body.needsReturnExit(),
         )
 
         function_decl = getCoroutineObjectDeclCode(
@@ -500,7 +500,7 @@ def generateFunctionBodyCode(function_body, context):
             temp_variables=function_body.getAllTempVariables(),
             local_variables=function_body.getLocalVariables(),
             needs_exception_exit=needs_exception_exit,
-            needs_generator_return=function_body.needsGeneratorReturnExit(),
+            needs_generator_return=function_body.needsReturnExit(),
         )
 
         function_decl = getAsyncgenObjectDeclCode(

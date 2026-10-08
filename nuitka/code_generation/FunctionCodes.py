@@ -826,9 +826,16 @@ def _getFunctionCode(
         }
 
     if context.hasTempName("return_value"):
-        function_exit += template_function_return_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        if context.getOwner().needsReturnExit():
+            function_exit += template_function_return_exit % {
+                "function_cleanup": indented(function_cleanup)
+            }
+        else:
+            # The return value is set, but never used, e.g. when returns are
+            # only in a "finally" block that raises, and cannot complete.
+            context.variable_storage.getVariableDeclarationTop(
+                "tmp_return_value"
+            ).maybe_unused = True
 
     if context.isForCreatedFunction():
         parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
@@ -998,7 +1005,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
         # TODO: An outline that cannot return, could be converted probably into
         # something else, maybe mere side effects.
-        if expression.subnode_body.mayReturn():
+        if expression.needsReturnExit():
             getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.

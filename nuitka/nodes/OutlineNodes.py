@@ -40,6 +40,20 @@ class ExpressionOutlineMixin(object):
 
         return self.provider.getEntryPoint()
 
+    def needsReturnExit(self):
+        """Does a return of the outline body need an exit point.
+
+        This is not the case if no return can complete, e.g. when all of them
+        are contained in a "finally" block that raises.
+
+        Returns:
+            bool
+        """
+
+        body = self.subnode_body
+
+        return body is not None and body.mayReturn()
+
     def getOutlineTempScope(self):
         # We use our own name as a temp_scope, cached from the parent, if the
         # scope is None.

@@ -83,7 +83,6 @@ class ExpressionGeneratorObjectBody(
     __slots__ = (
         "unoptimized_locals",
         "unqualified_exec",
-        "needs_generator_return_exit",
         "qualname_provider",
     )
 
@@ -104,8 +103,6 @@ class ExpressionGeneratorObjectBody(
 
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
-        self.needs_generator_return_exit = False
-
         self.trace_collection = None
 
         if python_version >= 0x300:
@@ -113,12 +110,6 @@ class ExpressionGeneratorObjectBody(
 
     def getFunctionName(self):
         return self.name
-
-    def markAsNeedsGeneratorReturnHandling(self):
-        self.needs_generator_return_exit = True
-
-    def needsGeneratorReturnExit(self):
-        return self.needs_generator_return_exit
 
     @staticmethod
     def needsCreation():

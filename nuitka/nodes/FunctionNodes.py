@@ -150,6 +150,20 @@ class ExpressionFunctionBodyBase(
 
         return self
 
+    def needsReturnExit(self):
+        """Does a return of the function body need an exit point.
+
+        This is not the case if no return can complete, e.g. when all of them
+        are contained in a "finally" block that raises.
+
+        Returns:
+            bool
+        """
+
+        body = self.subnode_body
+
+        return body is not None and body.mayReturn()
+
     def getContainingClassDictCreation(self):
         current = self
 

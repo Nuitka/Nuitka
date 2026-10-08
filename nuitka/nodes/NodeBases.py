@@ -251,17 +251,6 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
-    def getParentReturnConsumer(self):
-        parent = self.getParent()
-
-        while (
-            not parent.isParentVariableProvider()
-            and not parent.isExpressionOutlineBody()
-        ):
-            parent = parent.getParent()
-
-        return parent
-
     def getParentStatementsFrame(self):
         current = self.getParent()
 
