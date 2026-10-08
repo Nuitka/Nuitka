@@ -41,9 +41,8 @@ def _convertJsonLoadedValues(value):
     return value
 
 
-def loadJsonFromFilename(filename):
+def loadJsonFromContents(contents):
     try:
-        contents = getFileContents(filename, mode="rb")
         contents, _bom = stripFileContentsBOM(contents)
 
         if type(contents) is bytes:
@@ -52,6 +51,10 @@ def loadJsonFromFilename(filename):
         return _convertJsonLoadedValues(json.loads(contents))
     except ValueError:
         return None
+
+
+def loadJsonFromFilename(filename):
+    return loadJsonFromContents(getFileContents(filename, mode="rb"))
 
 
 def writeJsonToFile(file_handle, contents, indent=2):
