@@ -832,6 +832,43 @@ print()
 func = "{foo}".format
 print(func(foo="Foo"))
 
+
+class AttributeRaisingKeyError(object):
+    @property
+    def attr(self):
+        raise KeyError("attr")
+
+
+class AttributeRaisingAttributeError(object):
+    @property
+    def attr(self):
+        raise AttributeError("attr")
+
+
+def getattrDefaultOnlyForAttributeError(name):
+    try:
+        return getattr(AttributeRaisingKeyError(), name, "default")
+    except KeyError as e:
+        return "raised %r" % e
+
+
+print("getattr default with constant name:", end=" ")
+try:
+    print(getattr(AttributeRaisingKeyError(), "attr", "default"))
+except KeyError as e:
+    print("raised", repr(e))
+print(
+    "getattr default with variable name:", getattrDefaultOnlyForAttributeError("attr")
+)
+print(
+    "getattr default for missing attribute:",
+    getattr(AttributeRaisingKeyError(), "missing", "default"),
+)
+print(
+    "getattr default for raising attribute:",
+    getattr(AttributeRaisingAttributeError(), "attr", "default"),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
