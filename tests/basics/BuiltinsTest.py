@@ -839,6 +839,12 @@ class AttributeRaisingKeyError(object):
         raise KeyError("attr")
 
 
+class AttributeRaisingAttributeError(object):
+    @property
+    def attr(self):
+        raise AttributeError("attr")
+
+
 def getattrDefaultOnlyForAttributeError(name):
     try:
         return getattr(AttributeRaisingKeyError(), name, "default")
@@ -857,6 +863,10 @@ print(
 print(
     "getattr default for missing attribute:",
     getattr(AttributeRaisingKeyError(), "missing", "default"),
+)
+print(
+    "getattr default for raising attribute:",
+    getattr(AttributeRaisingAttributeError(), "attr", "default"),
 )
 
 #     Python tests originally created or extracted from other peoples work. The
