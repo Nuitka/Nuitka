@@ -2264,6 +2264,17 @@
       replacements:
         'sj.get_version("pyimagej")': 'repr(version("pyimagej"))'
 
+- module-name: 'imgui_bundle' # checksum: 88f6fbf4
+  # Vendored GLFW must sit next to the package; pyglfw loads it via PYGLFW_LIBRARY.
+  dlls:
+    - by_code:
+        setup_code: |
+          import os
+          os.environ.pop("PYGLFW_LIBRARY", None)
+          import imgui_bundle
+        filename_code: 'os.getenv("PYGLFW_LIBRARY")'
+      dest_path: 'imgui_bundle'
+
 - module-name: 'imgui_bundle.immapp.immapp_notebook' # checksum: 7d07a2d1
   anti-bloat:
     - description: 'remove IPython reference'
