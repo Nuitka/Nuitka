@@ -977,12 +977,14 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
     PRINT_STRING("thread_exc=");
 #if PYTHON_VERSION < 0x3b0
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
-#else
+#elif PYTHON_VERSION < 0x3c0
     PyObject *exc_value = EXC_VALUE(tstate);
-#if PYTHON_VERSION < 0x3c0
+    PyObject *exc_type = exc_value != NULL ? (PyObject *)Py_TYPE(exc_value) : NULL;
     PyTracebackObject *exc_tb = (exc_value != NULL && exc_value != Py_None) ? GET_EXCEPTION_TRACEBACK(exc_value) : NULL;
-#endif
-    PRINT_EXCEPTION(EXC_TYPE(tstate), exc_value, exc_tb);
+
+    PRINT_EXCEPTION(exc_type, exc_value, exc_tb);
+#else
+    PRINT_EXCEPTION(NULL, EXC_VALUE(tstate), NULL);
 #endif
 }
 
