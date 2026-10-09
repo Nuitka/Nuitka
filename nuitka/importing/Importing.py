@@ -356,6 +356,16 @@ def hasMainScriptDirectory():
     return bool(_main_paths)
 
 
+def getMainScriptDirectories():
+    """Get directories of the main scripts, for search path considerations.
+
+    Returns:
+        OrderedSet of directories.
+    """
+
+    return _main_paths
+
+
 def isPackageDir(dirname):
     """Decide if a directory is a package.
 
