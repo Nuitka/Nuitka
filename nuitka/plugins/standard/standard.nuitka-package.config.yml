@@ -8915,10 +8915,10 @@
         'get_pytest_test_cases': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'torch.utils._config_module' # checksum: 1613f7c7
+- module-name: 'torch.utils._config_module' # checksum: 77485a48
   constants:
     declarations:
-      'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config")]'
+      'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1].startswith(("config", "_config"))]'
   variables:
     setup_code:
       - 'import importlib'
