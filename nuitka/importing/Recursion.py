@@ -33,6 +33,7 @@ from nuitka.options.Options import (
 )
 from nuitka.pgo.Pgo import decideInclusionFromPGO
 from nuitka.plugins.Hooks import (
+    getModuleSysPathAdditions,
     onModuleEncounter,
     onModuleRecursion,
     onModuleUsageLookAhead,
@@ -49,6 +50,7 @@ from nuitka.utils.ModuleNames import ModuleName
 
 from .FakeModules import getVirtualModuleDescription
 from .Importing import (
+    addExtraSysPaths,
     getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
@@ -77,6 +79,12 @@ def _recurseTo(module_name, module_filename, module_kind, reason):
     )
 
     ImportCache.addImportedModule(module)
+
+    # Make "global-sys-path" additions of this module available as early as
+    # possible, so that packages it enables are found before a negative result
+    # for them can be cached, esp. when other modules search them before this
+    # module is optimized.
+    addExtraSysPaths(getModuleSysPathAdditions(module.getFullName()))
 
     return module
 
