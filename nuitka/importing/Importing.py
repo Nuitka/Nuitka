@@ -333,10 +333,19 @@ def addMainScriptDirectory(main_dir):
 
 
 def addExtraSysPaths(directories):
+    extra_paths_added = False
+
     for directory in directories:
         assert os.path.isdir(directory), directory
 
-        _extra_paths.add(directory)
+        if directory not in _extra_paths:
+            _extra_paths.add(directory)
+            extra_paths_added = True
+
+    if extra_paths_added:
+        # The module finding results, including the negative ones, were
+        # computed without these directories and must not be reused.
+        flushImportCache()
 
 
 def getExtraSysPaths():
