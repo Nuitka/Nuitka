@@ -68,6 +68,7 @@ from nuitka.utils.Importing import (
     getPackageDirFilename,
     hasPackageDirFilename,
     isBuiltinModuleName,
+    withTemporarySysPathExtension,
 )
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
@@ -77,6 +78,7 @@ from nuitka.utils.Utils import (
     getLaunchingNuitkaProcessEnvironmentValue,
     isMacOS,
     isWin32OrPosixWindows,
+    withNoDeprecationWarning,
 )
 from nuitka.utils.Zipfiles import getZipFile
 
@@ -343,9 +345,11 @@ def addExtraSysPaths(directories):
             extra_paths_added = True
 
     if extra_paths_added:
-        # The module finding results, including the negative ones, were
-        # computed without these directories and must not be reused.
-        flushImportCache()
+        # Extra paths have the lowest priority, so only the cached negative
+        # results can change and must not be reused.
+        for module_name, result in tuple(module_search_cache.items()):
+            if result is ImportError:
+                del module_search_cache[module_name]
 
 
 def getExtraSysPaths():
@@ -1392,6 +1396,65 @@ def hasModule(module_name):
     )
 
     return finding != "not-found"
+
+
+_compile_time_modules = {}
+
+
+def _getCompileTimeModuleSearchPath(module_name):
+    """Get the search path entry where Nuitka found a module.
+
+    Notes:
+        This is used to import modules for build time computations from the
+        same locations that Nuitka's own module finding uses, which can
+        include directories that are not on the "sys.path" of the compiling
+        process, e.g. added by "global-sys-path" for vendored packages.
+    """
+    _found_name, module_filename, _module_kind, _finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    if module_filename is None:
+        return None
+
+    # For packages the found filename is the directory itself, and for modules
+    # it is the file, in both cases the containing directory is the search path
+    # entry to use.
+    return os.path.dirname(module_filename)
+
+
+def importFromCompileTime(module_name, must_exist):
+    """Import a module from the compiled time stage.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    if module_name not in _compile_time_modules:
+        search_path = _getCompileTimeModuleSearchPath(module_name)
+
+        with withNoDeprecationWarning():
+            try:
+                if search_path is None:
+                    __import__(module_name)
+                else:
+                    with withTemporarySysPathExtension(
+                        extra_paths=(search_path,),
+                        prepend=True,
+                    ):
+                        __import__(module_name)
+            except (ImportError, RuntimeError):
+                # Preventing a retry, converted to None for return
+                _compile_time_modules[module_name] = False
+            else:
+                _compile_time_modules[module_name] = sys.modules[module_name]
+
+    # Some code should only use this, after knowing it will be found. Complain if
+    # that is not the case.
+    assert _compile_time_modules[module_name] or not must_exist
+
+    return _compile_time_modules[module_name] or None
 
 
 def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
