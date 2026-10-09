@@ -345,6 +345,12 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
 
     # Check if distribution meta data is included, that cannot be used.
     for distribution_name, meta_data_value in getDistributionMetadataValues():
+        if meta_data_value.module_name is None:
+            return inclusion_logger.sysexit(
+                "Error, including metadata for distribution '%s' without including any of its packages."
+                % distribution_name
+            )
+
         if not ModuleRegistry.hasDoneModule(meta_data_value.module_name):
             return inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."

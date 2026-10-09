@@ -361,6 +361,7 @@ MetaDataDescription = makeNamedtupleClass(
     "MetaDataDescription",
     (
         "module_name",
+        "module_name_candidates",
         "metadata",
         "entry_points_data",
         "reasons",
@@ -387,10 +388,13 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-        module_name = getDistributionTopLevelPackageNames(distribution=distribution)[0]
+        module_name_candidates = getDistributionTopLevelPackageNames(
+            distribution=distribution
+        )
 
         _metadata_values[distribution_name] = MetaDataDescription(
-            module_name=module_name,
+            module_name=None,
+            module_name_candidates=module_name_candidates,
             metadata=metadata,
             entry_points_data=entry_points_data,
             reasons=[reason],
@@ -403,12 +407,26 @@ def getDistributionMetadataValues():
     result = []
 
     for distribution_name, value in _metadata_values.items():
-        if "user requested" not in value.reasons and not hasDoneModule(
-            value.module_name
-        ):
-            continue
+        # Metadata is bound to a top-level package that is included in the
+        # build, and any of the packages of the distribution can serve that
+        # purpose, not just the first one.
+        module_name = None
 
-        result.append((distribution_name, value))
+        for candidate in value.module_name_candidates:
+            if hasDoneModule(candidate):
+                module_name = candidate
+                break
+
+        if module_name is None:
+            if "user requested" not in value.reasons:
+                continue
+
+            # Only user requested metadata is included regardless, so that the
+            # error message about it can be given later.
+            if value.module_name_candidates:
+                module_name = value.module_name_candidates[0]
+
+        result.append((distribution_name, value.replace(module_name=module_name)))
 
     return sorted(result)
 
