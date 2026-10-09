@@ -358,6 +358,8 @@ class OurLogger(object):
         self.base_style = base_style
         self.is_quiet = quiet
 
+        self._warned_once = set()
+
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
@@ -436,6 +438,25 @@ class OurLogger(object):
 
         if mnemonic is not None:
             self._warnMnemonic(mnemonic, style=style, output_function=self.warning)
+
+    def warning_once(self, message, mnemonic=None):
+        """Print a warning only once, by mnemonic or message.
+
+        Args:
+            message: Warning text to output.
+            mnemonic: Mnemonic of the warning, used for the one time check.
+
+        Returns:
+            None
+        """
+        key = mnemonic if mnemonic is not None else message
+
+        if key in self._warned_once:
+            return
+
+        self._warned_once.add(key)
+
+        self.warning(message=message, mnemonic=mnemonic)
 
     def sysexit(
         self, message="", style=None, mnemonic=None, exit_code=1, reporting=False

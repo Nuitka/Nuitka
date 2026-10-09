@@ -73,6 +73,10 @@ class NuitkaForbiddenDLLEncounter(Exception):
     """This DLL is not allowed to be included."""
 
 
+class UnsupportedDependencyWalkerCall(Exception):
+    """The dependency walker cannot handle the paths it would analyze."""
+
+
 class NuitkaSyntaxError(Exception):
     """The code cannot be read due to SyntaxError"""
 
