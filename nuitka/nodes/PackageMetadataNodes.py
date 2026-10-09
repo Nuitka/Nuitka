@@ -4,9 +4,9 @@
 """Nodes the represent ways to access metadata pkg_resources, importlib.resources etc."""
 
 from nuitka.Constants import isCompileTimeConstantValue
+from nuitka.importing.Importing import importFromCompileTime
 from nuitka.options.Options import isStandaloneMode, shallMakeModule
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
 
 from .AttributeNodes import makeExpressionAttributeLookup
