@@ -864,40 +864,45 @@ Error, 'include-config' of module '%s' cannot use 'when' or 'key-map' with non-d
     def items(self):
         return self.data.items()
 
-    @staticmethod
-    def _mergeConfigSection(existing, new_value, section):
+    def _mergeConfigSection(self, module_name, existing, new_value, section):
         new_entries = new_value.pop(section, None)
 
-        if new_entries:
-            if existing.get(section, None) is None:
-                existing[section] = new_entries
-            else:
-                existing[section].extend(new_entries)
+        if not new_entries:
+            return
+
+        existing_entries = existing.get(section, None)
+
+        if existing_entries is None:
+            existing[section] = new_entries
+        elif type(existing_entries) is list and type(new_entries) is list:
+            existing_entries.extend(new_entries)
+        elif type(existing_entries) in (dict, OrderedDict) and type(new_entries) in (
+            dict,
+            OrderedDict,
+        ):
+            existing_entries.update(new_entries)
+        else:
+            return self.logger.sysexit(
+                """\
+Error, duplicate config for module name '%s' section '%s' with mismatching type encountered in '%s'."""
+                % (module_name, section, self.name)
+            )
 
     def update(self, other):
-        # TODO: Full blown merging, including respecting an overload flag, where
-        # a config replaces another one entirely, for now we expect to not
-        # overlap and offer only merging of implicit-imports and include-config.
+        # Merging of configurations is done for all sections, so that an entry
+        # can be extended by another configuration file, e.g. the standard one
+        # by a user file, rather than requiring the sections to be disjoint.
         for key, value in other.items():
-            # assert key not in self.data, key
             if key in self.data:
-                self._mergeConfigSection(
-                    existing=self.data[key],
-                    new_value=value,
-                    section="implicit-imports",
-                )
-                self._mergeConfigSection(
-                    existing=self.data[key],
-                    new_value=value,
-                    section="include-config",
-                )
-                if len(value) > 0:
-                    return general.sysexit(
-                        "Error, duplicate config for module name '%s' encountered in '%s'."
-                        % (key, self.name)
+                for section in tuple(value):
+                    self._mergeConfigSection(
+                        module_name=key,
+                        existing=self.data[key],
+                        new_value=value,
+                        section=section,
                     )
-                else:
-                    general.info("Merged configuration for '%s'." % key)
+
+                general.info("Merged configuration for '%s'." % key)
             else:
                 self.data[key] = value
 
