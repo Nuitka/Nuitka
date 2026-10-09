@@ -31,11 +31,7 @@ from nuitka.options.Options import (
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.plugins.Hooks import considerDataFiles, onDataFileTags
-from nuitka.PythonFlavors import getSystemPrefixPath
-from nuitka.PythonVersions import (
-    getSitePackageCandidateNames,
-    python_version_str,
-)
+from nuitka.PythonVersions import getSitePackageCandidateNames
 from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
@@ -59,7 +55,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.Utils import counted, isAIX, isMacOS, isWin32Windows
+from nuitka.utils.Utils import counted, isMacOS, isWin32Windows
 
 data_file_tags = []
 
@@ -898,44 +894,9 @@ def addIncludedDataFilesFromFlavor():
     """Add data files required by the Python flavor/OS.
 
     Notes:
-        Example: AIX requires libpython embedded.
+        This is currently not adding anything, but is kept as a hook for
+        flavor or OS specific data files that may be needed in the future.
     """
-    if isAIX():
-        import sysconfig
-
-        # On AIX, the Python DLL is hidden in an archive.
-        lib_filename = "libpython%s.a" % python_version_str
-
-        lib_filename_full = os.path.join(
-            sysconfig.get_config_var("LIBPL"),
-            lib_filename,
-        )
-
-        if not os.path.exists(lib_filename_full):
-            system_prefix = getSystemPrefixPath()
-
-            for lib_part in ("lib64", "lib"):
-                candidate = os.path.join(system_prefix, lib_part, lib_filename)
-
-                if os.path.exists(candidate):
-                    lib_filename_full = candidate
-                    break
-            else:
-                return inclusion_logger.sysexit(
-                    """\
-Error, cannot find '%s' in the Python installation '%s' (tried LIBPL, lib64, lib)."""
-                    % (lib_filename, system_prefix)
-                )
-
-        addIncludedDataFile(
-            makeIncludedDataFile(
-                source_path=lib_filename_full,
-                dest_path=lib_filename,
-                reason="Required Python DLL",
-                tracer=inclusion_logger,
-                tags="flavor",
-            )
-        )
 
 
 def addIncludedDataFilesFromFileOptions():
