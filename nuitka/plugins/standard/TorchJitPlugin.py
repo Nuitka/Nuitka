@@ -16,16 +16,20 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.ModuleNames import ModuleName
 
 
-def _isTorchJitScriptCall(node, torch_names, torch_jit_names, script_names):
-    called = node.func
+def _isTorchJitSourceUse(node, torch_names, torch_jit_names, script_names):
+    if isinstance(node, ast.Call):
+        node = node.func
 
-    if isinstance(called, ast.Name):
-        return called.id in script_names
+    if isinstance(node, ast.Name):
+        return node.id in script_names
 
-    if not isinstance(called, ast.Attribute) or called.attr != "script":
+    if not isinstance(node, ast.Attribute) or node.attr not in (
+        "script",
+        "script_method",
+    ):
         return False
 
-    called_value = called.value
+    called_value = node.value
 
     if isinstance(called_value, ast.Name):
         return called_value.id in torch_jit_names
@@ -55,10 +59,11 @@ def _considerTorchJitImportFrom(node, torch_jit_names, script_names):
                 torch_jit_names.add(alias.asname or "jit")
     elif node.module == "torch.jit":
         for alias in node.names:
-            if alias.name == "script":
-                script_names.add(alias.asname or "script")
+            if alias.name in ("script", "script_method"):
+                script_names.add(alias.asname or alias.name)
             elif alias.name == "*":
                 script_names.add("script")
+                script_names.add("script_method")
 
 
 def _collectTorchJitImportNames(module_tree):
@@ -105,13 +110,23 @@ def _moduleUsesTorchJitScript(module):
         return False
 
     for node in ast.walk(module_tree):
-        if isinstance(node, ast.Call) and _isTorchJitScriptCall(
-            node=node,
-            torch_names=torch_names,
-            torch_jit_names=torch_jit_names,
-            script_names=script_names,
-        ):
-            return True
+        if isinstance(node, ast.Call):
+            if _isTorchJitSourceUse(
+                node=node,
+                torch_names=torch_names,
+                torch_jit_names=torch_jit_names,
+                script_names=script_names,
+            ):
+                return True
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            for decorator in node.decorator_list:
+                if _isTorchJitSourceUse(
+                    node=decorator,
+                    torch_names=torch_names,
+                    torch_jit_names=torch_jit_names,
+                    script_names=script_names,
+                ):
+                    return True
 
     return False
 
