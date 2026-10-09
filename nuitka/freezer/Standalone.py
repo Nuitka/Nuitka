@@ -99,6 +99,7 @@ from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
     getStandaloneEntryPointForSourceFile,
+    getStandaloneEntryPointForSourceFileAnyPackage,
     makeDllEntryPoint,
 )
 from .MacOSApp import createEntitlementsInfoFile
@@ -750,17 +751,29 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                     "openvino",
                     "av",
                 )
-                and areInSamePaths(binary_filename, used_dll_path)
             ):
-                # TODO: If used by a DLL from the same folder, put it there,
-                # otherwise top level, but for now this is limited to a few cases
-                # where required that way (openvino) or known to be good only (av),
-                # because it broke other things. spell-checker: ignore openvino
+                # These packages load DLLs from a directory that they discover
+                # at runtime, so an already included DLL must not be duplicated
+                # elsewhere, where it could be found instead and break loading.
+                # spell-checker: ignore openvino
 
-                dest_path = getNormalizedPathJoin(
-                    os.path.dirname(standalone_entry_point.dest_path),
-                    os.path.basename(used_dll_path),
+                existing_entry_point = getStandaloneEntryPointForSourceFileAnyPackage(
+                    source_path=used_dll_path,
                 )
+
+                if existing_entry_point is not None:
+                    dest_path = existing_entry_point.dest_path
+                elif areInSamePaths(binary_filename, used_dll_path):
+                    # TODO: If used by a DLL from the same folder, put it there,
+                    # otherwise top level, but for now this is limited to a few cases
+                    # where required that way (openvino) or known to be good only (av),
+                    # because it broke other things.
+                    dest_path = getNormalizedPathJoin(
+                        os.path.dirname(standalone_entry_point.dest_path),
+                        os.path.basename(used_dll_path),
+                    )
+                else:
+                    dest_path = os.path.basename(used_dll_path)
             else:
                 existing_entry_point = getStandaloneEntryPointForSourceFile(
                     source_path=used_dll_path,
