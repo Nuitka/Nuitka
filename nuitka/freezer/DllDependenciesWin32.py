@@ -12,6 +12,7 @@ import sys
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Errors import UnsupportedDependencyWalkerCall
 from nuitka.options.Options import (
     getMsvcVersion,
     getWindowsRuntimeDllsInclusionOption,
@@ -347,11 +348,24 @@ def detectBinaryPathDLLsWin32(
     )
 
     if dependency_tool == "depends_legacy":
-        result = detectDLLsWithDependsExe(
-            binary_filename=binary_filename,
-            source_dir=source_dir,
-            scan_dirs=scan_dirs,
-        )
+        try:
+            result = detectDLLsWithDependsExe(
+                binary_filename=binary_filename,
+                source_dir=source_dir,
+                scan_dirs=scan_dirs,
+            )
+        except UnsupportedDependencyWalkerCall:
+            inclusion_logger.warning_once(
+                """\
+Dependency Walker cannot handle non-ASCII DBCS path values, using the 'pefile' \
+dependency tool for affected binaries instead.""",
+                mnemonic="dependency-walker-non-ascii",
+            )
+
+            result = detectDLLsWithPEFile(
+                binary_filename=binary_filename,
+                scan_dirs=scan_dirs,
+            )
     elif dependency_tool == "pefile":
         result = detectDLLsWithPEFile(
             binary_filename=binary_filename,
