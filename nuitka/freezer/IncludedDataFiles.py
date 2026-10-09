@@ -10,6 +10,7 @@ for dependency analysis.
 
 import fnmatch
 import os
+import re
 
 from nuitka import ModuleRegistry
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -338,6 +339,10 @@ normalized_ignored_filenames = set(
     os.path.normcase(ignored) for ignored in default_ignored_filenames
 )
 
+# Shared libraries can carry a version suffix, e.g. "libfoo.so.1.2", which the
+# suffix check above does not catch.
+_re_versioned_shared_library_suffix = re.compile(r"\.(?:so|dylib)(?:\.\d+)+$")
+
 
 def isIgnoredDataFilename(filename):
     """Check if a filename is ignored as a data file by Nuitka.
@@ -357,6 +362,9 @@ def isIgnoredDataFilename(filename):
         return True
 
     if os.path.normcase(filename).endswith(default_ignored_suffixes):
+        return True
+
+    if _re_versioned_shared_library_suffix.search(os.path.normcase(filename)):
         return True
 
     return containsPathElements(filename, default_ignored_dirs)
@@ -416,6 +424,11 @@ def makeIncludedDataDirectory(
         only_suffixes=only_suffixes,
         normalize=normalize,
     ):
+        if not raw and _re_versioned_shared_library_suffix.search(
+            os.path.normcase(filename)
+        ):
+            continue
+
         filename_relative = os.path.relpath(filename, source_path)
 
         filename_dest = os.path.join(dest_path, filename_relative)
