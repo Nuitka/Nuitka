@@ -199,16 +199,6 @@ class NodeBase(NodeMetaClassBase):
         else:
             return child_name
 
-    def getParentFunction(self):
-        """Return the parent that is a function."""
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isExpressionFunctionBodyBase():
-            parent = parent.getParent()
-
-        return parent
-
     def getParentModule(self):
         """Return the parent that is module."""
         parent = self
@@ -495,9 +485,6 @@ class NodeBase(NodeMetaClassBase):
         """Unless we are told otherwise, everything may have a side effect."""
 
         return True
-
-    def isOrderRelevant(self):
-        return self.mayHaveSideEffects()
 
     def extractSideEffects(self):
         """Unless defined otherwise, the expression is the side effect."""

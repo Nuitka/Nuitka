@@ -32,11 +32,10 @@ from nuitka.specs.ParameterSpecs import (
 )
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
-from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
-from nuitka.Variables import LocalVariable, updateVariablesFromCollection
+from nuitka.Variables import updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -264,27 +263,6 @@ class ExpressionFunctionBodyBase(
         assert variable.isModuleVariable()
 
         self.taken.remove(variable)
-
-    def demoteClosureVariable(self, variable):
-        assert variable.isLocalVariable()
-
-        self.taken.remove(variable)
-
-        assert variable.getOwner() is not self
-
-        new_variable = LocalVariable(owner=self, variable_name=variable.getName())
-        if self in variable.traces:
-            new_variable.setTracesForUserFirst(self, variable.traces[self])
-
-        self.locals_scope.unregisterClosureVariable(variable)
-        self.locals_scope.registerProvidedVariable(new_variable)
-
-        updateVariableUsage(
-            provider=self,
-            old_locals_scope=None,
-            new_locals_scope=None,
-            variable_translations={variable: new_variable},
-        )
 
     def hasClosureVariable(self, variable):
         return variable in self.taken
@@ -619,7 +597,6 @@ class ExpressionFunctionBody(
         "unoptimized_locals",
         "unqualified_exec",
         "doc",
-        "return_exception",
         "needs_creation",
         "needs_direct",
         "cross_module_use",
@@ -655,9 +632,6 @@ class ExpressionFunctionBody(
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
-
-        # Indicator if the return value exception might be required.
-        self.return_exception = False
 
         # Indicator if the function needs to be created as a function object.
         self.needs_creation = False
@@ -789,12 +763,6 @@ class ExpressionFunctionBody(
         body = self.subnode_body
 
         return body is not None and body.mayRaiseException(exception_type)
-
-    def markAsExceptionReturnValue(self):
-        self.return_exception = True
-
-    def needsExceptionReturnValue(self):
-        return self.return_exception
 
     def getConstantReturnValue(self):
         """Special function that checks if code generation allows to use common C code."""

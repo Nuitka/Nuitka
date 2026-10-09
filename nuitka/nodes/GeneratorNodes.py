@@ -131,10 +131,6 @@ class StatementGeneratorReturn(StatementReturn):
     def __init__(self, expression, source_ref):
         StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
 
-    @staticmethod
-    def isStatementGeneratorReturn():
-        return True
-
     def computeStatement(self, trace_collection):
         expression = trace_collection.onExpression(self.subnode_expression)
 
@@ -183,10 +179,6 @@ class StatementGeneratorReturnNone(StatementReturnNone):
 
     def __init__(self, source_ref):
         StatementReturnNone.__init__(self, source_ref=source_ref)
-
-    @staticmethod
-    def isStatementGeneratorReturn():
-        return True
 
     @staticmethod
     def getStatementNiceName():

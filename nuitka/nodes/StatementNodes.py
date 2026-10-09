@@ -29,16 +29,6 @@ class StatementsSequenceMixin(object):
         # Don't want to be called like this.
         assert False, self
 
-    def trimStatements(self, statement):
-        assert statement.parent is self
-
-        old_statements = list(self.subnode_statements)
-        assert statement in old_statements, (statement, self)
-
-        new_statements = old_statements[: old_statements.index(statement) + 1]
-
-        self.setChildStatements(new_statements)
-
     def removeStatement(self, statement):
         assert statement.parent is self
 
@@ -100,14 +90,6 @@ class StatementsSequenceMixin(object):
             if statement.mayContinue():
                 return True
         return False
-
-    def mayRaiseExceptionOrAbort(self, exception_type):
-        return (
-            self.mayRaiseException(exception_type)
-            or self.mayReturn()
-            or self.mayBreak()
-            or self.mayContinue()
-        )
 
     def isStatementAborting(self):
         return self.subnode_statements[-1].isStatementAborting()
