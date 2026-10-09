@@ -3,6 +3,7 @@
 CompileFlags:
   Add:
     - -D__IDE_ONLY__
+    - -Wno-undefined-internal
     - -DPy_BUILD_CORE
     - -DPYTHON_VERSION={{ python_version_hex }}
     - -D_NUITKA_EXE_MODE
@@ -19,6 +20,10 @@ CompileFlags:
 {% for path in plugin_include_paths %}
     - -I{{ path }}
 {% endfor %}
+
+Diagnostics:
+  Suppress:
+    - unused-includes
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}
