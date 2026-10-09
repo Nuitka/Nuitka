@@ -12,6 +12,7 @@ from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
+    finalizeFunctionExceptionLocalVariables,
     finalizeFunctionLocalVariables,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
@@ -94,7 +95,11 @@ def getCoroutineObjectCode(
         ) = context.getExceptionVariableDescriptions()
 
         generator_exit = template_coroutine_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
     else:

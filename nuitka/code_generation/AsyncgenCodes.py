@@ -7,6 +7,7 @@ from .CodeHelpers import generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
+    finalizeFunctionExceptionLocalVariables,
     finalizeFunctionLocalVariables,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
@@ -88,7 +89,11 @@ def getAsyncgenObjectCode(
         ) = context.getExceptionVariableDescriptions()
 
         generator_exit = template_asyncgen_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
     else:

@@ -709,6 +709,18 @@ def finalizeFunctionLocalVariables(context):
     return function_cleanup
 
 
+def finalizeFunctionExceptionLocalVariables(context, function_cleanup):
+    # A "return" value that was assigned before an exception unwound the
+    # function, e.g. because a "finally" block or a context manager exit raised,
+    # would otherwise leak, as it is only passed to the caller on the normal
+    # return exit. The "function_cleanup" is a list that is also used for the
+    # normal return exit, so concatenate rather than append.
+    if context.hasTempName("return_value"):
+        return function_cleanup + ["Py_XDECREF(%s);" % context.getReturnValueName()]
+
+    return function_cleanup
+
+
 def getFunctionCode(
     context,
     function_identifier,
@@ -821,7 +833,11 @@ def _getFunctionCode(
         ) = context.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
 
