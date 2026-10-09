@@ -13,7 +13,6 @@ states.is_full_compat = False
 # isort:start
 
 import textwrap
-from collections import namedtuple
 
 import nuitka.code_generation.BinaryOperationHelperDefinitions
 import nuitka.code_generation.CodeGeneration
@@ -31,6 +30,7 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
@@ -985,7 +985,7 @@ from .Checkers import (
             mixins_done.add(mixin_name)
 
 
-SpecVersion = namedtuple(
+SpecVersion = makeNamedtupleClass(
     "SpecVersion",
     (
         "spec_name",
@@ -1058,7 +1058,7 @@ def getSpecVersions(spec_module):
                     )
                     new_spec = "%s, %s" % (spec_version.python_version_spec, limit)
 
-                    result[spec.name][i] = spec_version._replace(
+                    result[spec.name][i] = spec_version.replace(
                         python_criterion=new_criterion, python_version_spec=new_spec
                     )
 
