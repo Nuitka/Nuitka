@@ -13,6 +13,8 @@ import os
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter, NuitkaNotYetSupported
 from nuitka.importing.Importing import (
+    getExtraSysPaths,
+    getMainScriptDirectories,
     getPythonUnpackedSearchPath,
     locateModule,
 )
@@ -591,8 +593,17 @@ _excluded_system_dlls = set()
 
 
 def _reduceToPythonPath(used_dll_paths):
-    """Remove DLLs outside of python path unless they are found in the MSVC Redist folder."""
+    """Remove DLLs outside of Python installation and program directories.
+
+    DLLs found in the MSVC Redist folder are kept regardless.
+    """
     inside_paths = getPythonUnpackedSearchPath()
+
+    # Shared libraries that live next to the program rather than in the Python
+    # installation must be kept, e.g. packages vendored next to the main script
+    # that ship their dependencies in sibling directories.
+    inside_paths.extend(getMainScriptDirectories())
+    inside_paths.extend(getExtraSysPaths())
 
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
