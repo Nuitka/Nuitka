@@ -107,10 +107,6 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     __slots__ = ()
 
     def __init__(self):
-        # Variable assignments performed in here, last issued number, only used
-        # to determine the next number that should be used for a new assignment.
-        self.variable_versions = {}
-
         # The full trace of a variable with a version for the function or module
         # this is.
         self.variable_traces = defaultdict(dict)
@@ -1203,7 +1199,6 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
-        "variable_versions",
         "variable_traces",
         "loop_variables",
         "break_collections",
@@ -1336,7 +1331,6 @@ class TraceCollectionPureFunction(TraceCollectionFunction):
 
 class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
-        "variable_versions",
         "variable_traces",
         "loop_variables",
         "break_collections",

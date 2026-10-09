@@ -26,7 +26,7 @@ from .shapes.StandardShapes import tshape_unknown
 class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
     named_children = ("operand",)
 
-    __slots__ = ("operator", "simulator")
+    __slots__ = ()
 
     def __init__(self, operand, source_ref):
         ChildHavingOperandMixin.__init__(self, operand=operand)

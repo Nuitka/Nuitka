@@ -718,7 +718,6 @@ class PythonModuleContext(
         "data_filename",
         "declaration_codes",
         "helper_codes",
-        "frame_handle",
         "variable_storage",
         "function_table_entries",
         "constant_accessor",
@@ -767,8 +766,6 @@ class PythonModuleContext(
 
         self.declaration_codes = {}
         self.helper_codes = {}
-
-        self.frame_handle = None
 
         self.variable_storage = VariableStorage(
             heap_name=None, struct_name=None, struct_type_name=None
@@ -906,7 +903,6 @@ class PythonFunctionContext(
 ):
     __slots__ = (
         "function",
-        "frame_handle",
         "variable_storage",
         # FrameDeclarationsMixin
         "frame_variables_stack",
@@ -946,8 +942,6 @@ class PythonFunctionContext(
 
         self.setExceptionEscape("function_exception_exit")
         self.setReturnTarget("function_return_exit")
-
-        self.frame_handle = None
 
         self.variable_storage = self._makeVariableStorage()
 
