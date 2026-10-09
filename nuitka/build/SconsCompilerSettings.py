@@ -1911,6 +1911,8 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # since that's about selecting the compiler, not configuring it.
     importEnvironmentVariableSettings(env)
 
+    _enableAddressSanitizerSettings(env)
+
     # Add constant blob files. Must be after all compiler settings are
     # established so the resource mode decision is correct.
     _addConstantBlobFiles(
@@ -1991,6 +1993,31 @@ def _enableDebugSystemSettings(env):
                 env.Append(LINKFLAGS=["-s"])
         elif env.msvc_mode:
             env.Append(LINKFLAGS=["/DEBUG:NONE"])
+
+
+def _enableAddressSanitizerSettings(env):
+    # AddressSanitizer is requested via "--debug-asan" and uses the compiler
+    # driver to add the runtime library, with MSVC being different from
+    # GCC/Clang.
+    if "debug_address_sanitizer" in env.debug_modes_flags:
+        if env.zig_mode:
+            return scons_logger.sysexit("""\
+Error, AddressSanitizer with the Zig compiler is not supported, as its \
+"compiler-rt" does not include the sanitizer runtime library, use gcc or \
+clang instead.""")
+
+        if env.module_mode or env.dll_mode:
+            scons_logger.warning("""\
+AddressSanitizer in a compiled extension module requires the host program to \
+preload the AddressSanitizer runtime, e.g. using the "LD_PRELOAD" environment \
+variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
+
+        if env.msvc_mode or env.clangcl_mode:
+            env.Append(CCFLAGS=["/fsanitize=address"])
+            env.Append(LINKFLAGS=["/INFERASANLIBS"])
+        else:
+            env.Append(CCFLAGS=["-fsanitize=address"])
+            env.Append(LINKFLAGS=["-fsanitize=address"])
 
 
 def switchFromGccToGpp(env):

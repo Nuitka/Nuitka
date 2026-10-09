@@ -1829,7 +1829,12 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or isRuntimeProfile() or states.is_debug
+    return (
+        options.unstripped
+        or isRuntimeProfile()
+        or states.is_debug
+        or options.debug_address_sanitizer
+    )
 
 
 def isRuntimeProfile():
@@ -2461,6 +2466,7 @@ def getDebugModeIndications():
         "debug_immortal",
         "debug_c_warnings",
         "debug_self_forking",
+        "debug_address_sanitizer",
     ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:

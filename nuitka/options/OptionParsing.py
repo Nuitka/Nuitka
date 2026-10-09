@@ -1072,6 +1072,19 @@ Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-address-sanitizer",
+    action="store_true",
+    dest="debug_address_sanitizer",
+    default=False,
+    help="""\
+Compile and link with AddressSanitizer instrumentation, if the C compiler
+supports it. Known to work with GCC and Clang. This implies keeping debug
+information. Leak detection is disabled by default for the compiled program,
+since Python and third party libraries intend to leak a lot, but it can be
+enabled with "ASAN_OPTIONS=detect_leaks=1" if wanted. Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",

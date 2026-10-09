@@ -1019,6 +1019,22 @@ void NuitkaMem_FreeDelayed(void *ptr) {
 
 #endif
 
+#if defined(_NUITKA_DEBUG_DEBUG_ADDRESS_SANITIZER)
+// Make the AddressSanitizer not report the many intended leaks of Python
+// itself and third party libraries by default, they would make every run of
+// a compiled program fail, and are not what is being looked for. This can
+// still be overridden with the "ASAN_OPTIONS" environment variable.
+#if defined(__GNUC__)
+// The AddressSanitizer runtime uses a weak symbol lookup for this, which
+// requires default visibility, and must not be removed as unused, as only
+// the runtime refers to it.
+__attribute__((visibility("default"), used))
+#endif
+const char *__asan_default_options(void) {
+    return "detect_leaks=0";
+}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
