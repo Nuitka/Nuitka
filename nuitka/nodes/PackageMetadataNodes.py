@@ -757,6 +757,10 @@ class ExpressionImportlibMetadataSelectableGroupsValueRef(
     def isKnownToBeHashable():
         return False
 
+    def getTruthValue(self):
+        """The truth value of the mapping is the number of pairs."""
+        return len(self.subnode_pairs) > 0
+
 
 class ExpressionImportlibMetadataBackportSelectableGroupsValueRef(
     ExpressionMakeDictMixin,
@@ -772,6 +776,10 @@ class ExpressionImportlibMetadataBackportSelectableGroupsValueRef(
     @staticmethod
     def isKnownToBeHashable():
         return False
+
+    def getTruthValue(self):
+        """The truth value of the mapping is the number of pairs."""
+        return len(self.subnode_pairs) > 0
 
 
 class ExpressionImportlibMetadataEntryPointsValueRef(
@@ -796,6 +804,10 @@ class ExpressionImportlibMetadataEntryPointsValueRef(
         """Get name for use in traces"""
         return "importlib.metadata.EntryPoints"
 
+    def getTruthValue(self):
+        """The truth value of the sequence is the number of elements."""
+        return len(self.subnode_elements) > 0
+
 
 class ExpressionImportlibMetadataBackportEntryPointsValueRef(
     ExpressionMakeSequenceMixin, ExpressionImportlibMetadataEntryPointsValueRefBase
@@ -815,6 +827,10 @@ class ExpressionImportlibMetadataBackportEntryPointsValueRef(
     @staticmethod
     def isKnownToBeHashable():
         return False
+
+    def getTruthValue(self):
+        """The truth value of the sequence is the number of elements."""
+        return len(self.subnode_elements) > 0
 
 
 class ExpressionImportlibMetadataEntryPointsCallMixin(object):
