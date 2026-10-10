@@ -1281,7 +1281,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
         try:
             # TODO: Actually expose these to other reports as well.
-            for key, value in plugin.getReportData():
+            for key, value in plugin.getReportData(
+                make_report_path=_getCompilationReportPath
+            ):
                 if not isinstance(key, (str, unicode)):
                     return reports_logger.sysexit(
                         "Error, plugin '%s' report key is not a string."

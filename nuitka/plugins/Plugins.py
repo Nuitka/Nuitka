@@ -1917,8 +1917,13 @@ through incomplete set import by '%s' plugin encountered."""
             result = []
 
             for plugin in getActivePlugins():
-                for value in plugin.getCacheContributionValues(module_name):
-                    result.append(value)
+                contribution_values = list(
+                    plugin.getCacheContributionValues(module_name)
+                )
+                if contribution_values:
+                    contribution_values.insert(0, plugin.plugin_name)
+
+                result.extend(contribution_values)
 
             cls.cache_contribution_values_cache[module_name] = tuple(result)
 

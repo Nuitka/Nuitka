@@ -815,13 +815,13 @@ Shell pattern of module names to treat as private hard imports. Matching modules
 Plugin options of 'source\-inclusion' (categories: feature, package\-support):
 .TP
 \fB\-\-source\-inclusion\-args\fR=\fI\,SOURCE_INCLUSION_ARG_SETS\/\fR
-Run the program being compiled during compilation with this shell\-style argument list while recording successful 'inspect.getsource()' lookups. Repeat for every additional probe run, e.g. '\-\-source\-inclusion\-args="subcommand \fB\-\-help\fR"'.
+Run the program being compiled during compilation with this shell\-style argument list while recording looked up source files. Repeat for every additional probe run, e.g. '\-\-source\-inclusion\-args="subcommand \fB\-\-help\fR"'.
 .TP
 \fB\-\-source\-inclusion\-timeout\fR=\fI\,SOURCE_INCLUSION_TIMEOUT\/\fR
-Timeout in seconds for each probe run. Defaults to 30.
+Timeout in seconds for each probe run. Defaults to no timeout, so a probe run that hangs is seen rather than silently cut short.
 .TP
 \fB\-\-show\-source\-inclusion\-trace\fR
-Display the recorded 'inspect.getsource()' keys from the probe run.
+Display the recorded source inclusion modules from the probe run.
 .IP
 Plugin options of 'upx' (categories: integration):
 .TP
