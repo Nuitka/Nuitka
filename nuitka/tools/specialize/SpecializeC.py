@@ -49,6 +49,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
     tshape_dict,
+    tshape_frozendict,
     tshape_int,
     tshape_list,
     tshape_none,
@@ -68,7 +69,6 @@ from .Common import (
     formatArgs,
     getLicenseGeneratedCode,
     getMethodVariations,
-    isCheckOnlyMode,
     parseOptions,
     python2_dict_methods,
     python2_list_methods,
@@ -78,6 +78,7 @@ from .Common import (
     python3_dict_methods,
     python3_list_methods,
     python3_str_methods,
+    traceSpecialization,
     withFileOpenedAndAutoFormattedWithClaim,
     writeLine,
 )
@@ -543,14 +544,31 @@ def emitGenerationWarning(emit, template_name):
         % template_name
     )
 
+    emit("#pragma once")
 
-def emitIDE(emit):
-    emit("""
-/* This file is included from another C file, help IDEs to still parse it on its own. */
-#ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
-#endif
-""")
+
+def emitIDE(emit, extra_includes=()):
+    emit("")
+    emit(
+        "/* This file is included from another C file, help IDEs to still parse it on its own. */"
+    )
+    emit("#ifdef __IDE_ONLY__")
+    emit('#include "nuitka/prelude.h"')
+    if extra_includes:
+        emit("")
+        for include in extra_includes:
+            emit('#include "%s"' % include)
+    emit("#endif")
+    emit("")
+
+
+def emitHeaderGuard(emit_h, filename_h):
+    guard_name = "__NUITKA_%s_H__" % os.path.basename(filename_h)[
+        : -len(".h")
+    ].upper().replace("-", "_")
+
+    emit_h("#ifndef %s" % guard_name)
+    emit_h("#define %s" % guard_name)
 
 
 def _getSpecializedComparisonOperations(dual):
@@ -566,8 +584,12 @@ def makeHelpersComparisonOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
-    filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
-    filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
+    )
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -588,7 +610,14 @@ def makeHelpersComparisonOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit)
+            emitHeaderGuard(emit_h, filename_h)
+
+            emitIDE(emit_h, ["nuitka/helper/boolean.h"])
+
+            comparison_c_includes = ["nuitka/helper/long_helpers.h"]
+            if op_code != "EQ":
+                comparison_c_includes.append("HelpersComparisonEqUtils.c")
+            emitIDE(emit_c, comparison_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -605,16 +634,18 @@ def makeHelpersComparisonOperation(operand, op_code):
                 emit,
             )
 
+            emit_h("#endif")
+
 
 def makeHelpersComparisonDualOperation(operand, op_code):
     specialized_cmp_helpers_set = _getSpecializedComparisonOperations(dual=True)
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparisonDual.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersComparisonDual%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/comparisons_dual_%s.h" % op_code.lower()
     )
 
@@ -637,12 +668,32 @@ def makeHelpersComparisonDualOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit)
+            emitHeaderGuard(emit_h, filename_h)
+
+            emitIDE(emit_h, ["nuitka/helper/boolean.h", "nuitka/helper/ints.h"])
+
+            comparison_dual_c_includes = [
+                "HelpersComparison%s.c" % cmp_op_code.capitalize()
+                for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT")
+            ]
+            emitIDE(emit_c, comparison_dual_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
             if os.path.exists(filename_utils):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            # The dual operations use helpers from the other dual operations.
+            # For the real build, those are included before these, and only
+            # forward declarations of their shared helpers are needed here.
+            emit_c("#ifdef __IDE_ONLY__")
+            for cmp_op_code in ("EQ", "NE", "LE", "GE", "GT", "LT"):
+                if cmp_op_code != op_code:
+                    emit_c(
+                        "static bool COMPARE_%s_CBOOL_CLONG_CLONG(long operand1, long operand2);"
+                        % cmp_op_code
+                    )
+            emit_c("#endif")
 
             makeHelperComparisons(
                 template,
@@ -653,6 +704,8 @@ def makeHelpersComparisonDualOperation(operand, op_code):
                 emit_c,
                 emit,
             )
+
+            emit_h("#endif")
 
 
 def _getSpecializedBinaryOperations(op_code, dual):
@@ -671,10 +724,10 @@ def makeHelpersBinaryOperation(operator, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationBinary%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
@@ -697,7 +750,10 @@ def makeHelpersBinaryOperation(operator, op_code):
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit)
+            emitHeaderGuard(emit_h, filename_h)
+
+            emitIDE(emit_h, ["nuitka/helper/boolean.h"])
+            emitIDE(emit_c, ["nuitka/helper/long_helpers.h"])
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -715,16 +771,18 @@ def makeHelpersBinaryOperation(operator, op_code):
                 emit=emit,
             )
 
+            emit_h("#endif")
+
 
 def makeHelpersInplaceOperation(operator, op_code):
     specialized_op_helpers_set = getSpecializedBinaryOperations("I" + op_code)
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationInplace%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
@@ -747,7 +805,19 @@ def makeHelpersInplaceOperation(operator, op_code):
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit)
+            emitHeaderGuard(emit_h, filename_h)
+
+            emitIDE(emit_h)
+
+            if op_code in ("ADD", "SUB"):
+                inplace_c_includes = ["nuitka/helper/long_helpers.h"]
+            elif op_code == "MULT":
+                inplace_c_includes = ["nuitka/helper/repeat_helpers.h"]
+            elif op_code == "POW":
+                inplace_c_includes = ["nuitka/helper/pow_helpers.h"]
+            else:
+                inplace_c_includes = []
+            emitIDE(emit_c, inplace_c_includes)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -765,6 +835,8 @@ def makeHelpersInplaceOperation(operator, op_code):
                 emit=emit,
             )
 
+            emit_h("#endif")
+
 
 def makeHelpersBinaryDualOperation(operand, op_code):
     specialized_op_helpers_set = _getSpecializedBinaryOperations(
@@ -774,10 +846,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinaryDual.c.j2")
 
-    filename_c = (
+    filename_c = getNormalizedPath(
         "nuitka/build/static_src/HelpersOperationBinaryDual%s.c" % op_code.capitalize()
     )
-    filename_h = (
+    filename_h = getNormalizedPath(
         "nuitka/build/include/nuitka/helper/operations_binary_dual_%s.h"
         % op_code.lower()
     )
@@ -801,7 +873,10 @@ def makeHelpersBinaryDualOperation(operand, op_code):
 
             emitGenerationWarning(emit, template.name)
 
-            emitIDE(emit)
+            emitHeaderGuard(emit_h, filename_h)
+
+            emitIDE(emit_h, ["nuitka/helper/boolean.h", "nuitka/helper/ints.h"])
+            emitIDE(emit_c)
 
             filename_utils = filename_c[:-2] + "Utils.c"
 
@@ -819,10 +894,12 @@ def makeHelpersBinaryDualOperation(operand, op_code):
                 emit=emit,
             )
 
+            emit_h("#endif")
+
 
 def makeHelpersImportHard():
-    filename_c = "nuitka/build/static_src/HelpersImportHard.c"
-    filename_h = "nuitka/build/include/nuitka/helper/import_hard.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersImportHard.c")
+    filename_h = getNormalizedPath("nuitka/build/include/nuitka/helper/import_hard.h")
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
@@ -845,6 +922,8 @@ def makeHelpersImportHard():
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             for module_name in sorted(hard_modules):
@@ -855,6 +934,8 @@ def makeHelpersImportHard():
                     emit_c,
                     emit,
                 )
+
+            emit_h("#endif")
 
 
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
@@ -901,8 +982,10 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
-    filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
-    filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersCallingGenerated.c")
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/calling_generated.h"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -927,6 +1010,8 @@ def makeHelperCalls():
             )
 
             emitGenerationWarning(emit, template.name)
+
+            emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
@@ -1009,10 +1094,14 @@ def makeHelperCalls():
 #endif
 """)
 
+            emit_h("#endif")
+
 
 def makeHelperLists():
-    filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
-    filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
+    filename_c = getNormalizedPath("nuitka/build/static_src/HelpersListsGenerated.c")
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/lists_generated.h"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -1038,6 +1127,8 @@ def makeHelperLists():
 
             emitGenerationWarning(emit, template.name)
 
+            emitHeaderGuard(emit_h, filename_h)
+
             emitIDE(emit)
 
             for args_count in range(1, make_list_constant_direct_threshold):
@@ -1057,6 +1148,8 @@ def makeHelperLists():
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
+
+            emit_h("#endif")
 
 
 def _makeHelperBuiltinTypeAttributes(
@@ -1295,7 +1388,9 @@ generate_builtin_type_operations = [
 
 
 def makeDictCopyHelperCodes():
-    filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersDictionariesGenerated.c"
+    )
 
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
@@ -1304,11 +1399,11 @@ def makeDictCopyHelperCodes():
         def emit(*args):
             writeLine(output_c, *args)
 
-        emitIDE(emit)
-
         template = getDoExtensionUsingTemplateC("HelperDictionaryCopy.c.j2")
 
         emitGenerationWarning(emit, template.name)
+
+        emitIDE(emit, ["nuitka/helper/dict_internals.h"])
 
         code = template.render()
 
@@ -1334,6 +1429,8 @@ def _getCheckForShape(shape):
         return None
     elif shape is tshape_dict:
         return "PyDict_CheckExact"
+    elif shape is tshape_frozendict:
+        return "PyFrozenDict_CheckExact"
     elif shape is tshape_bytes:
         return "PyBytes_CheckExact"
     else:
@@ -1342,8 +1439,13 @@ def _getCheckForShape(shape):
 
 def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
-    filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
-    filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
+    filename_c = getNormalizedPath(
+        "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
+    )
+    filename_h = getNormalizedPath(
+        "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
+    )
+
     with withFileOpenedAndAutoFormattedWithClaim(
         filename_c, claim=getLicenseGeneratedCode()
     ) as output_c:
@@ -1364,6 +1466,8 @@ def makeHelperBuiltinTypeMethods():
             template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
 
             emitGenerationWarning(emit, template.name)
+
+            emitHeaderGuard(emit_h, filename_h)
 
             emitIDE(emit)
 
@@ -1477,6 +1581,8 @@ def makeHelperBuiltinTypeMethods():
                 if type_desc.python_requirement:
                     emit("#endif")
 
+            emit_h("#endif")
+
 
 def _getOffsetAssertionCode(key):
     if key.startswith("_PyRuntimeState_"):
@@ -1498,7 +1604,8 @@ def _getCompiledOffsetsGroups():
 
         match = re.match(
             r"^offsets_(?P<python_version_str>\d+\.\d+)"
-            r"-(?P<os_name>[a-zA-Z]+)-(?P<arch_name>[a-zA-Z0-9_]+)-(?P<gil_str>gil|no-gil)\.json$",
+            r"-(?P<os_name>[a-zA-Z]+)-(?P<arch_name>[a-zA-Z0-9_]+)-(?P<gil_str>gil|no-gil)"
+            r"(?P<debug_str>-debug)?\.json$",
             basename,
         )
         if not match:
@@ -1507,10 +1614,10 @@ def _getCompiledOffsetsGroups():
             )
 
         python_version_str = match.group("python_version_str")
-        micro = 0
         os_name = match.group("os_name")
         arch_name = match.group("arch_name")
         gil_str = match.group("gil_str")
+        is_debug = match.group("debug_str") is not None
 
         expected_keys = {
             "_PyRuntimeState_" + k
@@ -1528,10 +1635,10 @@ regenerate the headers via 'python%s bin/generate-specialized-offsets-code'."""
             )
 
         python_version = tuple(int(x) for x in python_version_str.split("."))
-        group_key = (python_version, gil_str, os_name, arch_name)
+        group_key = (python_version, gil_str, os_name, arch_name, is_debug)
         if group_key not in groups:
             groups[group_key] = []
-        groups[group_key].append((micro, data))
+        groups[group_key].append((0, data))
 
     return groups
 
@@ -1562,7 +1669,7 @@ def updateCompiledOffsetsHeader():
     groups = _getCompiledOffsetsGroups()
 
     template_groups = []
-    for (python_version, gil_str, os_name, arch_name), versions in sorted(
+    for (python_version, gil_str, os_name, arch_name, is_debug), versions in sorted(
         groups.items()
     ):
         versions.sort(key=lambda x: x[0])
@@ -1578,10 +1685,12 @@ def updateCompiledOffsetsHeader():
 
         template_groups.append(
             {
-                "python_version_hex": "%x%x0" % python_version,
-                "next_python_version_hex": "%x%x0"
-                % (python_version[0], python_version[1] + 1),
+                "python_version_hex": "%x"
+                % (python_version[0] * 0x100 + python_version[1] * 0x10),
+                "next_python_version_hex": "%x"
+                % (python_version[0] * 0x100 + (python_version[1] + 1) * 0x10),
                 "is_gil": gil_str == "gil",
+                "is_debug": is_debug,
                 "os_arch_macro": _mapOsAndArchToMacro(os_name, arch_name),
                 "offset_keys": template_keys,
             }
@@ -1610,30 +1719,37 @@ def _writeCompiledOffsetsHeader(template_groups):
     ) as output_c:
         output_c.write(header_c_code)
 
-    if not isCheckOnlyMode():
-        tools_logger.info("Generated C header at %s" % out_path)
+    traceSpecialization("Generated C header at %s" % out_path)
 
 
 def main():
     # Many operations to specialize, pylint: disable=too-many-statements
     parseOptions()
 
-    makeHelpersBinaryDualOperation("+", "ADD")
-    makeHelpersBinaryDualOperation("-", "SUB")
+    traceSpecialization("Code generation of Nuitka for specializing C code.")
 
+    traceSpecialization("Make dict copy helper codes...")
     makeDictCopyHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.
+    traceSpecialization("Make some operation helpers for early coverage...")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("+", "ADD")
+    makeHelpersBinaryDualOperation("-", "SUB")
 
+    traceSpecialization("Make helper builtin type methods...")
     makeHelperBuiltinTypeMethods()
 
+    traceSpecialization("Make helper for hard imports...")
     makeHelpersImportHard()
 
+    traceSpecialization("Make helper for calls...")
     makeHelperCalls()
+    traceSpecialization("Make helper for lists...")
     makeHelperLists()
 
+    traceSpecialization("Make remaining operation helpers...")
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
     makeHelpersBinaryOperation("%", "MOD")
@@ -1679,6 +1795,11 @@ def main():
 
     updateCompiledOffsetsHeader()
 
+    traceSpecialization("OK")
+
+
+if __name__ == "__main__":
+    main()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

@@ -197,6 +197,10 @@ class ConstantFrozensetIterationHandle(ConstantSetAndDictIterationHandleBase):
     __slots__ = ()
 
 
+class ConstantFrozendictIterationHandle(ConstantSetAndDictIterationHandleBase):
+    __slots__ = ()
+
+
 class ConstantDictIterationHandle(ConstantSetAndDictIterationHandleBase):
     __slots__ = ()
 

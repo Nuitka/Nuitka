@@ -58,8 +58,8 @@ class {{mixin_class_name}}({{base_class}}):
 
 {% if named_children or node_attributes %}
     def __init__(self,
-{% for named_child in named_children %}
-                 {{named_child}},
+{% for named_child, param_name in init_args_spec %}
+                 {{param_name}},
 {% endfor %}
 {% for node_attribute in node_attributes %}
                  {{node_attribute}},
@@ -68,23 +68,23 @@ class {{mixin_class_name}}({{base_class}}):
                  source_ref
 {% endif %}
     ):
-{% for named_child in named_children %}
+{% for named_child, param_name in init_args_spec %}
 {% if named_child in named_children_checkers %}
-        {{named_child}} = {{named_children_checkers[named_child]}}({{named_child}})
+        {{param_name}} = {{named_children_checkers[named_child]}}({{param_name}})
 {% endif %}
 {% if named_children_types.get(named_child) == "tuple" %}
-        assert type({{named_child}}) is tuple
+        assert type({{param_name}}) is tuple
 
-        for val in {{named_child}}:
+        for val in {{param_name}}:
             val.parent = self
 {% elif named_children_types.get(named_child) == "optional" %}
-        if {{named_child}} is not None:
-            {{named_child}}.parent = self
+        if {{param_name}} is not None:
+            {{param_name}}.parent = self
 {% else %}
-        {{named_child}}.parent = self
+        {{param_name}}.parent = self
 {% endif %}
 
-        self.subnode_{{named_child}} = {{named_child}}
+        self.subnode_{{named_child}} = {{param_name}}
 
 {% endfor %}
 {% for node_attribute in node_attributes %}
@@ -130,32 +130,60 @@ class {{mixin_class_name}}({{base_class}}):
         )
 {% elif len(named_children) == 1 and named_children_types.get(named_children[0]) == "tuple" %}
         return self.subnode_{{named_children[0]}}
-{% elif len(named_children) == 1 and named_children_types.get(named_children[0]) == "optional" %}
-        value = self.subnode_{{named_children[0]}}
+{% elif single_optional and "tuple" not in named_children_types.values() %}
+        if self.subnode_{{single_optional}} is None:
+            return (
+{% for named_child in named_children if named_children_types.get(named_child) != "optional" %}
+                self.subnode_{{named_child}},
+{% endfor %}
+            )
 
-        {# In this case, generator is not faster. #}
-        if value is None:
-            return ()
-        else:
-            return (value,)
-{% elif len(named_children) == 1 %}
-        return (self.subnode_{{named_children[0]}},)
+        return (
+{% for named_child in named_children %}
+            self.subnode_{{named_child}},
+{% endfor %}
+        )
+{% elif "optional" not in named_children_types.values() %}
+        return (
+{% for named_child in named_children %}
+{% set is_tuple = named_children_types.get(named_child) == "tuple" %}
+{% set prev_normal = loop.index0 > 0 and named_children_types.get(named_children[loop.index0 - 1]) != "tuple" %}
+{% set next_normal = not loop.last and named_children_types.get(named_children[loop.index0 + 1]) != "tuple" %}
+{% if not loop.first and (is_tuple or not prev_normal) %}
+            +
+{% endif %}
+{% if is_tuple %}
+            self.subnode_{{named_child}}
+{% elif not prev_normal and not next_normal %}
+            (self.subnode_{{named_child}},)
+{% elif not prev_normal %}
+            (
+            self.subnode_{{named_child}},
+{% elif not next_normal %}
+            self.subnode_{{named_child}},
+            )
+{% else %}
+            self.subnode_{{named_child}},
+{% endif %}
+{% endfor %}
+        )
+{% else %}
+{% if leading_normals %}
+        result = [{% for named_child in leading_normals %}self.subnode_{{named_child}}, {% endfor %}]
 {% else %}
         result = []
+{% endif %}
 {% for named_child in named_children %}
 {% if named_children_types.get(named_child) == "optional" %}
-        value = self.subnode_{{named_child}}
-        if value is None:
-            pass
-        else:
-            result.append(value)
+        if self.subnode_{{named_child}} is not None:
+            result.append(self.subnode_{{named_child}})
 {% elif named_children_types.get(named_child) == "tuple" %}
         result.extend(self.subnode_{{named_child}})
-{% else %}
+{% elif named_child not in leading_normals %}
         result.append(self.subnode_{{named_child}})
 {% endif %}
 {% endfor %}
-        return tuple(result)
+        return result
 {% endif %}
 
     def getVisitableNodesNamed(self):
@@ -366,17 +394,6 @@ class {{mixin_class_name}}({{base_class}}):
         return self.computeExpression(trace_collection)
 {% endif %}
 
-    def undoComputeExpressionRaw(self, trace_collection):
-        for child in self.getVisitableNodes():
-            child.undoComputeExpressionRaw(trace_collection)
-
-        self.undoComputeExpression()
-
-    # For overload only
-    @staticmethod
-    def undoComputeExpression():
-        pass
-
 {% if raise_mode == "no_raise" %}
     @staticmethod
     def mayRaiseExceptionOperation():
@@ -413,6 +430,20 @@ class {{mixin_class_name}}({{base_class}}):
 {% endif %}
 
 {% endif %}
+
+{# The undo is done in reverse order, so that a node that references a value
+   created by a previous statement is undone first, keeping the value trace
+   state consistent when the producing node is undone later. #}
+    def undoVariableTracingRaw(self, trace_collection):
+        for child in reversed(self.getVisitableNodes()):
+            child.undoVariableTracingRaw(trace_collection)
+
+        self.undoVariableTracing()
+
+    # For overload only
+    @staticmethod
+    def undoVariableTracing():
+        pass
 
 {% if is_compute_statement %}
     def computeStatement(self, trace_collection):

@@ -278,7 +278,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_bi
     backend_source_dir = getSourceDirectoryPath(onefile=False, create=False)
     backend_resource_mode = getSconsReportValue(backend_source_dir, "resource_mode")
 
-    # We might not even have a payload due to commercial file embedding.
+    # The payload is optional, there might be none at all.
     has_payload = hasOnefilePayload()
     onefile_payload_size = 0
 

@@ -10,6 +10,7 @@ import shutil
 
 from nuitka.format.BiomeFormatter import formatJsonFile
 from nuitka.format.FileFormatting import (
+    cleanupDashes,
     cleanupTrailingWhitespace,
     cleanupWindowsNewlines,
     formatC,
@@ -85,21 +86,18 @@ def _shouldNotFormatCode(filename, effective_filename):
     return False
 
 
-def _transferBOM(source_filename, target_filename):
-    """Transfer Byte Order Mark (BOM) from source to target file."""
-    with open(source_filename, "rb") as f:
-        source_code = f.read()
-        source_code, bom = stripFileContentsBOM(source_code)
+def _transferBOM(source_code, target_filename):
+    """Transfer Byte Order Mark (BOM) from source contents to target file."""
+    _source_code, bom = stripFileContentsBOM(source_code)
 
     if bom:
-        with open(target_filename, "rb") as f:
-            source_code = f.read()
+        target_contents = getFileContents(target_filename, mode="rb")
 
-        updated_source_code = addFileContentsBOM(source_code)
+        updated_target_contents = addFileContentsBOM(target_contents)
 
-        if updated_source_code != source_code:
+        if updated_target_contents != target_contents:
             with open(target_filename, "wb") as f:
-                f.write(updated_source_code)
+                f.write(updated_target_contents)
 
 
 def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
@@ -120,7 +118,7 @@ def cleanupMarkdownFmt(logger, filename, assume_yes_for_downloads):
             logger.warning("Need to accept mdformat download to format markdown files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         check_call([mdformat_path, "--number", "--wrap=100", filename])
 
 
@@ -153,7 +151,7 @@ def cleanupRstFmt(logger, filename, effective_filename, assume_yes_for_downloads
             logger.warning("Need to accept rstfmt download to format RST files.")
         return
 
-    with withPrivatePipSitePackagesPathAdded(logger=logger):
+    with withPrivatePipSitePackagesPathAdded():
         check_call([rstfmt_path, filename])
 
     cleanupWindowsNewlines(filename, effective_filename)
@@ -253,6 +251,7 @@ def formatText(
     cleanupWindowsNewlines(filename, effective_filename)
     cleanupTrailingWhitespace(filename)
     cleanupWindowsNewlines(filename, effective_filename)
+    cleanupDashes(filename)
 
     if is_rst:
         cleanupRstFmt(
@@ -468,7 +467,7 @@ def autoFormatFile(
                 formatImage(tmp_filename, logger=tools_logger)
 
         if is_python:
-            _transferBOM(filename, tmp_filename)
+            _transferBOM(old_code, tmp_filename)
 
         changed = old_code != getFileContents(tmp_filename, "rb")
 

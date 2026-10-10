@@ -199,16 +199,6 @@ class NodeBase(NodeMetaClassBase):
         else:
             return child_name
 
-    def getParentFunction(self):
-        """Return the parent that is a function."""
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isExpressionFunctionBodyBase():
-            parent = parent.getParent()
-
-        return parent
-
     def getParentModule(self):
         """Return the parent that is module."""
         parent = self
@@ -247,17 +237,6 @@ class NodeBase(NodeMetaClassBase):
         parent = self.getParent()
 
         while not parent.isParentVariableProvider():
-            parent = parent.getParent()
-
-        return parent
-
-    def getParentReturnConsumer(self):
-        parent = self.getParent()
-
-        while (
-            not parent.isParentVariableProvider()
-            and not parent.isExpressionOutlineBody()
-        ):
             parent = parent.getParent()
 
         return parent
@@ -378,7 +357,7 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
-    def isExpressionBuiltin():
+    def isExpressionBuiltinCall():
         return False
 
     @staticmethod
@@ -415,6 +394,10 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def isExpressionComparison():
+        return False
+
+    @staticmethod
+    def isExpressionConditionalBool():
         return False
 
     @staticmethod
@@ -478,6 +461,16 @@ class NodeBase(NodeMetaClassBase):
         return ()
 
     @staticmethod
+    def undoVariableTracingRaw(trace_collection):
+        """Undo the effects of a computation on the trace collection.
+
+        This is needed for the case of a node being removed from the tree,
+        such that e.g. variable usages remain correct and are no longer
+        counted. The default is to do nothing, and node kinds override this
+        as needed.
+        """
+
+    @staticmethod
     def collectVariableAccesses(emit_variable):
         """Collect variable reads and writes of child nodes."""
 
@@ -492,9 +485,6 @@ class NodeBase(NodeMetaClassBase):
         """Unless we are told otherwise, everything may have a side effect."""
 
         return True
-
-    def isOrderRelevant(self):
-        return self.mayHaveSideEffects()
 
     def extractSideEffects(self):
         """Unless defined otherwise, the expression is the side effect."""
@@ -676,6 +666,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             full_name = name
 
         return self.temp_variables[full_name][0]
+
+    def hasTempVariable(self, temp_name):
+        return temp_name in self.temp_variables
 
     def getAllTempVariables(self):
         assert self.getEntryPoint() is self

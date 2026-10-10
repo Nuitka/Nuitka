@@ -13,7 +13,9 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-static PyObject *Nuitka_LongFromCLong(long ival);
+#endif
+
+#include "nuitka/helper/long_helpers.h"
 
 // Most often used modes per OS, more exist and could be used of course.
 #if defined(_WIN32)
@@ -24,8 +26,6 @@ static PyObject *Nuitka_LongFromCLong(long ival);
 #define _NUITKA_CONSTANTS_FROM_CODE 1
 #endif
 
-#endif
-
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define CONSTANT_BIN_CONSTANT
 #else
@@ -33,8 +33,9 @@ static PyObject *Nuitka_LongFromCLong(long ival);
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_LINKER) || defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) ||                              \
-    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_INCBIN) ||                                  \
-    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+    defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                               \
+    defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                             \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
 NUITKA_DECLARE_CONSTANT_BLOB(constant_bin, constant_bin, CONSTANT_BIN_CONSTANT);
 #endif
 
@@ -63,11 +64,17 @@ static PyObject *tuple_cache = NULL;
 
 static PyObject *list_cache = NULL;
 
+static PyObject *slice_cache = NULL;
+
 static PyObject *dict_cache = NULL;
 
 static PyObject *set_cache = NULL;
 
 static PyObject *frozenset_cache = NULL;
+
+#if PYTHON_VERSION >= 0x3f0
+static PyObject *frozendict_cache = NULL;
+#endif
 
 // Use our own non-random hash for some of the things to be fast. This is inspired
 // from the original Python2 hash func, but we are mostly using it on pointer values
@@ -130,6 +137,29 @@ static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *
     } else if (Py_SIZE(tuple1) != Py_SIZE(tuple2)) {
         result = Py_False;
     } else if (memcmp(&tuple1->ob_item[0], &tuple2->ob_item[0], Py_SIZE(tuple1) * sizeof(PyObject *)) == 0) {
+        result = Py_True;
+    } else {
+        result = Py_False;
+    }
+
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+
+static Py_hash_t our_slice_hash(PySliceObject *slice) {
+    PyObject *values[3] = {slice->start, slice->stop, slice->step};
+
+    return Nuitka_FastHashBytes(values, sizeof(values));
+}
+
+static PyObject *our_slice_tp_richcompare(PySliceObject *slice1, PySliceObject *slice2, int op) {
+    assert(op == Py_EQ);
+
+    PyObject *result;
+
+    if (slice1 == slice2) {
+        result = Py_True;
+    } else if (slice1->start == slice2->start && slice1->stop == slice2->stop && slice1->step == slice2->step) {
         result = Py_True;
     } else {
         result = Py_False;
@@ -277,6 +307,56 @@ static PyObject *our_dict_tp_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
+#if PYTHON_VERSION >= 0x3f0
+static Py_hash_t our_frozendict_hash(PyObject *frozendict) {
+    Py_hash_t result = 0;
+
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+
+    while (Nuitka_FrozenDictNext(frozendict, &pos, &key, &value)) {
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
+        result *= 1000003;
+        result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
+    }
+
+    return result;
+}
+
+static PyObject *our_frozendict_tp_richcompare(PyObject *a, PyObject *b, int op) {
+    PyObject *result;
+
+    if (FROZENDICT_SIZE(a) != FROZENDICT_SIZE(b)) {
+        result = Py_False;
+    } else {
+        result = Py_True;
+
+        Py_ssize_t pos1 = 0, pos2 = 0;
+        PyObject *key1, *value1;
+        PyObject *key2, *value2;
+
+        // Same sized frozendict, simply check if key and values are identical.
+        // Other reductions should make it identical, or else this won't have the
+        // effect intended.
+        while (Nuitka_FrozenDictNext(a, &pos1, &key1, &value1)) {
+            {
+                NUITKA_MAY_BE_UNUSED int res = Nuitka_FrozenDictNext(b, &pos2, &key2, &value2);
+                assert(res != 0);
+            }
+
+            if (key1 != key2 || value1 != value2) {
+                result = Py_False;
+                break;
+            }
+        }
+    }
+
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+#endif
+
 // For creation of small long singleton long values as required by Python3.
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
@@ -312,11 +392,17 @@ static void initCaches(void) {
 
     list_cache = PyDict_New();
 
+    slice_cache = PyDict_New();
+
     dict_cache = PyDict_New();
 
     set_cache = PyDict_New();
 
     frozenset_cache = PyDict_New();
+
+#if PYTHON_VERSION >= 0x3f0
+    frozendict_cache = PyDict_New();
+#endif
 
 #if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
@@ -388,7 +474,7 @@ static uint16_t unpackValueUint16(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 2);
+    STATIC_ASSERT(sizeof(value) == 2, "uint16_t must be 2 bytes");
 
     *data += sizeof(value);
 
@@ -400,7 +486,7 @@ static uint32_t unpackValueUint32(unsigned char const **data) {
 
     memcpy(&value, *data, sizeof(value));
 
-    assert(sizeof(value) == 4);
+    STATIC_ASSERT(sizeof(value) == 4, "uint32_t must be 4 bytes");
 
     *data += sizeof(value);
 
@@ -636,6 +722,44 @@ static unsigned char const *_unpackBlobConstantObjectDict(PyThreadState *tstate,
 
     return data;
 }
+
+#if PYTHON_VERSION >= 0x3f0
+static unsigned char const *_unpackBlobConstantObjectFrozendict(PyThreadState *tstate, void **output,
+                                                                unsigned char const *data) {
+    int size = (int)_unpackVariableLength(&data);
+
+    PyObject *d = _PyDict_NewPresized(size);
+    CHECK_OBJECT(d);
+
+    if (size > 0) {
+        NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+        NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
+
+        data = _unpackBlobConstantsAt(tstate, keys, data, size);
+        data = _unpackBlobConstantsAt(tstate, values, data, size);
+
+        CHECK_OBJECTS(&keys[0], size);
+        CHECK_OBJECTS(&values[0], size);
+
+        for (int i = 0; i < size; i++) {
+            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, keys[i], values[i]);
+            assert(res == 0);
+        }
+    }
+
+    PyObject *result = PyFrozenDict_New(d);
+    CHECK_OBJECT(result);
+
+    Py_DECREF(d);
+
+    insertToDictCacheForcedHash(frozendict_cache, &result, (hashfunc)our_frozendict_hash,
+                                (richcmpfunc)our_frozendict_tp_richcompare);
+
+    _finalizeUnpackedConstantObject(output, result);
+
+    return data;
+}
+#endif
 
 static unsigned char const *_unpackBlobConstantObjectSetOrFrozenset(PyThreadState *tstate, void **output,
                                                                     unsigned char const *data, unsigned char c) {
@@ -955,6 +1079,8 @@ static unsigned char const *_unpackBlobConstantObjectSlice(PyThreadState *tstate
 
     PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
 
+    insertToDictCacheForcedHash(slice_cache, &s, (hashfunc)our_slice_hash, (richcmpfunc)our_slice_tp_richcompare);
+
     _finalizeUnpackedConstantObject(output, s);
 
     return data;
@@ -1140,22 +1266,53 @@ static unsigned char const *_unpackBlobConstantObjectUnionType(PyThreadState *ts
 #endif
 
 static unsigned char const *_unpackBlobConstantObjectCodeObject(PyThreadState *tstate, void **output,
-                                                                unsigned char const *data) {
+                                                                unsigned char const *data, unsigned char c) {
+    bool is_module = c == NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT;
+    bool is_class = c == NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT;
+    bool is_genexpr = c == NUITKA_CONSTANT_BLOB_TAG_GENERATOR_EXPRESSION_CODE_OBJECT;
+
     uint64_t flags = _unpackVariableLength(&data);
 
     int co_flags = 0;
 
+    void *_slot;
+
     PyObject *function_name;
-    void *_slot = (void *)&function_name;
-    data = _unpackBlobConstant(tstate, &_slot, data);
-
-    int line_number = (int)_unpackVariableLength(&data) + 1;
-
+    int line_number;
     PyObject *arg_names;
-    _slot = (void *)&arg_names;
-    data = _unpackBlobConstant(tstate, &_slot, data);
+    int arg_count;
 
-    int arg_count = (int)_unpackVariableLength(&data);
+    if (is_module) {
+        // Module code objects have a fixed name, line number, and no
+        // argument names or counts.
+        function_name = const_str_angle_module;
+        line_number = 1;
+        arg_names = const_tuple_empty;
+        arg_count = 0;
+    } else {
+        if (is_genexpr) {
+            // Generator expression code objects have a fixed name.
+            function_name = const_str_angle_genexpr;
+        } else {
+            _slot = (void *)&function_name;
+            data = _unpackBlobConstant(tstate, &_slot, data);
+        }
+
+        line_number = (int)_unpackVariableLength(&data) + 1;
+
+        _slot = (void *)&arg_names;
+        data = _unpackBlobConstant(tstate, &_slot, data);
+
+        if (is_class) {
+            // Class code objects have variable names, but no arguments.
+            arg_count = 0;
+        } else if (is_genexpr) {
+            // Generator expressions have the iterator as only argument.
+            arg_count = 1;
+        } else {
+            arg_count = (int)_unpackVariableLength(&data);
+        }
+    }
 
 #if PYTHON_VERSION >= 0x3b0
     PyObject *function_qualname;
@@ -1308,6 +1465,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         data = _unpackBlobConstantObjectSetOrFrozenset(tstate, output, data, c);
         break;
     }
+#if PYTHON_VERSION >= 0x3f0
+    case NUITKA_CONSTANT_BLOB_TAG_FROZENDICT: {
+        data = _unpackBlobConstantObjectFrozendict(tstate, output, data);
+        break;
+    }
+#endif
 #if PYTHON_VERSION < 0x300
     case NUITKA_CONSTANT_BLOB_TAG_INT_NEGATIVE:
     case NUITKA_CONSTANT_BLOB_TAG_INT_POSITIVE: {
@@ -1441,8 +1604,11 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, void **ou
         break;
     }
 #endif
-    case NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT: {
-        data = _unpackBlobConstantObjectCodeObject(tstate, output, data);
+    case NUITKA_CONSTANT_BLOB_TAG_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_MODULE_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_CLASS_CODE_OBJECT:
+    case NUITKA_CONSTANT_BLOB_TAG_GENERATOR_EXPRESSION_CODE_OBJECT: {
+        data = _unpackBlobConstantObjectCodeObject(tstate, output, data, c);
         break;
     }
     case NUITKA_CONSTANT_BLOB_TAG_END: {
@@ -1504,8 +1670,9 @@ void loadConstantsBlob(PyThreadState *tstate, void *output, char const *name) {
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN) || defined(_NUITKA_CONSTANTS_FROM_LINKER) ||                                \
-    defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_CODE) ||                                \
-    defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) || defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
+    defined(_NUITKA_CONSTANTS_FROM_COFF_OBJ) || defined(_NUITKA_CONSTANTS_FROM_XCOFF_OBJ) ||                           \
+    defined(_NUITKA_CONSTANTS_FROM_CODE) || defined(_NUITKA_CONSTANTS_FROM_C23_EMBED) ||                               \
+    defined(_NUITKA_CONSTANTS_FROM_MACOS_SECTION)
         constant_bin = getconstant_binData();
 #endif
         NUITKA_PRINT_TIMING("loadConstantsBlob(): Found blob, decoding now.");

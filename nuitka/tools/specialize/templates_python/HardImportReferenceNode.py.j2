@@ -18,6 +18,7 @@ return (
 
 from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
@@ -30,13 +31,28 @@ import os
 {% endif %}
 
 class Expression{{module_name_title}}{{function_name_title}}Ref(
+{% if module_name == "builtins" %}
+    ExpressionBuiltinRef
+{% else %}
     ExpressionImportModuleNameHardExistsSpecificBase
+{% endif %}
 ):
     """Function reference {{module_name}}.{{function_name}}"""
 
     kind = "EXPRESSION_{{module_name_code.upper()}}_{{function_name_code.upper()}}_REF"
 
     def __init__(self, source_ref):
+{% if module_name == "builtins" %}
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="{{function_name}}",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+{% else %}
         ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name={%if module_name != 'os.path'%}"{{module_name}}" {% else %} os.path.__name__{% endif %},
@@ -44,6 +60,7 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
             module_guaranteed={% if is_stdlib %}True{% else %}not shallMakeModule(){% endif %},
             source_ref=source_ref,
         )
+{% endif %}
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen on call trace before this. On next pass, if
@@ -59,7 +76,11 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
 {% endif %}
 {% endfor %}
 
-hard_import_node_classes[Expression{{module_name_title}}{{function_name_title}}Ref] = {{specs[0].spec_name}}
+{% if module_name != "builtins" %}
+addHardImportNodeClass(Expression{{module_name_title}}{{function_name_title}}Ref, {{specs[0].spec_name}})
+{% else %}
+addBuiltinRefNode("{{function_name}}", Expression{{module_name_title}}{{function_name_title}}Ref)
+{% endif %}
 
 {#-  Part of "Nuitka", an optimizing Python compiler that is compatible and           -#}
 {#-  integrates with CPython, but also works on its own.                              -#}

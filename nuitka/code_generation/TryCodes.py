@@ -108,12 +108,38 @@ def generateTryCode(statement, emit, context):
         # return value.
         old_return_value_release = context.setReturnReleaseMode(True)
 
+        # If the return value is abandoned by the handler, e.g. because a
+        # "finally" block raises, the return value must be released, or it
+        # leaks, since it is only passed to the caller when the return
+        # completes.
+        return_handler_exception_escape = None
+        old_return_handler_exception_escape = None
+        if context.hasTempName("return_value") and return_handler.mayRaiseException(
+            BaseException
+        ):
+            return_handler_exception_escape = context.allocateLabel(
+                "try_return_exception"
+            )
+            old_return_handler_exception_escape = context.setExceptionEscape(
+                return_handler_exception_escape
+            )
+
         generateStatementSequenceCode(
             statement_sequence=return_handler,
             emit=emit,
             allow_none=False,
             context=context,
         )
+
+        if return_handler_exception_escape is not None:
+            context.setExceptionEscape(old_return_handler_exception_escape)
+
+            return_value_name = context.getReturnValueName()
+
+            getLabelCode(return_handler_exception_escape, emit)
+            emit("Py_XDECREF(%s);" % return_value_name)
+            emit("%s = NULL;" % return_value_name)
+            getGotoCode(old_return_handler_exception_escape, emit)
 
         context.setReturnReleaseMode(old_return_value_release)
 
@@ -136,7 +162,7 @@ def generateTryCode(statement, emit, context):
         (
             exception_state_name,
             exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         emit(
             """\

@@ -33,6 +33,10 @@ class ExpressionBuiltinFormat(
 
     named_children = ("value", "format_spec|auto_none_empty_str")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, format_spec, source_ref):
         ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin.__init__(
             self,

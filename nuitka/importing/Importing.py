@@ -33,11 +33,14 @@ from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
     getOutputFolderName,
+    getProjectName,
     hasPythonFlagNoCurrentDirectoryInPath,
+    hasPythonFlagPackageMode,
     shallExplainImports,
 )
 from nuitka.OutputDirectories import getSourceDirectoryPath
 from nuitka.plugins.Hooks import (
+    createVirtualModule,
     decideRecompileExtensionModules,
     getPackageExtraScanPaths,
     suppressUnknownImportWarning,
@@ -63,7 +66,9 @@ from nuitka.utils.Importing import (
     getModuleFilenameSuffixes,
     getModuleNameAndKindFromFilenameSuffix,
     getPackageDirFilename,
+    hasPackageDirFilename,
     isBuiltinModuleName,
+    withTemporarySysPathExtension,
 )
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
@@ -73,10 +78,16 @@ from nuitka.utils.Utils import (
     getLaunchingNuitkaProcessEnvironmentValue,
     isMacOS,
     isWin32OrPosixWindows,
+    withNoDeprecationWarning,
 )
 from nuitka.utils.Zipfiles import getZipFile
 
-from .FakeModules import locateFakeModule
+from .FakeModules import (
+    addVirtualModuleDescription,
+    getFakeModulePlugin,
+    locateFakeModule,
+    locateVirtualModule,
+)
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .ImportingResults import makeFindModuleResult
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -119,7 +130,10 @@ def setupImportingFromOptions():
             if not isHardModule(builtin_module_name):
                 addModuleDynamicBuiltinHard(builtin_module_name)
 
-    if getOutputFolderName() is not None:
+    # The source directory is computable from the output folder name or the
+    # project name. Generated main entry point files live there and must not be
+    # usable to shadow the modules they import.
+    if getOutputFolderName() is not None or getProjectName() is not None:
         source_dir = getSourceDirectoryPath(onefile=False, create=False)
     else:
         source_dir = None
@@ -152,6 +166,11 @@ _setup_complete = False
 # Additions to sys.paths from plugins.
 _extra_paths = OrderedSet()
 
+# Reason used for usage attempts that plugins decided as implicit imports, so
+# these can be identified for caching and reporting.
+_implicit_import_reason = "implicit import"
+
+
 ModuleUsageAttempt = makeNamedtupleClass(
     "ModuleUsageAttempt",
     (
@@ -166,10 +185,97 @@ ModuleUsageAttempt = makeNamedtupleClass(
 )
 
 
+def isSyntheticModuleUsage(module_usage):
+    """Check if a module usage attempt is synthetic.
+
+    Notes:
+        Synthetic usages, e.g. plugin provided implicit imports and standard
+        library auto-inclusions, have no source code reference, they are not
+        traced from module code.
+
+    Args:
+        module_usage: Module usage attempt to check.
+
+    Returns:
+        bool: True if this usage is synthetic.
+    """
+    return module_usage.source_ref is None
+
+
+def _makeModuleUsageReason(reason):
+    """Create the reason for a plugin provided module usage attempt.
+
+    Args:
+        reason: Reason provided by the plugin or None.
+
+    Returns:
+        str: Reason to use for the usage attempt.
+    """
+    if reason is not None:
+        return "%s: %s" % (_implicit_import_reason, reason)
+
+    return _implicit_import_reason
+
+
+def makeSyntheticModuleUsageAttempt(
+    module_name, filename, module_kind, finding, reason
+):
+    """Create a module usage attempt without a source code reference.
+
+    Notes:
+        These are not stored in the module cache, see
+        'isSyntheticModuleUsage'.
+
+    Args:
+        module_name: Module name of the used module.
+        filename: Filename of the used module.
+        module_kind: Kind of the used module.
+        finding: Finding of the used module.
+        reason: Reason for the usage.
+
+    Returns:
+        ModuleUsageAttempt: The synthetic usage attempt.
+    """
+    assert reason is not None
+
+    return ModuleUsageAttempt(
+        module_name=module_name,
+        filename=filename,
+        module_kind=module_kind,
+        finding=finding,
+        level=0,
+        source_ref=None,
+        reason=reason,
+    )
+
+
+def makePluginModuleUsageAttempt(module_name, filename, module_kind, finding, reason):
+    """Create a module usage attempt for a plugin provided implicit import.
+
+    Args:
+        module_name: Module name of the implicitly imported module.
+        filename: Filename of the implicitly imported module.
+        module_kind: Kind of the implicitly imported module.
+        finding: Finding of the implicitly imported module.
+        reason: Reason provided by the plugin or None.
+
+    Returns:
+        ModuleUsageAttempt: The plugin provided usage attempt.
+    """
+    return makeSyntheticModuleUsageAttempt(
+        module_name=module_name,
+        filename=filename,
+        module_kind=module_kind,
+        finding=finding,
+        reason=_makeModuleUsageReason(reason),
+    )
+
+
 def makeModuleUsageAttempt(
     module_name, filename, module_kind, finding, level, source_ref, reason
 ):
     assert source_ref is not None
+    assert reason is not None
 
     # The looked for module usage attempt, cannot be a relative module name
     assert module_name.getTopLevelPackageName() != "", source_ref
@@ -229,10 +335,21 @@ def addMainScriptDirectory(main_dir):
 
 
 def addExtraSysPaths(directories):
+    extra_paths_added = False
+
     for directory in directories:
         assert os.path.isdir(directory), directory
 
-        _extra_paths.add(directory)
+        if directory not in _extra_paths:
+            _extra_paths.add(directory)
+            extra_paths_added = True
+
+    if extra_paths_added:
+        # Extra paths have the lowest priority, so only the cached negative
+        # results can change and must not be reused.
+        for module_name, result in tuple(module_search_cache.items()):
+            if result is ImportError:
+                del module_search_cache[module_name]
 
 
 def getExtraSysPaths():
@@ -241,6 +358,16 @@ def getExtraSysPaths():
 
 def hasMainScriptDirectory():
     return bool(_main_paths)
+
+
+def getMainScriptDirectories():
+    """Get directories of the main scripts, for search path considerations.
+
+    Returns:
+        OrderedSet of directories.
+    """
+
+    return _main_paths
 
 
 def isPackageDir(dirname):
@@ -257,7 +384,7 @@ def isPackageDir(dirname):
         and (
             python_version >= 0x300
             or isPreloadedPackagePath(dirname)
-            or getPackageDirFilename(dirname) is not None
+            or hasPackageDirFilename(dirname)
         )
     )
 
@@ -327,7 +454,9 @@ def getModuleNameAndKindFromFilename(module_filename):
             )
 
     if os.path.isdir(module_filename):
-        package_filename = getPackageDirFilename(module_filename)
+        package_filename = getPackageDirFilename(
+            path=module_filename, package_name=None
+        )
 
         if package_filename is not None:
             _module_name, module_kind = getModuleNameAndKindFromFilenameSuffix(
@@ -418,11 +547,68 @@ _find_module_not_found = makeFindModuleResult(
 )
 
 
-def _locateFakeModule(module_name, logger, log_message):
+def _makePluginProvidedModuleLogMessage(
+    module_name, relative_name, module_kind_name, plugin
+):
+    """Create the log message for a located plugin provided module.
+
+    Args:
+        module_name: the full module name that was searched.
+        relative_name: the relative module name used for logging or None.
+        module_kind_name: either "fake" or "virtual".
+        plugin: plugin that provided the module.
+
+    Returns:
+        str
+    """
+    if relative_name is not None:
+        log_message = "findModule: Relative imported %s module '%s' as '%s'" % (
+            module_kind_name,
+            relative_name,
+            module_name,
+        )
+    else:
+        log_message = "findModule: Found %s module '%s'" % (
+            module_kind_name,
+            module_name,
+        )
+
+    return "%s (provided by plugin '%s')." % (log_message, plugin.plugin_name)
+
+
+def _locatePluginProvidedModule(module_name, relative_name, logger):
+    """Locate a fake or plugin provided virtual module.
+
+    Notes:
+        Fake modules, virtual modules and real modules must be mutually
+        exclusive, collisions are an error. Preloaded packages are checked by
+        the callers before this is called.
+
+    Args:
+        module_name: the full module name that was searched.
+        relative_name: the relative module name used for logging or None.
+        logger: logger to use or None.
+
+    Returns:
+        FindModuleResult or None
+    """
     fake_result = locateFakeModule(module_name)
 
-    if fake_result is None:
-        return None
+    virtual_module = createVirtualModule(module_name)
+
+    if virtual_module is not None:
+        virtual_module_description, virtual_module_plugin = virtual_module
+
+        addVirtualModuleDescription(
+            module_name=module_name,
+            description=virtual_module_description,
+            plugin=virtual_module_plugin,
+        )
+
+        virtual_result = locateVirtualModule(module_name)
+    else:
+        virtual_module_plugin = None
+        virtual_result = None
 
     try:
         _found_module_name, module_filename, _module_kind = _findModule(
@@ -430,17 +616,54 @@ def _locateFakeModule(module_name, logger, log_message):
             logger=None,
         )
     except ImportError:
-        pass
-    else:
+        module_filename = None
+
+    if module_filename is not None:
+        if fake_result is not None:
+            module_kind_name = "fake"
+        elif virtual_result is not None:
+            module_kind_name = "virtual"
+        else:
+            return None
+
         return recursion_logger.sysexit(
-            "Error, fake module name '%s' collides with real module in '%s'."
-            % (module_name, module_filename)
+            "Error, %s module name '%s' collides with real module in '%s'."
+            % (module_kind_name, module_name, module_filename)
         )
 
-    if fake_result is not None and logger is not None:
-        logger.info(log_message)
+    if fake_result is not None and virtual_result is not None:
+        return recursion_logger.sysexit(
+            "Error, module name '%s' is provided as both fake and virtual module."
+            % module_name
+        )
 
-    return fake_result
+    if fake_result is not None:
+        if logger is not None:
+            logger.info(
+                _makePluginProvidedModuleLogMessage(
+                    module_name=module_name,
+                    relative_name=relative_name,
+                    module_kind_name="fake",
+                    plugin=getFakeModulePlugin(module_name),
+                )
+            )
+
+        return fake_result
+
+    if virtual_result is not None:
+        if logger is not None:
+            logger.info(
+                _makePluginProvidedModuleLogMessage(
+                    module_name=module_name,
+                    relative_name=relative_name,
+                    module_kind_name="virtual",
+                    plugin=virtual_module_plugin,
+                )
+            )
+
+        return virtual_result
+
+    return None
 
 
 def findModule(module_name, parent_package, level, logger):
@@ -493,16 +716,6 @@ def findModule(module_name, parent_package, level, logger):
 
         full_name = normalizePackageName(full_name)
 
-        fake_result = _locateFakeModule(
-            module_name=full_name,
-            logger=logger,
-            log_message="findModule: Relative imported fake module '%s' as '%s'."
-            % (module_name, full_name),
-        )
-
-        if fake_result is not None:
-            return fake_result
-
         preloaded_path = getPreloadedPackagePath(module_name)
 
         if preloaded_path is not None:
@@ -515,6 +728,15 @@ def findModule(module_name, parent_package, level, logger):
                 module_kind="py",
                 finding="pth",
             )
+
+        plugin_result = _locatePluginProvidedModule(
+            module_name=full_name,
+            relative_name=module_name,
+            logger=logger,
+        )
+
+        if plugin_result is not None:
+            return plugin_result
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -542,15 +764,6 @@ def findModule(module_name, parent_package, level, logger):
     if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
 
-        fake_result = _locateFakeModule(
-            module_name=module_name,
-            logger=logger,
-            log_message="findModule: Found fake imported module '%s'." % module_name,
-        )
-
-        if fake_result is not None:
-            return fake_result
-
         package_name = module_name.getPackageName()
 
         preloaded_path = getPreloadedPackagePath(module_name)
@@ -565,6 +778,15 @@ def findModule(module_name, parent_package, level, logger):
                 module_kind="py",
                 finding="pth",
             )
+
+        plugin_result = _locatePluginProvidedModule(
+            module_name=module_name,
+            relative_name=None,
+            logger=logger,
+        )
+
+        if plugin_result is not None:
+            return plugin_result
 
         try:
             found_module_name, module_filename, module_kind = _findModule(
@@ -856,7 +1078,9 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
         found_candidate.module_type == "C_EXTENSION"
         and isMacOS()
         and not hasUniversalOrMatchingMacOSArchitecture(
-            getPackageDirFilename(found_candidate.full_path)
+            getPackageDirFilename(
+                path=found_candidate.full_path, package_name=module_name
+            )
             if os.path.isdir(found_candidate.full_path)
             else found_candidate.full_path
         )
@@ -927,12 +1151,25 @@ def getPackageSearchPath(package_name):
         return None
 
     if package_name is None:
-        result = []
+        if hasPythonFlagPackageMode():
+            # For "python -m" mode, the current directory is what CPython
+            # searches first, and it takes precedence over the main script
+            # directory.
+            result = []
 
-        if not _safe_path:
-            result.append(os.getcwd())
+            if not _safe_path:
+                result.append(os.getcwd())
 
-        result += list(_main_paths) + getPythonUnpackedSearchPath() + list(_extra_paths)
+            result += list(_main_paths)
+        else:
+            # The main script directory comes first, as for CPython running a
+            # script, where the current directory is not searched by default.
+            result = list(_main_paths)
+
+            if not _safe_path:
+                result.append(os.getcwd())
+
+        result += getPythonUnpackedSearchPath() + list(_extra_paths)
     elif "." in package_name:
         parent_package_name, child_package_name = package_name.splitModuleBasename()
 
@@ -1135,7 +1372,8 @@ def locateModule(module_name, parent_package, level, logger=None):
     elif module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
         module_name = found_module_name
-
+    elif finding == "virtual":
+        module_name = found_module_name
     elif finding == "not-found":
         if parent_package is not None:
             if not module_name:
@@ -1158,6 +1396,65 @@ def hasModule(module_name):
     )
 
     return finding != "not-found"
+
+
+_compile_time_modules = {}
+
+
+def _getCompileTimeModuleSearchPath(module_name):
+    """Get the search path entry where Nuitka found a module.
+
+    Notes:
+        This is used to import modules for build time computations from the
+        same locations that Nuitka's own module finding uses, which can
+        include directories that are not on the "sys.path" of the compiling
+        process, e.g. added by "global-sys-path" for vendored packages.
+    """
+    _found_name, module_filename, _module_kind, _finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    if module_filename is None:
+        return None
+
+    # For packages the found filename is the directory itself, and for modules
+    # it is the file, in both cases the containing directory is the search path
+    # entry to use.
+    return os.path.dirname(module_filename)
+
+
+def importFromCompileTime(module_name, must_exist):
+    """Import a module from the compiled time stage.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    if module_name not in _compile_time_modules:
+        search_path = _getCompileTimeModuleSearchPath(module_name)
+
+        with withNoDeprecationWarning():
+            try:
+                if search_path is None:
+                    __import__(module_name)
+                else:
+                    with withTemporarySysPathExtension(
+                        extra_paths=(search_path,),
+                        prepend=True,
+                    ):
+                        __import__(module_name)
+            except (ImportError, RuntimeError):
+                # Preventing a retry, converted to None for return
+                _compile_time_modules[module_name] = False
+            else:
+                _compile_time_modules[module_name] = sys.modules[module_name]
+
+    # Some code should only use this, after knowing it will be found. Complain if
+    # that is not the case.
+    assert _compile_time_modules[module_name] or not must_exist
+
+    return _compile_time_modules[module_name] or None
 
 
 def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
@@ -1200,7 +1497,10 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = getPackageDirFilename(filename)
+        source_filename = getPackageDirFilename(
+            path=filename,
+            package_name=module_name,
+        )
 
         if source_filename is None:
             source_ref = makeSourceReferenceFromFilename(filename=filename).atInternal()
@@ -1273,6 +1573,7 @@ _stdlib_module_raises = {
     "_locale": False,
     "_lsprof": False,
     "_lzma": False,
+    "_math_integer": False,
     "_md5": False,
     "_multiprocessing": False,
     "_multibytecodec": False,

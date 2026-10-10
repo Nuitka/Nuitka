@@ -88,6 +88,8 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
+    getNormalizedPath,
+    getNormalizedPathJoin,
     getReportSourceReference,
 )
 from nuitka.utils.Importing import (
@@ -714,6 +716,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
             iterable of those
         """
         # Virtual method, pylint: disable=unused-argument
+        return None
+
+    def createVirtualModule(self, module_name):
+        """Create a virtual module for a module name that was not found.
+
+        Notes:
+            Called when module location returns "not-found", to give plugins a
+            chance to provide generated source code for a module that only
+            exists at runtime, e.g. "gi.repository.Gtk".
+
+        Args:
+            module_name: full module name that was not found.
+
+        Returns:
+            None (does not apply, default)
+            FakeModuleDescription(module_name, source_code, source_filename, reason)
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     @staticmethod
@@ -1346,13 +1366,13 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     @classmethod
     def getPluginDataFilesDir(cls):
         """Helper function that returns path, where data files for the plugin are stored."""
-        plugin_filename = sys.modules[cls.__module__].__file__
+        plugin_filename = getNormalizedPath(sys.modules[cls.__module__].__file__)
         return changeFilenameExtension(plugin_filename, "")
 
     def getPluginDataFileContents(self, filename):
         """Helper function that returns contents of a plugin data file."""
         return getFileContents(
-            os.path.join(
+            getNormalizedPathJoin(
                 self.getPluginDataFilesDir(),
                 filename,
             )
@@ -1371,6 +1391,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             template_args: dict of template arguments (mutated in-place),
                 e.g. 'flags' (list), 'module_name', 'file_path', etc.
         """
+
+    def getModuleIncludes(self, context):
+        """Return extra include header names for a module's C file.
+
+        Args:
+            context: the module code generation context being compiled
+
+        Returns:
+            Iterable of header filenames.
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
@@ -1647,11 +1680,11 @@ except Exception as e:
 
         This must be used to invalidate cache results, e.g. when using the
         onFunctionBodyParsing function, and other things, that do not directly
-        affect the source code. By default a plugin being enabled changes the
-        result unless it makes it clear that is not the case.
+        affect the source code. The plugin name is automatically added to the
+        values given, so plugins only need to provide their specific values.
         """
         # Virtual method, pylint: disable=unused-argument
-        return self.plugin_name
+        return ()
 
     def getExtraConstantDefaultPopulation(self):
         """Provide extra global constant values to code generation."""
@@ -1667,10 +1700,23 @@ except Exception as e:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def getReportData(self):
-        """Provide dictionary of data for reporting purposes."""
-        # Virtual method, pylint: disable=no-self-use
-        return {}
+    def getReportData(self, make_report_path):
+        """Provide key/value pairs of data for reporting purposes.
+
+        Args:
+            make_report_path: Function to make a path report friendly, plugins
+                should use it for path values.
+
+        Returns:
+            Iterable of tuples with key and value.
+        """
+        # Virtual method, pylint: disable=unused-argument
+        return ()
+
+    @staticmethod
+    def getReportRedactedOptions():
+        """Provide option prefixes with values that are redacted in reports."""
+        return ()
 
     @staticmethod
     def getPackageVersion(module_name):

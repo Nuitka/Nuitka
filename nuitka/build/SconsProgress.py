@@ -14,6 +14,7 @@ from nuitka.Progress import (
     setupProgressBar,
 )
 from nuitka.Tracing import scons_logger
+from nuitka.utils.FileOperations import getReportPath
 
 
 def enableSconsProgressBar(progress_bar):
@@ -65,12 +66,18 @@ def closeSconsProgressBar():
     closeProgressBar()
 
 
-def reportSlowCompilation(env, cmd, delta_time):
-    # TODO: for linking, we ought to apply a different timer maybe and attempt to extra
-    # the source file that is causing the issues: pylint: disable=unused-argument
+def reportSlowCompilation(env, delta_time, source_filename):
+    # TODO: for linking, we ought to apply a different timer maybe.
     if _current != _total:
-        scons_logger.info("""\
+        if source_filename is None:
+            scons_logger.info("""\
 Slow C compilation detected, used %.0fs so far, scalability problem.""" % delta_time)
+        else:
+            scons_logger.info(
+                """\
+Slow C compilation detected for '%s', used %.0fs so far, scalability problem."""
+                % (getReportPath(source_filename), delta_time)
+            )
     else:
         if env.orig_lto_mode == "auto" and env.lto_mode:
             scons_logger.info("""\

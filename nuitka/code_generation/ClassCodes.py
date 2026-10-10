@@ -12,9 +12,12 @@ from nuitka.PythonVersions import python_version
 from .AttributeCodes import getAttributeLookupCode
 from .CodeHelpers import (
     generateChildExpressionsCode,
+    generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .LocalsDictCodes import assignDictOrMappingItem
+from .PgoCodes import checkPGOValueShape
 from .VariableCodes import getLocalVariableDeclaration
 
 
@@ -156,10 +159,17 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
 
     if python_version >= 0x360 and expression.class_variable.isSharedTechnically():
         # In Python 3.6+, type.__new__ requires "__classcell__" to be populated in the class dictionary
-        # if there are methods capturing it.
-        emit(
-            "DICT_SET_ITEM(%s, const_str_plain___classcell__, (PyObject *)%s);"
-            % (dict_name, class_var_name)
+        # if there are methods capturing it. The class namespace can be a custom mapping from the
+        # "__prepare__" of the metaclass though, and then it has to be set via the mapping interface,
+        # just like the class body does it.
+        assignDictOrMappingItem(
+            target_name=dict_name,
+            key_name=context.getConstantCode(constant="__classcell__"),
+            value_name="(PyObject *)%s" % class_var_name,
+            is_dict_shape=expression.subnode_dict_arg.hasShapeDictionaryExact(),
+            may_raise=True,
+            emit=emit,
+            context=context,
         )
 
     args_name = context.allocateTempName("metaclass_args")
@@ -194,6 +204,69 @@ def generateCallMetaclassCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(value_name)
+
+
+def _shallUseClassPrepareResultOnce(expression, context):
+    """Is the class only created once per program run?
+
+    This is the case when the class creation is not inside a loop and its
+    entry point is the module, i.e. only module level code is executed exactly
+    once per run.
+    """
+    return (
+        expression.getContainingLoopNode() is None
+        and context.getOwner().getEntryPoint().isCompiledPythonModule()
+    )
+
+
+def generateCallClassPrepareCode(to_name, expression, emit, context):
+    assert expression.pgo_policy in (
+        None,
+        "ignore",
+        "assertion",
+        "exception",
+    ), expression.pgo_policy
+
+    # When the start value is trusted and the call is not executed, the
+    # recorded value is used as the class namespace, with plain dicts being
+    # data, so the "__prepare__" call is assumed to have no relevant side
+    # effects. Custom mappings keep the call.
+    if expression.pgo_policy == "ignore":
+        assert expression.expected_value is not None
+
+        to_name.getCType().emitAssignmentCodeFromConstant(
+            to_name=to_name,
+            constant=expression.expected_value,
+            may_escape=True,
+            emit=emit,
+            context=context,
+        )
+    else:
+        generateExpressionCode(
+            to_name=to_name,
+            expression=expression.subnode_called,
+            emit=emit,
+            context=context,
+        )
+
+        if _shallUseClassPrepareResultOnce(expression=expression, context=context):
+            probe_function = "PGO_onProbeClassPrepareResultOnce"
+        else:
+            probe_function = "PGO_onProbeClassPrepareResult"
+
+        emit('%s(tstate, "%s", %s);' % (probe_function, expression.code_name, to_name))
+
+        if expression.pgo_policy in ("assertion", "exception"):
+            assert expression.expected_value is not None
+
+            checkPGOValueShape(
+                type_shape_to_check=expression.getTypeShape(),
+                value_name=to_name,
+                description="'__prepare__' result",
+                may_raise=expression.mayRaiseExceptionOperation(),
+                emit=emit,
+                context=context,
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

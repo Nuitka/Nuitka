@@ -1,12 +1,11 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_THREADING_H__
 #define __NUITKA_THREADING_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "nuitka/defines.h"
-#include "nuitka/exceptions.h"
+#include "nuitka/prelude.h"
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -23,8 +22,12 @@ extern volatile int _Py_Ticker;
 
 // Signals pending got their own indicator only in 3.8, covered by calls to do before.
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval2->pending.calls_to_do._value)
-#elif PYTHON_VERSION < 0x3d0
+#elif PYTHON_VERSION < 0x3c0
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
+#elif PYTHON_VERSION < 0x3d0
+#define HAS_WORK_TO_DO(ceval, ceval2)                                                                                  \
+    (ceval->signals_pending._value || ceval2->pending.calls_to_do._value ||                                            \
+     (_Py_IsMainThread() && _Py_IsMainInterpreter(tstate->interp) && ceval->pending_mainthread.calls_to_do._value))
 #else
 #define HAS_WORK_TO_DO(ceval, ceval2) _Py_eval_breaker_bit_is_set(tstate, _PY_SIGNALS_PENDING_BIT | _PY_CALLS_TO_DO_BIT)
 #endif

@@ -138,7 +138,7 @@ def runPy2dsc(filename, new_name):
         "deb_dist/%s+ds.orig.tar.gz" % after_deb_name,
     )
 
-    check_call(["rm -f deb_dist/*_source*"], shell=True)
+    check_call("rm -f deb_dist/*_source*", shell=True)
 
     # Remove the now useless input, py2dsc has copied it, and we don't
     # publish it.
@@ -160,7 +160,7 @@ def runPy2dsc(filename, new_name):
 
     # Import the "debian" directory from above. It's not in the original tar and
     # overrides fully what py2dsc did.
-    check_call(["rm -r deb_dist/%s/debian/*" % entry], shell=True)
+    check_call("rm -r deb_dist/%s/debian/*" % entry, shell=True)
 
     check_call(
         [
@@ -173,7 +173,7 @@ def runPy2dsc(filename, new_name):
         ]
     )
 
-    check_call(["rm deb_dist/*.dsc deb_dist/*.debian.tar.xz"], shell=True)
+    check_call("rm deb_dist/*.dsc deb_dist/*.debian.tar.xz", shell=True)
 
     return entry
 

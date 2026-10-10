@@ -9,9 +9,6 @@ needed.
 Set a flag on loops if they really need to catch Continue and Break exceptions
 or if it can be more simple code.
 
-Set a flag on return statements and functions that require the use of
-"ReturnValue" exceptions, or if it can be more simple code.
-
 Set a flag on re-raises of exceptions if they can be simple throws or if they
 are in another context.
 
@@ -39,18 +36,6 @@ class FinalizeMarkups(VisitorNoopMixin):
     def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
         # lot of branches and statements, pylint: disable=too-many-branches
-
-        if node.isStatementReturn() or node.isStatementGeneratorReturn():
-            # Search up to the containing function, and check for a try/finally
-            # containing the "return" statement.
-            search = node.getParentReturnConsumer()
-
-            if (
-                search.isExpressionGeneratorObjectBody()
-                or search.isExpressionCoroutineObjectBody()
-                or search.isExpressionAsyncgenObjectBody()
-            ):
-                search.markAsNeedsGeneratorReturnHandling()
 
         if node.isExpressionFunctionCreation():
             if (

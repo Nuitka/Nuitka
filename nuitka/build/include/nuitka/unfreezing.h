@@ -1,9 +1,16 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_UNFREEZING_H__
 #define __NUITKA_UNFREEZING_H__
 
-#include <stdbool.h>
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
+#ifndef NUITKA_LOADER_NAME_MAX_LEN
+#define NUITKA_LOADER_NAME_MAX_LEN 2048
+#endif
 
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
@@ -18,6 +25,8 @@
 
 #define NUITKA_PERFECT_SUPPORTED_FLAG 32
 
+#define NUITKA_MAIN_MODULE_FLAG 128
+
 #if _NUITKA_STANDALONE_MODE && !defined(_NUITKA_DEPLOYMENT_MODE) &&                                                    \
     !defined(_NUITKA_NO_DEPLOYMENT_EXCLUDED_MODULE_USAGE)
 #define NUITKA_EXCLUDED_MODULE_FLAG 64
@@ -25,8 +34,7 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
-                                      struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
+typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module);
 
 #if PYTHON_VERSION >= 0x370 && _NUITKA_EXE_MODE && !_NUITKA_STANDALONE_MODE &&                                         \
     defined(_NUITKA_FILE_REFERENCE_ORIGINAL_MODE)
@@ -34,16 +42,45 @@ typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
 #endif
 
 struct Nuitka_MetaPathBasedLoaderEntry {
-    // Full module name, including package name.
-    char const *name;
+    // The module name data, optional to be overloaded by m_get_name to
+    // resolve into runtime packages.
+    char const *m_name;
+    void (*m_get_name)(char *buffer, size_t buffer_size, char const *name);
 
-#if _NUITKA_MODULE_MODE
-    // Runtime module name, updated to match what package we are loaded into.
-    char const *compilation_name;
-#endif
+    // Optional function to check if a given module name matches this entry.
+    // When NULL, the name is compared against the runtime name.
+    bool (*m_compare_name)(char const *name, char const *m_name);
+
+    // Optional function returning a display name for this entry, used for
+    // error messages and debug output. When NULL, the runtime name is used.
+    char const *(*m_get_display_name)(void);
+
+    // Optional entry of the "preLoad" code to be executed before this module,
+    // or NULL. This avoids a name based connection to that trigger module.
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_pre_load;
+
+    // Optional entry of the "postLoad" code to be executed after this module,
+    // or NULL. This avoids a name based connection to that trigger module.
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_post_load;
+
+    // Optional entry of the parent package, or NULL for top level modules.
+    // This avoids a name based connection for "iter_modules".
+    struct Nuitka_MetaPathBasedLoaderEntry const *m_parent;
 
     // Entry function if compiled module, otherwise NULL.
     module_init_func python_init_func;
+
+    // Function to import this module directly, or NULL. A NULL module means
+    // the module is created and run, a provided module is run and tracked.
+    // Returns a new reference, or NULL with an exception set.
+    PyObject *(*m_import_module)(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                 PyObject *module);
+
+    // Optional load state slots of the entry importer, or NULL. The module
+    // slot keeps a reference to the loaded module, so it cannot be unloaded,
+    // the owner slot holds the thread state that currently loads the module.
+    PyObject **m_module_state;
+    PyThreadState **m_owner_state;
 
     // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
@@ -64,16 +101,55 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 #endif
 };
 
+/* Import a module with explicit load state slots. A NULL module means the
+ * module is created and run, a provided module is run and tracked. Returns a
+ * new reference, or NULL with an exception set.
+ */
+extern PyObject *IMPORT_EMBEDDED_MODULE_STATE(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry,
+                                              PyObject **module_state, PyThreadState **owner_state, PyObject *module);
+
+/* Import a module through its loader entry, using the load state slots of the
+ * entry. A NULL module means the module is created and run, a provided module
+ * is run and tracked. Returns a new reference, or NULL with an exception set.
+ */
+extern PyObject *IMPORT_EMBEDDED_MODULE_ENTRY(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *module);
+
+/* Import a hard module through its loader entry, aborting on failure like the
+ * "IMPORT_HARD_*" helpers do, for guaranteed imports that do not check.
+ */
+extern PyObject *Nuitka_ImportHardModuleEntry(PyThreadState *tstate,
+                                              struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+
+/* Load the pre- or post-load trigger module of an entry, if any. */
+extern void Nuitka_LoadTriggeredModule(PyThreadState *tstate,
+                                       struct Nuitka_MetaPathBasedLoaderEntry const *trigger_entry);
+
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.
  */
-extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
+extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry **loader_entries,
                                         unsigned char **bytecode_data, int entry_count);
+
+/* Produce the runtime name of a loader entry into a buffer. When "m_get_name"
+ * is non-NULL it is invoked with "m_name"; otherwise "m_name" is copied directly.
+ */
+extern void Nuitka_LoaderEntryName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
+                                   size_t buffer_size);
+
+/* Check if a module name matches a loader entry. When "m_compare_name" is
+ * non-NULL it is invoked with "m_name"; otherwise the runtime name is produced
+ * via "Nuitka_LoaderEntryName" and compared with "strcmp".
+ */
+extern bool Nuitka_LoaderEntryCompareName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char const *name);
 
 // For module mode, embedded modules may have to be shifted to below the
 // namespace they are loaded into.
 #if _NUITKA_MODULE_MODE
+extern char const *getMetaPathBasedLoaderModuleRoot(void);
 extern void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name);
+extern void getModuleNameWithPackageLoadedPrefix(char *buffer, size_t buffer_size, char const *name);
 #endif
 
 /* Create a loader object responsible for a package. */

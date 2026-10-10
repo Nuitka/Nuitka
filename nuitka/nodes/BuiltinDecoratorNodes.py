@@ -18,6 +18,10 @@ from .shapes.BuiltinTypeShapes import tshape_classmethod, tshape_staticmethod
 class BuiltinStaticmethodClassmethodMixin(object):
     __slots__ = ()
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 

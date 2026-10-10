@@ -22,6 +22,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment2,
 )
+from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ErrorCodes import (
     getAssertionCode,
     getErrorExitCode,
@@ -128,7 +129,7 @@ def getModuleVariableReferenceCode(
             (
                 exception_state_name,
                 _exception_lineno,
-            ) = context.variable_storage.getExceptionVariableDescriptions()
+            ) = context.getExceptionVariableDescriptions()
 
             emit(
                 """\
@@ -258,8 +259,11 @@ if python_version >= 0x360:
     def _pickCellCType(variable):
         if variable.getName() == "__class__":
             return CTypePyCellObject
-        else:
-            return CTypeCellObject
+
+        if variable.needsPyCell():
+            return CTypePyCellObject
+
+        return CTypeCellObject
 
 else:
 
@@ -402,9 +406,48 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
         return context.variable_storage.getVariableDeclarationClosure(closure_index)
 
 
+def getClosureCopyCode(closure_variables, context):
+    """Get code to copy closure variables storage.
+
+    This gets used by generator/coroutine/asyncgen and annotate functions.
+    """
+    if closure_variables:
+        closure_name = context.allocateTempName(
+            "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
+        )
+    else:
+        closure_name = None
+
+    closure_copy = []
+
+    for count, (variable, variable_trace) in enumerate(closure_variables):
+        variable_declaration = getLocalVariableDeclaration(
+            context, variable, variable_trace
+        )
+
+        target_cell_code = "%s[%d]" % (closure_name, count)
+
+        variable_c_type = variable_declaration.getCType()
+
+        variable_c_type.getCellObjectAssignmentCode(
+            target_cell_code=target_cell_code,
+            variable_code_name=variable_declaration,
+            emit=closure_copy.append,
+        )
+
+    return closure_name, closure_copy
+
+
 def getVariableAssignmentCode(
     context, emit, variable, variable_trace, tmp_name, needs_release, inplace
 ):
+    checkDeferredReleaseUse(
+        usage="assignment",
+        tmp_name=tmp_name,
+        context=context,
+        detail=variable.getName(),
+    )
+
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
         ref_count = 1
@@ -413,7 +456,11 @@ def getVariableAssignmentCode(
 
     if variable.isModuleVariable():
         variable_declaration = VariableDeclaration(
-            "module_var", variable.getName(), None, None
+            c_type="module_var",
+            code_name=variable.getName(),
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
     else:
         variable_declaration = getLocalVariableDeclaration(
@@ -443,7 +490,11 @@ def _getVariableDelCode(
 ):
     if variable.isModuleVariable():
         variable_declaration_old = VariableDeclaration(
-            "module_var", variable.getName(), None, None
+            c_type="module_var",
+            code_name=variable.getName(),
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
         variable_declaration_new = variable_declaration_old
     else:

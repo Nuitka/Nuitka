@@ -15,10 +15,12 @@ import subprocess
 import sys
 
 from nuitka.__past__ import unicode
+from nuitka.code_generation.FrameCodes import hasFrameLocalsProxy
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.options.Options import (
     assumeYesForDownloads,
     getDebugModeIndications,
+    getDevelModeIndications,
     getExperimentalIndications,
     getFcfProtectionMode,
     getFileVersion,
@@ -102,6 +104,7 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    makeContainingPath,
     makePath,
     putTextFileContents,
     renameFile,
@@ -202,11 +205,11 @@ def _getInlineSconsVersionForPythonVersion(python_version_info):
     if python_version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         return "scons-2.3.2"
-    elif os.name == "nt" and python_version_info >= (3, 7):
-        # Windows can use latest, supported MSVC 2026 this way
+    elif python_version_info >= (3, 7):
+        # Python 3.7+ can use latest
         return "scons-4.10.1"
     elif os.name == "nt" and python_version_info >= (3, 5):
-        # Windows can use latest, supported MSVC 2022 this way
+        # Windows supports MSVC 2022 this way
         return "scons-4.3.0"
     else:
         # Everything else 2.7 or higher works with this.
@@ -269,7 +272,7 @@ def _getSconsBinaryCall():
         if scons_path is not None:
             return [scons_path]
         else:
-            scons_logger.sysexit(
+            return scons_logger.sysexit(
                 "Error, the inline copy of scons is not present, nor a scons binary in the PATH."
             )
 
@@ -296,7 +299,7 @@ def _getPythonForSconsExePath():
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
 
-        scons_logger.sysexit("""\
+        return scons_logger.sysexit("""\
 Error, while Nuitka works with older Python, Scons does not, and therefore
 Nuitka needs to find a %s executable, so please install it.
 
@@ -424,7 +427,7 @@ def _buildSconsCommand(options, scons_filename):
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
         if value is None:
-            scons_logger.sysexit(
+            return scons_logger.sysexit(
                 "Error, failure to provide argument for '%s', please report bug." % key
             )
 
@@ -617,7 +620,7 @@ def runScons(
                     cwd=source_dir_cwd,
                 )
             except KeyboardInterrupt:
-                scons_logger.sysexit("User interrupted scons build.")
+                return scons_logger.sysexit("User interrupted scons build.")
             else:
                 # TODO: We might want to make a difference for where reporting makes sense or not.
                 if result == 27:
@@ -643,7 +646,7 @@ def runScons(
                 )
 
                 if not os.path.exists(scons_created_exe):
-                    scons_logger.sysexit(
+                    return scons_logger.sysexit(
                         "Error, scons failed to create the expected file %r. "
                         % scons_created_exe
                     )
@@ -651,6 +654,7 @@ def runScons(
                 _removeUnwantedArtifacts(scons_created_exe)
 
                 if not areSamePaths(scons_options["result_exe"], scons_created_exe):
+                    makeContainingPath(orig_result_exe)
                     renameFile(scons_created_exe, orig_result_exe)
 
             checkCachingSuccess(source_dir)
@@ -753,6 +757,10 @@ def getCommonSconsOptions():
 
     scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
+    scons_options["devel_modes"] = ",".join(getDevelModeIndications())
+
+    scons_options["frame_locals_proxy"] = asBoolStr(hasFrameLocalsProxy())
+
     if shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
@@ -771,21 +779,22 @@ def getCommonSconsOptions():
     if isMingw64():
         scons_options["mingw_mode"] = asBoolStr(True)
 
-    if isZig():
-        if "CC" not in os.environ:
-            zig_exe_path = getExecutablePath("zig")
+    if isZig() and "CC" not in os.environ:
+        zig_exe_path = getExecutablePath("zig")
 
-            if zig_exe_path is None:
-                zig_exe_path = getZigBinaryPath(
-                    logger=scons_logger,
-                    assume_yes_for_downloads=assumeYesForDownloads(),
-                    reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
-                )
+        if zig_exe_path is None:
+            zig_exe_path = getZigBinaryPath(
+                logger=scons_logger,
+                assume_yes_for_downloads=assumeYesForDownloads(),
+                reject_message="Nuitka with '--zig' depends on 'zig' to compile.",
+            )
 
-            scons_options["zig_exe_path"] = zig_exe_path
+        scons_options["zig_exe_path"] = zig_exe_path
 
-            if scons_options["zig_exe_path"] is None:
-                scons_logger.sysexit("Nuitka with '--zig' depends on 'zig' to compile.")
+        if scons_options["zig_exe_path"] is None:
+            return scons_logger.sysexit(
+                "Nuitka with '--zig' depends on 'zig' to compile."
+            )
 
     if getMsvcVersion():
         scons_options["msvc_version"] = getMsvcVersion()
@@ -832,7 +841,7 @@ def getCommonSconsOptions():
         macos_min_version = detectBinaryMinMacOS(sys.executable)
 
         if macos_min_version is None:
-            general.sysexit(
+            return general.sysexit(
                 "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 

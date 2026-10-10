@@ -32,7 +32,6 @@ from .Execution import (
 )
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
-    getArchCommandPrefix,
     getLinuxDistribution,
     isAIX,
     isDebianBasedLinux,
@@ -252,14 +251,8 @@ def _detectStaticLinkLibraryProblem(static_library_path):
     if not isExecutableCommand("nm"):
         return None
 
-    command = getArchCommandPrefix() + (
-        getExecutablePath("nm"),
-        "-u",
-        static_library_path,
-    )
-
     try:
-        output = check_output(command)
+        output = check_output((getExecutablePath("nm"), "-u", static_library_path))
     except (NuitkaCalledProcessError, OSError):
         return None
 

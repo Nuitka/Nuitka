@@ -6,6 +6,9 @@
 from __future__ import print_function
 
 import inspect
+import os
+import sys
+import traceback
 
 print("Generator expression that demonstrates the timing:")
 
@@ -188,6 +191,49 @@ def genexprThrown():
 
 
 genexprThrown()
+
+
+def printTracebackFrames():
+    print(
+        "Gave expected ValueError with traceback frames:",
+        [
+            (os.path.basename(frame[0]), frame[1], frame[2])
+            for frame in traceback.extract_tb(sys.exc_info()[2])
+        ],
+    )
+
+
+print("Generator expressions have throw too:")
+
+
+def genexprThrow():
+    x = (x for x in range(9))
+    next(x)
+
+    print("Throwing a previously raised exception to it.")
+    try:
+        raise ValueError("origin")
+    except ValueError as e:
+        origin = e
+
+    try:
+        x.throw(origin)
+    except ValueError:
+        printTracebackFrames()
+
+    print(
+        "Throwing a previously raised exception to a not yet started generator expression."
+    )
+
+    fresh = (z for z in range(1))
+
+    try:
+        fresh.throw(origin)
+    except ValueError:
+        printTracebackFrames()
+
+
+genexprThrow()
 
 
 def nestedExpressions():

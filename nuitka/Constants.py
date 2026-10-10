@@ -13,7 +13,15 @@ from types import BuiltinFunctionType
 from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
-from .__past__ import GenericAlias, UnionType, iterItems, long, unicode, xrange
+from .__past__ import (
+    GenericAlias,
+    UnionType,
+    frozendict,
+    iterItems,
+    long,
+    unicode,
+    xrange,
+)
 from .Builtins import (
     builtin_anon_names,
     builtin_anon_value_list,
@@ -58,7 +66,7 @@ def compareConstants(a, b):
                 return False
         return True
 
-    if type(a) is dict:
+    if type(a) is dict or type(a) is frozendict:
         if len(a) != len(b):
             return False
 
@@ -119,6 +127,9 @@ else:
         builtin_anon_names["instance"],
     )
 
+if python_version >= 0x3F0:
+    constant_builtin_types += (frozendict,)
+
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
@@ -126,7 +137,7 @@ def isConstant(constant):
 
     constant_type = type(constant)
 
-    if constant_type is dict:
+    if constant_type is dict or constant_type is frozendict:
         for key, value in iterItems(constant):
             if not isConstant(key):
                 return False
@@ -197,7 +208,7 @@ def isMutable(constant):
     a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -222,6 +233,13 @@ def isMutable(constant):
         return False
     elif constant_type in (dict, list, set, bytearray):
         return True
+    elif constant_type is frozendict:
+        # The frozendict itself cannot be changed, but nested values may still
+        # be mutable and thus make copies necessary.
+        for key, value in iterItems(constant):
+            if isMutable(key) or isMutable(value):
+                return True
+        return False
     elif constant_type is tuple:
         for value in constant:
             if isMutable(value):
@@ -269,6 +287,12 @@ def isHashable(constant):
         return True
     elif constant_type in (dict, list, set, slice, bytearray):
         return False
+    elif constant_type is frozendict:
+        # Hashability of a frozendict depends on both its keys and values.
+        for key, value in iterItems(constant):
+            if not isHashable(key) or not isHashable(value):
+                return False
+        return True
     elif constant_type is tuple:
         for value in constant:
             if not isHashable(value):
@@ -280,6 +304,9 @@ def isHashable(constant):
 
 def getUnhashableConstant(constant):
     """Get one unhashable part of a constant."""
+
+    # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -302,6 +329,16 @@ def getUnhashableConstant(constant):
         return None
     elif constant_type in (dict, list, set):
         return constant
+    elif constant_type is frozendict:
+        for key, value in iterItems(constant):
+            res = getUnhashableConstant(key)
+            if res is not None:
+                return res
+
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
     elif constant_type is tuple:
         for value in constant:
             res = getUnhashableConstant(value)
@@ -358,12 +395,17 @@ the_empty_tuple = ()
 the_empty_frozenset = frozenset()
 the_empty_slice = slice(None)
 
+if python_version >= 0x3F0:
+    the_empty_frozendict = frozendict()
+else:
+    the_empty_frozendict = None
+
 the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.
 
 
 def getConstantValueGuide(constant, elements_only):
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
     constant_type = type(constant)
 
     if constant_type in (
@@ -418,6 +460,17 @@ def getConstantValueGuide(constant, elements_only):
                 return "D"
 
         return "d"
+    elif constant_type is frozendict:
+        if not isMutable(constant):
+            # Fully immutable content can be shared, no copy needed.
+            return "i"
+
+        return ("%s" if elements_only else "E%s") % (
+            "".join(
+                getConstantValueGuide(value, elements_only=False)
+                for _key, value in iterItems(constant)
+            ),
+        )
     else:
         return "?"
 

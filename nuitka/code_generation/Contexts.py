@@ -3,17 +3,14 @@
 
 """Code generation contexts."""
 
-import collections
 from abc import abstractmethod
 from contextlib import contextmanager
 
-from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
-from nuitka.options.Options import isExperimental
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
 from nuitka.States import states
-from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -55,11 +52,24 @@ class TempMixin(object):
 
         self.cleanup_names = []
 
+        # Names of values whose release is deferred to the end of the
+        # enclosing code scope, mapped to opaque release details.
+        self.deferred_release_names = []
+
     def _formatTempName(self, base_name, number):
         if number is None:
             return "tmp_{name}".format(name=base_name)
         else:
             return "tmp_{name}_{number:d}".format(name=base_name, number=number)
+
+    def allocateTempNumber(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
+        return number
+
+    def skipTempName(self, base_name):
+        self.allocateTempNumber(base_name)
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
         # We might be hard coding too many details for special temps
@@ -69,12 +79,10 @@ class TempMixin(object):
         # assert not base_name.startswith("tmp_"), base_name
 
         if unique:
+            self.tmp_names[base_name] = None
             number = None
         else:
-            number = self.tmp_names.get(base_name, 0)
-            number += 1
-
-        self.tmp_names[base_name] = number
+            number = self.allocateTempNumber(base_name)
 
         formatted_name = self._formatTempName(base_name=base_name, number=number)
 
@@ -116,19 +124,21 @@ class TempMixin(object):
 
         return result
 
-    def skipTempName(self, base_name):
+    def hasTempName(self, base_name):
+        return base_name in self.tmp_names
+
+    def getUniqueCodeName(self, base_name):
         number = self.tmp_names.get(base_name, 0)
         number += 1
         self.tmp_names[base_name] = number
+
+        return "%s_%d" % (base_name, number)
 
     def getIntResName(self):
         return self.allocateTempName("res", "int", unique=True)
 
     def getBoolResName(self):
         return self.allocateTempName("result", "bool", unique=True)
-
-    def hasTempName(self, base_name):
-        return base_name in self.tmp_names
 
     def getExceptionEscape(self):
         return self.exception_escape
@@ -250,92 +260,54 @@ class TempMixin(object):
         if self.needsCleanup(tmp_source):
             self.addCleanupTempName(tmp_dest)
             self.removeCleanupTempName(tmp_source)
+            self.transferDeferredReleaseName(tmp_source, tmp_dest)
 
     def needsCleanup(self, tmp_name):
         return tmp_name in self.cleanup_names[-1]
 
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        assert tmp_name not in self.deferred_release_names[-1], tmp_name
+
+        self.deferred_release_names[-1][tmp_name] = release_info
+
+    def removeDeferredReleaseName(self, tmp_name):
+        assert tmp_name in self.deferred_release_names[-1], tmp_name
+
+        del self.deferred_release_names[-1][tmp_name]
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        if self.isDeferredReleaseName(tmp_source):
+            self.addDeferredReleaseName(
+                tmp_dest, self.deferred_release_names[-1][tmp_source]
+            )
+            self.removeDeferredReleaseName(tmp_source)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return tmp_name in self.deferred_release_names[-1]
+
+    def getDeferredReleaseNames(self):
+        return self.deferred_release_names[-1]
+
     def pushCleanupScope(self):
         self.cleanup_names.append([])
+        self.deferred_release_names.append(OrderedDict())
 
     def popCleanupScope(self):
         assert not self.cleanup_names[-1]
+        assert not self.deferred_release_names[-1]
+
         del self.cleanup_names[-1]
+        del self.deferred_release_names[-1]
 
 
-# TODO: Remove when isExperimental("new-code-objects") is becoming the
-# standard.
-CodeObjectHandle = collections.namedtuple(
-    "CodeObjectHandle",
-    (
-        "co_name",
-        "co_qualname",
-        "co_kind",
-        "co_varnames",
-        "co_argcount",
-        "co_posonlyargcount",
-        "co_kwonlyargcount",
-        "co_has_starlist",
-        "co_has_stardict",
-        "co_filename",
-        "line_number",
-        "future_flags",
-        "co_new_locals",
-        "co_freevars",
-        "is_optimized",
-    ),
-)
+class CodeObjectsMixin(object):
+    __slots__ = ()
 
-
-if isExperimental("old-code-objects"):
-
-    class CodeObjectsMixin(object):
-        # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-        __slots__ = ()
-
-        def __init__(self):
-            # Code objects needed made unique by a key.
-            self.code_objects = {}
-
-        def getCodeObjects(self):
-            return sorted(iterItems(self.code_objects))
-
-        def getCodeObjectHandle(self, code_object):
-            key = CodeObjectHandle(
-                co_filename=code_object.getFilename(),
-                co_name=code_object.getCodeObjectName(),
-                co_qualname=code_object.getCodeObjectQualname(),
-                line_number=code_object.getLineNumber(),
-                co_varnames=code_object.getVarNames(),
-                co_argcount=code_object.getArgumentCount(),
-                co_freevars=code_object.getFreeVarNames(),
-                co_posonlyargcount=code_object.getPosOnlyParameterCount(),
-                co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
-                co_kind=code_object.getCodeObjectKind(),
-                is_optimized=code_object.getFlagIsOptimizedValue(),
-                co_new_locals=code_object.getFlagNewLocalsValue(),
-                co_has_starlist=code_object.hasStarListArg(),
-                co_has_stardict=code_object.hasStarDictArg(),
-                future_flags=code_object.getFutureSpec().asFlags(),
-            )
-
-            if key not in self.code_objects:
-                self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
-
-            return self.code_objects[key]
-
-        def _calcHash(self, key):
-            return getStringHash("-".join(str(s) for s in key))
-
-else:
-
-    class CodeObjectsMixin(object):
-        __slots__ = ()
-
-        def getCodeObjectHandle(self, code_object):
-            return (
-                "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
-                % self.getConstantCode(code_object)
-            )
+    def getCodeObjectHandle(self, code_object):
+        return (
+            "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
+            % self.getConstantCode(code_object)
+        )
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -399,6 +371,14 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
+    def hasDeclaration(self, key):
+        pass
+
+    @abstractmethod
+    def getTypeDescriptionCode(self, type_description_value):
+        pass
+
+    @abstractmethod
     def pushFrameVariables(self, frame_variables):
         pass
 
@@ -407,23 +387,15 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
-    def getFrameVariableTypeDescriptions(self):
-        pass
-
-    @abstractmethod
-    def getFrameVariableTypeDescription(self):
-        pass
-
-    @abstractmethod
-    def getFrameTypeDescriptionDeclaration(self):
-        pass
-
-    @abstractmethod
-    def getFrameVariableCodeNames(self):
+    def getFrameVariables(self):
         pass
 
     @abstractmethod
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
+        pass
+
+    @abstractmethod
+    def allocateTempNumber(self, base_name):
         pass
 
     @abstractmethod
@@ -437,6 +409,9 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     @abstractmethod
     def getBoolResName(self):
         pass
+
+    def getExceptionVariableDescriptions(self):
+        return self.variable_storage.getExceptionVariableDescriptions()
 
     @abstractmethod
     def hasTempName(self, base_name):
@@ -526,10 +501,6 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
     def popCleanupScope(self):
         pass
 
-    @abstractmethod
-    def addInclude(self, header_name):
-        pass
-
 
 class PythonChildContextBase(PythonContextBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
@@ -565,23 +536,20 @@ class PythonChildContextBase(PythonContextBase):
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
 
+    def hasDeclaration(self, key):
+        return self.parent.hasDeclaration(key)
+
+    def getTypeDescriptionCode(self, type_description_value):
+        return self.parent.getTypeDescriptionCode(type_description_value)
+
     def pushFrameVariables(self, frame_variables):
         return self.parent.pushFrameVariables(frame_variables)
 
     def popFrameVariables(self):
         return self.parent.popFrameVariables()
 
-    def getFrameVariableTypeDescriptions(self):
-        return self.parent.getFrameVariableTypeDescriptions()
-
-    def getFrameVariableTypeDescription(self):
-        return self.parent.getFrameVariableTypeDescription()
-
-    def getFrameTypeDescriptionDeclaration(self):
-        return self.parent.getFrameTypeDescriptionDeclaration()
-
-    def getFrameVariableCodeNames(self):
-        return self.parent.getFrameVariableCodeNames()
+    def getFrameVariables(self):
+        return self.parent.getFrameVariables()
 
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
@@ -592,9 +560,6 @@ class PythonChildContextBase(PythonContextBase):
     def isModuleVariableAccessorCaching(self, variable_name):
         return self.parent.isModuleVariableAccessorCaching(variable_name)
 
-    def addInclude(self, header_name):
-        self.parent.addInclude(header_name)
-
 
 class FrameDeclarationsMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -603,8 +568,6 @@ class FrameDeclarationsMixin(object):
     def __init__(self):
         # Frame is active or not, default not.
         self.frame_variables_stack = [""]
-        # Type descriptions of the current frame.
-        self.frame_type_descriptions = [()]
 
         # Types of variables for current frame.
         self.frame_variable_types = {}
@@ -624,10 +587,11 @@ class FrameDeclarationsMixin(object):
 
         if is_light:
             frame_identifier = VariableDeclaration(
-                "struct Nuitka_FrameObject *",
-                "m_frame",
-                None,
-                self.getContextObjectName(),
+                c_type="struct Nuitka_FrameObject *",
+                code_name="m_frame",
+                init_value=None,
+                heap_name=self.getContextObjectName(),
+                struct_name=None,
             )
 
         else:
@@ -639,12 +603,6 @@ class FrameDeclarationsMixin(object):
             frame_identifier = self.variable_storage.addVariableDeclarationTop(
                 "struct Nuitka_FrameObject *", frame_handle, None
             )
-
-        self.variable_storage.addVariableDeclarationTop(
-            "NUITKA_MAY_BE_UNUSED char const *",
-            "type_description_%d" % self.frames_used,
-            "NULL",
-        )
 
         self.frame_stack.append(frame_identifier)
         return frame_identifier
@@ -661,12 +619,13 @@ class FrameDeclarationsMixin(object):
     def pushFrameVariables(self, frame_variables):
         """Set current the frame variables."""
         self.frame_variables_stack.append(frame_variables)
-        self.frame_type_descriptions.append(set())
 
     def popFrameVariables(self):
         """End of frame, restore previous ones."""
         del self.frame_variables_stack[-1]
-        del self.frame_type_descriptions[-1]
+
+    def getFrameVariables(self):
+        return self.frame_variables_stack[-1]
 
     def setVariableType(self, variable, variable_declaration):
         assert variable.isLocalVariable(), variable
@@ -676,40 +635,6 @@ class FrameDeclarationsMixin(object):
             str(variable_declaration),
             variable_declaration.getCType().getTypeIndicator(),
         )
-
-    def getFrameVariableTypeDescriptions(self):
-        return self.frame_type_descriptions[-1]
-
-    def getFrameTypeDescriptionDeclaration(self):
-        return self.variable_storage.getVariableDeclarationTop(
-            "type_description_%d" % (len(self.frame_stack) - 1)
-        )
-
-    def getFrameVariableTypeDescription(self):
-        result = "".join(
-            self.frame_variable_types.get(variable, ("NULL", "N"))[1]
-            for variable in self.frame_variables_stack[-1]
-        )
-
-        if result:
-            self.frame_type_descriptions[-1].add(result)
-
-        return result
-
-    def getFrameVariableCodeNames(self):
-        result = []
-
-        for variable in self.frame_variables_stack[-1]:
-            variable_code_name, variable_code_type = self.frame_variable_types.get(
-                variable, ("NULL", "N")
-            )
-
-            if variable_code_type in ("b",):
-                result.append("(int)" + variable_code_name)
-            else:
-                result.append(variable_code_name)
-
-        return result
 
     def getLocalsDictNames(self):
         return self.locals_dict_names or ()
@@ -790,18 +715,16 @@ class PythonModuleContext(
         "module",
         "name",
         "code_name",
+        "data_filename",
         "declaration_codes",
         "helper_codes",
-        "frame_handle",
         "variable_storage",
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
-        "module_includes",
         "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
-        "frame_type_descriptions",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
@@ -818,10 +741,7 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
-        # TODO: Remove when isExperimental("new-code-objects") is becoming the
-        # standard.
-        # CodeObjectsMixin
-        "code_objects",
+        "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -833,7 +753,6 @@ class PythonModuleContext(
         PythonContextBase.__init__(self)
 
         TempMixin.__init__(self)
-        CodeObjectsMixin.__init__(self)
         FrameDeclarationsMixin.__init__(self)
         ReturnReleaseModeMixin.__init__(self)
 
@@ -843,13 +762,14 @@ class PythonModuleContext(
         self.module = module
         self.name = module.getFullName()
         self.code_name = module.getCodeName()
+        self.data_filename = data_filename
 
         self.declaration_codes = {}
         self.helper_codes = {}
 
-        self.frame_handle = None
-
-        self.variable_storage = VariableStorage(heap_name=None)
+        self.variable_storage = VariableStorage(
+            heap_name=None, struct_name=None, struct_type_name=None
+        )
 
         self.function_table_entries = []
 
@@ -858,8 +778,6 @@ class PythonModuleContext(
         )
 
         self.module_init_codes = []
-
-        self.module_includes = set()
 
         self.module_variable_caching = {}
 
@@ -900,6 +818,9 @@ class PythonModuleContext(
     def getModuleCodeName(self):
         return self.code_name
 
+    def getDataFilename(self):
+        return self.data_filename
+
     def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
 
@@ -918,6 +839,12 @@ class PythonModuleContext(
         assert key not in self.declaration_codes
 
         self.declaration_codes[key] = code
+
+    def hasDeclaration(self, key):
+        return key in self.declaration_codes
+
+    def getTypeDescriptionCode(self, type_description_value):
+        return self.constant_accessor.getTypeDescriptionCode(type_description_value)
 
     def getDeclarations(self):
         return self.declaration_codes
@@ -952,12 +879,6 @@ class PythonModuleContext(
     def addModuleInitCode(self, code):
         self.module_init_codes.append(code)
 
-    def addInclude(self, header_name):
-        self.module_includes.add(header_name)
-
-    def getModuleIncludes(self):
-        return sorted(self.module_includes)
-
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)
 
@@ -982,11 +903,9 @@ class PythonFunctionContext(
 ):
     __slots__ = (
         "function",
-        "frame_handle",
         "variable_storage",
         # FrameDeclarationsMixin
         "frame_variables_stack",
-        "frame_type_descriptions",
         "frame_variable_types",
         "frames_used",
         "frame_stack",
@@ -1003,6 +922,7 @@ class PythonFunctionContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        "deferred_release_names",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1023,12 +943,16 @@ class PythonFunctionContext(
         self.setExceptionEscape("function_exception_exit")
         self.setReturnTarget("function_return_exit")
 
-        self.frame_handle = None
-
         self.variable_storage = self._makeVariableStorage()
 
     def _makeVariableStorage(self):
-        return VariableStorage(heap_name=None)
+        function_code_name = self.function.getCodeName()
+
+        return VariableStorage(
+            heap_name=None,
+            struct_name="local_vars_%s" % function_code_name,
+            struct_type_name="struct %s_locals" % function_code_name,
+        )
 
     def __repr__(self):
         return "<%s for %s '%s'>" % (
@@ -1074,7 +998,11 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     __slots__ = ()
 
     def _makeVariableStorage(self):
-        return VariableStorage(heap_name="%s_heap" % self.getContextObjectName())
+        return VariableStorage(
+            heap_name="%s_heap" % self.getContextObjectName(),
+            struct_name=None,
+            struct_type_name=None,
+        )
 
     @staticmethod
     def isForDirectCall():
@@ -1133,6 +1061,7 @@ class PythonFunctionOutlineContext(
     __slots__ = (
         "outline",
         "variable_storage",
+        "exception_variables",
         # ReturnReleaseModeMixin
         "return_release_mode",
         "return_exit",
@@ -1149,6 +1078,7 @@ class PythonFunctionOutlineContext(
         self.outline = outline
 
         self.variable_storage = parent.variable_storage
+        self.exception_variables = None
 
     def getOwner(self):
         return self.outline
@@ -1156,17 +1086,31 @@ class PythonFunctionOutlineContext(
     def getEntryPoint(self):
         return self.outline.getEntryPoint()
 
+    def getExceptionVariableDescriptions(self):
+        if self.exception_variables is None:
+            self.exception_variables = (
+                self.variable_storage.getExceptionVariableDescriptionsWithOwnLineno()
+            )
+
+        return self.exception_variables
+
     def allocateLabel(self, label):
         return self.parent.allocateLabel(label)
 
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
         return self.parent.allocateTempName(base_name, type_name, unique)
 
+    def allocateTempNumber(self, base_name):
+        return self.parent.allocateTempNumber(base_name)
+
     def skipTempName(self, base_name):
         return self.parent.skipTempName(base_name)
 
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
+
+    def getUniqueCodeName(self, base_name):
+        return self.parent.getUniqueCodeName(base_name)
 
     def getCleanupTempNames(self):
         return self.parent.getCleanupTempNames()
@@ -1184,16 +1128,26 @@ class PythonFunctionOutlineContext(
     def needsCleanup(self, tmp_name):
         return self.parent.needsCleanup(tmp_name)
 
+    def addDeferredReleaseName(self, tmp_name, release_info):
+        self.parent.addDeferredReleaseName(tmp_name, release_info)
+
+    def removeDeferredReleaseName(self, tmp_name):
+        self.parent.removeDeferredReleaseName(tmp_name)
+
+    def transferDeferredReleaseName(self, tmp_source, tmp_dest):
+        self.parent.transferDeferredReleaseName(tmp_source, tmp_dest)
+
+    def isDeferredReleaseName(self, tmp_name):
+        return self.parent.isDeferredReleaseName(tmp_name)
+
+    def getDeferredReleaseNames(self):
+        return self.parent.getDeferredReleaseNames()
+
     def pushCleanupScope(self):
         return self.parent.pushCleanupScope()
 
     def popCleanupScope(self):
         self.parent.popCleanupScope()
-
-    # TODO: Remove when isExperimental("new-code-objects") is becoming the
-    # standard.
-    def getCodeObjectHandle(self, code_object):
-        return self.parent.getCodeObjectHandle(code_object)
 
     def getExceptionEscape(self):
         return self.parent.getExceptionEscape()

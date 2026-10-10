@@ -7,6 +7,8 @@ import brotli
 
 # nuitka-skip-unless-imports: brotli
 
+# nuitka-project: --mode=standalone
+
 print("Compressed data:", brotli.compress(b"README.txt"))
 print("OK.")
 

@@ -8,11 +8,11 @@ to track it, so we can include files into the executable, or write more efficien
 """
 
 from .BuiltinRefNodes import ExpressionBuiltinPatchableTypeRef
-from .ChildrenHavingMixins import (
-    ChildrenExpressionBuiltinOpenP2Mixin,
-    ChildrenExpressionBuiltinOpenP3Mixin,
-)
 from .ExpressionBases import ExpressionBase
+from .HardImportNodesGenerated import (
+    ExpressionBuiltinsOpenBefore3CallBase,
+    ExpressionBuiltinsOpenSince3CallBase,
+)
 from .shapes.BuiltinTypeShapes import tshape_file
 
 
@@ -24,7 +24,7 @@ class ExpressionBuiltinOpenMixin(object):
     def getTypeShape():
         return tshape_file
 
-    def computeExpression(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # Note: Quite impossible to predict without further assumptions, but we could look
@@ -32,73 +32,20 @@ class ExpressionBuiltinOpenMixin(object):
         return self, None, None
 
 
-class ExpressionBuiltinOpenP2(
+class ExpressionBuiltinsOpenBefore3Call(
     ExpressionBuiltinOpenMixin,
-    ChildrenExpressionBuiltinOpenP2Mixin,
+    ExpressionBuiltinsOpenBefore3CallBase,
     ExpressionBase,
 ):
-    kind = "EXPRESSION_BUILTIN_OPEN_P2"
-
-    python_version_spec = "< 0x300"
-
-    named_children = ("filename", "mode|optional", "buffering|optional")
-
-    def __init__(self, filename, mode, buffering, source_ref):
-        ChildrenExpressionBuiltinOpenP2Mixin.__init__(
-            self,
-            filename=filename,
-            mode=mode,
-            buffering=buffering,
-        )
-
-        ExpressionBase.__init__(self, source_ref)
+    kind = "EXPRESSION_BUILTINS_OPEN_BEFORE3_CALL"
 
 
-class ExpressionBuiltinOpenP3(
+class ExpressionBuiltinsOpenSince3Call(
     ExpressionBuiltinOpenMixin,
-    ChildrenExpressionBuiltinOpenP3Mixin,
+    ExpressionBuiltinsOpenSince3CallBase,
     ExpressionBase,
 ):
-    kind = "EXPRESSION_BUILTIN_OPEN_P3"
-
-    python_version_spec = ">= 0x300"
-
-    named_children = (
-        "filename",
-        "mode|optional",
-        "buffering|optional",
-        "encoding|optional",
-        "errors|optional",
-        "newline|optional",
-        "closefd|optional",
-        "opener|optional",
-    )
-
-    def __init__(
-        self,
-        filename,
-        mode,
-        buffering,
-        encoding,
-        errors,
-        newline,
-        closefd,
-        opener,
-        source_ref,
-    ):
-        ChildrenExpressionBuiltinOpenP3Mixin.__init__(
-            self,
-            filename=filename,
-            mode=mode,
-            buffering=buffering,
-            encoding=encoding,
-            errors=errors,
-            newline=newline,
-            closefd=closefd,
-            opener=opener,
-        )
-
-        ExpressionBase.__init__(self, source_ref)
+    kind = "EXPRESSION_BUILTINS_OPEN_SINCE3_CALL"
 
 
 def makeExpressionBuiltinsOpenCall(
@@ -112,20 +59,25 @@ def makeExpressionBuiltinsOpenCall(
     opener,
     source_ref,
 ):
-    """Function reference ctypes.CDLL"""
-
-    assert str is not bytes
-    return ExpressionBuiltinOpenP3(
-        filename=filename,
-        mode=mode,
-        buffering=buffering,
-        encoding=encoding,
-        errors=errors,
-        newline=newline,
-        closefd=closefd,
-        opener=opener,
-        source_ref=source_ref,
-    )
+    if str is bytes:
+        return ExpressionBuiltinsOpenBefore3Call(
+            name=filename,
+            mode=mode,
+            buffering=buffering,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionBuiltinsOpenSince3Call(
+            file=filename,
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+            opener=opener,
+            source_ref=source_ref,
+        )
 
 
 def makeBuiltinOpenRefNode(source_ref):

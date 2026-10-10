@@ -3,7 +3,7 @@
 
 """Shapes for Python built-in types."""
 
-from nuitka.__past__ import long, xrange
+from nuitka.__past__ import frozendict, long, unicode, xrange
 from nuitka.code_generation.c_types.CTypeNuitkaBooleans import (
     CTypeNuitkaBoolEnum,
 )
@@ -11,7 +11,7 @@ from nuitka.code_generation.c_types.CTypeNuitkaInts import (
     CTypeNuitkaIntOrLongStruct,
 )
 from nuitka.code_generation.Reports import onMissingOperation
-from nuitka.Constants import the_empty_unicode
+from nuitka.Constants import the_empty_frozendict, the_empty_unicode
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
@@ -1117,6 +1117,35 @@ class ShapeTypeDictIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
 
 
 tshape_dict_iterator = ShapeTypeDictIterator()
+
+
+class ShapeTypeFrozendict(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
+    typical_value = the_empty_frozendict
+
+    @staticmethod
+    def getTypeName():
+        return "frozendict"
+
+    @staticmethod
+    def getShapeIter():
+        return tshape_dict_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(the_empty_frozendict, attribute_name)
+
+    def getComparisonLtShape(self, right_shape):
+        # Need to consider value shape for this
+        return operation_result_unknown
+
+
+tshape_frozendict = ShapeTypeFrozendict()
 
 
 class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
@@ -4270,6 +4299,50 @@ class ShapeTypeBuiltinExceptionClass(
 
 
 tshape_exception_class = ShapeTypeBuiltinExceptionClass()
+
+
+_shapes_by_type = {
+    type(None): tshape_none,
+    bool: tshape_bool,
+    int: tshape_int,
+    float: tshape_float,
+    complex: tshape_complex,
+    str: tshape_str,
+    bytearray: tshape_bytearray,
+    tuple: tshape_tuple,
+    list: tshape_list,
+    set: tshape_set,
+    frozenset: tshape_frozenset,
+    dict: tshape_dict,
+    slice: tshape_slice,
+    type(Ellipsis): tshape_ellipsis,
+    type: tshape_type,
+}
+
+if python_version >= 0x300:
+    _shapes_by_type[bytes] = tshape_bytes
+else:
+    _shapes_by_type[long] = tshape_long
+    _shapes_by_type[unicode] = tshape_unicode
+
+_shapes_by_type[xrange] = tshape_xrange
+
+if python_version >= 0x3F0:
+    _shapes_by_type[frozendict] = tshape_frozendict
+
+
+def getTypeShapeFromValue(value):
+    """Get the type shape of a value.
+
+    Args:
+        value: The value to get the type shape for.
+
+    Returns:
+        Type shape of the value, or None if there is no shape for it.
+    """
+
+    return _shapes_by_type.get(type(value))
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

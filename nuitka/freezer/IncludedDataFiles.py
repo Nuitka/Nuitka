@@ -10,6 +10,7 @@ for dependency analysis.
 
 import fnmatch
 import os
+import re
 
 from nuitka import ModuleRegistry
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -31,11 +32,7 @@ from nuitka.options.Options import (
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.plugins.Hooks import considerDataFiles, onDataFileTags
-from nuitka.PythonFlavors import getSystemPrefixPath
-from nuitka.PythonVersions import (
-    getSitePackageCandidateNames,
-    python_version_str,
-)
+from nuitka.PythonVersions import getSitePackageCandidateNames
 from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
@@ -59,7 +56,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
-from nuitka.utils.Utils import counted, isAIX, isMacOS, isWin32Windows
+from nuitka.utils.Utils import counted, isMacOS, isWin32Windows
 
 data_file_tags = []
 
@@ -337,6 +334,41 @@ default_ignored_filenames = ("py.typed",)
 if not isMacOS():
     default_ignored_filenames += (".DS_Store",)
 
+# Normalized form for checking too.
+normalized_ignored_filenames = set(
+    os.path.normcase(ignored) for ignored in default_ignored_filenames
+)
+
+# Shared libraries can carry a version suffix, e.g. "libfoo.so.1.2", which the
+# suffix check above does not catch.
+_re_versioned_shared_library_suffix = re.compile(r"\.(?:so|dylib)(?:\.\d+)+$")
+
+
+def isIgnoredDataFilename(filename):
+    """Check if a filename is ignored as a data file by Nuitka.
+
+    Notes:
+        Nuitka ignores files like 'py.typed' or '.pyi' files for data file
+        inclusion, and project configurations may list them as expected
+        data files nonetheless, which must not be considered a mismatch.
+
+    Args:
+        filename: The path of the data file.
+
+    Returns:
+        bool: True if the file is ignored.
+    """
+    if os.path.normcase(os.path.basename(filename)) in normalized_ignored_filenames:
+        return True
+
+    if os.path.normcase(filename).endswith(default_ignored_suffixes):
+        return True
+
+    if _re_versioned_shared_library_suffix.search(os.path.normcase(filename)):
+        return True
+
+    return containsPathElements(filename, default_ignored_dirs)
+
 
 def makeIncludedDataDirectory(
     source_path,
@@ -392,6 +424,11 @@ def makeIncludedDataDirectory(
         only_suffixes=only_suffixes,
         normalize=normalize,
     ):
+        if not raw and _re_versioned_shared_library_suffix.search(
+            os.path.normcase(filename)
+        ):
+            continue
+
         filename_relative = os.path.relpath(filename, source_path)
 
         filename_dest = os.path.join(dest_path, filename_relative)
@@ -682,7 +719,7 @@ def addIncludedPdbFile(entry_point):
                 pdb_dest,
             )
 
-            if pdb_source_candidate == pdb_dest_full:
+            if areSamePaths(pdb_source_candidate, pdb_dest_full):
                 addIncludedDataFile(
                     makeIncludedDataFileGenerated(
                         dest_path=pdb_dest,
@@ -750,7 +787,10 @@ def checkProjectExpectedDataFiles():
     Notes:
         This is used to verify that the project configuration tools like
         'uv' or 'poetry' are not having their data files ignored by
-        Nuitka or that Nuitka is not ignoring them.
+        Nuitka or that Nuitka is not ignoring them. Data files that Nuitka
+        ignores by default, e.g. 'py.typed' files, are not expected, and
+        data files included beyond the project configuration, e.g. from
+        explicit user options, are not considered an error.
     """
 
     expected_data_files = getProjectExpectedDataFiles()
@@ -759,32 +799,24 @@ def checkProjectExpectedDataFiles():
         return
 
     expected_data_files = set(
-        getNormalizedPath(filename) for filename in expected_data_files
+        getNormalizedPath(filename)
+        for filename in expected_data_files
+        if not isIgnoredDataFilename(filename)
     )
 
-    included_data_files = set()
+    included_data_files = set(
+        included_data_file.dest_path
+        for included_data_file in _included_data_files
+        if "user" in included_data_file.tags
+    )
 
-    for included_data_file in _included_data_files:
-        if "user" in included_data_file.tags:
-            included_data_files.add(included_data_file.dest_path)
+    missing_data_files = expected_data_files - included_data_files
 
-    if expected_data_files != included_data_files:
-        start_message = "Error, the expected data files from project configuration do not match the included data files."
-
-        missing_data_files = expected_data_files - included_data_files
-        extra_data_files = included_data_files - expected_data_files
-
-        if missing_data_files:
-            start_message += "\nMissing data files:\n" + "\n".join(
-                sorted(missing_data_files)
-            )
-
-        if extra_data_files:
-            start_message += "\nExtra data files:\n" + "\n".join(
-                sorted(extra_data_files)
-            )
-
-        inclusion_logger.sysexit(start_message)
+    if missing_data_files:
+        return inclusion_logger.sysexit("""\
+Error, the expected data files from project configuration do not match the included data files.
+Missing data files:
+%s""" % "\n".join(sorted(missing_data_files)))
 
 
 def _addIncludedDataFilesFromFileOptions():
@@ -875,44 +907,9 @@ def addIncludedDataFilesFromFlavor():
     """Add data files required by the Python flavor/OS.
 
     Notes:
-        Example: AIX requires libpython embedded.
+        This is currently not adding anything, but is kept as a hook for
+        flavor or OS specific data files that may be needed in the future.
     """
-    if isAIX():
-        import sysconfig
-
-        # On AIX, the Python DLL is hidden in an archive.
-        lib_filename = "libpython%s.a" % python_version_str
-
-        lib_filename_full = os.path.join(
-            sysconfig.get_config_var("LIBPL"),
-            lib_filename,
-        )
-
-        if not os.path.exists(lib_filename_full):
-            system_prefix = getSystemPrefixPath()
-
-            for lib_part in ("lib64", "lib"):
-                candidate = os.path.join(system_prefix, lib_part, lib_filename)
-
-                if os.path.exists(candidate):
-                    lib_filename_full = candidate
-                    break
-            else:
-                return inclusion_logger.sysexit(
-                    """\
-Error, cannot find '%s' in the Python installation '%s' (tried LIBPL, lib64, lib)."""
-                    % (lib_filename, system_prefix)
-                )
-
-        addIncludedDataFile(
-            makeIncludedDataFile(
-                source_path=lib_filename_full,
-                dest_path=lib_filename,
-                reason="Required Python DLL",
-                tracer=inclusion_logger,
-                tags="flavor",
-            )
-        )
 
 
 def addIncludedDataFilesFromFileOptions():
@@ -1189,7 +1186,15 @@ def copyDataFiles(standalone_entry_points):
 
     data_file_paths = []
 
-    for included_datafile in getIncludedDataFiles():
+    # Copy symlinks last, so their targets are present in the distribution, and
+    # the symlinks can be preserved, rather than being dereferenced.
+    included_datafiles = sorted(
+        getIncludedDataFiles(),
+        key=lambda included_datafile: included_datafile.kind == "data_file"
+        and os.path.islink(included_datafile.source_path),
+    )
+
+    for included_datafile in included_datafiles:
         # TODO: directories should be resolved to files.
         if included_datafile.needsCopy():
             if shallMakeModule():

@@ -164,6 +164,7 @@ def buildImportFromNode(provider, node, source_ref):
                 using_module_name=provider.getParentModule().getFullName(),
                 module_name="__future__",
                 value_name="__future__",
+                extra_module_usages=(),
                 source_ref=source_ref,
             )
         else:

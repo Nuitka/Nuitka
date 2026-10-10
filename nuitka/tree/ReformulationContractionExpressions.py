@@ -19,14 +19,18 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecGeneratorExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd,
 )
 from nuitka.nodes.DictionaryNodes import (
+    ExpressionDictOperationIteritems,
     StatementDictOperationSet,
     StatementDictOperationSetKeyValue,
 )
@@ -51,6 +55,7 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
@@ -229,22 +234,6 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
-    code_object = CodeObjectSpec(
-        co_name="<genexpr>",
-        co_qualname=provider.getChildQualname("<genexpr>"),
-        co_kind="Generator",
-        co_varnames=(".0",),
-        co_freevars=(),
-        co_argcount=1,
-        co_posonlyargcount=0,
-        co_kwonlyargcount=0,
-        co_has_starlist=False,
-        co_has_stardict=False,
-        co_filename=parent_module.getRunTimeFilename(),
-        co_lineno=source_ref.getLineNumber(),
-        future_spec=parent_module.getFutureSpec(),
-    )
-
     is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
 
     # Some of the newly allowed stuff in 3.7 fails to set the async flag.
@@ -253,6 +242,16 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             "Asyncgen",
             "Coroutine",
         )
+
+    code_object = CodeObjectSpecGeneratorExpression(
+        co_is_async=is_async,
+        co_qualname=provider.getChildQualname("<genexpr>"),
+        co_varnames=(".0",),
+        co_freevars=(),
+        co_filename=parent_module.getRunTimeFilename(),
+        co_lineno=source_ref.getLineNumber(),
+        future_spec=parent_module.getFutureSpec(),
+    )
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
@@ -348,7 +347,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     return function_body
 
 
-def _buildContractionBodyNode(
+def _buildContractionBodyNode(  # pylint: disable=too-many-statements
     provider,
     node,
     emit_class,
@@ -401,8 +400,83 @@ def _buildContractionBodyNode(
             )
         )
 
+    item_provider = function_body if not assign_provider else provider
     if hasattr(node, "elt"):
-        if start_value is not None:
+        if getKind(node.elt) == "Starred":
+            tmp_subiterator = item_provider.allocateTempVariable(
+                temp_scope=None, name="subiterator", temp_type="object"
+            )
+            tmp_subitem = item_provider.allocateTempVariable(
+                temp_scope=None, name="subitem", temp_type="object"
+            )
+
+            if start_value is not None:
+                emit_item = emit_class(
+                    ExpressionTempVariableRef(
+                        variable=container_tmp, source_ref=source_ref
+                    ),
+                    ExpressionTempVariableRef(
+                        variable=tmp_subitem, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            else:
+                emit_item = StatementExpressionOnly(
+                    expression=emit_class(
+                        ExpressionTempVariableRef(
+                            variable=tmp_subitem, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                )
+
+            loop_body = makeStatementsSequenceFromStatements(
+                makeTryExceptSingleHandlerNode(
+                    tried=makeStatementAssignmentVariable(
+                        variable=tmp_subitem,
+                        source=ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_subiterator, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                emit_item,
+            )
+
+            loop = StatementLoop(
+                loop_body=loop_body,
+                source_ref=source_ref,
+            )
+
+            current_body = makeTryFinallyReleaseStatement(
+                provider=item_provider,
+                tried=makeStatementsSequenceFromStatements(
+                    [
+                        makeStatementAssignmentVariable(
+                            variable=tmp_subiterator,
+                            source=ExpressionBuiltinIter1(
+                                value=buildNode(
+                                    item_provider, node.elt.value, source_ref
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        loop,
+                    ]
+                ),
+                variables=(tmp_subiterator, tmp_subitem),
+                source_ref=source_ref,
+            )
+
+        elif start_value is not None:
             current_body = emit_class(
                 ExpressionTempVariableRef(
                     variable=container_tmp, source_ref=source_ref
@@ -426,22 +500,96 @@ def _buildContractionBodyNode(
                 source_ref=source_ref,
             )
     else:
-        current_body = emit_class(
-            dict_arg=ExpressionTempVariableRef(
-                variable=container_tmp, source_ref=source_ref
-            ),
-            key=buildNode(
-                provider=function_body if not assign_provider else provider,
-                node=node.key,
+        if node.value is None:
+            tmp_dict_iterator = item_provider.allocateTempVariable(
+                temp_scope=None, name="dict_iterator", temp_type="object"
+            )
+            tmp_dict_item = item_provider.allocateTempVariable(
+                temp_scope=None, name="subitem", temp_type="object"
+            )
+
+            emit_item = emit_class(
+                dict_arg=ExpressionTempVariableRef(
+                    variable=container_tmp, source_ref=source_ref
+                ),
+                key=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
+                    subscript=ExpressionConstantIntRef(0, source_ref),
+                    source_ref=source_ref,
+                ),
+                value=ExpressionSubscriptLookup(
+                    expression=ExpressionTempVariableRef(tmp_dict_item, source_ref),
+                    subscript=ExpressionConstantIntRef(1, source_ref),
+                    source_ref=source_ref,
+                ),
                 source_ref=source_ref,
-            ),
-            value=buildNode(
-                provider=function_body if not assign_provider else provider,
-                node=node.value,
+            )
+
+            loop_body = makeStatementsSequenceFromStatements(
+                makeTryExceptSingleHandlerNode(
+                    tried=makeStatementAssignmentVariable(
+                        variable=tmp_dict_item,
+                        source=ExpressionBuiltinNext1(
+                            value=ExpressionTempVariableRef(
+                                variable=tmp_dict_iterator,
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    exception_name="StopIteration",
+                    handler_body=StatementLoopBreak(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                emit_item,
+            )
+
+            loop = StatementLoop(
+                loop_body=loop_body,
                 source_ref=source_ref,
-            ),
-            source_ref=source_ref,
-        )
+            )
+
+            current_body = makeTryFinallyReleaseStatement(
+                provider=item_provider,
+                tried=makeStatementsSequenceFromStatements(
+                    [
+                        makeStatementAssignmentVariable(
+                            variable=tmp_dict_iterator,
+                            source=ExpressionBuiltinIter1(
+                                value=ExpressionDictOperationIteritems(
+                                    dict_arg=buildNode(
+                                        item_provider, node.key, source_ref
+                                    ),
+                                    source_ref=source_ref,
+                                ),
+                                source_ref=source_ref,
+                            ),
+                            source_ref=source_ref,
+                        ),
+                        loop,
+                    ]
+                ),
+                variables=(tmp_dict_iterator, tmp_dict_item),
+                source_ref=source_ref,
+            )
+        else:
+            current_body = emit_class(
+                dict_arg=ExpressionTempVariableRef(
+                    variable=container_tmp, source_ref=source_ref
+                ),
+                key=buildNode(
+                    provider=item_provider,
+                    node=node.key,
+                    source_ref=source_ref,
+                ),
+                value=buildNode(
+                    provider=item_provider,
+                    node=node.value,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
 
     # TODO: For as long as statement/expression merge are not complete.
     if current_body.kind.startswith("EXPRESSION"):
@@ -574,7 +722,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
-    # pylint: disable=too-many-locals
 
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
@@ -629,36 +776,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         ),
     )
 
-    if python_version < 0x300 or emit_class is not ExpressionYield:
-        body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
-    else:
-        parent_module = provider.getParentModule()
-
-        code_object = CodeObjectSpec(
-            co_name=name,
-            co_qualname=provider.getChildQualname(name),
-            co_kind="Function",
-            co_varnames=(),
-            co_freevars=(),
-            co_argcount=1,
-            co_posonlyargcount=0,
-            co_kwonlyargcount=0,
-            co_has_starlist=False,
-            co_has_stardict=False,
-            co_filename=parent_module.getRunTimeFilename(),
-            co_lineno=source_ref.getLineNumber(),
-            future_spec=parent_module.getFutureSpec(),
-        )
-
-        body = makeStatementsSequenceFromStatements(
-            assign_iter_statement,
-            StatementsFrameGenerator(
-                statements=mergeStatements(statements),
-                code_object=code_object,
-                owner_code_name=function_body.getCodeName(),
-                source_ref=source_ref,
-            ),
-        )
+    body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
 
     function_body.setChildBody(body)
 

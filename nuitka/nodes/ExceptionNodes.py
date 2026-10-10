@@ -5,7 +5,11 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ChildrenHavingMixins import ChildHavingExceptionTypeMixin
+from .ChildrenHavingMixins import (
+    ChildHavingExceptionTypeMixin,
+    ChildrenHavingExceptionMatchTypeMixin,
+    ChildrenHavingExceptionRaisedMixin,
+)
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionAttributeErrorBase,
@@ -13,7 +17,10 @@ from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionImportErrorBase,
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
-from .StatementBasesGenerated import StatementRaiseExceptionBase
+from .StatementBasesGenerated import (
+    StatementPublishExceptionValueBase,
+    StatementRaiseExceptionBase,
+)
 
 
 class StatementRaiseExceptionMixin(object):
@@ -118,6 +125,26 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
         return "exception re-raise statement"
 
 
+class StatementPublishExceptionValue(StatementPublishExceptionValueBase):
+    kind = "STATEMENT_PUBLISH_EXCEPTION_VALUE"
+
+    named_children = ("value",)
+    auto_compute_handling = "operation"
+
+    def computeStatementOperation(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
+    def mayHaveSideEffects(self):
+        return self.subnode_value.mayHaveSideEffects()
+
+    @staticmethod
+    def getStatementNiceName():
+        return "publish exception value statement"
+
+
 class ExpressionRaiseException(ChildHavingExceptionTypeMixin, ExpressionBase):
     """This node type is only produced via optimization.
 
@@ -176,6 +203,10 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 
     __slots__ = ("exception_name", "for_raise")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
@@ -218,6 +249,10 @@ class ExpressionBuiltinMakeExceptionImportError(
     node_attributes = ("for_raise",)
 
     __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
@@ -267,6 +302,10 @@ class ExpressionBuiltinMakeExceptionAttributeError(
     node_attributes = ("for_raise",)
 
     __slots__ = ()
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
@@ -330,6 +369,40 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+
+class ExpressionExceptionGroupMatch(
+    ChildrenHavingExceptionMatchTypeMixin, ExpressionBase
+):
+
+    kind = "EXPRESSION_EXCEPTION_GROUP_MATCH"
+
+    named_children = ("exception", "match_type")
+
+    def __init__(self, exception, match_type, source_ref):
+        ChildrenHavingExceptionMatchTypeMixin.__init__(self, exception, match_type)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+
+class ExpressionExceptionGroupPrepareReraise(
+    ChildrenHavingExceptionRaisedMixin, ExpressionBase
+):
+
+    kind = "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE"
+
+    named_children = ("exception", "raised")
+
+    def __init__(self, exception, raised, source_ref):
+        ChildrenHavingExceptionRaisedMixin.__init__(self, exception, raised)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
         return self, None, None
 
 

@@ -36,11 +36,6 @@ def _checkBases(name, bases):
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 
 
-@staticmethod
-def returnTrueShared():
-    return True
-
-
 def returnFalseSharedFunction():
     return False
 
@@ -83,11 +78,15 @@ class NodeCheckMetaClass(ABCMeta):
             set(dictionary["__slots__"])
         ), dictionary["__slots__"]
 
-        if "python_version_spec" in dictionary:
-            condition = "%s %s" % (
-                hex(python_version),
-                dictionary["python_version_spec"],
+        python_version_spec = dictionary.get("python_version_spec")
+
+        if python_version_spec:
+            condition = " and ".join(
+                "%s %s" % (hex(python_version), spec.strip())
+                for spec in python_version_spec.split(",")
+                if spec.strip()
             )
+            assert condition, python_version_spec
 
             # We trust our node class files, pylint: disable=eval-used
             if not eval(condition):
@@ -136,9 +135,6 @@ class NodeCheckMetaClass(ABCMeta):
         ABCMeta.__init__(cls, name, bases, dictionary)
 
         if not name.endswith(("Base", "Mixin")):
-            if kind.startswith("EXPRESSION_BUILTIN_"):
-                cls.isExpressionBuiltin = returnTrueShared
-
             # Add automatic checker "True" to the node class.
             if getattr(cls, checker_method_name) is returnFalseSharedFunction:
 

@@ -4,7 +4,6 @@
 """Handling of fake module descriptions and reserved names."""
 
 from nuitka.containers.Namedtuples import makeNamedtupleClass
-from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ImportingResults import makeFindModuleResult
@@ -19,7 +18,20 @@ FakeModuleDescription = makeNamedtupleClass(
     ),
 )
 
-_fake_modules = OrderedSet()
+VirtualModuleInfo = makeNamedtupleClass(
+    "VirtualModuleInfo",
+    (
+        "description",
+        "plugin",
+    ),
+)
+
+# Plugin provided fake modules, mapping module names to providing plugins.
+_fake_modules = {}
+
+# Plugin provided descriptions for virtual modules, i.e. modules that do not
+# exist as files, but are provided at compile time with generated source code.
+_virtual_modules = {}
 
 
 def makeFakeModuleDescription(module_name, source_code, source_filename, reason):
@@ -31,10 +43,14 @@ def makeFakeModuleDescription(module_name, source_code, source_filename, reason)
     )
 
 
-def addFakeModule(module_name):
+def addFakeModule(module_name, plugin):
     assert type(module_name) is ModuleName, module_name
 
-    _fake_modules.add(module_name)
+    _fake_modules[module_name] = plugin
+
+
+def getFakeModulePlugin(module_name):
+    return _fake_modules.get(module_name)
 
 
 def locateFakeModule(module_name):
@@ -45,6 +61,38 @@ def locateFakeModule(module_name):
             module_filename=None,
             module_kind="py",
             finding="fake",
+        )
+
+    return None
+
+
+def addVirtualModuleDescription(module_name, description, plugin):
+    assert type(module_name) is ModuleName, module_name
+    assert type(description) is FakeModuleDescription, description
+
+    _virtual_modules[module_name] = VirtualModuleInfo(
+        description=description,
+        plugin=plugin,
+    )
+
+
+def getVirtualModuleDescription(module_name):
+    virtual_module_info = _virtual_modules.get(module_name)
+
+    if virtual_module_info is None:
+        return None
+
+    return virtual_module_info.description
+
+
+def locateVirtualModule(module_name):
+    if module_name in _virtual_modules:
+        return makeFindModuleResult(
+            found_module_name=module_name,
+            module_package=module_name.getPackageName(),
+            module_filename=None,
+            module_kind="py",
+            finding="virtual",
         )
 
     return None

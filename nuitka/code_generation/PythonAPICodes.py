@@ -12,16 +12,26 @@ and then can use the same code.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes,
-)
+from .ErrorCodes import getErrorExitCode, getReleaseCode
 
 
 def makeArgDescFromExpression(expression):
     """Helper for providing arg_desc consistently for generateCAPIObject methods."""
+
+    if hasattr(expression, "named_children"):
+        result = []
+
+        for child_desc in expression.named_children:
+            if "|" in child_desc:
+                child_name = child_desc.split("|")[0]
+            else:
+                child_name = child_desc
+
+            result.append(
+                (child_name + "_value", getattr(expression, "subnode_" + child_name))
+            )
+
+        return tuple(result)
 
     return tuple(
         (child_name + "_value", child_value)
@@ -42,14 +52,71 @@ def generateCAPIObjectCodeCommon(
     context,
     none_null=False,
 ):
+    """Generate C code for calling a C-API object creation function.
+
+    Args:
+        to_name: The variable name to assign the result to.
+        capi: The C function name to call.
+        tstate: Whether to pass the thread state as the first argument.
+        arg_desc: Tuple of (arg_name, expression) for arguments.
+        may_raise: Whether the call may raise an exception.
+        conversion_check: Check to decide if a conversion is needed.
+        ref_count: The reference count of the returned object (usually 1 or 0 for borrowed return value).
+        source_ref: Source code reference.
+        emit: Function to emit generated code.
+        context: Context object for code generation.
+        none_null: If True, all arguments with None expression are passed as NULL and acceptable.
+                   If set/tuple/list, only argument names present in it are passed as NULL and acceptable.
+    """
+    # Complex code due to the need to handle tuple arguments.
+    # pylint: disable=too-many-locals
+
     arg_names = []
+    release_names = []
 
     if tstate:
         arg_names.append("tstate")
 
     for arg_name, arg_expression in arg_desc:
-        if arg_expression is None and none_null:
-            arg_names.append("NULL")
+        if arg_expression is None:
+            if none_null is True or (none_null and arg_name in none_null):
+                arg_names.append("NULL")
+            else:
+                raise ValueError("None expression not allowed for %s" % arg_name)
+        elif type(arg_expression) is tuple:
+            sub_names = []
+
+            for sub_index, sub_expression in enumerate(arg_expression):
+                sub_name = context.allocateTempName(
+                    arg_name + "_element_%d" % sub_index
+                )
+
+                generateExpressionCode(
+                    to_name=sub_name,
+                    expression=sub_expression,
+                    emit=emit,
+                    context=context,
+                )
+
+                sub_names.append(sub_name)
+
+            if sub_names:
+                arg_name = "tmp_%s_array_%d" % (
+                    arg_name,
+                    context.allocateTempNumber(arg_name),
+                )
+
+                emit(
+                    "PyObject *%s[] = {%s};"
+                    % (arg_name, ", ".join(str(name) for name in sub_names))
+                )
+                arg_names.append(arg_name)
+                arg_names.append(str(len(sub_names)))
+                release_names.extend(sub_names)
+            else:
+                arg_names.append("NULL")
+                arg_names.append("0")
+
         else:
             arg_name = context.allocateTempName(arg_name)
 
@@ -61,6 +128,7 @@ def generateCAPIObjectCodeCommon(
             )
 
             arg_names.append(arg_name)
+            release_names.append(arg_name)
 
     context.setCurrentSourceCodeReference(source_ref)
 
@@ -71,6 +139,7 @@ def generateCAPIObjectCodeCommon(
         may_raise=may_raise,
         conversion_check=conversion_check,
         ref_count=ref_count,
+        release_names=release_names,
         emit=emit,
         context=context,
     )
@@ -88,6 +157,7 @@ def generateCAPIObjectCode(
     context,
     none_null=False,
 ):
+    """See generateCAPIObjectCodeCommon, changes ref_count to 1."""
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
@@ -115,6 +185,7 @@ def generateCAPIObjectCode0(
     context,
     none_null=False,
 ):
+    """See generateCAPIObjectCodeCommon, changes ref_count to 0."""
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
@@ -131,12 +202,16 @@ def generateCAPIObjectCode0(
 
 
 def getCAPIObjectCode(
-    to_name, capi, arg_names, may_raise, conversion_check, ref_count, emit, context
+    to_name,
+    capi,
+    arg_names,
+    may_raise,
+    conversion_check,
+    ref_count,
+    release_names,
+    emit,
+    context,
 ):
-    release_names = tuple(
-        arg_name for arg_name in arg_names if arg_name not in ("NULL", "tstate")
-    )
-
     if to_name is not None:
         # TODO: Use context manager here too.
         if to_name.c_type == "PyObject *":
@@ -172,26 +247,12 @@ def getCAPIObjectCode(
             if ref_count:
                 getReleaseCode(value_name, emit, context)
     else:
-        if may_raise:
-            res_name = context.getIntResName()
-
-            emit(
-                "%s = %s(%s);"
-                % (res_name, capi, ", ".join(str(arg_name) for arg_name in arg_names))
-            )
-
-            getErrorExitBoolCode(
-                condition="%s == -1" % res_name,
-                release_names=release_names,
-                emit=emit,
-                context=context,
-            )
-        else:
-            emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
-
-            getReleaseCodes(release_names, emit, context)
-
+        assert not may_raise, capi
         assert not ref_count
+
+        emit("%s(%s);" % (capi, ", ".join(str(arg_name) for arg_name in arg_names)))
+
+        getReleaseCode(release_names, emit, context)
 
 
 def getReferenceExportCode(base_name, emit, context):

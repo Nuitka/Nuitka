@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_CONSTANTS_BLOB_H__
 #define __NUITKA_CONSTANTS_BLOB_H__
 
@@ -15,7 +16,7 @@
  */
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern void loadConstantsBlob(PyThreadState *tstate, void *, char const *name);
@@ -32,6 +33,11 @@ extern void loadConstantsBlobData(PyThreadState *tstate, void *output, unsigned 
 
 #ifndef LOAD_DIRECT_CONSTANTS_BLOB
 #define LOAD_DIRECT_CONSTANTS_BLOB(tstate, output, blob_symbol_name)                                                   \
+    loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
+#endif
+
+#ifndef LOAD_MODULE_CONSTANTS_BLOB
+#define LOAD_MODULE_CONSTANTS_BLOB(tstate, output, blob_symbol_name)                                                   \
     loadConstantsBlobData(tstate, output, get##blob_symbol_name##Data())
 #endif
 

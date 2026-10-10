@@ -22,7 +22,7 @@ instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 instance_re_truncated = re.compile(r"\[[0-9]+ chars\][0-9a-fA-F]+")
 thread_re = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
 compiled_types_re = re.compile(
-    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)(?!\.h)"
+    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell|FrameLocalsProxy)(?!\.h)"
 )
 module_repr_re = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
@@ -35,7 +35,8 @@ traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
 importerror_re = re.compile(
     r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
-tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
+tempfile_posix_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
+tempfile_win_re = re.compile(r"([Tt]emp)[\\/]+[^'\\/]*")
 
 logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
@@ -238,7 +239,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = importerror_re.sub(import_re_callback, line)
 
         # spell-checker: disable-next-line
-        line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
+        line = tempfile_posix_re.sub(r"/tmp/tmpxxxxxxx", line)
+
+        # Temp files on Windows have random names in error messages too.
+        line = tempfile_win_re.sub(r"\1\\xxxxx", line)
 
         line = did_you_mean_re.sub("", line)
 

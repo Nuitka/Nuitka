@@ -8,6 +8,11 @@ import shutil
 
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.MacOSApp import getMacOSIconPaths
+from nuitka.options.Options import (
+    getMacOSInstallerOutputFilename,
+    getOutputPath,
+    shallCreateDmgFile,
+)
 from nuitka.OutputDirectories import (
     getResultBasePath,
     getStandaloneDirectoryPath,
@@ -57,6 +62,24 @@ def getCreateDmgPath():
     return None
 
 
+def computeMacOSInstallerOutputFilename():
+    """Return the output path for the macOS DMG.
+
+    Returns *None* if installer creation was not requested.
+    """
+    if not shallCreateDmgFile():
+        return None
+
+    output_filename = getMacOSInstallerOutputFilename()
+
+    if output_filename is not None:
+        return getOutputPath(path=output_filename)
+
+    return changeFilenameExtension(
+        getStandaloneDirectoryPath(bundle=False, real=True), ".dmg"
+    )
+
+
 def createMacOSDmg():
     """Create a DMG file for the application bundle.
 
@@ -95,7 +118,7 @@ def createMacOSDmg():
 
     icon_paths = getMacOSIconPaths()
 
-    dmg_path = changeFilenameExtension(app_bundle_path, ".dmg")
+    dmg_path = computeMacOSInstallerOutputFilename()
     deleteFile(dmg_path, must_exist=False)
 
     # spell-checker: ignore volname,volicon

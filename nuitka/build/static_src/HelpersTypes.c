@@ -886,6 +886,9 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
 
 typedef struct {
     PyObject_HEAD PyObject *name;
+#if PYTHON_VERSION >= 0x3f0
+    PyObject *qualname;
+#endif
     PyObject *type_params;
     PyObject *compute_value;
     PyObject *value;
@@ -915,6 +918,18 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compu
     // TODO: Lets follow Python new inline function in the future, this is 3.12
     // only code, so we can use it here.
     ta->name = Py_NewRef(name);
+#if PYTHON_VERSION >= 0x3f0
+    // Since Python 3.15, the qualified name is stored in the type alias
+    // object. Match CPython that takes it from the code object of the
+    // function that computes the value.
+    if (Nuitka_Function_Check(compute_value)) {
+        ta->qualname = Py_NewRef(((struct Nuitka_FunctionObject *)compute_value)->m_qualname);
+    } else if (PyFunction_Check(compute_value)) {
+        ta->qualname = Py_NewRef(((PyFunctionObject *)compute_value)->func_qualname);
+    } else {
+        ta->qualname = Py_NewRef(name);
+    }
+#endif
     ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
     ta->compute_value = Py_NewRef(compute_value);
     ta->value = NULL;
@@ -970,8 +985,8 @@ typedef struct {
 
 static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
                                             PyObject *evaluate_bound, PyObject *constraints,
-                                            PyObject *evaluate_constraints, bool covariant, bool contravariant,
-                                            bool infer_variance, PyObject *module) {
+                                            PyObject *evaluate_constraints, PyObject *default_value, bool covariant,
+                                            bool contravariant, bool infer_variance, PyObject *module) {
     PyTypeObject *tp = _Py_INTERP_CACHED_OBJECT(tstate->interp, typevar_type);
     typevarobject *result = Nuitka_GC_New(tp);
 
@@ -982,7 +997,7 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
     result->constraints = Py_XNewRef(constraints);
     result->evaluate_constraints = Py_XNewRef(evaluate_constraints);
 #if PYTHON_VERSION >= 0x3d0
-    result->default_value = NULL;
+    result->default_value = Py_XNewRef(default_value);
     result->evaluate_default = NULL;
 #endif
 
@@ -1061,12 +1076,17 @@ static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject 
     return ps;
 }
 
-PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name) {
-    // TODO: For Python 3.13 this would work.
-    // return _PyIntrinsics_UnaryFunctions[INTRINSIC_TYPEVAR].func(tstate, name);
-
-    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, NULL, NULL, NULL, false, false, true, NULL);
+#if PYTHON_VERSION >= 0x3d0
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound, PyObject *default_value) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, default_value, false,
+                                             false, true, NULL);
 }
+#else
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name, PyObject *evaluate_bound) {
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, evaluate_bound, NULL, NULL, NULL, false, false, true,
+                                             NULL);
+}
+#endif
 
 PyObject *MAKE_TYPE_VAR_TUPLE(PyThreadState *tstate, PyObject *name) {
     return (PyObject *)_Nuitka_typevartuple_alloc(tstate, name, NULL, NULL, false, false, true);

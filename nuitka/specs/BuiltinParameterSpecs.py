@@ -14,9 +14,9 @@ from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
 class BuiltinParameterSpec(ParameterSpec):
-    __slots__ = ("builtin",)
+    __slots__ = ("builtin", "variations", "example_arguments")
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         name,
         arg_names,
@@ -27,6 +27,8 @@ class BuiltinParameterSpec(ParameterSpec):
         pos_only_args=(),
         kw_only_args=(),
         type_shape=None,
+        variations=None,
+        example_arguments=None,
     ):
         ParameterSpec.__init__(
             self,
@@ -42,6 +44,8 @@ class BuiltinParameterSpec(ParameterSpec):
         )
 
         self.builtin = getattr(builtins, name, None)
+        self.example_arguments = example_arguments
+        self.variations = variations
 
         assert default_count <= len(arg_names) + len(kw_only_args) + len(pos_only_args)
 
@@ -50,6 +54,26 @@ class BuiltinParameterSpec(ParameterSpec):
 
     def getName(self):
         return self.name
+
+    def getVariations(self):
+        return self.variations
+
+    def getBuiltin(self):
+        return self.builtin
+
+    def getExampleArguments(self):
+        return self.example_arguments
+
+    def getKeywordRefusalText(self):
+        if states.is_full_compat and self.builtin is not None:
+            # Let the built-in itself produce the refusal, as the message
+            # differs between Python versions, and types and functions.
+            try:
+                self.builtin(x=1)
+            except TypeError as e:
+                return str(e)
+
+        return ParameterSpec.getKeywordRefusalText(self)
 
     def isCompileTimeComputable(self, values):
         # By default, we make this dependent on the ability to compute the
@@ -208,9 +232,6 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
     def allowsKeywords(self):
         return False
 
-    def getKeywordRefusalText(self):
-        return "exceptions.%s does not take keyword arguments" % self.name
-
     def getCallableName(self):
         return "exceptions." + self.getName()
 
@@ -255,6 +276,8 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
         default_count,
         list_star_arg=None,
         dict_star_arg=None,
+        variations=None,
+        example_arguments=None,
     ):
         BuiltinParameterSpec.__init__(
             self,
@@ -264,6 +287,8 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
             pos_only_args=pos_only_args,
             list_star_arg=list_star_arg,
             dict_star_arg=dict_star_arg,
+            variations=variations,
+            example_arguments=example_arguments,
         )
 
 
@@ -356,29 +381,30 @@ builtin_frozenset_spec = BuiltinParameterSpecNoKeywords(
     "frozenset", ("iterable",), default_count=1
 )
 
+builtin_frozendict_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("frozendict")
+
 builtin_import_spec = BuiltinParameterSpec(
     "__import__", ("name", "globals", "locals", "fromlist", "level"), default_count=4
 )
 
-if python_version < 0x300:
-    builtin_open_spec = BuiltinParameterSpec(
-        "open", ("name", "mode", "buffering"), default_count=3
-    )
-else:
-    builtin_open_spec = BuiltinParameterSpec(
-        "open",
-        (
-            "file",
-            "mode",
-            "buffering",
-            "encoding",
-            "errors",
-            "newline",
-            "closefd",
-            "opener",
-        ),
-        default_count=7,
-    )
+builtin_open_before_3_spec = BuiltinParameterSpec(
+    "open", ("name", "mode", "buffering"), default_count=3
+)
+
+builtin_open_since_3_spec = BuiltinParameterSpec(
+    "open",
+    (
+        "file",
+        "mode",
+        "buffering",
+        "encoding",
+        "errors",
+        "newline",
+        "closefd",
+        "opener",
+    ),
+    default_count=7,
+)
 
 builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), default_count=0)
 builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), default_count=0)
@@ -393,9 +419,17 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords("vars", ("object",), default_
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords("locals", (), default_count=0)
 builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), default_count=0)
-builtin_eval_spec = BuiltinParameterSpecNoKeywords(
+builtin_eval_before_313_spec = BuiltinParameterSpecNoKeywords(
     "eval", ("source", "globals", "locals"), 2
 )
+# 3.13 made "globals" and "locals" keyword arguments.
+builtin_eval_since_313_spec = BuiltinParameterSpecPosArgs(
+    "eval", ("source",), ("globals", "locals"), default_count=2
+)
+
+# TODO: Convert the other specs with version differences, e.g. "compile",
+# "int", "sum" and "enumerate", to the "_since_"/"_before_" naming too, with
+# the version selection done in the users of the spec, and not here.
 if python_version < 0x300:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
@@ -409,17 +443,23 @@ else:
         default_count=3,
     )
 
-if python_version >= 0x3B0:
-    builtin_exec_spec = BuiltinParameterSpec(
-        "exec",
-        ("source", "globals", "locals"),
-        default_count=3,
-        kw_only_args=("closure",),
-    )
-elif python_version >= 0x300:
-    builtin_exec_spec = BuiltinParameterSpecNoKeywords(
-        "exec", ("source", "globals", "locals"), default_count=2
-    )
+builtin_exec_before_311_spec = BuiltinParameterSpecNoKeywords(
+    "exec", ("source", "globals", "locals"), default_count=2
+)
+builtin_exec_since_311_spec = BuiltinParameterSpec(
+    "exec",
+    (),
+    default_count=3,
+    pos_only_args=("source", "globals", "locals"),
+    kw_only_args=("closure",),
+)
+builtin_exec_since_313_spec = BuiltinParameterSpec(
+    "exec",
+    ("globals", "locals"),
+    default_count=3,
+    pos_only_args=("source",),
+    kw_only_args=("closure",),
+)
 
 # Note: Iter in fact names its first argument if the default applies
 # "collection", fixed up in a wrapper.
@@ -480,16 +520,38 @@ class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
 
 
 builtin_bytearray_spec = BuiltinBytearraySpec(
-    "bytearray", ("string",), ("encoding", "errors"), default_count=2
+    "bytearray",
+    (),
+    ("source", "encoding", "errors"),
+    default_count=2,
+    example_arguments=("", "", ""),
 )
 
 builtin_bytes_p3_spec = BuiltinBytearraySpec(
-    "bytes", ("string",), ("encoding", "errors"), default_count=3
+    "bytes", (), ("source", "encoding", "errors"), default_count=3
 )
 
 
+class BuiltinSliceSpec(BuiltinParameterSpecNoKeywords):
+    def isCompileTimeComputable(self, values):
+        # Slices with mutable values, e.g. a list, must not be created at
+        # compile time, as the mutable values become part of the slice, and
+        # CPython creates a new slice object for these.
+        for value in values:
+            if (
+                value is not None
+                and value.isCompileTimeConstant()
+                and value.isMutable()
+            ):
+                return False
+
+        return BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+            self, values=values
+        )
+
+
 # Beware: One argument version defines "stop", not "start".
-builtin_slice_spec = BuiltinParameterSpecNoKeywords(
+builtin_slice_spec = BuiltinSliceSpec(
     "slice", ("start", "stop", "step"), default_count=2
 )
 
@@ -519,17 +581,22 @@ builtin_classmethod_spec = BuiltinParameterSpecNoKeywords(
     "classmethod", ("function",), default_count=0
 )
 
-if python_version < 0x300:
-    builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
-        "sorted", ("iterable", "cmp", "key", "reverse"), default_count=2
-    )
-else:
-    builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
-        "sorted", ("iterable", "key", "reverse"), default_count=2
-    )
+builtin_sorted_since_3_spec = BuiltinParameterSpec(
+    "sorted",
+    (),
+    pos_only_args=("iterable",),
+    kw_only_args=("key", "reverse"),
+    default_count=2,
+    variations=(1, None),
+    example_arguments=("", 1),
+)
 
-builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
-    "reversed", ("object",), default_count=0
+builtin_sorted_before_3_spec = BuiltinParameterSpec(
+    "sorted",
+    ("cmp", "key", "reverse"),
+    pos_only_args=("iterable",),
+    default_count=3,
+    example_arguments=("", 1, 1, 1),
 )
 
 builtin_reversed_spec = BuiltinParameterSpecNoKeywords(
@@ -544,6 +611,47 @@ else:
     builtin_enumerate_spec = BuiltinParameterSpec(
         "enumerate", ("iterable", "start"), default_count=1
     )
+
+builtin_enumerate_before_3_spec = BuiltinParameterSpec(
+    "enumerate", ("sequence", "start"), default_count=1, variations=(1, 2)
+)
+
+builtin_enumerate_since_3_spec = BuiltinParameterSpec(
+    "enumerate", ("iterable", "start"), default_count=1, variations=(1, 2)
+)
+
+builtin_zip_since_3_spec = BuiltinParameterSpecNoKeywords(
+    "zip", (), default_count=0, list_star_arg="iterables"
+)
+
+builtin_zip_since_310_spec = BuiltinParameterSpec(
+    "zip", (), default_count=1, list_star_arg="iterables", kw_only_args=("strict",)
+)
+
+builtin_zip_before_3_spec = BuiltinParameterSpecNoKeywords(
+    "zip", (), default_count=0, list_star_arg="sequence"
+)
+
+builtin_memoryview_spec = BuiltinParameterSpec(
+    "memoryview", ("object",), default_count=0
+)
+
+builtin_print_since_3_spec = BuiltinParameterSpec(
+    "print",
+    (),
+    default_count=4,
+    list_star_arg="objects",
+    kw_only_args=("sep", "end", "file", "flush"),
+    variations=(1, None),
+)
+
+builtin_print_before_3_spec = BuiltinParameterSpec(
+    "print",
+    (),
+    default_count=3,
+    list_star_arg="objects",
+    kw_only_args=("sep", "end", "file"),
+)
 
 builtin_zip_spec = BuiltinParameterSpecNoKeywords(
     "zip", (), default_count=0, list_star_arg="iterables"
@@ -693,6 +801,8 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             num_pos_only=builtin_spec.getPosOnlyParameterCount(),
             positional=positional,
             pairs=pairs,
+            simulator=builtin_spec.getBuiltin(),
+            example_arguments=builtin_spec.getExampleArguments(),
         )
     except TooManyArguments as e:
         from nuitka.nodes.NodeMakingHelpers import (

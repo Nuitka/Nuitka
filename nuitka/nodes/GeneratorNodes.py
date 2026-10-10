@@ -83,7 +83,6 @@ class ExpressionGeneratorObjectBody(
     __slots__ = (
         "unoptimized_locals",
         "unqualified_exec",
-        "needs_generator_return_exit",
         "qualname_provider",
     )
 
@@ -104,8 +103,6 @@ class ExpressionGeneratorObjectBody(
 
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
-        self.needs_generator_return_exit = False
-
         self.trace_collection = None
 
         if python_version >= 0x300:
@@ -113,12 +110,6 @@ class ExpressionGeneratorObjectBody(
 
     def getFunctionName(self):
         return self.name
-
-    def markAsNeedsGeneratorReturnHandling(self):
-        self.needs_generator_return_exit = True
-
-    def needsGeneratorReturnExit(self):
-        return self.needs_generator_return_exit
 
     @staticmethod
     def needsCreation():
@@ -139,10 +130,6 @@ class StatementGeneratorReturn(StatementReturn):
 
     def __init__(self, expression, source_ref):
         StatementReturn.__init__(self, expression=expression, source_ref=source_ref)
-
-    @staticmethod
-    def isStatementGeneratorReturn():
-        return True
 
     def computeStatement(self, trace_collection):
         expression = trace_collection.onExpression(self.subnode_expression)
@@ -192,10 +179,6 @@ class StatementGeneratorReturnNone(StatementReturnNone):
 
     def __init__(self, source_ref):
         StatementReturnNone.__init__(self, source_ref=source_ref)
-
-    @staticmethod
-    def isStatementGeneratorReturn():
-        return True
 
     @staticmethod
     def getStatementNiceName():

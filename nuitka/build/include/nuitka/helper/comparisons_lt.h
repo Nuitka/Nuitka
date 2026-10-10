@@ -1,10 +1,15 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationComparison.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_COMPARISONS_LT_H__
+#define __NUITKA_COMPARISONS_LT_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/helper/boolean.h"
 #endif
 
 /* C helpers for type specialized "<" (LT) comparisons */
@@ -161,6 +166,12 @@ extern nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObje
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern PyObject *RICH_COMPARE_LT_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern bool RICH_COMPARE_LT_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 extern PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
 
@@ -230,6 +241,8 @@ extern PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double 
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern bool RICH_COMPARE_LT_CBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

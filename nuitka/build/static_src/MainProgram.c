@@ -48,6 +48,7 @@
 #define SYSFLAG_DONTWRITEBYTECODE 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
+#define NUITKA_HAS_FROZEN_MODULES_BOOL 1
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #if defined(__APPLE__)
 #define _NUITKA_MACOS_BUNDLE_MODE 1
@@ -95,8 +96,6 @@ static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_mode
 }
 #endif
 
-extern PyCodeObject *code_objects_main;
-
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
 #if PYTHON_VERSION >= 0x300
 static wchar_t **orig_argv;
@@ -105,8 +104,9 @@ static char **orig_argv;
 #endif
 static int orig_argc;
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
 extern void copyFrozenModulesTo(struct _frozen *destination);
+extern Py_ssize_t getFrozenModuleCount(void);
 
 // The original frozen modules list.
 #if PYTHON_VERSION < 0x300
@@ -139,7 +139,7 @@ static void prepareFrozenModules(void) {
     // advantage that e.g. "import this" is going to be compatible, and there
     // might be Python flavors that add more.
     struct _frozen *merged =
-        (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
+        (struct _frozen *)malloc(sizeof(struct _frozen) * (getFrozenModuleCount() + pre_existing_count + 1));
 
     memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
@@ -253,6 +253,8 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 
     for (int i = 0; i < argc; i++) {
 #if PYTHON_VERSION >= 0x350
+        // On Python 3.7 the "Py_UTF8Mode" global set above is used, on
+        // Python 3.8+ the pre-initialization has applied it already.
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
 #elif defined(__APPLE__) && PYTHON_VERSION >= 0x300
         argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
@@ -1481,6 +1483,7 @@ PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
 #if PYTHON_VERSION >= 0x3f0
 PyAPI_FUNC(void) PySys_ResetWarnOptions(void);
+PyAPI_FUNC(wchar_t *) Py_GetPath(void);
 #endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
@@ -1728,7 +1731,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     prepareStandaloneEnvironment();
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TIMING("main(): Preparing frozen modules.");
     prepareFrozenModules();
 #endif
@@ -1762,10 +1765,51 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION >= 0x370
     Py_UTF8Mode = SYSFLAG_UTF8;
 
+#if !defined(_WIN32)
+    // CPython enables the UTF-8 mode by default for the C and POSIX locales
+    // (PEP 540), and Nuitka should behave the same, or else non-ASCII paths
+    // in these locales can break, because Nuitka decodes them as UTF-8. The
+    // environment is not considered for this, as usual for Nuitka.
+    if (Py_UTF8Mode == 0) {
+        // Make sure the locale from the environment is considered.
+        setlocale(LC_CTYPE, "");
+
+        char const *ctype_locale = setlocale(LC_CTYPE, NULL);
+
+        if (ctype_locale != NULL && (strcmp(ctype_locale, "C") == 0 || strcmp(ctype_locale, "POSIX") == 0)) {
+            Py_UTF8Mode = 1;
+        }
+    }
+#endif
+
     if (Py_UTF8Mode) {
         if (Py_FileSystemDefaultEncoding == NULL) {
             Py_FileSystemDefaultEncoding = "utf-8";
             Py_HasFileSystemDefaultEncoding = 1;
+        }
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x380 && !defined(_WIN32)
+    // Pre-initialize Python with the UTF-8 mode that was decided on above,
+    // so that "Py_DecodeLocale" uses it for command line argument conversion
+    // and the filesystem encoding of the interpreter matches it.
+    {
+        PyPreConfig preconfig;
+        PyPreConfig_InitPythonConfig(&preconfig);
+
+        preconfig.utf8_mode = Py_UTF8Mode;
+        preconfig.parse_argv = 0;
+
+        // The environment is not considered for the UTF-8 mode, and the
+        // locale is not coerced, like it was decided on above.
+        preconfig.coerce_c_locale = 0;
+        preconfig.coerce_c_locale_warn = 0;
+
+        PyStatus status = Py_PreInitialize(&preconfig);
+
+        if (PyStatus_Exception(status)) {
+            Py_ExitStatusException(status);
         }
     }
 #endif
@@ -2081,7 +2125,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     setEarlyFrozenModulesFileAttribute(tstate);
 #endif
 
-#if _NUITKA_FROZEN > 0
+#if NUITKA_HAS_FROZEN_MODULES_BOOL
     NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
     PyImport_FrozenModules = old_frozen;
 #endif

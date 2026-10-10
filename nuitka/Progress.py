@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 from nuitka import Tracing
 from nuitka.Tracing import general, getDisableStylesCode
-from nuitka.utils.Importing import importFromInlineCopy
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows, withNoExceptions
 

@@ -8,7 +8,11 @@
 // its own.
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
 #endif
+
+#include "nuitka/helper/dict_internals.h"
 
 // spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
 // spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
@@ -346,7 +350,7 @@ static PyObject *Nuitka_CreateKeyError(PyThreadState *tstate, PyObject *key) {
 }
 #endif
 
-static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
+void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
 #if PYTHON_VERSION < 0x3c0
     /* Wrap all kinds of tuples, because normalization will later unwrap
      * it, but then that changes the key for the KeyError, which is not
@@ -1178,9 +1182,6 @@ static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate,
 
 #if PYTHON_VERSION >= 0x360 && !_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
 
-// Usable fraction of keys.
-#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
-
 static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
 #if PYTHON_VERSION < 0x360
     return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
@@ -1196,25 +1197,6 @@ static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
             DK_USABLE_FRACTION(DK_SIZE(keys)) * entry_size);
 #endif
 }
-#endif
-
-#if PYTHON_VERSION < 0x3b0
-typedef PyObject *PyDictValues;
-#endif
-
-#if PYTHON_VERSION < 0x360
-#define DK_ENTRIES_SIZE(keys) (keys->dk_size)
-#elif PYTHON_VERSION < 0x3b0
-#define DK_ENTRIES_SIZE(keys) DK_USABLE_FRACTION(DK_SIZE(keys))
-#else
-#define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
-#endif
-
-// More than 2/3 of the keys are used, i.e. no space is wasted.
-#if PYTHON_VERSION < 0x360
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_size * 2) / 3)
-#else
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)
 #endif
 
 static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
@@ -2149,6 +2131,69 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
     return true;
 #endif
 }
+
+#if PYTHON_VERSION >= 0x3f0
+bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
+    CHECK_OBJECT(frozendict);
+    assert(PyFrozenDict_CheckExact(frozendict));
+    assert(key_ptr != NULL);
+    assert(value_ptr != NULL);
+
+    PyDictObject *mp = (PyDictObject *)frozendict;
+
+    // Frozens are always combined dictionaries, there is no split table.
+    assert(mp->ma_values == NULL);
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+    Py_ssize_t n = mp->ma_keys->dk_nentries;
+
+    if (i >= n) {
+        return false;
+    }
+
+    PyObject *key, *value;
+
+    // Unicode keys or general keys have different sizes, make sure to index
+    // the right type, the algorithm is the same however.
+    if (DK_IS_UNICODE(mp->ma_keys)) {
+        PyDictUnicodeEntry *entry_ptr = &DK_UNICODE_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry_ptr->me_value == NULL) {
+            entry_ptr++;
+            i++;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        key = entry_ptr->me_key;
+        value = entry_ptr->me_value;
+    } else {
+        PyDictKeyEntry *entry_ptr = &DK_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry_ptr->me_value == NULL) {
+            entry_ptr++;
+            i++;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        key = entry_ptr->me_key;
+        value = entry_ptr->me_value;
+    }
+
+    *pos = i + 1;
+
+    *key_ptr = key;
+    *value_ptr = value;
+
+    return true;
+}
+#endif
 
 PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) {
     PyObject *result;

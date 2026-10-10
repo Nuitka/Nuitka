@@ -8,7 +8,7 @@ import sys
 
 from nuitka.__past__ import unicode
 
-from .Importing import importFromInlineCopy
+from .InlineCopies import importFromInlineCopy
 
 environments = {}
 

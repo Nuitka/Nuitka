@@ -1,19 +1,22 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
-
-/* This file is included from another C file, help IDEs to still parse it on its own. */
-#ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
-#endif
 
 // Compiled generator function type.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal generator objects do or even better.
 
-// Status of the generator object.
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/cpython_api_compat.h"
+#include "nuitka/defines.h"
+#include "nuitka/exceptions.h"
+#endif
+
+// Status of the generator/coroutine/asyncgen object.
 #ifdef __cplusplus
 enum Generator_Status {
     status_Unused,  // Not used so far
@@ -232,9 +235,19 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
 }
 
 // Functions to preserver and restore from heap area temporary values during
-// yield/yield from/await exits of generator functions.
+// yield/yield from/await exits of generator functions. The capacity argument
+// is only passed and checked in debug mode.
+#ifndef __NUITKA_NO_ASSERT__
+extern void Nuitka_PreserveHeap(size_t capacity, void *dest, ...);
+extern void Nuitka_RestoreHeap(size_t capacity, void *source, ...);
+#define NUITKA_PRESERVE_HEAP(dest, capacity, ...) Nuitka_PreserveHeap(capacity, dest, __VA_ARGS__)
+#define NUITKA_RESTORE_HEAP(source, capacity, ...) Nuitka_RestoreHeap(capacity, source, __VA_ARGS__)
+#else
 extern void Nuitka_PreserveHeap(void *dest, ...);
 extern void Nuitka_RestoreHeap(void *source, ...);
+#define NUITKA_PRESERVE_HEAP(dest, capacity, ...) Nuitka_PreserveHeap(dest, __VA_ARGS__)
+#define NUITKA_RESTORE_HEAP(source, capacity, ...) Nuitka_RestoreHeap(source, __VA_ARGS__)
+#endif
 
 NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(PyThreadState *tstate,
                                                            struct Nuitka_GeneratorObject *generator) {

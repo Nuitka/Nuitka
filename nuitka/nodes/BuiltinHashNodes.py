@@ -21,6 +21,10 @@ class ExpressionBuiltinHash(
 
     named_children = ("value",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, value, source_ref):
         ChildHavingValueMixin.__init__(self, value=value)
 

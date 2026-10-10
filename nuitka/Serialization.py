@@ -12,6 +12,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     GenericAlias,
     UnionType,
     basestring,
+    frozendict,
     to_byte,
     xrange,
 )
@@ -19,6 +20,7 @@ from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
     builtin_exception_values_list,
+    getBuiltinExceptionIdentifier,
 )
 
 # TODO: Move to constants
@@ -161,6 +163,21 @@ class GlobalConstantAccessor(object):
 
     global_constant_keys = set()
 
+    # Type description values used by any module, these are shared program wide.
+    type_description_values = set()
+
+    @classmethod
+    def getTypeDescriptionCode(cls, type_description_value):
+        type_description_code = "type_description_%s" % type_description_value
+
+        cls.type_description_values.add(type_description_value)
+
+        return type_description_code
+
+    @classmethod
+    def getTypeDescriptionValues(cls):
+        return cls.type_description_values
+
     def __init__(self, data_filename, top_level_name):
         self.constants = OrderedSet()
         self.special_details = {}
@@ -210,6 +227,8 @@ class GlobalConstantAccessor(object):
                 return "(PyObject *)&PyEnum_Type"
             elif constant is frozenset:
                 return "(PyObject *)&PyFrozenSet_Type"
+            elif constant is frozendict:
+                return "(PyObject *)&PyFrozenDict_Type"
             elif python_version >= 0x270 and constant is memoryview:
                 return "(PyObject *)&PyMemoryView_Type"
             elif python_version < 0x300 and constant is basestring:
@@ -221,7 +240,7 @@ class GlobalConstantAccessor(object):
                     "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
                 )
             elif constant in builtin_exception_values_list:
-                return "(PyObject *)PyExc_%s" % constant.__name__
+                return "(PyObject *)" + getBuiltinExceptionIdentifier(constant.__name__)
             elif constant is ExceptionGroup:
                 return "(PyObject *)_PyInterpreterState_GET()->exc_state.PyExc_ExceptionGroup"
             elif constant is BaseExceptionGroup:

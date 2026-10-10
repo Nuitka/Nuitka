@@ -14,9 +14,22 @@ import re
 import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import GenericAlias, UnionType, long, md5, unicode, xrange
+from nuitka.__past__ import (
+    GenericAlias,
+    UnionType,
+    frozendict,
+    long,
+    md5,
+    unicode,
+    xrange,
+)
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import (
+    CodeObjectSpec,
+    CodeObjectSpecClass,
+    CodeObjectSpecGeneratorExpression,
+    CodeObjectSpecModule,
+)
 from nuitka.Tracing import general
 
 from .SpecialConstantData import BlobData
@@ -110,6 +123,11 @@ def namifyConstant(constant):
             return "frozenset_empty"
         else:
             return "frozenset_" + _digest(repr(constant))
+    elif constant_type is frozendict:
+        if not constant:
+            return "frozendict_empty"
+        else:
+            return "frozendict_" + _digest(repr(constant))
     elif constant_type is tuple:
         if constant == ():
             return "tuple_empty"
@@ -167,6 +185,12 @@ def namifyConstant(constant):
         return "type_notimplemented"
     elif constant_type is CodeObjectSpec:
         return "codeobj_" + constant.getHash()
+    elif constant_type is CodeObjectSpecModule:
+        return "module_codeobj_" + constant.getHash()
+    elif constant_type is CodeObjectSpecClass:
+        return "class_codeobj_" + constant.getHash()
+    elif constant_type is CodeObjectSpecGeneratorExpression:
+        return "genexpr_codeobj_" + constant.getHash()
     elif constant_type is GenericAlias:
         return "genalias_%s_%s" % (
             namifyConstant(constant.__origin__),

@@ -7,6 +7,8 @@
 
 #include "nuitka/prelude.h"
 
+#include "nuitka/compiled_types_common.h"
+
 #include "nuitka/compiled_method.h"
 
 #include "nuitka/freelists.h"
@@ -1031,7 +1033,14 @@ PyTypeObject Nuitka_Function_Type = {
 };
 
 void _initCompiledFunctionType(void) {
-    Nuitka_PyType_Ready(&Nuitka_Function_Type, &PyFunction_Type, true, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Function_Type, // type
+                        &PyFunction_Type,      // base
+                        true,                  // generic_get_attr
+                        false,                 // generic_set_attr
+                        false,                 // self_iter
+                        false,                 // await_self_iter
+                        false                  // await_self_aiter
+    );
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Function_Type.tp_doc != PyFunction_Type.tp_doc);
@@ -1346,7 +1355,7 @@ PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *functio
     PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
 #endif
 
-    PyObject *closure = PyObject_GetAttr((PyObject *)function, const_str_plain___closure__);
+    PyObject *closure = LOOKUP_ATTRIBUTE(tstate, (PyObject *)function, const_str_plain___closure__);
 
     if (closure != Py_None) {
         for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(closure); i++) {

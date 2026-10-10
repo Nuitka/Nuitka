@@ -32,11 +32,10 @@ from nuitka.specs.ParameterSpecs import (
 )
 from nuitka.States import states
 from nuitka.Tracing import optimization_logger, printError
-from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 from nuitka.utils.CStrings import decodePythonIdentifierFromC
-from nuitka.Variables import LocalVariable, updateVariablesFromCollection
+from nuitka.Variables import updateVariablesFromCollection
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -150,6 +149,20 @@ class ExpressionFunctionBodyBase(
 
         return self
 
+    def needsReturnExit(self):
+        """Does a return of the function body need an exit point.
+
+        This is not the case if no return can complete, e.g. when all of them
+        are contained in a "finally" block that raises.
+
+        Returns:
+            bool
+        """
+
+        body = self.subnode_body
+
+        return body is not None and body.mayReturn()
+
     def getContainingClassDictCreation(self):
         current = self
 
@@ -198,10 +211,9 @@ class ExpressionFunctionBodyBase(
 
     # TODO: Dubious function doing to distinct things, should be moved to users.
     def hasVariableName(self, variable_name):
-        return (
-            self.locals_scope.hasProvidedVariable(variable_name)
-            or variable_name in self.temp_variables
-        )
+        return self.locals_scope.hasProvidedVariable(
+            variable_name
+        ) or self.hasTempVariable(variable_name)
 
     def getProvidedVariables(self):
         if self.locals_scope is not None:
@@ -251,27 +263,6 @@ class ExpressionFunctionBodyBase(
         assert variable.isModuleVariable()
 
         self.taken.remove(variable)
-
-    def demoteClosureVariable(self, variable):
-        assert variable.isLocalVariable()
-
-        self.taken.remove(variable)
-
-        assert variable.getOwner() is not self
-
-        new_variable = LocalVariable(owner=self, variable_name=variable.getName())
-        if self in variable.traces:
-            new_variable.setTracesForUserFirst(self, variable.traces[self])
-
-        self.locals_scope.unregisterClosureVariable(variable)
-        self.locals_scope.registerProvidedVariable(new_variable)
-
-        updateVariableUsage(
-            provider=self,
-            old_locals_scope=None,
-            new_locals_scope=None,
-            variable_translations={variable: new_variable},
-        )
 
     def hasClosureVariable(self, variable):
         return variable in self.taken
@@ -606,7 +597,6 @@ class ExpressionFunctionBody(
         "unoptimized_locals",
         "unqualified_exec",
         "doc",
-        "return_exception",
         "needs_creation",
         "needs_direct",
         "cross_module_use",
@@ -642,9 +632,6 @@ class ExpressionFunctionBody(
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
-
-        # Indicator if the return value exception might be required.
-        self.return_exception = False
 
         # Indicator if the function needs to be created as a function object.
         self.needs_creation = False
@@ -776,12 +763,6 @@ class ExpressionFunctionBody(
         body = self.subnode_body
 
         return body is not None and body.mayRaiseException(exception_type)
-
-    def markAsExceptionReturnValue(self):
-        self.return_exception = True
-
-    def needsExceptionReturnValue(self):
-        return self.return_exception
 
     def getConstantReturnValue(self):
         """Special function that checks if code generation allows to use common C code."""
@@ -1013,6 +994,8 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
                 num_pos_only=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
+                simulator=None,
+                example_arguments=None,
             )
 
             values = [args_dict[name] for name in call_spec.getParameterNames()]

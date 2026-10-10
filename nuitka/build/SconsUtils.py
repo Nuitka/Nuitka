@@ -42,6 +42,40 @@ from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
+def _raiseStackSizeLimit():
+    """Increase the stack size limit for the scons process.
+
+    Notes:
+        The C compiler processes spawned by scons inherit the stack size
+        limit. Compiling very large generated source files can make the C
+        compiler use deep recursion and crash with a stack overflow, if the
+        limit is too small. The limit is only ever increased, never decreased.
+    """
+
+    if not isWin32Windows():
+        import resource  # pylint: disable=I0021,import-error
+
+        stack_soft, stack_hard = resource.getrlimit(resource.RLIMIT_STACK)
+
+        if stack_hard == resource.RLIM_INFINITY:
+            stack_wanted = stack_hard
+        else:
+            stack_wanted = max(stack_soft, stack_hard)
+
+        try:
+            resource.setrlimit(resource.RLIMIT_STACK, (stack_wanted, stack_hard))
+        except (OSError, ValueError):
+            pass
+        else:
+            scons_details_logger.info(
+                "Stack size limit set to %s (was %s)."
+                % tuple(
+                    "unlimited" if limit == resource.RLIM_INFINITY else limit
+                    for limit in (stack_wanted, stack_soft)
+                )
+            )
+
+
 def initScons(arguments):
     # Set the arguments.
     _setArguments(arguments)
@@ -95,6 +129,8 @@ def setupScons(env, source_dir):
     )
 
     env.SConsignFile(sconsign_filename)
+
+    _raiseStackSizeLimit()
 
 
 def getArgumentRequired(name):
@@ -478,6 +514,11 @@ def createEnvironment(
     env.exe_mode = getArgumentBool("exe_mode", False)
     if env.exe_mode:
         env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
+
+    # Frame locals proxy: Any frame of the program can publish one.
+    env.frame_locals_proxy = getArgumentBool("frame_locals_proxy", False)
+    if env.frame_locals_proxy:
+        env.Append(CPPDEFINES=["_NUITKA_FRAME_LOCALS_PROXY"])
 
     # MacOS bundle: Create an .app on macOS
     env.macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
@@ -1387,18 +1428,29 @@ c) Using "--zig" forces Nuitka download and use Zig for C compilation, but
 
 
 def makeResultPathFileSystemEncodable(env, result_exe):
+    """Create a target path usable for the C compiler.
+
+    Notes:
+        The target is placed inside the build directory, because SCons turns
+        target paths outside of its top level directory into absolute paths,
+        and those can contain characters that the C compiler cannot handle,
+        e.g. for Unicode output directories, at least once the command line
+        spills into a response file. The actual result is renamed into its
+        proper place after the build by 'runScons', see there.
+
+    Args:
+        env: SCons environment, must have 'source_dir' set.
+        result_exe: Intended result path, used for the filename suffix.
+
+    Returns:
+        Path of the target inside the build directory.
+    """
+
+    result_exe = getNormalizedPathJoin(
+        env.source_dir, "_nuitka_temp" + getFilenameExtension(result_exe)
+    )
+
     deleteFile(result_exe, must_exist=False)
-
-    if os.name == "nt" and not isFilesystemEncodable(result_exe):
-        result_exe = getNormalizedPathJoin(
-            os.path.dirname(result_exe),
-            "_nuitka_temp.pyd" if env.module_mode else "_nuitka_temp.exe",
-        )
-
-        if not isFilesystemEncodable(result_exe):
-            result_exe = getNormalizedPath(os.path.relpath(result_exe))
-
-            deleteFile(result_exe, must_exist=False)
 
     return result_exe
 

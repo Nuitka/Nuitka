@@ -41,6 +41,10 @@ def getConstantDefaultPopulation():
         # For Python3 empty bytes, no effect for Python2, same as "", used for
         # code objects.
         b"",
+        # Name of module code objects, shared by all of them.
+        "<module>",
+        # Name of generator expression code objects, shared by all of them.
+        "<genexpr>",
         # Python mechanics, used in various helpers.
         "__module__",
         "__class__",
@@ -68,6 +72,9 @@ def getConstantDefaultPopulation():
         # Nuitka specific
         "__compiled__",
         "__nuitka__",
+        "__uncompiled__",
+        # Environment variable handling in helper code.
+        "environ",
         # Patched module name.
         "inspect",
         # Names of built-ins used in helper code.
@@ -83,6 +90,7 @@ def getConstantDefaultPopulation():
         "classmethod",
         "keys",
         "get",
+        "print",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",
@@ -124,11 +132,15 @@ def getConstantDefaultPopulation():
         # For Python3 modules
         result += ("__cached__",)
 
+    if python_version >= 0x300:
         # For Python3 print
-        result += ("print", "end", "file")
+        result += ("end", "file")
 
         # For Python3 "bytes" built-in.
         result.append("bytes")
+
+        # Module lock handling of direct imports.
+        result += ("acquire", "release")
 
     # For meta path based loader, iter_modules and Python3 "__name__" to
     # "__package__" parsing
@@ -192,6 +204,10 @@ def getConstantDefaultPopulation():
         result.append("ascii")
         result.append("punycode")
 
+        # Removing the "__await__" attribute added to the compiled generator
+        # type by its "am_await" slot.
+        result.append("__await__")
+
     if not shallMakeModule():
         result.append("__main__")
 
@@ -224,11 +240,17 @@ def getConstantDefaultPopulation():
         result.append("__aenter__")
         result.append("__aexit__")
 
-        # Exception group split method call
+        # Exception group "split" and "derive" methods, and metadata of it.
+        result.append("derive")
         result.append("split")
+        result.append("__notes__")
 
         if python_version >= 0x3C0:
             result.append("Unpack")
+
+    if python_version >= 0x3D0:
+        # Register the frame locals proxy with the "Mapping" abstract base class.
+        result.append("Mapping")
 
     if python_version >= 0x3E0:
         # For exception complaint using __qualname__.

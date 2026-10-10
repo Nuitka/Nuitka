@@ -31,6 +31,7 @@ from nuitka.freezer.Standalone import getRemovedUsedDllsInfo
 from nuitka.importing.Importing import (
     getPackageSearchPath,
     getRecompileDecisionReason,
+    isSyntheticModuleUsage,
 )
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.installer.Installer import (
@@ -63,7 +64,7 @@ from nuitka.OutputDirectories import (
     getSourceDirectoryPath,
     hasMainModule,
 )
-from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.plugins.Plugins import getActivePlugins, redactCommandLineArg
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import (
     getLaunchingSystemPrefixPath,
@@ -783,10 +784,14 @@ def _addModulesToReport(root, report_input_data, diffable):
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
-                line=str(used_module.source_ref.getLineNumber()),
-                # TODO: Add reason in a hotfix.
-                # reason=used_module.reason,
             )
+
+            if not isSyntheticModuleUsage(used_module):
+                module_usage_node.attrib["line"] = str(
+                    used_module.source_ref.getLineNumber()
+                )
+
+            module_usage_node.attrib["reason"] = used_module.reason
 
             exclusion_reason = report_input_data["module_exclusions"][module_name].get(
                 used_module.module_name
@@ -1256,7 +1261,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
 
     for arg in sys.argv[1:]:
-        appendTreeElement(options_xml_node, "option", value=arg)
+        appendTreeElement(options_xml_node, "option", value=redactCommandLineArg(arg))
 
     active_plugins_xml_node = appendTreeElement(
         root,
@@ -1276,16 +1281,35 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
         try:
             # TODO: Actually expose these to other reports as well.
-            for key, value in plugin.getReportData():
+            for key, value in plugin.getReportData(
+                make_report_path=_getCompilationReportPath
+            ):
+                if not isinstance(key, (str, unicode)):
+                    return reports_logger.sysexit(
+                        "Error, plugin '%s' report key is not a string."
+                        % plugin.plugin_name
+                    )
+
                 if type(value) is bool:
                     value = "yes" if value else "no"
+                elif not isinstance(value, (str, unicode)):
+                    return reports_logger.sysexit(
+                        """\
+Error, plugin '%s' report value for key '%s' is not a string or boolean."""
+                        % (plugin.plugin_name, key)
+                    )
 
                 plugin_element.attrib[key] = value
 
-        except Exception:  # pylint: disable=broad-exception-caught
-            # Don't fail report generation for plugin report issues, they might be badly coded,
-            # for now we don't even warn about them.
-            pass
+        except (TypeError, ValueError):
+            return reports_logger.sysexit(
+                "Error, plugin '%s' report data is not key/value pairs."
+                % plugin.plugin_name
+            )
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            return reports_logger.sysexit(
+                "Error, plugin '%s' report data failed, '%s'." % (plugin.plugin_name, e)
+            )
 
     if isOnefileMode():
         _onefile_xml_node = appendTreeElement(

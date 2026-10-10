@@ -27,6 +27,10 @@
     },
     "python-expression": {
       "$ref": "#/definitions/non-empty-string"
+    },
+    "config-reference": {
+      "type": "string",
+      "pattern": "^[^\\s/]+/[^\\s/]+$"
     }
   },
   "type": "array",
@@ -36,6 +40,40 @@
     "properties": {
       "module-name": {
         "$ref": "#/definitions/module-name"
+      },
+      "include-config": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/config-reference"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "$ref": "#/definitions/config-reference"
+                },
+                "to": {
+                  "$ref": "#/definitions/non-empty-string"
+                },
+                "key-map": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/non-empty-string"
+                  }
+                },
+                "when": {
+                  "$ref": "#/definitions/python-expression"
+                }
+              },
+              "required": [
+                "from"
+              ]
+            }
+          ]
+        }
       },
       "parameters": {
         "type": "array",

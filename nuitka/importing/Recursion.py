@@ -15,6 +15,7 @@ from nuitka.importing import ImportCache, StandardLibrary
 from nuitka.ModuleRegistry import (
     addRootModule,
     addUsedModule,
+    getDoneModules,
     getRootTopModule,
 )
 from nuitka.options.Options import (
@@ -30,23 +31,26 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallMakePackage,
 )
-from nuitka.pgo.PGO import decideInclusionFromPGO
+from nuitka.pgo.Pgo import decideInclusionFromPGO
 from nuitka.plugins.Hooks import (
+    getModuleSysPathAdditions,
     onModuleEncounter,
     onModuleRecursion,
     onModuleUsageLookAhead,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
     getExtensionModuleSuffixes,
-    getPackageDirFilename,
     hasPackageDirFilename,
+    isPackageDirFilenameCandidate,
+    listPackageDirEntries,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
+from .FakeModules import getVirtualModuleDescription
 from .Importing import (
+    addExtraSysPaths,
     getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
@@ -75,6 +79,12 @@ def _recurseTo(module_name, module_filename, module_kind, reason):
     )
 
     ImportCache.addImportedModule(module)
+
+    # Make "global-sys-path" additions of this module available as early as
+    # possible, so that packages it enables are found before a negative result
+    # for them can be cached, esp. when other modules search them before this
+    # module is optimized.
+    addExtraSysPaths(getModuleSysPathAdditions(module.getFullName()))
 
     return module
 
@@ -120,12 +130,18 @@ def recurseTo(
             reason=reason,
         )
 
-        module = _recurseTo(
-            module_name=module_name,
-            module_filename=module_filename,
-            module_kind=module_kind,
-            reason=reason,
-        )
+        if getVirtualModuleDescription(module_name) is not None:
+            module = buildVirtualModule(
+                module_name=module_name,
+                using_module_name=using_module_name,
+            )
+        else:
+            module = _recurseTo(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                reason=reason,
+            )
 
     return module
 
@@ -141,18 +157,39 @@ def getRecursionDecisions():
 def getExcludedModuleNames():
     """Return the list of excluded module names for code generation.
 
+    Notes:
+        This is derived from the module usages, so it gives the same result for
+        modules restored from the module cache, and does not depend on the
+        order in which recursion decisions were made.
+
     Returns:
         Yields (module_name, reason) tuples.
     """
-    for (
-        _using_module_name,
-        _module_filename,
-        module_name,
-        _module_kind,
-        _extra_recursion,
-    ), (decision, reason) in _recursion_decision_cache.items():
-        if decision is False and reason:
-            yield module_name, reason
+    seen = set()
+
+    for module in getDoneModules():
+        for used_module in module.getUsedModules():
+            # Not found modules are not excluded, they simply do not exist, and
+            # built-in modules are always available and resolved before our
+            # loader is consulted, so they cannot be excluded either.
+            if used_module.finding in ("not-found", "built-in") or (
+                used_module.module_kind == "built-in"
+            ):
+                continue
+
+            decision, reason = decideRecursion(
+                using_module_name=module.getFullName(),
+                module_filename=used_module.filename,
+                module_name=used_module.module_name,
+                module_kind=used_module.module_kind,
+            )
+
+            if decision is False and reason:
+                excluded_key = used_module.module_name, reason
+
+                if excluded_key not in seen:
+                    seen.add(excluded_key)
+                    yield excluded_key
 
 
 def decideRecursion(
@@ -426,8 +463,12 @@ def _addIncludedModule(module, package_only):
             recursion_logger.info("Package directory '%s'." % package_dir)
 
         if not package_only:
-            for sub_path, sub_filename in listDir(package_dir):
-                if sub_filename == "__pycache__" or hasPackageDirFilename(sub_filename):
+            for sub_path, sub_filename in listPackageDirEntries(
+                package_dir, package_name=module.getFullName()
+            ):
+                if sub_filename == "__pycache__" or isPackageDirFilenameCandidate(
+                    sub_filename
+                ):
                     continue
 
                 if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):
@@ -438,7 +479,7 @@ def _addIncludedModule(module, package_only):
                     )
                 elif sub_filename.endswith(".py"):
                     if os.path.isdir(sub_path[:-3]):
-                        if getPackageDirFilename(sub_path[:-3]) is not None:
+                        if hasPackageDirFilename(sub_path[:-3]):
                             continue
 
                     scanPluginSinglePath(
@@ -545,7 +586,9 @@ def scanPluginPath(plugin_filename, module_package):
     # This effectively only covers files known to not be packages due to name
     # or older Python version.
     elif os.path.isdir(plugin_filename):
-        for sub_path, sub_filename in listDir(plugin_filename):
+        for sub_path, sub_filename in listPackageDirEntries(
+            plugin_filename, package_name=None
+        ):
             assert sub_filename != "__init__.py"
 
             if isPackageDir(sub_path) or sub_path.endswith(".py"):
@@ -603,6 +646,54 @@ def scanPluginFilenamePattern(pattern):
         )
 
 
+def buildVirtualModule(module_name, using_module_name):
+    """Build a plugin provided virtual module and add it to the import cache.
+
+    Args:
+        module_name: name of the virtual module.
+        using_module_name: name of the module using it, or None for user choice.
+
+    Returns:
+        The module object.
+    """
+    description = getVirtualModuleDescription(module_name)
+
+    assert description is not None, module_name
+
+    if ImportCache.isImportedModuleByName(module_name):
+        return ImportCache.getImportedModuleByName(module_name)
+
+    # Local import to avoid a cyclic dependency at module load time.
+    from nuitka.tree.Building import buildModule
+
+    module = buildModule(
+        module_name=module_name,
+        module_kind="py",
+        module_filename=description.source_filename,
+        reason=description.reason,
+        source_code=description.source_code,
+        is_top=False,
+        is_main=False,
+        is_fake=module_name,
+        hide_syntax_error=False,
+    )
+
+    ImportCache.addImportedModule(module)
+
+    if isShowInclusion():
+        if using_module_name is None:
+            recursion_logger.info(
+                "Included virtual module '%s' by command line." % module_name
+            )
+        else:
+            recursion_logger.info(
+                "Included virtual module '%s' for '%s'."
+                % (module_name, using_module_name)
+            )
+
+    return module
+
+
 def considerUsedModules(module, pass_count):
     """Consider the used modules of a module for recursion.
 
@@ -633,8 +724,8 @@ def considerUsedModules(module, pass_count):
                 level=used_module.level,
             )
 
-        # Nothing was found here
-        if used_module.filename is None:
+        # Nothing was found here, virtual modules are recursed to without file.
+        if used_module.filename is None and used_module.finding != "virtual":
             continue
 
         try:
@@ -670,9 +761,77 @@ def considerUsedModules(module, pass_count):
                     e.args[0],
                     e.args[1],
                     module.getFullName(),
-                    used_module.source_ref.getAsString(),
+                    (
+                        used_module.source_ref.getAsString()
+                        if used_module.source_ref is not None
+                        else module.getSourceReference().getAsString()
+                    ),
                 )
             )
+
+
+def scanIncludedModule(module_name, include_reason):
+    """Scan a single module for inclusion.
+
+    This is used when a module is explicitly requested to be included, either
+    directly or through a main entry point. The given reason is used to make
+    messages more precise about where the request came from.
+
+    Args:
+        module_name: full name of the module to include.
+        include_reason: reason why the module is included, used for messages.
+
+    Returns:
+        None
+    """
+    module_name, module_filename, module_kind, finding = locateModule(
+        module_name=ModuleName(module_name),
+        parent_package=None,
+        level=0,
+    )
+
+    if finding == "virtual":
+        decision, decision_reason = decideRecursion(
+            using_module_name=None,
+            module_filename=None,
+            module_name=module_name,
+            module_kind=module_kind,
+            extra_recursion=True,
+        )
+
+        if decision:
+            addRootModule(
+                buildVirtualModule(
+                    module_name=module_name,
+                    using_module_name=None,
+                )
+            )
+        else:
+            recursion_logger.warning(
+                "Not allowed to include module '%s' due to '%s'."
+                % (module_name.asString(), decision_reason)
+            )
+
+        return
+
+    if finding != "absolute":
+        return recursion_logger.sysexit(
+            "Error, failed to locate module '%s' %s."
+            % (module_name.asString(), include_reason)
+        )
+
+    if module_kind == "built-in":
+        # TODO:
+        recursion_logger.warning(
+            "Note, module '%s' %s is built-in."
+            % (module_name.asString(), include_reason)
+        )
+    else:
+        scanPluginSinglePath(
+            plugin_filename=module_filename,
+            module_package=module_name.getPackageName(),
+            package_only=True,
+        )
 
 
 def scanIncludedPackage(package_name):

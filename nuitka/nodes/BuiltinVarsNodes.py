@@ -16,6 +16,10 @@ class ExpressionBuiltinVars(ChildHavingSourceMixin, ExpressionBase):
 
     named_children = ("source",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, source, source_ref):
         ChildHavingSourceMixin.__init__(self, source=source)
 

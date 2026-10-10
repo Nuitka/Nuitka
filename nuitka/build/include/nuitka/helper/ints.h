@@ -1,10 +1,13 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_HELPER_INTS_H__
 #define __NUITKA_HELPER_INTS_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/cpython_api_compat.h"
+
+#include "internal/pycore_long.h"
 #include "nuitka/checkers.h"
 #include "nuitka/defines.h"
 #include "nuitka/printing.h"
@@ -38,6 +41,10 @@ typedef struct {
     PyObject *python_value;
     long c_value;
 } nuitka_ilong;
+
+// An unassigned "nuitka_ilong" value, usable in assignments (unlike the brace
+// initializer form, which is only valid in a declaration).
+NUITKA_MAY_BE_UNUSED static const nuitka_ilong NUITKA_ILONG_UNASSIGNED_VALUE = {NUITKA_ILONG_UNASSIGNED, NULL, 0};
 
 #define IS_NILONG_OBJECT_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_OBJECT_VALID) != 0)
 #define IS_NILONG_C_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_CLONG_VALID) != 0)
@@ -90,6 +97,8 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_NILONG_OBJECT_VALUE(nuitka_ilong *dual_
 
     if (!IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
         dual_value->python_value = Nuitka_PyLong_FromLong(dual_value->c_value);
+
+        assert(dual_value->python_value != NULL);
 
         dual_value->validity = NUITKA_ILONG_BOTH_VALID;
     }

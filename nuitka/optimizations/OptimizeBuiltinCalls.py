@@ -29,7 +29,10 @@ from nuitka.nodes.BuiltinDecoratorNodes import (
     ExpressionBuiltinClassmethod,
     ExpressionBuiltinStaticmethod,
 )
-from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.BuiltinDictNodes import (
+    ExpressionBuiltinDict,
+    ExpressionBuiltinFrozendict,
+)
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinBin,
@@ -57,10 +60,7 @@ from nuitka.nodes.BuiltinNextNodes import (
     ExpressionBuiltinNext1,
     ExpressionBuiltinNext2,
 )
-from nuitka.nodes.BuiltinOpenNodes import (
-    ExpressionBuiltinOpenP2,
-    ExpressionBuiltinOpenP3,
-)
+from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinsOpenBefore3Call
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
@@ -375,6 +375,30 @@ def dict_extractor(node):
         node=node,
         builtin_class=wrapExpressionBuiltinDictCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_dict_spec,
+    )
+
+
+def frozendict_extractor(node):
+    # The "frozendict" built-in behaves like "dict" for its arguments.
+    def wrapExpressionBuiltinFrozendictCreation(
+        positional_args, dict_star_arg, source_ref
+    ):
+        if positional_args:
+            # Only one allowed, the spec converted too many into an exception.
+            (pos_arg,) = positional_args
+        else:
+            pos_arg = None
+
+        return ExpressionBuiltinFrozendict(
+            pos_arg=pos_arg,
+            pairs=makeKeyValuePairExpressionsFromKwArgs(dict_star_arg),
+            source_ref=source_ref,
+        )
+
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=wrapExpressionBuiltinFrozendictCreation,
+        builtin_spec=BuiltinParameterSpecs.builtin_frozendict_spec,
     )
 
 
@@ -853,8 +877,8 @@ if python_version < 0x300:
                             in_class_body=node.getParentVariableProvider().isExpressionClassBodyBase(),
                             source_code=makeCallNode(
                                 makeExpressionAttributeLookup(
-                                    expression=ExpressionBuiltinOpenP2(
-                                        filename=filename,
+                                    expression=ExpressionBuiltinsOpenBefore3Call(
+                                        name=filename,
                                         mode=makeConstantRefNode(
                                             constant="rU", source_ref=source_ref
                                         ),
@@ -1045,10 +1069,15 @@ def eval_extractor(node):
 
         return outline_body
 
+    if python_version >= 0x3D0:
+        builtin_eval_spec = BuiltinParameterSpecs.builtin_eval_since_313_spec
+    else:
+        builtin_eval_spec = BuiltinParameterSpecs.builtin_eval_before_313_spec
+
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
         builtin_class=wrapEvalBuiltin,
-        builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+        builtin_spec=builtin_eval_spec,
     )
 
 
@@ -1107,10 +1136,17 @@ if python_version >= 0x300:
 
             return outline_body
 
+        if python_version >= 0x3D0:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_since_313_spec
+        elif python_version >= 0x3B0:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_since_311_spec
+        else:
+            builtin_exec_spec = BuiltinParameterSpecs.builtin_exec_before_311_spec
+
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=wrapExpressionBuiltinExecCreation,
-            builtin_spec=BuiltinParameterSpecs.builtin_exec_spec,
+            builtin_spec=builtin_exec_spec,
         )
 
 
@@ -1132,30 +1168,6 @@ def compile_extractor(node):
         node=node,
         builtin_class=wrapExpressionBuiltinCompileCreation,
         builtin_spec=BuiltinParameterSpecs.builtin_compile_spec,
-    )
-
-
-def open_extractor(node):
-    def makeOpen0(source_ref):
-        # pylint: disable=unused-argument
-        try:
-            # Not giving arguments or context on purpose
-            # pylint: disable=consider-using-with,unspecified-encoding
-            open()
-        except Exception as e:  # We want to broad here, pylint: disable=broad-except
-            return makeRaiseExceptionReplacementExpressionFromInstance(
-                expression=node, exception=e
-            )
-        else:
-            raise NuitkaAssumptionError("open without argument is expected to raise")
-
-    return BuiltinParameterSpecs.extractBuiltinArgs(
-        node=node,
-        builtin_class=(
-            ExpressionBuiltinOpenP3 if str is not bytes else ExpressionBuiltinOpenP2
-        ),
-        builtin_spec=BuiltinParameterSpecs.builtin_open_spec,
-        empty_special_class=makeOpen0,
     )
 
 
@@ -1331,13 +1343,12 @@ def bytearray_extractor(node):
     def makeBytearray0(source_ref):
         return makeConstantRefNode(constant=bytearray(), source_ref=source_ref)
 
-    def selectBytearrayBuiltinClass(string, encoding, errors, source_ref):
-        # TODO: Highly suspicious that "errors"
-        if encoding is None:
-            return ExpressionBuiltinBytearray1(value=string, source_ref=source_ref)
+    def selectBytearrayBuiltinClass(source, encoding, errors, source_ref):
+        if encoding is None and errors is None:
+            return ExpressionBuiltinBytearray1(value=source, source_ref=source_ref)
         else:
             return ExpressionBuiltinBytearray3(
-                string=string, encoding=encoding, errors=errors, source_ref=source_ref
+                string=source, encoding=encoding, errors=errors, source_ref=source_ref
             )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
@@ -1485,7 +1496,6 @@ _dispatch_dict = {
     "slice": slice_extractor,
     "hash": hash_extractor,
     "format": format_extractor,
-    "open": open_extractor,
     "staticmethod": staticmethod_extractor,
     "classmethod": classmethod_extractor,
     "divmod": divmod_extractor,
@@ -1493,6 +1503,7 @@ _dispatch_dict = {
     "enumerate": enumerate_extractor,
     "zip": zip_extractor,
 }
+
 
 if python_version < 0x300:
     # These are not in Python3
@@ -1515,6 +1526,9 @@ else:
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
 
+if python_version >= 0x3F0:
+    _dispatch_dict["frozendict"] = frozendict_extractor
+
 
 def check():
     from nuitka.Builtins import builtin_names
@@ -1528,14 +1542,16 @@ check()
 _builtin_ignore_list = (
     # Not supporting 'print', because it could be replaced, and is not
     # worth the effort yet.
-    "print",
+    # "print",
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
-    "sorted",
+    # "sorted",
+    # TODO: This would be most precious due to the type hint it gives
+    # "enumerate",
     # TODO: Also worthwhile for known values.
-    "reversed",
+    # "reversed",
     # TODO: Not sure what this really is about.
-    "memoryview",
+    # "memoryview",
 )
 
 
@@ -1549,7 +1565,7 @@ def _describeNewNode(new_node):
     if new_node.isExpressionBuiltinImport():
         tags = "new_import"
         message = "built-in __import__ call"
-    elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
+    elif new_node.isExpressionBuiltinCall() or new_node.isStatementExec():
         tags = "new_builtin"
         message = "built-in call '%s'" % new_node.kind
     elif new_node.isExpressionRaiseException():

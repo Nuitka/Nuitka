@@ -23,6 +23,10 @@ from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 class ExpressionBuiltinGlobals(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
@@ -37,6 +41,10 @@ class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
     __slots__ = ("variable_traces", "locals_scope")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, locals_scope, source_ref):
         ExpressionBase.__init__(self, source_ref)

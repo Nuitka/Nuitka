@@ -13,6 +13,7 @@ import sys
 from nuitka.Constants import isConstant
 from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
+from nuitka.nodes.HardImportNodes import getHardImportNodeClasses
 from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
@@ -119,9 +120,8 @@ def isHardModule(module_name):
     if max_version is not None and python_version >= max_version:
         return False
 
-    if os_limit is not None:
-        if os_limit == "win32":
-            return isWin32Windows()
+    if os_limit == "win32":
+        return isWin32Windows()
 
     return True
 
@@ -387,17 +387,19 @@ hard_modules_trust = {
 
 
 def _addHardImportNodeClasses():
-    from nuitka.nodes.HardImportNodesGenerated import hard_import_node_classes
 
-    for hard_import_node_class, spec in hard_import_node_classes.items():
+    for hard_import_node_class, spec in getHardImportNodeClasses().items():
         module_name, function_name = spec.name.rsplit(".", 1)
 
         if module_name in hard_modules_aliases:
             module_name = hard_modules_aliases.get(module_name)
 
-        trust_node_factory[(module_name, function_name)] = hard_import_node_class
+        assert (
+            module_name,
+            function_name,
+        ) not in trust_node_factory, (module_name, function_name)
 
-        # hard_modules_trust[module_name][function_name] = trust_node
+        trust_node_factory[(module_name, function_name)] = hard_import_node_class
 
 
 _addHardImportNodeClasses()
@@ -436,6 +438,11 @@ def addModuleTrust(module_name, attribute_name, trust_value):
 
 
 def addModuleSingleAttributeNodeFactory(module_name, attribute_name, node_class):
+    assert (
+        module_name,
+        attribute_name,
+    ) not in trust_node_factory, (module_name, attribute_name)
+
     hard_modules_trust[module_name][attribute_name] = trust_node
     trust_node_factory[(module_name, attribute_name)] = node_class
 

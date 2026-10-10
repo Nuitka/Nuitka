@@ -69,6 +69,14 @@ def _makeTypeOps(type_name, may_raise_same_type, shortcut=False):
             )
 
 
+def _makeCFloatOps():
+    # Only the same type combinations are usable, the object mixed variants
+    # cannot be generated for the C platform float type.
+    for result_part in "OBJECT", "CBOOL":
+        for comparator in rich_comparison_subset_codes.values():
+            yield "RICH_COMPARE_%s_%s_CFLOAT_CFLOAT" % (comparator, result_part)
+
+
 def _makeFriendOps(type_name1, type_name2, may_raise, shortcut):
     assert type_name1 != type_name2
 
@@ -100,6 +108,7 @@ specialized_cmp_helpers_set = buildOrderedSet(
     _makeTypeOps("INT", may_raise_same_type=False, shortcut=True),
     _makeTypeOps("LONG", may_raise_same_type=False, shortcut=True),
     _makeTypeOps("FLOAT", may_raise_same_type=False, shortcut=True),
+    _makeCFloatOps(),
     # Dual types
     _makeTypeOps("NILONG", may_raise_same_type=False, shortcut=True),
     # TODO: What would shortcut mean, how do tuples compare their elements then?

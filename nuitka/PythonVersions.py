@@ -41,12 +41,12 @@ def getSupportedPythonVersions():
 
 def getNotYetSupportedPythonVersions():
     """Versions known to not work at all (yet)."""
-    return ("3.15",)
+    return ("3.16",)
 
 
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
-    return ()
+    return ("3.15",)
 
 
 def getZstandardSupportingVersions():
@@ -698,8 +698,14 @@ def getModuleLinkerLibs():
         return []
     else:
         # static link libraries might be there, spell-checker: ignore modlibs
-        result = sysconfig.get_config_var("MODLIBS") or ""
-        result = [entry[2:] for entry in result.split() if entry.startswith("-l:")]
+        result = []
+
+        for entry in (sysconfig.get_config_var("MODLIBS") or "").split():
+            if entry.startswith("-l:"):
+                entry = entry[2:]
+
+                if entry not in result:
+                    result.append(entry)
 
         return result
 

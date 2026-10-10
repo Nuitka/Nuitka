@@ -117,6 +117,11 @@ try:
 except ImportError:
     UnionType = None
 
+try:
+    frozendict = frozendict  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    frozendict = None
+
 
 if str is bytes:
     try:
@@ -250,6 +255,7 @@ assert MutableSet
 assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
+assert frozendict or intern
 assert FileNotFoundError
 assert imp
 

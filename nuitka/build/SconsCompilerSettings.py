@@ -14,6 +14,7 @@ from SCons.Script import (  # type: ignore # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import (
     getFileSize,
     getNormalizedPathJoin,
@@ -34,6 +35,7 @@ from nuitka.utils.Utils import (
     isWin32Windows,
 )
 
+from .AIXObjGenerator import generateAIXXcoffObject
 from .DataComposerInterface import getConstantBlobSymbolName
 from .SconsCaching import enableCcache, enableClcache
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
@@ -651,9 +653,41 @@ _supported_resource_modes = (
     "linker",
     "incbin",
     "coff_obj",
+    "xcoff_obj",
     "mac_section",
     "code",
 )
+
+
+def _checkBlobResourceMode(env, resource_mode):
+    if resource_mode not in _supported_resource_modes:
+        return scons_logger.sysexit(
+            "Unknown resource mode '%s', supported modes are: %s"
+            % (resource_mode, _supported_resource_modes),
+            env=env,
+        )
+
+    if resource_mode in ("linker", "incbin") and env.msvc_mode:
+        return scons_logger.sysexit(
+            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
+            env=env,
+        )
+
+    mode_platform_names = {
+        "mac_section": (isMacOS(), "macOS"),
+        "coff_obj": (isWin32Windows(), "Windows"),
+        "xcoff_obj": (isAIX(), "AIX"),
+    }
+
+    if resource_mode in mode_platform_names:
+        mode_supported, platform_name = mode_platform_names[resource_mode]
+
+        if not mode_supported:
+            return scons_logger.sysexit(
+                "Resource mode '%s' is not supported on non-%s platforms."
+                % (resource_mode, platform_name),
+                env=env,
+            )
 
 
 def _decideBlobResourceMode(env, blob_count):
@@ -695,6 +729,7 @@ def _decideBlobResourceMode(env, blob_count):
         resource_mode = "c23_embed"
         reason = "default for newer gcc"
     elif isAIX():
+        # The 'xcoff_obj' can be selected with NUITKA_RESOURCE_MODE= for now.
         resource_mode = "code"
         reason = "AIX is not compatible with incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
@@ -709,30 +744,7 @@ def _decideBlobResourceMode(env, blob_count):
         resource_mode = "incbin"
         reason = "default"
 
-    if resource_mode not in _supported_resource_modes:
-        return scons_logger.sysexit(
-            "Unknown resource mode '%s', supported modes are: %s"
-            % (resource_mode, _supported_resource_modes),
-            env=env,
-        )
-
-    if resource_mode in ("linker", "incbin") and env.msvc_mode:
-        return scons_logger.sysexit(
-            "Resource mode '%s' is not supported with MSVC or ClangCL." % resource_mode,
-            env=env,
-        )
-
-    if resource_mode == "mac_section" and not isMacOS():
-        return scons_logger.sysexit(
-            "Resource mode 'mac_section' is not supported on non-macOS platforms.",
-            env=env,
-        )
-
-    if resource_mode == "coff_obj" and not isWin32Windows():
-        return scons_logger.sysexit(
-            "Resource mode 'coff_obj' is not supported on non-Windows platforms.",
-            env=env,
-        )
+    _checkBlobResourceMode(env, resource_mode)
 
     env.resource_mode = resource_mode
     return resource_mode, reason
@@ -771,6 +783,23 @@ def _addConstantBlobFileCoffObj(env, blob_filename):
     return "_NUITKA_CONSTANTS_FROM_COFF_OBJ"
 
 
+def _addConstantBlobFileXcoffObj(env, blob_filename):
+
+    obj_filename = blob_filename + ".o"
+
+    generateAIXXcoffObject(
+        in_filename=blob_filename,
+        out_filename=obj_filename,
+        symbol_name=_getSymbolName(blob_filename) + "_data",
+        writeable=_isWriteableConstantsBlob(blob_filename),
+    )
+
+    # Link the generated object file
+    env.Append(LINKFLAGS=[obj_filename])
+
+    return "_NUITKA_CONSTANTS_FROM_XCOFF_OBJ"
+
+
 def _addConstantBlobFileIncbin(env, blob_filename):
 
     symbol_name = _getSymbolName(blob_filename)
@@ -781,6 +810,16 @@ def _addConstantBlobFileIncbin(env, blob_filename):
         "__constants_data_%s.c" % blob_basename[:-4],
     )
 
+    if env.large_data_model:
+        # Data section used by linker scripts for large data, placed after
+        # all other data, so the small code model relocation ranges of the
+        # other data are not exceeded.
+        writeable_data_section = ".ldata"
+        read_only_data_section_define = '#define INCBIN_OUTPUT_SECTION ".lrodata"\n'
+    else:
+        writeable_data_section = ".data"
+        read_only_data_section_define = ""
+
     putTextFileContents(
         constants_generated_filename,
         contents=r"""
@@ -788,10 +827,10 @@ def _addConstantBlobFileIncbin(env, blob_filename):
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_LOCAL
 #ifdef _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
-#define INCBIN_OUTPUT_SECTION ".data"
+#define INCBIN_OUTPUT_SECTION "%(writeable_data_section)s"
 #define CONST_CONSTANT
 #else
-#define CONST_CONSTANT const
+%(read_only_data_section_define)s#define CONST_CONSTANT const
 #endif
 
 #include "nuitka/incbin.h"
@@ -811,10 +850,67 @@ unsigned CONST_CONSTANT char *get%(symbol_name)sData(void) {
         % {
             "blob_filename": blob_filename,
             "symbol_name": symbol_name,
+            "writeable_data_section": writeable_data_section,
+            "read_only_data_section_define": read_only_data_section_define,
         },
     )
 
     return "_NUITKA_CONSTANTS_FROM_INCBIN"
+
+
+def _makeLargeDataBlobObject(env, blob_filename, obj_filename):
+    """Create a relocatable object with blob data in the large data section.
+
+    Args:
+        env: The Scons environment.
+        blob_filename: The blob .bin file to convert.
+        obj_filename: The relocatable object file to create.
+
+    Returns:
+        None
+    """
+
+    objcopy_path = getExecutablePath("objcopy", env=env)
+
+    if objcopy_path is None:
+        objcopy_path = getExecutablePath("llvm-objcopy", env=env)
+
+    if objcopy_path is None:
+        return scons_logger.sysexit(
+            "Error, cannot locate 'objcopy' required to handle large data blob '%s'."
+            % blob_filename
+        )
+
+    output_format = getLinkerArch(
+        target_arch=env.target_arch,
+        mingw_mode=env.mingw_mode or isPosixWindows(),
+    )
+
+    if output_format is None:
+        return scons_logger.sysexit(
+            "Error, cannot determine binary format for large data blob '%s'."
+            % blob_filename
+        )
+
+    scons_details_logger.info(
+        "Creating large data blob object for '%s'." % blob_filename
+    )
+
+    check_call(
+        [
+            objcopy_path,
+            "-I",
+            "binary",
+            "-O",
+            output_format,
+            "--rename-section",
+            ".data=.ldata",
+            blob_filename,
+            obj_filename,
+        ],
+        shell=False,
+        logger=scons_details_logger,
+    )
 
 
 def _addConstantBlobFileLinker(env, blob_filename):
@@ -829,17 +925,38 @@ def _addConstantBlobFileLinker(env, blob_filename):
     if env.source_dir == ".":
         blob_filename = "./%s" % blob_filename
 
+    if env.large_data_model:
+        # Directly linking the blob would put it into the '.data' section
+        # before all other data, which for a large blob exceeds the
+        # PC-relative code model ranges. Create an object file with the data
+        # in the large data section instead, which linker scripts place after
+        # all other data.
+        obj_filename = blob_filename + ".o"
+
+        _makeLargeDataBlobObject(
+            env=env,
+            blob_filename=blob_filename,
+            obj_filename=obj_filename,
+        )
+
+        env.Append(LINKFLAGS=[obj_filename])
+    else:
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-b",
+                "-Wl,binary",
+                "-Wl,%s" % blob_filename,
+                "-Wl,-b",
+                "-Wl,%s"
+                % getLinkerArch(
+                    target_arch=env.target_arch,
+                    mingw_mode=env.mingw_mode or isPosixWindows(),
+                ),
+            ]
+        )
+
     env.Append(
         LINKFLAGS=[
-            "-Wl,-b",
-            "-Wl,binary",
-            "-Wl,%s" % blob_filename,
-            "-Wl,-b",
-            "-Wl,%s"
-            % getLinkerArch(
-                target_arch=env.target_arch,
-                mingw_mode=env.mingw_mode or isPosixWindows(),
-            ),
             "-Wl,-defsym",
             "-Wl,%s=_binary_%s_start"
             % (
@@ -961,6 +1078,17 @@ def _addConstantBlobFileMacSection(env, blob_filename):
     return "_NUITKA_CONSTANTS_FROM_MACOS_SECTION"
 
 
+_constant_blob_mode_functions = {
+    "coff_obj": _addConstantBlobFileCoffObj,
+    "xcoff_obj": _addConstantBlobFileXcoffObj,
+    "mac_section": _addConstantBlobFileMacSection,
+    "incbin": _addConstantBlobFileIncbin,
+    "linker": _addConstantBlobFileLinker,
+    "code": _addConstantBlobFileCode,
+    "c23_embed": _addConstantBlobFileCode,
+}
+
+
 def _addConstantBlobFile(env, blob_filename):
     assert blob_filename.endswith(".bin"), blob_filename
 
@@ -971,25 +1099,23 @@ def _addConstantBlobFile(env, blob_filename):
             "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
         )
 
-    if env.resource_mode == "coff_obj":
-        return _addConstantBlobFileCoffObj(env, blob_filename)
-    elif env.resource_mode == "mac_section":
-        return _addConstantBlobFileMacSection(env, blob_filename)
-    elif env.resource_mode == "incbin":
-        return _addConstantBlobFileIncbin(env, blob_filename)
-    elif env.resource_mode == "linker":
-        return _addConstantBlobFileLinker(env, blob_filename)
-    elif env.resource_mode in ("code", "c23_embed"):
-        return _addConstantBlobFileCode(env, blob_filename)
-    else:
-        return scons_logger.sysexit(
-            "Error, illegal resource mode '%s' specified" % env.resource_mode,
-            env=env,
-        )
+    if env.resource_mode in _constant_blob_mode_functions:
+        return _constant_blob_mode_functions[env.resource_mode](env, blob_filename)
+
+    return scons_logger.sysexit(
+        "Error, illegal resource mode '%s' specified" % env.resource_mode,
+        env=env,
+    )
 
 
 def _addConstantBlobFiles(env, source_dir):
     """Add constant blob files to the build environment.
+
+    Notes:
+        On x86_64 Linux, blobs may exceed the 2GB range of the small code
+        model, causing "relocation truncated to fit: R_X86_64_PC32" linker
+        errors. Use the medium code model and large data sections then, as
+        linker scripts place them after all other data.
 
     Args:
         env: The Scons environment.
@@ -999,6 +1125,7 @@ def _addConstantBlobFiles(env, source_dir):
         int: Total size of all blob .bin files in bytes.
     """
     env.resource_mode = "absent"
+    env.large_data_model = False
 
     total_blob_size = 0
     blobs_dir = os.path.join(source_dir, "blobs")
@@ -1012,6 +1139,14 @@ def _addConstantBlobFiles(env, source_dir):
 
         blob_filenames = sorted(blob_filenames)
 
+        if (
+            total_blob_size >= 1600 * 1024 * 1024
+            and env.target_arch == "x86_64"
+            and isLinux()
+            and (env.gcc_mode or env.clang_mode or env.zig_mode)
+        ):
+            env.large_data_model = True
+
         if env.resource_mode == "absent" and blob_filenames:
             env.resource_mode, reason = _decideBlobResourceMode(
                 env, blob_count=len(blob_filenames)
@@ -1020,6 +1155,13 @@ def _addConstantBlobFiles(env, source_dir):
             scons_details_logger.info(
                 "Using resource mode: '%s' (%s)." % (env.resource_mode, reason)
             )
+
+        if env.large_data_model:
+            scons_details_logger.info(
+                "Total data blob size is %.2f GB, using medium code model and "
+                "large data sections." % (total_blob_size / (1024.0 * 1024.0 * 1024.0))
+            )
+            env.Append(CCFLAGS=["-mcmodel=medium"])
 
         blob_define = None
 
@@ -1074,7 +1216,7 @@ def _enableWin32TargetSettings(env):
         env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
 
 
-def enableWindowsStackSize(env, target_arch):
+def _enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
         stack_size = 1024 * 1204 * 8
@@ -1172,6 +1314,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
 
     # Debug mode indications. Do check things with fine granularity.
     debug_modes = getArgumentList("debug_modes", "")
+
+    # Development mode indications. Things meant for developing Nuitka itself.
+    devel_modes = getArgumentList("devel_modes", "")
 
     # Tracing mode. Output program progress.
     trace_mode = getArgumentBool("trace_mode", False)
@@ -1295,6 +1440,9 @@ def createNuitkaSconsEnvironment(needs_source_dir=True):
     enableFlagSettings(env, "debug", debug_modes)
     env.debug_modes_flags = debug_modes
 
+    enableFlagSettings(env, "devel", devel_modes)
+    env.devel_modes_flags = devel_modes
+
     env.debug_mode = debug_mode
     env.debugger_mode = debugger_mode
     env.unstripped_mode = unstripped_mode
@@ -1362,6 +1510,9 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
     env.exe_target = exe_target
     env.onefile_compile = onefile_compile
+
+    if exe_target:
+        _enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
     # Enable LTO for compiler.
     _enableLtoSettings(
@@ -1760,28 +1911,14 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
     # since that's about selecting the compiler, not configuring it.
     importEnvironmentVariableSettings(env)
 
-    # Add constant blob files and compute their total size. Must be after all
-    # compiler settings are established so the resource mode decision is
-    # correct. On x86_64 Linux, the default code model (small) limits
-    # code+data to within 2GB, causing "relocation truncated to fit:
-    # R_X86_64_PC32" linker errors when blobs are large. Use the medium code
-    # model when blobs exceed a threshold.
-    total_blob_size = _addConstantBlobFiles(
+    _enableAddressSanitizerSettings(env)
+
+    # Add constant blob files. Must be after all compiler settings are
+    # established so the resource mode decision is correct.
+    _addConstantBlobFiles(
         env=env,
         source_dir=env.source_dir,
     )
-
-    if (
-        total_blob_size >= 1600 * 1024 * 1024
-        and env.target_arch == "x86_64"
-        and isLinux()
-    ):
-        if env.gcc_mode or env.clang_mode or env.zig_mode:
-            scons_details_logger.info(
-                "Total constant blob size is %.2f GB, using -mcmodel=medium"
-                % (total_blob_size / (1024.0 * 1024.0 * 1024.0))
-            )
-            env.Append(CCFLAGS=["-mcmodel=medium"])
 
 
 def _enablePgoSettings(env):
@@ -1856,6 +1993,31 @@ def _enableDebugSystemSettings(env):
                 env.Append(LINKFLAGS=["-s"])
         elif env.msvc_mode:
             env.Append(LINKFLAGS=["/DEBUG:NONE"])
+
+
+def _enableAddressSanitizerSettings(env):
+    # AddressSanitizer is requested via "--debug-asan" and uses the compiler
+    # driver to add the runtime library, with MSVC being different from
+    # GCC/Clang.
+    if "debug_address_sanitizer" in env.debug_modes_flags:
+        if env.zig_mode:
+            return scons_logger.sysexit("""\
+Error, AddressSanitizer with the Zig compiler is not supported, as its \
+"compiler-rt" does not include the sanitizer runtime library, use gcc or \
+clang instead.""")
+
+        if env.module_mode or env.dll_mode:
+            scons_logger.warning("""\
+AddressSanitizer in a compiled extension module requires the host program to \
+preload the AddressSanitizer runtime, e.g. using the "LD_PRELOAD" environment \
+variable on Linux, or "DYLD_INSERT_LIBRARIES" on macOS.""")
+
+        if env.msvc_mode or env.clangcl_mode:
+            env.Append(CCFLAGS=["/fsanitize=address"])
+            env.Append(LINKFLAGS=["/INFERASANLIBS"])
+        else:
+            env.Append(CCFLAGS=["-fsanitize=address"])
+            env.Append(LINKFLAGS=["-fsanitize=address"])
 
 
 def switchFromGccToGpp(env):

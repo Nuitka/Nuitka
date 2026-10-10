@@ -3,7 +3,7 @@
 
 """CType classes for PyObject *, PyObject **, and struct Nuitka_CellObject *"""
 
-from nuitka.__past__ import iterItems, xrange
+from nuitka.__past__ import frozendict, iterItems, xrange
 from nuitka.code_generation.ErrorCodes import (
     getErrorExitBoolCode,
     getReleaseCode,
@@ -206,6 +206,25 @@ class CPythonPyObjectPtrBase(CTypeBase):
             else:
                 code = "MAKE_DICT_EMPTY(tstate)"
                 ref_count = 1
+        elif type(constant) is frozendict:
+            needs_deep = False
+
+            if may_escape:
+                for _key, value in iterItems(constant):
+                    if isMutable(value):
+                        needs_deep = True
+                        break
+
+            if needs_deep:
+                code = "DEEP_COPY_FROZENDICT(tstate, %s)" % context.getConstantCode(
+                    constant, deep_check=False
+                )
+                ref_count = 1
+            else:
+                # The frozendict is immutable, and so is all its content, it
+                # can be shared without copying.
+                code = context.getConstantCode(constant)
+                ref_count = 0
         elif type(constant) is set:
             if not may_escape:
                 code = context.getConstantCode(constant)
@@ -426,6 +445,16 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
 
     @classmethod
+    def getStructStorageCType(cls):
+        # The struct member stores the pointed object, like the old variadic
+        # attach did, so the walkers can treat it like an object.
+        return CTypePyObjectPtr.c_type
+
+    @classmethod
+    def getStructInitValueCode(cls, variable_code_name):
+        return "*%s" % variable_code_name
+
+    @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
         return "PyObject **%s" % variable_code_name
 
@@ -439,7 +468,13 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
         from ..VariableDeclarations import VariableDeclaration
 
         # Use the object pointed to.
-        return VariableDeclaration("PyObject *", "*%s" % value_name, None, None)
+        return VariableDeclaration(
+            c_type="PyObject *",
+            code_name="*%s" % value_name,
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
+        )
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
@@ -505,7 +540,11 @@ class CTypeCellObject(CTypeBase):
 
         # Use the object pointed to.
         return VariableDeclaration(
-            "PyObject *", "Nuitka_Cell_GET(%s)" % value_name, None, None
+            c_type="PyObject *",
+            code_name="Nuitka_Cell_GET(%s)" % value_name,
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
 
     @classmethod
@@ -563,6 +602,13 @@ class CTypePyCellObject(CTypeCellObject):
     c_type = "PyCellObject *"
 
     @classmethod
+    def getStructStorageCType(cls):
+        # The struct member stores the cell pointer in its canonical
+        # "struct Nuitka_CellObject *" form, which is binary compatible with
+        # "PyCellObject *".
+        return CTypeCellObject.c_type
+
+    @classmethod
     def getInitValue(cls, init_from):
         if init_from is not None:
             return "(PyCellObject *)PyCell_New(%s)" % init_from
@@ -606,7 +652,11 @@ class CTypePyCellObject(CTypeCellObject):
         from ..VariableDeclarations import VariableDeclaration
 
         return VariableDeclaration(
-            "PyObject *", "PyCell_GET((PyObject *)%s)" % value_name, None, None
+            c_type="PyObject *",
+            code_name="PyCell_GET((PyObject *)%s)" % value_name,
+            init_value=None,
+            heap_name=None,
+            struct_name=None,
         )
 
     @classmethod

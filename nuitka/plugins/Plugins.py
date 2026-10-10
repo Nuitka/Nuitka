@@ -30,7 +30,10 @@ from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.importing.FakeModules import FakeModuleDescription, addFakeModule
-from nuitka.importing.Importing import locateModule
+from nuitka.importing.Importing import (
+    locateModule,
+    makePluginModuleUsageAttempt,
+)
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import (
     addUsedModule,
@@ -81,6 +84,7 @@ from .PluginsUsage import counted_plugin_method
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
 active_plugins_with_implicit_imports = []
+active_plugins_with_create_virtual_module = []
 active_plugins_with_decide_compilation = []
 active_plugins_with_decide_annotations = []
 active_plugins_with_decide_doc_strings = []
@@ -156,6 +160,7 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     for callback_name, plugin_collection in (
         ("getImplicitImports", active_plugins_with_implicit_imports),
+        ("createVirtualModule", active_plugins_with_create_virtual_module),
         ("decideCompilation", active_plugins_with_decide_compilation),
         ("decideAnnotations", active_plugins_with_decide_annotations),
         ("decideDocStrings", active_plugins_with_decide_doc_strings),
@@ -192,6 +197,18 @@ def _addActivePlugin(plugin_class, args, force=False):
                 control_tags[tag_name] = False
 
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
+
+
+def redactCommandLineArg(arg):
+    """Redact the value of sensitive command line options.
+
+    Args:
+        arg: Command line argument to potentially redact.
+
+    Returns:
+        The argument, with value redacted if sensitive.
+    """
+    return Plugins.redactCommandLineArg(arg)
 
 
 def getActivePlugins():
@@ -455,9 +472,31 @@ def loadStandardPluginClasses():
         _loadPluginClassesFromPackage("nuitka.plugins.commercial")
 
 
+def _addImplicitImportModuleUsage(
+    module, module_name, module_filename, module_kind, finding, reason
+):
+    """Add an implicit import to the module usages of a module.
+
+    Notes:
+        These are added for the benefit of compilation reports, and to have
+        plugin provided module usage attempts visible in the module usages.
+    """
+    module.addUsedModuleAttempt(
+        makePluginModuleUsageAttempt(
+            module_name=module_name,
+            filename=module_filename,
+            module_kind=module_kind,
+            finding=finding,
+            reason=reason,
+        )
+    )
+
+
 class Plugins(object):
     implicit_imports_cache = {}
+    virtual_modules_cache = {}
     extra_scan_paths_cache = {}
+    recompile_extension_modules_cache = {}
 
     @staticmethod
     @counted_plugin_method
@@ -469,11 +508,21 @@ class Plugins(object):
                 return plugin.sysexit(message)
 
             for v in value:
+                reason = None
+
                 if type(v) in (tuple, list):
-                    sysexit(
-                        "Plugin '%s' needs to be change to only return modules names, not %r (for module '%s')"
-                        % (plugin.plugin_name, v, module.getFullName())
-                    )
+                    if len(v) != 2 or not isinstance(v[0], basestring):
+                        sysexit("""\
+Plugin '%s' must return a module name or a module name and reason pair, \
+not %r (for module '%s')""" % (plugin.plugin_name, v, module.getFullName()))
+
+                    v, reason = v
+
+                    if reason is not None and not isinstance(reason, basestring):
+                        sysexit(
+                            "Plugin '%s' must return a reason string for a module name, not %r (for module '%s')"
+                            % (plugin.plugin_name, reason, module.getFullName())
+                        )
 
                 if inspect.isgenerator(v):
                     for w in iterateModuleNames(v):
@@ -495,14 +544,16 @@ class Plugins(object):
                         % (plugin.plugin_name, v, module.getFullName())
                     )
 
-                yield v
+                yield v, reason
 
         seen = set()
 
-        for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
-            if full_name in seen:
+        for full_name, reason in iterateModuleNames(plugin.getImplicitImports(module)):
+            key = full_name, reason
+
+            if key in seen:
                 continue
-            seen.add(full_name)
+            seen.add(key)
 
             # Ignore dependencies on self. TODO: Make this an error for the
             # plugin.
@@ -510,7 +561,7 @@ class Plugins(object):
                 continue
 
             try:
-                _module_name, module_filename, module_kind, _finding = locateModule(
+                _module_name, module_filename, module_kind, finding = locateModule(
                     module_name=full_name, parent_package=None, level=0
                 )
             except Exception:
@@ -520,7 +571,7 @@ class Plugins(object):
                 )
                 raise
 
-            if module_filename is None:
+            if module_filename is None and finding != "virtual":
                 if isShowInclusion():
                     plugin.info(
                         "Implicit module '%s' suggested for '%s' not found."
@@ -529,7 +580,7 @@ class Plugins(object):
 
                 continue
 
-            result.append((full_name, module_filename, module_kind))
+            result.append((full_name, module_filename, module_kind, finding, reason))
 
         if result and isShowInclusion():
             plugin.info(
@@ -542,7 +593,21 @@ class Plugins(object):
     @staticmethod
     @counted_plugin_method
     def _reportImplicitImports(plugin, module, implicit_imports):
-        for full_name, module_filename, module_kind in implicit_imports:
+        for (
+            full_name,
+            module_filename,
+            module_kind,
+            finding,
+            reason,
+        ) in implicit_imports:
+            _addImplicitImportModuleUsage(
+                module=module,
+                module_name=full_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                finding=finding,
+                reason=reason,
+            )
 
             # This will get back to all other plugins allowing them to inhibit it though.
             decision, decision_reason = decideRecursion(
@@ -582,6 +647,41 @@ through implicit import by '%s' plugin encountered."""
                     reason=decision_reason,
                     source_ref=module.source_ref,
                 )
+
+    @classmethod
+    @counted_plugin_method
+    def createVirtualModule(cls, module_name):
+        """Let plugins provide a virtual module for a not found module name.
+
+        Args:
+            module_name: full module name that was not found.
+
+        Returns:
+            tuple of FakeModuleDescription and plugin, or None
+        """
+        if module_name in cls.virtual_modules_cache:
+            return cls.virtual_modules_cache[module_name]
+
+        result = None
+
+        for plugin in active_plugins_with_create_virtual_module:
+            with withPluginModuleNameProblemReporting(plugin, module_name):
+                description = plugin.createVirtualModule(module_name=module_name)
+
+            if description is None:
+                continue
+
+            if result is not None:
+                plugin.sysexit(
+                    "Error, virtual module '%s' provided by multiple plugins."
+                    % module_name
+                )
+
+            result = description, plugin
+
+        cls.virtual_modules_cache[module_name] = result
+
+        return result
 
     @classmethod
     def _getPackageExtraScanPaths(cls, plugin, package_name, package_dir):
@@ -947,7 +1047,7 @@ through implicit import by '%s' plugin encountered."""
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if states.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                getSourceDirectoryPath(onefile=False, create=False),
+                getSourceDirectoryPath(onefile=False, create=True),
                 module_name + ".py",
             )
 
@@ -1057,8 +1157,11 @@ through implicit import by '%s' plugin encountered."""
                 _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
 
-        for _plugin, fake_module_description in fake_module_descriptions:
-            addFakeModule(fake_module_description.module_name)
+        for plugin, fake_module_description in fake_module_descriptions:
+            addFakeModule(
+                module_name=fake_module_description.module_name,
+                plugin=plugin,
+            )
 
         def combineLoadCodes(module_load_descriptions):
             future_imports_code = []
@@ -1364,7 +1467,10 @@ Error, follow decision '%s' for module '%s' of plugin '%s' does not match other 
     def _addIncompleteModules(modules_to_add):
         for module in getDoneModules():
             for module_usage_attempt in module.getUsedModules():
-                if module_usage_attempt.filename is not None:
+                if (
+                    module_usage_attempt.filename is not None
+                    or module_usage_attempt.finding == "virtual"
+                ):
                     used_module_name = module_usage_attempt.module_name
 
                     if not hasDoneModule(used_module_name):
@@ -1485,6 +1591,9 @@ through incomplete set import by '%s' plugin encountered."""
             The decision is made by the first plugin "never", otherwise a matching
             "yes" config wins, "no" is allowed to be overridden by command line options.
         """
+        if module_name in Plugins.recompile_extension_modules_cache:
+            return Plugins.recompile_extension_modules_cache[module_name]
+
         result = None
 
         for plugin in getActivePlugins():
@@ -1496,20 +1605,23 @@ through incomplete set import by '%s' plugin encountered."""
                     assert value in ("yes", "no", "never"), value
 
                     if value == "never":
-                        return False, plugin_reason
-                    elif value == "yes":
+                        result = False, plugin_reason
+                        break
+                    if value == "yes":
                         result = True, plugin_reason
                     elif value == "no" and result is None:
                         result = False, plugin_reason
 
         options_value = shallRecompileExtensionModules(module_name)
         if options_value[0] in (True, False):
-            return options_value
+            result = options_value
 
         if result is None:
-            return None, "default behavior"
-        else:
-            return result
+            result = None, "default behavior"
+
+        Plugins.recompile_extension_modules_cache[module_name] = result
+
+        return result
 
     preprocessor_symbols = None
 
@@ -1603,6 +1715,17 @@ through incomplete set import by '%s' plugin encountered."""
                     cls.extra_include_directories.update(value)
 
         return tuple(cls.extra_include_directories)
+
+    @staticmethod
+    @counted_plugin_method
+    def getModuleIncludes(context):
+        result = OrderedSet()
+
+        for plugin in getActivePlugins():
+            for value in plugin.getModuleIncludes(context):
+                result.add(value)
+
+        return tuple(result)
 
     @staticmethod
     @counted_plugin_method
@@ -1794,8 +1917,13 @@ through incomplete set import by '%s' plugin encountered."""
             result = []
 
             for plugin in getActivePlugins():
-                for value in plugin.getCacheContributionValues(module_name):
-                    result.append(value)
+                contribution_values = list(
+                    plugin.getCacheContributionValues(module_name)
+                )
+                if contribution_values:
+                    contribution_values.insert(0, plugin.plugin_name)
+
+                result.extend(contribution_values)
 
             cls.cache_contribution_values_cache[module_name] = tuple(result)
 
@@ -2006,6 +2134,43 @@ through incomplete set import by '%s' plugin encountered."""
                 )
 
         return result, plugin_name
+
+    @staticmethod
+    def getReportRedactedOptions():
+        """Return option prefixes with values to redact in reports and output.
+
+        Returns:
+            Tuple of option name prefixes.
+        """
+        # Load plugin classes, to know what we are talking about.
+        loadPlugins()
+
+        result = set()
+
+        for plugin_classes in plugin_name2plugin_classes.values():
+            result.update(plugin_classes[0].getReportRedactedOptions())
+
+        for plugin_class in user_plugins:
+            result.update(plugin_class.getReportRedactedOptions())
+
+        return tuple(sorted(result))
+
+    @staticmethod
+    def redactCommandLineArg(arg):
+        """Redact the value of sensitive command line options.
+
+        Args:
+            arg: Command line argument to potentially redact.
+
+        Returns:
+            The argument, with value redacted if sensitive.
+        """
+        redacted_option_prefixes = Plugins.getReportRedactedOptions()
+
+        if redacted_option_prefixes and arg.startswith(redacted_option_prefixes):
+            arg = arg.split("=", 1)[0] + "=REDACTED"
+
+        return arg
 
 
 def listPlugins():

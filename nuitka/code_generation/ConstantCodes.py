@@ -27,7 +27,7 @@ from nuitka.options.Options import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
-from nuitka.utils.CStrings import encodePythonStringToC
+from nuitka.States import states
 from nuitka.utils.Distributions import (
     getDistribution,
     getDistributionTopLevelPackageNames,
@@ -89,6 +89,99 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
         getReleaseCode(args_name, emit, context)
 
         context.addCleanupTempName(value_name)
+
+
+def getTypeDescriptionDeclarationCodes(type_description_values):
+    """Return (header lines, body lines) for all used type descriptions.
+
+    This is about sharing the type description arrays of compiled frames by
+    their contents, so that descriptions occurring within others do not need
+    their own array. Descriptions are processed longest first, so any host
+    array that can provide a description is already known, and a single pass
+    without re-pointing or alias chains is sufficient. In debug mode arrays
+    get a trailing NUL that the assertions rely on, and sharing is limited to
+    suffixes of the host array then.
+
+    The description contents are indicator tokens, while the emitted arrays
+    use the "NUITKA_FRAME_LOCALS_TYPE_*" macros of the active spec header, so
+    their actual byte values do not matter here.
+
+    Args:
+        type_description_values: set of all type descriptions used program wide.
+
+    Returns:
+        Tuple of list of header lines, and list of body lines.
+    """
+    # Type description indicators to macros of "constants_blob_spec.h".
+    indicator_codes = {
+        "o": "NUITKA_FRAME_LOCALS_TYPE_OBJECT",
+        "O": "NUITKA_FRAME_LOCALS_TYPE_OBJECT_PTR",
+        "c": "NUITKA_FRAME_LOCALS_TYPE_CELL",
+        "b": "NUITKA_FRAME_LOCALS_TYPE_BOOL",
+        "L": "NUITKA_FRAME_LOCALS_TYPE_NILONG",
+        "N": "NUITKA_FRAME_LOCALS_TYPE_NULL",
+    }
+
+    if states.is_debug:
+
+        def findDescriptionPlacement(host_content, wanted_content):
+            # The host has a trailing NUL that must be reached, so only sharing
+            # at the end of a host description is possible.
+            if len(host_content) > len(wanted_content) and host_content.endswith(
+                wanted_content
+            ):
+                return len(host_content) - len(wanted_content)
+
+            return None
+
+    else:
+
+        def findDescriptionPlacement(host_content, wanted_content):
+            return (
+                host_content.find(wanted_content)
+                if wanted_content in host_content
+                else None
+            )
+
+    hosts = []
+    aliases = []
+
+    for content in sorted(
+        type_description_values, key=lambda value: (-len(value), value)
+    ):
+        for host_content, _host_name in hosts:
+            offset = findDescriptionPlacement(host_content, content)
+
+            if offset is not None:
+                aliases.append((content, host_content, offset))
+                break
+        else:
+            hosts.append((content, "type_description_%s" % content))
+
+    header_lines = []
+    body_lines = []
+
+    for content, name in hosts:
+        initializer = ",".join(
+            "(char)%s" % indicator_codes[indicator] for indicator in content
+        )
+
+        if states.is_debug:
+            initializer += ",0"
+
+        header_lines.append("extern char const %s[];" % name)
+        body_lines.append("char const %s[] = {%s};" % (name, initializer))
+
+    for content, host_content, offset in aliases:
+        name = "type_description_%s" % content
+        host_name = "type_description_%s" % host_content
+
+        header_lines.append("extern char const * const %s;" % name)
+        body_lines.append(
+            "char const * const %s = &%s[%d];" % (name, host_name, offset)
+        )
+
+    return header_lines, body_lines
 
 
 def getConstantsDefinitionCode():
@@ -163,6 +256,25 @@ def getConstantsDefinitionCode():
         % constant_accessor.getConstantsCount(),
     )
 
+    (
+        type_description_header_lines,
+        type_description_body_lines,
+    ) = getTypeDescriptionDeclarationCodes(constant_accessor.getTypeDescriptionValues())
+
+    lines.extend(type_description_header_lines)
+
+    if type_description_body_lines:
+        type_description_body_code = (
+            "// Type descriptions shared by the whole program.\n"
+            '#include "nuitka/constants_blob_spec.h"\n'
+            + "\n".join(type_description_header_lines)
+            + "\n"
+            + "\n".join(type_description_body_lines)
+            + "\n\n"
+        )
+    else:
+        type_description_body_code = ""
+
     header = template_header_guard % {
         "header_guard_name": "__NUITKA_GLOBAL_CONSTANTS_H__",
         "header_body": "\n".join(lines),
@@ -170,10 +282,8 @@ def getConstantsDefinitionCode():
 
     major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
-    body = template_constants_reading % {
-        "module_name_cstr": encodePythonStringToC(
-            getRootTopModule().getFullName().asString().encode("utf8")
-        ),
+    constants_body_code = template_constants_reading % {
+        "module_name_cstr": getRootTopModule().getFullName().asCString(),
         "global_constants_count": constant_accessor.getConstantsCount(),
         "global_constants_blob_symbol_name": getConstantBlobSymbolName(
             "__constants.const"
@@ -190,6 +300,8 @@ def getConstantsDefinitionCode():
         "nuitka_version_level": "release" if is_final else "candidate",
         "metadata_values": metadata_values_code,
     }
+
+    body = type_description_body_code + constants_body_code
 
     return header, body
 
@@ -249,6 +361,7 @@ MetaDataDescription = makeNamedtupleClass(
     "MetaDataDescription",
     (
         "module_name",
+        "module_name_candidates",
         "metadata",
         "entry_points_data",
         "reasons",
@@ -275,10 +388,13 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-        module_name = getDistributionTopLevelPackageNames(distribution=distribution)[0]
+        module_name_candidates = getDistributionTopLevelPackageNames(
+            distribution=distribution
+        )
 
         _metadata_values[distribution_name] = MetaDataDescription(
-            module_name=module_name,
+            module_name=None,
+            module_name_candidates=module_name_candidates,
             metadata=metadata,
             entry_points_data=entry_points_data,
             reasons=[reason],
@@ -291,12 +407,26 @@ def getDistributionMetadataValues():
     result = []
 
     for distribution_name, value in _metadata_values.items():
-        if "user requested" not in value.reasons and not hasDoneModule(
-            value.module_name
-        ):
-            continue
+        # Metadata is bound to a top-level package that is included in the
+        # build, and any of the packages of the distribution can serve that
+        # purpose, not just the first one.
+        module_name = None
 
-        result.append((distribution_name, value))
+        for candidate in value.module_name_candidates:
+            if hasDoneModule(candidate):
+                module_name = candidate
+                break
+
+        if module_name is None:
+            if "user requested" not in value.reasons:
+                continue
+
+            # Only user requested metadata is included regardless, so that the
+            # error message about it can be given later.
+            if value.module_name_candidates:
+                module_name = value.module_name_candidates[0]
+
+        result.append((distribution_name, value.replace(module_name=module_name)))
 
     return sorted(result)
 

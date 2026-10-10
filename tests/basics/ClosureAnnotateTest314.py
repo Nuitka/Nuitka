@@ -3,6 +3,9 @@
 
 """Test Python 3.14 deferred annotations that use closure variables."""
 
+import annotationlib
+import typing
+
 
 def displayDict(d):
     result = "{"
@@ -56,10 +59,110 @@ def makeModuleLevelAnnotation():
     return inner
 
 
+def makeTypeParameterClassAnnotation():
+    class Inner[T]:
+        value: T
+
+        def method(self, item: T) -> T:
+            return item
+
+    return Inner
+
+
+def makeTypeParameterFunctionAnnotation():
+    def inner[T](item: T) -> T:
+        return item
+
+    return inner
+
+
+def makeShadowedParameterAnnotation():
+    format = int
+
+    def inner(x: format) -> format:
+        return x
+
+    return inner
+
+
+def makeSharedCellAnnotation():
+    Alias = int
+
+    def annotate_user(x: Alias) -> Alias:
+        return x
+
+    def compiled_user():
+        return Alias
+
+    # Rebinding must be visible to both, they share the cell.
+    Alias = str
+
+    return annotate_user, compiled_user
+
+
+def makeTypeParameterNamedTuple():
+    class Inner[T]:
+        class NT(typing.NamedTuple):
+            value: T
+
+    return Inner
+
+
+def makeClosureNamedTuple():
+    Alias = int
+
+    class NT(typing.NamedTuple):
+        value: Alias
+
+    return NT
+
+
 print("Function closure:", displayDict(makeFunctionAnnotation().__annotations__))
 print("Class closure:", displayDict(makeClassAnnotation().__annotations__))
 print("Method closure:", displayDict(makeMethodAnnotation().method.__annotations__))
 print("Module level:", displayDict(makeModuleLevelAnnotation().__annotations__))
+
+type_parameter_class = makeTypeParameterClassAnnotation()
+type_parameter_function = makeTypeParameterFunctionAnnotation()
+
+print("Type parameter class:", displayDict(type_parameter_class.__annotations__))
+print(
+    "Type parameter method:",
+    displayDict(type_parameter_class.method.__annotations__),
+)
+print(
+    "Type parameter function:",
+    displayDict(type_parameter_function.__annotations__),
+)
+print(
+    "Shadowed parameter:",
+    displayDict(makeShadowedParameterAnnotation().__annotations__),
+)
+
+shared_annotate_user, shared_compiled_user = makeSharedCellAnnotation()
+
+print("Shared cell compiled:", shared_compiled_user())
+print(
+    "Shared cell forwardref:",
+    displayDict(
+        annotationlib.call_annotate_function(
+            shared_annotate_user.__annotate__,
+            annotationlib.Format.FORWARDREF,
+        )
+    ),
+)
+
+type_parameter_named_tuple = makeTypeParameterNamedTuple()
+closure_named_tuple = makeClosureNamedTuple()
+
+print(
+    "Type parameter NamedTuple:",
+    displayDict(type_parameter_named_tuple.NT.__annotations__),
+)
+print(
+    "Closure NamedTuple:",
+    displayDict(closure_named_tuple.__annotations__),
+)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

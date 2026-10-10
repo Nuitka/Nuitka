@@ -53,14 +53,13 @@ from nuitka.freezer.LinuxApp import createLinuxAppFiles
 from nuitka.freezer.MacOSApp import addIncludedDataFilesFromMacOSAppOptions
 from nuitka.importing.Importing import (
     getRecompileDecisionReason,
-    locateModule,
     setupImportingFromOptions,
 )
 from nuitka.importing.Recursion import (
+    scanIncludedModule,
     scanIncludedPackage,
     scanPluginFilenamePattern,
     scanPluginPath,
-    scanPluginSinglePath,
 )
 from nuitka.installer.Installer import createInstallerDispatch
 from nuitka.optimizations.ValueTraces import setupValueTraceFromOptions
@@ -72,6 +71,7 @@ from nuitka.options.Options import (
     getForcedStdoutPath,
     getMainArgs,
     getMainEntryPointFilenames,
+    getMainEntryPointSpecs,
     getMustIncludeModules,
     getMustIncludePackages,
     getOutputDir,
@@ -186,10 +186,9 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     removeDirectory,
 )
-from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.Importing import hasPackageDirFilename
 from nuitka.utils.InstanceCounters import printInstanceCounterStats
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Timing import withProfiling
@@ -214,7 +213,7 @@ from .freezer.Standalone import (
     signDistributionMacOS,
 )
 from .optimizations.Optimization import optimizeModules
-from .pgo.PGO import readPGOInputFile
+from .pgo.Pgo import readPGOInputFile
 from .reports.Reports import writeCompilationReports
 from .States import states
 from .tree.Building import buildMainModuleTree
@@ -320,30 +319,16 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
         scanIncludedPackage(package_name)
 
     for module_name in getMustIncludeModules():
-        module_name, module_filename, module_kind, finding = locateModule(
-            module_name=ModuleName(module_name),
-            parent_package=None,
-            level=0,
+        scanIncludedModule(
+            module_name=module_name,
+            include_reason="that you asked to include",
         )
 
-        if finding != "absolute":
-            return inclusion_logger.sysexit(
-                "Error, failed to locate module '%s' that you asked to include."
-                % module_name.asString()
-            )
-
-        if module_kind == "built-in":
-            # TODO:
-            inclusion_logger.warning(
-                "Note, module '%s' that you asked to include is built-in."
-                % module_name.asString()
-            )
-        else:
-            scanPluginSinglePath(
-                plugin_filename=module_filename,
-                module_package=module_name.getPackageName(),
-                package_only=True,
-            )
+    for _binary_name, module_name, _function_name in getMainEntryPointSpecs():
+        scanIncludedModule(
+            module_name=module_name,
+            include_reason="of a main entry point",
+        )
 
     # Allow plugins to add more modules based on the initial set being complete.
     onModuleInitialSet()
@@ -360,6 +345,12 @@ use the correct name instead.""" % (distribution_name, real_distribution_name))
 
     # Check if distribution meta data is included, that cannot be used.
     for distribution_name, meta_data_value in getDistributionMetadataValues():
+        if meta_data_value.module_name is None:
+            return inclusion_logger.sysexit(
+                "Error, including metadata for distribution '%s' without including any of its packages."
+                % distribution_name
+            )
+
         if not ModuleRegistry.hasDoneModule(meta_data_value.module_name):
             return inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."
@@ -891,7 +882,11 @@ def runSconsBackend():
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
 
-    if hasPythonFlagIsolated():
+    # The Python PGO input build is compiled as accelerated mode and has to
+    # load the standard library from "sys.path" during its profiling run, so
+    # the isolation effect cannot be applied to it. The actual build after the
+    # re-execution will apply it normally.
+    if hasPythonFlagIsolated() and not shallCreatePythonPgoInput():
         scons_options["python_sysflag_isolated"] = asBoolStr(True)
 
     abiflags = getPythonABI(python_debug=shallUsePythonDebug())
@@ -1373,6 +1368,12 @@ def _main():
                     % dist_dir
                 )
 
+    final_filename = OutputDirectories.getResultFullpath(
+        onefile=isOnefileMode(), real=True
+    )
+
+    onFinalResult(filename=final_filename)
+
     # Remove the source directory (now build directory too) if asked to.
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
@@ -1394,10 +1395,6 @@ def _main():
     else:
         general.info("Keeping build directory '%s'." % source_dir)
 
-    final_filename = OutputDirectories.getResultFullpath(
-        onefile=isOnefileMode(), real=True
-    )
-
     if isStandaloneMode() and isMacOS():
         general.info(
             "Created binary that runs on macOS %s (%s) or higher."
@@ -1415,12 +1412,10 @@ def _main():
                 mnemonic="macos-cross-compile",
             )
 
-    onFinalResult(final_filename)
-
     if shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and getPackageDirFilename(base_path):
+        if os.path.isdir(base_path) and hasPackageDirFilename(base_path):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \

@@ -23,7 +23,7 @@ well as private conversations or issue tracker.
    and behave absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not
-   target any older CPython release. For CPython 3 up to 3.13 it also
+   target any older CPython release. For CPython 3 up to 3.14 it also
    has been reached. We do not target the older and practically unused
    CPython 3.0 to 3.3 releases.
 
@@ -490,24 +490,13 @@ block.
  API Documentation and Guidelines
 **********************************
 
-There is API documentation generated with ``doxygen``, available at
-`this location <https://nuitka.net/apidoc>`__ .
-
-To ensure meaningful ``doxygen`` output, the following guidelines must
-be observed when creating or updating Python source:
-
-Use of Standard Python ``__doc__`` Strings
-==========================================
-
 Every class and every method should be documented via the standard
-Python delimiters (``""" ... """``) in the usual way.
+Python delimiters (``""" ... """``) in the usual way. To ensure
+meaningful output, the following guidelines must be observed when
+creating or updating Python source:
 
-Special ``doxygen`` Anatomy of ``__doc__``
-==========================================
-
-.. note::
-
-   We are replacing Doxygen with sphinx, this is all obsolete
+Anatomy of ``__doc__``
+======================
 
 -  Immediately after the leading ``"""``, and after 1 space on the same
    line, enter a brief description or title of the class or method. This
@@ -813,24 +802,6 @@ because Nuitka uses a lot of packages and imports between them.
 *********************
  Internal/Plugin API
 *********************
-
-The documentation from the source code for both the Python and the C
-parts are published as `Nuitka API <https://nuitka.net/apidoc>`__ and
-arguably in a relatively bad shape as we started generating those with
-Doxygen only relatively late.
-
-.. code:: bash
-
-   doxygen ./doc/Doxyfile
-   xdg-open html
-
-Improvements have already been implemented for plugins: The plugin base
-class defined in ``PluginBase.py`` (which is used as a template for all
-plugins) is fully documented in Doxygen now. The same is true for the
-recently added standard plugins ``NumpyPlugin.py`` and
-``TkinterPlugin.py``. These will be uploaded very soon.
-
-Going forward, this will also happen for the remaining standard plugins.
 
 Please find `here
 <https://github.com/Nuitka/Nuitka/blob/develop/UserPlugin-Creation.rst>`__
@@ -1835,6 +1806,223 @@ implicit and explicit ``raise`` of an exception.
 Code trailing an abortive statement can be discarded, and the control
 flow will follow these "exits".
 
+Python C-API Replacements
+-------------------------
+
+Generated code should not call the Python C-API directly when a Nuitka
+helper exists for it. The helpers in
+``nuitka/build/include/nuitka/helper/`` implement optimizations, version
+compatibility, error checking and ``CHECK_OBJECT`` debugging, and they
+are the designated place to add missing functionality, rather than
+calling the C-API at a use site. When reviewing C code, a direct C-API
+call of the functions below is a hint that it should be replaced.
+
+.. list-table:: Nuitka replacements for Python C-API functions
+   :header-rows: 1
+   :widths: auto
+
+   -  -  ``PyObject_GetItem``
+      -  ``LOOKUP_SUBSCRIPT``, ``..._CONST``
+      -  ``helper/subscripts.h``
+      -  Same result; direct mapping/sequence slots and exact-list fast
+         path, plus `__class_getitem__` handling for types.
+
+   -  -  ``PyObject_SetItem``
+      -  ``SET_SUBSCRIPT``, ``..._CONST``
+      -  ``helper/subscripts.h``
+      -  Same semantics; returns ``bool`` instead of ``int``, direct
+         assignment slots, exact-list fast path.
+
+   -  -  ``PyObject_DelItem``
+      -  ``DEL_SUBSCRIPT``
+      -  ``helper/subscripts.h``
+      -  Same semantics; returns ``bool``, direct delete slot.
+
+   -  -  slice lookups
+      -  ``LOOKUP_SLICE``, ``LOOKUP_INDEX_SLICE``
+      -  ``helper/slices.h``
+      -  Avoids creating a slice object for integer bounds; otherwise
+         the same.
+
+   -  -  slice sets
+      -  ``SET_SLICE``
+      -  ``helper/slices.h``
+      -  Same semantics, direct slice assignment with a ``bool`` result.
+
+   -  -  slice deletes
+      -  ``DEL_SLICE``, ``DEL_INDEX_SLICE``
+      -  ``helper/slices.h``
+      -  Avoids creating a slice object for integer bounds; ``bool``
+         result.
+
+   -  -  ``PyDict_GetItem``
+      -  ``DICT_GET_ITEM0`` (borrowed), ``DICT_GET_ITEM1`` (new ref)
+      -  ``helper/dictionaries.h``
+      -  Reference ownership is explicit in the name; only hash errors
+         are propagated.
+
+   -  -  ``PyDict_SetItem``
+      -  ``DICT_SET_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool`` and asserts the exact dict kind; stored result
+         is the same.
+
+   -  -  ``PyDict_DelItem``
+      -  ``DICT_REMOVE_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Returns ``bool``; the ``KeyError`` is the same.
+
+   -  -  ``PyDict_Contains``
+      -  ``DICT_HAS_ITEM``
+      -  ``helper/dictionaries.h``
+      -  Same 1/0/-1 contract, no exception suppression.
+
+   -  -  ``PyDict_New``
+      -  ``MAKE_DICT_EMPTY``, ``MAKE_DICT``
+      -  ``helper/dictionaries.h``
+      -  ``MAKE_DICT`` fills from a C array, no per-item C-API calls.
+
+   -  -  string dict keys
+      -  ``UPDATE_STRING_DICT0``, ``..._1``
+      -  ``helper/dictionaries.h``
+      -  Interns the string key and updates the dict entry in place, so
+         key identity can change.
+
+   -  -  ``PyObject_GetAttr``
+
+      -  ``LOOKUP_ATTRIBUTE``, ``..._DICT_SLOT``, ``..._CLASS_SLOT``
+
+      -  ``helper/attributes.h``
+
+      -  Same for ``LOOKUP_ATTRIBUTE``; the slot variants bypass
+         ``tp_getattro`` and descriptors and must only be used where
+         that is guaranteed.
+
+   -  -  ``PyObject_SetAttr``
+      -  ``SET_ATTRIBUTE``
+      -  ``helper/attributes.h``
+      -  Returns ``bool``; direct ``tp_setattro`` with an optimized
+         ``__dict__`` path.
+
+   -  -  ``PyObject_DelAttr``
+      -  not yet available, add it there
+      -  ``helper/attributes.h``
+      -  Currently a raw C-API call at use sites.
+
+   -  -  ``PySequence_Contains``
+      -  no enhanced form yet, see the TODO
+      -  ``helper/sequences.h``
+      -  Still the CPython function; a lower-overhead variant is
+         planned.
+
+   -  -  ``PyObject_IsTrue``
+      -  ``CHECK_IF_TRUE``, ``CHECK_IF_FALSE``
+      -  ``helper/boolean.h``
+      -  Fast paths for ``True``/``False``/``None`` and direct
+         number/sequence slots; same truthiness.
+
+   -  -  ``PyObject_Hash``
+      -  ``BUILTIN_HASH``
+      -  ``helpers.h``
+      -  Calls ``tp_hash`` directly and returns a Python ``int``; same
+         value and errors.
+
+   -  -  ``PyObject_IsInstance``
+      -  ``Nuitka_Object_IsInstance``
+      -  ``checkers.h``
+      -  Same ``__instancecheck__`` handling; no error suppression
+         differences.
+
+   -  -  ``PyObject_Call``
+
+      -  ``CALL_FUNCTION``, ``CALL_FUNCTION_WITH_ARGSn``,
+         ``..._VECTORCALL``, ``..._KW_SPLIT``
+
+      -  ``calling.h``, ``helper/calling_generated.h``
+
+      -  Specialized compiled-function, PyCFunction and
+         type-instantiation paths, and result normalization; keyword
+         variants need values/names split from the dict.
+
+   -  -  ``PyList_Append``
+      -  ``LIST_APPEND0``, ``LIST_APPEND1``
+      -  ``helper/lists.h``
+      -  ``bool`` result; the suffix selects borrowed (``0``) versus
+         owned (``1``) item reference transfer.
+
+   -  -  ``PyList_New``
+      -  ``MAKE_LIST``, ``MAKE_LIST_REPEATED``
+      -  ``helper/lists.h``
+      -  ``MAKE_LIST`` builds from an iterable, ``MAKE_LIST_REPEATED``
+         fills a repeated element.
+
+   -  -  ``PyTuple_New``
+      -  ``MAKE_TUPLE``, ``MAKE_TUPLE1``, ...
+      -  ``helper/tuples.h``
+      -  Items are filled inline; the ``_0`` suffix variants take
+         borrowed references.
+
+   -  -  ``PyObject_GetIter``
+      -  ``MAKE_ITERATOR``, ``..._INFALLIBLE``
+      -  ``helper/iterators.h``
+      -  Exact-type fast paths and an infallible variant for known
+         iterables.
+
+   -  -  ``PyIter_Next``
+      -  ``ITERATOR_NEXT``, ``BUILTIN_NEXT2``
+      -  ``helper/iterators.h``
+      -  Same semantics with optimized slots and error normalization.
+
+   -  -  ``PyMapping_HasKey``
+
+      -  ``MAPPING_HAS_ITEM``
+
+      -  ``helper/mappings.h``
+
+      -  Behavior difference: ``PyMapping_HasKey`` swallows all
+         exceptions, ``MAPPING_HAS_ITEM`` only ``KeyError`` and returns
+         -1 for other errors.
+
+   -  -  ``PyObject_Size``
+      -  ``Nuitka_PyMapping_Size`` for mappings
+      -  ``helper/mappings.h``
+      -  Mapping sizes only, not sequences.
+
+   -  -  ``PyNumber_Add`` etc.
+      -  ``BINARY_OPERATION_*``, ``INPLACE_OPERATION_*``,
+         ``UNARY_OPERATION_*``
+      -  ``helper/operations_*.h``
+      -  Same results; specialized per operand type and C types, some
+         operations inlined, error formatting can differ.
+
+   -  -  ``PyObject_RichCompare``
+      -  ``RICH_COMPARE_*`` families
+      -  ``helper/comparisons_*.h``
+      -  The ``BOOL`` variants return a tri-state with an exception
+         sentinel instead of ``-1``; comparison semantics are the same.
+
+   -  -  ``PyErr_Fetch``
+      -  ``FETCH_ERROR_OCCURRED_STATE``
+      -  ``exceptions.h``
+      -  Fetches into Nuitka's normalizable error state instead of using
+         the deprecated CPython API.
+
+   -  -  ``PyErr_Occurred``
+      -  ``HAS_ERROR_OCCURRED``
+      -  ``exceptions.h``
+      -  Checks the thread state; equivalent behavior.
+
+   -  -  ``PyErr_Clear``
+      -  ``CLEAR_ERROR_OCCURRED``
+      -  ``exceptions.h``
+      -  Clears through the thread state; equivalent behavior.
+
+   -  -  ``PyErr_SetString``
+      -  ``SET_CURRENT_EXCEPTION_TYPE*``
+      -  ``exceptions.h``
+      -  Sets into Nuitka's error state without creating a temporary
+         exception object.
+
 Constant Preparation
 ====================
 
@@ -2395,6 +2583,106 @@ use special references, that access the C++ and don't go via
 
 This means, that the different handlers and their catching run time
 behavior are all explicit and reduced the branches.
+
+Exception Groups
+----------------
+
+Starting in Python 3.11, exception groups can be caught using
+``except*`` syntax. For example:
+
+.. code:: python
+
+   try:
+      block()
+   except* (A, B) as eg:
+      handlerAorB(eg)
+   except* (B) as eg:
+      handlerB(eg)
+
+To handle this correctly when ``block()`` raises an exception, each
+handler is matched against the remaining exception group in sequence. If
+a match is made, the result will be stored in an ``ExceptionGroup``
+object, which will be passed as ``eg``, and it becomes the exception
+that is currently handled while the handler executes, so that
+``sys.exc_info()`` and a bare ``raise`` refer to it. Exceptions that a
+handler raises do not stop the following handlers from running, they are
+collected instead. The unhandled remainder, together with the collected
+exceptions, is then combined and raised again at the end, if anything
+remains.
+
+Currently, the behavior looks like this:
+
+.. code:: python
+
+   # In reality, this is a C function called EXCEPTION_GROUP_MATCH, but we
+   # could make it pure-Python someday.
+   def exception_group_match(exc_info, match_type):
+      # We assume that the exception is normalized
+      exc_value = exc_info[1]
+      if isinstance(exc_value, match_type):
+         # If the exception is already an exception group, we directly
+         # return it. Otherwise, we create a new exception group that wraps it.
+         if isinstance(exc_value, BaseExceptionGroup):
+            match = exc_value
+         else:
+            match = ExceptionGroup("", [exc_value])
+
+         return match, None
+
+      if isinstance(exc_value, BaseExceptionGroup):
+         # If the raised exception was an exception group object, we call the
+         # split() method to get the match and remaining exceptions.
+         pair = exc_value.split((match_type,))
+         if type(pair) is not tuple:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a tuple, "
+               f" not {type(pair).__name__}"
+            )
+
+         if len(pair) < 2:
+            raise TypeError(
+               f"{type(exc_value).__name__}.split must return a "
+               f" 2-tuple, got tuple of size {len(pair)}"
+            )
+
+         return pair
+
+      # No match
+      return None, exc_value
+
+.. code:: python
+
+   try:
+       block()
+   except:
+      caught = sys.exc_info()[1]
+      rest = caught
+      raised = []
+
+      match, rest = exception_group_match(rest, (A, B))
+      if match is not None:
+         # While the handler runs, "match" is the current exception.
+         try:
+            handlerAorB(match)
+         except:
+            raised.append(sys.exc_info()[1])
+
+      match, rest = exception_group_match(rest, B)
+      if match is not None:
+         try:
+            handlerB(match)
+         except:
+            raised.append(sys.exc_info()[1])
+
+      raised.append(rest)
+
+      # In reality, this is the C function EXCEPTION_GROUP_PREPARE_RERAISE.
+      result = exception_group_prepare_reraise(caught, raised)
+
+      # The previous exception state is restored before the re-raise, so
+      # that it becomes the context of the raised exception.
+      if result is not None:
+         raise result
 
 Statement ``try``/``except`` with ``else``
 ------------------------------------------

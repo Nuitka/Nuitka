@@ -106,10 +106,10 @@ do
     then
         if [ -f "bin/check-nuitka-with-pylint" ]
         then
-            ./bin/check-nuitka-with-pylint $python_files
+            ./bin/check-nuitka-with-pylint --assume-yes-for-downloads $python_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         else
-            python -m pipenv run python Nuitka-develop/bin/check-nuitka-with-pylint $python_files
+            python -m pipenv run python Nuitka-develop/bin/check-nuitka-with-pylint --assume-yes-for-downloads $python_files
             if [ $? -ne 0 ]; then has_errors=1; fi
         fi
     fi

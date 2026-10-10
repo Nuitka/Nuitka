@@ -76,6 +76,7 @@ static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject
 }
 
 static PyObject *old_types_coroutine = NULL;
+static PyObject *types_coroutine_wrapped = NULL;
 
 static char *kw_list_coroutine[] = {(char *)"func", NULL};
 
@@ -89,9 +90,24 @@ static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, Py
     if (Nuitka_Function_Check(func)) {
         struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
+        // Check if "func" is a coroutine function, then return it unchanged.
+        if (function->m_code_object->co_flags & 0x180) {
+            return Py_NewRef(func);
+        }
+
+        // Check if "func" is a generator function, then make it an iterable
+        // coroutine and return it unchanged.
         if (function->m_code_object->co_flags & CO_GENERATOR) {
             function->m_code_object->co_flags |= 0x100;
+
+            return Py_NewRef(func);
         }
+    }
+
+    // Use a replacement that also handles compiled coroutine and generator
+    // objects, which the original "types.coroutine" will not recognize.
+    if (types_coroutine_wrapped != NULL) {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState_GET(), types_coroutine_wrapped, func);
     }
 
     return old_types_coroutine->ob_type->tp_call(old_types_coroutine, args, kwds);
@@ -133,7 +149,7 @@ static PyObject *orig_sys_getframemodulename = NULL;
 static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *depth_arg = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:_getframemodulename", kw_list_depth, &depth_arg)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O:_getframemodulename", kw_list_depth, &depth_arg)) {
         return NULL;
     }
 
@@ -155,20 +171,112 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
     }
 
     if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
-        PyObject *frame_globals = PyObject_GetAttrString((PyObject *)frame->frame_obj, "f_globals");
+        PyObject *result = DICT_GET_ITEM0(tstate, frame->f_globals, const_str_plain___name__);
 
-        PyObject *result = LOOKUP_ATTRIBUTE(tstate, frame_globals, const_str_plain___name__);
-        Py_DECREF(frame_globals);
+        if (result == NULL) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+                return NULL;
+            }
 
+            Py_INCREF_IMMORTAL(Py_None);
+            return Py_None;
+        }
+
+        Py_INCREF(result);
         return result;
     }
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, orig_sys_getframemodulename, depth_arg);
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, orig_sys_getframemodulename, depth_arg ? depth_arg : const_int_0);
 }
 
 // spell-checker: ignore getframemodulename
 static PyMethodDef _method_def_sys_getframemodulename_replacement = {
-    "getcoroutinestate", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
+    "_getframemodulename", CAST_METHOD_KW(_sys_getframemodulename_replacement), METH_VARARGS | METH_KEYWORDS, NULL};
+
+// The "_typing" types derive the module of their user from the current frame
+// function object, which compiled frames do not have, so we fill it in from
+// the compiled frame ourselves.
+#define MAX_TYPING_TYPES 4
+
+static PyTypeObject *typing_types[MAX_TYPING_TYPES];
+static newfunc typing_types_original_new[MAX_TYPING_TYPES];
+static int typing_types_count = 0;
+
+static PyObject *getCompiledCallerModuleName(PyThreadState *tstate) {
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
+
+    while ((frame != NULL) && Nuitka_FrameIsIncomplete(frame)) {
+        frame = frame->previous;
+    }
+
+    if ((frame != NULL) && Nuitka_FrameIsCompiled(frame)) {
+        return DICT_GET_ITEM1(tstate, frame->f_globals, const_str_plain___name__);
+    }
+
+    return NULL;
+}
+
+static PyObject *Nuitka_typing_type_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    newfunc original_new = NULL;
+
+    for (int i = 0; i < typing_types_count; i++) {
+        if (typing_types[i] == type) {
+            original_new = typing_types_original_new[i];
+            break;
+        }
+    }
+
+    assert(original_new != NULL);
+
+    PyObject *result = original_new(type, args, kwds);
+
+    if (result != NULL) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *module_name = getCompiledCallerModuleName(tstate);
+
+        if (module_name != NULL) {
+            if (SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name) == false) {
+                CLEAR_ERROR_OCCURRED(tstate);
+            }
+
+            Py_DECREF(module_name);
+        } else {
+            CLEAR_ERROR_OCCURRED(tstate);
+        }
+    }
+
+    return result;
+}
+
+static void patchTypingType(char const *attribute_name) {
+    PyObject *typing_module = IMPORT_HARD_TYPING();
+
+    PyObject *typing_type = PyObject_GetAttrString(typing_module, attribute_name);
+
+    CHECK_OBJECT(typing_type);
+    assert(PyType_Check(typing_type));
+    assert(typing_types_count < MAX_TYPING_TYPES);
+
+    PyTypeObject *type_object = (PyTypeObject *)typing_type;
+
+    assert(type_object->tp_new != NULL);
+    assert(type_object->tp_new != (newfunc)Nuitka_typing_type_new);
+
+    typing_types[typing_types_count] = type_object;
+    typing_types_original_new[typing_types_count] = type_object->tp_new;
+    typing_types_count += 1;
+
+    type_object->tp_new = (newfunc)Nuitka_typing_type_new;
+
+    Py_DECREF(typing_type);
+}
+
+static void patchTypingModule(void) {
+    patchTypingType("TypeVar");
+    patchTypingType("ParamSpec");
+    patchTypingType("TypeVarTuple");
+}
 
 #endif
 
@@ -258,7 +366,40 @@ class GeneratorWrapperEnhanced(_old_GeneratorWrapper):\n\
             if gen.gi_code.co_flags & 0x0020:\n\
                 self._GeneratorWrapper__isgen = True\n\
 \n\
-types._GeneratorWrapper = GeneratorWrapperEnhanced\n"
+types._GeneratorWrapper = GeneratorWrapperEnhanced\n\
+\n\
+def _coroutine_wrapped(func):\n\
+    import functools\n\
+    import _collections_abc\n\
+\n\
+    @functools.wraps(func)\n\
+    def wrapped(*args, **kwargs):\n\
+        coro = func(*args, **kwargs)\n\
+        if isinstance(coro, types.CoroutineType):\n\
+            return coro\n\
+        if isinstance(coro, types.GeneratorType):\n\
+            if coro.gi_code.co_flags & 0x100:\n\
+                return coro\n\
+            return types._GeneratorWrapper(coro)\n\
+        if (isinstance(coro, _collections_abc.Generator) and\n\
+            not isinstance(coro, _collections_abc.Coroutine)):\n\
+            return types._GeneratorWrapper(coro)\n\
+        return coro\n\
+\n\
+    return wrapped\n\
+\n\
+def _types_coroutine(func):\n\
+    if not callable(func):\n\
+        raise TypeError('types.coroutine() expects a callable')\n\
+\n\
+    if type(func) is types.FunctionType:\n\
+        co_flags = func.__code__.co_flags\n\
+        if co_flags & 0x180:\n\
+            return func\n\
+        if co_flags & 0x20:\n\
+            return _old_types_coroutine(func)\n\
+\n\
+    return _coroutine_wrapped(func)\n"
 #if PYTHON_VERSION >= 0x3b0
                                                   "\
 import inspect\n\
@@ -281,6 +422,14 @@ inspect._get_code_position=_get_code_position\n\
             PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
         CHECK_OBJECT(module);
 
+#if PYTHON_VERSION >= 0x350
+        types_coroutine_wrapped = PyObject_GetAttrString(module, "_types_coroutine");
+        CHECK_OBJECT(types_coroutine_wrapped);
+
+        NUITKA_MAY_BE_UNUSED int res = PyObject_SetAttrString(module, "_old_types_coroutine", old_types_coroutine);
+        assert(res == 0);
+#endif
+
         NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_types_patch");
         assert(bool_res != false);
     }
@@ -297,6 +446,35 @@ inspect._get_code_position=_get_code_position\n\
     CHECK_OBJECT(sys_getframemodulename_replacement);
 
     Nuitka_SysSetObject("_getframemodulename", sys_getframemodulename_replacement);
+
+    patchTypingModule();
+#endif
+
+#if PYTHON_VERSION >= 0x3d0 && _NUITKA_FRAME_LOCALS_PROXY
+    // Register the FrameLocalsProxy with collections.abc.Mapping, so that
+    // isinstance(frame.f_locals, collections.abc.Mapping) is True, matching
+    // CPython which does Mapping.register(framelocalsproxy).
+    PyObject *module_collections_abc = PyImport_ImportModule("collections.abc");
+    if (unlikely(module_collections_abc == NULL)) {
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    }
+    CHECK_OBJECT(module_collections_abc);
+
+    PyObject *mapping = LOOKUP_ATTRIBUTE(tstate, module_collections_abc, const_str_plain_Mapping);
+    CHECK_OBJECT(mapping);
+
+    PyObject *register_func = LOOKUP_ATTRIBUTE(tstate, mapping, const_str_plain_register);
+    CHECK_OBJECT(register_func);
+
+    PyObject *register_result =
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, register_func, (PyObject *)&Nuitka_FrameLocalsProxy_Type);
+    CHECK_OBJECT(register_result);
+
+    Py_DECREF(register_result);
+    Py_DECREF(register_func);
+    Py_DECREF(mapping);
+    Py_DECREF(module_collections_abc);
 #endif
 
     is_done = true;

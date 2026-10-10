@@ -1,10 +1,12 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_HELPER_TUPLES_H__
 #define __NUITKA_HELPER_TUPLES_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #endif
 
@@ -54,10 +56,29 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyThreadState *tstate, PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE_VAR(PyThreadState *tstate, PyObject *const *elements,
                                                      Py_ssize_t size) {
+    assert(size == 0 || elements != NULL);
+    CHECK_OBJECTS(elements, size);
+
     PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, size);
+    assert(result != NULL);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         PyTuple_SET_ITEM0(result, i, elements[i]);
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE_VAR0(PyThreadState *tstate, PyObject *const *elements,
+                                                      Py_ssize_t size) {
+    assert(size == 0 || elements != NULL);
+    CHECK_OBJECTS(elements, size);
+
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, size);
+    assert(result != NULL);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyTuple_SET_ITEM(result, i, elements[i]);
     }
 
     return result;

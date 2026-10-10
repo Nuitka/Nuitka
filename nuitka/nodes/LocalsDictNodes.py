@@ -350,6 +350,10 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
+        # This check requires the locals dict at runtime, escaping it prevents
+        # forward propagation for both dict and mapping based class scopes.
+        trace_collection.onLocalsDictEscaped(self.locals_scope)
+
         assert not self.locals_scope.isMarkedForPropagation()
         return self, None, None
 
@@ -604,9 +608,16 @@ class StatementSetLocals(StatementSetLocalsMixin, StatementSetLocalsBase):
         return self, None, None
 
     def computeStatementOperation(self, trace_collection):
-        self.locals_scope.setTypeShape(self.subnode_new_locals.getTypeShape())
+        new_locals = self.subnode_new_locals
 
-        if self.subnode_new_locals.mayRaiseException(BaseException):
+        self.locals_scope.setTypeShape(new_locals.getTypeShape())
+
+        expected_available, expected_value = new_locals.getExpectedValue()
+
+        if expected_available and type(expected_value) is dict:
+            self.locals_scope.setStartValue(expected_value)
+
+        if new_locals.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

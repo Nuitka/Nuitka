@@ -7,8 +7,8 @@ from .CodeHelpers import generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
+    finalizeFunctionExceptionLocalVariables,
     finalizeFunctionLocalVariables,
-    getClosureCopyCode,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
@@ -23,6 +23,7 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_return_exit,
     template_make_asyncgen,
 )
+from .VariableCodes import getClosureCopyCode
 from .YieldCodes import getYieldReturnDispatchCode
 
 
@@ -52,6 +53,7 @@ def getAsyncgenObjectCode(
     user_variables,
     outline_variables,
     temp_variables,
+    local_variables,
     needs_exception_exit,
     needs_generator_return,
 ):
@@ -60,8 +62,10 @@ def getAsyncgenObjectCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=None,
+        local_variables=local_variables,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
+        outline_variables=outline_variables,
         temp_variables=temp_variables,
     )
 
@@ -82,10 +86,14 @@ def getAsyncgenObjectCode(
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         generator_exit = template_asyncgen_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
     else:

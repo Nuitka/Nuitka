@@ -12,7 +12,7 @@ modules).
 ## 1. Reproduction and Analysis
 
 1. **Isolate the error**: Create a minimal reproduction script (MRE) that triggers the
-   `ModuleNotFoundError`.
+   `ModuleNotFoundError`. Follow `.agents/skills/create-mre/SKILL.md` for the reduction workflow.
 2. **Verify the crash**: Run the MRE with Nuitka in standalone mode to confirm the error persists.
 3. **Analyze the traceback**:
    - Identify the missing module name (e.g., `pandas._libs._cyutility`).

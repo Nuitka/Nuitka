@@ -120,6 +120,66 @@ print(functionTypeParams, functionTypeParams.__type_params__)
 print(asyncFunctionTypeParams, asyncFunctionTypeParams.__type_params__)
 print(asyncGenTypeParams, asyncGenTypeParams.__type_params__)
 
+
+class EnclosingScope[T, *Ts, **P]:
+    def method(self):
+        print("Type variables in enclosing scope:", T, Ts, P)
+        return T, Ts, P
+
+
+print("Stole from class:", EnclosingScope().method())
+
+print(
+    "Type variables in class dict:",
+    "T" in EnclosingScope.__dict__,
+    "Ts" in EnclosingScope.__dict__,
+    "P" in EnclosingScope.__dict__,
+)
+
+
+class TypeVariablesInBases[T](list[T]):
+    pass
+
+
+print("Type variables in bases:", TypeVariablesInBases.__orig_bases__)
+
+
+def sideEffect():
+    print("Side effect")
+    return 42
+
+
+def usingBound[T: str, UnionT: str | int, Deferred: sideEffect()]():
+    print("T.__bound__", T.__bound__)
+    print("UnionT.__bound__", UnionT.__bound__)
+    print("Deferred.__bound__", Deferred.__bound__)
+
+
+print("Function with bound")
+usingBound()
+
+print("Class with bound")
+
+
+class UsingBound[T: str, UnionT: str | int, Deferred: sideEffect()]:
+    print("T.__bound__", T.__bound__)
+    print("UnionT.__bound__", UnionT.__bound__)
+    print("Deferred.__bound__", Deferred.__bound__)
+
+
+def classTypeAliasInFunction():
+    class Parent[A]:
+        type TA1[B] = dict[A, B]
+
+    print(
+        "Type alias in class in function:",
+        Parent.TA1.__parameters__,
+        Parent.TA1.__value__,
+    )
+
+
+classTypeAliasInFunction()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #

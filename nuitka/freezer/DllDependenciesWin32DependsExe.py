@@ -12,7 +12,8 @@ import os
 # pylint: disable=I0021,import-error,redefined-builtin
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.options.Options import assumeYesForDownloads
+from nuitka.Errors import UnsupportedDependencyWalkerCall
+from nuitka.options.Options import assumeYesForDownloads, isExperimental
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden
@@ -151,6 +152,46 @@ def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
 
 
+def isDependsExePathSupported(path, encoding):
+    """Check if a path can be handled by 'depends.exe'.
+
+    Args:
+        path: Path to be checked.
+        encoding: The ANSI encoding used by the tool, e.g. 'mbcs'.
+
+    Returns:
+        bool: True if the path can be handled, False otherwise.
+
+    Notes:
+        The tool is an ANSI program of the Visual C++ 6 era, using the
+        byte-wise case conversion functions '_strlwr' and '_strupr' of
+        'msvcrt.dll' on paths, which are not DBCS aware. A DBCS
+        character with a trail byte in the ASCII letter ranges is
+        converted to a different character, e.g. the CP932 bytes
+        "83 66 83 58 83 4E 7E 31" are changed to
+        "83 66 83 78 83 6E 7E 31", and then no longer resolve.
+    """
+    try:
+        path.encode("ascii")
+    except UnicodeError:
+        pass
+    else:
+        return True
+
+    for character in path:
+        try:
+            character_encoded = character.encode(encoding)
+        except UnicodeError:
+            # Cannot be received by the ANSI tool at all.
+            return False
+
+        for byte_value in bytearray(character_encoded)[1:]:
+            if 0x41 <= byte_value <= 0x5A or 0x61 <= byte_value <= 0x7A:
+                return False
+
+    return True
+
+
 def detectDLLsWithDependsExe(binary_filename, source_dir, scan_dirs):
     source_dir = getExternalUsePath(source_dir)
     temp_base_name = os.path.basename(binary_filename)
@@ -160,6 +201,19 @@ def detectDLLsWithDependsExe(binary_filename, source_dir, scan_dirs):
 
     dwp_filename = getNormalizedPathJoin(source_dir, temp_base_name + ".dwp")
     output_filename = getNormalizedPathJoin(source_dir, temp_base_name + ".depends")
+
+    # "depends.exe" cannot handle some non-ASCII paths, and worse, would
+    # then just not find the dependencies in them, so the caller must use
+    # a different dependency tool for those paths.
+    scan_dirs = [getExternalUsePath(scan_dir) for scan_dir in scan_dirs]
+
+    for path in [
+        getExternalUsePath(binary_filename),
+        dwp_filename,
+        output_filename,
+    ] + scan_dirs:
+        if not isDependsExePathSupported(path=path, encoding="mbcs"):
+            raise UnsupportedDependencyWalkerCall(path)
 
     # User query should only happen once if at all.
     with withFileLock(
@@ -175,12 +229,7 @@ def detectDLLsWithDependsExe(binary_filename, source_dir, scan_dirs):
             contents="""\
 SxS
 %(scan_dirs)s
-"""
-            % {
-                "scan_dirs": "\n".join(
-                    "UserDir %s" % getExternalUsePath(dirname) for dirname in scan_dirs
-                )
-            },
+""" % {"scan_dirs": "\n".join("UserDir %s" % dirname for dirname in scan_dirs)},
         )
 
     # Starting the process while locked, so file handles are not duplicated.
@@ -214,8 +263,14 @@ SxS
     # processes.
     result = parseDependsExeOutput(output_filename)
 
-    deleteFile(output_filename, must_exist=True)
-    deleteFile(dwp_filename, must_exist=True)
+    if isExperimental("keep-dependency-walker-files"):
+        inclusion_logger.info(
+            "Keeping dependency walker output '%s' and configuration '%s'."
+            % (output_filename, dwp_filename)
+        )
+    else:
+        deleteFile(output_filename, must_exist=True)
+        deleteFile(dwp_filename, must_exist=True)
 
     reportMissingMsvcRedistDLLs()
 

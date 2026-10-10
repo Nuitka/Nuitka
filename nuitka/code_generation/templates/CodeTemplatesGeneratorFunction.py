@@ -81,7 +81,7 @@ template_generator_exception_exit = """\
     return NULL;
 
     function_exception_exit:
-%(function_cleanup)s
+%(function_exception_cleanup)s
     CHECK_EXCEPTION_STATE(&%(exception_state_name)s);
     RESTORE_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
 

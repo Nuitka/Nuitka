@@ -5,6 +5,8 @@
 
 from __future__ import print_function
 
+import os
+
 # pylint: disable=superfluous-parens,useless-else-on-loop,using-constant-test
 
 
@@ -154,6 +156,32 @@ def nestedLoopingVariable():
 
 
 print("Nested loop variable iteration:", nestedLoopingVariable())
+
+
+def veryTrustedLoopingVariable():
+    x = os
+
+    for i in range(3):
+        print("Very trusted loop variable reassigned:", x is os)
+        x = i
+
+    x = os
+
+    for _i in range(3):
+        print("Very trusted loop variable unchanged:", x is os)
+
+
+veryTrustedLoopingVariable()
+
+
+def veryTrustedEscapedLoopingVariable():
+    x = os
+
+    for _i in range(3):
+        print("Very trusted escaped loop variable:", getattr(x, "__name__"))
+
+
+veryTrustedEscapedLoopingVariable()
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

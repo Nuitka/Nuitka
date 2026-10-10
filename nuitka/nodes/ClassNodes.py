@@ -15,12 +15,20 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinType3Mixin,
     ChildrenHavingMetaclassBasesMixin,
 )
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
-from .ExpressionBasesGenerated import ExpressionCallMetaclassBase
+from .ExpressionBasesGenerated import (
+    ExpressionCallClassPrepareBase,
+    ExpressionCallMetaclassBase,
+)
 from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
+from .IterationHandles import ConstantDictIterationHandle
 from .LocalsScopes import getLocalsDictHandle
+from .NodeMakingHelpers import makeConstantReplacementNode
 from .OutlineNodes import ExpressionOutlineFunctionBase
+from .shapes.BuiltinTypeShapes import tshape_dict
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
@@ -232,6 +240,10 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
 
     named_children = ("type_name", "bases", "dict_arg")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, type_name, bases, dict_arg, source_ref):
         ChildrenExpressionBuiltinType3Mixin.__init__(
             self,
@@ -321,6 +333,223 @@ class ExpressionCallMetaclass(ExpressionCallMetaclassBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
+        return True
+
+
+class ExpressionCallClassPrepareCommonBase(ExpressionCallClassPrepareBase):
+    """Common base for the class prepare nodes."""
+
+    def computeExpression(self, trace_collection):
+        if self.subnode_called.isCompileTimeConstant():
+            return (
+                makeConstantReplacementNode(
+                    constant=self.subnode_called.getCompileTimeConstant(),
+                    node=self,
+                    user_provided=False,
+                ),
+                "new_constant",
+                "Result of '__prepare__' computed at compile time.",
+            )
+
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionCallClassPrepare(ExpressionCallClassPrepareCommonBase):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE"
+
+    named_children = ("called",)
+    node_attributes = (
+        "type_shape",
+        "code_name",
+        "expected_value",
+    )
+
+    # Without a start value, there is no PGO data to check.
+    pgo_policy = None
+
+    def __init__(
+        self,
+        called,
+        type_shape,
+        code_name,
+        expected_value,
+        source_ref,
+    ):
+        # TODO: Add a "tshape_sane_mapping" shape for non-dict mappings, where
+        # setting does not raise and set values persist, which is what class
+        # body optimizations need. A plain mapping shape would not help, and
+        # "collections.OrderedDict" is not usable as a dict, since it keeps its
+        # own item order and dict operations would bypass it.
+        if type_shape is not tshape_dict:
+            type_shape = tshape_unknown
+            expected_value = None
+
+        assert expected_value is None or type(expected_value) is dict, expected_value
+
+        ExpressionCallClassPrepareCommonBase.__init__(
+            self,
+            called=called,
+            type_shape=type_shape,
+            code_name=code_name,
+            expected_value=expected_value,
+            source_ref=source_ref,
+        )
+
+    def getExpectedValue(self):
+        if self.expected_value is not None:
+            return True, self.expected_value
+
+        return False, None
+
+    def getExpressionDictInConstant(self, value):
+        # The PGO value is asserted at run time, so it can be used for
+        # compile time decisions.
+        if self.expected_value is not None:
+            return value in self.expected_value
+
+        return None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_called.mayRaiseException(exception_type)
+
+    def getTypeShape(self):
+        return self.type_shape
+
+
+class ExpressionCallClassPrepareKnownStartValueDictBase(
+    ExpressionDictShapeExactMixin, ExpressionCallClassPrepareCommonBase
+):
+    """Base for class prepare nodes with a known start value."""
+
+    named_children = ("called",)
+    node_attributes = (
+        "type_shape",
+        "code_name",
+        "expected_value",
+    )
+
+    __slots__ = ("constant",)
+
+    def __init__(
+        self,
+        called,
+        type_shape,
+        code_name,
+        expected_value,
+        source_ref,
+    ):
+        assert type_shape is tshape_dict, type_shape
+        assert (
+            expected_value is not None and type(expected_value) is dict
+        ), expected_value
+        assert self.pgo_policy in ("ignore", "assertion", "exception"), self.pgo_policy
+
+        ExpressionCallClassPrepareCommonBase.__init__(
+            self,
+            called=called,
+            type_shape=type_shape,
+            code_name=code_name,
+            expected_value=expected_value,
+            source_ref=source_ref,
+        )
+
+        self.constant = expected_value
+
+    # With the start value present, parity to dictionary constant nodes is
+    # possible, and the interfaces do not need to check the value presence.
+
+    def getExpectedValue(self):
+        return True, self.expected_value
+
+    def getExpressionDictInConstant(self, value):
+        return value in self.expected_value
+
+    @staticmethod
+    def isMutable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationLength(self):
+        return len(self.expected_value)
+
+    def getIterationHandle(self):
+        return ConstantDictIterationHandle(self)
+
+    def getIterationValue(self, count):
+        assert count < len(self.expected_value)
+
+        return makeConstantRefNode(
+            constant=tuple(self.expected_value)[count], source_ref=self.source_ref
+        )
+
+    def getIterationValueRange(self, start, stop):
+        return [
+            makeConstantRefNode(constant=value, source_ref=self.source_ref)
+            for value in tuple(self.expected_value)[start:stop]
+        ]
+
+    def getIterationValues(self):
+        return tuple(
+            makeConstantRefNode(constant=value, source_ref=self.source_ref)
+            for value in self.expected_value
+        )
+
+    def getTruthValue(self):
+        return bool(self.expected_value)
+
+    def getComparisonValue(self):
+        return True, self.expected_value
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.pgo_policy != "ignore"
+            and self.subnode_called.mayRaiseException(exception_type)
+        ) or self.mayRaiseExceptionOperation()
+
+
+class ExpressionCallClassPrepareKnownStartValueDictIgnored(
+    ExpressionCallClassPrepareKnownStartValueDictBase
+):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_IGNORED"
+
+    pgo_policy = "ignore"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionCallClassPrepareKnownStartValueDictAsserted(
+    ExpressionCallClassPrepareKnownStartValueDictBase
+):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_ASSERTED"
+
+    pgo_policy = "assertion"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+
+class ExpressionCallClassPrepareKnownStartValueDictException(
+    ExpressionCallClassPrepareKnownStartValueDictBase
+):
+    kind = "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_EXCEPTION"
+
+    pgo_policy = "exception"
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
 

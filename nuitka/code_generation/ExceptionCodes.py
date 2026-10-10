@@ -3,25 +3,19 @@
 
 """Exception handling."""
 
+from nuitka.Builtins import getBuiltinExceptionIdentifier
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler,
 )
-
-
-def getExceptionIdentifier(exception_type):
-    assert "PyExc" not in exception_type, exception_type
-
-    if exception_type == "NotImplemented":
-        return "Py_NotImplemented"
-
-    return "PyExc_%s" % exception_type
 
 
 def generateExceptionRefCode(to_name, expression, emit, context):
@@ -30,7 +24,7 @@ def generateExceptionRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_name", expression, emit, context
     ) as value_name:
-        emit("%s = %s;" % (value_name, getExceptionIdentifier(exception_type)))
+        emit("%s = %s;" % (value_name, getBuiltinExceptionIdentifier(exception_type)))
 
 
 def getTracebackMakingIdentifier(context, lineno_name):
@@ -168,6 +162,55 @@ def generateExceptionPublishCode(statement, emit, context):
     emit("PUBLISH_CURRENT_EXCEPTION(tstate, &%s);" % keeper_exception_state_name)
 
 
+def generateExceptionPublishValueCode(statement, emit, context):
+    # Current variables cannot be used anymore now.
+    context.setExceptionKeeperVariables((None, None))
+
+    value_name = context.allocateTempName("publish_exception_value")
+
+    generateExpressionCode(
+        to_name=value_name,
+        expression=statement.subnode_value,
+        emit=emit,
+        context=context,
+    )
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+    emit("PUBLISH_CURRENT_EXCEPTION_VALUE(tstate, %s);" % value_name)
+
+    getReleaseCode(release_name=value_name, emit=emit, context=context)
+
+
+def generateExceptionGroupMatchCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_MATCH",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=True,
+        none_null=True,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateExceptionGroupPrepareReraiseCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="EXCEPTION_GROUP_PREPARE_RERAISE",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=True,
+        none_null=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def _attachExceptionAttributeCode(
     to_name,
     attribute_expression,
@@ -224,7 +267,7 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_made", expression, emit, context
     ) as value_name:
-        exception_name = getExceptionIdentifier(exception_type)
+        exception_name = getBuiltinExceptionIdentifier(exception_type)
 
         if len(exception_arg_names) == 1 and for_raise:
             emit(

@@ -1,10 +1,12 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_IMPORTING_H__
 #define __NUITKA_IMPORTING_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/checkers.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
 #include "nuitka/exceptions.h"
 #include "nuitka/helper/dictionaries.h"
@@ -33,7 +35,13 @@ extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_
 // Fixed import name to be imported and used by value name.
 extern PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name);
 
-// Import an embedded module directly.
+// Import a fromlist element of an already imported module, ignoring submodules
+// that do not exist, and indicating errors as a boolean result.
+extern bool IMPORT_FIXED_MODULE_FROMLIST_ELEMENT(PyThreadState *tstate, PyObject *module, PyObject *import_name,
+                                                 PyObject *module_name);
+
+// Import an embedded module directly. Returns a borrowed reference, the module
+// is kept alive through its "sys.modules" entry and its load state.
 extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name, bool internal);
 
 // Execute a module, the module object is prepared empty, but with __name__.
@@ -50,6 +58,16 @@ extern PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, 
 
 #if PYTHON_VERSION >= 0x300
 extern PyObject *getImportLibBootstrapModule(void);
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+static inline struct _import_state *Nuitka_PyInterpreterState_GetImportsState(PyInterpreterState *interp) {
+#if PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0
+    return (struct _import_state *)Nuitka_PyInterpreterState_AdjustPostGcPointer(&interp->imports);
+#else
+    return &interp->imports;
+#endif
+}
 #endif
 
 // Replacement for "PyImport_GetModuleDict"

@@ -25,7 +25,9 @@ from .PythonAPICodes import (
 )
 
 
-def generateBuiltinDictCode(to_name, expression, emit, context):
+def _generateBuiltinDictValueCode(to_name, expression, emit, context):
+    # Generated a plain dictionary for the arguments of the "dict" and
+    # "frozendict" built-ins.
     if expression.subnode_pos_arg:
         seq_name = context.allocateTempName("dict_seq")
 
@@ -39,48 +41,76 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
     else:
         seq_name = None
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "dict_value", expression, emit, context
-    ) as value_name:
-        if expression.subnode_pairs:
-            # If there is no sequence to mix in, then directly generate
-            # into to_name.
+    if expression.subnode_pairs:
+        # If there is no sequence to mix in, then directly generate
+        # into to_name.
 
-            if seq_name is None:
-                getDictionaryCreationCode(
-                    to_name=value_name,
-                    pairs=expression.subnode_pairs,
-                    emit=emit,
-                    context=context,
-                )
-
-                dict_name = None
-            else:
-                dict_name = context.allocateTempName("dict_arg")
-
-                getDictionaryCreationCode(
-                    to_name=dict_name,
-                    pairs=expression.subnode_pairs,
-                    emit=emit,
-                    context=context,
-                )
-        else:
-            dict_name = None
-
-        if seq_name is not None:
-            emit(
-                "%s = TO_DICT(tstate, %s, %s);"
-                % (value_name, seq_name, "NULL" if dict_name is None else dict_name)
-            )
-
-            getErrorExitCode(
-                check_name=value_name,
-                release_names=(seq_name, dict_name),
+        if seq_name is None:
+            getDictionaryCreationCode(
+                to_name=to_name,
+                pairs=expression.subnode_pairs,
                 emit=emit,
                 context=context,
             )
 
-            context.addCleanupTempName(value_name)
+            dict_name = None
+        else:
+            dict_name = context.allocateTempName("dict_arg")
+
+            getDictionaryCreationCode(
+                to_name=dict_name,
+                pairs=expression.subnode_pairs,
+                emit=emit,
+                context=context,
+            )
+    else:
+        dict_name = None
+
+    if seq_name is not None:
+        emit(
+            "%s = TO_DICT(tstate, %s, %s);"
+            % (to_name, seq_name, "NULL" if dict_name is None else dict_name)
+        )
+
+        getErrorExitCode(
+            check_name=to_name,
+            release_names=(seq_name, dict_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(to_name)
+
+
+def generateBuiltinDictCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        _generateBuiltinDictValueCode(
+            to_name=value_name, expression=expression, emit=emit, context=context
+        )
+
+
+def generateBuiltinFrozendictCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "frozendict_value", expression, emit, context
+    ) as value_name:
+        dict_name = context.allocateTempName("frozendict_dict")
+
+        _generateBuiltinDictValueCode(
+            to_name=dict_name, expression=expression, emit=emit, context=context
+        )
+
+        emit("%s = PyFrozenDict_New(%s);" % (value_name, dict_name))
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name,),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
 
 
 def generateDictionaryCreationCode(to_name, expression, emit, context):
@@ -174,10 +204,10 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
                 key_needs_release, value_needs_release = generatePairCode(pair)
 
             needs_check = not is_hashable_key[count]
-            res_name = context.getIntResName()
+            res_name = context.getBoolResName()
 
             emit(
-                "%s = PyDict_SetItem(%s, %s, %s);"
+                "%s = DICT_SET_ITEM(%s, %s, %s);"
                 % (res_name, to_name, dict_key_name, dict_value_name)
             )
 
@@ -188,7 +218,7 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
                 emit("Py_DECREF(%s);" % dict_key_name)
 
             getErrorExitBoolCode(
-                condition="%s != 0" % res_name,
+                condition="%s == false" % res_name,
                 needs_check=needs_check,
                 emit=emit,
                 context=context,
@@ -496,7 +526,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
     dict_key_name = context.allocateTempName("dictupdate_key")
     dict_value_name = context.allocateTempName("dictupdate_value")
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     for count, pair in enumerate(expression.subnode_pairs):
         generateExpressionCode(
@@ -514,12 +544,12 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
         )
 
         emit(
-            "%s = PyDict_SetItem(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(%s, %s, %s);"
             % (res_name, dict_name, dict_key_name, dict_value_name)
         )
 
         getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
+            condition="%s == false" % res_name,
             needs_check=not expression.subnode_pairs[count].isKnownToBeHashable(),
             release_names=(dict_key_name, dict_value_name),
             emit=emit,
@@ -800,15 +830,15 @@ def generateDictOperationSetCode(statement, emit, context):
     )
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = PyDict_SetItem(%s, %s, %s);
+%s = DICT_SET_ITEM(%s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
+        condition="%s == false" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
         needs_check=not statement.subnode_key.isKnownToBeHashable(),
@@ -843,15 +873,15 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
-    res_name = context.getIntResName()
+    res_name = context.getBoolResName()
 
     emit("""\
 assert(PyDict_CheckExact(%s));
-%s = PyDict_SetItem(%s, %s, %s);
+%s = DICT_SET_ITEM(%s, %s, %s);
 """ % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name))
 
     getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
+        condition="%s == false" % res_name,
         release_names=(value_arg_name, dict_arg_name, key_arg_name),
         emit=emit,
         needs_check=not statement.subnode_key.isKnownToBeHashable(),

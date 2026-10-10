@@ -94,6 +94,10 @@ def writeExtraCodeFiles(onefile):
     return Plugins.writeExtraCodeFiles(onefile=onefile)
 
 
+def getModuleIncludes(context):
+    return Plugins.getModuleIncludes(context=context)
+
+
 def onGeneratedSourceCode(source_dir, onefile):
     return Plugins.onGeneratedSourceCode(source_dir=source_dir, onefile=onefile)
 
@@ -279,6 +283,17 @@ def considerImplicitImports(module):
     return Plugins.considerImplicitImports(module=module)
 
 
+def createVirtualModule(module_name):
+    """Let plugins provide a virtual module for a not found module name.
+
+    Args:
+        module_name: full module name that was not found.
+    Returns:
+        FakeModuleDescription or None
+    """
+    return Plugins.createVirtualModule(module_name=module_name)
+
+
 def suppressUnknownImportWarning(importing, source_ref, module_name):
     """Let plugins decide whether to suppress import warnings for an unknown module.
 
@@ -390,6 +405,11 @@ def getUncompiledDecoratorNames():
         tuple of strings
     """
     return Plugins.getUncompiledDecoratorNames()
+
+
+def redactCommandLineArg(arg):
+    """Redact the value of sensitive command line options."""
+    return Plugins.redactCommandLineArg(arg)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -36,7 +36,6 @@ catching and passing in exceptions raised.
 """
 
 import marshal
-import os
 
 from nuitka import ModuleRegistry, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode
@@ -121,6 +120,7 @@ from nuitka.nodes.VariableNameNodes import (
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
+    getMainModuleName,
     hasPythonFlagNoSite,
     hasPythonFlagPackageMode,
     isExperimental,
@@ -130,7 +130,7 @@ from nuitka.options.Options import (
     shallMakeModule,
     shallWarnUnusualCode,
 )
-from nuitka.pgo.PGO import decideCompilationFromPGO
+from nuitka.pgo.Pgo import decideCompilationFromPGO
 from nuitka.plugins.Hooks import decideCompilation, onModuleDiscovered
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
@@ -141,7 +141,6 @@ from nuitka.Tracing import (
     unusual_logger,
 )
 from nuitka.utils import MemoryUsage
-from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import withNoSyntaxWarning
 
 from . import SyntaxErrors
@@ -700,20 +699,19 @@ def buildTemplateStringNode(provider, node, source_ref):
     str_values = []
     interpolations = []
 
-    last_was_interpolation = False
-
     for value in buildNodeTuple(provider, node.values, source_ref):
         if value.isExpressionConstantRef():
             str_values.append(value.getCompileTimeConstant())
-            last_was_interpolation = False
         elif value.isExpressionTemplateInterpolation():
-            if last_was_interpolation:
+            # The string values are the literal parts around the
+            # interpolations and must outnumber them by one, including the
+            # empty leading and trailing parts.
+            if len(str_values) == len(interpolations):
                 str_values.append("")
 
             interpolations.append(value)
-            last_was_interpolation = True
 
-    if last_was_interpolation:
+    if len(str_values) == len(interpolations):
         str_values.append("")
 
     return ExpressionTemplateString(
@@ -803,6 +801,7 @@ setBuildingDispatchers(
         "Slice": buildSliceNode,
         "Match": buildMatchNode,
         "TypeAlias": buildTypeAliasNode,
+        "TypeVar": buildTypeVarNode,
         "TemplateStr": buildTemplateStringNode,
         "Interpolation": buildInterpolationNode,
     },
@@ -813,7 +812,6 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
-        "TypeVar": buildTypeVarNode,
         "TypeVarTuple": buildTypeVarTupleNode,
         "ParamSpec": buildTypeParamSpec,
     },
@@ -900,6 +898,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                     using_module_name=provider.getParentModule().getFullName(),
                     module_name="site",
                     value_name="site",
+                    extra_module_usages=(),
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
@@ -916,6 +915,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
                         using_module_name=provider.getParentModule().getFullName(),
                         module_name=path_imported_name,
                         value_name=path_imported_name.getTopLevelPackageName(),
+                        extra_module_usages=(),
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
@@ -1248,20 +1248,13 @@ def buildMainModuleTree(source_code):
 
     filename = getMainEntryPointFilenames()[0]
 
-    if shallMakeModule():
-        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+    module_name = getMainModuleName()
 
-        if module_name is None:
-            general.sysexit(
-                "Error, filename '%s' suffix does not appear to be Python module code."
-                % filename
-            )
-    else:
-        # TODO: Doesn't work for deeply nested packages at all.
-        if hasPythonFlagPackageMode():
-            module_name = ModuleName(os.path.basename(filename) + ".__main__")
-        else:
-            module_name = ModuleName("__main__")
+    if module_name is None:
+        return general.sysexit(
+            "Error, filename '%s' suffix does not appear to be Python module code."
+            % filename
+        )
 
     module = buildModule(
         module_name=module_name,

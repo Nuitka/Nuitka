@@ -10,7 +10,11 @@
 #include "nuitka/prelude.h"
 #endif
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#ifdef __OpenBSD__
+#include <sys/param.h>
+#endif
+
+#ifdef __FreeBSD__
 #include <sys/sysctl.h>
 #endif
 
@@ -183,6 +187,10 @@ filename_char_t *_getBinaryPath2(void) {
     int res = _NSGetExecutablePath(binary_filename, &bufsize);
 
     if (unlikely(res != 0)) {
+        abort();
+    }
+#elif defined(__OpenBSD__) && OpenBSD >= 202610
+    if (unlikely(getexecpath(binary_filename, buffer_size) != 0)) {
         abort();
     }
 #elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
@@ -782,7 +790,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
     static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
 
     wchar_t *buffer = resolve_symlinks ? binary_filename : binary_filename_resolved;
-    assert(sizeof(binary_filename) == sizeof(binary_filename_resolved));
+    STATIC_ASSERT(sizeof(binary_filename) == sizeof(binary_filename_resolved), "Arrays must have same size");
 
     if (buffer[0] == 0) {
 #if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
@@ -1085,7 +1093,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                     wchar_t time_buffer[128];
 
                     __int64 time = 0;
-                    assert(sizeof(time) == sizeof(FILETIME));
+                    STATIC_ASSERT(sizeof(time) == sizeof(FILETIME), "__int64 must match FILETIME size");
                     GetSystemTimeAsFileTime((LPFILETIME)&time);
 
                     long usec = (long)((time / 10) % 1000000);
@@ -1111,7 +1119,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
                     // spell-checker: ignore LPFILETIME
                     __int64 time = 0;
-                    assert(sizeof(time) == sizeof(FILETIME));
+                    STATIC_ASSERT(sizeof(time) == sizeof(FILETIME), "__int64 must match FILETIME size");
                     GetSystemTimeAsFileTime((LPFILETIME)&time);
 
                     swprintf(time_buffer, sizeof(time_buffer), L"%lld", time);

@@ -78,6 +78,36 @@ static PyObject *_DEEP_COPY_SET(PyObject *value) {
 
 PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value) { return _DEEP_COPY_SET(value); }
 
+#if PYTHON_VERSION >= 0x3f0
+PyObject *DEEP_COPY_FROZENDICT(PyThreadState *tstate, PyObject *frozendict_value) {
+    assert(PyFrozenDict_CheckExact(frozendict_value));
+
+    Py_ssize_t size = FROZENDICT_SIZE(frozendict_value);
+
+    PyObject *d = _PyDict_NewPresized(size);
+    CHECK_OBJECT(d);
+
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+
+    while (Nuitka_FrozenDictNext(frozendict_value, &pos, &key, &value)) {
+        PyObject *value_copy = DEEP_COPY(tstate, value);
+
+        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, key, value_copy);
+        assert(res == 0);
+
+        Py_DECREF(value_copy);
+    }
+
+    PyObject *result = PyFrozenDict_New(d);
+    CHECK_OBJECT(result);
+
+    Py_DECREF(d);
+
+    return result;
+}
+#endif
+
 #if PYTHON_VERSION >= 0x390
 PyObject *DEEP_COPY_GENERICALIAS(PyThreadState *tstate, PyObject *value) {
     assert(Py_TYPE(value) == &Py_GenericAliasType);
@@ -184,6 +214,12 @@ static void _initDeepCopy(PyThreadState *tstate) {
 
     // Sets can be changed, but not a frozenset.
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
+
+#if PYTHON_VERSION >= 0x3f0
+    // A frozendict cannot be changed, but its values can be.
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFrozenDict_Type,
+                   _makeDeepCopyFunctionCapsule(DEEP_COPY_FROZENDICT));
+#endif
 }
 
 static PyObject *DEEP_COPY_ITEM(PyThreadState *tstate, PyObject *value, PyTypeObject **type, copy_func *copy_function) {
@@ -271,7 +307,25 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         }
 
         return result;
-    } else if (PyTuple_Check(value)) {
+    }
+#if PYTHON_VERSION >= 0x3f0
+    else if (PyFrozenDict_CheckExact(value)) {
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
+
+        Py_ssize_t pos = 0;
+        PyObject *key, *dict_value;
+
+        while (Nuitka_FrozenDictNext(value, &pos, &key, &dict_value)) {
+            if (key != NULL && dict_value != NULL) {
+                result ^= DEEP_HASH(tstate, key);
+                result ^= DEEP_HASH(tstate, dict_value);
+            }
+        }
+
+        return result;
+    }
+#endif
+    else if (PyTuple_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t n = PyTuple_GET_SIZE(value);
@@ -543,7 +597,28 @@ static void CHECK_OBJECT_DEEP_NAMED_RECURSIVE(char const *name, PyObject *value)
 
             item_index += 1;
         }
-    } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
+    }
+#if PYTHON_VERSION >= 0x3f0
+    else if (PyFrozenDict_CheckExact(value)) {
+        Py_ssize_t pos = 0;
+        PyObject *dict_key, *dict_value;
+        int item_index = 0;
+
+        while (Nuitka_FrozenDictNext(value, &pos, &dict_key, &dict_value)) {
+            char key_name[1024];
+            char value_name[1024];
+
+            PyOS_snprintf(key_name, sizeof(key_name), "%s{key %d}", name, item_index);
+            PyOS_snprintf(value_name, sizeof(value_name), "%s{value %d}", name, item_index);
+
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(key_name, dict_key);
+            CHECK_OBJECT_DEEP_NAMED_RECURSIVE(value_name, dict_value);
+
+            item_index += 1;
+        }
+    }
+#endif
+    else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
         // Save and clear any pre-existing exception, so we can detect if
         // iteration raises a new exception rather than reacting to a
         // pre-existing one like SystemExit.
@@ -600,6 +675,9 @@ void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
 
 static PyObject *_DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide);
 static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide);
+#if PYTHON_VERSION >= 0x3f0
+static PyObject *_DEEP_COPY_FROZENDICT_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide);
+#endif
 
 static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
     char code = **guide;
@@ -621,6 +699,10 @@ static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyThreadState *tstate, PyObject *valu
         return DEEP_COPY_DICT(tstate, value);
     case 'd':
         return DICT_COPY(tstate, value);
+#if PYTHON_VERSION >= 0x3f0
+    case 'E':
+        return _DEEP_COPY_FROZENDICT_GUIDED(tstate, value, guide);
+#endif
     case 'S':
         return DEEP_COPY_SET(tstate, value);
     case 'B':
@@ -666,6 +748,36 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value,
 
     return result;
 }
+
+#if PYTHON_VERSION >= 0x3f0
+static PyObject *_DEEP_COPY_FROZENDICT_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
+    assert(PyFrozenDict_CheckExact(value));
+
+    Py_ssize_t size = FROZENDICT_SIZE(value);
+
+    PyObject *d = _PyDict_NewPresized(size);
+    CHECK_OBJECT(d);
+
+    Py_ssize_t pos = 0;
+    PyObject *key, *dict_value;
+
+    while (Nuitka_FrozenDictNext(value, &pos, &key, &dict_value)) {
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(tstate, dict_value, guide);
+
+        NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem(d, key, item);
+        assert(res == 0);
+
+        Py_DECREF(item);
+    }
+
+    PyObject *result = PyFrozenDict_New(d);
+    CHECK_OBJECT(result);
+
+    Py_DECREF(d);
+
+    return result;
+}
+#endif
 
 PyObject *DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide) {
     PyObject *result = _DEEP_COPY_LIST_GUIDED(tstate, value, &guide);

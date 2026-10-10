@@ -1,12 +1,27 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationComparisonDual.c.j2 instead! */
+#pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "HelpersComparisonEq.c"
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
+#include "HelpersComparisonLe.c"
+#include "HelpersComparisonLt.c"
+#include "HelpersComparisonNe.c"
 #endif
 
+#ifdef __IDE_ONLY__
+static bool COMPARE_EQ_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_NE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_LE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_GE_CBOOL_CLONG_CLONG(long operand1, long operand2);
+static bool COMPARE_GT_CBOOL_CLONG_CLONG(long operand1, long operand2);
+#endif
 /* C helpers for type specialized "<" (LT) comparisons */
 
 static PyObject *COMPARE_LT_OBJECT_CLONG_CLONG(long operand1, long operand2) {

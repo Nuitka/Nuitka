@@ -101,7 +101,9 @@ class SourceCodeReference(object):
         it is already internal.
         """
         if not self.isInternal():
-            result = self._clone(self.line)
+            result = SourceCodeReferenceInternal.fromFilenameAndLine(
+                filename=self.filename, line=self.line
+            )
 
             return result
         else:

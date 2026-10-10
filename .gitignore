@@ -41,10 +41,10 @@ tests/basics/BigConstants.py
 tests/generated/*.py
 !tests/generated/run_all.py
 tests/PyPI-pytest/venv_*
+tests/scratch/
 *.dblite
 *.pdb
 releases/
-html
 man/
 htmlcov/
 Mini.py
@@ -61,12 +61,9 @@ Developer_Manual.html
 Changelog.pdf
 Changelog.html
 doc/man-*.html
-doxygen-warnings.log
 venv_cpython/
 venv_nuitka/
 .pytest_cache
-doxygen_*
-doxygen-*
 .coverage*
 *.tmp
 *.dat

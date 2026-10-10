@@ -12,6 +12,8 @@
 
 #include "nuitka/prelude.h"
 
+#include "nuitka/compiled_types_common.h"
+
 #include "HelpersBuiltinTypeMethods.c"
 
 static void _initBuiltinTypeMethods(void) {
@@ -686,10 +688,6 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 // Helper functions for print. Need to play nice with Python softspace
 // behavior. spell-checker: ignore softspace
 
-#if PYTHON_VERSION >= 0x300
-NUITKA_DEFINE_BUILTIN(print);
-#endif
-
 bool PRINT_NEW_LINE_TO(PyObject *file) {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -979,12 +977,14 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
     PRINT_STRING("thread_exc=");
 #if PYTHON_VERSION < 0x3b0
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
-#else
+#elif PYTHON_VERSION < 0x3c0
     PyObject *exc_value = EXC_VALUE(tstate);
-#if PYTHON_VERSION < 0x3c0
+    PyObject *exc_type = exc_value != NULL ? (PyObject *)Py_TYPE(exc_value) : NULL;
     PyTracebackObject *exc_tb = (exc_value != NULL && exc_value != Py_None) ? GET_EXCEPTION_TRACEBACK(exc_value) : NULL;
-#endif
-    PRINT_EXCEPTION(EXC_TYPE(tstate), exc_value, exc_tb);
+
+    PRINT_EXCEPTION(exc_type, exc_value, exc_tb);
+#else
+    PRINT_EXCEPTION(NULL, EXC_VALUE(tstate), NULL);
 #endif
 }
 
@@ -1995,6 +1995,31 @@ PyObject *getDllFilenameObject(void) {
 }
 #endif
 
+// Get the runtime directory for the "__compiled__" field, returns a new reference.
+PyObject *getPythonRuntimeDirObject(void) {
+#if _NUITKA_EXE_MODE
+    return getBinaryDirectoryObject(true);
+#else
+    PyObject *result = getDllDirectoryObject();
+    Py_INCREF(result);
+
+    return result;
+#endif
+}
+
+// Get the process executable for the "__compiled__" field, returns a new reference.
+PyObject *getProcessExeObject(void) {
+#if _NUITKA_EXE_MODE
+    return getBinaryFilenameObject(true);
+#elif _NUITKA_ONEFILE_DLL_MODE
+    return Nuitka_String_FromFilename(getBinaryPath());
+#else
+    Py_INCREF_IMMORTAL(Py_None);
+
+    return Py_None;
+#endif
+}
+
 PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks) {
 #if _NUITKA_EXE_MODE
     return getBinaryDirectoryObject(resolve_symlinks);
@@ -2057,6 +2082,9 @@ void _initBuiltinModule(PyThreadState *tstate) {
     assert(PyDict_Check(dict_builtin));
 
 #if _NUITKA_STANDALONE_MODE
+    // TODO: Do not add more uses of these, and remove them eventually. Exposing
+    // Nuitka internals in "builtins" is undesirable, the proper API for this is
+    // "__compiled__" instead.
     {
 #if _NUITKA_EXE_MODE
         PyObject *nuitka_binary_dir = getBinaryDirectoryObject(true);

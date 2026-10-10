@@ -5,7 +5,6 @@
 
 from nuitka.options.Options import shallNotFallbackBytecodeToCompiled
 from nuitka.PythonVersions import python_version
-from nuitka.States import states
 from nuitka.Tracing import code_generation_logger
 
 from .AnnotateFunctionCodes import (
@@ -33,7 +32,6 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .PythonSourceCodeGeneration import (
@@ -54,6 +52,7 @@ from .templates.CodeTemplatesFunction import (
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     decideLocalVariableCodeType,
+    getClosureCopyCode,
     getLocalVariableDeclaration,
 )
 
@@ -377,38 +376,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     )
 
 
-def getClosureCopyCode(closure_variables, context):
-    """Get code to copy closure variables storage.
-
-    This gets used by generator/coroutine/asyncgen with varying "closure_type".
-    """
-    if closure_variables:
-        closure_name = context.allocateTempName(
-            "closure", "struct Nuitka_CellObject *[%d]" % len(closure_variables)
-        )
-    else:
-        closure_name = None
-
-    closure_copy = []
-
-    for count, (variable, variable_trace) in enumerate(closure_variables):
-        variable_declaration = getLocalVariableDeclaration(
-            context, variable, variable_trace
-        )
-
-        target_cell_code = "%s[%d]" % (closure_name, count)
-
-        variable_c_type = variable_declaration.getCType()
-
-        variable_c_type.getCellObjectAssignmentCode(
-            target_cell_code=target_cell_code,
-            variable_code_name=variable_declaration,
-            emit=closure_copy.append,
-        )
-
-    return closure_name, closure_copy
-
-
 def getFunctionCreationCode(
     to_name,
     function_identifier,
@@ -571,43 +538,49 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
 
 
 def setupFunctionLocalVariables(
-    context, parameters, closure_variables, user_variables, temp_variables
+    context,
+    parameters,
+    local_variables,
+    closure_variables,
+    user_variables,
+    outline_variables,
+    temp_variables,
 ):
     # Parameter variable initializations
+    # Many cases due to the various local variable kinds, pylint: disable=too-many-branches,too-many-locals
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             variable_code_name, variable_c_type = decideLocalVariableCodeType(
                 context=context, variable=variable
             )
 
-            variable_declaration = context.variable_storage.addVariableDeclarationTop(
-                variable_c_type.c_type,
-                variable_code_name,
-                variable_c_type.getInitValue("python_pars[%d]" % count),
+            variable_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.c_type,
+                    variable_code_name,
+                    variable_c_type.getInitValue("python_pars[%d]" % count),
+                )
             )
 
             context.setVariableType(variable, variable_declaration)
 
-    # User local variable initializations
-    for variable in user_variables:
+    # Outline local variables are not frame variables, they belong to an
+    # inlined nested scope, so they must not become members of the frame
+    # locals struct. In generator contexts the top storage is the heap struct
+    # anyway, so they still survive yields.
+    for variable in outline_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context=context, variable=variable
         )
 
-        # Delay cell variable initialization for outlines to their own code.
-        if (
-            variable_c_type in (CTypeCellObject, CTypePyCellObject)
-            and variable.owner.isExpressionOutlineFunctionBase()
-        ):
+        if variable_c_type in (CTypeCellObject, CTypePyCellObject):
             init_value = "NULL"
         else:
             init_value = variable_c_type.getInitValue(None)
 
-        variable_declaration = context.variable_storage.addVariableDeclarationTop(
+        context.variable_storage.addVariableDeclarationTop(
             variable_c_type.c_type, variable_code_name, init_value
         )
-
-        context.setVariableType(variable, variable_declaration)
 
     for variable in sorted(temp_variables, key=lambda variable: variable.getName()):
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
@@ -620,12 +593,14 @@ def setupFunctionLocalVariables(
             variable_c_type.getInitValue(None),
         )
 
+    # Closure variable declarations must be in closure_variables order, since
+    # they are indexed with "getClosureVariableIndex" (m_closure order).
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context=context, variable=closure_variable
         )
 
-        variable_declaration = context.variable_storage.addVariableDeclarationClosure(
+        context.variable_storage.addVariableDeclarationClosure(
             variable_c_type.c_type, variable_code_name
         )
 
@@ -635,8 +610,80 @@ def setupFunctionLocalVariables(
             CTypePyObjectPtrPtr,
         ), variable_c_type
 
-        if not closure_variable.isTempVariable():
-            context.setVariableType(closure_variable, variable_declaration)
+    # Frame members must be declared in frame variable order (co_varnames),
+    # because the type description walkers derive the member offsets from it.
+    # Closure members are interleaved with locals there, and closures that are
+    # not frame variables, e.g. pass-through closures, get no member at all.
+    function_body = context.getOwner()
+
+    is_creator = False
+
+    if function_body.isExpressionFunctionBody():
+        code_object = function_body.getCodeObject()
+
+        is_creator = code_object is not None and code_object.getCodeObjectKind() in (
+            "Generator",
+            "Coroutine",
+            "Asyncgen",
+        )
+
+    add_closure_members = not is_creator and (
+        function_body.isExpressionGeneratorObjectBody()
+        or function_body.isExpressionCoroutineObjectBody()
+        or function_body.isExpressionAsyncgenObjectBody()
+        or function_body.needsFrame()
+    )
+
+    user_variables = set(user_variables)
+    closure_variables = set(closure_variables)
+
+    declared_variables = set()
+
+    if parameters is not None:
+        declared_variables.update(parameters.getAllVariables())
+
+    for variable in local_variables:
+        if variable in declared_variables:
+            continue
+
+        if variable in user_variables:
+            variable_code_name, variable_c_type = decideLocalVariableCodeType(
+                context=context, variable=variable
+            )
+
+            variable_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.c_type,
+                    variable_code_name,
+                    variable_c_type.getInitValue(None),
+                )
+            )
+
+            context.setVariableType(variable, variable_declaration)
+            declared_variables.add(variable)
+        elif (
+            add_closure_members
+            and variable in closure_variables
+            and not variable.isTempVariable()
+        ):
+            variable_code_name, variable_c_type = decideLocalVariableCodeType(
+                context=context, variable=variable
+            )
+
+            struct_member_name = "closure_" + variable.getVariableCodeName()
+
+            # The struct member holds the cell pointer, or for direct calls the
+            # pointed object, so the walkers can read it like an object.
+            struct_declaration = (
+                context.variable_storage.addVariableDeclarationFrameLocal(
+                    variable_c_type.getStructStorageCType(),
+                    struct_member_name,
+                    variable_c_type.getStructInitValueCode(variable_code_name),
+                )
+            )
+
+            context.setVariableType(variable, struct_declaration)
+            declared_variables.add(variable)
 
 
 def finalizeFunctionLocalVariables(context):
@@ -662,13 +709,27 @@ def finalizeFunctionLocalVariables(context):
     return function_cleanup
 
 
+def finalizeFunctionExceptionLocalVariables(context, function_cleanup):
+    # A "return" value that was assigned before an exception unwound the
+    # function, e.g. because a "finally" block or a context manager exit raised,
+    # would otherwise leak, as it is only passed to the caller on the normal
+    # return exit. The "function_cleanup" is a list that is also used for the
+    # normal return exit, so concatenate rather than append.
+    if context.hasTempName("return_value"):
+        return function_cleanup + ["Py_XDECREF(%s);" % context.getReturnValueName()]
+
+    return function_cleanup
+
+
 def getFunctionCode(
     context,
     function_identifier,
     parameters,
     closure_variables,
     user_variables,
+    outline_variables,
     temp_variables,
+    local_variables,
     function_doc,
     file_scope,
     needs_exception_exit,
@@ -680,7 +741,9 @@ def getFunctionCode(
             parameters=parameters,
             closure_variables=closure_variables,
             user_variables=user_variables,
+            outline_variables=outline_variables,
             temp_variables=temp_variables,
+            local_variables=local_variables,
             function_doc=function_doc,
             file_scope=file_scope,
             needs_exception_exit=needs_exception_exit,
@@ -698,7 +761,9 @@ def _getFunctionCode(
     parameters,
     closure_variables,
     user_variables,
+    outline_variables,
     temp_variables,
+    local_variables,
     function_doc,
     file_scope,
     needs_exception_exit,
@@ -709,8 +774,10 @@ def _getFunctionCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=parameters,
+        local_variables=local_variables,
         closure_variables=closure_variables,
         user_variables=user_variables,
+        outline_variables=outline_variables,
         temp_variables=temp_variables,
     )
 
@@ -727,9 +794,28 @@ def _getFunctionCode(
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
+    struct_decls = context.variable_storage.makeCStructLevelDeclarations()
+    struct_inits = context.variable_storage.makeCStructInits()
+
+    struct_definition = ""
+    if struct_decls or struct_inits:
+        struct_type_name = context.variable_storage.struct_type_name
+        assert struct_type_name is not None
+
+        struct_definition = "%s {\n%s\n} NUITKA_MAY_ALIAS;\n\n" % (
+            struct_type_name,
+            indented(struct_decls),
+        )
+
+        struct_instance = [
+            "%s %s;" % (struct_type_name, context.variable_storage.struct_name)
+        ]
+        struct_instance.extend(struct_inits)
+        function_locals = struct_instance + function_locals
+
     function_doc = context.getConstantCode(constant=function_doc)
 
-    result = ""
+    result = struct_definition
 
     emit = SourceCodeCollector()
 
@@ -744,17 +830,28 @@ def _getFunctionCode(
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         function_exit += template_function_exception_exit % {
-            "function_cleanup": indented(function_cleanup),
+            "function_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
 
     if context.hasTempName("return_value"):
-        function_exit += template_function_return_exit % {
-            "function_cleanup": indented(function_cleanup)
-        }
+        if context.getOwner().needsReturnExit():
+            function_exit += template_function_return_exit % {
+                "function_cleanup": indented(function_cleanup)
+            }
+        else:
+            # The return value is set, but never used, e.g. when returns are
+            # only in a "finally" block that raises, and cannot complete.
+            context.variable_storage.getVariableDeclarationTop(
+                "tmp_return_value"
+            ).maybe_unused = True
 
     if context.isForCreatedFunction():
         parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
@@ -841,6 +938,8 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
+    # Many details for the outline code, including the exception line number
+    # handover, pylint: disable=too-many-locals
     assert (
         expression.isExpressionOutlineBody()
         or expression.isExpressionOutlineFunctionBase()
@@ -872,8 +971,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     # TODO: Put the return value name as that to_name.c_type too.
 
     if (
-        states.is_full_compat
-        and expression.isExpressionOutlineBody()
+        expression.isExpressionOutlineFunctionBase()
         and expression.subnode_body.mayRaiseException(BaseException)
     ):
         exception_target = context.allocateLabel("outline_exception")
@@ -903,16 +1001,27 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         if exception_target is not None:
             getLabelCode(exception_target, emit)
 
-            context.setCurrentSourceCodeReference(expression.getSourceReference())
+            # The exception line number of the outline is handed over to the
+            # parent, so that tracebacks show the class statement line for
+            # class bodies, and the comprehension line for comprehensions,
+            # rather than the line inside of them.
+            (
+                _outline_exception_state_name,
+                outline_exception_lineno,
+            ) = context.getExceptionVariableDescriptions()
+            (
+                _parent_exception_state_name,
+                parent_exception_lineno,
+            ) = context.parent.getExceptionVariableDescriptions()
 
-            emitErrorLineNumberUpdateCode(emit, context)
+            emit("%s = %s;" % (parent_exception_lineno, outline_exception_lineno))
             getGotoCode(old_exception_target, emit)
 
             context.setExceptionEscape(old_exception_target)
 
         # TODO: An outline that cannot return, could be converted probably into
         # something else, maybe mere side effects.
-        if expression.subnode_body.mayReturn():
+        if expression.needsReturnExit():
             getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.

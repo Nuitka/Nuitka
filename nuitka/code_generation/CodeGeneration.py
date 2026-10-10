@@ -19,6 +19,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_typed_classes,
 )
 from nuitka.nodes.BytesNodes import getBytesOperationClasses
+from nuitka.nodes.HardImportNodes import getBuiltinRefNodes
 from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.options.Options import (
     isCompileTimeProfile,
@@ -59,12 +60,19 @@ from .BuiltinCodes import (
     generateBuiltinFloatCode,
     generateBuiltinHexCode,
     generateBuiltinInputCode,
+    generateBuiltinMemoryviewCode,
     generateBuiltinOctCode,
     generateBuiltinOpenCode,
+    generateBuiltinPrint1Code,
+    generateBuiltinPrintCode,
     generateBuiltinRange1Code,
     generateBuiltinRange2Code,
     generateBuiltinRange3Code,
     generateBuiltinRefCode,
+    generateBuiltinReversedCode,
+    generateBuiltinSortedP2Code,
+    generateBuiltinSortedP3Code,
+    generateBuiltinSortedP3Code1,
     generateBuiltinStaticmethodCode,
     generateBuiltinSum1Code,
     generateBuiltinSum2Code,
@@ -78,6 +86,7 @@ from .CallCodes import generateCallCode, getCallsCode
 from .ClassCodes import (
     generateBuiltinSuper1Code,
     generateBuiltinSuperCode,
+    generateCallClassPrepareCode,
     generateCallMetaclassCode,
     generateSelectMetaclassCode,
     generateTypeOperationPrepareCode,
@@ -121,6 +130,7 @@ from .CoroutineCodes import (
 from .CtypesCodes import generateCtypesCdllCallCode
 from .DictCodes import (
     generateBuiltinDictCode,
+    generateBuiltinFrozendictCode,
     generateDictionaryCreationCode,
     generateDictOperationClearCode,
     generateDictOperationCopyCode,
@@ -164,7 +174,10 @@ from .ExceptionCodes import (
     generateExceptionCaughtTracebackCode,
     generateExceptionCaughtTypeCode,
     generateExceptionCaughtValueCode,
+    generateExceptionGroupMatchCode,
+    generateExceptionGroupPrepareReraiseCode,
     generateExceptionPublishCode,
+    generateExceptionPublishValueCode,
     generateExceptionRefCode,
 )
 from .ExpressionCodes import (
@@ -229,6 +242,7 @@ from .IteratorCodes import (
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
     generateUnpackCheckFromIteratedCode,
+    generateUnpackCheckFromIteratedValueCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -371,9 +385,11 @@ from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
 from .TypeAliasCodes import (
+    generateParamSpecCode,
     generateTypeAliasCode,
     generateTypeGenericCode,
     generateTypeVarCode,
+    generateTypeVarTupleCode,
 )
 from .VariableCodes import (
     generateAssignmentVariableCode,
@@ -444,8 +460,9 @@ def generateFunctionBodyCode(function_body, context):
                 user_variables=function_body.getUserLocalVariables(),
                 outline_variables=function_body.getOutlineLocalVariables(),
                 temp_variables=function_body.getAllTempVariables(),
+                local_variables=function_body.getLocalVariables(),
                 needs_exception_exit=needs_exception_exit,
-                needs_generator_return=function_body.needsGeneratorReturnExit(),
+                needs_generator_return=function_body.needsReturnExit(),
             )
 
             function_decl = getGeneratorObjectDeclCode(
@@ -463,8 +480,9 @@ def generateFunctionBodyCode(function_body, context):
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getAllTempVariables(),
+            local_variables=function_body.getLocalVariables(),
             needs_exception_exit=needs_exception_exit,
-            needs_generator_return=function_body.needsGeneratorReturnExit(),
+            needs_generator_return=function_body.needsReturnExit(),
         )
 
         function_decl = getCoroutineObjectDeclCode(
@@ -480,8 +498,9 @@ def generateFunctionBodyCode(function_body, context):
             user_variables=function_body.getUserLocalVariables(),
             outline_variables=function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getAllTempVariables(),
+            local_variables=function_body.getLocalVariables(),
             needs_exception_exit=needs_exception_exit,
-            needs_generator_return=function_body.needsGeneratorReturnExit(),
+            needs_generator_return=function_body.needsReturnExit(),
         )
 
         function_decl = getAsyncgenObjectDeclCode(
@@ -495,9 +514,10 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier=function_identifier,
             parameters=None,
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables()
-            + function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables(),
+            outline_variables=function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getTempVariables(),
+            local_variables=function_body.getLocalVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(cross_module=False),
@@ -516,9 +536,10 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier=function_identifier,
             parameters=function_body.getParameters(),
             closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables()
-            + function_body.getOutlineLocalVariables(),
+            user_variables=function_body.getUserLocalVariables(),
+            outline_variables=function_body.getOutlineLocalVariables(),
             temp_variables=function_body.getAllTempVariables(),
+            local_variables=function_body.getLocalVariables(),
             function_doc=function_body.getDoc(),
             needs_exception_exit=needs_exception_exit,
             file_scope=getExportScopeCode(
@@ -703,6 +724,10 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_TYPE1": generateBuiltinType1Code,
         "EXPRESSION_BUILTIN_TYPE3": generateBuiltinType3Code,
         "EXPRESSION_CALL_METACLASS": generateCallMetaclassCode,
+        "EXPRESSION_CALL_CLASS_PREPARE": generateCallClassPrepareCode,
+        "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_IGNORED": generateCallClassPrepareCode,
+        "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_ASSERTED": generateCallClassPrepareCode,
+        "EXPRESSION_CALL_CLASS_PREPARE_KNOWN_START_VALUE_DICT_EXCEPTION": generateCallClassPrepareCode,
         "EXPRESSION_BUILTIN_IMPORT": generateBuiltinImportCode,
         "EXPRESSION_BUILTIN_BOOL": generateBuiltinBoolCode,
         "EXPRESSION_BUILTIN_BYTEARRAY1": generateBuiltinBytearray1Code,
@@ -732,6 +757,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_FROZENSET": generateBuiltinFrozensetCode,
         "EXPRESSION_BUILTIN_ALL": generateBuiltinAllCode,
         "EXPRESSION_BUILTIN_DICT": generateBuiltinDictCode,
+        "EXPRESSION_BUILTIN_FROZENDICT": generateBuiltinFrozendictCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
@@ -754,8 +780,8 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_GETATTR": generateBuiltinGetattrCode,
         "EXPRESSION_BUILTIN_SETATTR": generateBuiltinSetattrCode,
         "EXPRESSION_BUILTIN_INPUT": generateBuiltinInputCode,
-        "EXPRESSION_BUILTIN_OPEN_P2": generateBuiltinOpenCode,
-        "EXPRESSION_BUILTIN_OPEN_P3": generateBuiltinOpenCode,
+        "EXPRESSION_BUILTINS_OPEN_BEFORE3_CALL": generateBuiltinOpenCode,
+        "EXPRESSION_BUILTINS_OPEN_SINCE3_CALL": generateBuiltinOpenCode,
         "EXPRESSION_BUILTIN_STATICMETHOD": generateBuiltinStaticmethodCode,
         "EXPRESSION_BUILTIN_CLASSMETHOD": generateBuiltinClassmethodCode,
         "EXPRESSION_BUILTIN_RANGE1": generateBuiltinRange1Code,
@@ -802,6 +828,8 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_EMPTY_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENDICT_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENDICT_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
@@ -809,6 +837,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_DICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_SET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_FROZENDICT_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,
@@ -846,6 +875,14 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_VIEWITEMS": generateDictOperationViewitemsCode,
         "EXPRESSION_DICT_OPERATION_KEYS": generateDictOperationKeysCode,
         "EXPRESSION_DICT_OPERATION_ITERKEYS": generateDictOperationIterkeysCode,
+        "EXPRESSION_BUILTINS_REVERSED_CALL": generateBuiltinReversedCode,
+        "EXPRESSION_BUILTINS_SORTED_BEFORE3_CALL": generateBuiltinSortedP2Code,
+        "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL": generateBuiltinSortedP3Code,
+        "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1": generateBuiltinSortedP3Code1,
+        "EXPRESSION_BUILTINS_MEMORYVIEW_CALL": generateBuiltinMemoryviewCode,
+        "EXPRESSION_BUILTINS_PRINT_BEFORE3_CALL": generateBuiltinPrintCode,
+        "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL": generateBuiltinPrintCode,
+        "EXPRESSION_BUILTINS_PRINT_SINCE3_CALL1": generateBuiltinPrint1Code,
         "EXPRESSION_DICT_OPERATION_VIEWKEYS": generateDictOperationViewkeysCode,
         "EXPRESSION_DICT_OPERATION_VALUES": generateDictOperationValuesCode,
         "EXPRESSION_DICT_OPERATION_ITERVALUES": generateDictOperationItervaluesCode,
@@ -860,6 +897,8 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
         "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
+        "EXPRESSION_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatchCode,
+        "EXPRESSION_EXCEPTION_GROUP_PREPARE_RERAISE": generateExceptionGroupPrepareReraiseCode,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
@@ -1011,7 +1050,6 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
-        "EXPRESSION_BUILTINS_OPEN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,
@@ -1049,8 +1087,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
-        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarCode,
-        "EXPRESSION_PARAMETER_SPECIFICATION": generateTypeVarCode,
+        "EXPRESSION_TYPE_VARIABLE_TUPLE": generateTypeVarTupleCode,
+        "EXPRESSION_PARAMETER_SPECIFICATION": generateParamSpecCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
@@ -1085,6 +1123,12 @@ addExpressionDispatchDict(
 # Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
+)
+
+
+# Add code generation for the EXPRESSION_BUILTINS_*_REF nodes.
+addExpressionDispatchDict(
+    dict((cls.kind, generateBuiltinRefCode) for cls in getBuiltinRefNodes().values())
 )
 
 
@@ -1139,6 +1183,7 @@ setStatementDispatchDict(
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
+        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE": generateUnpackCheckFromIteratedValueCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsMappingCode,
@@ -1147,6 +1192,7 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
+        "STATEMENT_PUBLISH_EXCEPTION_VALUE": generateExceptionPublishValueCode,
     }
 )
 

@@ -3,9 +3,12 @@
 
 """Nodes the represent ways to access package data for pkglib, pkg_resources, etc."""
 
-from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.importing.Importing import (
+    importFromCompileTime,
+    locateModule,
+    makeModuleUsageAttempt,
+)
 from nuitka.importing.ImportResolving import resolveModuleName
-from nuitka.utils.Importing import importFromCompileTime
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase

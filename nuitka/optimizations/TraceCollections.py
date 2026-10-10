@@ -35,13 +35,13 @@ from nuitka.utils.InstanceCounters import (
 
 from .ValueTraces import (
     ValueTraceAssign,
+    ValueTraceAssignIteratorPropagated,
     ValueTraceAssignUnescapable,
     ValueTraceAssignUnescapablePropagated,
     ValueTraceAssignVeryTrusted,
     ValueTraceDeleted,
     ValueTraceEscaped,
-    ValueTraceLoopComplete,
-    ValueTraceLoopIncomplete,
+    ValueTraceLoop,
     ValueTraceMerge,
     ValueTraceStartInit,
     ValueTraceStartInitStarArgs,
@@ -107,10 +107,6 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     __slots__ = ()
 
     def __init__(self):
-        # Variable assignments performed in here, last issued number, only used
-        # to determine the next number that should be used for a new assignment.
-        self.variable_versions = {}
-
         # The full trace of a variable with a version for the function or module
         # this is.
         self.variable_traces = defaultdict(dict)
@@ -424,10 +420,24 @@ class TraceCollectionBase(object):
                 self.markCurrentVariableTrace(variable, version)
 
     def markActiveVariableAsLoopMerge(
-        self, loop_node, current, variable, shapes, incomplete
+        self,
+        loop_node,
+        current,
+        variable,
+        shapes,
+        incomplete,
+        value_identity_stable,
+        must_have_value,
     ):
         if incomplete:
-            result = ValueTraceLoopIncomplete(loop_node, current, shapes)
+            result = ValueTraceLoop(
+                loop_node,
+                current,
+                shapes,
+                shapes_incomplete=True,
+                value_identity_stable=value_identity_stable,
+                must_have_value=must_have_value,
+            )
         else:
             # TODO: Empty is a missing optimization somewhere, but it also happens that
             # a variable is getting released in a loop.
@@ -436,7 +446,14 @@ class TraceCollectionBase(object):
             if not shapes:
                 shapes.add(tshape_uninitialized)
 
-            result = ValueTraceLoopComplete(loop_node, current, shapes)
+            result = ValueTraceLoop(
+                loop_node,
+                current,
+                shapes,
+                shapes_incomplete=False,
+                value_identity_stable=value_identity_stable,
+                must_have_value=must_have_value,
+            )
 
         version = variable.allocateTargetNumber()
         self.variable_traces[variable][version] = result
@@ -485,6 +502,9 @@ class TraceCollectionBase(object):
         elif node.isExpressionConditional():
             self.removeKnowledge(node.subnode_expression_yes)
             self.removeKnowledge(node.subnode_expression_no)
+        elif node.isExpressionConditionalBool():
+            self.removeKnowledge(node.subnode_left)
+            self.removeKnowledge(node.subnode_right)
 
     def onValueEscapeStr(self, node):
         # TODO: We can ignore these for now.
@@ -564,6 +584,23 @@ class TraceCollectionBase(object):
             assign_node,
             self.getVariableCurrentTrace(variable),
             replacement,
+        )
+
+        self.variable_traces[variable][version] = variable_trace
+
+        # Make references point to it.
+        self.markCurrentVariableTrace(variable, version)
+
+        return variable_trace
+
+    def onVariableSetToIteratorPropagated(
+        self, variable, version, assign_node, tmp_iterated
+    ):
+        variable_trace = ValueTraceAssignIteratorPropagated(
+            self.owner,
+            assign_node,
+            self.getVariableCurrentTrace(variable),
+            tmp_iterated,
         )
 
         self.variable_traces[variable][version] = variable_trace
@@ -1162,7 +1199,6 @@ class TraceCollectionSnapshot(CollectionUpdateMixin, TraceCollectionBase):
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
-        "variable_versions",
         "variable_traces",
         "loop_variables",
         "break_collections",
@@ -1295,7 +1331,6 @@ class TraceCollectionPureFunction(TraceCollectionFunction):
 
 class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
-        "variable_versions",
         "variable_traces",
         "loop_variables",
         "break_collections",

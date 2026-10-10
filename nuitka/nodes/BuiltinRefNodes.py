@@ -27,6 +27,7 @@ from .ExpressionBases import (
     ExpressionBase,
     ExpressionNoSideEffectsMixin,
 )
+from .HardImportNodes import getBuiltinRefNode
 from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
@@ -113,20 +114,28 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
         return makeConstantRefNode(
             constant=quick_names[builtin_name], source_ref=source_ref
         )
-    elif builtin_name == "__debug__":
+
+    if builtin_name == "__debug__":
         return makeConstantRefNode(
             constant=not hasPythonFlagNoAsserts(), source_ref=source_ref
         )
-    elif builtin_name in builtin_type_names:
+
+    node = getBuiltinRefNode(builtin_name)
+
+    if node:
+        return node(source_ref=source_ref)
+
+    if builtin_name in builtin_type_names:
         return makeExpressionBuiltinTypeRef(
             builtin_name=builtin_name, source_ref=source_ref
         )
-    elif builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
+
+    if builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
         return ExpressionBuiltinWithContextRef(
             builtin_name=builtin_name, locals_scope=locals_scope, source_ref=source_ref
         )
-    else:
-        return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
+
+    return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
 
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):

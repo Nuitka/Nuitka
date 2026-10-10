@@ -78,11 +78,17 @@ def keywordUnpackingError():
         return e
 
 
+def mappingUnpacking(key_a, key_b):
+    key1, key2 = {key_a: 1, key_b: 2}
+    return key1, key2
+
+
 print("Tuple unpacked error:", tupleUnpackingError())
 print("List unpacked error:", listUnpackingError())
 print("Set unpacked error:", setUnpackingError())
 print("Dict unpacked error:", dictUnpackingError())
 print("Keyword unpacked error:", keywordUnpackingError())
+print("Mapping unpacked:", sorted(mappingUnpacking("a", "b")))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

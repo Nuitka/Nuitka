@@ -23,7 +23,6 @@ if (%(condition)s) {
 %(release_temps)s
 
 %(line_number_code)s
-%(var_description_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -35,7 +34,6 @@ if (%(condition)s) {
 %(release_temps)s
 
 %(line_number_code)s
-%(var_description_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -45,7 +43,6 @@ if (%(condition)s) {
 %(set_exception)s
 
 %(line_number_code)s
-%(var_description_code)s
     goto %(exception_exit)s;
 }
 """
@@ -56,7 +53,6 @@ if (unlikely(%(condition)s)) {
 %(raise_name_error_helper)s(tstate, &%(exception_state_name)s, %(variable_name)s);
 
 %(line_number_code)s
-%(var_description_code)s
     goto %(exception_exit)s;
 }
 """

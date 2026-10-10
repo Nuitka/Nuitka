@@ -63,8 +63,11 @@ the changed area:
 - **Tests:**
 
   - On Windows, ensure a suitable Python version is installed (e.g.,
-    `~/AppData/Local/Programs/Python/Python313`). Prompt the user to install if missing a suitable
-    version.
+    `~/AppData/Local/Programs/Python/Python313`).
+  - Under WSL, the Windows host installs are runnable directly through `/mnt/c`, e.g.
+    `/mnt/c/Python27/python.exe` for Python 2.7 and `/mnt/c/Python26/python.exe` for Python 2.6;
+    those binaries cannot open `/home/...` paths, so copy scratch files to `/mnt/c/tmp` first.
+    Prompt the user to install if missing a suitable version.
   - When you only need to vary Nuitka command line flags for an existing repository test case,
     prefer reusing it via `NUITKA_EXTRA_OPTIONS`.
   - For **scons** level changes:

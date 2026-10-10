@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_FREELISTS_H__
 #define __NUITKA_FREELISTS_H__
 
@@ -9,8 +10,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "nuitka/defines.h"
+#include "nuitka/prelude.h"
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL
@@ -20,7 +20,7 @@ static const bool use_freelists = true;
 #endif
 
 #define allocateFromFreeList(free_list, object_type, type_type, size)                                                  \
-    if (free_list != NULL) {                                                                                           \
+    if (use_freelists == true && free_list != NULL) {                                                                  \
         result = free_list;                                                                                            \
         free_list = *((object_type **)free_list);                                                                      \
         free_list##_count -= 1;                                                                                        \
@@ -38,7 +38,7 @@ static const bool use_freelists = true;
     CHECK_OBJECT(result);
 
 #define allocateFromFreeListFixed(free_list, object_type, type_type)                                                   \
-    if (free_list != NULL) {                                                                                           \
+    if (use_freelists == true && free_list != NULL) {                                                                  \
         result = free_list;                                                                                            \
         free_list = *((object_type **)free_list);                                                                      \
         free_list##_count -= 1;                                                                                        \
@@ -51,20 +51,11 @@ static const bool use_freelists = true;
     CHECK_OBJECT(result);
 
 #define releaseToFreeList(free_list, object, max_free_list_count)                                                      \
-    if (free_list != NULL || max_free_list_count == 0 || use_freelists == false) {                                     \
-        if (free_list##_count >= max_free_list_count) {                                                                \
-            PyObject_GC_Del(object);                                                                                   \
-        } else {                                                                                                       \
-            *((void **)object) = (void *)free_list;                                                                    \
-            free_list = object;                                                                                        \
-                                                                                                                       \
-            free_list##_count += 1;                                                                                    \
-        }                                                                                                              \
+    if (use_freelists == false || free_list##_count >= max_free_list_count) {                                          \
+        PyObject_GC_Del(object);                                                                                       \
     } else {                                                                                                           \
+        *((void **)object) = (void *)free_list;                                                                        \
         free_list = object;                                                                                            \
-        *((void **)object) = NULL;                                                                                     \
-                                                                                                                       \
-        assert(free_list##_count == 0);                                                                                \
                                                                                                                        \
         free_list##_count += 1;                                                                                        \
     }

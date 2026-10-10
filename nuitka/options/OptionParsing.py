@@ -26,6 +26,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.Utils import (
     getArchitecture,
     getLinuxDistribution,
@@ -1071,6 +1072,19 @@ Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--debug-address-sanitizer",
+    action="store_true",
+    dest="debug_address_sanitizer",
+    default=False,
+    help="""\
+Compile and link with AddressSanitizer instrumentation, if the C compiler
+supports it. Known to work with GCC and Clang. This implies keeping debug
+information. Leak detection is disabled by default for the compiled program,
+since Python and third party libraries intend to leak a lot, but it can be
+enabled with "ASAN_OPTIONS=detect_leaks=1" if wanted. Defaults to off.""",
+)
+
+debug_group.add_option(
     "--no-debug-immortal-assumptions",
     action="store_false",
     dest="debug_immortal",
@@ -1317,6 +1331,17 @@ development_group.add_option(
     help="""\
 Forbid fallback from bytecode backed annotate functions to compiled code when \
 source regeneration fails. Instead abort compilation with an error. Defaults to off.""",
+)
+
+development_group.add_option(
+    "--devel-pgo-warn-unknown",
+    action="store_true",
+    dest="devel_pgo_warn_unknown",
+    default=False,
+    github_action=False,
+    help="""\
+Report PGO values that are not usable when reading a PGO file, and values that \
+cannot be captured at runtime. Defaults to off.""",
 )
 
 del development_group
@@ -1574,6 +1599,16 @@ pgo_group.add_option(
     dest="python_pgo_input",
     default=None,
     help=SUPPRESS_HELP,  # Not yet ready
+)
+
+pgo_group.add_option(
+    "--pgo-json",
+    action="store",
+    dest="python_pgo_json",
+    default=None,
+    help="""\
+Write the PGO input file contents to the given JSON file while reading it, for \
+debugging and testing of the PGO data. Defaults to off.""",
 )
 
 pgo_group.add_option(
@@ -1872,7 +1907,9 @@ windows_group.add_option(
     dest="splash_screen_image",
     default=None,
     help="""\
-When compiling for Windows and onefile, show this while loading the application. Defaults to off.""",
+When compiling for Windows and onefile, show this while loading the application. Defaults to off.
+Setting the environment variable 'NUITKA_SPLASH_SCREEN' to "0" or "off" hides the splash screen at
+runtime, e.g. for automated tests.""",
 )
 
 windows_group.add_option(
@@ -2262,6 +2299,17 @@ installer_group.add_option(
     help="""\
 When compiling for macOS, create a DMG file for the application bundle.
 Defaults to off.""",
+)
+
+installer_group.add_option(
+    "--macos-installer-output",
+    action="store",
+    dest="macos_installer_output_filename",
+    default=None,
+    metavar="INSTALLER_OUTPUT_FILENAME",
+    help="""\
+Filename of the DMG file to create. Defaults to the app bundle name with a \
+".dmg" suffix next to the application bundle.""",
 )
 
 installer_group.add_option(
@@ -2982,8 +3030,6 @@ def parseOptions(logger):
     _considerGithubWorkflowOptions(phase="late")
 
     if os.getenv("OPTPARSE_AUTO_COMPLETE"):
-        from nuitka.utils.Importing import importFromInlineCopy
-
         # spell-checker: ignore optcomplete
         opt_complete = importFromInlineCopy("optcomplete", must_exist=False)
         if opt_complete is not None:

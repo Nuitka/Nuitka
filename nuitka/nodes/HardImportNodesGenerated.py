@@ -10,23 +10,23 @@
 
 WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph capitalize casefold center chars
-spell-checker: ignore clear copy count decode default delete dist distribution_name encode
-spell-checker: ignore encoding end endswith errors exit_code expandtabs
-spell-checker: ignore experimental_attributes experimental_autograph_options
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
-spell-checker: ignore experimental_implements experimental_relax_shapes extend fillchar
-spell-checker: ignore find format format_map formatmap fromkeys func get group handle
-spell-checker: ignore has_key haskey index input_signature insert isalnum isalpha isascii
-spell-checker: ignore isdecimal isdigit isidentifier islower isnumeric isprintable isspace
-spell-checker: ignore istitle isupper item items iterable iteritems iterkeys itervalues
-spell-checker: ignore jit_compile join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new old p package
-spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
-spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
-spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
-spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline object old opener p
+spell-checker: ignore package package_or_requirement pairs partition path pop popitem
+spell-checker: ignore prefix prepare reduce_retracing remove replace resource
+spell-checker: ignore resource_name reverse rfind rindex rjust rpartition rsplit rstrip s
+spell-checker: ignore sep setdefault sort split splitlines start startswith stop strip sub
+spell-checker: ignore suffix swapcase table tabsize title translate update upper use_errno
 spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
 spell-checker: ignore winmode zfill
 """
@@ -38,6 +38,14 @@ from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
+    builtin_memoryview_spec,
+    builtin_open_before_3_spec,
+    builtin_open_since_3_spec,
+    builtin_print_before_3_spec,
+    builtin_print_since_3_spec,
+    builtin_reversed_spec,
+    builtin_sorted_before_3_spec,
+    builtin_sorted_since_3_spec,
     ctypes_cdll_before_38_spec,
     ctypes_cdll_since_38_spec,
     importlib_metadata_backport_distribution_spec,
@@ -79,10 +87,14 @@ from nuitka.specs.HardImportSpecs import (
     tensorflow_function_spec,
 )
 
+from .BuiltinRefNodes import ExpressionBuiltinRef
 from .ChildrenHavingMixins import (
     ChildHavingDistMixin,
     ChildHavingDistributionNameMixin,
     ChildHavingExitCodeOptionalMixin,
+    ChildHavingIterableOptionalMixin,
+    ChildHavingObjectMixin,
+    ChildHavingObjectsTupleMixin,
     ChildHavingPackageMixin,
     ChildHavingPackageOptionalMixin,
     ChildHavingParamsTupleMixin,
@@ -91,10 +103,16 @@ from .ChildrenHavingMixins import (
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
+    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
+    ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin,
+    ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
+    ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin,
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin,
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin,
     ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin,
     ChildrenHavingPackageOrRequirementResourceNameMixin,
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
@@ -109,9 +127,862 @@ from .ExpressionShapeMixins import (
     ExpressionDictShapeExactMixin,
     ExpressionStrShapeExactMixin,
 )
+from .HardImportNodes import addBuiltinRefNode, addHardImportNodeClass
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
-hard_import_node_classes = {}
+
+class ExpressionBuiltinsMemoryviewRef(ExpressionBuiltinRef):
+    """Function reference builtins.memoryview"""
+
+    kind = "EXPRESSION_BUILTINS_MEMORYVIEW_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="memoryview",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .BuiltinTypeNodes import ExpressionBuiltinsMemoryviewCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionBuiltinsMemoryviewCall,
+            builtin_spec=builtin_memoryview_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'builtins.memoryview' recognized.",
+        )
+
+
+addBuiltinRefNode("memoryview", ExpressionBuiltinsMemoryviewRef)
+
+
+class ExpressionBuiltinsMemoryviewCallBase(ChildHavingObjectMixin, ExpressionBase):
+    """Base class for BuiltinsMemoryviewCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = ("object",)
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_memoryview_spec
+
+    def __init__(self, object_arg, source_ref):
+
+        ChildHavingObjectMixin.__init__(
+            self,
+            object_arg=object_arg,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_memoryview_spec.isCompileTimeComputable(
+            (self.subnode_object,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsOpenRef(ExpressionBuiltinRef):
+    """Function reference builtins.open"""
+
+    kind = "EXPRESSION_BUILTINS_OPEN_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="open",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        if python_version >= 0x300:
+            from .BuiltinOpenNodes import ExpressionBuiltinsOpenSince3Call
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionBuiltinsOpenSince3Call,
+                builtin_spec=builtin_open_since_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.open' recognized.",
+            )
+
+        if python_version < 0x300:
+            from .BuiltinOpenNodes import ExpressionBuiltinsOpenBefore3Call
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionBuiltinsOpenBefore3Call,
+                builtin_spec=builtin_open_before_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.open' recognized.",
+            )
+
+
+addBuiltinRefNode("open", ExpressionBuiltinsOpenRef)
+
+
+class ExpressionBuiltinsOpenSince3CallBase(
+    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for BuiltinsOpenSince3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x300"
+
+    named_children = (
+        "file",
+        "mode|optional",
+        "buffering|optional",
+        "encoding|optional",
+        "errors|optional",
+        "newline|optional",
+        "closefd|optional",
+        "opener|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_open_since_3_spec
+
+    def __init__(
+        self,
+        file,
+        mode,
+        buffering,
+        encoding,
+        errors,
+        newline,
+        closefd,
+        opener,
+        source_ref,
+    ):
+
+        ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin.__init__(
+            self,
+            file=file,
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+            opener=opener,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_open_since_3_spec.isCompileTimeComputable(
+            (
+                self.subnode_file,
+                self.subnode_mode,
+                self.subnode_buffering,
+                self.subnode_encoding,
+                self.subnode_errors,
+                self.subnode_newline,
+                self.subnode_closefd,
+                self.subnode_opener,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsOpenBefore3CallBase(
+    ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin, ExpressionBase
+):
+    """Base class for BuiltinsOpenBefore3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = "< 0x300"
+
+    named_children = (
+        "name|optional",
+        "mode|optional",
+        "buffering|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_open_before_3_spec
+
+    def __init__(self, name, mode, buffering, source_ref):
+
+        ChildrenHavingNameOptionalModeOptionalBufferingOptionalMixin.__init__(
+            self,
+            name=name,
+            mode=mode,
+            buffering=buffering,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_open_before_3_spec.isCompileTimeComputable(
+            (
+                self.subnode_name,
+                self.subnode_mode,
+                self.subnode_buffering,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsPrintRef(ExpressionBuiltinRef):
+    """Function reference builtins.print"""
+
+    kind = "EXPRESSION_BUILTINS_PRINT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="print",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        if python_version >= 0x300:
+            from .PrintNodes import makeExpressionBuiltinsPrintSince3Call
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=makeExpressionBuiltinsPrintSince3Call,
+                builtin_spec=builtin_print_since_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.print' recognized.",
+            )
+
+        if python_version < 0x300:
+            from .PrintNodes import ExpressionBuiltinsPrintBefore3Call
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionBuiltinsPrintBefore3Call,
+                builtin_spec=builtin_print_before_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.print' recognized.",
+            )
+
+
+addBuiltinRefNode("print", ExpressionBuiltinsPrintRef)
+
+
+class ExpressionBuiltinsPrintSince3Call1Base(
+    ChildHavingObjectsTupleMixin, ExpressionBase
+):
+    """Base class for BuiltinsPrintSince3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x300"
+
+    named_children = ("objects|tuple",)
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_print_since_3_spec
+
+    def __init__(self, objects, source_ref):
+
+        ChildHavingObjectsTupleMixin.__init__(
+            self,
+            objects=objects,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_print_since_3_spec.isCompileTimeComputable(
+            () + self.subnode_objects
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsPrintSince3CallBase(
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for BuiltinsPrintSince3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x300"
+
+    named_children = (
+        "objects|tuple",
+        "sep|optional",
+        "end|optional",
+        "file|optional",
+        "flush|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_print_since_3_spec
+
+    def __init__(self, objects, sep, end, file, flush, source_ref):
+
+        ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalFlushOptionalMixin.__init__(
+            self,
+            objects=objects,
+            sep=sep,
+            end=end,
+            file=file,
+            flush=flush,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_print_since_3_spec.isCompileTimeComputable(
+            () + self.subnode_objects
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsPrintBefore3CallBase(
+    ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin, ExpressionBase
+):
+    """Base class for BuiltinsPrintBefore3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = "< 0x300"
+
+    named_children = (
+        "objects|tuple",
+        "sep|optional",
+        "end|optional",
+        "file|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_print_before_3_spec
+
+    def __init__(self, objects, sep, end, file, source_ref):
+
+        ChildrenHavingObjectsTupleSepOptionalEndOptionalFileOptionalMixin.__init__(
+            self,
+            objects=objects,
+            sep=sep,
+            end=end,
+            file=file,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_print_before_3_spec.isCompileTimeComputable(
+            () + self.subnode_objects
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsReversedRef(ExpressionBuiltinRef):
+    """Function reference builtins.reversed"""
+
+    kind = "EXPRESSION_BUILTINS_REVERSED_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="reversed",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .BuiltinIteratorNodes import ExpressionBuiltinsReversedCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionBuiltinsReversedCall,
+            builtin_spec=builtin_reversed_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'builtins.reversed' recognized.",
+        )
+
+
+addBuiltinRefNode("reversed", ExpressionBuiltinsReversedRef)
+
+
+class ExpressionBuiltinsReversedCallBase(ChildHavingObjectMixin, ExpressionBase):
+    """Base class for BuiltinsReversedCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = ("object",)
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_reversed_spec
+
+    def __init__(self, object_arg, source_ref):
+
+        ChildHavingObjectMixin.__init__(
+            self,
+            object_arg=object_arg,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_reversed_spec.isCompileTimeComputable(
+            (self.subnode_object,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsSortedRef(ExpressionBuiltinRef):
+    """Function reference builtins.sorted"""
+
+    kind = "EXPRESSION_BUILTINS_SORTED_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBuiltinRef.__init__(
+            self,
+            builtin_name="sorted",
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        if python_version >= 0x300:
+            from .BuiltinIteratorNodes import (
+                makeExpressionBuiltinsSortedSince3Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=makeExpressionBuiltinsSortedSince3Call,
+                builtin_spec=builtin_sorted_since_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.sorted' recognized.",
+            )
+
+        if python_version < 0x300:
+            from .BuiltinIteratorNodes import (
+                ExpressionBuiltinsSortedBefore3Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=ExpressionBuiltinsSortedBefore3Call,
+                builtin_spec=builtin_sorted_before_3_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'builtins.sorted' recognized.",
+            )
+
+
+addBuiltinRefNode("sorted", ExpressionBuiltinsSortedRef)
+
+
+class ExpressionBuiltinsSortedSince3Call1Base(
+    ChildHavingIterableOptionalMixin, ExpressionBase
+):
+    """Base class for BuiltinsSortedSince3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x300"
+
+    named_children = ("iterable|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_sorted_since_3_spec
+
+    def __init__(self, iterable, source_ref):
+
+        ChildHavingIterableOptionalMixin.__init__(
+            self,
+            iterable=iterable,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_sorted_since_3_spec.isCompileTimeComputable(
+            (self.subnode_iterable,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsSortedSince3CallBase(
+    ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin, ExpressionBase
+):
+    """Base class for BuiltinsSortedSince3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x300"
+
+    named_children = (
+        "iterable|optional",
+        "key|optional",
+        "reverse|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_sorted_since_3_spec
+
+    def __init__(self, iterable, key, reverse, source_ref):
+
+        ChildrenHavingIterableOptionalKeyOptionalReverseOptionalMixin.__init__(
+            self,
+            iterable=iterable,
+            key=key,
+            reverse=reverse,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_sorted_since_3_spec.isCompileTimeComputable(
+            (self.subnode_iterable,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionBuiltinsSortedBefore3CallBase(
+    ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin, ExpressionBase
+):
+    """Base class for BuiltinsSortedBefore3Call
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = "< 0x300"
+
+    named_children = (
+        "iterable",
+        "cmp|optional",
+        "key|optional",
+        "reverse|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtin_sorted_before_3_spec
+
+    def __init__(self, iterable, cmp, key, reverse, source_ref):
+
+        ChildrenHavingIterableCmpOptionalKeyOptionalReverseOptionalMixin.__init__(
+            self,
+            iterable=iterable,
+            cmp=cmp,
+            key=key,
+            reverse=reverse,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtin_sorted_before_3_spec.isCompileTimeComputable(
+            (
+                self.subnode_iterable,
+                self.subnode_cmp,
+                self.subnode_key,
+                self.subnode_reverse,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
@@ -164,7 +1035,7 @@ class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
             )
 
 
-hard_import_node_classes[ExpressionCtypesCdllRef] = ctypes_cdll_since_38_spec
+addHardImportNodeClass(ExpressionCtypesCdllRef, ctypes_cdll_since_38_spec)
 
 
 class ExpressionCtypesCdllSince38CallBase(
@@ -342,8 +1213,9 @@ class ExpressionImportlibMetadataBackportDistributionRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataBackportDistributionRef] = (
-    importlib_metadata_backport_distribution_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataBackportDistributionRef,
+    importlib_metadata_backport_distribution_spec,
 )
 
 
@@ -436,8 +1308,9 @@ class ExpressionImportlibMetadataBackportEntryPointsRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataBackportEntryPointsRef] = (
-    importlib_metadata_backport_entry_points_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataBackportEntryPointsRef,
+    importlib_metadata_backport_entry_points_spec,
 )
 
 
@@ -530,8 +1403,9 @@ class ExpressionImportlibMetadataBackportMetadataRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataBackportMetadataRef] = (
-    importlib_metadata_backport_metadata_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataBackportMetadataRef,
+    importlib_metadata_backport_metadata_spec,
 )
 
 
@@ -624,8 +1498,9 @@ class ExpressionImportlibMetadataBackportVersionRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataBackportVersionRef] = (
-    importlib_metadata_backport_version_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataBackportVersionRef,
+    importlib_metadata_backport_version_spec,
 )
 
 
@@ -718,8 +1593,8 @@ class ExpressionImportlibMetadataDistributionRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataDistributionRef] = (
-    importlib_metadata_distribution_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataDistributionRef, importlib_metadata_distribution_spec
 )
 
 
@@ -829,8 +1704,9 @@ class ExpressionImportlibMetadataEntryPointsRef(
             )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataEntryPointsRef] = (
-    importlib_metadata_entry_points_since_310_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataEntryPointsRef,
+    importlib_metadata_entry_points_since_310_spec,
 )
 
 
@@ -967,8 +1843,8 @@ class ExpressionImportlibMetadataMetadataRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataMetadataRef] = (
-    importlib_metadata_metadata_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataMetadataRef, importlib_metadata_metadata_spec
 )
 
 
@@ -1060,8 +1936,8 @@ class ExpressionImportlibMetadataVersionRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibMetadataVersionRef] = (
-    importlib_metadata_version_spec
+addHardImportNodeClass(
+    ExpressionImportlibMetadataVersionRef, importlib_metadata_version_spec
 )
 
 
@@ -1153,8 +2029,9 @@ class ExpressionImportlibResourcesBackportFilesRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesBackportFilesRef] = (
-    importlib_resources_backport_files_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportFilesRef,
+    importlib_resources_backport_files_spec,
 )
 
 
@@ -1247,8 +2124,9 @@ class ExpressionImportlibResourcesBackportReadBinaryRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesBackportReadBinaryRef] = (
-    importlib_resources_backport_read_binary_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportReadBinaryRef,
+    importlib_resources_backport_read_binary_spec,
 )
 
 
@@ -1348,8 +2226,9 @@ class ExpressionImportlibResourcesBackportReadTextRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesBackportReadTextRef] = (
-    importlib_resources_backport_read_text_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesBackportReadTextRef,
+    importlib_resources_backport_read_text_spec,
 )
 
 
@@ -1472,8 +2351,8 @@ class ExpressionImportlibResourcesFilesRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesFilesRef] = (
-    importlib_resources_files_since_312_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesFilesRef, importlib_resources_files_since_312_spec
 )
 
 
@@ -1617,8 +2496,8 @@ class ExpressionImportlibResourcesReadBinaryRef(
         )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesReadBinaryRef] = (
-    importlib_resources_read_binary_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesReadBinaryRef, importlib_resources_read_binary_spec
 )
 
 
@@ -1735,8 +2614,9 @@ class ExpressionImportlibResourcesReadTextRef(
             )
 
 
-hard_import_node_classes[ExpressionImportlibResourcesReadTextRef] = (
-    importlib_resources_read_text_since_313_spec
+addHardImportNodeClass(
+    ExpressionImportlibResourcesReadTextRef,
+    importlib_resources_read_text_since_313_spec,
 )
 
 
@@ -1903,7 +2783,7 @@ class ExpressionOsListdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
 
-hard_import_node_classes[ExpressionOsListdirRef] = os_listdir_spec
+addHardImportNodeClass(ExpressionOsListdirRef, os_listdir_spec)
 
 
 class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
@@ -1985,7 +2865,7 @@ class ExpressionOsLstatRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
 
-hard_import_node_classes[ExpressionOsLstatRef] = os_lstat_spec
+addHardImportNodeClass(ExpressionOsLstatRef, os_lstat_spec)
 
 
 class ExpressionOsLstatCallBase(
@@ -2073,7 +2953,7 @@ class ExpressionOsPathAbspathRef(ExpressionImportModuleNameHardExistsSpecificBas
         )
 
 
-hard_import_node_classes[ExpressionOsPathAbspathRef] = os_path_abspath_spec
+addHardImportNodeClass(ExpressionOsPathAbspathRef, os_path_abspath_spec)
 
 
 class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
@@ -2155,7 +3035,7 @@ class ExpressionOsPathBasenameRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
 
-hard_import_node_classes[ExpressionOsPathBasenameRef] = os_path_basename_spec
+addHardImportNodeClass(ExpressionOsPathBasenameRef, os_path_basename_spec)
 
 
 class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
@@ -2237,7 +3117,7 @@ class ExpressionOsPathDirnameRef(ExpressionImportModuleNameHardExistsSpecificBas
         )
 
 
-hard_import_node_classes[ExpressionOsPathDirnameRef] = os_path_dirname_spec
+addHardImportNodeClass(ExpressionOsPathDirnameRef, os_path_dirname_spec)
 
 
 class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
@@ -2319,7 +3199,7 @@ class ExpressionOsPathExistsRef(ExpressionImportModuleNameHardExistsSpecificBase
         )
 
 
-hard_import_node_classes[ExpressionOsPathExistsRef] = os_path_exists_spec
+addHardImportNodeClass(ExpressionOsPathExistsRef, os_path_exists_spec)
 
 
 class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
@@ -2401,7 +3281,7 @@ class ExpressionOsPathIsabsRef(ExpressionImportModuleNameHardExistsSpecificBase)
         )
 
 
-hard_import_node_classes[ExpressionOsPathIsabsRef] = os_path_isabs_spec
+addHardImportNodeClass(ExpressionOsPathIsabsRef, os_path_isabs_spec)
 
 
 class ExpressionOsPathIsabsCallBase(
@@ -2485,7 +3365,7 @@ class ExpressionOsPathIsdirRef(ExpressionImportModuleNameHardExistsSpecificBase)
         )
 
 
-hard_import_node_classes[ExpressionOsPathIsdirRef] = os_path_isdir_spec
+addHardImportNodeClass(ExpressionOsPathIsdirRef, os_path_isdir_spec)
 
 
 class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
@@ -2567,7 +3447,7 @@ class ExpressionOsPathIsfileRef(ExpressionImportModuleNameHardExistsSpecificBase
         )
 
 
-hard_import_node_classes[ExpressionOsPathIsfileRef] = os_path_isfile_spec
+addHardImportNodeClass(ExpressionOsPathIsfileRef, os_path_isfile_spec)
 
 
 class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
@@ -2649,7 +3529,7 @@ class ExpressionOsPathNormpathRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
 
-hard_import_node_classes[ExpressionOsPathNormpathRef] = os_path_normpath_spec
+addHardImportNodeClass(ExpressionOsPathNormpathRef, os_path_normpath_spec)
 
 
 class ExpressionOsPathNormpathCallBase(ChildHavingPathMixin, ExpressionBase):
@@ -2731,7 +3611,7 @@ class ExpressionOsStatRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
 
-hard_import_node_classes[ExpressionOsStatRef] = os_stat_spec
+addHardImportNodeClass(ExpressionOsStatRef, os_stat_spec)
 
 
 class ExpressionOsStatCallBase(
@@ -2821,7 +3701,7 @@ class ExpressionOsUnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
 
-hard_import_node_classes[ExpressionOsUnameRef] = os_uname_spec
+addHardImportNodeClass(ExpressionOsUnameRef, os_uname_spec)
 
 
 class ExpressionOsUnameCallBase(ExpressionBase):
@@ -2901,8 +3781,8 @@ class ExpressionPkgResourcesGetDistributionRef(
         )
 
 
-hard_import_node_classes[ExpressionPkgResourcesGetDistributionRef] = (
-    pkg_resources_get_distribution_spec
+addHardImportNodeClass(
+    ExpressionPkgResourcesGetDistributionRef, pkg_resources_get_distribution_spec
 )
 
 
@@ -2995,8 +3875,8 @@ class ExpressionPkgResourcesIterEntryPointsRef(
         )
 
 
-hard_import_node_classes[ExpressionPkgResourcesIterEntryPointsRef] = (
-    pkg_resources_iter_entry_points_spec
+addHardImportNodeClass(
+    ExpressionPkgResourcesIterEntryPointsRef, pkg_resources_iter_entry_points_spec
 )
 
 
@@ -3094,7 +3974,7 @@ class ExpressionPkgResourcesRequireRef(
         )
 
 
-hard_import_node_classes[ExpressionPkgResourcesRequireRef] = pkg_resources_require_spec
+addHardImportNodeClass(ExpressionPkgResourcesRequireRef, pkg_resources_require_spec)
 
 
 class ExpressionPkgResourcesRequireCallBase(
@@ -3183,8 +4063,8 @@ class ExpressionPkgResourcesResourceStreamRef(
         )
 
 
-hard_import_node_classes[ExpressionPkgResourcesResourceStreamRef] = (
-    pkg_resources_resource_stream_spec
+addHardImportNodeClass(
+    ExpressionPkgResourcesResourceStreamRef, pkg_resources_resource_stream_spec
 )
 
 
@@ -3284,8 +4164,8 @@ class ExpressionPkgResourcesResourceStringRef(
         )
 
 
-hard_import_node_classes[ExpressionPkgResourcesResourceStringRef] = (
-    pkg_resources_resource_string_spec
+addHardImportNodeClass(
+    ExpressionPkgResourcesResourceStringRef, pkg_resources_resource_string_spec
 )
 
 
@@ -3381,7 +4261,7 @@ class ExpressionPkgutilGetDataRef(ExpressionImportModuleNameHardExistsSpecificBa
         )
 
 
-hard_import_node_classes[ExpressionPkgutilGetDataRef] = pkgutil_get_data_spec
+addHardImportNodeClass(ExpressionPkgutilGetDataRef, pkgutil_get_data_spec)
 
 
 class ExpressionPkgutilGetDataCallBase(
@@ -3472,7 +4352,7 @@ class ExpressionSysExitRef(ExpressionImportModuleNameHardExistsSpecificBase):
         )
 
 
-hard_import_node_classes[ExpressionSysExitRef] = sys_exit_spec
+addHardImportNodeClass(ExpressionSysExitRef, sys_exit_spec)
 
 
 class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase):
@@ -3555,7 +4435,7 @@ class ExpressionTensorflowFunctionRef(ExpressionImportModuleNameHardExistsSpecif
         )
 
 
-hard_import_node_classes[ExpressionTensorflowFunctionRef] = tensorflow_function_spec
+addHardImportNodeClass(ExpressionTensorflowFunctionRef, tensorflow_function_spec)
 
 
 class ExpressionTensorflowFunctionCallBase(

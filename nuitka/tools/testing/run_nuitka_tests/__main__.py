@@ -21,8 +21,9 @@ from nuitka.tools.testing.Common import (
     test_logger,
     withExtendedExtraOptions,
 )
-from nuitka.utils.Execution import check_call, check_output, getNullOutput
+from nuitka.utils.Execution import check_output, getNullOutput
 from nuitka.utils.FileOperations import (
+    copyFile,
     getFileContents,
     openTextFile,
     putTextFileContents,
@@ -601,7 +602,7 @@ def publishCoverageData():
         if coverage_dir is None:
             return
 
-        check_call(("scp", source, os.path.join(coverage_dir, target)))
+        copyFile(source, os.path.join(coverage_dir, target))
 
     if os.name == "nt":
         suffix = "win"

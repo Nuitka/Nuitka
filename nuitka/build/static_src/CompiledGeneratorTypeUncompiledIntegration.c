@@ -2506,7 +2506,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 #endif
 
             // TODO: Use faster code here too.
-            PyObject *meth = PyObject_GetAttr(yf, const_str_plain_throw);
+            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_throw);
 
             if (meth == NULL) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
@@ -2607,7 +2607,7 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf) {
             return -1;
         }
     } else {
-        PyObject *meth = PyObject_GetAttr(yf, const_str_plain_close);
+        PyObject *meth = LOOKUP_ATTRIBUTE(tstate, yf, const_str_plain_close);
 
         if (meth == NULL) {
             if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {

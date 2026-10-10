@@ -7,7 +7,10 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 """
 
-from nuitka.Builtins import isBaseExceptionSimpleExtension
+from nuitka.Builtins import (
+    getBuiltinExceptionIdentifier,
+    isBaseExceptionSimpleExtension,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.States import states
 
@@ -16,8 +19,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode, getFrameVariableTypeDescriptionCode
-from .ExceptionCodes import getExceptionIdentifier
+from .ErrorCodes import getErrorExitCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import (
     emitErrorLineNumberUpdateCode,
@@ -49,7 +51,7 @@ def _generateExceptionNormalizeCode(to_name, exception_type, emit, context):
         if isBaseExceptionSimpleExtension(exception_type.getCompileTimeConstant()):
             emit(
                 "%s = MAKE_BASE_EXCEPTION_DERIVED_EMPTY(%s);"
-                % (to_name, getExceptionIdentifier(exception_name))
+                % (to_name, getBuiltinExceptionIdentifier(exception_name))
             )
             context.addCleanupTempName(to_name)
 
@@ -259,8 +261,7 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
         assert (
             parent.isExpressionSideEffects()
             or parent.isExpressionConditional()
-            or parent.isExpressionConditionalOr()
-            or parent.isExpressionConditionalAnd()
+            or parent.isExpressionConditionalBool()
             or parent.isExpressionLocalsVariableRefOrFallback()
         ), (expression, expression.parent, expression.asXmlText())
 
@@ -281,7 +282,7 @@ def getReRaiseExceptionCode(emit, context):
     (
         exception_state_name,
         exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     (
         keeper_exception_state_name,
@@ -321,7 +322,6 @@ if (unlikely(%(bool_res_name)s == false)) {
                 }
             )
 
-            emit(getFrameVariableTypeDescriptionCode(context))
     else:
         (
             keeper_exception_state_name,
@@ -345,11 +345,25 @@ if (unlikely(%(bool_res_name)s == false)) {
     getGotoCode(context.getExceptionEscape(), emit)
 
 
+def _emitRaiseExceptionLinenoCode(emit, context):
+    (
+        _exception_state,
+        exception_lineno,
+    ) = context.getExceptionVariableDescriptions()
+
+    if context.getCurrentSourceCodeReference().isInternal():
+        # Internal raises, e.g. the re-raise of an "except*" result, are not
+        # associated with a line of the source code.
+        emit("%s = 0;" % exception_lineno)
+    else:
+        emitErrorLineNumberUpdateCode(emit, context)
+
+
 def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if python_version < 0x3C0:
         emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
@@ -360,13 +374,11 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
     getReferenceExportCode(raise_cause_name, emit, context)
 
-    emitErrorLineNumberUpdateCode(emit, context)
+    _emitRaiseExceptionLinenoCode(emit, context)
     emit(
         "RAISE_EXCEPTION_WITH_CAUSE(tstate, &%s, %s);"
         % (exception_state_name, raise_cause_name)
     )
-
-    emit(getFrameVariableTypeDescriptionCode(context))
 
     getGotoCode(context.getExceptionEscape(), emit)
 
@@ -380,24 +392,22 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     if python_version < 0x3C0:
         emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
         getReferenceExportCode(raise_type_name, emit, context)
 
-        emitErrorLineNumberUpdateCode(emit, context)
+        _emitRaiseExceptionLinenoCode(emit, context)
 
         emit("RAISE_EXCEPTION_WITH_TYPE(tstate, &%s);" % exception_state_name)
     else:
         emit("%s.exception_value = %s;" % (exception_state_name, raise_type_name))
         getReferenceExportCode(raise_type_name, emit, context)
 
-        emitErrorLineNumberUpdateCode(emit, context)
+        _emitRaiseExceptionLinenoCode(emit, context)
 
         emit("RAISE_EXCEPTION_WITH_VALUE(tstate, &%s);" % exception_state_name)
-
-    emit(getFrameVariableTypeDescriptionCode(context))
 
     getGotoCode(context.getExceptionEscape(), emit)
 
@@ -409,18 +419,16 @@ def _getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, emit, con
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
     emit("%s.exception_value = %s;" % (exception_state_name, raise_value_name))
     getReferenceExportCode(raise_value_name, emit, context)
 
-    emitErrorLineNumberUpdateCode(emit, context)
+    _emitRaiseExceptionLinenoCode(emit, context)
 
     emit("RAISE_EXCEPTION_WITH_TYPE_AND_VALUE(tstate, &%s);" % (exception_state_name,))
-
-    emit(getFrameVariableTypeDescriptionCode(context))
 
     getGotoCode(context.getExceptionEscape(), emit)
 
@@ -436,7 +444,7 @@ def _getRaiseExceptionWithTracebackCode(
     (
         exception_state_name,
         _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    ) = context.getExceptionVariableDescriptions()
 
     emit("%s.exception_type = %s;" % (exception_state_name, raise_type_name))
     getReferenceExportCode(raise_type_name, emit, context)
@@ -451,9 +459,7 @@ def _getRaiseExceptionWithTracebackCode(
     emit("RAISE_EXCEPTION_WITH_TRACEBACK(tstate, &%s);" % (exception_state_name))
 
     # If anything is wrong, that will be used.
-    emitErrorLineNumberUpdateCode(emit, context)
-
-    emit(getFrameVariableTypeDescriptionCode(context))
+    _emitRaiseExceptionLinenoCode(emit, context)
 
     getGotoCode(context.getExceptionEscape(), emit)
 

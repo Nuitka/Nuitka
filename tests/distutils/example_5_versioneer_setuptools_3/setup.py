@@ -8,10 +8,10 @@ from setuptools import setup
 
 cmdclass = versioneer.get_cmdclass()
 setup(
-    name="example-5-versioneer-setuptools32",
+    name="example-5-versioneer-setuptools-3",
     author="Nuitka Contributors",
     author_email="contributors@nuitka.invalid",
-    description="Nuitka distutils test case: example_5_versioneer_setuptools32",
+    description="Nuitka distutils test case: example_5_versioneer_setuptools_3",
     url="https://nuitka.net",
     packages=["some_package"],
     version=versioneer.get_version(),

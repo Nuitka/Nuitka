@@ -15,6 +15,7 @@ from nuitka.tools.release.Copyright import (
     getLicenseTextStandard,
 )
 from nuitka.tools.release.Release import getBranchRemoteIdentifier
+from nuitka.Tracing import tools_logger
 from nuitka.Version import getCommercialVersion
 
 
@@ -392,6 +393,11 @@ def enableCheckOnlyMode():
 
 def isCheckOnlyMode():
     return check_only
+
+
+def traceSpecialization(message):
+    if not isCheckOnlyMode():
+        tools_logger.info(message)
 
 
 def parseOptions():

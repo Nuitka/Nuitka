@@ -11,7 +11,8 @@
 #include "nuitka/unfreezing.h"
 
 static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
-static char const *entryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
+static void Nuitka_LoaderEntryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
+                                          size_t buffer_size);
 #endif
 
 struct Nuitka_ResourceReaderFilesObject {
@@ -77,8 +78,10 @@ static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFi
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReaderFilesObject *files) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>",
-                                entryDisplayName(files->m_loader_entry), files->m_path);
+    char display_name[NUITKA_LOADER_NAME_MAX_LEN];
+    Nuitka_LoaderEntryDisplayName(files->m_loader_entry, display_name, sizeof(display_name));
+
+    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>", display_name, files->m_path);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
@@ -773,7 +776,14 @@ static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
         Nuitka_ResourceReaderFiles_Type.tp_as_number->nb_true_divide =
             (binaryfunc)Nuitka_ResourceReaderFiles_nb_truediv;
 
-        Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, NULL, true, false, true, false, false);
+        Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, // type
+                            NULL,                             // base
+                            true,                             // generic_get_attr
+                            false,                            // generic_set_attr
+                            true,                             // self_iter
+                            false,                            // await_self_iter
+                            false                             // await_self_aiter
+        );
 
 #if PYTHON_VERSION >= 0x390
         // Also register our open, which can avoid a temporary file being created.

@@ -18,10 +18,16 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIs,
     makeComparisonExpression,
 )
-from nuitka.nodes.ConditionalNodes import makeStatementConditional
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    makeStatementConditional,
+)
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.DictionaryNodes import StatementDictOperationRemove
 from nuitka.nodes.MatchNodes import ExpressionMatchArgs
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate,
+)
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinarySub
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturnConstant
@@ -44,6 +50,7 @@ from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
+from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -249,7 +256,44 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
     return conditions, assignments
 
 
+def _checkMappingPatternKeys(provider, pattern, source_ref):
+    """Check for duplicate constant mapping pattern keys.
+
+    Returns:
+        bool indicating if any key is not a compile time constant.
+
+    """
+
+    seen = set()
+    has_dynamic_keys = False
+
+    for key in pattern.keys:
+        key_node = buildNode(provider=provider, node=key, source_ref=source_ref)
+
+        if not key_node.isCompileTimeConstant():
+            has_dynamic_keys = True
+            continue
+
+        key_value = key_node.getCompileTimeConstant()
+
+        if key_value in seen:
+            raiseSyntaxError(
+                "mapping pattern checks duplicate key (%r)" % (key_value,),
+                source_ref.atLineNumber(pattern.lineno).atColumnNumber(
+                    pattern.col_offset
+                ),
+            )
+
+        seen.add(key_value)
+
+    return has_dynamic_keys
+
+
 def _buildMatchMapping(provider, pattern, make_against, source_ref):
+    has_dynamic_keys = _checkMappingPatternKeys(
+        provider=provider, pattern=pattern, source_ref=source_ref
+    )
+
     conditions = [
         ExpressionMatchTypeCheckMapping(
             value=make_against(),
@@ -261,9 +305,66 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
     assert len(pattern.keys) == len(pattern.patterns), ast.dump(pattern)
 
+    if len(pattern.keys) > 1 and has_dynamic_keys:
+        # CPython rejects a mapping that is shorter than the number of keys,
+        # before it checks for duplicate keys, so we need to follow that order.
+        conditions.append(
+            makeComparisonExpression(
+                left=ExpressionBuiltinLen(value=make_against(), source_ref=source_ref),
+                right=makeConstantRefNode(
+                    constant=len(pattern.keys), source_ref=source_ref
+                ),
+                comparator="GtE",
+                source_ref=source_ref,
+            )
+        )
+
     key = kwd_pattern = None
 
-    for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
+    for count, (key, kwd_pattern) in enumerate(zip(pattern.keys, pattern.patterns)):
+        # CPython checks for duplicate keys at match time, when at least one of
+        # the keys is not a compile time constant. Duplicates of only constant
+        # keys are rejected by CPython as syntax errors, which we don't do yet.
+        duplicate_conditions = [
+            makeComparisonExpression(
+                left=buildNode(
+                    provider=provider, node=previous_key, source_ref=source_ref
+                ),
+                right=buildNode(provider=provider, node=key, source_ref=source_ref),
+                comparator="Eq",
+                source_ref=source_ref,
+            )
+            for previous_key in pattern.keys[:count]
+            if previous_key.__class__ is not ast.Constant
+            or key.__class__ is not ast.Constant
+        ]
+
+        if duplicate_conditions:
+            if len(duplicate_conditions) == 1:
+                duplicate_condition = duplicate_conditions[0]
+            else:
+                duplicate_condition = makeOrNode(
+                    values=duplicate_conditions, source_ref=source_ref
+                )
+
+            conditions.append(
+                ExpressionConditional(
+                    condition=duplicate_condition,
+                    expression_yes=makeRaiseExceptionExpressionFromTemplate(
+                        exception_type="ValueError",
+                        template="mapping pattern checks duplicate key (%r)",
+                        template_args=buildNode(
+                            provider=provider, node=key, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    expression_no=makeConstantRefNode(
+                        constant=True, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            )
+
         conditions.append(
             ExpressionMatchSubscriptCheck(
                 expression=make_against(),
@@ -307,8 +408,6 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
         )
 
         for key in pattern.keys:
-            assert type(key) is ast.Constant, key
-
             assignments.append(
                 StatementDictOperationRemove(
                     dict_arg=ExpressionVariableNameRef(

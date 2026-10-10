@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_COMPILED_COROUTINE_H__
 #define __NUITKA_COMPILED_COROUTINE_H__
 
@@ -13,6 +14,19 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+#endif
+
+#ifdef __cplusplus
+enum Await_Kind {
+    await_normal, // user provided "await"
+    await_enter,  // async with statement "__enter__"
+    await_exit    // async with statement "__enter__"
+};
+#else
+typedef int Await_Kind;
+static const int await_normal = 0;
+static const int await_enter = 1;
+static const int await_exit = 2;
 #endif
 
 // The Nuitka_CoroutineObject is the storage associated with a compiled
@@ -187,19 +201,6 @@ static inline void RESTORE_COROUTINE_EXCEPTION(PyThreadState *tstate, struct Nui
 #endif
 }
 
-#ifdef __cplusplus
-enum Await_Kind {
-    await_normal, // user provided "await"
-    await_enter,  // async with statement "__enter__"
-    await_exit    // async with statement "__enter__"
-};
-#else
-typedef int Generator_Status;
-static const int await_normal = 0;
-static const int await_enter = 1;
-static const int await_exit = 2;
-#endif
-
 // Create the object to await for async for "iter".
 extern PyObject *ASYNC_MAKE_ITERATOR(PyThreadState *tstate, PyObject *value);
 
@@ -207,7 +208,7 @@ extern PyObject *ASYNC_MAKE_ITERATOR(PyThreadState *tstate, PyObject *value);
 extern PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value);
 
 // Create the object for plain "await".
-extern PyObject *ASYNC_AWAIT(PyThreadState *tstate, PyObject *awaitable, int await_kind);
+extern PyObject *ASYNC_AWAIT(PyThreadState *tstate, PyObject *awaitable, Await_Kind await_kind);
 
 NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(PyThreadState *tstate,
                                                            struct Nuitka_CoroutineObject *coroutine) {

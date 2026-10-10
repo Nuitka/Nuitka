@@ -8,6 +8,7 @@ objects, as well as tracebacks. They might be shared.
 
 """
 
+from nuitka.PythonVersions import python_version
 from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -213,6 +214,289 @@ class CodeObjectSpec(object):
 
     def getLineNumber(self):
         return self.line_number
+
+    @classmethod
+    def fromXML(cls, **args):
+        """Reconstruct from XML details.
+
+        Args:
+            args: the code object details as needed by the constructor.
+
+        Returns:
+            Instance of the code object spec class.
+        """
+        return cls(**args)
+
+
+class CodeObjectSpecModule(CodeObjectSpec):
+    """Code object specification of a module frame.
+
+    Notes:
+        Module code objects have fixed values for all details except the
+        filename and future spec, even the line number is always 1. The
+        module name is only used for display purposes, not for the code
+        object itself.
+    """
+
+    __slots__ = ("module_name",)
+
+    def __init__(self, module_name, co_filename, future_spec):
+        self.module_name = module_name
+
+        CodeObjectSpec.__init__(
+            self,
+            co_name="<module>",
+            co_qualname="<module>",
+            co_kind="Module",
+            co_varnames=(),
+            co_freevars=(),
+            co_argcount=0,
+            co_posonlyargcount=0,
+            co_kwonlyargcount=0,
+            co_has_starlist=False,
+            co_has_stardict=False,
+            co_filename=co_filename,
+            co_lineno=1,
+            future_spec=future_spec,
+            co_new_locals=False,
+            co_is_optimized=False,
+        )
+
+    def __repr__(self):
+        return "<CodeObjectSpecModule '<module>' of module '%s'>" % self.module_name
+
+    def getDetails(self):
+        # Only the values needed for the constructor are persisted, the
+        # fixed values are implied by this class.
+        return {
+            "module_name": self.module_name,
+            "co_filename": self.filename,
+            "code_flags": ",".join(self.future_spec.asFlags()),
+        }
+
+    @classmethod
+    def fromXML(cls, module_name, co_filename, future_spec):
+        """Reconstruct from XML details.
+
+        Args:
+            module_name: the name of the module for display purposes.
+            co_filename: the filename of the module code.
+            future_spec: the future spec of the module.
+
+        Returns:
+            Instance of 'CodeObjectSpecModule'.
+        """
+        return cls(
+            module_name=module_name,
+            co_filename=co_filename,
+            future_spec=future_spec,
+        )
+
+
+class CodeObjectSpecClass(CodeObjectSpec):
+    """Code object specification of a class frame.
+
+    Notes:
+        Class code objects have fixed values for all argument related details
+        and flags, only the name, qualname, variable names, line number,
+        filename and future spec vary. In Nuitka they never have free
+        variables, captured values are frame variables instead. On Python2
+        class code objects are unoptimized, but do get new locals, unlike on
+        Python3.
+    """
+
+    __slots__ = ()
+
+    def __init__(
+        self, class_name, co_qualname, co_varnames, co_filename, co_lineno, future_spec
+    ):
+        CodeObjectSpec.__init__(
+            self,
+            co_name=class_name,
+            co_qualname=co_qualname,
+            co_kind="Class",
+            co_varnames=co_varnames,
+            co_freevars=(),
+            co_argcount=0,
+            co_posonlyargcount=0,
+            co_kwonlyargcount=0,
+            co_has_starlist=False,
+            co_has_stardict=False,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+            co_new_locals=python_version < 0x300,
+            co_is_optimized=False,
+        )
+
+    def __repr__(self):
+        return "<CodeObjectSpecClass '%s' line %d>" % (self.co_name, self.line_number)
+
+    def getDetails(self):
+        # Only the values needed for the constructor are persisted, the
+        # fixed values are implied by this class.
+        return {
+            "class_name": self.co_name,
+            "co_qualname": self.co_qualname,
+            "co_varnames": ",".join(self.co_varnames),
+            "co_filename": self.filename,
+            "co_lineno": self.line_number,
+            "code_flags": ",".join(self.future_spec.asFlags()),
+        }
+
+    def updateLocalNames(self, local_names, freevar_names):
+        # Class bodies never have free variables in Nuitka, their captured
+        # values are frame variables instead.
+        assert not freevar_names, freevar_names
+
+        CodeObjectSpec.updateLocalNames(self, local_names, ())
+
+    def setFlagIsOptimizedValue(self, value):
+        assert value is False, value
+
+    def getFlagIsOptimizedValue(self):
+        return False
+
+    def setFlagNewLocalsValue(self, value):
+        assert value == (python_version < 0x300), value
+
+    def getFlagNewLocalsValue(self):
+        return python_version < 0x300
+
+    @classmethod
+    def fromXML(
+        cls, class_name, co_qualname, co_varnames, co_filename, co_lineno, future_spec
+    ):
+        """Reconstruct from XML details.
+
+        Args:
+            class_name: the name of the class for display purposes.
+            co_qualname: the qualified name of the class code.
+            co_varnames: the variable names of the class code.
+            co_filename: the filename of the class code.
+            co_lineno: the line number of the class code.
+            future_spec: the future spec of the module.
+
+        Returns:
+            Instance of 'CodeObjectSpecClass'.
+        """
+        return cls(
+            class_name=class_name,
+            co_qualname=co_qualname,
+            co_varnames=co_varnames,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+        )
+
+
+class CodeObjectSpecGeneratorExpression(CodeObjectSpec):
+    """Code object specification of a generator expression frame.
+
+    Notes:
+        Generator expression code objects have fixed values for their name and
+        all argument related details, only whether it is an async generator
+        expression and the qualname, variable names, free variables, filename,
+        line number and future spec vary. They are optimized and have new
+        locals on all versions.
+    """
+
+    __slots__ = ()
+
+    def __init__(
+        self,
+        co_is_async,
+        co_qualname,
+        co_varnames,
+        co_freevars,
+        co_filename,
+        co_lineno,
+        future_spec,
+    ):
+        CodeObjectSpec.__init__(
+            self,
+            co_name="<genexpr>",
+            co_qualname=co_qualname,
+            co_kind="Asyncgen" if co_is_async else "Generator",
+            co_varnames=co_varnames,
+            co_freevars=co_freevars,
+            co_argcount=1,
+            co_posonlyargcount=0,
+            co_kwonlyargcount=0,
+            co_has_starlist=False,
+            co_has_stardict=False,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+            co_new_locals=True,
+            co_is_optimized=True,
+        )
+
+    def __repr__(self):
+        return "<CodeObjectSpecGeneratorExpression '%s' line %d>" % (
+            self.co_name,
+            self.line_number,
+        )
+
+    def getDetails(self):
+        # Only the values needed for the constructor are persisted, the
+        # fixed values are implied by this class.
+        return {
+            "co_is_async": self.co_kind == "Asyncgen",
+            "co_qualname": self.co_qualname,
+            "co_varnames": ",".join(self.co_varnames),
+            "co_freevars": ",".join(self.co_freevars),
+            "co_filename": self.filename,
+            "co_lineno": self.line_number,
+            "code_flags": ",".join(self.future_spec.asFlags()),
+        }
+
+    def setFlagIsOptimizedValue(self, value):
+        assert value is True, value
+
+    def getFlagIsOptimizedValue(self):
+        return True
+
+    def setFlagNewLocalsValue(self, value):
+        assert value is True, value
+
+    def getFlagNewLocalsValue(self):
+        return True
+
+    @classmethod
+    def fromXML(
+        cls,
+        co_is_async,
+        co_qualname,
+        co_varnames,
+        co_freevars,
+        co_filename,
+        co_lineno,
+        future_spec,
+    ):
+        """Reconstruct from XML details.
+
+        Args:
+            co_is_async: whether this is an async generator expression.
+            co_qualname: the qualified name of the code.
+            co_varnames: the variable names of the code.
+            co_freevars: the free variable names of the code.
+            co_filename: the filename of the code.
+            co_lineno: the line number of the code.
+            future_spec: the future spec of the module.
+
+        Returns:
+            Instance of 'CodeObjectSpecGeneratorExpression'.
+        """
+        return cls(
+            co_is_async=co_is_async,
+            co_qualname=co_qualname,
+            co_varnames=co_varnames,
+            co_freevars=co_freevars,
+            co_filename=co_filename,
+            co_lineno=co_lineno,
+            future_spec=future_spec,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

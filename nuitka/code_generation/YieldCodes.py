@@ -10,9 +10,19 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .DeferredReleaseCodes import checkDeferredReleaseUse
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
+
+
+def _checkDeferredReleaseYield(value_name, expression, context):
+    checkDeferredReleaseUse(
+        usage="yield",
+        tmp_name=value_name,
+        context=context,
+        detail=expression.getSourceReference().getAsString(),
+    )
 
 
 def _getYieldPreserveCode(
@@ -39,18 +49,19 @@ def _getYieldPreserveCode(
         locals_preserved.remove(to_name)
 
     if locals_preserved:
-        yield_tmp_storage = context.variable_storage.getVariableDeclarationTop(
-            "yield_tmps"
+        yield_temps = context.variable_storage.getYieldTempsDeclaration()
+
+        yield_tmp_storage = yield_temps.addSizeExpression(
+            " + ".join(
+                "sizeof(%s)" % local_preserved.c_type
+                for local_preserved in locals_preserved
+            )
         )
 
-        if yield_tmp_storage is None:
-            yield_tmp_storage = context.variable_storage.addVariableDeclarationTop(
-                "char[1024]", "yield_tmps", None
-            )
-
         emit(
-            "Nuitka_PreserveHeap(%s, %s, NULL);"
+            "NUITKA_PRESERVE_HEAP(%s, sizeof(%s), %s, NULL);"
             % (
+                yield_tmp_storage,
                 yield_tmp_storage,
                 ", ".join(
                     "&%s, sizeof(%s)" % (local_preserved, local_preserved.c_type)
@@ -88,8 +99,9 @@ def _getYieldPreserveCode(
 
     if locals_preserved:
         emit(
-            "Nuitka_RestoreHeap(%s, %s, NULL);"
+            "NUITKA_RESTORE_HEAP(%s, sizeof(%s), %s, NULL);"
             % (
+                yield_tmp_storage,
                 yield_tmp_storage,
                 ", ".join(
                     "&%s, sizeof(%s)" % (local_preserved, local_preserved.c_type)
@@ -102,7 +114,11 @@ def _getYieldPreserveCode(
         emit(resume_code)
 
     yield_return_name = VariableDeclaration(
-        "PyObject *", "yield_return_value", None, None
+        c_type="PyObject *",
+        code_name="yield_return_value",
+        init_value=None,
+        heap_name=None,
+        struct_name=None,
     )
 
     getErrorExitCode(check_name=yield_return_name, emit=emit, context=context)
@@ -116,6 +132,8 @@ def generateYieldCode(to_name, expression, emit, context):
     (value_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
+
+    _checkDeferredReleaseYield(value_name, expression, context)
 
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
@@ -153,6 +171,8 @@ def generateYieldFromCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
+    _checkDeferredReleaseYield(value_name, expression, context)
+
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
@@ -186,6 +206,8 @@ def generateYieldFromAwaitableCode(to_name, expression, emit, context):
     (awaited_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
+
+    _checkDeferredReleaseYield(awaited_name, expression, context)
 
     yield_code = """\
 %(object_name)s->m_yield_from = %(yield_from)s;

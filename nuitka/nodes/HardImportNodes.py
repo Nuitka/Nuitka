@@ -1,21 +1,37 @@
-#!/usr/bin/env python
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Launcher for API doc upload tool."""
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-import os
-import sys
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+"""Hard import nodes registry.
 
-# isort:start
+This provides the registry for hard import nodes and builtin reference nodes.
+"""
 
-from nuitka.tools.quality.apidoc.__main__ import main
+_hard_import_node_classes = {}
+_builtin_ref_nodes = {}
 
-main()
+
+def getHardImportNodeClasses():
+    return _hard_import_node_classes
+
+
+def addHardImportNodeClass(node_class, spec):
+    _hard_import_node_classes[node_class] = spec
+
+
+def getBuiltinRefNodes():
+    return _builtin_ref_nodes
+
+
+def getBuiltinRefNode(builtin_name):
+    return _builtin_ref_nodes.get(builtin_name)
+
+
+def addBuiltinRefNode(builtin_name, node_class):
+    _builtin_ref_nodes[builtin_name] = node_class
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

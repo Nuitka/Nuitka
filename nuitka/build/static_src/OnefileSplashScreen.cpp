@@ -2,6 +2,10 @@
 
 // Creates a stream object initialized with the data from an executable resource.
 
+#ifndef _WIN32
+#error "OnefileSplashScreen.cpp is Windows only"
+#else
+
 #include <shlwapi.h>
 #include <wincodec.h>
 #include <windows.h>
@@ -21,6 +25,7 @@
 #ifndef _NUITKA_NON_C11_MODE
 extern "C" {
 #endif
+#include "nuitka/environment_variables_system.h"
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 #include "nuitka/tracing.h"
@@ -196,30 +201,45 @@ HWND splash_window = 0;
 static wchar_t splash_indicator_path[4096] = {0};
 bool splash_active = false;
 
+static bool isSplashScreenShown(void) {
+    environment_char_t const *splash_screen_setting = getEnvironmentVariable("NUITKA_SPLASH_SCREEN");
+
+    if (splash_screen_setting == NULL) {
+        return true;
+    }
+
+    return wcsicmp(splash_screen_setting, L"0") != 0 && wcsicmp(splash_screen_setting, L"off") != 0;
+}
+
 extern "C" void initSplashScreen(void) {
     NUITKA_PRINT_TIMING("ONEFILE: Initialize splash screen.");
 
-    CoInitialize(NULL);
-    IStream *image_stream = createImageStream();
-    if (unlikely(image_stream == NULL)) {
-        NUITKA_PRINT_TIMING("ONEFILE: Failed to create image stream.");
-        return;
-    }
-    IWICBitmapSource *image_source = getBitmapFromImageStream(image_stream);
-    image_stream->Release();
-    if (unlikely(image_source == NULL)) {
-        NUITKA_PRINT_TIMING("ONEFILE: Failed to get image source from stream.");
-        return;
-    }
-    HBITMAP splash_bitmap = CreateHBITMAP(image_source);
-    image_source->Release();
-    if (unlikely(splash_bitmap == NULL)) {
-        NUITKA_PRINT_TIMING("ONEFILE: Failed to get bitmap.");
-        return;
+    if (isSplashScreenShown()) {
+        CoInitialize(NULL);
+        IStream *image_stream = createImageStream();
+        if (unlikely(image_stream == NULL)) {
+            NUITKA_PRINT_TIMING("ONEFILE: Failed to create image stream.");
+            return;
+        }
+        IWICBitmapSource *image_source = getBitmapFromImageStream(image_stream);
+        image_stream->Release();
+        if (unlikely(image_source == NULL)) {
+            NUITKA_PRINT_TIMING("ONEFILE: Failed to get image source from image stream.");
+            return;
+        }
+        HBITMAP splash_bitmap = CreateHBITMAP(image_source);
+        image_source->Release();
+        if (unlikely(splash_bitmap == NULL)) {
+            NUITKA_PRINT_TIMING("ONEFILE: Failed to get bitmap.");
+            return;
+        }
+
+        splash_window = createSplashWindow(splash_bitmap);
     }
 
-    splash_window = createSplashWindow(splash_bitmap);
-
+    // Even when not displaying a splash screen, the feedback file is created,
+    // so that application code deleting it to dismiss the splash screen keeps
+    // working, and the splash screen protocol remains tested.
     // TODO: This probably should be user provided.
     wchar_t const *pattern = L"{TEMP}\\onefile_{PID}_splash_feedback.tmp";
     BOOL bool_res =
@@ -259,6 +279,8 @@ extern "C" bool checkSplashScreen(void) {
 
     return splash_active == false;
 }
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

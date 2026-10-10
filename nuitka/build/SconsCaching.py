@@ -23,7 +23,7 @@ from nuitka.utils.FileOperations import (
     getLinkTarget,
     getNormalizedPathJoin,
 )
-from nuitka.utils.Importing import importFromInlineCopy
+from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.SharedLibraries import hasMacOSArchitecture
 from nuitka.utils.Utils import (
     getArchCommandPrefix,
@@ -216,7 +216,7 @@ def enableCcache(env, source_dir, python_prefix):
 
         # Unless asked to do otherwise, store ccache files in our own directory.
         if "CCACHE_DIR" not in os.environ:
-            ccache_dir = getCacheDir("ccache", create=True)
+            ccache_dir = getCacheDir("ccache/%s" % env.python_abi_version, create=True)
             ccache_dir = getExternalUsePath(ccache_dir)
             setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
             env["CCACHE_DIR"] = ccache_dir
@@ -227,10 +227,22 @@ def enableCcache(env, source_dir, python_prefix):
             )
             setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
 
-        # We know the include files we created are safe to use.
-        setEnvironmentVariable(
-            env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
-        )
+        # We know the include files we created are safe to use, but we must
+        # merge our values with a user provided setting, or else we would
+        # silently overwrite it.
+        ccache_sloppiness_value = os.environ.get("CCACHE_SLOPPINESS", "")
+
+        ccache_sloppiness = [
+            value
+            for value in ccache_sloppiness_value.replace(",", " ").split()
+            if value
+        ]
+
+        for value in ("include_file_ctime", "include_file_mtime"):
+            if value not in ccache_sloppiness:
+                ccache_sloppiness.append(value)
+
+        setEnvironmentVariable(env, "CCACHE_SLOPPINESS", ",".join(ccache_sloppiness))
 
         # First check if it's not already supposed to be a ccache, then do nothing.
         cc_path = getExecutablePath(env.the_compiler, env=env)
@@ -392,9 +404,10 @@ def _getCcacheStatistics(ccache_logfile):
                     command = "unknown command leading to " + line
 
                 # Older ccache on e.g. RHEL6 wasn't explicit about linking.
-                if result == "unsupported compiler option":
-                    if " -o " in command or "unknown command" in command:
-                        result = "called for link"
+                if result == "unsupported compiler option" and (
+                    " -o " in command or "unknown command" in command
+                ):
+                    result = "called for link"
 
                 # But still try to catch this with log output if it happens.
                 if result == "unsupported compiler option":

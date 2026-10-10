@@ -468,16 +468,34 @@ def addExtensionModuleEntryPoint(module):
     standalone_entry_points.append(entry_point)
 
 
-def getIncludedExtensionModule(source_path):
-    for standalone_entry_point in standalone_entry_points:
-        if standalone_entry_point.kind == "extension":
-            if source_path == standalone_entry_point.source_path:
-                return standalone_entry_point
+def _iterStandaloneEntryPointsForSourcePath(source_path):
+    """Iterate standalone entry points that match a source path.
+
+    Notes:
+        String identity is checked first over all entry points, so that the
+        more expensive 'areSamePaths' is only used when needed.
+    """
+    seen = set()
 
     for standalone_entry_point in standalone_entry_points:
+        if (
+            standalone_entry_point.source_path == source_path
+            and standalone_entry_point not in seen
+        ):
+            seen.add(standalone_entry_point)
+            yield standalone_entry_point
+
+    for standalone_entry_point in standalone_entry_points:
+        if standalone_entry_point not in seen and areSamePaths(
+            standalone_entry_point.source_path, source_path
+        ):
+            yield standalone_entry_point
+
+
+def getIncludedExtensionModule(source_path):
+    for standalone_entry_point in _iterStandaloneEntryPointsForSourcePath(source_path):
         if standalone_entry_point.kind == "extension":
-            if areSamePaths(source_path, standalone_entry_point.source_path):
-                return standalone_entry_point
+            return standalone_entry_point
 
     return None
 
@@ -495,11 +513,40 @@ def getStandaloneMainEntryPoint():
 
 
 def getStandaloneEntryPointForSourceFile(source_path, package_name):
-    for standalone_entry_point in standalone_entry_points:
-        if standalone_entry_point.package_name == package_name and areSamePaths(
-            standalone_entry_point.source_path, source_path
-        ):
+    """Get the standalone entry point for a source file in a package.
+
+    Args:
+        source_path: The source path to look for.
+        package_name: The package name to match.
+
+    Returns:
+        The standalone entry point or None if not found.
+    """
+    for standalone_entry_point in _iterStandaloneEntryPointsForSourcePath(source_path):
+        if standalone_entry_point.package_name == package_name:
             return standalone_entry_point
+
+    return None
+
+
+def getStandaloneEntryPointForSourceFileAnyPackage(source_path):
+    """Get the standalone entry point for a source file in any package.
+
+    Args:
+        source_path: The source path to look for.
+
+    Returns:
+        The standalone entry point or None if not found.
+
+    Notes:
+        Used to find an already included file by its source path, regardless of
+        the package that included it, e.g. to avoid duplicate copies of a DLL
+        that is used by more than one package.
+    """
+    for standalone_entry_point in _iterStandaloneEntryPointsForSourcePath(source_path):
+        return standalone_entry_point
+
+    return None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

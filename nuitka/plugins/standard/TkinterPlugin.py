@@ -49,6 +49,8 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
          not be necessary.
     """
 
+    # Many attributes for the different TCL/TK aspects, pylint: disable=too-many-instance-attributes
+
     plugin_name = "tk-inter"  # Nuitka knows us by this name
     plugin_desc = "Required by 'tkinter' package."
     plugin_category = "package-support"
@@ -76,6 +78,10 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         self.tcl_library_dir = tcl_library_dir
         self.tk_library_dir = tk_library_dir
 
+        # The directories used, once detected, for reporting only.
+        self.tcl_library_source_dir = None
+        self.tk_library_source_dir = None
+
         # ensure one-time action, we deal with several names for the execution,
         # yet we only want to do it once.
         self.files_copied = False
@@ -88,12 +94,25 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
             self.sysexit("Error, it seems 'tk-inter' is not installed.")
 
         # Only ever saw these in use, report if there are more.
-        if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
+        if self.tk_inter_version not in ("8.5", "8.6", "9.0", "9.1"):
             self.sysexit("""\
 Error, it seems 'tk-inter' has an unsupported version '%s'. \
 Please report as a issue.""" % self.tk_inter_version)
 
         return None
+
+    def getReportData(self, make_report_path):
+        yield "tk_inter_version", self.tk_inter_version
+        yield "tcl_library_source_dir", (
+            make_report_path(self.tcl_library_source_dir)
+            if self.tcl_library_source_dir is not None
+            else "none"
+        )
+        yield "tk_library_source_dir", (
+            make_report_path(self.tk_library_source_dir)
+            if self.tk_library_source_dir is not None
+            else "none"
+        )
 
     @classmethod
     def isRelevant(cls):
@@ -131,8 +150,9 @@ Please report as a issue.""" % self.tk_inter_version)
             # If required we set the respective environment values.
             code = r"""
 import os
-os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tcl_target_path)s")
-os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tk_target_path)s")""" % {
+nuitka_info = globals().get("__uncompiled__", globals().get("__compiled__"))
+os.environ["TCL_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tcl_target_path)s")
+os.environ["TK_LIBRARY"] = os.path.join(nuitka_info.python_runtime_dir, "%(tk_target_path)s")""" % {
                 "tcl_target_path": tcl_target,
                 "tk_target_path": tk_target,
             }
@@ -438,6 +458,9 @@ Could not find Tk, you might need to use '--tk-library-dir' and if \
 that works, report a bug.""")
 
         # survived the above, now do provide the locations
+        self.tcl_library_source_dir = tcl_library_dir
+        self.tk_library_source_dir = tk_library_dir
+
         self._tcl_is_zip = tcl_is_zip
         self._tk_is_zip = tk_is_zip
 
@@ -547,13 +570,6 @@ class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
                 if "tkinter" in line or "Tkinter" in line:
                     self.warnUnusedPlugin("Tkinter needs TCL included.")
                     break
-
-    def getReportData(self):
-        return {
-            "tk_inter_version": self.tk_inter_version,
-            "tcl_library_dir": self.tcl_library_dir,
-            "tk_library_dir": self.tk_library_dir,
-        }
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

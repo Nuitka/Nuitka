@@ -11,7 +11,7 @@ void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, e
     PyObject *os_module = IMPORT_HARD_OS();
     CHECK_OBJECT(os_module);
 
-    PyObject *os_environ = PyObject_GetAttrString(os_module, "environ");
+    PyObject *os_environ = LOOKUP_ATTRIBUTE(tstate, os_module, const_str_plain_environ);
     CHECK_OBJECT(os_environ);
 
     PyObject *variable_name_str = Nuitka_String_FromString(variable_name);
@@ -27,9 +27,9 @@ void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, e
 #endif
         CHECK_OBJECT(env_value);
 
-        int res = PyObject_SetItem(os_environ, variable_name_str, env_value);
+        bool res = SET_SUBSCRIPT(tstate, os_environ, variable_name_str, env_value);
 
-        if (unlikely(res != 0)) {
+        if (unlikely(res == false)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
         }
@@ -38,9 +38,9 @@ void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, e
     } else {
         unsetEnvironmentVariable(variable_name);
 
-        int res = PyObject_DelItem(os_environ, variable_name_str);
+        bool res = DEL_SUBSCRIPT(os_environ, variable_name_str);
 
-        if (unlikely(res != 0)) {
+        if (unlikely(res == false)) {
             CLEAR_ERROR_OCCURRED(tstate);
         }
     }

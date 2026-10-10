@@ -10,6 +10,8 @@
 #include "nuitka/prelude.h"
 #endif
 
+#include "nuitka/compiled_types_common.h"
+
 static void FORMAT_TYPE_ERROR1(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
                                char const *format, char const *arg) {
     PyObject *exception_value = Nuitka_String_FromFormat(format, arg);

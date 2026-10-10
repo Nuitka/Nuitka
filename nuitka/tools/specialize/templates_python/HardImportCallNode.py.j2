@@ -10,7 +10,7 @@ from abc import abstractmethod
 from {{extra_mixin.rsplit(".", 1)[0]}} import {{extra_mixin.rsplit(".", 1)[1]}}
 {% endfor %}
 
-class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
+class Expression{{module_name_title}}{{function_name_title}}{{suffix}}Call{{variation_suffix}}Base(
 {% for extra_mixin in extra_mixins %}
     {{extra_mixin.rsplit(".", 1)[1]}},
 {% endfor %}
@@ -23,8 +23,8 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
 
        Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
-{% if python_criterion %}
-    python_version_spec = "{{python_criterion}}"
+{% if python_version_spec %}
+    python_version_spec = "{{python_version_spec}}"
 {% endif %}
 
 {% if mixin_name %}
@@ -44,16 +44,16 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
     spec = {{spec_name}}
 
     def __init__(self,
-{% for named_child in named_children %}
-                      {{named_child}},
+{% for named_child, param_name in init_args_spec %}
+                      {{param_name}},
 {% endfor %}
         source_ref):
 
 {% if mixin_name %}
         {{mixin_name}}.__init__(
             self,
-{% for named_child in named_children %}
-            {{named_child}} = {{named_child}},
+{% for named_child, param_name in init_args_spec %}
+            {{param_name}} = {{param_name}},
 {% endfor %}
         )
 {% endif %}
@@ -107,6 +107,12 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+{% if module_name == "builtins" %}
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+{% endif %}
 
     {# TODO: Know this from the spec too, some things won't raise during call. #}
     @staticmethod

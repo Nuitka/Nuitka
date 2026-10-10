@@ -8,7 +8,6 @@ bin, etc.
 """
 
 from nuitka.Builtins import builtin_anon_codes
-from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -20,7 +19,7 @@ from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
 )
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 
 
 def generateBuiltinAbsCode(to_name, expression, emit, context):
@@ -121,20 +120,7 @@ def generateBuiltinInputCode(to_name, expression, emit, context):
 
 
 def generateBuiltinOpenCode(to_name, expression, emit, context):
-    arg_desc = (
-        ("open_filename", expression.subnode_filename),
-        ("open_mode", expression.subnode_mode),
-        ("open_buffering", expression.subnode_buffering),
-    )
-
-    if python_version >= 0x300:
-        arg_desc += (
-            ("open_encoding", expression.subnode_encoding),
-            ("open_errors", expression.subnode_errors),
-            ("open_newline", expression.subnode_newline),
-            ("open_closefd", expression.subnode_closefd),
-            ("open_opener", expression.subnode_opener),
-        )
+    arg_desc = makeArgDescFromExpression(expression)
 
     generateCAPIObjectCode(
         to_name=to_name,
@@ -508,6 +494,133 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
         )
 
         context.addCleanupTempName(value_name)
+
+
+def generateBuiltinPrint1Code(to_name, expression, emit, context):
+    (object_names,) = generateChildExpressionsCode(expression, emit, context)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "print_result", expression, emit, context
+    ) as value_name:
+        if len(object_names) == 0:
+            emit("%s = BUILTIN_PRINT1_NO_ARGS(tstate);" % value_name)
+        elif len(object_names) == 1:
+            emit(
+                "%s = BUILTIN_PRINT1_SINGLE_ARG(tstate, %s);"
+                % (value_name, object_names[0])
+            )
+        elif len(object_names) == 2:
+            emit(
+                "%s = BUILTIN_PRINT1_TWO_ARGS(tstate, %s, %s);"
+                % (value_name, object_names[0], object_names[1])
+            )
+        else:
+            emit(
+                """\
+{
+    PyObject *values[] = {%s};
+    %s = BUILTIN_PRINT1(tstate, values, %d);
+}"""
+                % (
+                    ", ".join(str(x) for x in object_names),
+                    value_name,
+                    len(object_names),
+                )
+            )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=object_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateBuiltinPrintCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_PRINT",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        none_null=True,
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinReversedCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_REVERSED",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinSortedP2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SORTED",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+        none_null=True,
+    )
+
+
+def generateBuiltinSortedP3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SORTED",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+        none_null=True,
+    )
+
+
+def generateBuiltinSortedP3Code1(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_SORTED1",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateBuiltinMemoryviewCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_MEMORYVIEW",
+        tstate=True,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

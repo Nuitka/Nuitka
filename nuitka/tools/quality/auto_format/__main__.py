@@ -140,7 +140,11 @@ def _parseArgs():
 def formatFilenames(filenames, options):
     result = 0
 
-    for filename in wrapWithProgressBar(filenames, stage="Auto format", unit="file"):
+    for filename in wrapWithProgressBar(
+        filenames,
+        stage="Check format" if options.check_only else "Auto format",
+        unit="file",
+    ):
         try:
             if autoFormatFile(
                 filename,

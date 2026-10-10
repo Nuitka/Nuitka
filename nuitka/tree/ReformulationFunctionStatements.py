@@ -41,6 +41,7 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
+from nuitka.nodes.FrameNodes import StatementsFrameFunction
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
@@ -178,10 +179,8 @@ def decideFunctionCompilationMode(decorators):
 def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
     # TODO: We should have a compile() builtin usage here, lookup "co_code" and
     # support that as a constant value. We then would have the "bytecode" only
-    # in the binary, right now "bytecode" and "source" make no difference. For
-    # commercial, we need to protect this constant just like all the others, and
-    # ideally maybe, we add (delayed creation) code objects from blobs for use
-    # by compiled code, while doing this. pylint: disable=unused-argument
+    # in the binary, right now "bytecode" and "source" make no difference.
+    #  pylint: disable=unused-argument
     source_code = ast.unparse(node)
 
     source = makeConstantRefNode(
@@ -663,14 +662,27 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     return kw_defaults
 
 
-_annotate_flags = frozenset(("annotate",))
+# The "python_source" flag marks functions that are generated from Python
+# source rather than compiled C code, and the "python_closure" flag additionally
+# marks those whose closures may be consumed by CPython, e.g. 'annotationlib'
+# re-wrapping of deferred annotations, so their variables need real cells.
+# Neither is specific to "annotate" functions.
+_annotate_flags = frozenset(("annotate", "python_source", "python_closure"))
 
 
 def makeDeferredAnnotateFunctionBody(provider, source_ref):
     function_name = "__annotate__"
+
+    # Not using the CPython parameter name "format" here, since following
+    # annotation values may reference a variable of that name, which would
+    # wrongly resolve to the parameter. The parameter is only ever passed
+    # positionally by "annotationlib" and the C API, so its name is internal,
+    # and ".0" cannot be used in annotations at all.
+    format_arg_name = ".0"
+
     parameters = ParameterSpec(
         ps_name=function_name,
-        ps_normal_args=("format",),
+        ps_normal_args=(format_arg_name,),
         ps_list_star_arg=None,
         ps_dict_star_arg=None,
         ps_default_count=0,
@@ -715,7 +727,9 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
 
     body = makeStatementConditional(
         condition=ExpressionComparisonGt(
-            ExpressionVariableNameRef(outer_body, "format", source_ref=source_ref),
+            ExpressionVariableNameRef(
+                outer_body, format_arg_name, source_ref=source_ref
+            ),
             ExpressionConstantIntRef(2, source_ref=source_ref),
             source_ref,
         ),
@@ -732,7 +746,17 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
         source_ref=source_ref,
     )
 
-    outer_body.setChildBody(body)
+    # The annotate function can reference closure variables in its annotation
+    # values, so it must have a frame for unbound closure and local errors, and
+    # for "f_locals" of the annotate function to be correct.
+    body = StatementsFrameFunction(
+        statements=(body,),
+        code_object=code_object,
+        owner_code_name=outer_body.getCodeName(),
+        source_ref=source_ref,
+    )
+
+    outer_body.setChildBody(makeStatementsSequenceFromStatement(statement=body))
     return outer_body, return_statement
 
 

@@ -9,6 +9,7 @@ from abc import abstractmethod
 from nuitka.__past__ import (
     GenericAlias,
     UnionType,
+    frozendict,
     iterItems,
     long,
     unicode,
@@ -25,6 +26,7 @@ from nuitka.Constants import (
     isHashable,
     isMutable,
     the_empty_dict,
+    the_empty_frozendict,
     the_empty_frozenset,
     the_empty_list,
     the_empty_set,
@@ -44,6 +46,7 @@ from .ExpressionShapeMixins import (
     ExpressionDictShapeExactMixin,
     ExpressionEllipsisShapeExactMixin,
     ExpressionFloatShapeExactMixin,
+    ExpressionFrozendictShapeExactMixin,
     ExpressionFrozensetShapeExactMixin,
     ExpressionIntShapeExactMixin,
     ExpressionListShapeExactMixin,
@@ -55,10 +58,12 @@ from .ExpressionShapeMixins import (
     ExpressionTupleShapeExactMixin,
     ExpressionUnicodeShapeExactMixin,
 )
+from .HardImportNodes import getBuiltinRefNode
 from .IterationHandles import (
     ConstantBytearrayIterationHandle,
     ConstantBytesIterationHandle,
     ConstantDictIterationHandle,
+    ConstantFrozendictIterationHandle,
     ConstantFrozensetIterationHandle,
     ConstantListIterationHandle,
     ConstantRangeIterationHandle,
@@ -159,6 +164,9 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
 
     # TODO: Push this to singletons for being static functions
     def getComparisonValue(self):
+        return True, self.constant
+
+    def getExpectedValue(self):
         return True, self.constant
 
     @staticmethod
@@ -556,7 +564,26 @@ class EmptyContainerMixin(object):
         return False
 
 
-class ExpressionConstantDictEmptyRef(EmptyContainerMixin, ExpressionConstantDictRef):
+class EmptyDictContainerMixin(EmptyContainerMixin):
+    __slots__ = ()
+
+    @staticmethod
+    def isMappingWithConstantStringKeys():
+        return True
+
+    @staticmethod
+    def getMappingStringKeyPairs():
+        return ()
+
+    @staticmethod
+    def getExpressionDictInConstant(value):
+        # pylint: disable=unused-argument
+        return False
+
+
+class ExpressionConstantDictEmptyRef(
+    EmptyDictContainerMixin, ExpressionConstantDictRef
+):
     kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
 
     __slots__ = ()
@@ -568,6 +595,111 @@ class ExpressionConstantDictEmptyRef(EmptyContainerMixin, ExpressionConstantDict
             user_provided=user_provided,
             source_ref=source_ref,
         )
+
+
+class ExpressionConstantFrozendictRef(
+    ExpressionFrozendictShapeExactMixin, ExpressionConstantRefBase
+):
+    kind = "EXPRESSION_CONSTANT_FROZENDICT_REF"
+
+    def __init__(self, constant, user_provided, source_ref):
+        ExpressionConstantRefBase.__init__(
+            self, constant=constant, user_provided=user_provided, source_ref=source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantFrozendictRef():
+        return True
+
+    def isMutable(self):
+        # The frozendict itself cannot be changed, but nested values may still
+        # be mutable and make copies necessary.
+        return isMutable(self.constant)
+
+    def isKnownToBeHashable(self):
+        return isHashable(self.constant)
+
+    @staticmethod
+    def isIterableConstant():
+        return True
+
+    def getIterationHandle(self):
+        return ConstantFrozendictIterationHandle(self)
+
+    def getIterationLength(self):
+        return len(self.constant)
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        return (
+            iter_node,
+            "new_constant",
+            """Iteration over constant frozendict lowered to tuple.""",
+        )
+
+    def isMappingWithConstantStringKeys(self):
+        return all(type(key) in (str, unicode) for key in self.constant)
+
+    def getMappingStringKeyPairs(self):
+        pairs = []
+
+        for key, value in iterItems(self.constant):
+            pairs.append(
+                (
+                    key,
+                    makeConstantRefNode(
+                        constant=value,
+                        user_provided=self.user_provided,
+                        source_ref=self.source_ref,
+                    ),
+                )
+            )
+
+        return pairs
+
+    @staticmethod
+    def getTruthValue():
+        """Return known truth value.
+
+        The empty frozendict is not allowed here, so we can hardcode it.
+        """
+
+        return True
+
+    def getExpressionDictInConstant(self, value):
+        return value in self.constant
+
+
+class ExpressionConstantFrozendictEmptyRef(
+    EmptyDictContainerMixin, ExpressionConstantFrozendictRef
+):
+    kind = "EXPRESSION_CONSTANT_FROZENDICT_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, user_provided, source_ref):
+        ExpressionConstantFrozendictRef.__init__(
+            self,
+            constant=the_empty_frozendict,
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
 
 
 class ExpressionConstantTupleRef(
@@ -1390,6 +1522,19 @@ class ExpressionConstantTypeFrozensetRef(
         )
 
 
+class ExpressionConstantTypeFrozendictRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_FROZENDICT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(
+            self, constant=frozendict, source_ref=source_ref
+        )
+
+
 class ExpressionConstantTypeListRef(
     ExpressionConstantConcreteTypeMixin,
     ExpressionConstantTypeSubscriptableMixin,
@@ -1500,6 +1645,20 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
                 user_provided=user_provided,
                 source_ref=source_ref,
             )
+    elif constant_type is frozendict:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            return ExpressionConstantFrozendictRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantFrozendictEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
     elif constant_type is tuple:
         if constant:
             assert isConstant(constant), repr(constant)
@@ -1580,6 +1739,8 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             return ExpressionConstantTypeSetRef(source_ref=source_ref)
         if constant is frozenset:
             return ExpressionConstantTypeFrozensetRef(source_ref=source_ref)
+        if constant is frozendict:
+            return ExpressionConstantTypeFrozendictRef(source_ref=source_ref)
         if constant is tuple:
             return ExpressionConstantTypeTupleRef(source_ref=source_ref)
         if constant is list:
@@ -1624,9 +1785,14 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
     elif constant in builtin_named_values:
         from .BuiltinRefNodes import ExpressionBuiltinRef
 
-        return ExpressionBuiltinRef(
-            builtin_name=builtin_named_values[constant], source_ref=source_ref
-        )
+        builtin_name = builtin_named_values[constant]
+
+        builtin_ref_node_class = getBuiltinRefNode(builtin_name)
+
+        if builtin_ref_node_class is not None:
+            return builtin_ref_node_class(source_ref=source_ref)
+
+        return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
     elif constant in builtin_exception_values_list:
         from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 

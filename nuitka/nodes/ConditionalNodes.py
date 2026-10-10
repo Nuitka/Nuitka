@@ -137,6 +137,10 @@ class ExpressionConditional(
     def getBranches(self):
         return (self.subnode_expression_yes, self.subnode_expression_no)
 
+    def onContentEscapes(self, trace_collection):
+        self.subnode_expression_yes.onContentEscapes(trace_collection)
+        self.subnode_expression_no.onContentEscapes(trace_collection)
+
     def computeExpressionRaw(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches
 
@@ -309,6 +313,10 @@ Convert conditional expression with unused result into conditional statement."""
 class ExpressionConditionalBoolBase(ChildrenHavingLeftRightMixin, ExpressionBase):
     named_children = ("left", "right")
 
+    @staticmethod
+    def isExpressionConditionalBool():
+        return True
+
     def __init__(self, left, right, source_ref):
         ChildrenHavingLeftRightMixin.__init__(self, left=left, right=right)
 
@@ -480,6 +488,10 @@ branches.""" % self.conditional_kind,
             return True
 
         return False
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_left.onContentEscapes(trace_collection)
+        self.subnode_right.onContentEscapes(trace_collection)
 
 
 class ExpressionConditionalOr(ExpressionConditionalBoolBase):
@@ -763,7 +775,7 @@ branches.""",
 Both branches have no effect, reduced to evaluate condition.""",
                 )
             else:
-                condition.undoComputeExpressionRaw(trace_collection)
+                condition.undoVariableTracingRaw(trace_collection)
                 self.finalize()
 
                 return (

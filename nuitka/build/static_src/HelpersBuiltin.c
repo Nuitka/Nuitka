@@ -543,24 +543,12 @@ PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
 NUITKA_DEFINE_BUILTIN(bytearray)
 
 PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *encoding, PyObject *errors) {
-    CHECK_OBJECT(string);
-    CHECK_OBJECT(encoding);
-
     NUITKA_ASSIGN_BUILTIN(bytearray);
 
-    if (errors == NULL) {
-        PyObject *args[] = {string, encoding};
+    PyObject *args[] = {string, encoding, errors};
+    char const *arg_names[] = {"source", "encoding", "errors"};
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args);
-
-        return result;
-    } else {
-        PyObject *args[] = {string, encoding, errors};
-
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args);
-
-        return result;
-    }
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytearray), args, arg_names, 3, 0);
 }
 
 /** The "iter" built-in.
@@ -598,6 +586,117 @@ PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
 
     return (PyObject *)result;
 }
+
+/** The "reversed" built-in.
+ *
+ **/
+
+NUITKA_DEFINE_BUILTIN(reversed);
+
+PyObject *BUILTIN_REVERSED(PyThreadState *tstate, PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(reversed);
+    CHECK_OBJECT(value);
+
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(reversed), value);
+}
+
+/** The "sorted" built-in.
+ *
+ **/
+
+NUITKA_DEFINE_BUILTIN(sorted);
+
+#if PYTHON_VERSION < 0x300
+PyObject *BUILTIN_SORTED(PyThreadState *tstate, PyObject *iterable, PyObject *cmp, PyObject *key, PyObject *reverse) {
+    NUITKA_ASSIGN_BUILTIN(sorted);
+
+    PyObject *args[] = {iterable, cmp, key, reverse};
+    char const *arg_names[] = {"iterable", "cmp", "key", "reverse"};
+
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(sorted), args, arg_names, 4, 3);
+}
+#else
+PyObject *BUILTIN_SORTED(PyThreadState *tstate, PyObject *iterable, PyObject *key, PyObject *reverse) {
+    NUITKA_ASSIGN_BUILTIN(sorted);
+
+    PyObject *args[] = {iterable, key, reverse};
+    char const *arg_names[] = {"iterable", "key", "reverse"};
+
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(sorted), args, arg_names, 3, 2);
+}
+
+PyObject *BUILTIN_SORTED1(PyThreadState *tstate, PyObject *iterable) {
+    return BUILTIN_SORTED(tstate, iterable, NULL, NULL);
+}
+#endif
+
+/** The "memoryview" built-in.
+ *
+ **/
+
+NUITKA_DEFINE_BUILTIN(memoryview);
+
+PyObject *BUILTIN_MEMORYVIEW(PyThreadState *tstate, PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(memoryview);
+
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(memoryview), value);
+}
+
+/** The "print" built-in.
+ *
+ **/
+
+NUITKA_DEFINE_BUILTIN(print);
+
+#if PYTHON_VERSION >= 0x300
+PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyObject *sep, PyObject *end,
+                        PyObject *file, PyObject *flush) {
+    CHECK_OBJECTS(values, count);
+
+    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, values, count);
+
+    PyObject *kw_dict = NULL;
+
+    if (sep != NULL || end != NULL || file != NULL || flush != NULL) {
+        PyObject *kw_values[] = {sep, end, file, flush};
+        char const *kw_keys[] = {"sep", "end", "file", "flush"};
+
+        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 4);
+
+        assert(kw_dict != NULL);
+    }
+
+    PyObject *result = CALL_FUNCTION(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple, kw_dict);
+    Py_DECREF(args_tuple);
+    Py_XDECREF(kw_dict);
+
+    return result;
+}
+#else
+PyObject *BUILTIN_PRINT(PyThreadState *tstate, PyObject **values, int count, PyObject *sep, PyObject *end,
+                        PyObject *file) {
+    CHECK_OBJECTS(values, count);
+
+    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, values, count);
+
+    PyObject *kw_dict = NULL;
+
+    if (sep != NULL || end != NULL || file != NULL) {
+        PyObject *kw_values[] = {sep, end, file};
+        char const *kw_keys[] = {"sep", "end", "file"};
+
+        kw_dict = MAKE_DICT_X_CSTR(kw_keys, kw_values, 3);
+
+        assert(kw_dict != NULL);
+    }
+
+    PyObject *result = CALL_FUNCTION(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple, kw_dict);
+    Py_DECREF(args_tuple);
+    Py_XDECREF(kw_dict);
+
+    return result;
+}
+#endif
 
 /** The "type" built-in.
  *
@@ -738,10 +837,9 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
 
     if (result == NULL) {
         if (default_value != NULL) {
-            if (HAS_ERROR_OCCURRED(tstate)) {
-                if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-                    CLEAR_ERROR_OCCURRED(tstate);
-                }
+            // Only an "AttributeError" gives the default, others are raised.
+            if (unlikely(!CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate))) {
+                return NULL;
             }
 
             Py_INCREF(default_value);
@@ -897,6 +995,33 @@ PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) 
     return result;
 }
 #endif
+
+PyObject *BUILTIN_PRINT1(PyThreadState *tstate, PyObject **values, int count) {
+    CHECK_OBJECTS(values, count);
+
+    // TODO: We need a CALL_FUNCTION_WITH_POS_ARGS variant that does not create
+    // a tuple, but instead uses the values directly.
+    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, values, count);
+
+    PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, LOOKUP_BUILTIN(const_str_plain_print), args_tuple);
+    Py_DECREF(args_tuple);
+
+    return result;
+}
+
+PyObject *BUILTIN_PRINT1_NO_ARGS(PyThreadState *tstate) { return BUILTIN_PRINT1(tstate, NULL, 0); }
+
+PyObject *BUILTIN_PRINT1_SINGLE_ARG(PyThreadState *tstate, PyObject *arg) {
+    PyObject *values[] = {arg};
+
+    return BUILTIN_PRINT1(tstate, values, 1);
+}
+
+PyObject *BUILTIN_PRINT1_TWO_ARGS(PyThreadState *tstate, PyObject *arg1, PyObject *arg2) {
+    PyObject *values[] = {arg1, arg2};
+
+    return BUILTIN_PRINT1(tstate, values, 2);
+}
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

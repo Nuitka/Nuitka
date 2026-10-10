@@ -1,13 +1,16 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
+#include "nuitka/allocator.h"
 #include "nuitka/checkers.h"
 #include "nuitka/compiled_module.h"
+#include "nuitka/cpython_api_compat.h"
 #include "nuitka/defines.h"
+#include "nuitka/string_functions.h"
 #endif
 
 static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
@@ -16,6 +19,15 @@ static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
 
     return ((PyDictObject *)dict)->ma_used;
 }
+
+#if PYTHON_VERSION >= 0x3f0
+static inline Py_ssize_t FROZENDICT_SIZE(PyObject *frozendict) {
+    CHECK_OBJECT(frozendict);
+    assert(PyFrozenDict_CheckExact(frozendict));
+
+    return ((PyDictObject *)frozendict)->ma_used;
+}
+#endif
 
 static inline PyDictObject *MODULE_DICT(PyObject *module) {
     CHECK_OBJECT(module);
@@ -272,6 +284,9 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
     return true;
 }
 
+// Set a KeyError for the given key, handling tuple keys and normalization.
+extern void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key);
+
 // Get dict lookup for a key, similar to PyDict_GetItemWithError, ref returned
 extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
@@ -453,6 +468,11 @@ extern void DICT_CLEAR(PyObject *dict);
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
+#if PYTHON_VERSION >= 0x3f0
+// Replacement for PyDict_Next for frozendicts, that are always combined dicts.
+extern bool Nuitka_FrozenDictNext(PyObject *frozendict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
+#endif
+
 #if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL) &&                                  \
     !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)
 #define NUITKA_DICT_HAS_FREELIST 1
@@ -477,7 +497,7 @@ extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
 extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
 
-// TODO: It's probably unchanged across all Python versions 2.6-3.14
+// It's probably unchanged across all Python versions 2.6-3.15
 #if PYTHON_VERSION >= 0x3e0
 typedef struct {
     PyObject_HEAD PyDictObject *di_dict;

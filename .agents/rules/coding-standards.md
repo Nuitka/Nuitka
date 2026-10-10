@@ -53,7 +53,7 @@
 
   - **Avoid default arguments for internal APIs:** When adding a new argument to a function or
     method, do **not** provide a default value. Callers must explicitly supply the argument unless
-    the case is a well‑defined exception (e.g., a optional flag that is very unlikely to be used).
+    the case is a well-defined exception (e.g., a optional flag that is very unlikely to be used).
     This ensures clarity and prevents hidden behavior.
 
 ## 3. C Coding Standards

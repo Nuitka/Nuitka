@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from collections import defaultdict, namedtuple
 from copy import copy
 from ctypes import windll, wintypes
@@ -67,6 +68,10 @@ CL_DEFAULT_CODEC = "mbcs"
 # Manifest file will have at most this number of hash lists in it. Need to avoi
 # manifests grow too large.
 MAX_MANIFEST_HASHES = 100
+
+# Interval in days at which age based cleanup of the cache is performed at
+# most, to avoid scanning it with every compilation.
+CLEANUP_INTERVAL_DAYS = 7
 
 # String, by which BASE_DIR will be replaced in paths, stored in manifests.
 # ? is invalid character for file name, so it seems ok
@@ -159,7 +164,7 @@ class CompilerFailedException(Exception):
         self.msgErr = msgErr
 
     def getReturnTuple(self):
-        return self.exitCode, self.msgErr, self.msgOut, False
+        return self.exitCode, self.msgErr, self.msgOut
 
 
 class Manifest(object):
@@ -279,6 +284,32 @@ class ManifestRepository(object):
             else:
                 os.remove(filepath)
         return remainingObjectsSize
+
+    def cleanOldEntries(self, maxMtime):
+        """Remove manifests not modified after the given time.
+
+        Args:
+            maxMtime: Timestamp, manifests older than this are removed.
+
+        Returns:
+            Number of removed manifest files.
+
+        Notes:
+            This is used to age out cache entries, and intentionally does not
+            lock anything, races with other builds are acceptable.
+        """
+        numRemoved = 0
+
+        for section in self.sections():
+            for filePath in section.manifestFiles():
+                try:
+                    if os.stat(filePath).st_mtime < maxMtime:
+                        os.remove(filePath)
+                        numRemoved += 1
+                except OSError:
+                    pass
+
+        return numRemoved
 
     @staticmethod
     def getManifestHash(compilerBinary, commandLine, sourceFile):
@@ -472,7 +503,8 @@ class CompilerArtifactsSection(object):
         return size
 
     def getEntry(self, key):
-        assert self.hasEntry(key)
+        # The entry can vanish due to age based cleanup, which is detected
+        # when accessing the object file.
         cacheEntryDir = self.cacheEntryDir(key)
         return CompilerArtifacts(
             os.path.join(cacheEntryDir, CompilerArtifactsSection.OBJECT_FILE),
@@ -530,6 +562,33 @@ class CompilerArtifactsRepository(object):
                 break
 
         return len(objectInfos) - removedItems, currentSizeObjects
+
+    def cleanOldEntries(self, maxMtime):
+        """Remove compiler artifacts not modified after the given time.
+
+        Args:
+            maxMtime: Timestamp, compiler artifacts older than this are
+                removed.
+
+        Returns:
+            Number of removed compiler artifact entries.
+
+        Notes:
+            This is used to age out cache entries, and intentionally does not
+            lock anything, races with other builds are acceptable.
+        """
+        numRemoved = 0
+
+        for section in self.sections():
+            for cachekey in section.cacheEntries():
+                try:
+                    if os.stat(section.cachedObjectName(cachekey)).st_mtime < maxMtime:
+                        self.removeEntry(cachekey)
+                        numRemoved += 1
+                except OSError:
+                    pass
+
+        return numRemoved
 
     @staticmethod
     def computeKeyDirect(manifestHash, includesContentHash):
@@ -636,6 +695,9 @@ class CacheFileStrategy(object):
     def __str__(self):
         return "Disk cache at {}".format(self.dir)
 
+    def getCacheDirectory(self):
+        return self.dir
+
     @property  # type: ignore
     @contextlib.contextmanager
     def lock(self):
@@ -710,6 +772,20 @@ class CacheFileStrategy(object):
         stats.setCacheSize(currentCompilerArtifactsSize + currentSizeManifests)
         stats.setNumCacheEntries(currentCompilerArtifactsCount)
 
+    def cleanOldEntries(self, maxMtime):
+        """Remove cache entries not modified after the given time.
+
+        Args:
+            maxMtime: Timestamp, cache entries older than this are removed.
+
+        Returns:
+            Tuple of removed manifest and compiler artifact counts.
+        """
+        numManifests = self.manifestRepository.cleanOldEntries(maxMtime)
+        numObjects = self.compilerArtifactsRepository.cleanOldEntries(maxMtime)
+
+        return numManifests, numObjects
+
 
 class Cache(object):
     def __init__(self, cacheDirectory=None):
@@ -724,6 +800,9 @@ class Cache(object):
 
     def __str__(self):
         return str(self.strategy)
+
+    def getCacheDirectory(self):
+        return self.strategy.getCacheDirectory()
 
     @property
     def lock(self):
@@ -744,6 +823,9 @@ class Cache(object):
 
     def clean(self, stats, maximumSize):
         return self.strategy.clean(stats, maximumSize)
+
+    def cleanOldEntries(self, maxMtime):
+        return self.strategy.cleanOldEntries(maxMtime)
 
     @contextlib.contextmanager
     def lockFor(self, key):
@@ -1627,6 +1709,85 @@ def clearCache(cache):
         cache.clean(stats, 0)
 
 
+def _getEnvDays(envName, defaultDays):
+    """Get an environment variable value expressed in days.
+
+    Args:
+        envName: Name of the environment variable.
+        defaultDays: Default value in days.
+
+    Returns:
+        Integer number of days.
+    """
+    value = os.getenv(envName, str(defaultDays))
+
+    try:
+        return int(value)
+    except ValueError:
+        general.warning(
+            "Ignoring invalid '%s' value '%s', using %d days."
+            % (envName, value, defaultDays)
+        )
+        return defaultDays
+
+
+def cleanCacheByAge(cache):
+    """Clean cache entries that were not modified for a while.
+
+    Args:
+        cache: The cache to clean.
+
+    Notes:
+        The maximum age is controlled by the 'NUITKA_CLCACHE_MAX_AGE_DAYS'
+        environment variable, defaulting to 30 days, with a value of 0
+        disabling the cleanup. The cleanup is performed at most once per
+        'NUITKA_CLCACHE_CLEANUP_INTERVAL_DAYS' days, defaulting to 7, and
+        does not take locks, since deleting old entries merely causes
+        recompilation.
+    """
+    maxAgeDays = _getEnvDays("NUITKA_CLCACHE_MAX_AGE_DAYS", 30)
+
+    if maxAgeDays <= 0:
+        return
+
+    cleanupInterval = (
+        max(0, _getEnvDays("NUITKA_CLCACHE_CLEANUP_INTERVAL_DAYS", CLEANUP_INTERVAL_DAYS))
+        * 24
+        * 60
+        * 60
+    )
+
+    currentTime = time.time()
+
+    markerFilename = os.path.join(cache.getCacheDirectory(), "last-cleanup.txt")
+
+    try:
+        if currentTime - os.stat(markerFilename).st_mtime < cleanupInterval:
+            return
+    except OSError:
+        pass
+
+    try:
+        numManifests, numObjects = cache.cleanOldEntries(
+            currentTime - maxAgeDays * 24 * 60 * 60
+        )
+    except OSError:
+        # Cache cleanup is a best effort task, it must never break a build.
+        return
+
+    try:
+        with atomic_write(markerFilename, overwrite=True) as markerFile:
+            markerFile.write(str(int(currentTime)))
+    except IOError:
+        pass
+
+    if numManifests or numObjects:
+        general.info(
+            "Removed %d clcache manifests and %d cache entries older than %d days."
+            % (numManifests, numObjects, maxAgeDays)
+        )
+
+
 # Returns pair:
 #   1. set of include filepaths
 #   2. new compiler output
@@ -1680,9 +1841,6 @@ def addObjectToCache(stats, cache, cachekey, artifacts):
         size = os.path.getsize(artifacts.objectFilePath)
     stats.registerCacheEntry(size)
 
-    with cache.configuration as cfg:
-        return stats.currentCacheSize() >= cfg.maximumCacheSize()
-
 
 def processCacheHit(cache, objectFile, cachekey, sourceFile):
     printTraceStatement(
@@ -1692,16 +1850,25 @@ def processCacheHit(cache, objectFile, cachekey, sourceFile):
     )
 
     with cache.lockFor(cachekey):
-        with cache.statistics as stats:
-            stats.registerCacheHit(sourceFile)
+        if not cache.hasEntry(cachekey):
+            return None
 
         if os.path.exists(objectFile):
             os.remove(objectFile)
 
-        cachedArtifacts = cache.getEntry(cachekey)
-        copyOrLink(cachedArtifacts.objectFilePath, objectFile)
+        try:
+            cachedArtifacts = cache.getEntry(cachekey)
+            copyOrLink(cachedArtifacts.objectFilePath, objectFile)
+        except (IOError, OSError):
+            # The entry was removed while we tried to use it, e.g. by age
+            # based cleanup, then just treat it as a cache miss.
+            return None
+
+        with cache.statistics as stats:
+            stats.registerCacheHit(sourceFile)
+
         printTraceStatement("Finished. Exit code 0")
-        return 0, cachedArtifacts.stdout, cachedArtifacts.stderr, False
+        return 0, cachedArtifacts.stdout, cachedArtifacts.stderr
 
 
 def createManifestEntry(manifestHash, includePaths):
@@ -1738,6 +1905,7 @@ def runClCache(compiler, compiler_args, env):
 
     if cache is None:
         cache = Cache()
+        cleanCacheByAge(cache)
 
     exit_code, out, err = run(cache, compiler, compiler_args, env)
 
@@ -1850,7 +2018,6 @@ def scheduleJobs(
     ]
 
     exitCode = 0
-    cleanupRequired = False
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=jobCount(cmdLine)
     ) as executor:
@@ -1868,9 +2035,8 @@ def scheduleJobs(
                 )
             )
         for future in concurrent.futures.as_completed(jobs):
-            exitCode, out, err, doCleanup = future.result()
+            exitCode, out, err = future.result()
             printTraceStatement("Finished. Exit code {0:d}".format(exitCode))
-            cleanupRequired |= doCleanup
             printOutAndErr(out, err)
 
             result_out.append(out)
@@ -1878,9 +2044,6 @@ def scheduleJobs(
 
             if exitCode != 0:
                 break
-
-    if cleanupRequired:
-        cleanCache(cache)
 
     return exitCode, result_out, result_err
 
@@ -1898,7 +2061,7 @@ def processSingleSource(compiler, cmdLine, sourceFile, objectFile, environment):
             )
 
     except IncludeNotFoundException:
-        return invokeRealCompiler(compiler, cmdLine, environment=environment), False
+        return invokeRealCompiler(compiler, cmdLine, environment=environment)
     except CompilerFailedException as e:
         return e.getReturnTuple()
 
@@ -1932,7 +2095,12 @@ def processDirect(cache, objectFile, compiler, cmdLine, sourceFile, env):
                         manifestHit = True
                         with cache.lockFor(cachekey):
                             if cache.hasEntry(cachekey):
-                                return processCacheHit(cache, objectFile, cachekey, sourceFile)
+                                cacheHitResult = processCacheHit(
+                                    cache, objectFile, cachekey, sourceFile
+                                )
+
+                                if cacheHitResult is not None:
+                                    return cacheHitResult
 
                 except IncludeNotFoundException:
                     pass
@@ -1987,7 +2155,10 @@ def processNoDirect(cache, objectFile, compiler, cmdLine, sourceFile, environmen
     )
     with cache.lockFor(cachekey):
         if cache.hasEntry(cachekey):
-            return processCacheHit(cache, objectFile, cachekey, sourceFile)
+            cacheHitResult = processCacheHit(cache, objectFile, cachekey, sourceFile)
+
+            if cacheHitResult is not None:
+                return cacheHitResult
 
     compilerResult = invokeRealCompiler(
         compiler, cmdLine, captureOutput=True, environment=environment
@@ -2001,7 +2172,6 @@ def processNoDirect(cache, objectFile, compiler, cmdLine, sourceFile, environmen
 def ensureArtifactsExist(
     cache, cachekey, reason, objectFile, sourceFile, compilerResult, extraCallable=None
 ):
-    cleanupRequired = False
     returnCode, compilerOutput, compilerStderr = compilerResult
     correctCompiliation = returnCode == 0 and os.path.exists(objectFile)
     with cache.lockFor(cachekey):
@@ -2012,9 +2182,7 @@ def ensureArtifactsExist(
                     artifacts = CompilerArtifacts(
                         objectFile, compilerOutput, compilerStderr
                     )
-                    cleanupRequired = addObjectToCache(
-                        stats, cache, cachekey, artifacts
-                    )
+                    addObjectToCache(stats, cache, cachekey, artifacts)
             if extraCallable and correctCompiliation:
                 extraCallable()
-    return returnCode, compilerOutput, compilerStderr, cleanupRequired
+    return returnCode, compilerOutput, compilerStderr

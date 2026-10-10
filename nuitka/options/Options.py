@@ -21,6 +21,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
+from nuitka.plugins.Hooks import redactCommandLineArg
 from nuitka.Progress import enableProgressBar
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
@@ -61,6 +62,7 @@ from nuitka.Tracing import (
     progress_logger,
     setQuiet,
 )
+from nuitka.utils.Download import getPythonBuildStandaloneFullBuildHint
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getNormalizedPathJoin,
@@ -73,7 +75,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
-from nuitka.utils.Importing import getInlineCopyFolder
+from nuitka.utils.InlineCopies import getInlineCopyFolder
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.StaticLibraries import (
     getStaticLinkLibraryProblem,
@@ -437,7 +439,11 @@ longer part of Winlibs and therefore no more available this way. Use only \
     if not options.version:
         options_logger.info(
             leader="Used command line options:",
-            message=" ".join(doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])),
+            message=" ".join(
+                doNotBreakSpaces(
+                    _quoteArg(redactCommandLineArg(arg)) for arg in sys.argv[1:]
+                )
+            ),
         )
 
     if (
@@ -547,6 +553,16 @@ longer part of Winlibs and therefore no more available this way. Use only \
             return options_logger.sysexit(
                 "Error, with '--project' you must also select a mode, e.g. '--mode=standalone' or '--mode=onefile'."
             )
+
+    # The '--main-entry-point' is intended for project-based builds and
+    # does not allow to derive build output names from the entry point,
+    # if specified as the sole entry point form. TODO: Proper handling
+    # of mixed entry point forms, and relax the project name requirement
+    # by deriving build output names from the entry points.
+    if getMainEntryPointSpecs() and not getProjectName():
+        return options_logger.sysexit("""\
+Error, '--main-entry-point' requires a project name, use \
+'--project-name=NAME' to specify it.""")
 
     if isMacOS():
         if (options.macos_target_arch or "native") != "native":
@@ -791,6 +807,19 @@ it before using it: '%s' (from --output-filename='%s')."""
             % getPythonFlavorName()
         )
 
+    # The Python PGO input build is accelerated, but compiled without the
+    # isolation effect, and the actual build is checked again after the
+    # re-execution.
+    if (
+        isAcceleratedMode()
+        and hasPythonFlagIsolated()
+        and not shallCreatePythonPgoInput()
+    ):
+        return options_logger.sysexit("""\
+Error, the Python flag 'isolated' cannot be used in accelerated mode, since \
+Nuitka empties 'sys.path' for it, and accelerated mode loads the standard \
+library from there.""")
+
     if isOnefileMode() and not hasOnefileSupportedOS():
         return options_logger.sysexit(
             "Error, unsupported OS for onefile '%s'." % getOS()
@@ -883,15 +912,19 @@ options instead.""" % pattern)
         usable, reason = _couldUseStaticLibPython()
 
         if static_libpython_path is None or usable is False:
-            return options_logger.sysexit(
-                """\
+            message = """\
 Error, a static libpython is either not found or not supported for \
-this Python (%s) installation: %s"""
-                % (
-                    getPythonFlavorName(),
-                    (reason or "unknown reason"),
-                )
+this Python (%s) installation: %s""" % (
+                getPythonFlavorName(),
+                (reason or "unknown reason"),
             )
+
+            full_build_hint = getPythonBuildStandaloneFullBuildHint()
+
+            if full_build_hint is not None:
+                message += "\n\n" + full_build_hint
+
+            return options_logger.sysexit(message)
 
     if shallUseStaticLibPython() and static_libpython_path is None:
         return options_logger.sysexit(
@@ -954,16 +987,6 @@ def commentArgs():
     """
     # A ton of cases to consider.
     # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
-
-    # Option '--main-entry-point' is intended for project-based builds. Require
-    # a project name (from pyproject.toml / distutils / '--project') so we can
-    # use it for naming build artifacts.
-    if getMainEntryPointSpecs():
-        if not getProjectName():
-            return options_logger.sysexit("""\
-Error, '--main-entry-point' requires a project name. Use '--project' \
-or run from a project directory with 'pyproject.toml', 'setup.py', or \
-'setup.cfg'.""")
 
     # Check files to exist or be suitable first before giving other warnings.
     for filename in getMainEntryPointFilenames():
@@ -1117,6 +1140,9 @@ library. Please upgrade/downgrade to a supported micro version.""")
                 return options_logger.sysexit(
                     "Error, cannot find 'create-dmg' tool. It is required for '--macos-installer'."
                 )
+
+    if options.macos_installer_output_filename is not None:
+        _warnMacOSSpecificOption("--macos-installer-output")
 
     if options.windows_create_installer:
         _warnWindowsSpecificOption("--windows-create-installer")
@@ -1803,7 +1829,12 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or isRuntimeProfile() or states.is_debug
+    return (
+        options.unstripped
+        or isRuntimeProfile()
+        or states.is_debug
+        or options.debug_address_sanitizer
+    )
 
 
 def isRuntimeProfile():
@@ -1819,6 +1850,11 @@ def isCompileTimeProfile():
 def isDevelPerformanceCounts():
     """:returns: bool derived from ``--devel-performance-counts``"""
     return options.devel_performance_counts
+
+
+def isDevelPgoWarnUnknown():
+    """:returns: bool derived from ``--devel-pgo-warn-unknown``"""
+    return options.devel_pgo_warn_unknown
 
 
 def shallGenerateReadableCode():
@@ -1917,6 +1953,32 @@ def getMainEntryPointFilenames():
         result = ()
 
     return tuple(getUserInputNormalizedPath(r) for r in result)
+
+
+def getMainModuleName():
+    """*ModuleName* or None, the name of the main module being compiled."""
+    if options is None:
+        return None
+
+    main_filenames = getMainEntryPointFilenames()
+
+    if not main_filenames:
+        return None
+
+    filename = main_filenames[0]
+
+    if shallMakeModule():
+        # Local import, as the importing layer itself uses options.
+        from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+
+        module_name = getModuleNameAndKindFromFilename(filename)[0]
+    elif hasPythonFlagPackageMode():
+        # TODO: Doesn't work for deeply nested packages at all.
+        module_name = ModuleName(os.path.basename(filename) + ".__main__")
+    else:
+        module_name = ModuleName("__main__")
+
+    return module_name
 
 
 def addMainEntryPointFilename(filename):
@@ -2388,6 +2450,15 @@ def shallNotFallbackBytecodeToCompiled(module_name, function_qualname, source_re
     return options.devel_no_bytecode_to_compiled_fallback
 
 
+def getDevelModeIndications():
+    """*tuple* of active development options that need C level definitions."""
+
+    # No development option needs a C level definition at the moment, they are
+    # handled in Python code. List option value names here when one does, they
+    # become "_NUITKA_DEVEL_<NAME>" defines via "enableFlagSettings".
+    return ()
+
+
 def getDebugModeIndications():
     result = []
 
@@ -2395,6 +2466,7 @@ def getDebugModeIndications():
         "debug_immortal",
         "debug_c_warnings",
         "debug_self_forking",
+        "debug_address_sanitizer",
     ):
         # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
@@ -2517,6 +2589,15 @@ def isPythonPgoMode():
 def getPythonPgoInput():
     """:returns: str derived from ``--pgo-python-input``"""
     return options.python_pgo_input
+
+
+def getPythonPgoJsonFilename():
+    """:returns: str or None derived from ``--pgo-json``"""
+    return (
+        getUserInputNormalizedPath(options.python_pgo_json)
+        if options.python_pgo_json is not None
+        else None
+    )
 
 
 def shallCreatePythonPgoInput():
@@ -2848,6 +2929,11 @@ def shallCreateDmgFile():
     return options.macos_create_dmg and isMacOS()
 
 
+def getMacOSInstallerOutputFilename():
+    """*str* or *None*, value of ``--macos-installer-output``"""
+    return options.macos_installer_output_filename
+
+
 def getMacOSSigningIdentity():
     """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
     result = options.macos_sign_identity
@@ -3045,6 +3131,11 @@ def _getPythonFlags():
 
     # singleton, pylint: disable=global-statement
     global _python_flags
+
+    # Without parsed options, no Python flags were given, this is used e.g. by
+    # packaging backends querying Nuitka without argument parsing.
+    if options is None:
+        return set()
 
     if _python_flags is None:
         _python_flags = set()

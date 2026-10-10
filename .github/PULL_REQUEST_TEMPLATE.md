@@ -37,6 +37,7 @@ https://github.com/Nuitka/Nuitka/blob/develop/CONTRIBUTING.md
 ## 🤖 AI Generated Code Policy
 
 - [ ] **Detection**: This PR contains AI generated code.
+  - **Model/Provider**: \<model name and provider, e.g. V4pro / DeepSeek>
   - [ ] **Issue First**: I have created an issue explaining the problem *before* using AI to
     generate a fix, ensuring the direction is correct.
   - [ ] **Documentation**: I have provided the prompts used to generate the code (non-optional).

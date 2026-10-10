@@ -26,6 +26,10 @@ class ExpressionBuiltinEval(ChildrenExpressionBuiltinEvalMixin, ExpressionBase):
 
     named_children = ("source_code", "globals_arg", "locals_arg")
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ChildrenExpressionBuiltinEvalMixin.__init__(
             self,
@@ -47,6 +51,10 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
     python_version_spec = ">= 0x300"
 
     named_children = ("source_code", "globals_arg", "locals_arg", "closure|optional")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, source_code, globals_arg, locals_arg, closure, source_ref):
         ChildrenExpressionBuiltinExecMixin.__init__(
@@ -75,6 +83,10 @@ class ExpressionBuiltinExecfile(ChildrenExpressionBuiltinExecfileMixin, Expressi
     python_version_spec = "< 0x300"
 
     named_children = ("source_code", "globals_arg", "locals_arg")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     __slots__ = ("in_class_body",)
 
@@ -190,6 +202,10 @@ class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, Expression
         "dont_inherit|optional",
         "optimize|optional",
     )
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(
         self, source_code, filename, mode, flags, dont_inherit, optimize, source_ref

@@ -19,12 +19,15 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
+    ExpressionCallClassPrepare,
+    ExpressionCallClassPrepareKnownStartValueDictAsserted,
+    ExpressionCallClassPrepareKnownStartValueDictException,
+    ExpressionCallClassPrepareKnownStartValueDictIgnored,
     ExpressionCallMetaclass,
-    ExpressionClassDictBody,
     ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
 )
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpecClass
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -77,6 +80,11 @@ from nuitka.nodes.ReturnNodes import (
     StatementReturn,
     makeStatementReturnConstant,
 )
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    getTypeShapeFromValue,
+    tshape_dict,
+)
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import (
@@ -92,7 +100,9 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.options.Options import isExperimental
+from nuitka.pgo.Pgo import getPGOClassPrepareResult
 from nuitka.plugins.Hooks import onClassBodyParsing
+from nuitka.Policies import decidePGOClassDictAssertionPolicy
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -140,20 +150,66 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
     )
 
 
-def _selectClassBody(_static_qualname):
-    if isExperimental("force-p2-class"):
-        return ExpressionClassDictBody
-    else:
-        return ExpressionClassMappingBody
-
-
 def _needsOrigBases(_static_qualname):
-    if isExperimental("force-p2-class"):
-        return False
-    elif python_version < 0x370:
-        return False
+    return python_version >= 0x370
+
+
+def makeExpressionClassPrepareCall(
+    code_name, static_qualname, metaclass, name, bases, class_decl_dict, source_ref
+):
+    pgo_result = getPGOClassPrepareResult(code_name)
+
+    if pgo_result is None and isExperimental("force-p2-class"):
+        # Use a synthetic PGO result to exercise the dict shape path.
+        type_shape = tshape_dict
+        expected_value = {}
     else:
-        return True
+        # TODO: Rejecting non-empty values from PGO for now, as the value
+        # space does not carry the dict contents yet. Later the prepare result
+        # may be non-empty and still give a dict shape, with the assertion
+        # comparing the captured value instead of only its size being 0.
+        type_shape = getTypeShapeFromValue(pgo_result)
+
+        if pgo_result is None or pgo_result:
+            type_shape = tshape_unknown
+            expected_value = None
+        else:
+            expected_value = pgo_result
+
+    if expected_value is None:
+        result_class = ExpressionCallClassPrepare
+    else:
+        pgo_policy = decidePGOClassDictAssertionPolicy(static_qualname)
+
+        if pgo_policy == "ignore":
+            result_class = ExpressionCallClassPrepareKnownStartValueDictIgnored
+        elif pgo_policy == "assertion":
+            result_class = ExpressionCallClassPrepareKnownStartValueDictAsserted
+        else:
+            result_class = ExpressionCallClassPrepareKnownStartValueDictException
+
+    return result_class(
+        called=makeExpressionCall(
+            called=makeExpressionAttributeLookup(
+                expression=metaclass.makeClone(),
+                attribute_name="__prepare__",
+                source_ref=source_ref,
+            ),
+            args=makeExpressionMakeTuple(
+                elements=(
+                    name,
+                    bases,
+                ),
+                source_ref=source_ref,
+            ),
+            kw=class_decl_dict,
+            source_ref=source_ref,
+        ),
+        type_shape=type_shape,
+        expected_value=expected_value,
+        code_name=code_name,
+        source_ref=source_ref,
+    )
 
 
 def buildClassNode3(provider, node, source_ref):
@@ -177,37 +233,47 @@ def buildClassNode3(provider, node, source_ref):
 
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
-    # We need a scope for the temporary variables, and they might be closured.
-    temp_scope = outline_body.allocateTempScope(name="class_creation")
+    has_type_params = python_version >= 0x3C0 and bool(node.type_params)
 
-    tmp_class_decl_dict = outline_body.allocateTempVariable(
+    if has_type_params:
+        # We need a separate enclosing scope for type parameters
+        type_params_scope = ExpressionOutlineFunction(
+            provider=provider, name="class_type_params", source_ref=source_ref
+        )
+        class_provider = type_params_scope
+        class_body = type_params_scope
+    else:
+        type_params_scope = None
+        class_provider = provider
+        class_body = outline_body
+
+    # We need a scope for the temporary variables, and they might be closured.
+    temp_scope = class_body.allocateTempScope(name="class_creation")
+
+    tmp_class_decl_dict = class_body.allocateTempVariable(
         temp_scope=temp_scope, name="class_decl_dict", temp_type="object"
     )
-    tmp_metaclass = outline_body.allocateTempVariable(
+    tmp_metaclass = class_body.allocateTempVariable(
         temp_scope=temp_scope, name="metaclass", temp_type="object"
     )
-    tmp_prepared = outline_body.allocateTempVariable(
+    tmp_prepared = class_body.allocateTempVariable(
         temp_scope=temp_scope, name="prepared", temp_type="object"
     )
 
     type_variables = []
-    if python_version >= 0x3C0 and node.type_params:
-        for index, type_param in enumerate(node.type_params, start=1):
-            temp_var = outline_body.allocateTempVariable(
-                temp_scope=temp_scope,
-                name="type_variable_%d" % index,
-                temp_type="object",
+    if type_params_scope is not None:
+        for type_param in node.type_params:
+            type_var = type_params_scope.getVariableForAssignment(
+                variable_name=type_param.name
             )
-            data = (type_param, temp_var)
+            data = (type_param, type_var)
             type_variables.append(data)
 
     # Can be overridden, but for code object creation, we use that.
     static_qualname = provider.getChildQualname(node.name)
 
-    class_body_class = _selectClassBody(static_qualname)
-
-    class_dict_creation_function = class_body_class(
-        provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
+    class_dict_creation_function = ExpressionClassMappingBody(
+        provider=class_provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
     class_locals_scope = class_dict_creation_function.getLocalsScope()
@@ -226,17 +292,10 @@ def buildClassNode3(provider, node, source_ref):
 
     parent_module = provider.getParentModule()
 
-    code_object = CodeObjectSpec(
-        co_name=node.name,
+    code_object = CodeObjectSpecClass(
+        class_name=node.name,
         co_qualname=static_qualname,
-        co_kind="Class",
         co_varnames=(),
-        co_freevars=(),
-        co_argcount=0,
-        co_posonlyargcount=0,
-        co_kwonlyargcount=0,
-        co_has_starlist=False,
-        co_has_stardict=False,
         co_filename=parent_module.getRunTimeFilename(),
         co_lineno=source_ref.getLineNumber(),
         future_spec=parent_module.getFutureSpec(),
@@ -252,7 +311,8 @@ def buildClassNode3(provider, node, source_ref):
     source_ref_orig = source_ref
 
     if body is not None:
-        # The frame guard has nothing to tell its line number to.
+        # The frame guard tells the class statement line to the caller, just
+        # like CPython does in tracebacks of class bodies.
         body.source_ref = source_ref
 
     locals_scope = class_dict_creation_function.getLocalsScope()
@@ -380,19 +440,6 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    for type_param, type_param_var in type_variables:
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=class_dict_creation_function,
-                source=ExpressionTempVariableRef(
-                    variable=type_param_var,
-                    source_ref=source_ref,
-                ),
-                variable_name=type_param.name,
-                source_ref=source_ref,
-            )
-        )
-
     statements.append(body)
 
     if python_version >= 0x3D0:
@@ -411,16 +458,15 @@ def buildClassNode3(provider, node, source_ref):
 
     needs_orig_bases = _needsOrigBases(static_qualname)
 
-    has_type_params = bool(type_variables)
     has_bases = node.bases or has_type_params
 
     if has_bases:
-        tmp_bases = outline_body.allocateTempVariable(
+        tmp_bases = class_body.allocateTempVariable(
             temp_scope=temp_scope, name="bases", temp_type="object"
         )
 
         if needs_orig_bases:
-            tmp_bases_orig = outline_body.allocateTempVariable(
+            tmp_bases_orig = class_body.allocateTempVariable(
                 temp_scope=temp_scope, name="bases_orig", temp_type="object"
             )
 
@@ -462,7 +508,7 @@ def buildClassNode3(provider, node, source_ref):
 
     new_statements = []
     if has_type_params:
-        tmp_type_params = outline_body.allocateTempVariable(
+        tmp_type_params = class_body.allocateTempVariable(
             temp_scope=temp_scope, name="type_params", temp_type="object"
         )
         new_statements.append(
@@ -470,7 +516,7 @@ def buildClassNode3(provider, node, source_ref):
                 variable=tmp_type_params,
                 source=makeExpressionMakeTuple(
                     elements=tuple(
-                        ExpressionTempVariableRef(
+                        ExpressionVariableRef(
                             variable=type_param_var, source_ref=source_ref
                         )
                         for _, type_param_var in type_variables
@@ -555,38 +601,9 @@ def buildClassNode3(provider, node, source_ref):
     statements = new_statements
 
     if has_bases:
-        if type_variables:
-            typevar_outline = ExpressionOutlineFunction(
-                provider=provider, name="class_typevar", source_ref=source_ref
-            )
-            outline_statements = []
-            for type_param, temp_type_var in type_variables:
-                outline_statements.append(
-                    StatementAssignmentVariableName(
-                        provider=typevar_outline,
-                        source=ExpressionTempVariableRef(
-                            variable=temp_type_var,
-                            source_ref=source_ref,
-                        ),
-                        variable_name=type_param.name,
-                        source_ref=source_ref,
-                    )
-                )
-
-            unwrapped_bases_value = _buildBasesTupleCreationNode(
-                provider=typevar_outline, elements=node.bases, source_ref=source_ref
-            )
-            outline_statements.append(
-                StatementReturn(unwrapped_bases_value, source_ref)
-            )
-            typevar_outline.setChildBody(
-                makeStatementsSequenceFromStatements(outline_statements)
-            )
-            bases_value = typevar_outline
-        else:
-            bases_value = _buildBasesTupleCreationNode(
-                provider=provider, elements=node.bases, source_ref=source_ref
-            )
+        bases_value = _buildBasesTupleCreationNode(
+            provider=class_provider, elements=node.bases, source_ref=source_ref
+        )
 
         if has_type_params:
             bases_value = makeBinaryOperationNode(
@@ -701,24 +718,17 @@ def buildClassNode3(provider, node, source_ref):
 
     call_prepare = makeStatementAssignmentVariable(
         variable=tmp_prepared,
-        source=makeExpressionCall(
-            called=makeExpressionAttributeLookup(
-                expression=ExpressionTempVariableRef(
-                    variable=tmp_metaclass, source_ref=source_ref
-                ),
-                attribute_name="__prepare__",
-                source_ref=source_ref,
+        source=makeExpressionClassPrepareCall(
+            code_name=class_dict_creation_function.getCodeName(),
+            static_qualname=static_qualname,
+            metaclass=ExpressionTempVariableRef(
+                variable=tmp_metaclass, source_ref=source_ref
             ),
-            args=makeExpressionMakeTuple(
-                elements=(
-                    makeConstantRefNode(
-                        constant=node.name, source_ref=source_ref, user_provided=True
-                    ),
-                    makeBasesRef(),
-                ),
-                source_ref=source_ref,
+            name=makeConstantRefNode(
+                constant=node.name, source_ref=source_ref, user_provided=True
             ),
-            kw=ExpressionTempVariableRef(
+            bases=makeBasesRef(),
+            class_decl_dict=ExpressionTempVariableRef(
                 variable=tmp_class_decl_dict, source_ref=source_ref
             ),
             source_ref=source_ref,
@@ -771,16 +781,13 @@ def buildClassNode3(provider, node, source_ref):
             ),
         )
 
-    if class_body_class is ExpressionClassDictBody:
-        prepare_condition = makeConstantRefNode(constant=False, source_ref=source_ref)
-    else:
-        prepare_condition = ExpressionAttributeCheck(
-            expression=ExpressionTempVariableRef(
-                variable=tmp_metaclass, source_ref=source_ref
-            ),
-            attribute_name="__prepare__",
-            source_ref=source_ref,
-        )
+    prepare_condition = ExpressionAttributeCheck(
+        expression=ExpressionTempVariableRef(
+            variable=tmp_metaclass, source_ref=source_ref
+        ),
+        attribute_name="__prepare__",
+        source_ref=source_ref,
+    )
 
     statements += (
         makeStatementAssignmentVariable(
@@ -851,12 +858,6 @@ def buildClassNode3(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariableName(
-            provider=provider,
-            variable_name=mangleName(node.name, provider),
-            source=decorated_body,
-            source_ref=source_ref,
-        ),
     )
 
     if python_version >= 0x300:
@@ -869,30 +870,85 @@ def buildClassNode3(provider, node, source_ref):
             tmp_variables.insert(0, tmp_bases_orig)
     if has_type_params:
         tmp_variables.append(tmp_type_params)
-    for _, type_temp_var in type_variables:
-        tmp_variables.append(type_temp_var)
 
-    type_variable_assignments = []
-    for type_param, type_param_var in type_variables:
-        type_variable_assignments.append(
+    if has_type_params:
+        tmp_class = class_body.allocateTempVariable(
+            temp_scope=temp_scope, name="class", temp_type="object"
+        )
+
+        statements.append(
             makeStatementAssignmentVariable(
-                variable=type_param_var,
-                source=buildNode(provider, type_param, source_ref),
+                variable=tmp_class,
+                source=decorated_body,
                 source_ref=source_ref,
             )
         )
 
-    body = makeStatementsSequenceFromStatements(
-        type_variable_assignments,
-        makeTryFinallyReleaseStatement(
-            provider=outline_body,
-            tried=statements,
-            variables=tmp_variables,
-            source_ref=source_ref,
-        ),
-        makeStatementReturnConstant(constant=None, source_ref=source_ref),
-    )
-    outline_body.setChildBody(body)
+        type_variable_assignments = [
+            makeStatementAssignmentVariable(
+                variable=type_param_var,
+                source=buildNode(type_params_scope, type_param, source_ref),
+                source_ref=source_ref,
+            )
+            for type_param, type_param_var in type_variables
+        ]
+
+        type_params_scope.setChildBody(
+            makeStatementsSequenceFromStatements(
+                type_variable_assignments,
+                makeTryFinallyReleaseStatement(
+                    provider=type_params_scope,
+                    tried=statements,
+                    variables=tmp_variables,
+                    source_ref=source_ref,
+                ),
+                makeTryFinallyReleaseStatement(
+                    provider=type_params_scope,
+                    tried=makeStatementsSequenceFromStatement(
+                        StatementReturn(
+                            expression=ExpressionTempVariableRef(
+                                variable=tmp_class, source_ref=source_ref
+                            ),
+                            source_ref=source_ref,
+                        )
+                    ),
+                    variables=[tmp_class],
+                    source_ref=source_ref,
+                ),
+            )
+        )
+
+        outline_body.setChildBody(
+            makeStatementsSequenceFromStatements(
+                StatementAssignmentVariableName(
+                    provider=provider,
+                    variable_name=mangleName(node.name, provider),
+                    source=type_params_scope,
+                    source_ref=source_ref,
+                ),
+                makeStatementReturnConstant(constant=None, source_ref=source_ref),
+            )
+        )
+    else:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=provider,
+                variable_name=mangleName(node.name, provider),
+                source=decorated_body,
+                source_ref=source_ref,
+            )
+        )
+
+        body = makeStatementsSequenceFromStatements(
+            makeTryFinallyReleaseStatement(
+                provider=outline_body,
+                tried=statements,
+                variables=tmp_variables,
+                source_ref=source_ref,
+            ),
+            makeStatementReturnConstant(constant=None, source_ref=source_ref),
+        )
+        outline_body.setChildBody(body)
 
     return StatementExpressionOnly(expression=outline_body, source_ref=source_ref)
 

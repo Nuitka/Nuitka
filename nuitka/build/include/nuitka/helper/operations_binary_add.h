@@ -1,10 +1,15 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationBinary.c.j2 instead! */
+#pragma once
+#ifndef __NUITKA_OPERATIONS_BINARY_ADD_H__
+#define __NUITKA_OPERATIONS_BINARY_ADD_H__
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "nuitka/helper/boolean.h"
 #endif
 
 /* C helpers for type specialized "+" (ADD) operations */
@@ -131,6 +136,24 @@ extern PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, do
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2);
 
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_ADD_CFLOAT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_ADD_CFLOAT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+extern double BINARY_OPERATION_ADD_CFLOAT_CFLOAT_CFLOAT(double operand1, double operand2);
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_STR_STR(PyObject *operand1, PyObject *operand2);
@@ -223,6 +246,8 @@ extern PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT_OBJECT(PyObject *operand1, P
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

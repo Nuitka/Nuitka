@@ -8,9 +8,9 @@ no real difference.
 """
 
 import copy
-import math
 from abc import abstractmethod
 
+from nuitka.__past__ import long, unicode
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonOperators import (
     binary_operator_functions,
@@ -21,6 +21,7 @@ from nuitka.PythonVersions import python_version
 from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
 from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
 )
@@ -32,6 +33,115 @@ from .shapes.StandardShapes import (
     tshape_unknown,
     vshape_unknown,
 )
+
+# Limits for compile time constant folding, values taken from CPython.
+MAX_INT_SIZE = 128  # bits
+MAX_COLLECTION_SIZE = 256  # items
+MAX_STR_SIZE = 4096  # characters
+MAX_TOTAL_ITEMS = 1024  # including nested collections
+
+_INT_TYPES = (int, long, bool)
+_STR_TYPES = (str, bytes, unicode)
+_COLLECTION_TYPES = (tuple, list, frozenset)
+
+
+def _getIntBitLength(value):
+    # The "bit_length" method is not available on Python 2.6.
+    value = abs(value)
+
+    if value == 0:
+        return 0
+
+    return len(bin(value)) - 2
+
+
+def _computeComplexity(value, limit):
+    """Compute the remaining item budget of nested collections.
+
+    Notes:
+        This emulates the 'check_complexity' function of CPython.
+
+    Returns:
+        Remaining item budget, negative if exceeded.
+
+    """
+
+    if type(value) in _COLLECTION_TYPES:
+        limit -= len(value)
+
+        for element in value:
+            if limit < 0:
+                break
+
+            limit = _computeComplexity(element, limit)
+
+    return limit
+
+
+def _isTooLargeMultiply(left_value, right_value):
+    """Check multiplication against the compile time limits of CPython."""
+
+    left_type = type(left_value)
+    right_type = type(right_value)
+
+    result = False
+
+    if left_type in _INT_TYPES and right_type in _INT_TYPES:
+        if left_value and right_value:
+            result = (
+                _getIntBitLength(left_value) + _getIntBitLength(right_value)
+                > MAX_INT_SIZE
+            )
+    elif left_type in _INT_TYPES or right_type in _INT_TYPES:
+        if left_type in _INT_TYPES:
+            count, sequence = left_value, right_value
+        else:
+            count, sequence = right_value, left_value
+
+        sequence_type = type(sequence)
+
+        if sequence_type in _STR_TYPES:
+            if sequence:
+                result = count < 0 or count > MAX_STR_SIZE // len(sequence)
+        elif sequence_type in _COLLECTION_TYPES:
+            size = len(sequence)
+
+            if size:
+                if count < 0 or count > MAX_COLLECTION_SIZE // size:
+                    result = True
+                else:
+                    result = (
+                        bool(count)
+                        and _computeComplexity(sequence, MAX_TOTAL_ITEMS // count) < 0
+                    )
+
+    return result
+
+
+def _isTooLargePower(left_value, right_value):
+    """Check power against the compile time limits of CPython."""
+
+    if type(left_value) in _INT_TYPES and type(right_value) in _INT_TYPES:
+        if left_value and right_value > 0:
+            if right_value > MAX_INT_SIZE:
+                return True
+
+            return _getIntBitLength(left_value) > MAX_INT_SIZE // right_value
+
+    return False
+
+
+def _isTooLargeLshift(left_value, right_value):
+    """Check left shift against the compile time limits of CPython."""
+
+    if type(left_value) in _INT_TYPES and type(right_value) in _INT_TYPES:
+        if left_value and right_value:
+            if right_value < 0 or right_value > MAX_INT_SIZE:
+                return True
+
+            return _getIntBitLength(left_value) > MAX_INT_SIZE - right_value
+
+    return False
 
 
 class ExpressionPropertiesFromTypeShapeMixin(object):
@@ -144,8 +254,10 @@ class ExpressionOperationBinaryBase(
             )
 
     @staticmethod
-    def _isTooLarge():
-        return False
+    def getTooLargeShape():
+        """Shape of the operation, if it is too large to compute at compile time."""
+
+        return None
 
     def _simulateOperation(self, trace_collection):
         left_value = self.subnode_left.getCompileTimeConstant()
@@ -179,8 +291,12 @@ class ExpressionOperationBinaryBase(
         )
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            if not self._isTooLarge():
+            too_large_shape = self.getTooLargeShape()
+
+            if too_large_shape is None:
                 return self._simulateOperation(trace_collection)
+
+            self.shape = too_large_shape
 
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:
@@ -226,13 +342,13 @@ class ExpressionOperationBinaryBase(
 
 
 class ExpressionOperationAddMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
         return self.shape
 
-    def _isTooLarge(self):
+    def getTooLargeShape(self):
         if self.subnode_left.isKnownToBeIterable(
             None
         ) and self.subnode_right.isKnownToBeIterable(None):
@@ -241,16 +357,15 @@ class ExpressionOperationAddMixin(object):
                 + self.subnode_right.getIterationLength()
             )
 
-            # TODO: Actually could make a predictor, but we don't use it yet.
-            self.shape = ShapeLargeConstantValuePredictable(
-                size=size,
-                predictor=None,  # predictValuesFromRightAndLeftValue,
-                shape=self.subnode_left.getTypeShape(),
-            )
+            if size > 256:
+                # TODO: Actually could make a predictor, but we don't use it yet.
+                return ShapeLargeConstantValuePredictable(
+                    size=size,
+                    predictor=None,  # predictValuesFromRightAndLeftValue,
+                    shape=self.subnode_left.getTypeShape(),
+                )
 
-            return size > 256
-        else:
-            return False
+        return None
 
 
 class ExpressionOperationBinaryAdd(
@@ -283,70 +398,40 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
         return self.shape
 
-    def _isTooLarge(self):
-        if self.subnode_right.isNumberConstant():
-            iter_length = self.subnode_left.getIterationLength()
+    def getTooLargeShape(self):
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-            if iter_length is not None:
-                size = iter_length * self.subnode_right.getCompileTimeConstant()
-                if size > 256:
-                    self.shape = ShapeLargeConstantValuePredictable(
-                        size=size,
-                        predictor=None,  # predictValuesFromRightAndLeftValue,
-                        shape=self.subnode_left.getTypeShape(),
-                    )
+        if not _isTooLargeMultiply(left_value, right_value):
+            return None
 
-                    return True
+        left_type = type(left_value)
+        right_type = type(right_value)
 
-            if self.subnode_left.isNumberConstant():
-                if (
-                    self.subnode_left.isIndexConstant()
-                    and self.subnode_right.isIndexConstant()
-                ):
-                    # Estimate with logarithm, if the result of number
-                    # calculations is computable with acceptable effort,
-                    # otherwise, we will have to do it at runtime.
-                    left_value = self.subnode_left.getCompileTimeConstant()
+        if left_type in _INT_TYPES and right_type not in _INT_TYPES:
+            size = len(right_value) * max(left_value, 0)
 
-                    if left_value != 0:
-                        right_value = self.subnode_right.getCompileTimeConstant()
+            return ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_right.getTypeShape(),
+            )
+        elif right_type in _INT_TYPES and left_type not in _INT_TYPES:
+            size = len(left_value) * max(right_value, 0)
 
-                        # TODO: Is this really useful, can this be really slow.
-                        if right_value != 0:
-                            if (
-                                math.log10(abs(left_value))
-                                + math.log10(abs(right_value))
-                                > 20
-                            ):
-                                self.shape = ShapeLargeConstantValue(
-                                    size=None, shape=tshape_int_or_long
-                                )
-
-                                return True
-
-        elif self.subnode_left.isNumberConstant():
-            iter_length = self.subnode_right.getIterationLength()
-
-            if iter_length is not None:
-                left_value = self.subnode_left.getCompileTimeConstant()
-
-                size = iter_length * left_value
-                if iter_length * left_value > 256:
-                    self.shape = ShapeLargeConstantValuePredictable(
-                        size=size,
-                        predictor=None,  # predictValuesFromRightAndLeftValue,
-                        shape=self.subnode_right.getTypeShape(),
-                    )
-
-                    return True
-
-        return False
+            return ShapeLargeConstantValuePredictable(
+                size=size,
+                predictor=None,  # predictValuesFromRightAndLeftValue,
+                shape=self.subnode_left.getTypeShape(),
+            )
+        else:
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
 
 class ExpressionOperationBinaryMult(
@@ -447,15 +532,15 @@ class ExpressionOperationBinaryTrueDiv(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationModMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
         return self.shape
 
-    def _isTooLarge(self):
+    def getTooLargeShape(self):
         if not self.subnode_right.isCompileTimeConstant():
-            return False
+            return None
 
         if not (
             self.subnode_left.isExpressionConstantStrRef()
@@ -465,7 +550,7 @@ class ExpressionOperationModMixin(object):
                 and python_version >= 0x350
             )
         ):
-            return False
+            return None
 
         format_string = self.subnode_left.getCompileTimeConstant()
         rhs = self.subnode_right.getCompileTimeConstant()
@@ -476,26 +561,24 @@ class ExpressionOperationModMixin(object):
         size_range = predictStringFormatSizeRange(format_string, rhs)
 
         if size_range is None:
-            return False
+            return None
 
         min_size, max_size = size_range
 
         if max_size > 256:
             if min_size == max_size:
-                self.shape = ShapeLargeConstantValue(
+                return ShapeLargeConstantValue(
                     size=max_size,
                     shape=self.subnode_left.getTypeShape(),
                 )
             else:
-                self.shape = ShapeLargeConstantValueRange(
+                return ShapeLargeConstantValueRange(
                     min_size=min_size,
                     max_size=max_size,
                     shape=self.subnode_left.getTypeShape(),
                 )
 
-            return True
-
-        return False
+        return None
 
 
 class ExpressionOperationBinaryMod(
@@ -528,38 +611,20 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationPowMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
         return self.shape
 
-    def _isTooLarge(self):
-        if self.subnode_right.isIndexConstant():
-            # Estimate with logarithm, if the result of number
-            # calculations is computable with acceptable effort,
-            # otherwise, we will have to do it at runtime.
-            left_value = abs(self.subnode_left.getCompileTimeConstant())
+    def getTooLargeShape(self):
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-            if left_value in (0, 1):
-                return False
+        if _isTooLargePower(left_value, right_value):
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
-            if self.subnode_left.isIndexConstant():
-                right_value = self.subnode_right.getCompileTimeConstant()
-
-                # Negative values, and 0, 1 powers are not a problem.
-                if right_value <= 1:
-                    return False
-
-                # More than a typical pow, most likely a stupid test.
-                if math.log10(left_value) * right_value > 20:
-                    self.shape = ShapeLargeConstantValue(
-                        size=None, shape=tshape_int_or_long
-                    )
-
-                    return True
-
-        return False
+        return None
 
 
 class ExpressionOperationBinaryPow(
@@ -576,32 +641,20 @@ class ExpressionOperationBinaryPow(
 
 
 class ExpressionOperationLshiftMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def getValueShape(self):
         return self.shape
 
-    def _isTooLarge(self):
-        if self.subnode_right.isNumberConstant():
-            if self.subnode_left.isNumberConstant():
-                # Estimate with logarithm, if the result of number
-                # calculations is computable with acceptable effort,
-                # otherwise, we will have to do it at runtime.
-                left_value = self.subnode_left.getCompileTimeConstant()
+    def getTooLargeShape(self):
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
 
-                if left_value != 0:
-                    right_value = self.subnode_right.getCompileTimeConstant()
+        if _isTooLargeLshift(left_value, right_value):
+            return ShapeLargeConstantValue(size=None, shape=tshape_int_or_long)
 
-                    # More than a typical shift, most likely a stupid test.
-                    if right_value > 64:
-                        self.shape = ShapeLargeConstantValue(
-                            size=None, shape=tshape_int_or_long
-                        )
-
-                        return True
-
-        return False
+        return None
 
 
 class ExpressionOperationBinaryLshift(
@@ -700,7 +753,30 @@ if python_version >= 0x350:
 def makeBinaryOperationNode(operator, left, right, source_ref):
     node_class = _operator2binary_operation_node_class[operator]
 
-    return node_class(left=left, right=right, source_ref=source_ref)
+    node = node_class(left=left, right=right, source_ref=source_ref)
+
+    # Shortcut these binary operations, avoiding "1+1", "1+1j", etc. to ever
+    # become an operation.
+    if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+        # Do not compute too large constants, leave that to the optimization.
+        if node.getTooLargeShape() is not None:
+            return node
+
+        try:
+            constant = node.simulator(
+                left.getCompileTimeConstant(), right.getCompileTimeConstant()
+            )
+        except Exception:  # Catch all the things, pylint: disable=broad-except
+            # Compile time detectable error, postpone these, so they get traced.
+            pass
+        else:
+            return makeConstantReplacementNode(
+                constant=constant,
+                node=node,
+                user_provided=getattr(left, "user_provided", False),
+            )
+
+    return node
 
 
 class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
@@ -737,8 +813,12 @@ class ExpressionOperationBinaryInplaceBase(ExpressionOperationBinaryBase):
         )
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            if not self._isTooLarge():
+            too_large_shape = self.getTooLargeShape()
+
+            if too_large_shape is None:
                 return self._simulateOperation(trace_collection)
+
+            self.shape = too_large_shape
 
         exception_raise_exit = self.escape_desc.getExceptionExit()
         if exception_raise_exit is not None:

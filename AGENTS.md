@@ -3,7 +3,7 @@
 You are an expert Python developer and maintainer of Nuitka. Your goal is to help develop, debug,
 and maintain the Nuitka compiler.
 
-Core rules are split for token efficiency — see `opencode.json` for auto-loaded instructions:
+Core rules are split for token efficiency - see `opencode.json` for auto-loaded instructions:
 
 - `.agents/rules/python-compatibility.md`: Python 2.6/2.7 strict constraints.
 - `.agents/rules/coding-standards.md`: Python and C style, naming, docstrings.

@@ -31,6 +31,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFilenameExtension,
     getNormalizedPath,
+    getNormalizedPathJoin,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
@@ -44,11 +45,10 @@ from nuitka.utils.Utils import (
 
 from .SconsCompilerSettings import (
     createNuitkaSconsEnvironment,
-    enableWindowsStackSize,
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeGccUseLinkerFile
+from .SconsHacks import makeLinkerUseResponseFile
 from .SconsProgress import setSconsProgressBarTotal
 from .SconsPythonBuild import (
     addPythonHaclLib,
@@ -161,9 +161,6 @@ setupCCompiler(
     onefile_compile=False,
 )
 
-
-if env.exe_mode:
-    enableWindowsStackSize(env=env, target_arch=env.target_arch)
 
 if full_compat_mode:
     env.Append(CPPDEFINES=["_NUITKA_FULL_COMPAT"])
@@ -363,7 +360,7 @@ def discoverSourceFiles():
     result.extend(
         scanSourceDir(
             env=env,
-            dirname=os.path.join(env.source_dir, "plugins"),
+            dirname=getNormalizedPathJoin(env.source_dir, "plugins"),
             plugins=True,
         )
     )
@@ -371,7 +368,7 @@ def discoverSourceFiles():
     result.extend(
         scanSourceDir(
             env=env,
-            dirname=os.path.join(env.source_dir, "static_src"),
+            dirname=getNormalizedPathJoin(env.source_dir, "static_src"),
             plugins=False,
         )
     )
@@ -379,7 +376,7 @@ def discoverSourceFiles():
     return result
 
 
-source_files = discoverSourceFiles()
+source_filenames = discoverSourceFiles()
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild and
 # then lingers from previous builds, and also workaround for MinGW64 not
@@ -406,7 +403,7 @@ if env.module_mode:
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.SharedLibrary(
         os.path.normpath(result_base_path),
-        source_files,
+        source_filenames,
         no_import_lib=env.no_import_lib,
     )
 elif env.dll_mode:
@@ -417,12 +414,12 @@ elif env.dll_mode:
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
     target = env.SharedLibrary(
         os.path.normpath(result_base_path),
-        source_files,
+        source_filenames,
         no_import_lib=env.no_import_lib,
     )
 else:
     # For scons internal use, we use Python native paths as MSYS2 does wrong things otherwise.
-    target = env.Program(os.path.normpath(result_exe), source_files)
+    target = env.Program(os.path.normpath(result_exe), source_filenames)
 
 
 def createBuildDefinitionsFile():
@@ -488,6 +485,10 @@ def createBuildDefinitionsFile():
         main_module_name != "__main__"
     )
 
+    env.build_definitions["NUITKA_HAS_FROZEN_MODULES_BOOL"] = (
+        1 if env.frozen_modules else 0
+    )
+
     if env.forced_stdout_path is not None:
         if env.forced_stdout_path == "{NONE}":
             env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
@@ -518,13 +519,13 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
-# which can make linking fail with many modules otherwise. Most needed on Windows,
-# but useful on other platforms too.
-if env.gcc_mode and (not env.clang_mode or env.zig_mode):
-    makeGccUseLinkerFile(
+# Hack to make Scons use a response file for gcc linking, to avoid line length
+# limits, which can make linking fail with many modules otherwise. Most needed
+# on Windows, but useful on other platforms too.
+if env.gcc_mode:
+    makeLinkerUseResponseFile(
         env=env,
-        source_files=source_files,
+        source_filenames=source_filenames,
     )
 
 # Plugin contributed C defines should be used too.
@@ -539,7 +540,7 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    source_files=source_files,
+    source_filenames=source_filenames,
 )
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
@@ -548,7 +549,7 @@ changeKeyboardInterruptToErrorExit()
 
 writeSconsReport(env=env, target=target)
 
-setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_files))
+setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_filenames))
 
 scons_details_logger.info("Launching Scons target: %s" % target)
 env.Default(target)

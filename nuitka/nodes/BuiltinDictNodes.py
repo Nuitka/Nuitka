@@ -3,13 +3,19 @@
 
 """Node for the calls to the 'dict' built-in."""
 
-from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
+from nuitka.specs.BuiltinParameterSpecs import (
+    builtin_dict_spec,
+    builtin_frozendict_spec,
+)
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ChildrenHavingMixins import ChildrenHavingPosArgOptionalPairsTupleMixin
 from .DictionaryNodes import makeExpressionMakeDict
 from .ExpressionBases import ExpressionBase
-from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
+from .ExpressionShapeMixins import (
+    ExpressionDictShapeExactMixin,
+    ExpressionFrozendictShapeExactMixin,
+)
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
@@ -21,6 +27,10 @@ class ExpressionBuiltinDict(
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ("pos_arg|optional", "pairs|tuple")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, pos_arg, pairs, source_ref):
         ChildrenHavingPosArgOptionalPairsTupleMixin.__init__(
@@ -107,6 +117,86 @@ class ExpressionBuiltinDict(
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        pos_arg = self.subnode_pos_arg
+
+        # TODO: Determining if it's sufficient is not easy but possible.
+        if pos_arg is not None:
+            return True
+
+        for arg_pair in self.subnode_pairs:
+            if arg_pair.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+
+class ExpressionBuiltinFrozendict(
+    ExpressionFrozendictShapeExactMixin,
+    ChildrenHavingPosArgOptionalPairsTupleMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_FROZENDICT"
+
+    named_children = ("pos_arg|optional", "pairs|tuple")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
+    def __init__(self, pos_arg, pairs, source_ref):
+        ChildrenHavingPosArgOptionalPairsTupleMixin.__init__(
+            self,
+            pos_arg=pos_arg,
+            pairs=pairs,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def hasOnlyConstantArguments(self):
+        pos_arg = self.subnode_pos_arg
+
+        if pos_arg is not None and not pos_arg.isCompileTimeConstant():
+            return False
+
+        for arg_pair in self.subnode_pairs:
+            if not arg_pair.isCompileTimeConstant():
+                return False
+
+        return True
+
+    def computeExpression(self, trace_collection):
+        pos_arg = self.subnode_pos_arg
+        pairs = self.subnode_pairs
+
+        if not self.hasOnlyConstantArguments():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        if pos_arg is None:
+            pos_iteration_length = 0
+        else:
+            pos_iteration_length = pos_arg.getIterationLength()
+
+        if pos_iteration_length is None or pos_iteration_length + len(pairs) >= 256:
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        if pos_arg is not None:
+            pos_args = (pos_arg,)
+        else:
+            pos_args = None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: builtin_frozendict_spec.simulateCall(
+                (pos_args, self.subnode_pairs)
+            ),
+            description="Replace 'frozendict' call with constant arguments.",
+        )
 
     def mayRaiseException(self, exception_type):
         pos_arg = self.subnode_pos_arg

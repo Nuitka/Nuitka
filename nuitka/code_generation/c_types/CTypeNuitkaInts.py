@@ -87,7 +87,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     def getInitValue(cls, init_from):
         if init_from is None:
             # TODO: In debug mode, use more crash prone maybe.
-            return "{NUITKA_ILONG_UNASSIGNED, NULL, 0}"
+            return "NUITKA_ILONG_UNASSIGNED_VALUE"
         else:
             assert False, init_from
             return init_from

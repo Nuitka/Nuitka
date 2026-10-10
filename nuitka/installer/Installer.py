@@ -23,8 +23,6 @@ from nuitka.options.Options import (
     shallCreateLinuxInstaller,
     shallCreateWindowsInstaller,
 )
-from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.utils.FileOperations import changeFilenameExtension
 
 from .backends.AppImageBackend import getAppImageToolVersion
 from .backends.NsisBackend import getNsisVersion
@@ -32,7 +30,11 @@ from .LinuxInstaller import (
     computeLinuxInstallerOutputFilename,
     createLinuxInstaller,
 )
-from .MacOSDmg import createMacOSDmg, getCreateDmgPath
+from .MacOSDmg import (
+    computeMacOSInstallerOutputFilename,
+    createMacOSDmg,
+    getCreateDmgPath,
+)
 from .WindowsInstaller import (
     computeWindowsInstallerOutputFilename,
     createWindowsInstaller,
@@ -59,9 +61,7 @@ def getInstallerOutputFilename():
 
     if shallCreateDmgFile():
         if getCreateDmgPath() is not None:
-            return changeFilenameExtension(
-                getStandaloneDirectoryPath(bundle=False, real=True), ".dmg"
-            )
+            return computeMacOSInstallerOutputFilename()
 
     return None
 

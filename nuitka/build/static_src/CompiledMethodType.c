@@ -10,8 +10,9 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 
@@ -604,7 +605,14 @@ PyTypeObject Nuitka_Method_Type = {
 };
 
 void _initCompiledMethodType(void) {
-    Nuitka_PyType_Ready(&Nuitka_Method_Type, &PyMethod_Type, false, true, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Method_Type, // type
+                        &PyMethod_Type,      // base
+                        false,               // generic_get_attr
+                        true,                // generic_set_attr
+                        false,               // self_iter
+                        false,               // await_self_iter
+                        false                // await_self_aiter
+    );
 }
 
 PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object) {

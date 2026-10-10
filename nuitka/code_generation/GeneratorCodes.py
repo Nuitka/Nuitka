@@ -9,8 +9,8 @@ from .CodeHelpers import generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
+    finalizeFunctionExceptionLocalVariables,
     finalizeFunctionLocalVariables,
-    getClosureCopyCode,
     getFunctionCreationArgs,
     getFunctionQualnameObj,
     setupFunctionLocalVariables,
@@ -26,6 +26,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_make_empty_generator,
     template_make_generator,
 )
+from .VariableCodes import getClosureCopyCode
 from .YieldCodes import getYieldReturnDispatchCode
 
 
@@ -55,6 +56,7 @@ def getGeneratorObjectCode(
     user_variables,
     outline_variables,
     temp_variables,
+    local_variables,
     needs_exception_exit,
     needs_generator_return,
 ):
@@ -63,8 +65,10 @@ def getGeneratorObjectCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=None,
+        local_variables=local_variables,
         closure_variables=closure_variables,
-        user_variables=user_variables + outline_variables,
+        user_variables=user_variables,
+        outline_variables=outline_variables,
         temp_variables=temp_variables,
     )
 
@@ -83,10 +87,15 @@ def getGeneratorObjectCode(
         (
             exception_state_name,
             _exception_lineno,
-        ) = context.variable_storage.getExceptionVariableDescriptions()
+        ) = context.getExceptionVariableDescriptions()
 
         generator_exit = template_generator_exception_exit % {
             "function_cleanup": indented(function_cleanup),
+            "function_exception_cleanup": indented(
+                finalizeFunctionExceptionLocalVariables(
+                    context=context, function_cleanup=function_cleanup
+                )
+            ),
             "exception_state_name": exception_state_name,
         }
     else:

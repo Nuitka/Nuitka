@@ -154,7 +154,11 @@ def getMSVCInfo():
 
 
 def getPluginIncludePaths():
-    """Scans for plugin directories containing C/C++ header files."""
+    """Scans for plugin directories containing C/C++ header files.
+
+    Returns:
+        list of absolute directory paths.
+    """
     plugin_includes = []
     base_plugins_dir = os.path.join(repo_root, "nuitka", "plugins")
 
@@ -164,10 +168,7 @@ def getPluginIncludePaths():
     for root, _, files in os.walk(base_plugins_dir):
         # We only care if the directory contains header files directly
         if any(f.endswith(".h") or f.endswith(".hpp") for f in files):
-            rel_path = os.path.relpath(root, repo_root)
-            # Ensure forward slashes for VSCode config
-            path_str = "${workspaceFolder}/" + rel_path.replace("\\", "/")
-            plugin_includes.append(path_str)
+            plugin_includes.append(root)
 
     return sorted(plugin_includes)
 
@@ -193,6 +194,8 @@ def getCompilerInfo():
 
 
 def main():
+    # Many config files to generate, therefore many locals to track,
+    # pylint: disable=too-many-locals
     print("Generating .vscode/c_cpp_properties.json...")
 
     python_include, python_version = getPythonInfo()
@@ -213,6 +216,12 @@ def main():
     plugin_include_paths = getPluginIncludePaths()
     print(f"Found {len(plugin_include_paths)} plugins with headers.")
 
+    # VSCode expects paths relative to the workspace folder.
+    vscode_plugin_include_paths = [
+        "${workspaceFolder}/" + os.path.relpath(path, repo_root).replace(os.sep, "/")
+        for path in plugin_include_paths
+    ]
+
     template_path = os.path.join(repo_root, ".vscode", "c_cpp_properties.json.j2")
     template_str = getFileContents(template_path)
 
@@ -225,7 +234,7 @@ def main():
         compiler_path=compiler_path,
         windows_sdk_version=sdk_version,
         intelliSenseMode=intelliSenseMode,
-        plugin_include_paths=plugin_include_paths,
+        plugin_include_paths=vscode_plugin_include_paths,
     )
 
     output_path = os.path.join(repo_root, ".vscode", "c_cpp_properties.json")
@@ -244,6 +253,7 @@ def main():
             python_include_path=python_include,
             python_version_hex=python_version,
             repo_root=repo_root,
+            plugin_include_paths=plugin_include_paths,
         )
 
         clangd_output_path = os.path.join(repo_root, ".clangd")

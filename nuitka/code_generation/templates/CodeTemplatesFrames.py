@@ -25,7 +25,6 @@ if (isFrameUnusable({{frame_cache_identifier}})) {
 #endif
 }
 
-assert({{frame_cache_identifier}}->m_type_description == NULL);
 {{frame_identifier}} = {{frame_cache_identifier}};
 {% else %}
 {{frame_identifier}} = {{make_frame_code}};
@@ -76,11 +75,11 @@ RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
 {% if not context_identifier %}
-// Put the previous frame back on top.
-popFrameStack(tstate);
-{% endif %}
 {% if frame_exit_code %}
 {{frame_exit_code}}
+{% endif %}
+// Put the previous frame back on top.
+popFrameStack(tstate);
 {% endif %}
 
 goto {{no_exception_exit}};
@@ -92,19 +91,18 @@ template_frame_guard_normal_return_handler = """\
 RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
+{% if frame_exit_code %}
+{{frame_exit_code}}
+{% endif %}
 // Put the previous frame back on top.
 popFrameStack(tstate);
-{% if frame_exit_code %}
-{{frame_exit_code}}s
-{% endif %}
 
 goto {{return_exit}};
 """
 
 template_frame_attach_locals = """\
 Nuitka_Frame_AttachLocals(
-    %(frame_identifier)s,
-    %(type_description)s%(frame_variable_refs)s
+    %(frame_identifier)s
 );
 """
 
@@ -147,9 +145,6 @@ assertFrameObject({{frame_identifier}});
 
 // Put the previous frame back on top.
 popFrameStack(tstate);
-{% if frame_exit_code %}
-{{frame_exit_code}}
-{% endif %}
 
 // Return the error.
 goto {{parent_exception_exit}};

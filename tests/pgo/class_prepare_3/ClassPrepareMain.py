@@ -1,20 +1,36 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Example setup file to test Nuitka distutils integration."""
+"""PGO test for 'type.__prepare__' results of custom metaclasses."""
 
-from setuptools import setup
+# nuitka-project: --pgo-python
 
-setup(
-    name="example-3-setuptools32",
-    version="1.0",
-    author="Nuitka Contributors",
-    author_email="contributors@nuitka.invalid",
-    description="Nuitka distutils test case: example_3_setuptools32",
-    url="https://nuitka.net",
-    packages=["outer.inner"],
-    entry_points={"console_scripts": ["runner = outer.inner.main:main"]},
-)
+
+class Meta(type):
+    @classmethod
+    def __prepare__(metacls, class_name, bases, **kwargs):
+        return {}
+
+    def __new__(metacls, class_name, bases, namespace, **kwargs):
+        return type.__new__(metacls, class_name, bases, namespace)
+
+
+class Constants(metaclass=Meta):
+    a = 1
+    b = 2
+    c = a + b
+
+
+class Meta2(Meta):
+    pass
+
+
+class Other(metaclass=Meta2):
+    d = 4
+
+
+print(Constants.a, Constants.b, Constants.c, Other.d)
+print("OK.")
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

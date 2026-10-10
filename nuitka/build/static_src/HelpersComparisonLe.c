@@ -1,10 +1,14 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* WARNING, this code is GENERATED. Modify the template HelperOperationComparison.c.j2 instead! */
+#pragma once
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+
+#include "HelpersComparisonEqUtils.c"
+#include "nuitka/helper/long_helpers.h"
 #endif
 
 /* C helpers for type specialized "<=" (LE) comparisons */
@@ -8867,6 +8871,42 @@ nuitka_bool RICH_COMPARE_LE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         return NUITKA_BOOL_EXCEPTION;
     }
 #endif
+}
+
+static PyObject *COMPARE_LE_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    const double a = operand1;
+    const double b = operand2;
+
+    bool r = a <= b;
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF_IMMORTAL(result);
+    return result;
+}
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+PyObject *RICH_COMPARE_LE_OBJECT_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    return COMPARE_LE_OBJECT_CFLOAT_CFLOAT(operand1, operand2);
+}
+
+static bool COMPARE_LE_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    const double a = operand1;
+    const double b = operand2;
+
+    bool r = a <= b;
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "CFLOAT" corresponds to C platform float value and "CFLOAT" to C platform float value. */
+bool RICH_COMPARE_LE_CBOOL_CFLOAT_CFLOAT(double operand1, double operand2) {
+
+    return COMPARE_LE_CBOOL_CFLOAT_CFLOAT(operand1, operand2);
 }
 
 static PyObject *COMPARE_LE_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {

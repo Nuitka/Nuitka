@@ -29,6 +29,7 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+from nuitka.nodes.FrameNodes import StatementsFrameFunction
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
@@ -1174,6 +1175,14 @@ def buildInplaceAssignNode(provider, node, source_ref):
     return makeStatementsSequenceFromStatements(*statements)
 
 
+def _isGeneratorExpressionBody(node):
+    """Generator expressions, asynchronous ones are a node kind of their own."""
+
+    return (
+        node.isExpressionGeneratorObjectBody() or node.isExpressionAsyncgenObjectBody()
+    ) and node.name == "<genexpr>"
+
+
 def buildNamedExprNode(provider, node, source_ref):
     """Assignment expressions, Python3.8 or higher only."""
 
@@ -1193,13 +1202,21 @@ def buildNamedExprNode(provider, node, source_ref):
 
     variable_name = mangleName(node.target.id, provider)
 
-    if (
-        locals_owner.isExpressionGeneratorObjectBody()
-        and locals_owner.name == "<genexpr>"
-    ):
+    if _isGeneratorExpressionBody(locals_owner):
         locals_owner.addNonlocalsDeclaration(
             (variable_name,), user_provided=False, source_ref=source_ref
         )
+
+        # The target belongs to the enclosing scope, which needs to have the
+        # variable, or else the non-local look-up finds a module variable
+        # instead.
+        target_owner = locals_owner.getParentVariableProvider()
+        while target_owner.isExpressionOutlineFunction() or _isGeneratorExpressionBody(
+            target_owner
+        ):
+            target_owner = target_owner.getParentVariableProvider()
+
+        target_owner.getVariableForAssignment(variable_name)
 
     statements = (
         makeStatementAssignmentVariable(
@@ -1233,8 +1250,36 @@ def buildNamedExprNode(provider, node, source_ref):
     return outline_body
 
 
-def buildTypeVarNode(node, source_ref):
-    return ExpressionTypeVariable(node.name, source_ref=source_ref)
+def buildTypeVarNode(provider, node, source_ref):
+    if node.bound is not None:
+        evaluate_bound = _makeDeferredEvaluationFunction(
+            provider=provider,
+            function_name=node.name,
+            create_expression=lambda inner_provider: buildNode(
+                inner_provider, node.bound, source_ref
+            ),
+            flags=_typevar_flags,
+            source_ref=source_ref,
+        )
+    else:
+        evaluate_bound = None
+
+    if python_version >= 0x3D0:
+        default_value = buildNode(
+            provider,
+            node.default_value,
+            source_ref,
+            allow_none=True,
+        )
+    else:
+        default_value = None
+
+    return ExpressionTypeVariable(
+        name=node.name,
+        bound=evaluate_bound,
+        default_value=default_value,
+        source_ref=source_ref,
+    )
 
 
 def buildTypeVarTupleNode(node, source_ref):
@@ -1245,7 +1290,20 @@ def buildTypeParamSpec(node, source_ref):
     return ExpressionParameterSpecification(node.name, source_ref=source_ref)
 
 
-def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
+# TODO: Marked with the "generic" flag, for later treating these functions similar
+# to "annotate" functions depending on configuration, plus a specific flag to
+# tell the kinds of deferred functions apart.
+_typevar_flags = frozenset(("generic", "typevar"))
+_type_alias_flags = frozenset(("generic", "type_alias"))
+
+
+def _makeDeferredEvaluationFunction(
+    provider,
+    function_name,
+    create_expression,
+    flags,
+    source_ref,
+):
     parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=(),
@@ -1276,7 +1334,7 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         provider=provider,
         name=function_name,
         code_object=code_object,
-        flags=set(),
+        flags=flags,
         doc=None,
         parameters=parameters,
         auto_release=None,
@@ -1284,13 +1342,14 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         source_ref=source_ref,
     )
 
-    type_expression = _createTypeExpression(
-        provider=body, node=node, source_ref=source_ref
-    )
-
     body.setChildBody(
         makeStatementsSequenceFromStatement(
-            StatementReturn(type_expression, source_ref)
+            StatementsFrameFunction(
+                statements=(StatementReturn(create_expression(body), source_ref),),
+                code_object=code_object,
+                owner_code_name=body.getCodeName(),
+                source_ref=source_ref,
+            )
         )
     )
 
@@ -1303,6 +1362,21 @@ def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
         kw_defaults=None,
         annotations=None,
         type_params=None,
+        source_ref=source_ref,
+    )
+
+
+def _makeTypeExpressionFactory(provider, function_name, node, source_ref):
+    def createTypeExpression(inner_provider):
+        return _createTypeExpression(
+            provider=inner_provider, node=node, source_ref=source_ref
+        )
+
+    return _makeDeferredEvaluationFunction(
+        provider=provider,
+        function_name=function_name,
+        create_expression=createTypeExpression,
+        flags=_type_alias_flags,
         source_ref=source_ref,
     )
 

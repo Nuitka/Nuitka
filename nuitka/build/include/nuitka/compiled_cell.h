@@ -1,5 +1,6 @@
 //     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+#pragma once
 #ifndef __NUITKA_COMPILED_CELL_H__
 #define __NUITKA_COMPILED_CELL_H__
 
@@ -9,8 +10,7 @@
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "nuitka/defines.h"
+#include "nuitka/prelude.h"
 #endif
 
 extern PyTypeObject Nuitka_Cell_Type;
@@ -60,6 +60,14 @@ NUITKA_MAY_BE_UNUSED static inline void Nuitka_Cell_SET(struct Nuitka_CellObject
 
     assert(Nuitka_Cell_Check((PyObject *)cell_object));
     cell_object->ob_ref = value;
+}
+
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_CellOrPyCell_SET(PyObject *cell, PyObject *value) {
+    CHECK_OBJECT_X(value);
+    CHECK_OBJECT(cell);
+
+    assert(Nuitka_CellOrPyCell_Check(cell));
+    ((struct Nuitka_CellObject *)cell)->ob_ref = value;
 }
 
 #endif

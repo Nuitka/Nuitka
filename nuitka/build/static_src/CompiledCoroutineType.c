@@ -12,8 +12,10 @@
 // This file is included from another C file, help IDEs to still parse it on
 // its own.
 #ifdef __IDE_ONLY__
-#include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+
+#include "nuitka/compiled_types_common.h"
+#include "nuitka/freelists.h"
 #include <structmember.h>
 #endif
 
@@ -375,8 +377,6 @@ static PyObject *Nuitka_YieldFromCoroutineInitial(PyThreadState *tstate, struct 
     return result;
 }
 
-static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value);
-
 // This function is called when sending a value or exception to be handled in the coroutine
 // Note:
 //   Exception arguments are passed for ownership and must be released before returning. The
@@ -691,13 +691,6 @@ static PyObject *Nuitka_Coroutine_close(PyObject *coroutine_obj, PyObject *args)
     return _Nuitka_Coroutine_close_api((struct Nuitka_CoroutineObject *)coroutine_obj, args);
 }
 
-#if PYTHON_VERSION >= 0x360
-static bool Nuitka_AsyncgenAsend_Check(PyObject *object);
-struct Nuitka_AsyncgenAsendObject;
-static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuitka_AsyncgenAsendObject *asyncgen_asend,
-                                              struct Nuitka_ExceptionPreservationItem *exception_state);
-#endif
-
 static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
                                           struct Nuitka_ExceptionPreservationItem *exception_state);
 
@@ -787,7 +780,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
             Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #endif
         } else {
-            PyObject *meth = PyObject_GetAttr(coroutine->m_yield_from, const_str_plain_throw);
+            PyObject *meth = LOOKUP_ATTRIBUTE(tstate, coroutine->m_yield_from, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
                     // Release exception, we are done with it now.
@@ -921,18 +914,8 @@ throw_here:
 
         return NULL;
     } else {
-        PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
-
-        if (exception_tb == NULL) {
-            // TODO: Our compiled objects really need a way to store common
-            // stuff in a "shared" part across all instances, and outside of
-            // run time, so we could reuse this.
-            struct Nuitka_FrameObject *frame =
-                MAKE_FUNCTION_FRAME(tstate, coroutine->m_code_object, coroutine->m_module, 0);
-            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
-                                          MAKE_TRACEBACK(frame, coroutine->m_code_object->co_firstlineno));
-            Py_DECREF(frame);
-        }
+        _Nuitka_Generator_add_throw_traceback_frame(tstate, exception_state, coroutine->m_code_object,
+                                                    coroutine->m_module);
 
         // Passing exception to publication.
         RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
@@ -1932,7 +1915,14 @@ PyObject *ASYNC_ITERATOR_NEXT(PyThreadState *tstate, PyObject *value) {
 }
 
 static void _initCompiledCoroutineTypes(void) {
-    Nuitka_PyType_Ready(&Nuitka_Coroutine_Type, &PyCoro_Type, true, false, false, false, false);
+    Nuitka_PyType_Ready(&Nuitka_Coroutine_Type, // type
+                        &PyCoro_Type,           // base
+                        true,                   // generic_get_attr
+                        false,                  // generic_set_attr
+                        false,                  // self_iter
+                        false,                  // await_self_iter
+                        false                   // await_self_aiter
+    );
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Coroutine_Type.tp_doc != PyCoro_Type.tp_doc || PyCoro_Type.tp_doc == NULL);
@@ -1964,10 +1954,24 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_del != PyCoro_Type.tp_del || PyCoro_Type.tp_del == NULL);
     assert(Nuitka_Coroutine_Type.tp_finalize != PyCoro_Type.tp_finalize || PyCoro_Type.tp_finalize == NULL);
 
-    Nuitka_PyType_Ready(&Nuitka_CoroutineWrapper_Type, NULL, true, false, true, false, false);
+    Nuitka_PyType_Ready(&Nuitka_CoroutineWrapper_Type, // type
+                        NULL,                          // base
+                        true,                          // generic_get_attr
+                        false,                         // generic_set_attr
+                        true,                          // self_iter
+                        false,                         // await_self_iter
+                        false                          // await_self_aiter
+    );
 
 #if PYTHON_VERSION >= 0x352
-    Nuitka_PyType_Ready(&Nuitka_AIterWrapper_Type, NULL, true, false, true, true, false);
+    Nuitka_PyType_Ready(&Nuitka_AIterWrapper_Type, // type
+                        NULL,                      // base
+                        true,                      // generic_get_attr
+                        false,                     // generic_set_attr
+                        true,                      // self_iter
+                        true,                      // await_self_iter
+                        false                      // await_self_aiter
+    );
 #endif
 }
 

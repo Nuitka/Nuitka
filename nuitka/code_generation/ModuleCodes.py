@@ -9,12 +9,11 @@ from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
 from nuitka.options.Options import (
     getFileReferenceMode,
-    isExperimental,
     shallMakeModule,
     shallUseDirectConstantBlobs,
 )
+from nuitka.plugins.Hooks import getModuleIncludes
 from nuitka.PythonVersions import python_version
-from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (
@@ -22,9 +21,10 @@ from .CodeHelpers import (
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
 )
-from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import getModuleConstantsDeclAndChecks
 from .Indentation import indented
+from .LoaderCodes import getModuleLoaderEntryCode
+from .PgoCodes import getPGOProbeModuleEnterCode, getPGOProbeModuleExitCode
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
     template_module_body_template,
@@ -66,8 +66,10 @@ def getModuleCode(
     setupFunctionLocalVariables(
         context=context,
         parameters=None,
+        local_variables=module.getLocalVariables(),
         closure_variables=(),
-        user_variables=module.getOutlineLocalVariables(),
+        user_variables=module.getUserLocalVariables(),
+        outline_variables=module.getOutlineLocalVariables(),
         temp_variables=module.getAllTempVariables(),
     )
 
@@ -103,6 +105,9 @@ def getModuleCode(
         module_exit = template_module_exception_exit % {
             "module_identifier": module_identifier,
             "is_top": 1 if module.isTopModule() else 0,
+            "pgo_probe_module_exit_code": getPGOProbeModuleExitCode(
+                module.getFullName(), had_error=False
+            ),
         }
     else:
         module_exit = template_module_no_exception_exit
@@ -125,26 +130,21 @@ def getModuleCode(
     if is_top == 1 and shallMakeModule():
         template += template_module_external_entry_point
 
-    module_code_objects_decl = getCodeObjectsDeclCode(context)
-    module_code_objects_init = getCodeObjectsInitCode(context)
-
     module_init_codes = context.getModuleInitCodes()
 
-    if not isExperimental("old-code-objects"):
-        # Create the always identical, but dynamic filename first thing.
-        module_filename = module.getRunTimeFilename()
+    # Create the always identical, but dynamic filename first thing.
+    module_filename = module.getRunTimeFilename()
 
-        # We do not care about release of this object, as code object live
-        # forever anyway.
-        if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
-            module_filename_obj_code = context.getConstantCode(constant=module_filename)
-        else:
-            module_filename_obj_code = (
-                "MAKE_RELATIVE_PATH(%s);"
-                % context.getConstantCode(constant=module_filename)
-            )
+    # We do not care about release of this object, as code object live
+    # forever anyway.
+    if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+        module_filename_obj_code = context.getConstantCode(constant=module_filename)
+    else:
+        module_filename_obj_code = "MAKE_RELATIVE_PATH(%s);" % context.getConstantCode(
+            constant=module_filename
+        )
 
-        module_init_codes.append("module_filename_obj = %s;" % module_filename_obj_code)
+    module_init_codes.append("module_filename_obj = %s;" % module_filename_obj_code)
 
     is_dunder_main = module.isMainModule()
 
@@ -199,9 +199,7 @@ def getModuleCode(
     ) = getModuleConstantsDeclAndChecks(context)
 
     return template % {
-        "module_name_cstr": encodePythonStringToC(
-            module_name.asString().encode("utf8")
-        ),
+        "module_name_cstr": module_name.asCString(),
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_top": 1 if module.isTopModule() else 0,
@@ -221,8 +219,6 @@ def getModuleCode(
         "module_init_codes": indented(module_init_codes),
         "module_codes": indented(module_codes),
         "module_exit": module_exit,
-        "module_code_objects_decl": indented(module_code_objects_decl),
-        "module_code_objects_init": indented(module_code_objects_init),
         "constants_count": constants_count,
         "module_constants_decl": module_constants_decl,
         "module_constants_check_hash": module_constants_check_hash,
@@ -233,7 +229,12 @@ def getModuleCode(
         "module_dll_entry_point": module_dll_entry_point,
         "module_def_size": module_def_size,
         "module_includes": "\n".join(
-            '#include "%s"' % include for include in context.getModuleIncludes()
+            '#include "%s"' % include for include in getModuleIncludes(context)
+        ),
+        "module_loader_entry": getModuleLoaderEntryCode(module=module),
+        "pgo_probe_module_enter_code": getPGOProbeModuleEnterCode(module.getFullName()),
+        "pgo_probe_module_exit_code": getPGOProbeModuleExitCode(
+            module.getFullName(), had_error=False
         ),
     }
 

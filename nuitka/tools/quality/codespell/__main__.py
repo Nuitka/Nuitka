@@ -211,7 +211,7 @@ Allow download and execution of tools if needed. Default is %default.""",
     if not filenames:
         sys.exit("No files found.")
 
-    with withPrivatePipSitePackagesPathAdded(logger=tools_logger):
+    with withPrivatePipSitePackagesPathAdded():
         result = runCodespell(
             codespell_binary=codespell_binary,
             filenames=filenames,

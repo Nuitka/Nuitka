@@ -22,6 +22,13 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
+from .ExpressionShapeMixins import ExpressionListShapeExactMixin
+from .HardImportNodesGenerated import (
+    ExpressionBuiltinsReversedCallBase,
+    ExpressionBuiltinsSortedBefore3CallBase,
+    ExpressionBuiltinsSortedSince3Call1Base,
+    ExpressionBuiltinsSortedSince3CallBase,
+)
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
@@ -32,6 +39,7 @@ from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
     StatementSpecialUnpackCheckFromIteratedBase,
+    StatementSpecialUnpackCheckFromIteratedValueBase,
 )
 from .VariableRefNodes import ExpressionTempVariableRef
 
@@ -201,6 +209,10 @@ class ExpressionBuiltinEnumerate1(
 
     named_children = ("sequence",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     def __init__(self, sequence, source_ref):
         ChildHavingSequenceMixin.__init__(self, sequence=sequence)
 
@@ -213,6 +225,10 @@ class ExpressionBuiltinEnumerate2(
     kind = "EXPRESSION_BUILTIN_ENUMERATE2"
 
     named_children = ("sequence", "start")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     def __init__(self, sequence, start, source_ref):
         ChildrenHavingSequenceStartMixin.__init__(
@@ -310,6 +326,10 @@ class ExpressionBuiltinZip(
 
     named_children = ("values|tuple",)
 
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
+
     builtin_spec = BuiltinParameterSpecs.builtin_zip_spec
 
     def __init__(self, values, source_ref):
@@ -326,6 +346,10 @@ class ExpressionBuiltinZip310(
     kind = "EXPRESSION_BUILTIN_ZIP310"
 
     named_children = ("strict|optional", "values|tuple")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     python_version_spec = ">= 0x3A0"
 
@@ -407,14 +431,17 @@ class StatementSpecialUnpackCheckFromIterated(
                     % (iterated_length_value, self.count),
                 )
             else:
+                if python_version >= 0x300:
+                    exception_value = (
+                        "too many values to unpack (expected %d)" % self.count
+                    )
+                else:
+                    exception_value = "too many values to unpack"
+
                 result = makeRaiseExceptionReplacementStatement(
                     statement=self,
                     exception_type="ValueError",
-                    exception_value=(
-                        "too many values to unpack"
-                        if python_version < 0x300
-                        else "too many values to unpack (expected %d)" % self.count
-                    ),
+                    exception_value=exception_value,
                 )
 
                 trace_collection.onExceptionRaiseExit(TypeError)
@@ -431,14 +458,45 @@ Determined iteration end check to always raise.""",
         return self, None, None
 
 
+class StatementSpecialUnpackCheckFromIteratedValue(
+    StatementSpecialUnpackCheckFromIteratedValueBase
+):
+    """Check iterated value for too many values to unpack.
+
+    The check is done with the iterated value at hand, so that the error
+    message can include the count for types where it is available, like
+    CPython does for the iterator based check.
+    """
+
+    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED_VALUE"
+
+    named_children = ("iterated_value",)
+    node_attributes = ("count",)
+    auto_compute_handling = "operation"
+
+    def computeStatementOperation(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
 def makeStatementSpecialUnpackCheckFromIterated(
     tmp_iterated_variable, count, source_ref
 ):
+    tmp_iterated_ref = ExpressionTempVariableRef(
+        variable=tmp_iterated_variable, source_ref=source_ref
+    )
+
+    if python_version >= 0x3E0:
+        return StatementSpecialUnpackCheckFromIteratedValue(
+            iterated_value=tmp_iterated_ref,
+            count=count,
+            source_ref=source_ref,
+        )
+
     return StatementSpecialUnpackCheckFromIterated(
         iterated_length=ExpressionBuiltinLen(
-            ExpressionTempVariableRef(
-                variable=tmp_iterated_variable, source_ref=source_ref
-            ),
+            tmp_iterated_ref,
             source_ref=source_ref,
         ),
         count=count,
@@ -460,25 +518,23 @@ class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
         iterator = self.subnode_iterator
 
         if iterator.isExpressionTempVariableRef():
-            iteration_source_node = iterator.variable_trace.getIterationSourceNode()
+            variable_trace = iterator.variable_trace
 
-            if iteration_source_node is not None:
-                if iteration_source_node.parent.isStatementAssignmentVariableIterator():
-                    iterator_assign_node = iteration_source_node.parent
+            if variable_trace.isIteratorPropagationTrace():
+                tmp_iterated_variable = variable_trace.getIteratedTempVariable()
 
-                    if iterator_assign_node.tmp_iterated_variable is not None:
-                        result = makeStatementSpecialUnpackCheckFromIterated(
-                            tmp_iterated_variable=iterator_assign_node.tmp_iterated_variable,
-                            count=self.count,
-                            source_ref=self.source_ref,
-                        )
+                result = makeStatementSpecialUnpackCheckFromIterated(
+                    tmp_iterated_variable=tmp_iterated_variable,
+                    count=self.count,
+                    source_ref=self.source_ref,
+                )
 
-                        return trace_collection.computedStatementResult(
-                            result,
-                            change_tags="new_statements",
-                            change_desc=lambda: "Iterator check of changed to iterated size check using '%s'."
-                            % iterator_assign_node.tmp_iterated_variable.getName(),
-                        )
+                return trace_collection.computedStatementResult(
+                    result,
+                    change_tags="new_statements",
+                    change_desc=lambda: "Iterator check of changed to iterated size check using '%s'."
+                    % tmp_iterated_variable.getName(),
+                )
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -493,6 +549,10 @@ class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ("callable_arg", "sentinel")
+
+    @staticmethod
+    def isExpressionBuiltinCall():
+        return True
 
     auto_compute_handling = "final"
 
@@ -579,6 +639,64 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
         # source with a computeExpressionAsyncNext slot, but we delay that.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        return self, None, None
+
+
+class ExpressionBuiltinsReversedCall(ExpressionBuiltinsReversedCallBase):
+    kind = "EXPRESSION_BUILTINS_REVERSED_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+
+class ExpressionBuiltinsSortedSince3Call1(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedSince3Call1Base,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL1"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Implement actual optimization logic
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+
+class ExpressionBuiltinsSortedSince3Call(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedSince3CallBase,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_SINCE3_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Implement actual optimization logic
+        return self, None, None
+
+
+def makeExpressionBuiltinsSortedSince3Call(iterable, key, reverse, source_ref):
+    if key is None and reverse is None:
+        return ExpressionBuiltinsSortedSince3Call1(
+            iterable=iterable, source_ref=source_ref
+        )
+
+    return ExpressionBuiltinsSortedSince3Call(
+        iterable=iterable, key=key, reverse=reverse, source_ref=source_ref
+    )
+
+
+class ExpressionBuiltinsSortedBefore3Call(
+    ExpressionListShapeExactMixin,
+    ExpressionBuiltinsSortedBefore3CallBase,
+):
+    kind = "EXPRESSION_BUILTINS_SORTED_BEFORE3_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Implement actual optimization logic
         return self, None, None
 
 
