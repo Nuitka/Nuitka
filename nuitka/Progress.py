@@ -331,11 +331,10 @@ class NuitkaProgressBarBarflow(object):
 
         self.min_total = min_total
         self.item = None
-        # Current item is rendered by a trailing callback column, NOT folded
+        # Current item is rendered by a trailing postfix column, NOT folded
         # into the description -- folding it in changes the description width
         # per module and shifts the whole bar sideways (a staircase). Keeping
         # the description fixed anchors the bar, exactly like tqdm's postfix.
-        self._postfix = ""
 
         effective_total = self._effectiveTotal(self.total, self.min_total)
 
@@ -358,7 +357,7 @@ class NuitkaProgressBarBarflow(object):
 
         # Fixed-layout columns so the bar never moves: a constant description,
         # then the bar, then percentage/count/unit, and finally the current
-        # item via a callback column at the very end (the only part that
+        # item via a postfix column at the very end (the only part that
         # changes width). Mirrors tqdm's "{desc}|{bar}| n/total unit postfix".
         from barflow import columns as _bfcols  # pylint: disable=I0021,import-error
 
@@ -378,11 +377,11 @@ class NuitkaProgressBarBarflow(object):
             _bfcols.TextColumn(" "),
             _bfcols.CountColumn(),
             _bfcols.TextColumn(unit_label),
-            _bfcols.CallbackColumn(lambda task: self._postfix, style=info_style),
+            _bfcols.PostfixColumn(style=info_style),
         ]
 
         self.barflow_progress = _barflow.Progress(
-            *columns, total=effective_total, desc=stage, disable=disable
+            *columns, total=effective_total, desc=stage, disable=disable, leave=False
         )
         self.barflow_progress.__enter__()
 
@@ -409,19 +408,23 @@ class NuitkaProgressBarBarflow(object):
             )
 
     def setCurrent(self, item):
-        # Update only the trailing postfix (rendered by the callback column),
-        # leaving the description fixed so the bar stays anchored.
+        # Update only the trailing postfix (rendered by the postfix column),
+        # leaving the description fixed so the bar stays anchored. The
+        # postfix column self-prefixes a single space when non-empty, so
+        # store "- <item>" to render the historical " - <item>" tail.
         if item != self.item:
             self.item = item
-            self._postfix = (" - %s" % item) if item is not None else ""
+            self.barflow_progress.set_postfix_str(
+                0, ("- %s" % item) if item is not None else ""
+            )
 
     def update(self):
         self.barflow_progress.advance(1)
 
     def _eraseLine(self):
-        # barflow's close() only stops the render thread; it does not clear
-        # the bar line. Emit the same erase tqdm's leave=False would, so the
-        # residual bar doesn't get appended to by later output.
+        # Manual erase backing clear(): with leave=False, close() and pause()
+        # already erase the bar area, so this is only used to wipe the
+        # current line on demand.
         try:
             if self._stream.isatty():
                 self._stream.write("\r\x1b[2K")
@@ -435,7 +438,6 @@ class NuitkaProgressBarBarflow(object):
     def close(self):
         with withNoExceptions():
             self.barflow_progress.close()
-        self._eraseLine()
 
     @contextmanager
     def withExternalWritingPause(self):
@@ -552,13 +554,14 @@ def _getBarflowModule():
             _barflow = False
             return None
 
-        # pause()/resume() and the callback-column threading fix landed in
-        # 0.3.1; older releases would tear or deadlock under threaded use, so
-        # treat them as unavailable and fall back to tqdm/rich.
+        # PostfixColumn and leave= landed in 0.5.0, and 0.6.0 anchors the
+        # erase done by pause() and shrinks bars to fit narrow terminals
+        # instead of wrapping. Treat older releases as unavailable and fall
+        # back to tqdm/rich.
         version = tuple(
             int(part) for part in barflow_installed.__version__.split(".")[:3]
         )
-        if version < (0, 3, 1):
+        if version < (0, 6, 0):
             _barflow = False
             return None
 
@@ -794,6 +797,12 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             total=total_size_bytes or None,
             desc=description,
             disable=bf_disable,
+            leave=False,
+            # Same unit rendering as the tqdm branch, which forwards these
+            # from kwargs and otherwise uses tqdm's defaults.
+            unit=kwargs.get("unit", "it"),
+            unit_scale=kwargs.get("unit_scale", False),
+            unit_divisor=kwargs.get("unit_divisor", 1000),
         )
         barflow_progress.__enter__()
 
