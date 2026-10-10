@@ -1,9 +1,8 @@
 #     Copyright 2026, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-"""Plugin for including selected source code recorded from probe execution."""
+"""Plugin for including selected source files recorded from probe execution."""
 
-import json
 import os
 import shlex
 import sys
@@ -17,6 +16,7 @@ from nuitka.options.Options import (
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.Execution import executeProcess
+from nuitka.utils.Json import loadJsonFromContents
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -50,7 +50,9 @@ _probe_result_prefix = "NUITKA_SOURCE_INCLUSION_JSON:"
 
 class NuitkaPluginSourceInclusion(NuitkaPluginBase):
     plugin_name = "source-inclusion"
-    plugin_desc = "Record and replay selected 'inspect.getsource()' lookups."
+    plugin_desc = (
+        "Record source files from probe execution and serve them via 'linecache'."
+    )
     plugin_category = "feature,package-support"
 
     @classmethod
@@ -62,18 +64,18 @@ class NuitkaPluginSourceInclusion(NuitkaPluginBase):
             default=[],
             help="""\
 Run the program being compiled during compilation with this shell-style
-argument list while recording successful 'inspect.getsource()' lookups.
-Repeat for every additional probe run, e.g.
-'--source-inclusion-args="subcommand --help"'.""",
+argument list while recording looked up source files. Repeat for every
+additional probe run, e.g. '--source-inclusion-args="subcommand --help"'.""",
         )
         group.add_option(
             "--source-inclusion-timeout",
             action="store",
             dest="source_inclusion_timeout",
             type="int",
-            default=30,
+            default=None,
             help="""\
-Timeout in seconds for each probe run. Defaults to 30.""",
+Timeout in seconds for each probe run. Defaults to no timeout, so a probe \
+run that hangs is seen rather than silently cut short.""",
         )
         group.add_option(
             "--show-source-inclusion-trace",
@@ -81,7 +83,7 @@ Timeout in seconds for each probe run. Defaults to 30.""",
             dest="show_source_inclusion_trace",
             default=False,
             help="""\
-Display the recorded 'inspect.getsource()' keys from the probe run.""",
+Display the recorded source inclusion modules from the probe run.""",
         )
 
     @classmethod
@@ -111,7 +113,7 @@ Display the recorded 'inspect.getsource()' keys from the probe run.""",
         source_inclusion_timeout,
         show_source_inclusion_trace,
     ):
-        if source_inclusion_timeout <= 0:
+        if source_inclusion_timeout is not None and source_inclusion_timeout <= 0:
             self.sysexit(
                 "Error, '--source-inclusion-timeout' must be greater than zero."
             )
@@ -141,22 +143,22 @@ Display the recorded 'inspect.getsource()' keys from the probe run.""",
         self.source_data = source_data
 
         self.info(
-            "Recorded %d successful 'inspect.getsource()' lookups from %d probe execution(s)."
+            "Recorded %d source file(s) from %d probe execution(s)."
             % (len(self.source_data), len(self.source_inclusion_arg_sets))
         )
 
         if self.show_source_inclusion_trace:
             if self.source_data:
                 self.info(
-                    "Recorded source inclusion keys: %s"
+                    "Recorded source inclusion modules: %s"
                     % _joinSortedKeys(self.source_data)
                 )
             else:
-                self.info("Recorded source inclusion keys: none")
+                self.info("Recorded source inclusion modules: none")
 
         if not self.source_data:
             self.warning("""\
-No successful 'inspect.getsource()' lookups were recorded. Adjust \
+No source file lookups were recorded. Adjust \
 '--source-inclusion-args' values if source inspection still fails at run \
 time.""")
 
@@ -204,19 +206,23 @@ time.""")
         stdout = _decodeCommandOutput(process_result.stdout).strip()
         stderr = _decodeCommandOutput(process_result.stderr).strip()
 
-        if process_result.exit_code != 0:
+        probe_result, probe_error = self._decodeProbeResult(
+            main_filename=main_filename, stdout=stdout
+        )
+
+        if process_result.exit_code != 0 or probe_error is not None:
             return self.sysexit(
-                "Error, probe execution for '%s' with arguments %r failed with exit code %d.\nStdout: %s\nStderr: %s"
+                "Error, probe execution for '%s' with arguments %r failed with exit code %d.\nReason: %s\nStderr: %s"
                 % (
                     main_filename,
                     probe_args,
                     process_result.exit_code,
-                    stdout or "<empty>",
+                    probe_error or "program exited non-zero",
                     stderr or "<empty>",
                 )
             )
 
-        return self._decodeProbeResult(main_filename=main_filename, stdout=stdout)
+        return probe_result
 
     def _decodeProbeResult(self, main_filename, stdout):
         stdout_lines = [line for line in stdout.splitlines() if line.strip()]
@@ -237,9 +243,12 @@ time.""")
                 % main_filename
             )
 
-        try:
-            probe_result = json.loads(probe_result_text)
-        except ValueError:
+        if str is not bytes:
+            probe_result_text = probe_result_text.encode("utf8")
+
+        probe_result = loadJsonFromContents(probe_result_text)
+
+        if type(probe_result) is not dict:
             return self.sysexit(
                 "Error, probe execution for '%s' did not produce valid JSON: %s"
                 % (main_filename, probe_result_text)
@@ -258,7 +267,7 @@ time.""")
         for key in sorted(source_data):
             ordered_source_data[key] = source_data[key]
 
-        return ordered_source_data
+        return ordered_source_data, probe_result.get("error")
 
     @staticmethod
     def _getProbeCode():
@@ -266,36 +275,12 @@ time.""")
 from __future__ import absolute_import
 from __future__ import print_function
 
-import inspect
 import io
 import json
+import linecache
 import os
 import runpy
 import sys
-
-
-def _getSourceInclusionKey(obj):
-    func = getattr(obj, "__func__", None)
-
-    if func is not None and not inspect.isclass(obj):
-        obj = func
-
-    if inspect.ismodule(obj):
-        module_name = getattr(obj, "__name__", None)
-
-        if module_name is not None:
-            return "module:" + module_name
-
-    module_name = getattr(obj, "__module__", None)
-    qualname = getattr(obj, "__qualname__", None)
-
-    if qualname is None:
-        qualname = getattr(obj, "__name__", None)
-
-    if module_name is not None and qualname is not None:
-        return "object:" + module_name + ":" + qualname
-
-    return None
 
 
 def _main():
@@ -304,26 +289,39 @@ def _main():
 
     source_data = {}
 
-    original_getsource = inspect.getsource
+    original_getlines = linecache.getlines
 
-    def _recording_getsource(obj):
-        key = _getSourceInclusionKey(obj)
+    def _recording_getlines(filename, module_globals=None):
+        lines = original_getlines(filename, module_globals)
 
-        try:
-            result = original_getsource(obj)
-        except Exception:
-            raise
-        else:
-            if key is not None and key not in source_data:
-                source_data[key] = result
+        if lines and module_globals is not None:
+            module_name = module_globals.get("__name__")
+            module_filename = module_globals.get("__file__")
 
-            return result
+            if (
+                module_name is not None
+                and module_filename is not None
+                and os.path.normcase(os.path.abspath(module_filename))
+                == os.path.normcase(os.path.abspath(filename))
+            ):
+                previous_lines = source_data.get(module_name)
 
-    inspect.getsource = _recording_getsource
+                if previous_lines is not None and previous_lines != lines:
+                    raise AssertionError(
+                        "Conflicting source recorded for module '%s'." % module_name
+                    )
+
+                source_data[module_name] = lines
+
+        return lines
+
+    linecache.getlines = _recording_getlines
 
     null_output = io.open(os.devnull, "w", encoding="utf8", errors="ignore")
     old_stdout = sys.stdout
     old_stderr = sys.stderr
+
+    probe_error = None
 
     try:
         sys.stdout = null_output
@@ -338,7 +336,13 @@ def _main():
             runpy.run_path(main_filename, run_name="__main__")
         except SystemExit as e:
             if e.code not in (None, 0):
-                raise
+                probe_error = "program exited with code %r" % (e.code,)
+        except KeyboardInterrupt:
+            raise
+        except BaseException:
+            import traceback
+
+            probe_error = traceback.format_exc()
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
@@ -346,15 +350,19 @@ def _main():
 
     print(
         "NUITKA_SOURCE_INCLUSION_JSON:%s"
-        % json.dumps({"sources": source_data}, sort_keys=True)
+        % json.dumps(
+            {"sources": source_data, "error": probe_error}, sort_keys=True
+        )
     )
 
+    if probe_error is not None:
+        sys.exit(1)
 
 _main()
 """.strip()
 
     def createFakeModuleDependency(self, module):
-        if module.getFullName() == "inspect" and self.source_data:
+        if module.getFullName() == "linecache" and self.source_data:
             return (
                 makeFakeModuleDescription(
                     module_name=ModuleName("_nuitka_source_inclusion"),
@@ -365,82 +373,52 @@ _main()
             )
 
     def createPostModuleLoadCode(self, module):
-        if module.getFullName() == "inspect" and self.source_data:
+        if module.getFullName() == "linecache" and self.source_data:
             return (
                 """\
-import inspect
+import linecache
 import _nuitka_source_inclusion
-_nuitka_source_inclusion.install(inspect)
+_nuitka_source_inclusion.install(linecache)
 """,
-                "Install recorded source inclusion for 'inspect.getsource()'.",
+                "Install recorded source inclusion into 'linecache'.",
             )
 
     def _getSupportModuleCode(self):
         source_data_code = _formatDictLiteralCode(self.source_data)
 
         return """\
-import inspect
+import linecache
 
 _source_inclusion_data = %s
 
 
-def _getSourceInclusionKey(obj):
-    func = getattr(obj, "__func__", None)
-
-    if func is not None and not inspect.isclass(obj):
-        obj = func
-
-    if inspect.ismodule(obj):
-        module_name = getattr(obj, "__name__", None)
-
-        if module_name is not None:
-            return "module:" + module_name
-
-    module_name = getattr(obj, "__module__", None)
-    qualname = getattr(obj, "__qualname__", None)
-
-    if qualname is None:
-        qualname = getattr(obj, "__name__", None)
-
-    if module_name is not None and qualname is not None:
-        return "object:" + module_name + ":" + qualname
-
-    return None
-
-
-def install(inspect_module):
-    if getattr(inspect_module, "_nuitka_source_inclusion_installed", False):
+def install(linecache_module):
+    if getattr(linecache_module, "_nuitka_source_inclusion_installed", False):
         return
 
-    original_getsource = inspect_module.getsource
+    original_getlines = linecache_module.getlines
 
-    def nuitka_getsource(obj):
-        key = _getSourceInclusionKey(obj)
+    def nuitka_getlines(filename, module_globals=None):
+        if module_globals is not None:
+            module_name = module_globals.get("__name__")
 
-        if key is not None:
-            source_code = _source_inclusion_data.get(key)
+            if module_name is not None:
+                lines = _source_inclusion_data.get(module_name)
 
-            if source_code is not None:
-                return source_code
+                if lines is not None:
+                    linecache_module.cache[filename] = (None, None, lines, filename)
 
-        return original_getsource(obj)
+                    return lines
 
-    inspect_module.getsource = nuitka_getsource
-    inspect_module._nuitka_source_inclusion_installed = True
-    inspect_module._nuitka_source_inclusion_sources = _source_inclusion_data
+        return original_getlines(filename, module_globals)
+
+    linecache_module.getlines = nuitka_getlines
+    linecache_module._nuitka_source_inclusion_installed = True
+    linecache_module._nuitka_source_inclusion_sources = _source_inclusion_data
 """ % source_data_code
 
-    def getCacheContributionValues(self, module_name):
-        del module_name
-
-        yield self.plugin_name
-        yield self.source_inclusion_arg_sets
-        yield self.source_data
-
-    def getReportData(self):
-        yield "recorded_source_keys", tuple(self.source_data)
-        yield "source_inclusion_arg_sets", self.source_inclusion_arg_sets
-        yield "source_inclusion_timeout", self.source_inclusion_timeout
+    def getReportData(self, make_report_path):
+        yield "recorded_source_modules", _joinSortedKeys(self.source_data)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

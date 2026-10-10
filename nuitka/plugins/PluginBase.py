@@ -1680,11 +1680,11 @@ except Exception as e:
 
         This must be used to invalidate cache results, e.g. when using the
         onFunctionBodyParsing function, and other things, that do not directly
-        affect the source code. By default a plugin being enabled changes the
-        result unless it makes it clear that is not the case.
+        affect the source code. The plugin name is automatically added to the
+        values given, so plugins only need to provide their specific values.
         """
         # Virtual method, pylint: disable=unused-argument
-        return self.plugin_name
+        return ()
 
     def getExtraConstantDefaultPopulation(self):
         """Provide extra global constant values to code generation."""
@@ -1700,13 +1700,17 @@ except Exception as e:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def getReportData(self):
+    def getReportData(self, make_report_path):
         """Provide key/value pairs of data for reporting purposes.
+
+        Args:
+            make_report_path: Function to make a path report friendly, plugins
+                should use it for path values.
 
         Returns:
             Iterable of tuples with key and value.
         """
-        # Virtual method, pylint: disable=no-self-use
+        # Virtual method, pylint: disable=unused-argument
         return ()
 
     @staticmethod
