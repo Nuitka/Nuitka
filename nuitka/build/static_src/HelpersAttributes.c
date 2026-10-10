@@ -1200,29 +1200,30 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
     // attribute names, might save a bit of complexity to large programs not
     // having to pass constant values in what is a frequent construct.
     if (attr_name == const_str_plain___exit__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the context manager protocol (missed __exit__ method)", source);
     }
 #if PYTHON_VERSION >= 0x3e0
     else if (attr_name == const_str_plain___enter__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the context manager protocol (missed __enter__ method)", source);
     }
 #endif
     else if (attr_name == const_str_plain___aexit__) {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
     } else if (attr_name == const_str_plain___aenter__) {
 #if PYTHON_VERSION >= 0x3e0
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
             "'%s' object does not support the asynchronous context manager protocol (missed __aenter__ method)",
             source);
 #else
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
-                                             source);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED(
+            "'%s' object does not support the asynchronous context manager protocol", source);
 #endif
     } else {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_QUALIFIED("'%s' object does not support the context manager protocol",
+                                                       source);
     }
 #endif
     return NULL;

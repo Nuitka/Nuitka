@@ -6,6 +6,47 @@
 #include "nuitka/prelude.h"
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+// Our replacement for CPython's private "_PyType_GetFullyQualifiedName", used
+// for error messages that use the module qualified type name since Python 3.14
+PyObject *Nuitka_PyType_GetFullyQualifiedName(PyTypeObject *type) {
+    if (!(type->tp_flags & Py_TPFLAGS_HEAPTYPE)) {
+        return PyUnicode_FromString(type->tp_name);
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *qualname = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___qualname__);
+
+    if (unlikely(qualname == NULL)) {
+        return NULL;
+    }
+
+    PyObject *module = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___module__);
+
+    if (unlikely(module == NULL)) {
+        CLEAR_ERROR_OCCURRED(tstate);
+
+        return qualname;
+    }
+
+    PyObject *result;
+
+    if (PyUnicode_Check(module) && PyUnicode_CompareWithASCIIString(module, "builtins") != 0 &&
+        PyUnicode_CompareWithASCIIString(module, "__main__") != 0) {
+        result = PyUnicode_FromFormat("%U.%U", module, qualname);
+    } else {
+        result = qualname;
+        Py_INCREF(result);
+    }
+
+    Py_DECREF(module);
+    Py_DECREF(qualname);
+
+    return result;
+}
+#endif
+
 // Our replacement for "PyType_IsSubtype"
 bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
     CHECK_OBJECT(a);
