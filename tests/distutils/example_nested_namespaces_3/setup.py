@@ -10,7 +10,7 @@ setup(
     author_email="contributors@nuitka.invalid",
     description="Nuitka distutils test case: example_nested_namespaces_3",
     url="https://nuitka.net",
-    packages=["a.b.pkg"],
+    packages=["a.b.pkg", "a.b.pkg.plugins"],
     entry_points={"console_scripts": ["runner = a.b.pkg:main"]},
 )
 
