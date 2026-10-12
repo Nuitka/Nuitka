@@ -11,13 +11,76 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.importing.FakeModules import makeFakeModuleDescription
 from nuitka.options.Options import (
     getMainEntryPointFilenames,
+    isStandaloneMode,
     shallMakeDll,
     shallMakeModule,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils.Execution import executeProcess
+from nuitka.utils.FileOperations import (
+    getNormalizedPath,
+    getNormalizedPathJoin,
+    relpath,
+)
 from nuitka.utils.Json import loadJsonFromContents
 from nuitka.utils.ModuleNames import ModuleName
+
+
+def _getPythonIncludeDirectories(logger):
+    """Return the include directories of the running interpreter.
+
+    Args:
+        logger: Logger to report errors with.
+
+    Notes:
+        These are the directories needed for C compilation against the running
+        interpreter, i.e. where 'Python.h' and the 'pyconfig.h' that describes
+        it are found. On Debian and Ubuntu, the latter is a wrapper that
+        includes a file from a multiarch directory outside the main include
+        directory, which is returned as well.
+
+    Returns:
+        Tuple of absolute directory paths, the main include directory first,
+        followed by the multiarch variant when it exists.
+    """
+    try:
+        import sysconfig
+    except ImportError:
+        # Python 2.6 does not provide it, and the layouts that need more than
+        # the main include directory are all much newer.
+        return logger.sysexit("Error, cannot detect Python include directories.")
+
+    result = []
+
+    paths = sysconfig.get_paths()
+
+    for key in ("include", "platinclude"):
+        include_dir = paths.get(key)
+
+        if include_dir is not None and os.path.isdir(include_dir):
+            include_dir = getNormalizedPath(os.path.abspath(include_dir))
+
+            if include_dir not in result:
+                result.append(include_dir)
+
+    multiarch = sysconfig.get_config_var("MULTIARCH")
+
+    if multiarch:
+        for include_dir in tuple(result):
+            multiarch_dir = getNormalizedPathJoin(
+                os.path.dirname(include_dir),
+                multiarch,
+                os.path.basename(include_dir),
+            )
+
+            if os.path.isdir(multiarch_dir) and multiarch_dir not in result:
+                result.append(multiarch_dir)
+
+    if not result:
+        return logger.sysexit("Error, cannot detect Python include directories.")
+
+    return tuple(result)
 
 
 def _decodeCommandOutput(value):
@@ -127,6 +190,7 @@ Display the recorded source inclusion modules from the probe run.""",
 
         self.main_filename = None
         self.source_data = OrderedDict()
+        self.python_headers_included = False
 
     def onCompilationStartChecks(self):
         main_filenames = getMainEntryPointFilenames()
@@ -161,6 +225,41 @@ Display the recorded source inclusion modules from the probe run.""",
 No source file lookups were recorded. Adjust \
 '--source-inclusion-args' values if source inspection still fails at run \
 time.""")
+
+    def considerDataFiles(self, module):
+        """Provide the Python header files for in-place C compilation.
+
+        Notes:
+            The triton backends build C extensions in place at run time, the
+            driver helpers like "cuda_utils" and the per-signature launchers,
+            and need "Python.h" and "pyconfig.h" of the running interpreter to
+            do so. This is true for every backend, including third party ones
+            found through entry points, so the "triton.backends" package is
+            used as the trigger.
+
+        Args:
+            module: The module considered.
+
+        Yields:
+            IncludedDataFile objects for the header directories.
+        """
+        if (
+            module.getFullName() == "triton.backends"
+            and isStandaloneMode()
+            and not self.python_headers_included
+        ):
+            self.python_headers_included = True
+
+            for include_dir in _getPythonIncludeDirectories(logger=self):
+                include_relpath = relpath(include_dir, getSystemPrefixPath())
+
+                yield self.makeIncludedDataDirectory(
+                    source_path=include_dir,
+                    dest_path=include_relpath,
+                    reason="Python header files for in-place C compilation",
+                    tags="config",
+                    raw=True,
+                )
 
     def _runProbeExecutions(self, main_filename):
         merged_source_data = {}

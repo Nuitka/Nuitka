@@ -9375,6 +9375,41 @@
         'assert coro.cr_frame is not None, "Coroutine frame should exist"': ''
       when: 'version("trio") >= (0,26,1)'
 
+- module-name: 'triton.backends' # checksum: 40bfcdb8
+  implicit-imports:
+    - depends:
+        - 'triton.backends.*'
+        - 'triton.backends.*.*'
+
+- module-name: 'triton.backends.amd' # checksum: c8de6789
+  data-files:
+    - dirs:
+        - 'include'
+        - 'lib'
+    - patterns:
+        - 'driver.c'
+
+- module-name: 'triton.backends.nvidia' # checksum: 52809668
+  data-files:
+    - dirs:
+        - 'bin'
+        - 'include'
+        - 'lib'
+    - patterns:
+        - 'driver.c'
+
+- module-name: 'triton.runtime.cache' # checksum: 9af30525
+  variables:
+    setup_code:
+      - 'from triton.runtime.cache import triton_key'
+    declarations:
+      'triton_key_value': 'triton_key()'
+
+  anti-bloat:
+    - description: 'replace triton key computation with the value of the build environment'
+      change_function:
+        'triton_key': "'(lambda: %r)' % (get_variable('triton_key_value'),)"
+
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:
     - depends:
