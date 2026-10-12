@@ -31,7 +31,7 @@ class NuitkaPluginTorchHub(NuitkaPluginBase):
     plugin_desc = "Resolve and scan Torch Hub repositories for dependency inclusion."
     plugin_category = "package-support"
 
-    # spell-checker: ignore yolov,hubconf,getargspec
+    # spell-checker: ignore getargspec,hubconf,yolov
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):

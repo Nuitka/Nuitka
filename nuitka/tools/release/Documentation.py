@@ -49,7 +49,7 @@ def makeLogoImages():
             check_call((cmd % (icon, size)).split())
 
 
-# spell-checker: ignore asciinema,postlist,toctree,automodule
+# spell-checker: ignore asciinema,automodule,postlist,toctree
 extra_rst_keywords = (
     b"asciinema",
     b"postlist",

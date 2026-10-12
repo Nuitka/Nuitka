@@ -18,7 +18,7 @@ from nuitka.utils.InlineCopies import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows, withNoExceptions
 
-# spell-checker: ignore tqdm,ncols
+# spell-checker: ignore ncols,tqdm
 
 # Late import and optional to be there.
 use_progress_bar = None

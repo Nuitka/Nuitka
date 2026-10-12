@@ -17,7 +17,7 @@
 #include <stddef.h>
 #include <structmember.h>
 
-// spell-checker: ignore qualname,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
+// spell-checker: ignore getset,kwdefaults,m_varnames,nargsf,qualname,vectorcall,weakrefs
 
 #if _DEBUG_REFCOUNTS
 int count_active_Nuitka_Function_Type;

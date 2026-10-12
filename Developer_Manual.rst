@@ -222,7 +222,7 @@ The tool (mostly ``black`` and ``isort``) encodes all formatting rules,
 and makes the decisions for us. The idea being that we can focus on
 actual code and do not have to care as much about other things. It also
 deals with Windows new lines, trailing space, etc. and even sorts PyLint
-disable statements.
+disable statements and ``spell-checker: ignore`` word lists.
 
 Identifiers
 ===========

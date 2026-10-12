@@ -65,8 +65,7 @@ from .SconsUtils import (
     scanSourceDir,
 )
 
-# spell-checker: ignore cflags,cppdefines,cpppath,
-# spell-checker: ignore linkflags,libpath,libflags
+# spell-checker: ignore cflags,cppdefines,cpppath,libflags,libpath,linkflags
 
 # Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
@@ -236,7 +235,7 @@ elif env.exe_mode or env.dll_mode:
         env.Append(LIBS=[env.File(env.static_libpython)])
 
         # The linker won't succeed in searching for those for system Python of Debian
-        # compiled Pythons. Help that. spell-checker: ignore rdynamic,Xlinker,pthread
+        # compiled Pythons. Help that. spell-checker: ignore Xlinker,pthread,rdynamic
         if env.python_prefix_external == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
 

@@ -1408,7 +1408,7 @@ def getWindowsRunningProcessDLLPaths():
     return result
 
 
-# spell-checker: ignore termux DT_RUNPATH
+# spell-checker: ignore DT_RUNPATH termux
 _termux_elf_cleaner_usage = (
     "Needs 'termux-elf-cleaner' to clean up created files. Install it for best results."
 )

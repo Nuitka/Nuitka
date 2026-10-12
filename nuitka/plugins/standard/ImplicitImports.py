@@ -261,7 +261,7 @@ According to 'implicit-imports' configuration."""
                 yield crypto_module_name + ".Protocol._scrypt"
 
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
-                # spell-checker: ignore ghash,clmul
+                # spell-checker: ignore clmul,ghash
                 yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
                 yield crypto_module_name + ".Util._galois"

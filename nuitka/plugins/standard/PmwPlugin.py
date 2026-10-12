@@ -160,7 +160,7 @@ _bltImported = 1
 _bltbusyOK = 0
 """
         # Code to define the functions normally supplied by the dynamic loader.
-        # spell-checker: ignore setversion,setalphaversions,installedversions
+        # spell-checker: ignore installedversions,setalphaversions,setversion
         extra_code = """
 
 ### Loader functions:

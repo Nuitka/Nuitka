@@ -10,7 +10,7 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 from .SconsUtils import getArgumentDefaulted, getArgumentRequired, isGccName
 
-# spell-checker: ignore cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore cppdefines,cpppath,libpath,linkflags
 
 
 def _addPythonIncludePaths(env):

@@ -22,7 +22,7 @@ _ld_library_cache = {}
 _missing_msvc_redist_dlls = OrderedSet()
 
 # Names of MSVC redistributable DLLs to pick up
-# spell-checker: ignore concrt,msvcp,vcruntime,vcamp,vccorlib,codecvt,vcomp
+# spell-checker: ignore codecvt,concrt,msvcp,vcamp,vccorlib,vcomp,vcruntime
 _msvc_redist_dll_names = set(
     (
         "concrt140.dll",

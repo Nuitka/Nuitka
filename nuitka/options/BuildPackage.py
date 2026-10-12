@@ -39,7 +39,7 @@ def getBuildBackendConfiguration(logger, pyproject_data):
 
         nuitka_path = os.path.dirname(os.path.dirname(sys.modules["nuitka"].__file__))
 
-        # spell-checker: ignore sitecustomize,cmdclass
+        # spell-checker: ignore cmdclass,sitecustomize
         putTextFileContents(
             filename=os.path.join(mock_site_packages_path, "sitecustomize.py"),
             contents="""

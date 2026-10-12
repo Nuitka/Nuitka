@@ -121,7 +121,7 @@ def createMacOSDmg():
     dmg_path = computeMacOSInstallerOutputFilename()
     deleteFile(dmg_path, must_exist=False)
 
-    # spell-checker: ignore volname,volicon
+    # spell-checker: ignore volicon,volname
     command = [
         create_dmg_path,
         "--volname",

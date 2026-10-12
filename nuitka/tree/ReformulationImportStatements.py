@@ -8,7 +8,7 @@ source code comments with Developer Manual sections.
 
 """
 
-# spell-checker: ignore fromlist,asname
+# spell-checker: ignore asname,fromlist
 
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode

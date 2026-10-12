@@ -693,7 +693,7 @@ Enable the encryption and re\-encryption of ANSI and Unicode strings, this is di
 Add a Themida advanced option by name and value, e.g. '\-\-themida\-advanced\-option=OPTION_TRIAL_IS_DEBUG_MODE=YES'. This can be given multiple times and is passed in addition to the used config.
 .TP
 \fB\-\-winlicense\-trial\fR=\fI\,WINLICENSE_TRIAL\/\fR
-Enable trial mode of WinLicense, the value is the identifier of the trial state, e.g. '\-\-winlicense\-trial=IDENTIFIER'. The value is used as given, so make it unique per application. Keeping it stable continues the trial across releases, changing it enables a new trial. Without restrictions from '\-\-winlicense\-trial\-days' or '\-\-winlicense\-trial\-executions', this is an unlimited trial. This requires a WinLicense installation, as well as the '\-\-winlicense\-email' and '\-\-winlicense\-website' options.
+Enable trial mode of WinLicense, the value is the identifier of the trial state, e.g. '\-\-winlicense\-trial=IDENTIFIER'. The value is used as given, so make it unique per application. Keeping it stable continues the trial across releases, changing it enables a new trial. Without restrictions from '\-\-winlicense\-trial\-days' or '\-\-winlicense\-trial\-executions', this is an unlimited trial. This requires a WinLicense installation, as well as the '\-\-winlicense\-email' and '\-\-winlicense\-website' options. It is also required with '\-\-winlicense\-only\-temporal\-licenses', since the state of expiring license keys is stored under this identifier.
 .TP
 \fB\-\-winlicense\-trial\-days\fR=\fI\,WINLICENSE_TRIAL_DAYS\/\fR
 Number of trial days of WinLicense, this requires '\-\-winlicense\-trial' and a WinLicense installation.
@@ -744,7 +744,7 @@ Allow the protected application to run only with a valid license key.
 Accept only license keys that are locked to the machine.
 .TP
 \fB\-\-winlicense\-only\-temporal\-licenses\fR
-Accept only license keys that expire, denying time unlimited ones.
+Accept only license keys that expire, denying time unlimited ones. This requires '\-\-winlicense\-trial=IDENTIFIER' to identify the state storage of the expiring license keys.
 .TP
 \fB\-\-winlicense\-clear\-trial\-when\-registered\fR
 Clear trial information when registered, this restarts the trial from zero if the license key is removed or expires.

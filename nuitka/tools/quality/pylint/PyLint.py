@@ -164,7 +164,7 @@ def checkVersion():
 def getOptions():
     pylint_version = checkVersion()
 
-    # spell-checker: ignore setrecursionlimit,rcfile
+    # spell-checker: ignore rcfile,setrecursionlimit
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())

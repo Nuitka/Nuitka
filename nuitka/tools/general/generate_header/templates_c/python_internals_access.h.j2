@@ -13,7 +13,7 @@
 
 #undef _PyRuntime
 
-// spell-checker: ignore PYRUNTIME,offsetof,GNUC,ceval,stoptheworld,Qsbr,Reftracer
+// spell-checker: ignore GNUC,PYRUNTIME,Qsbr,Reftracer,ceval,offsetof,stoptheworld
 
 #if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3e0 && PYTHON_VERSION < 0x3f0 && !defined(Py_GIL_DISABLED)
 static inline struct _Py_interp_cached_objects *Nuitka_PyInterpreterState_GetCachedObjects(PyInterpreterState *interp) {

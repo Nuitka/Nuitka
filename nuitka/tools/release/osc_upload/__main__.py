@@ -66,7 +66,7 @@ def main():
         venv.runCommand("python -m pip install osc 'setuptools<68'")
 
         # Stage the "osc" checkout from the ground up,
-        # spell-checker: ignore kayhayen,rpmlintrc,addremove
+        # spell-checker: ignore addremove,kayhayen,rpmlintrc
         venv.runCommand(
             """\
 rm -rf osc && mkdir osc && cd osc && \

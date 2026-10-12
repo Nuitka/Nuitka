@@ -6,7 +6,7 @@
 This wraps difflib to keep all diffing logic centralized and isolated.
 """
 
-# spell-checker: ignore lineterm,tofile,fromlines,tolines,fromdesc,todesc,numlines
+# spell-checker: ignore fromdesc,fromlines,lineterm,numlines,todesc,tofile,tolines
 
 import difflib
 import os

@@ -80,6 +80,8 @@ _plain_files = (
     "nuitka2",
     "nuitka2-run",
     "nuitka-decrypt",
+    "winlicense-create-license",
+    "winlicense-export",
     "run-tests",
     "run-inside-nuitka-container",
     "pre-commit",

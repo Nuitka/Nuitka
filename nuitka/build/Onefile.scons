@@ -217,7 +217,7 @@ def createBuildDefinitionsFile():
     if onefile_splash_screen:
         onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
 
-        # spell-checker: ignore Windowscodecs,Shlwapi
+        # spell-checker: ignore Shlwapi,Windowscodecs
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
     onefile_definitions["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = (

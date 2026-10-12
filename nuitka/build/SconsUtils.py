@@ -302,10 +302,9 @@ def createEnvironment(
         # escape backslashes for SCons string interpolation^
         safe_zig_path = zig_exe_path.replace("\\", "\\\\")
 
-        # spell-checker: ignore CCCOM,CFLAGS,CCFLAGS,CCCOMCOM,CXXCOM,CXXFLAGS
-        # spell-checker: ignore LINKCOM,LIBDIRFLAGS,LIBFLAGS,SHCCCOM,SHCFLAGS
-        # spell-checker: ignore SHCCFLAGS,SHCXXCOM,SHCXXFLAGS,SHLINKCOM,
-        # spell-checker: ignore LINKFLAGS,SHLINKFLAGS
+        # spell-checker: ignore CCCOM,CCCOMCOM,CCFLAGS,CFLAGS,CXXCOM,CXXFLAGS,LIBDIRFLAGS
+        # spell-checker: ignore LIBFLAGS,LINKCOM,LINKFLAGS,SHCCCOM,SHCCFLAGS,SHCFLAGS
+        # spell-checker: ignore SHCXXCOM,SHCXXFLAGS,SHLINKCOM,SHLINKFLAGS
 
         env["CCCOM"] = (
             '"%s" cc -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' % safe_zig_path
@@ -619,7 +618,7 @@ def writeSconsReport(env, target):
                 continue
 
             # Ignore problematic and useless values
-            # spell-checker: ignore MSVSSCONS,IDLSUFFIXES,DSUFFIXES
+            # spell-checker: ignore DSUFFIXES,IDLSUFFIXES,MSVSSCONS
             if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
@@ -827,7 +826,7 @@ def writeSconsResourceUsageReport(source_dir, source_filename, rusage):
     rusage_dict = rusage.asDict()
     normalized_rusage = {"cpu": {}, "memory": {}, "system-events": {}}
 
-    # spell-checker: ignore maxrss,majflt,minflt,nvcsw,nivcsw,oublock,inblock
+    # spell-checker: ignore inblock,majflt,maxrss,minflt,nivcsw,nvcsw,oublock
     mapping = {
         "ru_utime": ("cpu", "user-cpu-time"),
         "ru_stime": ("cpu", "system-cpu-time"),
@@ -1236,7 +1235,7 @@ def _getBinaryArch(binary, mingw_mode):
     if isLinux() or mingw_mode:
         assert os.path.exists(binary), binary
 
-        # Binutils binary name, spell-checker: ignore objdump,binutils
+        # Binutils binary name, spell-checker: ignore binutils,objdump
         command = ["objdump", "-f", binary]
 
         try:

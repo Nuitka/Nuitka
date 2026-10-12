@@ -5,8 +5,7 @@
  * It needs to unpack the attached files and and then loads and executes
  * the compiled program as a separate process.
  *
- * spell-checker: ignore SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
- * spell-checker: ignore HINSTANCE
+ * spell-checker: ignore FOF_NOCONFIRMATION,FOF_NOERRORUI,HINSTANCE,SHFILEOPSTRUCTW
  *
  */
 
@@ -1380,7 +1379,7 @@ int main(int argc, char **argv) {
 
 #if defined(_WIN32)
 
-    // spell-checker: ignore STARTUPINFOW,STARTF_USESTDHANDLES
+    // spell-checker: ignore STARTF_USESTDHANDLES,STARTUPINFOW
     STARTUPINFOW si;
     memset(&si, 0, sizeof(si));
     si.dwFlags = STARTF_USESTDHANDLES;

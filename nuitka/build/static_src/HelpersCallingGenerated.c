@@ -12,7 +12,7 @@
 // We are switching some warnings off for this code, as they are triggered
 // by the generated code constructs in a way that is not useful. For IDE
 // parses this is skipped, as they report the pop without the push.
-// spell-checker: ignore Wparentheses GNUC
+// spell-checker: ignore GNUC Wparentheses
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wparentheses-equality"

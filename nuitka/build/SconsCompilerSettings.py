@@ -65,11 +65,11 @@ from .SconsUtils import (
 )
 from .WindowsObjGenerator import generateWindowsCoffObject
 
-# spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
-# spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,-ftrack,-fvisibility,-municode
-# spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
-# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS,CCVERSION
+# spell-checker: ignore -Wunused,-defsym,-feliminate,-flto,-fpartial-inlining,-fprofile
+# spell-checker: ignore -freorder-functions,-ftrack,-fvisibility,-fwrapv,-municode,CCFLAGS
+# spell-checker: ignore CCVERSION,CGTHREADS,CPPDEFINES,CPPPATH,CXXFLAGS,CXXVERSION
+# spell-checker: ignore GENPROFILE,LIBPATH,LINKFLAGS,LTCG,USEPROFILE,bexpall,blibpath
+# spell-checker: ignore implib,noexecstack
 
 
 def _detectWindowsSDK(env):
@@ -2149,7 +2149,7 @@ def reportCCompiler(env, context, output_func):
 
 def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
-    # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
+    # spell-checker: ignore ccflags,cflags,cppflags,cxxflags,ldflags
 
     env.cpp_flags = os.getenv("CPPFLAGS")
     if env.cpp_flags:

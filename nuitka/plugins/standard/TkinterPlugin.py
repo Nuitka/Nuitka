@@ -19,7 +19,7 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.utils.Zipfiles import createZipFile, doesZipFileMatch, getZipFile
 
-# spell-checker: ignore tcltk,tcltest
+# spell-checker: ignore tcltest,tcltk
 
 
 def _isTkInterModule(module):

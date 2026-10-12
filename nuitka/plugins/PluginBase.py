@@ -277,7 +277,7 @@ def _convertVersionToTuple(distribution_name, version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    # spell-checker: ignore opencv,pyobjc,objc
+    # spell-checker: ignore objc,opencv,pyobjc
 
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"

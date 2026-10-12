@@ -14,9 +14,9 @@
 
 #include "nuitka/helper/dict_internals.h"
 
-// spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
-// spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
-// spell-checker: ignore qsbr,decref,dkix,ixsize
+// spell-checker: ignore decref,dictiteritems_type,dictiterkeys_type,dictiterobject
+// spell-checker: ignore dictitervalues_type,dictkeysview_type,dictvaluesview_type
+// spell-checker: ignore dictviewobject,dkix,ixsize,ob_shash,qsbr
 
 // Only needed for 3.13t right now, but I suspect we'll need to remove this
 // guard later.
@@ -1146,7 +1146,7 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
 
 #if PYTHON_VERSION >= 0x360
 static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate, Py_ssize_t keys_size) {
-    // CPython names, spell-checker: ignore numfree,dictkeys
+    // CPython names, spell-checker: ignore dictkeys,numfree
     PyDictKeysObject *dk;
 
 // TODO: Cannot always use cached objects. Need to also consider

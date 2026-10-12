@@ -32,7 +32,7 @@ from .Utils import (
 _executable_command_cache = {}
 
 # We emulate and use APIs of stdlib and use special commands
-# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod,memcheck
+# spell-checker: ignore creationflags,debuginfod,memcheck,popenargs,preexec_fn,setsid
 
 
 def _getExecutablePath(filename, search_path):

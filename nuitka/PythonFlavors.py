@@ -211,7 +211,7 @@ def isRyePython():
 
         # We didn't find a better one, since they do not leave much of any trace
         # otherwise than an unusable "libpython.a"
-        # spell-checker: ignore isysroot,flto,ldflags
+        # spell-checker: ignore flto,isysroot,ldflags
         value = sysconfig.get_config_var("_OSX_SUPPORT_INITIAL_PY_CORE_LDFLAGS")
         return value is not None and "-flto=thin" in value and "-isysroot" in value
 

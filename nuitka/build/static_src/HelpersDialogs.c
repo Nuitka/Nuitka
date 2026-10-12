@@ -17,9 +17,9 @@
 // Global handle to the dialog, so the console handler can find it.
 static HWND our_input_dialog = NULL;
 
-// spell-checker: ignore AUTOHSCROLL,WNDPROC,HMENU,GWLP_USERDATA
-// spell-checker: ignore IDOK,LOWORD,WNDCLASSW,lpfnWndProc,COLOR_BTNFACE
-// spell-checker: ignore lpszClassName,WS_EX_DLGMODALFRAME,GWLP_WNDPROC
+// spell-checker: ignore AUTOHSCROLL,COLOR_BTNFACE,GWLP_USERDATA,GWLP_WNDPROC,HMENU,IDOK
+// spell-checker: ignore LOWORD,WNDCLASSW,WNDPROC,WS_EX_DLGMODALFRAME,lpfnWndProc
+// spell-checker: ignore lpszClassName
 
 // Structure to hold all necessary data for the dialog window
 struct DialogState {

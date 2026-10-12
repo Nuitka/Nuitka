@@ -224,7 +224,7 @@ sudo /usr/sbin/pbuilder --update --basetgz %s""" % (basetgz_filename)
     (dsc_filename,) = resolveShellPatternToFilenames("dist/deb_dist/*.dsc")
 
     # Execute the package build in the pbuilder with tests.
-    # spell-checker: ignore hookdir,debemail,buildresult
+    # spell-checker: ignore buildresult,debemail,hookdir
     command = (
         "sudo",
         "/usr/sbin/pbuilder",
@@ -269,7 +269,7 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
 """ % {"codename": codename},
     )
 
-    # spell-checker: ignore reprepro includedeb
+    # spell-checker: ignore includedeb reprepro
     command = ["reprepro", "includedeb", codename]
     command.extend(resolveShellPatternToFilenames("../*.deb"))
 

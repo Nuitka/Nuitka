@@ -8,9 +8,9 @@
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore PYMEM_DOMAIN,Nuitka_gc_decref,gcstate,uncollectable,sisnsn,QSBR,wrasgc
-// spell-checker: ignore Nuitka_visit_decref,finalizers,wrcb,wrlist,_PyObject_GET_WEAKREFS_LISTPTR
-// spell-checker: ignore objmalloc,qbsr,stoptheworld
+// spell-checker: ignore Nuitka_gc_decref,Nuitka_visit_decref,PYMEM_DOMAIN,QSBR
+// spell-checker: ignore _PyObject_GET_WEAKREFS_LISTPTR,finalizers,gcstate,objmalloc,qbsr
+// spell-checker: ignore sisnsn,stoptheworld,uncollectable,wrasgc,wrcb,wrlist
 
 void *(*python_obj_malloc)(void *ctx, size_t size) = NULL;
 void *(*python_mem_malloc)(void *ctx, size_t size) = NULL;

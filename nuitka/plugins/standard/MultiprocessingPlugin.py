@@ -9,7 +9,7 @@ point to a "Python.exe" and won't use compiled code by default.
 
 The issue applies to accelerated and standalone mode alike.
 
-spell-checker: ignore joblib,anyio
+spell-checker: ignore anyio,joblib
 """
 
 from nuitka.importing.FakeModules import makeFakeModuleDescription

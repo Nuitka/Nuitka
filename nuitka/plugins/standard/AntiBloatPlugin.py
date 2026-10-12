@@ -22,7 +22,7 @@ from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Importing import withTemporarySysPathExtension
 from nuitka.utils.ModuleNames import ModuleName
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
+# spell-checker: ignore dask,ipykernel,matplotlib,numba,pyximport,sqlalchemy,statsmodels
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 _other_choices = ("bytecode",)

@@ -44,7 +44,7 @@ adapted_headers_patch_filename = "adapted_headers.patch"
 
 def getOffsetsJsonRequiredKeys(for_python_version_str):
     """Returns list of names we need to know the offset of."""
-    # spell-checker: ignore stoptheworld,gilstate,ceval
+    # spell-checker: ignore ceval,gilstate,stoptheworld
 
     for_python_version_tuple = tuple(int(d) for d in for_python_version_str.split("."))
     keys = []

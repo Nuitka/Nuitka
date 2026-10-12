@@ -8,7 +8,7 @@
  * For multiprocessing, joblib, loky there is things here that will
  * allow them to fork properly with their intended entry points.
  *
- * spell-checker: ignore joblib loky anyio platlibdir
+ * spell-checker: ignore anyio joblib loky platlibdir
  *
  */
 

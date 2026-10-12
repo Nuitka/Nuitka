@@ -8,7 +8,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
-# spell-checker: ignore pywebview,mshtml
+# spell-checker: ignore mshtml,pywebview
 
 
 class NuitkaPluginPywebview(NuitkaPluginBase):
@@ -37,7 +37,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
         # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
-                # spell-checker: ignore winforms,edgechromium,edgehtml,win32
+                # spell-checker: ignore edgechromium,edgehtml,win32,winforms
                 result = module_name in (
                     "webview.platforms.winforms",
                     "webview.platforms.edgechromium",

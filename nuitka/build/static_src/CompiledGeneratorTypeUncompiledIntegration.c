@@ -13,10 +13,9 @@
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore f_valuestack,f_stacktop,PYGEN,_Py_CODEUNIT,OPARG
-// spell-checker: ignore localsplus,stacktop,f_funcobj,genexit
-// spell-checker: ignore deopt,subscr,isinstance,getitem,noargs,aiter,anext
-// spell-checker: ignore classderef,getattribute,precall,nondescriptor,pyfunc
+// spell-checker: ignore OPARG,PYGEN,_Py_CODEUNIT,aiter,anext,classderef,deopt,f_funcobj
+// spell-checker: ignore f_stacktop,f_valuestack,genexit,getattribute,getitem,isinstance
+// spell-checker: ignore localsplus,noargs,nondescriptor,precall,pyfunc,stacktop,subscr
 
 #if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,

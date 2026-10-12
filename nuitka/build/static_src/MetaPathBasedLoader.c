@@ -934,7 +934,7 @@ static entrypoint_t _loadExtensionModuleInitAddress(PyThreadState *tstate, char 
 #else
     // This code would work for all versions, we are avoiding access to interpreter
     // structure internals of 3.8 or higher.
-    // spell-checker: ignore getdlopenflags,dlopenflags
+    // spell-checker: ignore dlopenflags,getdlopenflags
 
 #ifdef __wasi__
     const char *error = "dynamic libraries are not implemented in wasi";

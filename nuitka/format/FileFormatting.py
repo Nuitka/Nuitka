@@ -6,7 +6,6 @@
 import re
 import subprocess
 
-from nuitka.__past__ import re_sub
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
@@ -29,6 +28,160 @@ _dash_characters = (
     "\u2015",  # HORIZONTAL BAR
 )
 
+# Fill width for 'spell-checker: ignore' word lists, matching the generated
+# files emitted by the specialization tooling.
+_spell_checker_ignore_width = 90
+
+_spell_checker_ignore_pattern = re.compile(b"^(.*spell-checker:\\s*ignore)(\\s+)(.*)$")
+
+_spell_checker_word_pattern = re.compile(b"^[A-Za-z0-9_.+-]+$")
+
+# Prefixes made up of these are considered plain comments, whereas anything
+# with prose before the directive is not merged and wrapped, since that would
+# repeat the prose on every line.
+_spell_checker_plain_prefix_pattern = re.compile(b"^[ \t#/!*-]*$")
+
+
+def _wrapSpellCheckerIgnoreWords(prefix, words, separator):
+    """Fill the ignored words into lines of the given prefix.
+
+    Args:
+        prefix: bytes - the line prefix, including 'spell-checker: ignore'
+        words: sequence of bytes - sorted and de-duplicated words
+        separator: bytes - separator to use between the words
+
+    Returns:
+        List of bytes lines.
+    """
+
+    result = []
+    current_line = b""
+
+    for word in words:
+        if not current_line:
+            current_line = word
+        elif (
+            len(prefix) + len(current_line) + len(separator) + len(word)
+            <= _spell_checker_ignore_width
+        ):
+            current_line += separator + word
+        else:
+            result.append(prefix + current_line)
+            current_line = word
+
+    result.append(prefix + current_line)
+
+    return result
+
+
+def _parseSpellCheckerIgnoreLine(line):
+    """Parse a 'spell-checker: ignore' line.
+
+    Args:
+        line: bytes - the line to parse
+
+    Returns:
+        Tuple of prefix, word list, words, and plainness, or None if the line
+        is not a plain word list.
+    """
+
+    match = _spell_checker_ignore_pattern.match(line)
+
+    if match is None:
+        return None
+
+    # Restore standard spacing after comma in the prose before the directive.
+    prefix = re.sub(
+        b"(,[a-zA-Z])",
+        lambda m: b", " + m.group(0)[1:],
+        match.group(1),
+    )
+
+    word_list = match.group(3)
+    words = word_list.replace(b",", b" ").split()
+
+    # Only consider plain word lists, otherwise leave code or prose following
+    # the directive alone.
+    if not words or not all(_spell_checker_word_pattern.match(word) for word in words):
+        return None
+
+    is_plain = (
+        _spell_checker_plain_prefix_pattern.match(
+            prefix.rsplit(b"spell-checker:", 1)[0]
+        )
+        is not None
+    )
+
+    return prefix + b" ", word_list, words, is_plain
+
+
+def _cleanupSpellCheckerIgnores(contents):
+    """Sort, de-duplicate and fill 'spell-checker: ignore' lines.
+
+    Consecutive plain lines are treated as a single sequence of words that is
+    sorted and then filled into lines again.
+
+    Args:
+        contents: bytes - the contents of the file
+
+    Returns:
+        bytes - the contents with 'spell-checker: ignore' lines cleaned up.
+    """
+
+    lines = contents.split(b"\n")
+
+    result = []
+    index = 0
+    line_count = len(lines)
+
+    while index < line_count:
+        ignore_line = _parseSpellCheckerIgnoreLine(lines[index])
+
+        if ignore_line is None:
+            result.append(lines[index])
+            index += 1
+            continue
+
+        prefix, word_list, words, is_plain = ignore_line
+        use_commas = b"," in word_list
+        all_words = list(words)
+        merged_lines = 1
+
+        index += 1
+
+        # Merge with consecutive plain lines of the same kind and prefix.
+        while is_plain and index < line_count:
+            next_ignore_line = _parseSpellCheckerIgnoreLine(lines[index])
+
+            if (
+                next_ignore_line is None
+                or not next_ignore_line[3]
+                or next_ignore_line[0] != prefix
+            ):
+                break
+
+            all_words.extend(next_ignore_line[2])
+            use_commas = use_commas or b"," in next_ignore_line[1]
+
+            merged_lines += 1
+            index += 1
+
+        words = sorted(set(all_words))
+        separator = b"," if use_commas else b" "
+
+        # Only fill merged lines again, a single line is left as is, to not
+        # repeat a prose prefix over and over.
+        if merged_lines == 1:
+            result.append(prefix + separator.join(words))
+        else:
+            result.extend(
+                _wrapSpellCheckerIgnoreWords(
+                    prefix=prefix, words=words, separator=separator
+                )
+            )
+
+    return b"\n".join(result)
+
 
 def cleanupWindowsNewlines(filename, effective_filename):
     """Remove Windows new-lines from a file."""
@@ -50,22 +203,10 @@ def cleanupWindowsNewlines(filename, effective_filename):
 
         # Normalize 'spell-checker: ignore' lines:
         # - Prose prefix: restore standard spacing after comma.
-        # - Word list: no spaces after commas (word1,word2).
-        def _fixSpellCheckerIgnoreSpaces(match):
-            prefix = re.sub(
-                b"(,[a-zA-Z])",
-                lambda m: b", " + m.group(0)[1:],
-                match.group(1),
-            )
-            word_list = match.group(2).replace(b", ", b",")
-            return prefix + word_list
-
-        updated_code = re_sub(
-            b"(^.*spell-checker:\\s*ignore\\s+)(.*)",
-            _fixSpellCheckerIgnoreSpaces,
-            updated_code,
-            flags=re.MULTILINE,
-        )
+        # - Word list: no spaces after commas (word1,word2), sorted with
+        #   duplicates removed, like we do for pylint disables, with
+        #   consecutive lines filled up to the line length.
+        updated_code = _cleanupSpellCheckerIgnores(updated_code)
 
         def replacer(match):
             return b"PYTHON_VERSION %s %s" % (match.group(1), match.group(2).lower())

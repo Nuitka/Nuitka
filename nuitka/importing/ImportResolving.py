@@ -8,7 +8,7 @@ from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
-# spell-checker: ignore Tkdnd gdbm cookielib htmlentitydefs CGIHTTPServer Tkconstants
+# spell-checker: ignore CGIHTTPServer Tkconstants Tkdnd cookielib gdbm htmlentitydefs
 # spell-checker: ignore tkinter_tkfiledialog tkinter_tksimpledialog xmlrpclib
 
 _six_moves = {

@@ -9,8 +9,8 @@ some handling of defaults.
 """
 
 # These are for use in option values.
-# spell-checker: ignore uiaccess,noannotations,etherium
-# spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
+# spell-checker: ignore etherium,noannotations,noasserts,nodocstrings,norandomization
+# spell-checker: ignore nowarnings,uiaccess
 
 import fnmatch
 import os

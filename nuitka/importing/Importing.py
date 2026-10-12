@@ -1525,11 +1525,11 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     )
 
 
-# spell-checker: ignore _posixsubprocess,pyexpat,xxsubtype,_bytesio,_interpchannels
-# spell-checker: ignore _interpqueues,_lsprof,_multibytecodec,_posixshmem _winapi
-# spell-checker: ignore  _testbuffer _testexternalinspection _testimportmultiple
-# spell-checker: ignore _testinternalcapi _testmultiphase _testsinglephase _scproxy
-# spell-checker: ignore _xxtestfuzz _xxsubinterpreters imageop _xxinterpchannels
+# spell-checker: ignore _bytesio,_interpchannels,_interpqueues,_lsprof,_multibytecodec
+# spell-checker: ignore _posixshmem,_posixsubprocess,_scproxy,_testbuffer
+# spell-checker: ignore _testexternalinspection,_testimportmultiple,_testinternalcapi
+# spell-checker: ignore _testmultiphase,_testsinglephase,_winapi,_xxinterpchannels
+# spell-checker: ignore _xxsubinterpreters,_xxtestfuzz,imageop,pyexpat,xxsubtype
 _stdlib_module_raises = {
     "_abc": False,
     "__builtin__": False,

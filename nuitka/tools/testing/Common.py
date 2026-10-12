@@ -56,7 +56,7 @@ from nuitka.Version import getCommercialVersion
 
 from .SearchModes import SearchMode
 
-# spell-checker: ignore popenargs,pathsep,killpg
+# spell-checker: ignore killpg,pathsep,popenargs
 
 test_logger = OurLogger("", base_style="blue")
 
@@ -1677,17 +1677,16 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
         if loaded_basename == "openssl.cnf":
             continue
 
-        # Taking these from system is harmless and desirable, spell-checker: ignore libz libgcc
+        # Taking these from system is harmless and desirable, spell-checker: ignore libgcc libz
         if loaded_basename.startswith(("libz.so", "libgcc_s.so")):
             continue
 
         # System C libraries are to be expected,
-        # spell-checker: ignore libm,libdl,libpthread,libanl,libcrypt
-        # spell-checker: ignore libcidn,libBrokenLocale,libSegFault,libutil
-        # spell-checker: ignore libnsl,libnss_compat,libnss_db,libnss_dns
-        # spell-checker: ignore libnss_files,libnss_hesiod,libnss_nis
-        # spell-checker: ignore libnss_nisplus,libpcprofile,libresolv,
-        # spell-checker: ignore librt,libthread_db,libmemusage,libmvec
+        # spell-checker: ignore libBrokenLocale,libSegFault,libanl,libcidn,libcrypt,libdl
+        # spell-checker: ignore libm,libmemusage,libmvec,libnsl,libnss_compat,libnss_db
+        # spell-checker: ignore libnss_dns,libnss_files,libnss_hesiod,libnss_nis
+        # spell-checker: ignore libnss_nisplus,libpcprofile,libpthread,libresolv,librt
+        # spell-checker: ignore libthread_db,libutil
         if loaded_basename.startswith(
             (
                 "ld-linux-x86-64.so",
@@ -1731,9 +1730,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir, python_flavor):
             continue
 
         # Loaded by C library potentially for DNS lookups.
-        # spell-checker: ignore libnss,libnsl,libattr,libbz2,libcap,
-        # spell-checker: ignore libdw,libelf,liblzma,libselinux,libpcre,
-        # spell-checker: ignore libblkid,libmount,libpcre2-8,libuuid
+        # spell-checker: ignore libattr,libblkid,libbz2,libcap,libdw,libelf,liblzma
+        # spell-checker: ignore libmount,libnsl,libnss,libpcre,libpcre2-8,libselinux
+        # spell-checker: ignore libuuid
         if loaded_basename.startswith(
             (
                 "libnss_",

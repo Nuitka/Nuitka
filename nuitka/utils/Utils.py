@@ -457,7 +457,7 @@ def hasStandaloneSupportedOS():
 
 def getUserName():
     """Return the user name."""
-    # spell-checker: ignore getpwuid,getuid,getlogin
+    # spell-checker: ignore getlogin,getpwuid,getuid
     if isWin32Windows():
         return os.getlogin()
     else:

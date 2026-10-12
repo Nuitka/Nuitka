@@ -38,8 +38,8 @@ from .SconsUtils import (
 # Cache for detected versions.
 v_cache = {}
 
-# spell-checker: ignore gfortran,ifort,javah,ranlib,pdflatex,pdftex,dvipdf,dvips
-# spell-checker: ignore rpcgen,rpmbuild,sccs,nasm,dumpversion,dumpfullversion
+# spell-checker: ignore dumpfullversion,dumpversion,dvipdf,dvips,gfortran,ifort,javah,nasm
+# spell-checker: ignore pdflatex,pdftex,ranlib,rpcgen,rpmbuild,sccs
 
 # Prevent these programs from being found, avoiding the burden of tool init.
 _blocked_tools = (
@@ -219,7 +219,7 @@ def makeLinkerUseResponseFile(env, source_filenames):
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
     # monkey patching.
-    # spell-checker: ignore SHLINKCOM,LINKCOM
+    # spell-checker: ignore LINKCOM,SHLINKCOM
     if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
             "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(linker_response_filename)

@@ -14,7 +14,7 @@ except ImportError:
 else:
     from types import CodeType
 
-    # spell-checker: ignore kwdefaults,globalvars
+    # spell-checker: ignore globalvars,kwdefaults
     # Nuitka will optimize this away, but VS code will warn about them otherwise.
     from typing import TYPE_CHECKING
 

@@ -463,7 +463,7 @@ class install(distutils.command.install.install):
     def finalize_options(self):
         distutils.command.install.install.finalize_options(self)
         # Ensure the "purelib" folder is not used
-        # spell-checker: ignore purelib,platlib
+        # spell-checker: ignore platlib,purelib
         self.install_lib = self.install_platlib
 
 

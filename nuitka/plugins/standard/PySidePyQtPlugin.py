@@ -264,8 +264,8 @@ there might be.""",
         return "."
 
     def _getSensiblePlugins(self):
-        # spell-checker: ignore imageformats,iconengines,mediaservice,printsupport
-        # spell-checker: ignore platformthemes,egldeviceintegrations,xcbglintegrations
+        # spell-checker: ignore egldeviceintegrations,iconengines,imageformats
+        # spell-checker: ignore mediaservice,platformthemes,printsupport,xcbglintegrations
         return OrderedSet(
             tuple(
                 family
@@ -532,7 +532,7 @@ import %(binding_name)s.QtCore
         qml_plugin_dir = self._getQmlDirectory()
 
         # List all file types of the QML plugin folder that are data files and
-        # not DLLs, spell-checker: ignore qmlc,qmltypes,metainfo,qmldir
+        # not DLLs, spell-checker: ignore metainfo,qmlc,qmldir,qmltypes
         datafile_suffixes = (
             ".qml",
             ".qmlc",
@@ -945,7 +945,7 @@ if not path.startswith(python_runtime_dir):
             )
 
         # We need to set these variables, to force the layout
-        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX,
+        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
         # spell-checker: ignore QTWEBENGINE_RESOURCES_PATH
 
         if self.isQtWebEngineModule(full_name):
@@ -1277,7 +1277,7 @@ Prefix = .
                     )
 
                 # Also copy required OpenGL DLLs on Windows,
-                # spell-checker: ignore libegl,libglesv2,opengl32sw,d3dcompiler_
+                # spell-checker: ignore d3dcompiler_,libegl,libglesv2,opengl32sw
                 if isWin32Windows():
                     gl_dlls = ("libegl.dll", "libglesv2.dll", "opengl32sw.dll")
 

@@ -268,7 +268,7 @@ def scanStandardLibraryPath(stdlib_dir):
 _stdlib_no_auto_inclusion_list = (
     # Avoid this to be included, implicit usages will be rare, but it triggers
     # the Nuitka plugin "multiprocessing" that is always enabled.
-    # spell-checker: ignore _pydecimal,_posixsubprocess,pyexpat,sitecustomize
+    # spell-checker: ignore _posixsubprocess,_pydecimal,pyexpat,sitecustomize
     "multiprocessing",
     "_multiprocessing",
     # These are embedded as frozen modules in the Python binary, so avoid
@@ -393,7 +393,7 @@ _stdlib_no_auto_inclusion_list = (
     "Tkinter",
     "tkinter",
     "_tkinter",
-    # lib-tk from Python2, spell-checker: ignore Tkdnd,Tkconstants
+    # lib-tk from Python2, spell-checker: ignore Tkconstants,Tkdnd
     "Tix",
     "FixTk",
     "ScrolledText",

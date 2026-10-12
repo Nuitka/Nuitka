@@ -12,7 +12,7 @@ def getPlatformRequirements(installed_python, case_data):
 
     # Nuitka house keeping, these are from setup.py but we ignore onefile needs
     # as that is not currently covered in watches.
-    # spell-checker: ignore orderedset,imageio
+    # spell-checker: ignore imageio,orderedset
     needs_onefile = False
 
     if installed_python.getHexVersion() < 0x300:

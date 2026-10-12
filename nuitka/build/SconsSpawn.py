@@ -324,7 +324,7 @@ def _formatForOutput(arg):
 def isIgnoredError(line):
     # Many cases and return driven, pylint: disable=too-many-branches,too-many-return-statements
 
-    # spell-checker: ignore tmpnam,tempnam,structseq,bytearrayobject
+    # spell-checker: ignore bytearrayobject,structseq,tempnam,tmpnam
 
     # Debian Python2 static libpython lto warnings:
     if "function `posix_tmpnam':" in line:

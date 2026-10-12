@@ -70,9 +70,9 @@ def displayError(dirname, filename):
 
 
 def _checkForLibcBinaries(dist_path):
-    # spell-checker: ignore libanl libcidn libcrypt libdl libm libmemusage libmvec
-    # spell-checker: ignore libnsl libnss libpcprofile libpthread libresolv librt
-    # spell-checker: ignore libthread libutil nisplus
+    # spell-checker: ignore libanl libcidn libcrypt libdl libm libmemusage libmvec libnsl
+    # spell-checker: ignore libnss libpcprofile libpthread libresolv librt libthread
+    # spell-checker: ignore libutil nisplus
     found_glibc_libs = []
     for dist_filename in os.listdir(os.path.join(dist_path)):
         if os.path.basename(dist_filename).startswith(
