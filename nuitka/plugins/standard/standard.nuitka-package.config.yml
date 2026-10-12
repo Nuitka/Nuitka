@@ -5510,7 +5510,7 @@
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
 
-- module-name: 'PySide6' # checksum: 48cb31e4
+- module-name: 'PySide6' # checksum: b5757f61
   implicit-imports:
     # Non-limited API builds of Shiboken call "PyFunction_GetDefaults" on
     # compiled functions in its signal argument counting and leak the
@@ -5540,12 +5540,15 @@
               affected = False
 
               try:
-                orig_connect(sender.destroyed, handler.probeMethod)
-                orig_connect(sender.destroyed, handler.probeMethod)
+                for _ in range(2):
+                  probing_method = handler.probeMethod
+                  _protected.append(probing_method)
+
+                  orig_connect(sender.destroyed, probing_method)
               except SystemError:
                 affected = True
 
-              del sender, handler
+              del probing_method, sender, handler
 
               return affected
             except Exception:
