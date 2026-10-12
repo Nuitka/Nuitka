@@ -117,10 +117,26 @@ def makeClosureNamedTuple():
     return NT
 
 
+def callAnnotateForwardRef(annotate):
+    return annotationlib.call_annotate_function(
+        annotate,
+        annotationlib.Format.FORWARDREF,
+    )
+
+
 print("Function closure:", displayDict(makeFunctionAnnotation().__annotations__))
 print("Class closure:", displayDict(makeClassAnnotation().__annotations__))
 print("Method closure:", displayDict(makeMethodAnnotation().method.__annotations__))
 print("Module level:", displayDict(makeModuleLevelAnnotation().__annotations__))
+
+print(
+    "Class closure forwardref:",
+    displayDict(callAnnotateForwardRef(makeClassAnnotation().__annotate__)),
+)
+print(
+    "Method closure forwardref:",
+    displayDict(callAnnotateForwardRef(makeMethodAnnotation().method.__annotate__)),
+)
 
 type_parameter_class = makeTypeParameterClassAnnotation()
 type_parameter_function = makeTypeParameterFunctionAnnotation()
