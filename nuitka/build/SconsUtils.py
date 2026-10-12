@@ -42,40 +42,6 @@ from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 
-def _raiseStackSizeLimit():
-    """Increase the stack size limit for the scons process.
-
-    Notes:
-        The C compiler processes spawned by scons inherit the stack size
-        limit. Compiling very large generated source files can make the C
-        compiler use deep recursion and crash with a stack overflow, if the
-        limit is too small. The limit is only ever increased, never decreased.
-    """
-
-    if not isWin32Windows():
-        import resource  # pylint: disable=I0021,import-error
-
-        stack_soft, stack_hard = resource.getrlimit(resource.RLIMIT_STACK)
-
-        if stack_hard == resource.RLIM_INFINITY:
-            stack_wanted = stack_hard
-        else:
-            stack_wanted = max(stack_soft, stack_hard)
-
-        try:
-            resource.setrlimit(resource.RLIMIT_STACK, (stack_wanted, stack_hard))
-        except (OSError, ValueError):
-            pass
-        else:
-            scons_details_logger.info(
-                "Stack size limit set to %s (was %s)."
-                % tuple(
-                    "unlimited" if limit == resource.RLIM_INFINITY else limit
-                    for limit in (stack_wanted, stack_soft)
-                )
-            )
-
-
 def initScons(arguments):
     # Set the arguments.
     _setArguments(arguments)
@@ -114,23 +80,6 @@ def _setArguments(arguments):
         if arg_encoding is not None:
             value = decodeData(value)
         scons_arguments[key] = value
-
-
-def setupScons(env, source_dir):
-    env["BUILD_DIR"] = source_dir
-
-    # Store the file signatures database with the rest of the source files and
-    # make it version dependent on the Python version of running Scons, as its
-    # pickle is being used, spell-checker: ignore sconsign
-    sconsign_filename = os.path.abspath(
-        getNormalizedPathJoin(
-            source_dir, ".sconsign-%d%s" % (sys.version_info[0], sys.version_info[1])
-        )
-    )
-
-    env.SConsignFile(sconsign_filename)
-
-    _raiseStackSizeLimit()
 
 
 def getArgumentRequired(name):

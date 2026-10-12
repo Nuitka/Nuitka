@@ -27,7 +27,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.Tracing import scons_logger
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getNormalizedPathJoin,
@@ -39,23 +39,18 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsProgress import setSconsProgressBarTotal
-from .SconsSpawn import enableSpawnMonitoring
+from .SconsControl import executeSconsBuild
 from .SconsUtils import (
-    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     getArgumentBool,
     getArgumentDefaulted,
-    getArgumentList,
     getArgumentRequired,
     linkSystemLibrary,
     makeResultPathFileSystemEncodable,
     scanSourceDir,
-    writeSconsReport,
 )
 
 # spell-checker: ignore ccflags,cppdefines,cpppath
-# spell-checker: ignore libpath
 
 # Set up the basic stuff.
 env = createNuitkaSconsEnvironment()
@@ -91,13 +86,6 @@ target_arch = env.target_arch
 python_prefix = getArgumentRequired("python_prefix")
 
 python_prefix_external = getExternalUsePath(python_prefix)
-
-
-# Preprocessor defines and link libraries from plugins
-cpp_defines = getArgumentList("cpp_defines", "")
-cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
-link_dirs = getArgumentList("link_dirs", "")
-link_libraries = getArgumentList("link_libraries", "")
 
 
 # Onefile bootstrap is optional.
@@ -222,26 +210,6 @@ if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
 
-# Plugin contributed C defines should be used too.
-env.Append(CPPDEFINES=cpp_defines)
-# Plugin contributed C include directories should be used too.
-env.Append(CPPPATH=cpp_include_dirs)
-# Plugin contributed link dirs should be used too.
-env.Append(LIBPATH=link_dirs)
-# Plugin contributed link libraries should be used too.
-env.Append(LIBS=link_libraries)
-
-# Work around windows bugs and use watchdogs to track progress of compilation.
-enableSpawnMonitoring(
-    env=env,
-    source_filenames=source_filenames,
-)
-
-# Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
-# scons traceback is not going to be very interesting to us.
-changeKeyboardInterruptToErrorExit()
-
-
 def createBuildDefinitionsFile():
     onefile_definitions = {}
 
@@ -264,13 +232,13 @@ def createBuildDefinitionsFile():
 
 createBuildDefinitionsFile()
 
-
-writeSconsReport(env=env, target=target)
-
-setSconsProgressBarTotal(name="Onefile", total=len(source_filenames))
-
-scons_details_logger.info("Launching Scons target: %s" % target)
-env.Default(target)
+executeSconsBuild(
+    env=env,
+    target=target,
+    source_filenames=source_filenames,
+    progressbar_name="Onefile",
+    stable_include_paths=True,
+)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

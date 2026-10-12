@@ -38,6 +38,7 @@ from nuitka.utils.Utils import (
 from .AIXObjGenerator import generateAIXXcoffObject
 from .DataComposerInterface import getConstantBlobSymbolName
 from .SconsCaching import enableCcache, enableClcache
+from .SconsControl import setupScons
 from .SconsHacks import getEnhancedToolDetect, myDetectVersion
 from .SconsProgress import enableSconsProgressBar
 from .SconsUtils import (
@@ -61,7 +62,6 @@ from .SconsUtils import (
     linkSystemLibrary,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
-    setupScons,
 )
 from .WindowsObjGenerator import generateWindowsCoffObject
 

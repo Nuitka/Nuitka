@@ -26,7 +26,7 @@ __package__ = "nuitka.build"  # pylint: disable=redefined-builtin
 
 # isort:start
 
-from nuitka.Tracing import scons_details_logger, scons_logger
+from nuitka.Tracing import scons_logger
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFilenameExtension,
@@ -48,16 +48,13 @@ from .SconsCompilerSettings import (
     reportCCompiler,
     setupCCompiler,
 )
-from .SconsHacks import makeLinkerUseResponseFile
-from .SconsProgress import setSconsProgressBarTotal
+from .SconsControl import executeSconsBuild
 from .SconsPythonBuild import (
     addPythonHaclLib,
     addWin32PythonLib,
     applyPythonBuildSettings,
 )
-from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
-    changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     getArgumentBool,
     getArgumentDefaulted,
@@ -66,7 +63,6 @@ from .SconsUtils import (
     getArgumentRequired,
     makeResultPathFileSystemEncodable,
     scanSourceDir,
-    writeSconsReport,
 )
 
 # spell-checker: ignore cflags,cppdefines,cpppath,
@@ -139,12 +135,6 @@ python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
 # file reference mode
 file_reference_mode = getArgumentRequired("file_reference_mode")
-
-# Preprocessor defines from plugins
-cpp_defines = getArgumentList("cpp_defines", "")
-cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
-link_dirs = getArgumentList("link_dirs", "")
-link_libraries = getArgumentList("link_libraries", "")
 
 # From statically compiled modules of the Python
 link_module_libs = getArgumentList("link_module_libs", "")
@@ -519,40 +509,13 @@ createBuildDefinitionsFile()
 if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
-# Hack to make Scons use a response file for gcc linking, to avoid line length
-# limits, which can make linking fail with many modules otherwise. Most needed
-# on Windows, but useful on other platforms too.
-if env.gcc_mode:
-    makeLinkerUseResponseFile(
-        env=env,
-        source_filenames=source_filenames,
-    )
-
-# Plugin contributed C defines should be used too.
-env.Append(CPPDEFINES=cpp_defines)
-# Plugin contributed C include directories should be used too.
-env.Prepend(CPPPATH=cpp_include_dirs)
-# Plugin contributed link dirs should be used too.
-env.Append(LIBPATH=link_dirs)
-# Plugin contributed link libraries should be used too.
-env.Append(LIBS=link_libraries)
-
-# Work around windows bugs and use watchdogs to track progress of compilation.
-enableSpawnMonitoring(
+executeSconsBuild(
     env=env,
+    target=target,
     source_filenames=source_filenames,
+    progressbar_name=env.progressbar_name,
+    stable_include_paths=True,
 )
-
-# Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
-# scons traceback is not going to be very interesting to us.
-changeKeyboardInterruptToErrorExit()
-
-writeSconsReport(env=env, target=target)
-
-setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_filenames))
-
-scons_details_logger.info("Launching Scons target: %s" % target)
-env.Default(target)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
