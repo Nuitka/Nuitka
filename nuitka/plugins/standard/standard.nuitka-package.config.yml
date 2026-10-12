@@ -1668,6 +1668,11 @@
     - depends:
         - 'fitz._fitz'
 
+- module-name: 'flashinfer' # checksum: 6aaa99cc
+  data-files:
+    - dirs:
+        - 'data'
+
 - module-name: 'flask.app' # checksum: f5f4a7d
   implicit-imports:
     - depends:
@@ -9442,6 +9447,11 @@
     - description: 'need to use setuptools'
       bloat-mode-overrides:
         'setuptools': 'allow'
+
+- module-name: 'tvm_ffi' # checksum: 2f2c1c6c
+  data-files:
+    - dirs:
+        - 'include'
 
 - module-name: 'twofish' # checksum: c8ae9b1e
   implicit-imports:
