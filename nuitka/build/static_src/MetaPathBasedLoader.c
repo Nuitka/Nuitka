@@ -2356,6 +2356,24 @@ static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPat
     Nuitka_LoaderEntryName(entry, name_buffer, sizeof(name_buffer));
     char const *name = name_buffer;
 
+#if _NUITKA_MODULE_MODE
+    // The loader entry name is relative to the location of the compiled unit,
+    // but the entry may have been loaded into a package, in which case the
+    // name getter adds that package prefix. For the file system paths, that
+    // prefix must not be there, as those are relative to the compiled unit,
+    // e.g. the "plugins" entry of a unit loaded as "ns.pkg" is at the path
+    // "pkg/plugins" relative to where that unit is located.
+    {
+        if (module_root_prefix != NULL) {
+            size_t prefix_len = strlen(module_root_prefix);
+
+            if (strncmp(name, module_root_prefix, prefix_len) == 0) {
+                name += prefix_len;
+            }
+        }
+    }
+#endif
+
     PyObject *module_name;
 
     if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
