@@ -113,7 +113,10 @@ from .InternalModule import (
     once_decorator,
 )
 from .ReformulationDictionaryCreation import buildDictionaryUnpacking
-from .ReformulationFunctionStatements import makeDeferredAnnotateFunctionBody
+from .ReformulationFunctionStatements import (
+    makeDeferredAnnotateFunctionBody,
+    makeDeferredAnnotationsReturnExpression,
+)
 from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import (
@@ -125,6 +128,7 @@ from .TreeHelpers import (
     buildFrameNode,
     buildNode,
     buildNodeTuple,
+    collectConditionalAnnotationIndices,
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant2,
@@ -290,6 +294,31 @@ def buildClassNode3(provider, node, source_ref):
         variable=class_variable, source_ref=source_ref
     )
 
+    # Conditional annotations, mirroring CPython, where annotations in
+    # conditional blocks (e.g. under "if TYPE_CHECKING:") register an index at
+    # runtime, and the annotation function only includes them if it was
+    # registered back when the statement executed.
+    if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+    ):
+        class_dict_creation_function.conditional_annotation_indices = (
+            collectConditionalAnnotationIndices(class_statement_nodes)
+        )
+
+        if class_dict_creation_function.conditional_annotation_indices:
+            conditional_annotations_variable = class_locals_scope.getLocalVariable(
+                owner=class_dict_creation_function,
+                variable_name="__conditional_annotations__",
+            )
+            class_locals_scope.registerProvidedVariable(
+                conditional_annotations_variable
+            )
+            class_dict_creation_function.conditional_annotations_variable = (
+                conditional_annotations_variable
+            )
+
     parent_module = provider.getParentModule()
 
     code_object = CodeObjectSpecClass(
@@ -384,24 +413,45 @@ def buildClassNode3(provider, node, source_ref):
         and not getFutureSpec().isFutureAnnotations()
     ):
         if class_dict_creation_function.deferred_annotations:
+            if (
+                class_dict_creation_function.conditional_annotations_variable
+                is not None
+            ):
+                statements.append(
+                    makeStatementAssignmentVariable(
+                        variable=class_dict_creation_function.conditional_annotations_variable,
+                        source=makeConstantRefNode(
+                            constant=set(), source_ref=source_ref, user_provided=False
+                        ),
+                        source_ref=source_ref,
+                    )
+                )
+
             outer_body, return_statement = makeDeferredAnnotateFunctionBody(
                 provider=class_dict_creation_function,
                 source_ref=source_ref,
             )
 
-            keys = []
-            values = []
+            annotations = []
             for (
                 var_name,
                 ast_node,
-            ) in class_dict_creation_function.deferred_annotations.items():
-                keys.append(var_name)
-                values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+                conditional_index,
+            ) in class_dict_creation_function.deferred_annotations:
+                annotations.append(
+                    (
+                        var_name,
+                        buildAnnotationNode(outer_body, ast_node, source_ref),
+                        conditional_index,
+                    )
+                )
 
-            return_statement.subnode_expression = makeDictCreationOrConstant2(
-                keys=keys,
-                values=values,
-                source_ref=source_ref,
+            return_statement.subnode_expression = (
+                makeDeferredAnnotationsReturnExpression(
+                    outer_body=outer_body,
+                    annotations=annotations,
+                    source_ref=source_ref,
+                )
             )
             return_statement.subnode_expression.parent = return_statement
 
@@ -424,7 +474,7 @@ def buildClassNode3(provider, node, source_ref):
                 )
             )
 
-            class_dict_creation_function.deferred_annotations = None
+            class_dict_creation_function.deferred_annotations = []
     elif (
         python_version >= 0x360
         and class_dict_creation_function.needsAnnotationsDictionary()

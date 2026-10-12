@@ -54,6 +54,7 @@ from nuitka.nodes.SliceNodes import (
     StatementDelSlice,
     makeExpressionBuiltinSlice,
 )
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
     StatementAssignmentSubscript,
@@ -73,7 +74,10 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
     StatementDelVariableName,
 )
-from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTempVariableRef,
+    ExpressionVariableRef,
+)
 from nuitka.options.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -86,6 +90,7 @@ from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
     getKind,
+    makeCallNode,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
@@ -628,7 +633,41 @@ def buildAnnAssignNode(provider, node, source_ref):
                     or provider.isCompiledPythonModule()
                 )
             ):
-                provider.deferred_annotations[variable_name] = node.annotation
+                conditional_annotation_index = None
+
+                if provider.conditional_annotation_indices:
+                    conditional_annotation_index = (
+                        provider.conditional_annotation_indices.get(node)
+                    )
+
+                    if conditional_annotation_index is not None:
+                        assert provider.conditional_annotations_variable is not None
+
+                        statements.append(
+                            StatementExpressionOnly(
+                                expression=makeCallNode(
+                                    makeExpressionAttributeLookup(
+                                        expression=ExpressionVariableRef(
+                                            variable=provider.conditional_annotations_variable,
+                                            source_ref=source_ref,
+                                        ),
+                                        attribute_name="add",
+                                        source_ref=source_ref,
+                                    ),
+                                    makeConstantRefNode(
+                                        constant=conditional_annotation_index,
+                                        source_ref=source_ref,
+                                        user_provided=False,
+                                    ),
+                                    source_ref,
+                                ),
+                                source_ref=source_ref,
+                            )
+                        )
+
+                provider.deferred_annotations.append(
+                    (variable_name, node.annotation, conditional_annotation_index)
+                )
             else:
                 annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 

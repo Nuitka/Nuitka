@@ -28,8 +28,14 @@ from nuitka.nodes.BuiltinRefNodes import (
     makeExpressionBuiltinTypeRef,
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonGt
-from nuitka.nodes.ConditionalNodes import makeStatementConditional
+from nuitka.nodes.ComparisonNodes import (
+    ExpressionComparisonGt,
+    makeComparisonExpression,
+)
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditional,
+    makeStatementConditional,
+)
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantIntRef,
     makeConstantRefNode,
@@ -39,6 +45,7 @@ from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
 )
+from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FrameNodes import StatementsFrameFunction
@@ -52,7 +59,11 @@ from nuitka.nodes.GeneratorNodes import (
     ExpressionMakeGeneratorObject,
     StatementGeneratorReturnNone,
 )
+from nuitka.nodes.KeyValuePairNodes import (
+    makeExpressionKeyValuePairConstantKey,
+)
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
@@ -758,6 +769,78 @@ def makeDeferredAnnotateFunctionBody(provider, source_ref):
 
     outer_body.setChildBody(makeStatementsSequenceFromStatement(statement=body))
     return outer_body, return_statement
+
+
+def makeDeferredAnnotationsReturnExpression(outer_body, annotations, source_ref):
+    """Build the annotations dictionary return expression.
+
+    Notes:
+        Unconditionally executed annotations become a simple dictionary, while
+        conditionally executed ones (PEP 649) are only included if their index
+        was registered in the "__conditional_annotations__" set of the class or
+        module body when the statement executed.
+
+    Args:
+        outer_body: Function body node of the annotation function.
+        annotations: Sequence of (key, value_node, conditional_index) tuples.
+        source_ref: Source reference to use.
+
+    Returns:
+        Expression for the annotations dictionary.
+    """
+    if all(conditional_index is None for _, _, conditional_index in annotations):
+        keys = []
+        values = []
+
+        for key, value, _ in annotations:
+            keys.append(key)
+            values.append(value)
+
+        return makeDictCreationOrConstant2(
+            keys=keys, values=values, source_ref=source_ref
+        )
+
+    result = makeConstantRefNode(
+        constant={}, source_ref=source_ref, user_provided=False
+    )
+
+    for key, value, conditional_index in annotations:
+        annotations_dict = makeExpressionMakeDict(
+            pairs=(makeExpressionKeyValuePairConstantKey(key=key, value=value),),
+            source_ref=source_ref,
+        )
+
+        if conditional_index is not None:
+            annotations_dict = ExpressionConditional(
+                condition=makeComparisonExpression(
+                    left=makeConstantRefNode(
+                        constant=conditional_index,
+                        source_ref=source_ref,
+                        user_provided=False,
+                    ),
+                    right=ExpressionVariableNameRef(
+                        provider=outer_body,
+                        variable_name="__conditional_annotations__",
+                        source_ref=source_ref,
+                    ),
+                    comparator="In",
+                    source_ref=source_ref,
+                ),
+                expression_yes=annotations_dict,
+                expression_no=makeConstantRefNode(
+                    constant={}, source_ref=source_ref, user_provided=False
+                ),
+                source_ref=source_ref,
+            )
+
+        result = makeBinaryOperationNode(
+            operator="BitOr",
+            left=result,
+            right=annotations_dict,
+            source_ref=source_ref,
+        )
+
+    return result
 
 
 def buildParameterAnnotations(provider, node, source_ref):

@@ -177,6 +177,7 @@ from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
     buildFunctionNode,
     makeDeferredAnnotateFunctionBody,
+    makeDeferredAnnotationsReturnExpression,
 )
 from .ReformulationImportStatements import (
     buildImportFromNode,
@@ -218,10 +219,10 @@ from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
     buildStatementsNode,
+    collectConditionalAnnotationIndices,
     extractDocFromBody,
     getBuildContext,
     getKind,
-    makeDictCreationOrConstant2,
     makeModuleFrame,
     makeReraiseExceptionStatement,
     makeStatementsSequenceFromStatement,
@@ -828,14 +829,20 @@ def _makeModuleDeferredAnnotateStatement(provider, source_ref):
         provider=provider, source_ref=source_ref
     )
 
-    keys = []
-    values = []
-    for var_name, ast_node in provider.deferred_annotations.items():
-        keys.append(var_name)
-        values.append(buildAnnotationNode(outer_body, ast_node, source_ref))
+    annotations = []
+    for var_name, ast_node, conditional_index in provider.deferred_annotations:
+        annotations.append(
+            (
+                var_name,
+                buildAnnotationNode(outer_body, ast_node, source_ref),
+                conditional_index,
+            )
+        )
 
-    return_statement.subnode_expression = makeDictCreationOrConstant2(
-        keys=keys, values=values, source_ref=source_ref
+    return_statement.subnode_expression = makeDeferredAnnotationsReturnExpression(
+        outer_body=outer_body,
+        annotations=annotations,
+        source_ref=source_ref,
     )
     return_statement.subnode_expression.parent = return_statement
 
@@ -867,6 +874,20 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     provider.setFutureSpec(getFutureSpec())
 
     body, doc = extractDocFromBody(ast_tree)
+
+    if (
+        python_version >= 0x3E0
+        and not isExperimental("no-deferred-annotation")
+        and not getFutureSpec().isFutureAnnotations()
+    ):
+        provider.conditional_annotation_indices = collectConditionalAnnotationIndices(
+            body
+        )
+
+        if provider.conditional_annotation_indices:
+            provider.conditional_annotations_variable = (
+                provider.getVariableForAssignment("__conditional_annotations__")
+            )
 
     if is_main and 0x360 <= python_version < 0x3E0:
         provider.markAsNeedsAnnotationsDictionary()
@@ -1019,10 +1040,24 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
         and not getFutureSpec().isFutureAnnotations()
         and provider.deferred_annotations
     ):
+        if provider.conditional_annotations_variable is not None:
+            statements.append(
+                StatementAssignmentVariableName(
+                    provider=provider,
+                    variable_name="__conditional_annotations__",
+                    source=makeConstantRefNode(
+                        constant=set(),
+                        source_ref=internal_source_ref,
+                        user_provided=False,
+                    ),
+                    source_ref=internal_source_ref,
+                )
+            )
+
         statements.append(
             _makeModuleDeferredAnnotateStatement(provider, internal_source_ref)
         )
-        provider.deferred_annotations = None
+        provider.deferred_annotations = []
     elif provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(

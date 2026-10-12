@@ -411,6 +411,60 @@ def makeModuleFrame(module, statements, source_ref):
     )
 
 
+def collectConditionalAnnotationIndices(statements):
+    """Collect indices for annotations inside conditional blocks.
+
+    Notes:
+        This mirrors the CPython implementation of PEP 649, where annotations
+        that are only conditionally executed register an index in a set, and
+        the annotation function only includes such annotations if the index
+        was registered when the statement executed.
+
+    Args:
+        statements: Sequence of "ast" statements of a class or module body.
+
+    Returns:
+        Dictionary mapping annotation assignment statements to index values.
+    """
+    result = {}
+    next_index = [0]
+
+    def visitStatements(statements, in_conditional):
+        for statement in statements:
+            kind = getKind(statement)
+
+            if kind == "AnnAssign":
+                if in_conditional and getKind(statement.target) == "Name":
+                    result[statement] = next_index[0]
+                    next_index[0] += 1
+            elif kind == "If":
+                visitStatements(statement.body, True)
+                visitStatements(statement.orelse, True)
+            elif kind in ("For", "AsyncFor", "While"):
+                visitStatements(statement.body, True)
+                visitStatements(statement.orelse, True)
+            elif kind in ("With", "AsyncWith"):
+                visitStatements(statement.body, True)
+            elif kind in ("Try", "TryStar"):
+                visitStatements(statement.body, True)
+
+                for handler in statement.handlers:
+                    visitStatements(handler.body, True)
+
+                visitStatements(statement.orelse, True)
+                visitStatements(statement.finalbody, True)
+            elif kind == "Match":
+                for case in statement.cases:
+                    visitStatements(case.body, True)
+
+            # Nested functions and classes have their own annotation scopes,
+            # so they are deliberately not descended into here.
+
+    visitStatements(statements, False)
+
+    return result
+
+
 def buildStatementsNode(provider, nodes, source_ref):
     # We are not creating empty statement sequences.
     if nodes is None:
