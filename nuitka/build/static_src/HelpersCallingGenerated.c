@@ -8,8 +8,10 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifndef __IDE_ONLY__
 // We are switching some warnings off for this code, as they are triggered
-// by the generated code constructs in a way that is not useful.
+// by the generated code constructs in a way that is not useful. For IDE
+// parses this is skipped, as they report the pop without the push.
 // spell-checker: ignore Wparentheses GNUC
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -19,6 +21,7 @@
 #pragma GCC diagnostic push
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
+#endif
 #endif
 
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
@@ -122,15 +125,16 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = const_tuple_empty;
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -175,7 +179,8 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -183,25 +188,25 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = const_tuple_empty;
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = const_tuple_empty;
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, NULL, 0, NULL);
+                result = (*method.as_function_fast)(self, NULL, 0, NULL);
 #else
                 PyObject *pos_args = const_tuple_empty;
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 0);
+                result = (*method.as_function_fast)(self, &pos_args, 0);
 #endif
             } else {
                 PyObject *pos_args = const_tuple_empty;
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -554,15 +559,16 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -610,7 +616,8 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -618,28 +625,28 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 1, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
+                result = (*method.as_function_fast)(self, &pos_args, 1);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -1019,13 +1026,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -1071,29 +1079,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 1, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 1, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
+                result = (*method.as_function_fast)(self, &pos_args, 1);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -1458,15 +1467,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -1498,7 +1508,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -1506,28 +1517,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 2, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
+                result = (*method.as_function_fast)(self, &pos_args, 2);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -1904,13 +1915,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -1940,29 +1952,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 2, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 2, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
+                result = (*method.as_function_fast)(self, &pos_args, 2);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -2320,15 +2333,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -2360,7 +2374,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -2368,28 +2383,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 3, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
+                result = (*method.as_function_fast)(self, &pos_args, 3);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -2766,13 +2781,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -2802,29 +2818,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 3, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 3, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
+                result = (*method.as_function_fast)(self, &pos_args, 3);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -3182,15 +3199,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -3222,7 +3240,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -3230,28 +3249,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 4, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
+                result = (*method.as_function_fast)(self, &pos_args, 4);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -3628,13 +3647,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -3664,29 +3684,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 4, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 4, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
+                result = (*method.as_function_fast)(self, &pos_args, 4);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -4044,15 +4065,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -4084,7 +4106,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -4092,28 +4115,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 5, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 5);
+                result = (*method.as_function_fast)(self, &pos_args, 5);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -4490,13 +4513,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -4526,29 +4550,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 5, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 5, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 5);
+                result = (*method.as_function_fast)(self, &pos_args, 5);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -4906,15 +4931,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -4946,7 +4972,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -4954,28 +4981,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 6, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 6);
+                result = (*method.as_function_fast)(self, &pos_args, 6);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -5352,13 +5379,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -5388,29 +5416,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 6, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 6, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 6);
+                result = (*method.as_function_fast)(self, &pos_args, 6);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -5768,15 +5797,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -5808,7 +5838,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -5816,28 +5847,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 7, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 7);
+                result = (*method.as_function_fast)(self, &pos_args, 7);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -6214,13 +6245,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -6250,29 +6282,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 7, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 7, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 7);
+                result = (*method.as_function_fast)(self, &pos_args, 7);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -6630,15 +6663,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -6670,7 +6704,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -6678,28 +6713,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 8, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 8);
+                result = (*method.as_function_fast)(self, &pos_args, 8);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -7076,13 +7111,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -7112,29 +7148,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 8, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 8, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 8);
+                result = (*method.as_function_fast)(self, &pos_args, 8);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -7492,15 +7529,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -7532,7 +7570,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -7540,28 +7579,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 9, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 9);
+                result = (*method.as_function_fast)(self, &pos_args, 9);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -7938,13 +7977,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -7974,29 +8014,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, 
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 9, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 9, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 9);
+                result = (*method.as_function_fast)(self, &pos_args, 9);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -8354,15 +8395,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
@@ -8394,7 +8436,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
@@ -8402,28 +8445,28 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 #if PYTHON_VERSION < 0x360
             PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 10, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 10);
+                result = (*method.as_function_fast)(self, &pos_args, 10);
                 Py_DECREF(pos_args);
 #endif
             } else {
                 PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
                 Py_DECREF(pos_args);
             }
 #endif
@@ -8800,13 +8843,14 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
             CHECK_OBJECT_X(result);
         } else {
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
         }
 
@@ -8836,29 +8880,30 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
                 return NULL;
             }
 #endif
-            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            Nuitka_PyCFunctionUnion method;
+            method.as_function = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
             if (flags & METH_KEYWORDS) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+                result = (*method.as_function_kw)(self, pos_args, NULL);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-                result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 10, NULL);
+                result = (*method.as_function_fast)(self, (PyObject **)args, 10, NULL);
 #else
-                result = (*(_PyCFunctionFast)method)(self, &pos_args, 10);
+                result = (*method.as_function_fast)(self, &pos_args, 10);
 #endif
             } else {
-                result = (*method)(self, pos_args);
+                result = (*method.as_function)(self, pos_args);
             }
 #endif
 
@@ -11797,28 +11842,29 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
                                             method_def->ml_name);
         return NULL;
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else {
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
         }
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 0, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 0, NULL);
 #else
-            result = (*(_PyCFunctionFast)method)(self, &const_tuple_empty, 1);
+            result = (*method.as_function_fast)(self, &const_tuple_empty, 1);
 #endif
         } else {
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
         }
 #endif
 #ifndef __NUITKA_NO_ASSERT__
@@ -11889,7 +11935,8 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         return result;
 #endif
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -11898,28 +11945,28 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 1, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 1, NULL);
 #else
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
+            result = (*method.as_function_fast)(self, &pos_args, 2);
             Py_DECREF(pos_args);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -11984,7 +12031,8 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
                                             method_def->ml_name);
         return NULL;
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -11993,28 +12041,28 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 2, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 2, NULL);
 #else
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
+            result = (*method.as_function_fast)(self, &pos_args, 3);
             Py_DECREF(pos_args);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -12079,7 +12127,8 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
                                             method_def->ml_name);
         return NULL;
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -12088,28 +12137,28 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
         PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 3, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args + 1, 3, NULL);
 #else
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
+            result = (*method.as_function_fast)(self, &pos_args, 4);
             Py_DECREF(pos_args);
 #endif
         } else {
             PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
         }
 #endif
@@ -14610,11 +14659,13 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         return NULL;
     }
 }
+#ifndef __IDE_ONLY__
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
+#endif
 #endif
 #endif
 

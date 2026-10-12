@@ -3190,7 +3190,9 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {NULL, NULL} // terminator
 };
 
-static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
+static PyObject *Nuitka_Loader_tp_repr(PyObject *self) {
+    struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+
     if (loader->m_loader_entry == NULL) {
         // TODO: Indicate in module mode, which one it is for.
         return Nuitka_String_FromString("<nuitka_module_loader>");
@@ -3213,15 +3215,19 @@ static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;
 static int free_list_loaders_count = 0;
 
-static void Nuitka_Loader_tp_dealloc(struct Nuitka_LoaderObject *loader) {
-    Nuitka_GC_UnTrack(loader);
+static void Nuitka_Loader_tp_dealloc(PyObject *self) {
+    struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+
+    Nuitka_GC_UnTrack(self);
 
     releaseToFreeList(free_list_loaders, loader, MAX_LOADER_FREE_LIST_COUNT);
 }
 
-static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitproc visit, void *arg) { return 0; }
+static int Nuitka_Loader_tp_traverse(PyObject *self, visitproc visit, void *arg) { return 0; }
 
-static PyObject *Nuitka_Loader_get_name(struct Nuitka_LoaderObject *loader, void *closure) {
+static PyObject *Nuitka_Loader_get_name(PyObject *self, void *closure) {
+    struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+
     if (loader->m_loader_entry == NULL) {
         return Nuitka_String_FromString("<nuitka_module_loader>");
     }
@@ -3233,14 +3239,16 @@ static PyObject *Nuitka_Loader_get_name(struct Nuitka_LoaderObject *loader, void
 
     return result;
 }
-static PyObject *Nuitka_Loader_get_path(struct Nuitka_LoaderObject *loader, void *closure) {
+static PyObject *Nuitka_Loader_get_path(PyObject *self, void *closure) {
+    struct Nuitka_LoaderObject *loader = (struct Nuitka_LoaderObject *)self;
+
     PyThreadState *tstate = PyThreadState_GET();
     PyObject *result = getModuleFileValue(tstate, loader->m_loader_entry);
 
     return result;
 }
 
-static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader, void *closure) {
+static PyObject *Nuitka_Loader_get__module__(PyObject *self, void *closure) {
     PyObject *result = const_str_plain___nuitka__;
 
     Py_INCREF_IMMORTAL(result);

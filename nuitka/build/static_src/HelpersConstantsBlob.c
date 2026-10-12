@@ -100,11 +100,16 @@ static Py_hash_t Nuitka_FastHashBytes(const void *value, Py_ssize_t size) {
     return x;
 }
 
-static Py_hash_t our_list_hash(PyListObject *list) {
+static Py_hash_t our_list_hash(PyObject *self) {
+    PyListObject *list = (PyListObject *)self;
+
     return Nuitka_FastHashBytes(&list->ob_item[0], Py_SIZE(list) * sizeof(PyObject *));
 }
 
-static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list2, int op) {
+static PyObject *our_list_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PyListObject *list1 = (PyListObject *)object1;
+    PyListObject *list2 = (PyListObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -123,11 +128,16 @@ static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list
     return result;
 }
 
-static Py_hash_t our_tuple_hash(PyTupleObject *tuple) {
+static Py_hash_t our_tuple_hash(PyObject *self) {
+    PyTupleObject *tuple = (PyTupleObject *)self;
+
     return Nuitka_FastHashBytes(&tuple->ob_item[0], Py_SIZE(tuple) * sizeof(PyObject *));
 }
 
-static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
+static PyObject *our_tuple_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PyTupleObject *tuple1 = (PyTupleObject *)object1;
+    PyTupleObject *tuple2 = (PyTupleObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -146,13 +156,18 @@ static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *
     return result;
 }
 
-static Py_hash_t our_slice_hash(PySliceObject *slice) {
+static Py_hash_t our_slice_hash(PyObject *self) {
+    PySliceObject *slice = (PySliceObject *)self;
+
     PyObject *values[3] = {slice->start, slice->stop, slice->step};
 
     return Nuitka_FastHashBytes(values, sizeof(values));
 }
 
-static PyObject *our_slice_tp_richcompare(PySliceObject *slice1, PySliceObject *slice2, int op) {
+static PyObject *our_slice_tp_richcompare(PyObject *object1, PyObject *object2, int op) {
+    PySliceObject *slice1 = (PySliceObject *)object1;
+    PySliceObject *slice2 = (PySliceObject *)object2;
+
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -243,7 +258,10 @@ static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) 
     return result;
 }
 
-static PyObject *our_float_tp_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
+static PyObject *our_float_tp_richcompare(PyObject *object_a, PyObject *object_b, int op) {
+    PyFloatObject *a = (PyFloatObject *)object_a;
+    PyFloatObject *b = (PyFloatObject *)object_b;
+
     assert(op == Py_EQ);
 
     PyObject *result;

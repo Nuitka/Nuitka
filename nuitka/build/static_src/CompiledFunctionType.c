@@ -42,10 +42,12 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *obj, Py
 }
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
-static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_tp_repr(PyObject *self) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
 #if PYTHON_VERSION < 0x300
     return Nuitka_String_FromFormat("<compiled_function %s at %p>", Nuitka_String_AsString(function->m_name), function);
@@ -54,10 +56,12 @@ static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function)
 #endif
 }
 
-static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     // TODO: Identify the impact of not visiting other owned objects. It appears
     // to be mostly harmless, as these are strings.
@@ -70,10 +74,12 @@ static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, 
     return 0;
 }
 
-static Py_hash_t Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static Py_hash_t Nuitka_Function_tp_hash(PyObject *self) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     return function->m_counter;
 }
@@ -789,10 +795,12 @@ static PyGetSetDef Nuitka_Function_getset[] = {
      NULL},
     {NULL}};
 
-static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function, PyObject *unused) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_reduce(PyObject *self, PyObject *unused) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyObject *result;
 
@@ -806,10 +814,12 @@ static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function, 
     return result;
 }
 
-static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, PyObject *unused) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_clone(PyObject *self, PyObject *unused) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     for (Py_ssize_t i = 0; i < function->m_closure_given; i++) {
         assert(function->m_closure[i]);
@@ -894,7 +904,9 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
 
-static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
+static void Nuitka_Function_tp_dealloc(PyObject *self) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Function_Type -= 1;
     count_released_Nuitka_Function_Type += 1;
@@ -966,7 +978,7 @@ static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuit
                                                 {"clone", (PyCFunction)Nuitka_Function_clone, METH_NOARGS, NULL},
                                                 {NULL}};
 
-static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw);
+static PyObject *Nuitka_Function_tp_call(PyObject *self, PyObject *tuple_args, PyObject *kw);
 
 PyTypeObject Nuitka_Function_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_function", // tp_name
@@ -1539,8 +1551,8 @@ PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate, st
 #endif
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
-                                               size_t nargsf, PyObject *kw_names);
+static PyObject *Nuitka_Function_tp_vectorcall(PyObject *self, PyObject *const *stack, size_t nargsf,
+                                               PyObject *kw_names);
 #endif
 
 // Make a function with closure.
@@ -3484,7 +3496,9 @@ PyObject *Nuitka_CallFunctionVectorcall(PyThreadState *tstate, struct Nuitka_Fun
     return function->m_c_code(tstate, function, python_pars);
 }
 
-static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw) {
+static PyObject *Nuitka_Function_tp_call(PyObject *self, PyObject *tuple_args, PyObject *kw) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
     CHECK_OBJECT(tuple_args);
     assert(PyTuple_CheckExact(tuple_args));
 
@@ -3529,8 +3543,10 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
 }
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
-                                               size_t nargsf, PyObject *kw_names) {
+static PyObject *Nuitka_Function_tp_vectorcall(PyObject *self, PyObject *const *stack, size_t nargsf,
+                                               PyObject *kw_names) {
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
+
     assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
     Py_ssize_t kwargs_count = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
 

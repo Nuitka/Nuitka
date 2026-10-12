@@ -573,8 +573,27 @@ typedef signed int sdigit;
 // triggering compiler warnings about mismatched function types. To preserve
 // type safety, we assert that the passed function actually matches
 // PyCFunctionWithKeywords using a ternary operator conditional that forces the
-// compiler to check the input type.
+// compiler to check the input type. The strict clang warning is suppressed
+// only around the expansion, as the type pun is intentional and required.
+#if defined(__clang__)
+#define CAST_METHOD_KW(func)                                                                                           \
+    _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wcast-function-type-strict\"")(PyCFunction)( \
+        void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))_Pragma("clang diagnostic pop")
+#else
 #define CAST_METHOD_KW(func) (PyCFunction)(void (*)(void))(1 ? (func) : (PyCFunctionWithKeywords)(func))
+#endif
+
+// For calling method functions of a method table with their actual signature
+// without casting between function pointer types, which newer compilers warn
+// about. The union does the type pun without a cast, which is well defined for
+// function pointers.
+typedef union Nuitka_PyCFunctionUnion {
+    PyCFunction as_function;
+    PyCFunctionWithKeywords as_function_kw;
+#if PYTHON_VERSION >= 0x360
+    _PyCFunctionFast as_function_fast;
+#endif
+} Nuitka_PyCFunctionUnion;
 
 // A long value that represents a signed digit on the helper interface.
 typedef long nuitka_digit;

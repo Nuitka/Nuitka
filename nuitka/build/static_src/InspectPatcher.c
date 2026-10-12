@@ -573,7 +573,9 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
     return result;
 }
 
-static void Nuitka_tb_dealloc(PyTracebackObject *tb) {
+static void Nuitka_tb_dealloc(PyObject *self) {
+    PyTracebackObject *tb = (PyTracebackObject *)self;
+
     // Need to use official method as it checks for recursion.
     Nuitka_GC_UnTrack(tb);
 

@@ -62,7 +62,11 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
                                         PyObject *value, bool closing,
                                         struct Nuitka_ExceptionPreservationItem *exception_state);
 
-static Py_hash_t Nuitka_Coroutine_tp_hash(struct Nuitka_CoroutineObject *coroutine) { return coroutine->m_counter; }
+static Py_hash_t Nuitka_Coroutine_tp_hash(PyObject *self) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
+    return coroutine->m_counter;
+}
 
 static PyObject *Nuitka_Coroutine_get_name(PyObject *self, void *data) {
     CHECK_OBJECT(self);
@@ -983,16 +987,20 @@ static PyObject *Nuitka_Coroutine_throw(PyObject *coroutine_obj, PyObject *args)
     return _Nuitka_Coroutine_throw_api((struct Nuitka_CoroutineObject *)coroutine_obj, args);
 }
 
-static PyObject *Nuitka_Coroutine_tp_repr(struct Nuitka_CoroutineObject *coroutine) {
-    CHECK_OBJECT(coroutine);
+static PyObject *Nuitka_Coroutine_tp_repr(PyObject *self) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
+    CHECK_OBJECT(self);
     CHECK_OBJECT(coroutine->m_qualname);
 
     return PyUnicode_FromFormat("<compiled_coroutine object %s at %p>", Nuitka_String_AsString(coroutine->m_qualname),
                                 coroutine);
 }
 
-static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutine, visitproc visit, void *arg) {
-    CHECK_OBJECT(coroutine);
+static int Nuitka_Coroutine_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
+    CHECK_OBJECT(self);
 
     // TODO: Identify the impact of not visiting owned objects like module
     Py_VISIT(coroutine->m_yield_from);
@@ -1013,8 +1021,10 @@ static long Nuitka_Coroutine_tp_traverse(struct Nuitka_CoroutineObject *coroutin
 static struct Nuitka_CoroutineWrapperObject *free_list_coro_wrappers = NULL;
 static int free_list_coro_wrappers_count = 0;
 
-static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine) {
-    CHECK_OBJECT(coroutine);
+static PyObject *Nuitka_Coroutine_await(PyObject *self) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
+    CHECK_OBJECT(self);
 
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
@@ -1044,8 +1054,9 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static PySendResult _Nuitka_Coroutine_am_send(struct Nuitka_CoroutineObject *coroutine, PyObject *arg,
-                                              PyObject **result) {
+static PySendResult _Nuitka_Coroutine_am_send(PyObject *self, PyObject *arg, PyObject **result) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
 #endif
@@ -1069,7 +1080,9 @@ static PySendResult _Nuitka_Coroutine_am_send(struct Nuitka_CoroutineObject *cor
 }
 #endif
 
-static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutine) {
+static void Nuitka_Coroutine_tp_finalize(PyObject *self) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
     if (coroutine->m_status != status_Running) {
         return;
     }
@@ -1094,7 +1107,9 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
 static struct Nuitka_CoroutineObject *free_list_coroutines = NULL;
 static int free_list_coroutines_count = 0;
 
-static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine) {
+static void Nuitka_Coroutine_tp_dealloc(PyObject *self) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Coroutine_Type -= 1;
     count_released_Nuitka_Coroutine_Type += 1;
@@ -1233,8 +1248,10 @@ PyTypeObject Nuitka_Coroutine_Type = {
     (destructor)Nuitka_Coroutine_tp_finalize,                           // tp_finalize
 };
 
-static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObject *cw) {
-    Nuitka_GC_UnTrack((PyObject *)cw);
+static void Nuitka_CoroutineWrapper_tp_dealloc(PyObject *self) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)self;
+
+    Nuitka_GC_UnTrack(self);
 
     assert(Py_REFCNT(cw) == 0);
     Py_SET_REFCNT(cw, 1);
@@ -1254,14 +1271,18 @@ static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObj
     releaseToFreeList(free_list_coro_wrappers, cw, MAX_COROUTINE_FREE_LIST_COUNT);
 }
 
-static PyObject *Nuitka_CoroutineWrapper_tp_iternext(struct Nuitka_CoroutineWrapperObject *cw) {
-    CHECK_OBJECT(cw);
+static PyObject *Nuitka_CoroutineWrapper_tp_iternext(PyObject *self) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)self;
+
+    CHECK_OBJECT(self);
 
     return _Nuitka_Coroutine_send_api(cw->m_coroutine, Py_None);
 }
 
-static int Nuitka_CoroutineWrapper_tp_traverse(struct Nuitka_CoroutineWrapperObject *cw, visitproc visit, void *arg) {
-    CHECK_OBJECT(cw);
+static int Nuitka_CoroutineWrapper_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)self;
+
+    CHECK_OBJECT(self);
 
     Py_VISIT((PyObject *)cw->m_coroutine);
     return 0;
@@ -1290,8 +1311,10 @@ static PyObject *Nuitka_CoroutineWrapper_close(PyObject *cw_obj, PyObject *args)
     return _Nuitka_Coroutine_close_api(cw->m_coroutine, args);
 }
 
-static PyObject *Nuitka_CoroutineWrapper_tp_repr(struct Nuitka_CoroutineWrapperObject *cw) {
-    CHECK_OBJECT(cw);
+static PyObject *Nuitka_CoroutineWrapper_tp_repr(PyObject *self) {
+    struct Nuitka_CoroutineWrapperObject *cw = (struct Nuitka_CoroutineWrapperObject *)self;
+
+    CHECK_OBJECT(self);
     CHECK_OBJECT(cw->m_coroutine);
     CHECK_OBJECT(cw->m_coroutine->m_qualname);
 
@@ -1666,11 +1689,15 @@ struct Nuitka_AIterWrapper {
         PyObject *aw_aiter;
 };
 
-static PyObject *Nuitka_AIterWrapper_tp_repr(struct Nuitka_AIterWrapper *aw) {
+static PyObject *Nuitka_AIterWrapper_tp_repr(PyObject *self) {
+    struct Nuitka_AIterWrapper *aw = (struct Nuitka_AIterWrapper *)self;
+
     return PyUnicode_FromFormat("<compiled_aiter_wrapper object of %R at %p>", aw->aw_aiter, aw);
 }
 
-static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
+static PyObject *Nuitka_AIterWrapper_iternext(PyObject *self) {
+    struct Nuitka_AIterWrapper *aw = (struct Nuitka_AIterWrapper *)self;
+
     CHECK_OBJECT(aw);
 
     PyThreadState *tstate = PyThreadState_GET();
@@ -1700,7 +1727,9 @@ static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
     return NULL;
 }
 
-static int Nuitka_AIterWrapper_traverse(struct Nuitka_AIterWrapper *aw, visitproc visit, void *arg) {
+static int Nuitka_AIterWrapper_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_AIterWrapper *aw = (struct Nuitka_AIterWrapper *)self;
+
     CHECK_OBJECT(aw);
 
     Py_VISIT((PyObject *)aw->aw_aiter);
@@ -1710,7 +1739,9 @@ static int Nuitka_AIterWrapper_traverse(struct Nuitka_AIterWrapper *aw, visitpro
 static struct Nuitka_AIterWrapper *free_list_coroutine_aiter_wrappers = NULL;
 static int free_list_coroutine_aiter_wrappers_count = 0;
 
-static void Nuitka_AIterWrapper_dealloc(struct Nuitka_AIterWrapper *aw) {
+static void Nuitka_AIterWrapper_dealloc(PyObject *self) {
+    struct Nuitka_AIterWrapper *aw = (struct Nuitka_AIterWrapper *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_AIterWrapper_Type -= 1;
     count_released_Nuitka_AIterWrapper_Type += 1;

@@ -205,7 +205,9 @@ static inline void Nuitka_gc_list_remove(PyGC_Head *node) {
     node->_gc_next = 0;
 }
 
-static int Nuitka_visit_reachable(PyObject *op, PyGC_Head *reachable) {
+static int Nuitka_visit_reachable(PyObject *op, void *reachable_arg) {
+    PyGC_Head *reachable = (PyGC_Head *)reachable_arg;
+
     if (!_PyObject_IS_GC(op)) {
         return 0;
     }
@@ -342,7 +344,9 @@ static void _Nuitka_move_legacy_finalizers(PyGC_Head *unreachable, PyGC_Head *fi
     }
 }
 
-static int _Nuitka_visit_move(PyObject *op, PyGC_Head *to_list) {
+static int _Nuitka_visit_move(PyObject *op, void *to_list_arg) {
+    PyGC_Head *to_list = (PyGC_Head *)to_list_arg;
+
     if (_PyObject_IS_GC(op)) {
         PyGC_Head *gc = AS_GC(op);
         if (Nuitka_gc_is_collecting(gc)) {

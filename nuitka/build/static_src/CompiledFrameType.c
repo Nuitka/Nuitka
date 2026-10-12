@@ -460,8 +460,10 @@ static PyGetSetDef Nuitka_Frame_tp_getset[] = {
     {NULL}};
 
 // tp_repr slot, decide how a function shall be output
-static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-    assert(Nuitka_Frame_CheckExact((PyObject *)nuitka_frame));
+static PyObject *Nuitka_Frame_tp_repr(PyObject *self) {
+    struct Nuitka_FrameObject *nuitka_frame = (struct Nuitka_FrameObject *)self;
+
+    assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT((PyObject *)nuitka_frame);
     assert(_PyObject_GC_IS_TRACKED(nuitka_frame));
 
@@ -513,7 +515,9 @@ static int Nuitka_Frame_tp_clear(PyObject *frame_obj) {
 static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
 
-static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
+static void Nuitka_Frame_tp_dealloc(PyObject *self) {
+    struct Nuitka_FrameObject *nuitka_frame = (struct Nuitka_FrameObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Frame_Type -= 1;
     count_released_Nuitka_Frame_Type += 1;
@@ -581,8 +585,10 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 #endif
 }
 
-static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
-    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
+static int Nuitka_Frame_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_FrameObject *frame = (struct Nuitka_FrameObject *)self;
+
+    assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -673,8 +679,10 @@ static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_fram
 #endif
 }
 
-static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *unused) {
-    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
+static PyObject *Nuitka_Frame_clear(PyObject *self, PyObject *unused) {
+    struct Nuitka_FrameObject *frame = (struct Nuitka_FrameObject *)self;
+
+    assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -784,8 +792,10 @@ static inline size_t Nuitka_Frame_GetStorageSize(struct Nuitka_FrameObject *fram
 #endif
 }
 
-static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame, PyObject *unused) {
-    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
+static PyObject *Nuitka_Frame_sizeof(PyObject *self, PyObject *unused) {
+    struct Nuitka_FrameObject *frame = (struct Nuitka_FrameObject *)self;
+
+    assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 

@@ -14,7 +14,7 @@
 static void Nuitka_LoaderEntryDisplayName(struct Nuitka_MetaPathBasedLoaderEntry const *entry, char *buffer,
                                           size_t buffer_size);
 static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry);
-static char const *_kw_list_get_data[];
+static char const *_kw_list_get_data[2];
 
 // Just for the IDE to know, this file is not included otherwise.
 #if PYTHON_VERSION >= 0x370
@@ -27,13 +27,17 @@ struct Nuitka_ResourceReaderObject {
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 };
 
-static void Nuitka_ResourceReader_tp_dealloc(struct Nuitka_ResourceReaderObject *reader) {
-    Nuitka_GC_UnTrack(reader);
+static void Nuitka_ResourceReader_tp_dealloc(PyObject *self) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)self;
+
+    Nuitka_GC_UnTrack(self);
 
     PyObject_GC_Del(reader);
 }
 
-static PyObject *Nuitka_ResourceReader_tp_repr(struct Nuitka_ResourceReaderObject *reader) {
+static PyObject *Nuitka_ResourceReader_tp_repr(PyObject *self) {
+    struct Nuitka_ResourceReaderObject *reader = (struct Nuitka_ResourceReaderObject *)self;
+
     char display_name[NUITKA_LOADER_NAME_MAX_LEN];
     Nuitka_LoaderEntryDisplayName(reader->m_loader_entry, display_name, sizeof(display_name));
 
@@ -41,9 +45,7 @@ static PyObject *Nuitka_ResourceReader_tp_repr(struct Nuitka_ResourceReaderObjec
 }
 
 // Obligatory, even if we have nothing to own
-static int Nuitka_ResourceReader_tp_traverse(struct Nuitka_ResourceReaderObject *reader, visitproc visit, void *arg) {
-    return 0;
-}
+static int Nuitka_ResourceReader_tp_traverse(PyObject *self, visitproc visit, void *arg) { return 0; }
 
 static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, struct Nuitka_ResourceReaderObject *reader,
                                                       PyObject *resource) {

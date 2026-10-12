@@ -63,7 +63,8 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
         return NULL;
 {% endif %}
     } else if (flags & METH_VARARGS) {
-        PyCFunction method = method_def->ml_meth;
+        Nuitka_PyCFunctionUnion method;
+        method.as_function = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result;
@@ -71,17 +72,17 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
 #if PYTHON_VERSION < 0x360
 {% if args_count == 1 %}
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
         } else {
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
         }
 {% else %}
         PyObject *pos_args = MAKE_TUPLE(tstate, args+1, {{args_count-1}});
 
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
         }
 
         Py_DECREF(pos_args);
@@ -89,30 +90,30 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObje
 #else
         if (flags == (METH_VARARGS|METH_KEYWORDS)) {
 {% if args_count == 1 %}
-            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
+            result = (*method.as_function_kw)(self, const_tuple_empty, NULL);
 {% else %}
             PyObject *pos_args = MAKE_TUPLE(tstate, args+1, {{args_count-1}});
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*method.as_function_kw)(self, pos_args, NULL);
             Py_DECREF(pos_args);
 {% endif %}
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
-            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args+1, {{args_count-1}}, NULL);
+            result = (*method.as_function_fast)(self, (PyObject **)args+1, {{args_count-1}}, NULL);
 #else
 {% if args_count == 1 %}
-            result = (*(_PyCFunctionFast)method)(self, &const_tuple_empty, {{args_count}});
+            result = (*method.as_function_fast)(self, &const_tuple_empty, {{args_count}});
 {% else %}
             PyObject *pos_args = MAKE_TUPLE(tstate, args+1, {{args_count-1}});
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, {{args_count}});
+            result = (*method.as_function_fast)(self, &pos_args, {{args_count}});
             Py_DECREF(pos_args);
 {% endif %}
 #endif
         } else {
 {% if args_count == 1 %}
-            result = (*method)(self, const_tuple_empty);
+            result = (*method.as_function)(self, const_tuple_empty);
 {% else %}
             PyObject *pos_args = MAKE_TUPLE(tstate, args+1, {{args_count-1}});
-            result = (*method)(self, pos_args);
+            result = (*method.as_function)(self, pos_args);
             Py_DECREF(pos_args);
 {% endif %}
         }

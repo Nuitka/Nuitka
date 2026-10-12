@@ -1622,6 +1622,13 @@ def setupCCompiler(env, pgo_mode, exe_target, onefile_compile):
 
             if (
                 isZigName(env.the_cc_name)
+                or (isClangName(env.the_cc_name) and env.clang_version >= (16,))
+                or (isGccName(env.the_cc_name) and env.gcc_version >= (8,))
+            ):
+                env.Append(CCFLAGS=["-Wcast-function-type"])
+
+            if (
+                isZigName(env.the_cc_name)
                 or (isClangName(env.the_cc_name) and env.clang_version >= (13,))
                 or (isGccName(env.the_cc_name) and env.gcc_version >= (4, 6))
             ):

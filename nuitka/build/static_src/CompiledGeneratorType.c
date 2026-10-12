@@ -112,7 +112,9 @@ static void Nuitka_MarkGeneratorAsNotRunning(struct Nuitka_GeneratorObject *gene
     }
 }
 
-static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_tp_repr(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
 #if PYTHON_VERSION < 0x300
     return Nuitka_String_FromFormat("<compiled_generator object %s at %p>", Nuitka_String_AsString(generator->m_name),
                                     generator);
@@ -124,8 +126,10 @@ static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generat
 #endif
 }
 
-static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generator, visitproc visit, void *arg) {
-    CHECK_OBJECT(generator);
+static int Nuitka_Generator_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
+    CHECK_OBJECT(self);
 
     // TODO: Identify the impact of not visiting owned objects like module.
 #if PYTHON_VERSION >= 0x300
@@ -804,7 +808,9 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
     }
 }
 
-static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static PyObject *Nuitka_Generator_send(PyObject *self, PyObject *value) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
     CHECK_OBJECT(value);
 
     PyThreadState *tstate = PyThreadState_GET();
@@ -837,7 +843,9 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
     return result;
 }
 
-static PyObject *Nuitka_Generator_tp_iternext(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_tp_iternext(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
     PRINT_CURRENT_EXCEPTION();
@@ -924,7 +932,9 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
     return true;
 }
 
-static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator, PyObject *unused) {
+static PyObject *Nuitka_Generator_close(PyObject *self, PyObject *unused) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
     PyThreadState *tstate = PyThreadState_GET();
 
     bool r = _Nuitka_Generator_close(tstate, generator);
@@ -1393,7 +1403,9 @@ throw_here:
     }
 }
 
-static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator, PyObject *args) {
+static PyObject *Nuitka_Generator_throw(PyObject *self, PyObject *args) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
     PyObject *exception_type;
     PyObject *exception_value = NULL;
     PyTracebackObject *exception_tb = NULL;
@@ -1477,7 +1489,9 @@ static bool Nuitka_CallFinalizerFromDealloc(PyObject *self) {
     }
 }
 
-static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generator) {
+static void Nuitka_Generator_tp_finalizer(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
     if (generator->m_status != status_Running) {
         return;
     }
@@ -1503,7 +1517,9 @@ static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generat
 static struct Nuitka_GeneratorObject *free_list_generators = NULL;
 static int free_list_generators_count = 0;
 
-static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator) {
+static void Nuitka_Generator_tp_dealloc(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Generator_Type -= 1;
     count_released_Nuitka_Generator_Type += 1;
@@ -1586,7 +1602,11 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 #endif
 }
 
-static Py_hash_t Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
+static Py_hash_t Nuitka_Generator_tp_hash(PyObject *self) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
+
+    return generator->m_counter;
+}
 
 static PyObject *Nuitka_Generator_get_name(PyObject *self, void *data) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;

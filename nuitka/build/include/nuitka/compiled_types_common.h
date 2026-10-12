@@ -68,6 +68,9 @@ static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
                                                          struct Nuitka_ExceptionPreservationItem *exception_state,
                                                          PyObject *exception_type, PyObject *exception_value,
                                                          PyTracebackObject *exception_tb);
+static void _Nuitka_Generator_add_throw_traceback_frame(PyThreadState *tstate,
+                                                        struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                        PyCodeObject *code_object, PyObject *module);
 static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator);
 
 #if PYTHON_VERSION >= 0x350

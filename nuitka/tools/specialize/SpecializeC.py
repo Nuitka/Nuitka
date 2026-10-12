@@ -1016,8 +1016,10 @@ def makeHelperCalls():
             emitIDE(emit)
 
             emit_c("""\
+#ifndef __IDE_ONLY__
 // We are switching some warnings off for this code, as they are triggered
-// by the generated code constructs in a way that is not useful.
+// by the generated code constructs in a way that is not useful. For IDE
+// parses this is skipped, as they report the pop without the push.
 // spell-checker: ignore Wparentheses GNUC
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -1027,6 +1029,7 @@ def makeHelperCalls():
 #pragma GCC diagnostic push
 #endif
 #pragma GCC diagnostic ignored "-Wparentheses"
+#endif
 #endif
 """)
 
@@ -1085,11 +1088,13 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
             emit_c("""\
+#ifndef __IDE_ONLY__
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
+#endif
 #endif
 #endif
 """)

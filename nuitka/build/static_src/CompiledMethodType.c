@@ -50,7 +50,12 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method, PyObject *unused) {
+static PyObject *Nuitka_Method_reduce(PyObject *self, PyObject *unused) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
+    CHECK_OBJECT(method);
+    assert(Nuitka_Method_Check(self));
+
     PyThreadState *tstate = PyThreadState_GET();
 
 #if PYTHON_VERSION < 0x300
@@ -69,7 +74,7 @@ static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method, PyObje
 #endif
 }
 
-static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyObject *args) {
+static PyObject *Nuitka_Method_reduce_ex(PyObject *self, PyObject *args) {
     int proto;
 
     if (!PyArg_ParseTuple(args, "|i:__reduce_ex__", &proto)) {
@@ -102,12 +107,14 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
 
     return result;
 #else
-    return Nuitka_Method_reduce(method, NULL);
+    return Nuitka_Method_reduce(self, NULL);
 #endif
 }
 
-static PyObject *Nuitka_Method_deepcopy(struct Nuitka_MethodObject *method, PyObject *memo) {
-    assert(Nuitka_Method_Check((PyObject *)method));
+static PyObject *Nuitka_Method_deepcopy(PyObject *self, PyObject *memo) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
+    assert(Nuitka_Method_Check(self));
 
     static PyObject *module_copy = NULL;
     static PyObject *deepcopy_function = NULL;
@@ -139,9 +146,11 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {NULL}};
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargs_f,
+static PyObject *Nuitka_Method_tp_vectorcall(PyObject *self, PyObject *const *stack, size_t nargs_f,
                                              PyObject *kw_names) {
-    assert(Nuitka_Method_Check((PyObject *)method));
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
+    assert(Nuitka_Method_Check(self));
     assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
     Py_ssize_t kwargs_count = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
     Py_ssize_t nargs = PyVectorcall_NARGS(nargs_f);
@@ -160,10 +169,10 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
                 GET_CLASS_NAME(method->m_class));
             return NULL;
         } else {
-            PyObject *self = stack[0];
-            CHECK_OBJECT(self);
+            PyObject *self_arg = stack[0];
+            CHECK_OBJECT(self_arg);
 
-            int result = Nuitka_Object_IsInstance(tstate, self, method->m_class);
+            int result = Nuitka_Object_IsInstance(tstate, self_arg, method->m_class);
 
             if (unlikely(result < 0)) {
                 return NULL;
@@ -173,7 +182,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, self_arg));
 
                 return NULL;
             }
@@ -230,7 +239,9 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 }
 #endif
 
-static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObject *args, PyObject *kw) {
+static PyObject *Nuitka_Method_tp_call(PyObject *self, PyObject *args, PyObject *kw) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     Py_ssize_t arg_count = PyTuple_GET_SIZE(args);
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -243,10 +254,10 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
                 GET_CLASS_NAME(method->m_class));
             return NULL;
         } else {
-            PyObject *self = PyTuple_GET_ITEM(args, 0);
-            CHECK_OBJECT(self);
+            PyObject *self_arg = PyTuple_GET_ITEM(args, 0);
+            CHECK_OBJECT(self_arg);
 
-            int result = Nuitka_Object_IsInstance(tstate, self, method->m_class);
+            int result = Nuitka_Object_IsInstance(tstate, self_arg, method->m_class);
 
             if (unlikely(result < 0)) {
                 return NULL;
@@ -256,7 +267,7 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, self_arg));
 
                 return NULL;
             }
@@ -279,7 +290,9 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
 }
 
 #if PYTHON_VERSION < 0x3a0 || PYTHON_VERSION >= 0x3d0
-static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *obj, PyObject *class_object) {
+static PyObject *Nuitka_Method_tp_descr_get(PyObject *self, PyObject *obj, PyObject *class_object) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     // Don't rebind already bound methods.
     if (method->m_object != NULL) {
         Py_INCREF(method);
@@ -302,7 +315,9 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
 }
 #endif
 
-static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, PyObject *name) {
+static PyObject *Nuitka_Method_tp_getattro(PyObject *self, PyObject *name) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     PyObject *descr = Nuitka_TypeLookup(&Nuitka_Method_Type, name);
 
     if (descr != NULL) {
@@ -319,7 +334,9 @@ static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, P
     return PyObject_GetAttr((PyObject *)method->m_function, name);
 }
 
-static long Nuitka_Method_tp_traverse(struct Nuitka_MethodObject *method, visitproc visit, void *arg) {
+static int Nuitka_Method_tp_traverse(PyObject *self, visitproc visit, void *arg) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     Py_VISIT(method->m_function);
     Py_VISIT(method->m_object);
     Py_VISIT(method->m_class);
@@ -328,7 +345,9 @@ static long Nuitka_Method_tp_traverse(struct Nuitka_MethodObject *method, visitp
 }
 
 // tp_repr slot, decide how a function shall be output
-static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
+static PyObject *Nuitka_Method_tp_repr(PyObject *self) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     if (method->m_object == NULL) {
 #if PYTHON_VERSION < 0x300
         return PyString_FromFormat("<unbound compiled_method %s.%s>", GET_CLASS_NAME(method->m_class),
@@ -374,7 +393,10 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
 }
 
 #if PYTHON_VERSION < 0x300
-static int Nuitka_Method_tp_compare(struct Nuitka_MethodObject *a, struct Nuitka_MethodObject *b) {
+static int Nuitka_Method_tp_compare(PyObject *a_object, PyObject *b_object) {
+    struct Nuitka_MethodObject *a = (struct Nuitka_MethodObject *)a_object;
+    struct Nuitka_MethodObject *b = (struct Nuitka_MethodObject *)b_object;
+
     if (a->m_function->m_counter < b->m_function->m_counter) {
         return -1;
     } else if (a->m_function->m_counter > b->m_function->m_counter) {
@@ -391,7 +413,10 @@ static int Nuitka_Method_tp_compare(struct Nuitka_MethodObject *a, struct Nuitka
 }
 #endif
 
-static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, struct Nuitka_MethodObject *b, int op) {
+static PyObject *Nuitka_Method_tp_richcompare(PyObject *object_a, PyObject *object_b, int op) {
+    struct Nuitka_MethodObject *a = (struct Nuitka_MethodObject *)object_a;
+    struct Nuitka_MethodObject *b = (struct Nuitka_MethodObject *)object_b;
+
     if (op != Py_EQ && op != Py_NE) {
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
@@ -438,7 +463,9 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
     return result;
 }
 
-static Py_hash_t Nuitka_Method_tp_hash(struct Nuitka_MethodObject *method) {
+static Py_hash_t Nuitka_Method_tp_hash(PyObject *self) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
     // Just give the hash of the method function, that ought to be good enough.
     return method->m_function->m_counter;
 }
@@ -448,7 +475,9 @@ static Py_hash_t Nuitka_Method_tp_hash(struct Nuitka_MethodObject *method) {
 static struct Nuitka_MethodObject *free_list_methods = NULL;
 static int free_list_methods_count = 0;
 
-static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
+static void Nuitka_Method_tp_dealloc(PyObject *self) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
+
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Method_Type -= 1;
     count_released_Nuitka_Method_Type += 1;
@@ -544,7 +573,7 @@ PyTypeObject Nuitka_Method_Type = {
     0, // tp_getattr
     0, // tp_setattr
 #if PYTHON_VERSION < 0x300
-    (cmpfunc)Nuitka_Method_tp_compare, // tp_compare
+    Nuitka_Method_tp_compare, // tp_compare
 #else
     0,
 #endif
@@ -579,7 +608,7 @@ PyTypeObject Nuitka_Method_Type = {
     0,                                                // tp_base
     0,                                                // tp_dict
 #if PYTHON_VERSION < 0x3a0 || PYTHON_VERSION >= 0x3d0
-    (descrgetfunc)Nuitka_Method_tp_descr_get, // tp_descr_get
+    Nuitka_Method_tp_descr_get, // tp_descr_get
 #else
     0,
 #endif
